@@ -84,7 +84,7 @@ export class ProductDetailService {
   private async getRelatedProducts(
     companyId: string,
     excludeProductId: string,
-    productType: string
+    _productType: string
   ): Promise<Product[]> {
     // Get other products from same company or same type
     const result = await db
@@ -129,7 +129,7 @@ export class ProductDetailService {
     return productArticles
       .filter(a => a.publishedAt)
       .map(a => ({
-        date: a.publishedAt!.toISOString().split('T')[0],
+        date: a.publishedAt!.toISOString().split('T')[0] ?? '',
         type: 'article',
         title: a.title,
         id: a.id,

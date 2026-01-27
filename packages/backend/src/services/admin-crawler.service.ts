@@ -154,12 +154,12 @@ export class AdminCrawlerService {
       countQuery = countQuery.where(eq(crawlJobs.status, status)) as typeof countQuery;
     }
 
-    const [items, [{ count }]] = await Promise.all([
+    const [items, countResult] = await Promise.all([
       query.orderBy(desc(crawlJobs.startedAt)).limit(limit).offset(offset),
       countQuery,
     ]);
 
-    return { items: items as CrawlJob[], total: Number(count) };
+    return { items: items as CrawlJob[], total: Number(countResult[0]?.count ?? 0) };
   }
 
   /**
@@ -186,12 +186,12 @@ export class AdminCrawlerService {
       countQuery = countQuery.where(whereClause) as typeof countQuery;
     }
 
-    const [items, [{ count }]] = await Promise.all([
+    const [items, countResult] = await Promise.all([
       query.orderBy(desc(crawlErrors.occurredAt)).limit(limit).offset(offset),
       countQuery,
     ]);
 
-    return { items: items as CrawlError[], total: Number(count) };
+    return { items: items as CrawlError[], total: Number(countResult[0]?.count ?? 0) };
   }
 
   /**
@@ -202,9 +202,9 @@ export class AdminCrawlerService {
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
     const [
-      [{ count: total }],
+      totalResult,
       byTypeResult,
-      [{ count: recentErrors }],
+      recentErrorsResult,
     ] = await Promise.all([
       db.select({ count: sql<number>`count(*)` }).from(crawlErrors),
       db
@@ -226,9 +226,9 @@ export class AdminCrawlerService {
     }
 
     return {
-      total: Number(total),
+      total: Number(totalResult[0]?.count ?? 0),
       byType,
-      recentErrors: Number(recentErrors),
+      recentErrors: Number(recentErrorsResult[0]?.count ?? 0),
     };
   }
 

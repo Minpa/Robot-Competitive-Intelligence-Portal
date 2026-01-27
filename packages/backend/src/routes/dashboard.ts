@@ -28,7 +28,6 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
   fastify.get('/charts/articles', async (request) => {
     const query = request.query as Record<string, string>;
     return dashboardService.getArticleChartData({
-      period: (query.period as 'week' | 'month') || 'week',
       weeks: query.weeks ? parseInt(query.weeks) : 12,
     });
   });

@@ -10,8 +10,8 @@ import {
 import type { Company, Product, Article } from '../types/index.js';
 
 export interface SearchResult<T> {
-  id: string;
-  score: number | null;
+  id: string | undefined;
+  score: number | null | undefined;
   source: T | undefined;
   highlights?: Record<string, string[]>;
 }
@@ -331,7 +331,7 @@ export class SearchService {
   async indexCompany(company: Company) {
     if (!this.esAvailable) return;
     try {
-      await indexDocument(INDICES.COMPANIES, company.id, company);
+      await indexDocument(INDICES.COMPANIES, company.id, company as unknown as Record<string, unknown>);
     } catch (error) {
       console.error('Index company error:', error);
     }
@@ -343,7 +343,7 @@ export class SearchService {
   async indexProduct(product: Product & { companyName?: string; keywords?: string[] }) {
     if (!this.esAvailable) return;
     try {
-      await indexDocument(INDICES.PRODUCTS, product.id, product);
+      await indexDocument(INDICES.PRODUCTS, product.id, product as unknown as Record<string, unknown>);
     } catch (error) {
       console.error('Index product error:', error);
     }
@@ -355,7 +355,7 @@ export class SearchService {
   async indexArticle(article: Article & { companyName?: string; productName?: string; keywords?: string[] }) {
     if (!this.esAvailable) return;
     try {
-      await indexDocument(INDICES.ARTICLES, article.id, article);
+      await indexDocument(INDICES.ARTICLES, article.id, article as unknown as Record<string, unknown>);
     } catch (error) {
       console.error('Index article error:', error);
     }

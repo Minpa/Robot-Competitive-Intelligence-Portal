@@ -1,7 +1,7 @@
 import { eq, and, desc, sql, gte, lte } from 'drizzle-orm';
 import { db, keywords, keywordStats, articleKeywords, productKeywords } from '../db/index.js';
-import type { Keyword, KeywordStats } from '../types/index.js';
-import type { CreateKeywordDto, CreateKeywordStatsDto } from '../types/dto.js';
+import type { Keyword, KeywordStats, Language } from '../types/index.js';
+import type { CreateKeywordDto } from '../types/dto.js';
 
 export class KeywordService {
   /**
@@ -12,7 +12,7 @@ export class KeywordService {
       .insert(keywords)
       .values(data)
       .returning();
-    return keyword;
+    return keyword as Keyword;
   }
 
   /**
@@ -24,7 +24,7 @@ export class KeywordService {
       .from(keywords)
       .where(and(eq(keywords.term, term), eq(keywords.language, language)))
       .limit(1);
-    return keyword || null;
+    return keyword ? { ...keyword, language: keyword.language as Language } : null;
   }
 
   /**
@@ -60,12 +60,12 @@ export class KeywordService {
       countQuery = countQuery.where(whereClause) as typeof countQuery;
     }
 
-    const [items, [{ count }]] = await Promise.all([
+    const [items, countResult] = await Promise.all([
       query.limit(limit).offset(offset),
       countQuery,
     ]);
 
-    return { items, total: Number(count) };
+    return { items: items as Keyword[], total: Number(countResult[0]?.count ?? 0) };
   }
 
   /**
@@ -97,7 +97,7 @@ export class KeywordService {
       .from(articleKeywords)
       .innerJoin(keywords, eq(articleKeywords.keywordId, keywords.id))
       .where(eq(articleKeywords.articleId, articleId));
-    return result.map(r => r.keyword);
+    return result.map(r => r.keyword as Keyword);
   }
 
   /**
@@ -109,7 +109,7 @@ export class KeywordService {
       .from(productKeywords)
       .innerJoin(keywords, eq(productKeywords.keywordId, keywords.id))
       .where(eq(productKeywords.productId, productId));
-    return result.map(r => r.keyword);
+    return result.map(r => r.keyword as Keyword);
   }
 
   /**

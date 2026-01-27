@@ -1,5 +1,5 @@
 import { sql, desc, gte, and, eq } from 'drizzle-orm';
-import { db, companies, products, articles, keywords, keywordStats, productSpecs } from '../db/index.js';
+import { db, companies, products, articles, keywords, keywordStats } from '../db/index.js';
 
 export interface DashboardSummary {
   totalCompanies: number;
@@ -47,12 +47,12 @@ export class DashboardService {
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
     const [
-      [{ count: totalCompanies }],
-      [{ count: totalProducts }],
-      [{ count: totalArticles }],
-      [{ count: totalKeywords }],
-      [{ count: weeklyNewProducts }],
-      [{ count: weeklyNewArticles }],
+      totalCompaniesResult,
+      totalProductsResult,
+      totalArticlesResult,
+      totalKeywordsResult,
+      weeklyNewProductsResult,
+      weeklyNewArticlesResult,
     ] = await Promise.all([
       db.select({ count: sql<number>`count(*)` }).from(companies),
       db.select({ count: sql<number>`count(*)` }).from(products),
@@ -63,12 +63,12 @@ export class DashboardService {
     ]);
 
     return {
-      totalCompanies: Number(totalCompanies),
-      totalProducts: Number(totalProducts),
-      totalArticles: Number(totalArticles),
-      totalKeywords: Number(totalKeywords),
-      weeklyNewProducts: Number(weeklyNewProducts),
-      weeklyNewArticles: Number(weeklyNewArticles),
+      totalCompanies: Number(totalCompaniesResult[0]?.count ?? 0),
+      totalProducts: Number(totalProductsResult[0]?.count ?? 0),
+      totalArticles: Number(totalArticlesResult[0]?.count ?? 0),
+      totalKeywords: Number(totalKeywordsResult[0]?.count ?? 0),
+      weeklyNewProducts: Number(weeklyNewProductsResult[0]?.count ?? 0),
+      weeklyNewArticles: Number(weeklyNewArticlesResult[0]?.count ?? 0),
       lastUpdated: new Date().toISOString(),
     };
   }
@@ -252,7 +252,7 @@ export class DashboardService {
         }
 
         events.push({
-          date: a.publishedAt.toISOString().split('T')[0],
+          date: a.publishedAt.toISOString().split('T')[0] ?? '',
           type: 'article',
           title: a.title,
           entityId: a.id,
@@ -281,10 +281,9 @@ export class DashboardService {
    * Get chart data for articles over time
    */
   async getArticleChartData(options: {
-    period?: 'week' | 'month';
     weeks?: number;
   } = {}): Promise<ChartData> {
-    const { period = 'week', weeks = 12 } = options;
+    const { weeks = 12 } = options;
     const labels: string[] = [];
     const data: number[] = [];
 
@@ -298,7 +297,7 @@ export class DashboardService {
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekEnd.getDate() + 7);
 
-      const [{ count }] = await db
+      const result = await db
         .select({ count: sql<number>`count(*)` })
         .from(articles)
         .where(and(
@@ -306,8 +305,9 @@ export class DashboardService {
           sql`${articles.createdAt} < ${weekEnd}`
         ));
 
-      labels.push(weekStart.toISOString().split('T')[0]);
-      data.push(Number(count));
+      const dateStr = weekStart.toISOString().split('T')[0];
+      labels.push(dateStr ?? '');
+      data.push(Number(result[0]?.count ?? 0));
     }
 
     return {

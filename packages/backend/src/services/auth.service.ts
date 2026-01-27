@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { createHash, randomBytes } from 'crypto';
+import { createHash } from 'crypto';
 import { db, users, auditLogs } from '../db/index.js';
 import type { User, UserRole, Permission } from '../types/index.js';
 
@@ -65,6 +65,10 @@ export class AuthService {
         permissions,
       })
       .returning();
+
+    if (!user) {
+      throw new Error('Failed to create user');
+    }
 
     const token = this.generateToken({
       userId: user.id,
