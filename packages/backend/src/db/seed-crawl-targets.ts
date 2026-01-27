@@ -222,10 +222,14 @@ async function seedCrawlTargets() {
   console.log(`Added ${crawlTargetsList.length} crawl targets`);
 
   console.log('Crawl targets seed completed!');
-  process.exit(0);
 }
 
-seedCrawlTargets().catch((err) => {
-  console.error('Seed failed:', err);
-  process.exit(1);
-});
+seedCrawlTargets()
+  .then(() => {
+    console.log('Seed finished successfully');
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error('Seed failed:', err);
+    process.exit(1);
+  });
