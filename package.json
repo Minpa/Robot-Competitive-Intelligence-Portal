@@ -1,0 +1,28 @@
+{
+  "name": "robot-competitive-intelligence-portal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Robot Competitive Intelligence Portal - Market trend monitoring for robotics industry",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "backend:dev": "npm run dev --workspace=@rcip/backend",
+    "crawler:dev": "npm run dev --workspace=@rcip/crawler",
+    "frontend:dev": "npm run dev --workspace=@rcip/frontend",
+    "db:migrate": "npm run migrate --workspace=@rcip/backend",
+    "db:seed": "npm run seed --workspace=@rcip/backend"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

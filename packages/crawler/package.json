@@ -1,0 +1,35 @@
+{
+  "name": "@rcip/crawler",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Web crawler microservice for Robot Competitive Intelligence Portal",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src --ext .ts",
+    "clean": "rm -rf dist coverage"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "fastify": "^4.25.0",
+    "node-cron": "^3.0.3",
+    "p-queue": "^8.0.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/node-cron": "^3.0.11",
+    "@types/uuid": "^9.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.2.0",
+    "fast-check": "^3.15.0"
+  }
+}

@@ -1,0 +1,365 @@
+import { sql, desc, gte, and, eq } from 'drizzle-orm';
+import { db, companies, products, articles, keywords, keywordStats, productSpecs } from '../db/index.js';
+
+export interface DashboardSummary {
+  totalCompanies: number;
+  totalProducts: number;
+  totalArticles: number;
+  totalKeywords: number;
+  weeklyNewProducts: number;
+  weeklyNewArticles: number;
+  lastUpdated: string;
+}
+
+export interface WeeklyHighlight {
+  type: 'new_product' | 'price_change' | 'article_peak' | 'trending_keyword';
+  title: string;
+  description: string;
+  entityId?: string;
+  entityType?: string;
+  value?: number | string;
+  date?: string;
+}
+
+export interface TimelineEvent {
+  date: string;
+  type: 'product_release' | 'article' | 'price_update';
+  title: string;
+  entityId: string;
+  entityType: string;
+  companyName?: string;
+}
+
+export interface ChartData {
+  labels: string[];
+  datasets: {
+    label: string;
+    data: number[];
+  }[];
+}
+
+export class DashboardService {
+  /**
+   * Get dashboard summary with total counts and weekly metrics
+   */
+  async getSummary(): Promise<DashboardSummary> {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    const [
+      [{ count: totalCompanies }],
+      [{ count: totalProducts }],
+      [{ count: totalArticles }],
+      [{ count: totalKeywords }],
+      [{ count: weeklyNewProducts }],
+      [{ count: weeklyNewArticles }],
+    ] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(companies),
+      db.select({ count: sql<number>`count(*)` }).from(products),
+      db.select({ count: sql<number>`count(*)` }).from(articles),
+      db.select({ count: sql<number>`count(*)` }).from(keywords),
+      db.select({ count: sql<number>`count(*)` }).from(products).where(gte(products.createdAt, oneWeekAgo)),
+      db.select({ count: sql<number>`count(*)` }).from(articles).where(gte(articles.createdAt, oneWeekAgo)),
+    ]);
+
+    return {
+      totalCompanies: Number(totalCompanies),
+      totalProducts: Number(totalProducts),
+      totalArticles: Number(totalArticles),
+      totalKeywords: Number(totalKeywords),
+      weeklyNewProducts: Number(weeklyNewProducts),
+      weeklyNewArticles: Number(weeklyNewArticles),
+      lastUpdated: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Get weekly highlights
+   */
+  async getWeeklyHighlights(limit: number = 5): Promise<WeeklyHighlight[]> {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const highlights: WeeklyHighlight[] = [];
+
+    // New products this week
+    const newProducts = await db
+      .select({
+        id: products.id,
+        name: products.name,
+        companyId: products.companyId,
+        createdAt: products.createdAt,
+      })
+      .from(products)
+      .where(gte(products.createdAt, oneWeekAgo))
+      .orderBy(desc(products.createdAt))
+      .limit(3);
+
+    for (const product of newProducts) {
+      const [company] = await db
+        .select({ name: companies.name })
+        .from(companies)
+        .where(eq(companies.id, product.companyId))
+        .limit(1);
+
+      highlights.push({
+        type: 'new_product',
+        title: `New Product: ${product.name}`,
+        description: `${company?.name || 'Unknown'} released a new product`,
+        entityId: product.id,
+        entityType: 'product',
+        date: product.createdAt.toISOString(),
+      });
+    }
+
+    // Trending keywords
+    const trendingKeywords = await db
+      .select({
+        term: keywords.term,
+        delta: keywordStats.delta,
+        deltaPercent: keywordStats.deltaPercent,
+      })
+      .from(keywordStats)
+      .innerJoin(keywords, eq(keywordStats.keywordId, keywords.id))
+      .where(eq(keywordStats.periodType, 'week'))
+      .orderBy(desc(keywordStats.deltaPercent))
+      .limit(2);
+
+    for (const kw of trendingKeywords) {
+      if (kw.delta && kw.delta > 0) {
+        highlights.push({
+          type: 'trending_keyword',
+          title: `Trending: "${kw.term}"`,
+          description: `Keyword frequency increased by ${kw.deltaPercent}%`,
+          value: kw.term,
+        });
+      }
+    }
+
+    // Article peaks (companies with most articles this week)
+    const articleCounts = await db
+      .select({
+        companyId: articles.companyId,
+        count: sql<number>`count(*)`,
+      })
+      .from(articles)
+      .where(and(
+        gte(articles.createdAt, oneWeekAgo),
+        sql`${articles.companyId} IS NOT NULL`
+      ))
+      .groupBy(articles.companyId)
+      .orderBy(desc(sql`count(*)`))
+      .limit(2);
+
+    for (const ac of articleCounts) {
+      if (ac.companyId && Number(ac.count) >= 3) {
+        const [company] = await db
+          .select({ name: companies.name })
+          .from(companies)
+          .where(eq(companies.id, ac.companyId))
+          .limit(1);
+
+        highlights.push({
+          type: 'article_peak',
+          title: `PR Peak: ${company?.name || 'Unknown'}`,
+          description: `${ac.count} articles published this week`,
+          entityId: ac.companyId,
+          entityType: 'company',
+          value: Number(ac.count),
+        });
+      }
+    }
+
+    return highlights.slice(0, limit);
+  }
+
+  /**
+   * Get timeline data for a date range
+   */
+  async getTimeline(options: {
+    startDate?: string;
+    endDate?: string;
+    companyId?: string;
+    limit?: number;
+  } = {}): Promise<TimelineEvent[]> {
+    const { startDate, endDate, companyId, limit = 50 } = options;
+    const events: TimelineEvent[] = [];
+
+    // Get product releases
+    let productQuery = db
+      .select({
+        id: products.id,
+        name: products.name,
+        releaseDate: products.releaseDate,
+        companyId: products.companyId,
+      })
+      .from(products)
+      .orderBy(desc(products.releaseDate))
+      .limit(limit);
+
+    if (companyId) {
+      productQuery = productQuery.where(eq(products.companyId, companyId)) as typeof productQuery;
+    }
+
+    const productReleases = await productQuery;
+
+    for (const p of productReleases) {
+      if (p.releaseDate) {
+        const [company] = await db
+          .select({ name: companies.name })
+          .from(companies)
+          .where(eq(companies.id, p.companyId))
+          .limit(1);
+
+        events.push({
+          date: p.releaseDate,
+          type: 'product_release',
+          title: p.name,
+          entityId: p.id,
+          entityType: 'product',
+          companyName: company?.name,
+        });
+      }
+    }
+
+    // Get articles
+    let articleQuery = db
+      .select({
+        id: articles.id,
+        title: articles.title,
+        publishedAt: articles.publishedAt,
+        companyId: articles.companyId,
+      })
+      .from(articles)
+      .orderBy(desc(articles.publishedAt))
+      .limit(limit);
+
+    if (companyId) {
+      articleQuery = articleQuery.where(eq(articles.companyId, companyId)) as typeof articleQuery;
+    }
+
+    const articleList = await articleQuery;
+
+    for (const a of articleList) {
+      if (a.publishedAt) {
+        let companyName: string | undefined;
+        if (a.companyId) {
+          const [company] = await db
+            .select({ name: companies.name })
+            .from(companies)
+            .where(eq(companies.id, a.companyId))
+            .limit(1);
+          companyName = company?.name;
+        }
+
+        events.push({
+          date: a.publishedAt.toISOString().split('T')[0],
+          type: 'article',
+          title: a.title,
+          entityId: a.id,
+          entityType: 'article',
+          companyName,
+        });
+      }
+    }
+
+    // Sort by date descending
+    events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    // Filter by date range if provided
+    let filtered = events;
+    if (startDate) {
+      filtered = filtered.filter(e => e.date >= startDate);
+    }
+    if (endDate) {
+      filtered = filtered.filter(e => e.date <= endDate);
+    }
+
+    return filtered.slice(0, limit);
+  }
+
+  /**
+   * Get chart data for articles over time
+   */
+  async getArticleChartData(options: {
+    period?: 'week' | 'month';
+    weeks?: number;
+  } = {}): Promise<ChartData> {
+    const { period = 'week', weeks = 12 } = options;
+    const labels: string[] = [];
+    const data: number[] = [];
+
+    const now = new Date();
+
+    for (let i = weeks - 1; i >= 0; i--) {
+      const weekStart = new Date(now);
+      weekStart.setDate(weekStart.getDate() - (i * 7));
+      weekStart.setHours(0, 0, 0, 0);
+
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+
+      const [{ count }] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(articles)
+        .where(and(
+          gte(articles.createdAt, weekStart),
+          sql`${articles.createdAt} < ${weekEnd}`
+        ));
+
+      labels.push(weekStart.toISOString().split('T')[0]);
+      data.push(Number(count));
+    }
+
+    return {
+      labels,
+      datasets: [{
+        label: 'Articles',
+        data,
+      }],
+    };
+  }
+
+  /**
+   * Get chart data for products by type
+   */
+  async getProductTypeChartData(): Promise<ChartData> {
+    const result = await db
+      .select({
+        type: products.type,
+        count: sql<number>`count(*)`,
+      })
+      .from(products)
+      .groupBy(products.type);
+
+    return {
+      labels: result.map(r => r.type),
+      datasets: [{
+        label: 'Products by Type',
+        data: result.map(r => Number(r.count)),
+      }],
+    };
+  }
+
+  /**
+   * Get chart data for companies by country
+   */
+  async getCompanyCountryChartData(): Promise<ChartData> {
+    const result = await db
+      .select({
+        country: companies.country,
+        count: sql<number>`count(*)`,
+      })
+      .from(companies)
+      .groupBy(companies.country);
+
+    return {
+      labels: result.map(r => r.country),
+      datasets: [{
+        label: 'Companies by Country',
+        data: result.map(r => Number(r.count)),
+      }],
+    };
+  }
+}
+
+export const dashboardService = new DashboardService();
