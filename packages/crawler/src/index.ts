@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import { crawlerService } from './services/crawler.service.js';
 import { schedulerService } from './services/scheduler.service.js';
 import { errorLogger } from './services/error-logger.js';
+import { autoCrawlerService } from './services/auto-crawler.service.js';
 import type { CrawlJobConfig, TargetUrl } from './types.js';
 
 const fastify = Fastify({ logger: true });
@@ -104,6 +105,14 @@ const start = async () => {
     const port = parseInt(process.env.CRAWLER_PORT || '3003', 10);
     await fastify.listen({ port, host: '0.0.0.0' });
     console.log(`Crawler service running on port ${port}`);
+
+    // Initialize auto-crawler if DATABASE_URL is set
+    if (process.env.DATABASE_URL) {
+      console.log('DATABASE_URL found, initializing auto-crawler...');
+      await autoCrawlerService.initialize();
+    } else {
+      console.log('DATABASE_URL not set, auto-crawler disabled');
+    }
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
