@@ -1,4 +1,4 @@
-import { db, companies, products, productSpecs, keywords } from './index.js';
+import { db, companies, products, productSpecs, keywords, keywordStats } from './index.js';
 
 async function seed() {
   console.log('Seeding database...');
@@ -146,13 +146,82 @@ async function seed() {
   ]);
 
   // Insert sample keywords
-  await db.insert(keywords).values([
+  const insertedKeywords = await db.insert(keywords).values([
     { term: 'humanoid robot', language: 'en', category: 'technology' },
     { term: 'quadruped robot', language: 'en', category: 'technology' },
     { term: 'warehouse automation', language: 'en', category: 'market' },
     { term: 'AI locomotion', language: 'en', category: 'technology' },
     { term: '휴머노이드', language: 'ko', category: 'technology' },
     { term: '물류 로봇', language: 'ko', category: 'market' },
+  ]).returning();
+
+  // Calculate current week dates
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
+  weekStart.setHours(0, 0, 0, 0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+
+  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+
+  // Insert keyword stats for trending
+  await db.insert(keywordStats).values([
+    {
+      keywordId: insertedKeywords[0]!.id, // humanoid robot
+      periodType: 'week',
+      periodStart: formatDate(weekStart),
+      periodEnd: formatDate(weekEnd),
+      count: 45,
+      delta: 12,
+      deltaPercent: '36.4',
+    },
+    {
+      keywordId: insertedKeywords[1]!.id, // quadruped robot
+      periodType: 'week',
+      periodStart: formatDate(weekStart),
+      periodEnd: formatDate(weekEnd),
+      count: 28,
+      delta: 5,
+      deltaPercent: '21.7',
+    },
+    {
+      keywordId: insertedKeywords[2]!.id, // warehouse automation
+      periodType: 'week',
+      periodStart: formatDate(weekStart),
+      periodEnd: formatDate(weekEnd),
+      count: 67,
+      delta: 23,
+      deltaPercent: '52.3',
+    },
+    {
+      keywordId: insertedKeywords[3]!.id, // AI locomotion
+      periodType: 'week',
+      periodStart: formatDate(weekStart),
+      periodEnd: formatDate(weekEnd),
+      count: 34,
+      delta: 8,
+      deltaPercent: '30.8',
+    },
+    {
+      keywordId: insertedKeywords[4]!.id, // 휴머노이드
+      periodType: 'week',
+      periodStart: formatDate(weekStart),
+      periodEnd: formatDate(weekEnd),
+      count: 52,
+      delta: 15,
+      deltaPercent: '40.5',
+    },
+    {
+      keywordId: insertedKeywords[5]!.id, // 물류 로봇
+      periodType: 'week',
+      periodStart: formatDate(weekStart),
+      periodEnd: formatDate(weekEnd),
+      count: 41,
+      delta: 9,
+      deltaPercent: '28.1',
+    },
   ]);
 
   console.log('Seed completed successfully!');
