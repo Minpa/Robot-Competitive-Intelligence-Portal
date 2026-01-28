@@ -1,13 +1,23 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
 
 const { Pool } = pg;
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+let db: NodePgDatabase | null = null;
 
-export const db = drizzle(pool);
+export function getDb(): NodePgDatabase {
+  if (!db) {
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL is not set');
+    }
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+    });
+    db = drizzle(pool);
+  }
+  return db;
+}
 
 // Re-export schema types
 export * from './schema.js';
+export { db };

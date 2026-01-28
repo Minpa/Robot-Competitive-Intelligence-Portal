@@ -1,6 +1,6 @@
 import cron, { ScheduledTask } from 'node-cron';
 import { eq } from 'drizzle-orm';
-import { db, crawlTargets, articles, crawlJobs } from '../db/index.js';
+import { getDb, crawlTargets, articles, crawlJobs } from '../db/index.js';
 import { crawlerService } from './crawler.service.js';
 import { createHash } from 'crypto';
 import type { TargetUrl } from '../types.js';
@@ -9,16 +9,13 @@ export class AutoCrawlerService {
   private tasks: Map<string, ScheduledTask> = new Map();
   private isInitialized = false;
 
-  /**
-   * Initialize auto-crawler by loading targets from DB
-   */
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
 
     console.log('[AutoCrawler] Initializing...');
 
     try {
-      // Load enabled crawl targets from DB
+      const db = getDb();
       const targets = await db
         .select()
         .from(crawlTargets)
@@ -26,12 +23,10 @@ export class AutoCrawlerService {
 
       console.log(`[AutoCrawler] Found ${targets.length} enabled crawl targets`);
 
-      // Schedule each target
       for (const target of targets) {
         this.scheduleTarget(target);
       }
 
-      // Run initial crawl after 30 seconds
       setTimeout(() => {
         this.runInitialCrawl();
       }, 30000);
@@ -43,11 +38,8 @@ export class AutoCrawlerService {
     }
   }
 
-  /**
-   * Schedule a crawl target
-   */
   private scheduleTarget(target: typeof crawlTargets.$inferSelect): void {
-    const cronExpr = target.cronExpression || '0 0 * * *'; // Default: daily at midnight
+    const cronExpr = target.cronExpression || '0 0 * * *';
 
     try {
       const task = cron.schedule(cronExpr, async () => {
@@ -62,24 +54,20 @@ export class AutoCrawlerService {
     }
   }
 
-  /**
-   * Run initial crawl for all targets
-   */
   private async runInitialCrawl(): Promise<void> {
     console.log('[AutoCrawler] Starting initial crawl...');
 
     try {
+      const db = getDb();
       const targets = await db
         .select()
         .from(crawlTargets)
         .where(eq(crawlTargets.enabled, true));
 
-      // Crawl first 3 targets to test
       const testTargets = targets.slice(0, 3);
 
       for (const target of testTargets) {
         await this.crawlTarget(target);
-        // Wait between targets
         await new Promise((resolve) => setTimeout(resolve, 5000));
       }
 
@@ -89,10 +77,8 @@ export class AutoCrawlerService {
     }
   }
 
-  /**
-   * Crawl a specific target
-   */
   async crawlTarget(target: typeof crawlTargets.$inferSelect): Promise<void> {
+    const db = getDb();
     const urls = target.urls || [];
     const patterns = target.patterns || [];
 
@@ -101,7 +87,6 @@ export class AutoCrawlerService {
       return;
     }
 
-    // Build target URLs
     const targetUrls: TargetUrl[] = urls.map((url) => ({
       url,
       domain: target.domain,
@@ -111,7 +96,6 @@ export class AutoCrawlerService {
       },
     }));
 
-    // Create job record
     const [job] = await db
       .insert(crawlJobs)
       .values({
@@ -122,7 +106,6 @@ export class AutoCrawlerService {
       .returning();
 
     try {
-      // Execute crawl
       const result = await crawlerService.executeCrawlJob({
         targetUrls,
         rateLimit: target.rateLimit || {
@@ -134,7 +117,6 @@ export class AutoCrawlerService {
         retryCount: 2,
       });
 
-      // Save collected items to DB
       let savedCount = 0;
       for (const item of result.collectedItems) {
         try {
@@ -160,7 +142,6 @@ export class AutoCrawlerService {
         }
       }
 
-      // Update job status
       await db
         .update(crawlJobs)
         .set({
@@ -171,7 +152,6 @@ export class AutoCrawlerService {
         })
         .where(eq(crawlJobs.id, job!.id));
 
-      // Update last crawled
       await db
         .update(crawlTargets)
         .set({ lastCrawled: new Date() })
@@ -181,7 +161,6 @@ export class AutoCrawlerService {
         `[AutoCrawler] ${target.domain}: ${result.successCount} success, ${savedCount} saved, ${result.failureCount} failed`
       );
     } catch (error) {
-      // Update job as failed
       await db
         .update(crawlJobs)
         .set({
@@ -194,9 +173,6 @@ export class AutoCrawlerService {
     }
   }
 
-  /**
-   * Stop all scheduled tasks
-   */
   stop(): void {
     for (const [id, task] of this.tasks) {
       task.stop();
