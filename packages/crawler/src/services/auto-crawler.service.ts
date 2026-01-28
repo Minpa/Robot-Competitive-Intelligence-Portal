@@ -104,9 +104,10 @@ export class AutoCrawlerService {
     // Build target URLs
     const targetUrls: TargetUrl[] = urls.map((url) => ({
       url,
+      domain: target.domain,
       pattern: patterns[0] || {
         type: 'article' as const,
-        selectors: { title: 'h1', content: 'article', date: 'time' },
+        selectors: { title: 'h1', content: 'article', publishDate: 'time' },
       },
     }));
 
