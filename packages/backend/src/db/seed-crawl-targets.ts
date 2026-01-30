@@ -53,6 +53,16 @@ async function seedCrawlTargets() {
     { name: 'PAL Robotics', country: 'Spain', category: 'robotics', homepageUrl: 'https://pal-robotics.com', description: 'TALOS and TIAGo humanoid robots' },
     { name: 'Aldebaran', country: 'France', category: 'robotics', homepageUrl: 'https://www.aldebaran.com', description: 'NAO robot creator' },
     { name: 'Franka Emika', country: 'Germany', category: 'robotics', homepageUrl: 'https://www.franka.de', description: 'Panda collaborative robot' },
+    
+    // NEW: Recent Humanoid Robot Companies (2024-2026)
+    { name: 'Fauna Robotics', country: 'USA', category: 'robotics', homepageUrl: 'https://faunarobotics.com', description: 'Creator of Sprout humanoid robot' },
+    { name: 'Galbot', country: 'China', category: 'robotics', homepageUrl: 'https://galbot.com', description: 'Industrial humanoid robots including Galbot S1' },
+    { name: 'Zeroth Robotics', country: 'China', category: 'robotics', homepageUrl: 'https://zeroth.ai', description: 'M1 home humanoid and W1 mobile companion robots' },
+    { name: 'Donut Robotics', country: 'Japan', category: 'robotics', homepageUrl: 'https://donutrobotics.com', description: 'Cinnamon 1 humanoid robot' },
+    { name: 'GAC Group', country: 'China', category: 'robotics', homepageUrl: 'https://www.gac.com.cn', description: 'GoMate wheeled humanoid robot' },
+    { name: 'Lenovo', country: 'China', category: 'robotics', homepageUrl: 'https://www.lenovo.com', description: 'Daystar Bot GS inspection robot' },
+    { name: 'AeroVironment', country: 'USA', category: 'robotics', homepageUrl: 'https://www.avinc.com', description: 'Switchblade series aerial robots' },
+    { name: 'Zeus Robotics', country: 'USA', category: 'robotics', homepageUrl: 'https://zeusrobotics.com', description: 'Zeus 1 heavy-duty industrial humanoid' },
   ];
 
   // Insert companies (skip if exists)
@@ -155,6 +165,40 @@ async function seedCrawlTargets() {
       patterns: [{ type: 'article' as const, selectors: { title: 'h1', content: '.entry-content', date: '.entry-date' } }],
       cronExpression: dailyCron,
       rateLimit: { requestsPerMinute: 15, requestsPerHour: 150, delayBetweenRequests: 2000 },
+      enabled: true,
+    },
+    
+    // NEW: Humanoid Robot Databases & News
+    {
+      domain: 'humanoid.guide',
+      urls: ['https://humanoid.guide/'],
+      patterns: [{ type: 'article' as const, selectors: { title: 'h1, h2', content: '.content, article', date: 'time, .date' } }],
+      cronExpression: dailyCron,
+      rateLimit: { requestsPerMinute: 10, requestsPerHour: 100, delayBetweenRequests: 3000 },
+      enabled: true,
+    },
+    {
+      domain: 'humanoidroboticstechnology.com',
+      urls: ['https://humanoidroboticstechnology.com/'],
+      patterns: [{ type: 'article' as const, selectors: { title: 'h1, h2', content: 'article, .content', date: 'time, .date' } }],
+      cronExpression: dailyCron,
+      rateLimit: { requestsPerMinute: 10, requestsPerHour: 100, delayBetweenRequests: 3000 },
+      enabled: true,
+    },
+    {
+      domain: 'aparobot.com',
+      urls: ['https://www.aparobot.com/robots'],
+      patterns: [{ type: 'product_page' as const, selectors: { title: 'h1, h2', content: '.description, article', date: '.date, time' } }],
+      cronExpression: dailyCron,
+      rateLimit: { requestsPerMinute: 10, requestsPerHour: 100, delayBetweenRequests: 3000 },
+      enabled: true,
+    },
+    {
+      domain: 'originofbots.com',
+      urls: ['https://www.originofbots.com/'],
+      patterns: [{ type: 'product_page' as const, selectors: { title: 'h1, h2', content: '.content, article', date: '.date, time' } }],
+      cronExpression: dailyCron,
+      rateLimit: { requestsPerMinute: 10, requestsPerHour: 100, delayBetweenRequests: 3000 },
       enabled: true,
     },
     {
