@@ -180,7 +180,10 @@ class ApiClient {
   }
 
   async triggerCrawl(targetId: string) {
-    return this.request<any>(`/admin/crawl-targets/${targetId}/trigger`, { method: 'POST' });
+    return this.request<any>(`/admin/crawl-targets/${targetId}/trigger`, { 
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
   }
 }
 
