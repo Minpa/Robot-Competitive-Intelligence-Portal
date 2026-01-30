@@ -179,8 +179,44 @@ class ApiClient {
     return this.request<{ items: any[]; total: number }>('/admin/crawl-errors');
   }
 
+  async getCrawlJobs() {
+    return this.request<{ items: any[]; total: number }>('/admin/crawl-jobs');
+  }
+
   async triggerCrawl(targetId: string) {
     return this.request<any>(`/admin/crawl-targets/${targetId}/trigger`, { 
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async addCrawlTarget(data: { domain: string; urls: string[] }) {
+    return this.request<any>('/admin/crawl-targets', {
+      method: 'POST',
+      body: JSON.stringify({
+        domain: data.domain,
+        urls: data.urls,
+        cronExpression: '0 0 * * *',
+        enabled: true,
+      }),
+    });
+  }
+
+  async deleteCrawlTarget(targetId: string) {
+    return this.request<void>(`/admin/crawl-targets/${targetId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async enableCrawlTarget(targetId: string) {
+    return this.request<any>(`/admin/crawl-targets/${targetId}/enable`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async disableCrawlTarget(targetId: string) {
+    return this.request<any>(`/admin/crawl-targets/${targetId}/disable`, {
       method: 'POST',
       body: JSON.stringify({}),
     });
