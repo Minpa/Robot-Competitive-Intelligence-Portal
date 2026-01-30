@@ -23,7 +23,7 @@ export default function AdminPage() {
 
   const { data: jobs } = useQuery({
     queryKey: ['crawl-jobs'],
-    queryFn: () => api.getCrawlJobs(),
+    queryFn: () => api.getCrawlJobs().catch(() => ({ items: [], total: 0 })),
   });
 
   const triggerMutation = useMutation({
