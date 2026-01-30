@@ -57,7 +57,7 @@ export default function ArticlesPage() {
                 <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
                   <span>{article.source}</span>
                   <span>·</span>
-                  <span>{formatDate(article.publishedAt)}</span>
+                  <span>{formatDate(article.publishedAt) || formatDate(article.collectedAt) || '날짜 없음'}</span>
                   <span>·</span>
                   <span className="uppercase">{article.language}</span>
                 </div>
