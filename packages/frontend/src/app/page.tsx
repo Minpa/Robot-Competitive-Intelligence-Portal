@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { formatNumber } from '@/lib/utils';
 import {
@@ -56,10 +57,10 @@ export default function DashboardPage() {
   }
 
   const stats = [
-    { name: '회사', value: summary?.totalCompanies || 0, icon: Building2, color: 'bg-blue-500' },
-    { name: '제품', value: summary?.totalProducts || 0, icon: Package, color: 'bg-green-500' },
-    { name: '기사', value: summary?.totalArticles || 0, icon: FileText, color: 'bg-yellow-500' },
-    { name: '키워드', value: summary?.totalKeywords || 0, icon: TrendingUp, color: 'bg-purple-500' },
+    { name: '회사', value: summary?.totalCompanies || 0, icon: Building2, color: 'bg-blue-500', href: '/companies' },
+    { name: '제품', value: summary?.totalProducts || 0, icon: Package, color: 'bg-green-500', href: '/products' },
+    { name: '기사', value: summary?.totalArticles || 0, icon: FileText, color: 'bg-yellow-500', href: '/articles' },
+    { name: '키워드', value: summary?.totalKeywords || 0, icon: TrendingUp, color: 'bg-purple-500', href: '/keywords' },
   ];
 
   const chartData = articleChart?.labels?.map((label: string, i: number) => ({
@@ -82,7 +83,7 @@ export default function DashboardPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
-          <div key={stat.name} className="bg-white rounded-lg shadow p-6">
+          <Link key={stat.name} href={stat.href} className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow cursor-pointer">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">{stat.name}</p>
@@ -92,7 +93,7 @@ export default function DashboardPage() {
                 <stat.icon className="w-6 h-6 text-white" />
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
