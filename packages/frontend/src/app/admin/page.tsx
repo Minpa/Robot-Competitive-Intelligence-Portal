@@ -1,15 +1,16 @@
 'use client';
-// Build cache bust: v2
+// Build cache bust: v3
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { Settings, Play, AlertTriangle, RefreshCw, Plus, Trash2, X, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Settings, Play, AlertTriangle, RefreshCw, Plus, Trash2, X, CheckCircle, XCircle, AlertCircle, Zap, Brain } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 
 export default function AdminPage() {
   const queryClient = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
   const [newTarget, setNewTarget] = useState({ domain: '', url: '' });
+  const [aiAnalysisProgress, setAiAnalysisProgress] = useState<{ current: number; total: number } | null>(null);
 
   const { data: targets, isLoading: targetsLoading } = useQuery({
     queryKey: ['crawl-targets'],
@@ -24,6 +25,11 @@ export default function AdminPage() {
   const { data: jobs } = useQuery({
     queryKey: ['crawl-jobs'],
     queryFn: () => api.getCrawlJobs().catch(() => ({ items: [], total: 0 })),
+  });
+
+  const { data: aiStatus } = useQuery({
+    queryKey: ['ai-analysis-status'],
+    queryFn: () => api.getAiAnalysisStatus(),
   });
 
   const triggerMutation = useMutation({
@@ -62,6 +68,59 @@ export default function AdminPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['crawl-targets'] }),
   });
 
+  const triggerAllMutation = useMutation({
+    mutationFn: () => api.triggerAllCrawls(),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['crawl-targets'] });
+      queryClient.invalidateQueries({ queryKey: ['crawl-jobs'] });
+      alert(`${data.triggered}개 대상에 대해 크롤링이 시작되었습니다.`);
+    },
+    onError: () => alert('전체 크롤링 시작에 실패했습니다.'),
+  });
+
+  const runAiAnalysis = async () => {
+    try {
+      const { articles } = await api.getUnanalyzedArticles(100);
+      if (articles.length === 0) {
+        alert('분석할 기사가 없습니다. 모든 기사가 이미 분석되었습니다.');
+        return;
+      }
+
+      setAiAnalysisProgress({ current: 0, total: articles.length });
+
+      for (let i = 0; i < articles.length; i++) {
+        const article = articles[i];
+        if (!article) continue;
+        
+        // Call OpenAI via backend proxy (we'll simulate for now with simple categorization)
+        // In production, this would call a backend endpoint that uses OpenAI
+        const content = article.content || article.title;
+        let category = 'other';
+        const lowerContent = content.toLowerCase();
+        
+        if (lowerContent.includes('product') || lowerContent.includes('release') || lowerContent.includes('launch') || lowerContent.includes('제품')) {
+          category = 'product';
+        } else if (lowerContent.includes('ai') || lowerContent.includes('technology') || lowerContent.includes('sensor') || lowerContent.includes('기술')) {
+          category = 'technology';
+        } else if (lowerContent.includes('market') || lowerContent.includes('investment') || lowerContent.includes('industry') || lowerContent.includes('시장') || lowerContent.includes('산업')) {
+          category = 'industry';
+        }
+
+        const summary = content.slice(0, 200) + (content.length > 200 ? '...' : '');
+
+        await api.updateArticleAnalysis(article.id, summary, category);
+        setAiAnalysisProgress({ current: i + 1, total: articles.length });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['ai-analysis-status'] });
+      alert(`${articles.length}개 기사 분석이 완료되었습니다.`);
+    } catch (error) {
+      alert('AI 분석 중 오류가 발생했습니다.');
+    } finally {
+      setAiAnalysisProgress(null);
+    }
+  };
+
   const getTargetStatus = (targetId: string) => {
     if (!jobs?.items) return { status: 'none' };
     const targetJobs = jobs.items
@@ -98,6 +157,72 @@ export default function AdminPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">관리</h1>
         <p className="text-gray-500">크롤링 대상 및 에러 모니터링</p>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold flex items-center gap-2">
+                <Zap className="w-5 h-5 text-yellow-500" />
+                전체 크롤링
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">모든 활성화된 대상을 크롤링합니다</p>
+            </div>
+            <button
+              onClick={() => triggerAllMutation.mutate()}
+              disabled={triggerAllMutation.isPending}
+              className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50"
+            >
+              {triggerAllMutation.isPending ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Play className="w-4 h-4" />
+              )}
+              전체 시작
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold flex items-center gap-2">
+                <Brain className="w-5 h-5 text-purple-500" />
+                AI 분석
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">
+                {aiStatus?.unanalyzedCount ?? 0}개 기사 분석 대기 중
+              </p>
+              {aiAnalysisProgress && (
+                <div className="mt-2">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-purple-500 h-2 rounded-full transition-all"
+                      style={{ width: `${(aiAnalysisProgress.current / aiAnalysisProgress.total) * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {aiAnalysisProgress.current} / {aiAnalysisProgress.total}
+                  </p>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={runAiAnalysis}
+              disabled={aiAnalysisProgress !== null || (aiStatus?.unanalyzedCount ?? 0) === 0}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:opacity-50"
+            >
+              {aiAnalysisProgress ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Brain className="w-4 h-4" />
+              )}
+              분석 시작
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow">

@@ -94,15 +94,15 @@ export class DashboardService {
   }
 
   /**
-   * Get weekly highlights by category
+   * Get weekly highlights by category (actually monthly for better analysis)
    */
   async getWeeklyHighlights(limit: number = 5): Promise<WeeklyHighlightsResponse> {
     const now = new Date();
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
 
-    // Get articles from this week grouped by category
-    const weeklyArticles = await db
+    // Get articles from this month grouped by category
+    const monthlyArticles = await db
       .select({
         id: articles.id,
         title: articles.title,
@@ -113,9 +113,9 @@ export class DashboardService {
         category: articles.category,
       })
       .from(articles)
-      .where(gte(articles.createdAt, oneWeekAgo))
+      .where(gte(articles.createdAt, oneMonthAgo))
       .orderBy(desc(articles.publishedAt))
-      .limit(50);
+      .limit(100);
 
     const categories: WeeklyHighlightsResponse['categories'] = {
       product: [],
@@ -124,7 +124,7 @@ export class DashboardService {
       other: [],
     };
 
-    for (const article of weeklyArticles) {
+    for (const article of monthlyArticles) {
       const highlight: CategoryHighlight = {
         id: article.id,
         title: article.title,
@@ -143,7 +143,7 @@ export class DashboardService {
     }
 
     return {
-      periodStart: oneWeekAgo.toISOString().split('T')[0] || '',
+      periodStart: oneMonthAgo.toISOString().split('T')[0] || '',
       periodEnd: now.toISOString().split('T')[0] || '',
       categories,
     };

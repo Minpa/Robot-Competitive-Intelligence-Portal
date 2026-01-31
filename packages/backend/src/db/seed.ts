@@ -164,7 +164,7 @@ async function seed() {
   weekEnd.setDate(weekStart.getDate() + 6);
   weekEnd.setHours(23, 59, 59, 999);
 
-  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+  const formatDate = (d: Date) => d.toISOString().split('T')[0]!;
 
   // Insert keyword stats for trending
   await db.insert(keywordStats).values([

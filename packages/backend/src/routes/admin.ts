@@ -127,4 +127,32 @@ export async function adminRoutes(fastify: FastifyInstance) {
   fastify.get('/crawl-errors/stats', async () => {
     return adminCrawlerService.getErrorStats();
   });
+
+  // Trigger all crawls
+  fastify.post('/crawl-all', async () => {
+    return adminCrawlerService.triggerAllCrawls();
+  });
+
+  // AI Analysis endpoints
+  fastify.get('/ai-analysis/status', async () => {
+    const unanalyzedCount = await adminCrawlerService.getUnanalyzedArticleCount();
+    return { unanalyzedCount };
+  });
+
+  fastify.get('/ai-analysis/unanalyzed', async (request) => {
+    const query = request.query as Record<string, string>;
+    const limit = query.limit ? parseInt(query.limit) : 50;
+    const articles = await adminCrawlerService.getUnanalyzedArticles(limit);
+    return { articles, count: articles.length };
+  });
+
+  fastify.post<{ Params: { id: string } }>('/ai-analysis/articles/:id', async (request, reply) => {
+    const body = request.body as { summary: string; category: string };
+    if (!body.summary || !body.category) {
+      reply.status(400).send({ error: 'summary and category are required' });
+      return;
+    }
+    await adminCrawlerService.updateArticleAnalysis(request.params.id, body.summary, body.category);
+    return { success: true };
+  });
 }

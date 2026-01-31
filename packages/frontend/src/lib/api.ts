@@ -230,6 +230,30 @@ class ApiClient {
       body: JSON.stringify({}),
     });
   }
+
+  async triggerAllCrawls() {
+    return this.request<{ triggered: number; targets: string[] }>('/admin/crawl-all', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async getAiAnalysisStatus() {
+    return this.request<{ unanalyzedCount: number }>('/admin/ai-analysis/status');
+  }
+
+  async getUnanalyzedArticles(limit: number = 50) {
+    return this.request<{ articles: Array<{ id: string; title: string; content: string | null }>; count: number }>(
+      `/admin/ai-analysis/unanalyzed?limit=${limit}`
+    );
+  }
+
+  async updateArticleAnalysis(id: string, summary: string, category: string) {
+    return this.request<{ success: boolean }>(`/admin/ai-analysis/articles/${id}`, {
+      method: 'POST',
+      body: JSON.stringify({ summary, category }),
+    });
+  }
 }
 
 export const api = new ApiClient();

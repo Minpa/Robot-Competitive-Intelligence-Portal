@@ -1,5 +1,5 @@
-import { eq, desc, sql, and, gte } from 'drizzle-orm';
-import { db, crawlTargets, crawlJobs, crawlErrors } from '../db/index.js';
+import { eq, desc, sql, and, gte, isNull, or } from 'drizzle-orm';
+import { db, crawlTargets, crawlJobs, crawlErrors, articles } from '../db/index.js';
 import type { CrawlTarget, CrawlJob, CrawlError, RateLimitConfig, CrawlPattern } from '../types/index.js';
 
 export interface CreateCrawlTargetDto {
@@ -240,6 +240,85 @@ export class AdminCrawlerService {
       .update(crawlTargets)
       .set({ lastCrawled: new Date(), updatedAt: new Date() })
       .where(eq(crawlTargets.id, id));
+  }
+
+  /**
+   * Trigger crawl for all enabled targets
+   */
+  async triggerAllCrawls(): Promise<{ triggered: number; targets: string[] }> {
+    const enabledTargets = await db
+      .select()
+      .from(crawlTargets)
+      .where(eq(crawlTargets.enabled, true));
+
+    const triggeredTargets: string[] = [];
+
+    for (const target of enabledTargets) {
+      await db
+        .insert(crawlJobs)
+        .values({
+          targetId: target.id,
+          status: 'pending',
+          metadata: { manual: true, triggeredAt: new Date().toISOString(), bulkTrigger: true },
+        });
+      triggeredTargets.push(target.domain);
+    }
+
+    return {
+      triggered: triggeredTargets.length,
+      targets: triggeredTargets,
+    };
+  }
+
+  /**
+   * Get count of articles that need AI analysis
+   */
+  async getUnanalyzedArticleCount(): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(articles)
+      .where(
+        or(
+          isNull(articles.summary),
+          eq(articles.summary, '')
+        )
+      );
+    return Number(result[0]?.count ?? 0);
+  }
+
+  /**
+   * Get articles that need AI analysis (no summary)
+   */
+  async getUnanalyzedArticles(limit: number = 50): Promise<Array<{ id: string; title: string; content: string | null }>> {
+    const result = await db
+      .select({
+        id: articles.id,
+        title: articles.title,
+        content: articles.content,
+      })
+      .from(articles)
+      .where(
+        or(
+          isNull(articles.summary),
+          eq(articles.summary, '')
+        )
+      )
+      .orderBy(desc(articles.createdAt))
+      .limit(limit);
+    return result;
+  }
+
+  /**
+   * Update article with AI analysis result
+   */
+  async updateArticleAnalysis(id: string, summary: string, category: string): Promise<void> {
+    await db
+      .update(articles)
+      .set({
+        summary,
+        category,
+      })
+      .where(eq(articles.id, id));
   }
 }
 

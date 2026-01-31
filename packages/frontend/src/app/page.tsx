@@ -188,7 +188,7 @@ export default function DashboardPage() {
       {/* Weekly Highlights */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">이번 주 하이라이트</h3>
+          <h3 className="text-lg font-semibold">최근 한 달 하이라이트</h3>
           {highlights?.periodStart && highlights?.periodEnd && (
             <span className="text-sm text-gray-500">
               {highlights.periodStart} ~ {highlights.periodEnd}
@@ -224,7 +224,7 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-400">이번 주 소식이 없습니다.</p>
+                <p className="text-sm text-gray-400">최근 소식이 없습니다.</p>
               )}
             </div>
 
@@ -255,7 +255,7 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-400">이번 주 소식이 없습니다.</p>
+                <p className="text-sm text-gray-400">최근 소식이 없습니다.</p>
               )}
             </div>
 
@@ -286,7 +286,7 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-400">이번 주 소식이 없습니다.</p>
+                <p className="text-sm text-gray-400">최근 소식이 없습니다.</p>
               )}
             </div>
 
@@ -317,12 +317,12 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-400">이번 주 소식이 없습니다.</p>
+                <p className="text-sm text-gray-400">최근 소식이 없습니다.</p>
               )}
             </div>
           </div>
         ) : (
-          <p className="text-gray-500">이번 주 하이라이트가 없습니다.</p>
+          <p className="text-gray-500">최근 한 달 하이라이트가 없습니다.</p>
         )}
       </div>
     </div>
