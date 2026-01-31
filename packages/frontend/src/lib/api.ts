@@ -141,7 +141,16 @@ class ApiClient {
   }
 
   async getWeeklyHighlights() {
-    return this.request<any[]>('/dashboard/highlights');
+    return this.request<{
+      periodStart: string;
+      periodEnd: string;
+      categories: {
+        product: Array<{ id: string; title: string; summary: string; source: string; url: string; publishedAt: string | null }>;
+        technology: Array<{ id: string; title: string; summary: string; source: string; url: string; publishedAt: string | null }>;
+        industry: Array<{ id: string; title: string; summary: string; source: string; url: string; publishedAt: string | null }>;
+        other: Array<{ id: string; title: string; summary: string; source: string; url: string; publishedAt: string | null }>;
+      };
+    }>('/dashboard/highlights');
   }
 
   async getTimeline(params?: Record<string, string>) {
