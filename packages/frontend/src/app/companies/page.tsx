@@ -11,7 +11,7 @@ export default function CompaniesPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['companies', filters],
-    queryFn: () => api.getCompanies(filters),
+    queryFn: () => api.getCompanies({ ...filters, limit: '500' }),
   });
 
   if (isLoading) {
@@ -27,7 +27,7 @@ export default function CompaniesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">회사</h1>
-          <p className="text-gray-500">로봇 경쟁사 목록</p>
+          <p className="text-gray-500">로봇 경쟁사 목록 ({data?.total || 0}개)</p>
         </div>
         <div className="flex gap-2">
           <select
