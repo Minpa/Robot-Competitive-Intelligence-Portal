@@ -2,6 +2,7 @@ import cron, { ScheduledTask } from 'node-cron';
 import { eq } from 'drizzle-orm';
 import { getDb, crawlTargets, articles, crawlJobs } from '../db/index.js';
 import { crawlerService } from './crawler.service.js';
+import { analyzeArticle } from './ai-analyzer.service.js';
 import { createHash } from 'crypto';
 import type { TargetUrl } from '../types.js';
 
@@ -124,6 +125,12 @@ export class AutoCrawlerService {
             .update(item.url + item.title)
             .digest('hex');
 
+          // AI 분석: 요약 및 카테고리 분류
+          const analysis = await analyzeArticle(
+            item.title || 'Untitled',
+            item.content || ''
+          );
+
           await db
             .insert(articles)
             .values({
@@ -131,6 +138,8 @@ export class AutoCrawlerService {
               source: target.domain,
               url: item.url,
               content: item.content,
+              summary: analysis.summary,
+              category: analysis.category,
               contentHash,
               collectedAt: new Date(),
             })
