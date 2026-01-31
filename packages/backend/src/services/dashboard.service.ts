@@ -21,6 +21,26 @@ export interface WeeklyHighlight {
   date?: string;
 }
 
+export interface CategoryHighlight {
+  id: string;
+  title: string;
+  summary: string;
+  source: string;
+  url: string;
+  publishedAt: string | null;
+}
+
+export interface WeeklyHighlightsResponse {
+  periodStart: string;
+  periodEnd: string;
+  categories: {
+    product: CategoryHighlight[];      // 로봇 제품
+    technology: CategoryHighlight[];   // 신기술
+    industry: CategoryHighlight[];     // 산업 동향
+    other: CategoryHighlight[];        // 기타 동향
+  };
+}
+
 export interface TimelineEvent {
   date: string;
   type: 'product_release' | 'article' | 'price_update';
@@ -74,9 +94,65 @@ export class DashboardService {
   }
 
   /**
-   * Get weekly highlights
+   * Get weekly highlights by category
    */
-  async getWeeklyHighlights(limit: number = 5): Promise<WeeklyHighlight[]> {
+  async getWeeklyHighlights(limit: number = 5): Promise<WeeklyHighlightsResponse> {
+    const now = new Date();
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    // Get articles from this week grouped by category
+    const weeklyArticles = await db
+      .select({
+        id: articles.id,
+        title: articles.title,
+        summary: articles.summary,
+        source: articles.source,
+        url: articles.url,
+        publishedAt: articles.publishedAt,
+        category: articles.category,
+      })
+      .from(articles)
+      .where(gte(articles.createdAt, oneWeekAgo))
+      .orderBy(desc(articles.publishedAt))
+      .limit(50);
+
+    const categories: WeeklyHighlightsResponse['categories'] = {
+      product: [],
+      technology: [],
+      industry: [],
+      other: [],
+    };
+
+    for (const article of weeklyArticles) {
+      const highlight: CategoryHighlight = {
+        id: article.id,
+        title: article.title,
+        summary: article.summary || '',
+        source: article.source,
+        url: article.url,
+        publishedAt: article.publishedAt?.toISOString() || null,
+      };
+
+      const cat = article.category as keyof typeof categories;
+      if (cat && categories[cat] && categories[cat].length < limit) {
+        categories[cat].push(highlight);
+      } else if (categories.other.length < limit) {
+        categories.other.push(highlight);
+      }
+    }
+
+    return {
+      periodStart: oneWeekAgo.toISOString().split('T')[0] || '',
+      periodEnd: now.toISOString().split('T')[0] || '',
+      categories,
+    };
+  }
+
+  /**
+   * Get legacy weekly highlights (for backward compatibility)
+   */
+  async getLegacyWeeklyHighlights(limit: number = 5): Promise<WeeklyHighlight[]> {
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     const highlights: WeeklyHighlight[] = [];

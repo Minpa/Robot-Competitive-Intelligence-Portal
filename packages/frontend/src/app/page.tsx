@@ -167,30 +167,139 @@ export default function DashboardPage() {
 
       {/* Weekly Highlights */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">이번 주 하이라이트</h3>
-        {highlights && highlights.length > 0 ? (
-          <div className="space-y-3">
-            {highlights.map((highlight: any, index: number) => (
-              <div
-                key={index}
-                className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
-              >
-                <div className={`p-2 rounded-lg ${
-                  highlight.type === 'new_product' ? 'bg-green-100' :
-                  highlight.type === 'trending_keyword' ? 'bg-purple-100' :
-                  highlight.type === 'article_peak' ? 'bg-blue-100' :
-                  'bg-yellow-100'
-                }`}>
-                  {highlight.type === 'new_product' && <Package className="w-4 h-4 text-green-600" />}
-                  {highlight.type === 'trending_keyword' && <TrendingUp className="w-4 h-4 text-purple-600" />}
-                  {highlight.type === 'article_peak' && <FileText className="w-4 h-4 text-blue-600" />}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">이번 주 하이라이트</h3>
+          {highlights?.periodStart && highlights?.periodEnd && (
+            <span className="text-sm text-gray-500">
+              {highlights.periodStart} ~ {highlights.periodEnd}
+            </span>
+          )}
+        </div>
+        {highlights?.categories ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* 로봇 제품 */}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 rounded-lg bg-green-100">
+                  <Package className="w-4 h-4 text-green-600" />
                 </div>
-                <div>
-                  <p className="font-medium">{highlight.title}</p>
-                  <p className="text-sm text-gray-500">{highlight.description}</p>
-                </div>
+                <h4 className="font-medium text-green-700">로봇 제품</h4>
               </div>
-            ))}
+              {highlights.categories.product?.length > 0 ? (
+                <div className="space-y-2">
+                  {highlights.categories.product.map((item: any) => (
+                    <a
+                      key={item.id}
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
+                    >
+                      <p className="font-medium text-sm line-clamp-1">{item.title}</p>
+                      {item.summary && (
+                        <p className="text-xs text-gray-500 line-clamp-2 mt-1">{item.summary}</p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">{item.source}</p>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">이번 주 소식이 없습니다.</p>
+              )}
+            </div>
+
+            {/* 신기술 */}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 rounded-lg bg-blue-100">
+                  <TrendingUp className="w-4 h-4 text-blue-600" />
+                </div>
+                <h4 className="font-medium text-blue-700">신기술</h4>
+              </div>
+              {highlights.categories.technology?.length > 0 ? (
+                <div className="space-y-2">
+                  {highlights.categories.technology.map((item: any) => (
+                    <a
+                      key={item.id}
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
+                    >
+                      <p className="font-medium text-sm line-clamp-1">{item.title}</p>
+                      {item.summary && (
+                        <p className="text-xs text-gray-500 line-clamp-2 mt-1">{item.summary}</p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">{item.source}</p>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">이번 주 소식이 없습니다.</p>
+              )}
+            </div>
+
+            {/* 산업 동향 */}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 rounded-lg bg-purple-100">
+                  <Building2 className="w-4 h-4 text-purple-600" />
+                </div>
+                <h4 className="font-medium text-purple-700">산업 동향</h4>
+              </div>
+              {highlights.categories.industry?.length > 0 ? (
+                <div className="space-y-2">
+                  {highlights.categories.industry.map((item: any) => (
+                    <a
+                      key={item.id}
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
+                    >
+                      <p className="font-medium text-sm line-clamp-1">{item.title}</p>
+                      {item.summary && (
+                        <p className="text-xs text-gray-500 line-clamp-2 mt-1">{item.summary}</p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">{item.source}</p>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">이번 주 소식이 없습니다.</p>
+              )}
+            </div>
+
+            {/* 기타 동향 */}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 rounded-lg bg-yellow-100">
+                  <FileText className="w-4 h-4 text-yellow-600" />
+                </div>
+                <h4 className="font-medium text-yellow-700">기타 동향</h4>
+              </div>
+              {highlights.categories.other?.length > 0 ? (
+                <div className="space-y-2">
+                  {highlights.categories.other.map((item: any) => (
+                    <a
+                      key={item.id}
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
+                    >
+                      <p className="font-medium text-sm line-clamp-1">{item.title}</p>
+                      {item.summary && (
+                        <p className="text-xs text-gray-500 line-clamp-2 mt-1">{item.summary}</p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">{item.source}</p>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">이번 주 소식이 없습니다.</p>
+              )}
+            </div>
           </div>
         ) : (
           <p className="text-gray-500">이번 주 하이라이트가 없습니다.</p>

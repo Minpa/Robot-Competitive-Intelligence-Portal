@@ -36,6 +36,7 @@ export const articles = pgTable(
     summary: text('summary'),
     content: text('content'),
     language: varchar('language', { length: 10 }).default('en'),
+    category: varchar('category', { length: 50 }).default('other'), // product, technology, industry, other
     contentHash: varchar('content_hash', { length: 64 }).notNull(),
     collectedAt: timestamp('collected_at').defaultNow().notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
