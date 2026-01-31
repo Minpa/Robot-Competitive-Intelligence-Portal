@@ -27,13 +27,33 @@ import {
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
+interface CategoryHighlight {
+  id: string;
+  title: string;
+  summary: string;
+  source: string;
+  url: string;
+  publishedAt: string | null;
+}
+
+interface WeeklyHighlightsResponse {
+  periodStart: string;
+  periodEnd: string;
+  categories: {
+    product: CategoryHighlight[];
+    technology: CategoryHighlight[];
+    industry: CategoryHighlight[];
+    other: CategoryHighlight[];
+  };
+}
+
 export default function DashboardPage() {
   const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ['dashboard-summary'],
     queryFn: () => api.getDashboardSummary(),
   });
 
-  const { data: highlights } = useQuery({
+  const { data: highlights } = useQuery<WeeklyHighlightsResponse>({
     queryKey: ['weekly-highlights'],
     queryFn: () => api.getWeeklyHighlights(),
   });
@@ -187,7 +207,7 @@ export default function DashboardPage() {
               </div>
               {highlights.categories.product?.length > 0 ? (
                 <div className="space-y-2">
-                  {highlights.categories.product.map((item: any) => (
+                  {highlights.categories.product.map((item: CategoryHighlight) => (
                     <a
                       key={item.id}
                       href={item.url}
@@ -218,7 +238,7 @@ export default function DashboardPage() {
               </div>
               {highlights.categories.technology?.length > 0 ? (
                 <div className="space-y-2">
-                  {highlights.categories.technology.map((item: any) => (
+                  {highlights.categories.technology.map((item: CategoryHighlight) => (
                     <a
                       key={item.id}
                       href={item.url}
@@ -249,7 +269,7 @@ export default function DashboardPage() {
               </div>
               {highlights.categories.industry?.length > 0 ? (
                 <div className="space-y-2">
-                  {highlights.categories.industry.map((item: any) => (
+                  {highlights.categories.industry.map((item: CategoryHighlight) => (
                     <a
                       key={item.id}
                       href={item.url}
@@ -280,7 +300,7 @@ export default function DashboardPage() {
               </div>
               {highlights.categories.other?.length > 0 ? (
                 <div className="space-y-2">
-                  {highlights.categories.other.map((item: any) => (
+                  {highlights.categories.other.map((item: CategoryHighlight) => (
                     <a
                       key={item.id}
                       href={item.url}
