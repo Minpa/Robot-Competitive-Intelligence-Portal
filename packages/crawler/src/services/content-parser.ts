@@ -120,7 +120,7 @@ export class ContentParser {
     const links: string[] = [];
     const base = new URL(baseUrl);
 
-    const anchors = selectAll('a[href]', doc) as Element[];
+    const anchors = selectAll('a[href]', doc) as unknown as Element[];
     for (const anchor of anchors) {
       try {
         const href = getAttributeValue(anchor, 'href');
