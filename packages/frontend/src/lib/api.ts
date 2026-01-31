@@ -254,6 +254,16 @@ class ApiClient {
       body: JSON.stringify({ summary, category }),
     });
   }
+
+  async runAiAnalysisAll() {
+    return this.request<{ success: boolean; analyzed: number; total: number; results: Array<{ id: string; title: string; category: string }> }>(
+      '/admin/ai-analysis/analyze-all',
+      {
+        method: 'POST',
+        body: JSON.stringify({}),
+      }
+    );
+  }
 }
 
 export const api = new ApiClient();

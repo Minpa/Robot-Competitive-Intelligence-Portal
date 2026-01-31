@@ -80,42 +80,21 @@ export default function AdminPage() {
 
   const runAiAnalysis = async () => {
     try {
-      const { articles } = await api.getUnanalyzedArticles(100);
-      if (articles.length === 0) {
-        alert('분석할 기사가 없습니다. 모든 기사가 이미 분석되었습니다.');
-        return;
-      }
-
-      setAiAnalysisProgress({ current: 0, total: articles.length });
-
-      for (let i = 0; i < articles.length; i++) {
-        const article = articles[i];
-        if (!article) continue;
-        
-        // Call OpenAI via backend proxy (we'll simulate for now with simple categorization)
-        // In production, this would call a backend endpoint that uses OpenAI
-        const content = article.content || article.title;
-        let category = 'other';
-        const lowerContent = content.toLowerCase();
-        
-        if (lowerContent.includes('product') || lowerContent.includes('release') || lowerContent.includes('launch') || lowerContent.includes('제품')) {
-          category = 'product';
-        } else if (lowerContent.includes('ai') || lowerContent.includes('technology') || lowerContent.includes('sensor') || lowerContent.includes('기술')) {
-          category = 'technology';
-        } else if (lowerContent.includes('market') || lowerContent.includes('investment') || lowerContent.includes('industry') || lowerContent.includes('시장') || lowerContent.includes('산업')) {
-          category = 'industry';
-        }
-
-        const summary = content.slice(0, 200) + (content.length > 200 ? '...' : '');
-
-        await api.updateArticleAnalysis(article.id, summary, category);
-        setAiAnalysisProgress({ current: i + 1, total: articles.length });
-      }
-
+      setAiAnalysisProgress({ current: 0, total: 1 });
+      
+      const result = await api.runAiAnalysisAll();
+      
       queryClient.invalidateQueries({ queryKey: ['ai-analysis-status'] });
-      alert(`${articles.length}개 기사 분석이 완료되었습니다.`);
+      queryClient.invalidateQueries({ queryKey: ['weekly-highlights'] });
+      
+      if (result.analyzed === 0) {
+        alert('분석할 기사가 없습니다. 모든 기사가 이미 분석되었습니다.');
+      } else {
+        alert(`${result.analyzed}개 기사 AI 분석이 완료되었습니다.`);
+      }
     } catch (error) {
-      alert('AI 분석 중 오류가 발생했습니다.');
+      console.error('AI analysis error:', error);
+      alert('AI 분석 중 오류가 발생했습니다. OPENAI_API_KEY가 설정되어 있는지 확인해주세요.');
     } finally {
       setAiAnalysisProgress(null);
     }

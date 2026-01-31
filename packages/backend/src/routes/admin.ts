@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { adminCrawlerService } from '../services/admin-crawler.service.js';
+import { analyzeArticle } from '../services/ai-analyzer.service.js';
 import { CreateCrawlTargetSchema, UpdateCrawlTargetSchema, RateLimitConfigSchema } from '../types/dto.js';
 
 export async function adminRoutes(fastify: FastifyInstance) {
@@ -154,5 +155,49 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
     await adminCrawlerService.updateArticleAnalysis(request.params.id, body.summary, body.category);
     return { success: true };
+  });
+
+  // Run AI analysis on a single article using GPT-4o-mini
+  fastify.post<{ Params: { id: string } }>('/ai-analysis/analyze/:id', async (request, reply) => {
+    const articles = await adminCrawlerService.getUnanalyzedArticles(100);
+    const article = articles.find(a => a.id === request.params.id);
+    
+    if (!article) {
+      reply.status(404).send({ error: 'Article not found or already analyzed' });
+      return;
+    }
+
+    const analysis = await analyzeArticle(article.title, article.content || '');
+    await adminCrawlerService.updateArticleAnalysis(article.id, analysis.summary, analysis.category);
+    
+    return { success: true, analysis };
+  });
+
+  // Run AI analysis on all unanalyzed articles
+  fastify.post('/ai-analysis/analyze-all', async () => {
+    const articles = await adminCrawlerService.getUnanalyzedArticles(100);
+    
+    if (articles.length === 0) {
+      return { success: true, analyzed: 0, message: 'No articles to analyze' };
+    }
+
+    let analyzed = 0;
+    const results: Array<{ id: string; title: string; category: string }> = [];
+
+    for (const article of articles) {
+      try {
+        const analysis = await analyzeArticle(article.title, article.content || '');
+        await adminCrawlerService.updateArticleAnalysis(article.id, analysis.summary, analysis.category);
+        results.push({ id: article.id, title: article.title, category: analysis.category });
+        analyzed++;
+        
+        // Small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 300));
+      } catch (error) {
+        console.error(`[AI] Failed to analyze article ${article.id}:`, error);
+      }
+    }
+
+    return { success: true, analyzed, total: articles.length, results };
   });
 }
