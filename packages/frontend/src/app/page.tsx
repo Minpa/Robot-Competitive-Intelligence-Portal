@@ -53,9 +53,9 @@ export default function DashboardPage() {
     queryFn: () => api.getDashboardSummary(),
   });
 
-  const { data: highlights } = useQuery<WeeklyHighlightsResponse>({
+  const { data: highlights } = useQuery({
     queryKey: ['weekly-highlights'],
-    queryFn: () => api.getWeeklyHighlights(),
+    queryFn: () => api.getWeeklyHighlights() as Promise<WeeklyHighlightsResponse>,
   });
 
   const { data: articleChart } = useQuery({
