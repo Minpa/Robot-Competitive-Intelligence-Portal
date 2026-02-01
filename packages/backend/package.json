@@ -19,7 +19,8 @@
     "seed": "tsx src/db/seed.ts",
     "seed:crawl": "tsx src/db/seed-crawl-targets.ts",
     "seed:rfm": "tsx src/db/seed-rfm.ts",
-    "seed:components": "tsx src/db/seed-components.ts"
+    "seed:components": "tsx src/db/seed-components.ts",
+    "update:categories": "tsx src/db/update-company-categories.ts"
   },
   "dependencies": {
     "@elastic/elasticsearch": "^8.11.0",
