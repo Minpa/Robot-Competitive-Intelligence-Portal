@@ -39,6 +39,12 @@ export interface WeeklyHighlightsResponse {
     industry: CategoryHighlight[];     // 산업 동향
     other: CategoryHighlight[];        // 기타 동향
   };
+  productTypes: {
+    robot: CategoryHighlight[];        // 로봇 완제품
+    rfm: CategoryHighlight[];          // RFM/VLA
+    soc: CategoryHighlight[];          // SoC/AI칩
+    actuator: CategoryHighlight[];     // 액츄에이터
+  };
 }
 
 export interface TimelineEvent {
@@ -111,6 +117,7 @@ export class DashboardService {
         url: articles.url,
         publishedAt: articles.publishedAt,
         category: articles.category,
+        productType: articles.productType,
       })
       .from(articles)
       .where(gte(articles.createdAt, oneMonthAgo))
@@ -124,6 +131,13 @@ export class DashboardService {
       other: [],
     };
 
+    const productTypes: WeeklyHighlightsResponse['productTypes'] = {
+      robot: [],
+      rfm: [],
+      soc: [],
+      actuator: [],
+    };
+
     for (const article of monthlyArticles) {
       const highlight: CategoryHighlight = {
         id: article.id,
@@ -134,11 +148,18 @@ export class DashboardService {
         publishedAt: article.publishedAt?.toISOString() || null,
       };
 
+      // 동향 카테고리 분류
       const cat = article.category as keyof typeof categories;
       if (cat && categories[cat] && categories[cat].length < limit) {
         categories[cat].push(highlight);
       } else if (categories.other.length < limit) {
         categories.other.push(highlight);
+      }
+
+      // 제품 유형 분류
+      const pType = article.productType as keyof typeof productTypes;
+      if (pType && productTypes[pType] && productTypes[pType].length < limit) {
+        productTypes[pType].push(highlight);
       }
     }
 
@@ -146,6 +167,7 @@ export class DashboardService {
       periodStart: oneMonthAgo.toISOString().split('T')[0] || '',
       periodEnd: now.toISOString().split('T')[0] || '',
       categories,
+      productTypes,
     };
   }
 

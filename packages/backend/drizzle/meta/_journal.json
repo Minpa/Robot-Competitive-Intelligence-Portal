@@ -8,6 +8,20 @@
       "when": 1769519238646,
       "tag": "0000_nifty_leo",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1769519238647,
+      "tag": "0001_add_article_category",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1769519238648,
+      "tag": "0002_add_article_product_type",
+      "breakpoints": true
     }
   ]
 }

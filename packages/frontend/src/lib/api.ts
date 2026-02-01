@@ -150,6 +150,12 @@ class ApiClient {
         industry: Array<{ id: string; title: string; summary: string; source: string; url: string; publishedAt: string | null }>;
         other: Array<{ id: string; title: string; summary: string; source: string; url: string; publishedAt: string | null }>;
       };
+      productTypes: {
+        robot: Array<{ id: string; title: string; summary: string; source: string; url: string; publishedAt: string | null }>;
+        rfm: Array<{ id: string; title: string; summary: string; source: string; url: string; publishedAt: string | null }>;
+        soc: Array<{ id: string; title: string; summary: string; source: string; url: string; publishedAt: string | null }>;
+        actuator: Array<{ id: string; title: string; summary: string; source: string; url: string; publishedAt: string | null }>;
+      };
     }>('/dashboard/highlights');
   }
 

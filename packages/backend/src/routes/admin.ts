@@ -148,12 +148,17 @@ export async function adminRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post<{ Params: { id: string } }>('/ai-analysis/articles/:id', async (request, reply) => {
-    const body = request.body as { summary: string; category: string };
+    const body = request.body as { summary: string; category: string; productType?: string };
     if (!body.summary || !body.category) {
       reply.status(400).send({ error: 'summary and category are required' });
       return;
     }
-    await adminCrawlerService.updateArticleAnalysis(request.params.id, body.summary, body.category);
+    await adminCrawlerService.updateArticleAnalysis(
+      request.params.id, 
+      body.summary, 
+      body.category,
+      body.productType || 'none'
+    );
     return { success: true };
   });
 
@@ -168,7 +173,12 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
 
     const analysis = await analyzeArticle(article.title, article.content || '');
-    await adminCrawlerService.updateArticleAnalysis(article.id, analysis.summary, analysis.category);
+    await adminCrawlerService.updateArticleAnalysis(
+      article.id, 
+      analysis.summary, 
+      analysis.category,
+      analysis.productType
+    );
     
     return { success: true, analysis };
   });
@@ -182,13 +192,23 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
 
     let analyzed = 0;
-    const results: Array<{ id: string; title: string; category: string }> = [];
+    const results: Array<{ id: string; title: string; category: string; productType: string }> = [];
 
     for (const article of articles) {
       try {
         const analysis = await analyzeArticle(article.title, article.content || '');
-        await adminCrawlerService.updateArticleAnalysis(article.id, analysis.summary, analysis.category);
-        results.push({ id: article.id, title: article.title, category: analysis.category });
+        await adminCrawlerService.updateArticleAnalysis(
+          article.id, 
+          analysis.summary, 
+          analysis.category,
+          analysis.productType
+        );
+        results.push({ 
+          id: article.id, 
+          title: article.title, 
+          category: analysis.category,
+          productType: analysis.productType
+        });
         analyzed++;
         
         // Small delay to avoid rate limiting

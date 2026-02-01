@@ -868,6 +868,129 @@ export default function DashboardPage() {
           <p className="text-gray-500">최근 한 달 하이라이트가 없습니다.</p>
         )}
       </div>
+
+      {/* Product Type Highlights */}
+      {highlights?.productTypes && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">제품 유형별 기사</h3>
+            <span className="text-xs text-gray-500">AI 분석 기반</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* 로봇 완제품 */}
+            <div className="border rounded-lg p-4 border-green-200">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 rounded-lg bg-green-100">
+                  <Bot className="w-4 h-4 text-green-600" />
+                </div>
+                <h4 className="font-medium text-green-700">로봇 완제품</h4>
+              </div>
+              {highlights.productTypes.robot?.length > 0 ? (
+                <div className="space-y-2">
+                  {highlights.productTypes.robot.map((item: CategoryHighlight) => (
+                    <a
+                      key={item.id}
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-2 bg-green-50 rounded hover:bg-green-100 transition-colors"
+                    >
+                      <p className="font-medium text-xs line-clamp-2">{item.title}</p>
+                      <p className="text-xs text-gray-400 mt-1">{item.source}</p>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400">관련 기사가 없습니다.</p>
+              )}
+            </div>
+
+            {/* RFM */}
+            <div className="border rounded-lg p-4 border-purple-200">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 rounded-lg bg-purple-100">
+                  <Cpu className="w-4 h-4 text-purple-600" />
+                </div>
+                <h4 className="font-medium text-purple-700">RFM / VLA</h4>
+              </div>
+              {highlights.productTypes.rfm?.length > 0 ? (
+                <div className="space-y-2">
+                  {highlights.productTypes.rfm.map((item: CategoryHighlight) => (
+                    <a
+                      key={item.id}
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-2 bg-purple-50 rounded hover:bg-purple-100 transition-colors"
+                    >
+                      <p className="font-medium text-xs line-clamp-2">{item.title}</p>
+                      <p className="text-xs text-gray-400 mt-1">{item.source}</p>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400">관련 기사가 없습니다.</p>
+              )}
+            </div>
+
+            {/* SoC */}
+            <div className="border rounded-lg p-4 border-cyan-200">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 rounded-lg bg-cyan-100">
+                  <CircuitBoard className="w-4 h-4 text-cyan-600" />
+                </div>
+                <h4 className="font-medium text-cyan-700">SoC / AI칩</h4>
+              </div>
+              {highlights.productTypes.soc?.length > 0 ? (
+                <div className="space-y-2">
+                  {highlights.productTypes.soc.map((item: CategoryHighlight) => (
+                    <a
+                      key={item.id}
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-2 bg-cyan-50 rounded hover:bg-cyan-100 transition-colors"
+                    >
+                      <p className="font-medium text-xs line-clamp-2">{item.title}</p>
+                      <p className="text-xs text-gray-400 mt-1">{item.source}</p>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400">관련 기사가 없습니다.</p>
+              )}
+            </div>
+
+            {/* 액츄에이터 */}
+            <div className="border rounded-lg p-4 border-orange-200">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 rounded-lg bg-orange-100">
+                  <Cog className="w-4 h-4 text-orange-600" />
+                </div>
+                <h4 className="font-medium text-orange-700">액츄에이터</h4>
+              </div>
+              {highlights.productTypes.actuator?.length > 0 ? (
+                <div className="space-y-2">
+                  {highlights.productTypes.actuator.map((item: CategoryHighlight) => (
+                    <a
+                      key={item.id}
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-2 bg-orange-50 rounded hover:bg-orange-100 transition-colors"
+                    >
+                      <p className="font-medium text-xs line-clamp-2">{item.title}</p>
+                      <p className="text-xs text-gray-400 mt-1">{item.source}</p>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400">관련 기사가 없습니다.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

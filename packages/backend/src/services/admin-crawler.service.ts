@@ -311,12 +311,13 @@ export class AdminCrawlerService {
   /**
    * Update article with AI analysis result
    */
-  async updateArticleAnalysis(id: string, summary: string, category: string): Promise<void> {
+  async updateArticleAnalysis(id: string, summary: string, category: string, productType: string = 'none'): Promise<void> {
     await db
       .update(articles)
       .set({
         summary,
         category,
+        productType,
       })
       .where(eq(articles.id, id));
   }
