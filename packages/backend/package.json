@@ -17,7 +17,8 @@
     "migrate": "drizzle-kit migrate",
     "migrate:generate": "drizzle-kit generate",
     "seed": "tsx src/db/seed.ts",
-    "seed:crawl": "tsx src/db/seed-crawl-targets.ts"
+    "seed:crawl": "tsx src/db/seed-crawl-targets.ts",
+    "seed:rfm": "tsx src/db/seed-rfm.ts"
   },
   "dependencies": {
     "@elastic/elasticsearch": "^8.11.0",
