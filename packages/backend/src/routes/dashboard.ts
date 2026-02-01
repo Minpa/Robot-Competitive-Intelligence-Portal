@@ -47,6 +47,12 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
     const query = request.query as Record<string, string>;
     return dashboardService.getProductReleaseTimeline({
       months: query.months ? parseInt(query.months) : 12,
+      type: query.type,
     });
+  });
+
+  // Get RFM timeline
+  fastify.get('/rfm-timeline', async () => {
+    return dashboardService.getRfmTimeline();
   });
 }

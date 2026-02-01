@@ -176,6 +176,16 @@ class ApiClient {
     }>>('/dashboard/product-timeline');
   }
 
+  async getRfmTimeline() {
+    return this.request<Array<{
+      id: string;
+      name: string;
+      type: string;
+      releaseDate: string | null;
+      companyName: string;
+    }>>('/dashboard/rfm-timeline');
+  }
+
   // Export
   async exportCompanies(format: 'csv' | 'json' = 'csv') {
     return this.request<string>(`/export/companies?format=${format}`);

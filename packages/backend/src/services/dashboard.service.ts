@@ -442,11 +442,47 @@ export class DashboardService {
    */
   async getProductReleaseTimeline(options: {
     months?: number;
+    type?: string;
   } = {}): Promise<ProductReleaseTimelineItem[]> {
-    const { months = 12 } = options;
+    const { months = 12, type } = options;
     const startDate = new Date();
     startDate.setMonth(startDate.getMonth() - months);
 
+    let query = db
+      .select({
+        id: products.id,
+        name: products.name,
+        type: products.type,
+        releaseDate: products.releaseDate,
+        companyId: products.companyId,
+        companyName: companies.name,
+      })
+      .from(products)
+      .leftJoin(companies, eq(products.companyId, companies.id))
+      .orderBy(desc(products.createdAt));
+
+    const result = await query;
+
+    // 타입 필터링 (클라이언트 사이드)
+    let filtered = result;
+    if (type) {
+      filtered = result.filter(r => r.type === type);
+    }
+
+    return filtered.map(r => ({
+      id: r.id,
+      name: r.name,
+      type: r.type,
+      releaseDate: r.releaseDate,
+      companyName: r.companyName || 'Unknown',
+    }));
+  }
+
+  /**
+   * Get RFM (Robot Foundation Model) timeline data
+   */
+  async getRfmTimeline(): Promise<ProductReleaseTimelineItem[]> {
+    // RFM 관련 제품 조회 (type이 foundation_model이거나 이름에 관련 키워드 포함)
     const result = await db
       .select({
         id: products.id,
@@ -458,10 +494,17 @@ export class DashboardService {
       })
       .from(products)
       .leftJoin(companies, eq(products.companyId, companies.id))
-      .where(gte(products.createdAt, startDate))
-      .orderBy(desc(products.createdAt));
+      .orderBy(desc(products.releaseDate));
 
-    return result.map(r => ({
+    // RFM 관련 필터링
+    const rfmKeywords = ['foundation', 'model', 'rfm', 'vla', 'rt-', 'pi0', 'octo', 'openvla', 'gr-'];
+    const filtered = result.filter(r => {
+      const nameLower = r.name.toLowerCase();
+      return r.type === 'foundation_model' || 
+             rfmKeywords.some(kw => nameLower.includes(kw));
+    });
+
+    return filtered.map(r => ({
       id: r.id,
       name: r.name,
       type: r.type,
