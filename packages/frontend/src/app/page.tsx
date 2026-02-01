@@ -174,6 +174,23 @@ export default function DashboardPage() {
     return acc;
   }, {});
 
+  // 반기 단위 틱 생성 (최근 3년)
+  const generateHalfYearTicks = () => {
+    const ticks: number[] = [];
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    
+    // 3년 전부터 현재까지
+    for (let year = currentYear - 3; year <= currentYear + 1; year++) {
+      ticks.push(new Date(year, 0, 1).getTime()); // 1월 (상반기)
+      ticks.push(new Date(year, 6, 1).getTime()); // 7월 (하반기)
+    }
+    return ticks;
+  };
+
+  const halfYearTicks = generateHalfYearTicks();
+  const nowTimestamp = Date.now();
+
   return (
     <div className="space-y-6">
       <div>
@@ -305,13 +322,27 @@ export default function DashboardPage() {
                 <XAxis 
                   type="number" 
                   dataKey="x" 
-                  domain={['dataMin', 'dataMax']}
-                  tickFormatter={(value) => new Date(value).toLocaleDateString('ko-KR', { year: '2-digit', month: 'short' })}
+                  domain={[halfYearTicks[0], halfYearTicks[halfYearTicks.length - 1]]}
+                  ticks={halfYearTicks}
+                  tickFormatter={(value) => {
+                    const date = new Date(value);
+                    const year = date.getFullYear().toString().slice(-2);
+                    const half = date.getMonth() < 6 ? 'H1' : 'H2';
+                    return `${year}' ${half}`;
+                  }}
                   tick={{ fontSize: 11 }}
                 />
                 <YAxis type="number" dataKey="y" hide domain={[0, 6]} />
                 <ZAxis type="number" dataKey="z" range={[100, 400]} />
                 <Tooltip content={<ProductTimelineTooltip />} />
+                {/* 현재 시점 표시 */}
+                <ReferenceLine 
+                  x={nowTimestamp} 
+                  stroke="#EF4444" 
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  label={{ value: '현재', position: 'top', fill: '#EF4444', fontSize: 11 }}
+                />
                 {Object.entries(timelineByType).map(([type, data]) => (
                   <Scatter
                     key={type}
