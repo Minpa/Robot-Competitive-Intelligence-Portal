@@ -1,14 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { Package, ChevronRight } from 'lucide-react';
 import { formatDate, formatCurrency, getProductTypeLabel, getStatusLabel, getStatusColor, cn } from '@/lib/utils';
 
-export default function ProductsPage() {
-  const [filters, setFilters] = useState<Record<string, string>>({});
+function ProductsContent() {
+  const searchParams = useSearchParams();
+  const typeFromUrl = searchParams.get('type') || '';
+  
+  const [filters, setFilters] = useState<Record<string, string>>({
+    type: typeFromUrl,
+  });
+
+  // URL 파라미터 변경 시 필터 업데이트
+  useEffect(() => {
+    if (typeFromUrl) {
+      setFilters(prev => ({ ...prev, type: typeFromUrl }));
+    }
+  }, [typeFromUrl]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['products', filters],
@@ -28,21 +41,27 @@ export default function ProductsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">제품</h1>
-          <p className="text-gray-500">로봇 제품 목록</p>
+          <p className="text-gray-500">로봇 제품 목록 ({data?.total || 0}개)</p>
         </div>
         <div className="flex gap-2">
           <select
             className="px-3 py-2 border border-gray-300 rounded-lg"
-            onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+            value={filters.type || ''}
+            onChange={(e) => setFilters({ ...filters, type: e.target.value })}
           >
             <option value="">모든 유형</option>
             <option value="humanoid">휴머노이드</option>
             <option value="service">서비스 로봇</option>
             <option value="logistics">물류 로봇</option>
             <option value="home">가정용 로봇</option>
+            <option value="industrial">산업용 로봇</option>
+            <option value="foundation_model">파운데이션 모델</option>
+            <option value="actuator">액츄에이터</option>
+            <option value="soc">SoC</option>
           </select>
           <select
             className="px-3 py-2 border border-gray-300 rounded-lg"
+            value={filters.status || ''}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
           >
             <option value="">모든 상태</option>
@@ -114,9 +133,21 @@ export default function ProductsPage() {
 
       {data?.items.length === 0 && (
         <div className="text-center py-12 text-gray-500">
-          등록된 제품이 없습니다.
+          {filters.type ? `"${getProductTypeLabel(filters.type)}" 유형의 제품이 없습니다.` : '등록된 제품이 없습니다.'}
         </div>
       )}
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      </div>
+    }>
+      <ProductsContent />
+    </Suspense>
   );
 }

@@ -341,12 +341,23 @@ export default function DashboardPage() {
                   paddingAngle={5}
                   dataKey="value"
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  onClick={(data) => {
+                    if (data && data.name) {
+                      router.push(`/products?type=${data.name}`);
+                    }
+                  }}
+                  style={{ cursor: 'pointer' }}
                 >
                   {pieData.map((_: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip 
+                  formatter={(value: number, name: string) => [
+                    <span key="value" className="text-blue-600 cursor-pointer">{value}개 (클릭하여 보기)</span>,
+                    name
+                  ]}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
