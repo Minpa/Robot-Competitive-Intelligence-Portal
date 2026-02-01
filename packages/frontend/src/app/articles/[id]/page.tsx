@@ -5,7 +5,22 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
-import { ArrowLeft, ExternalLink, Calendar, Globe, Building2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Calendar, Globe, Building2, FileText, Bot, Brain, Cpu, Cog } from 'lucide-react';
+
+const CATEGORY_INFO: Record<string, { label: string; color: string }> = {
+  product: { label: '제품', color: 'bg-green-100 text-green-700' },
+  technology: { label: '기술', color: 'bg-blue-100 text-blue-700' },
+  industry: { label: '산업', color: 'bg-purple-100 text-purple-700' },
+  other: { label: '기타', color: 'bg-gray-100 text-gray-700' },
+};
+
+const PRODUCT_TYPE_INFO: Record<string, { label: string; icon: any; color: string }> = {
+  robot: { label: '로봇 완제품', icon: Bot, color: 'bg-blue-100 text-blue-700' },
+  rfm: { label: 'RFM/AI', icon: Brain, color: 'bg-purple-100 text-purple-700' },
+  soc: { label: 'SoC/칩', icon: Cpu, color: 'bg-cyan-100 text-cyan-700' },
+  actuator: { label: '액츄에이터', icon: Cog, color: 'bg-orange-100 text-orange-700' },
+  none: { label: '-', icon: FileText, color: 'bg-gray-100 text-gray-500' },
+};
 
 export default function ArticleDetailPage() {
   const params = useParams();
@@ -35,6 +50,10 @@ export default function ArticleDetailPage() {
     );
   }
 
+  const categoryInfo = CATEGORY_INFO[article.category] || CATEGORY_INFO.other;
+  const productTypeInfo = PRODUCT_TYPE_INFO[article.productType] || PRODUCT_TYPE_INFO.none;
+  const ProductTypeIcon = productTypeInfo.icon;
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
@@ -61,36 +80,60 @@ export default function ArticleDetailPage() {
             <Globe className="w-4 h-4" />
             <span className="uppercase">{article.language}</span>
           </div>
-          {article.url && (
+        </div>
+
+        {/* Categories */}
+        <div className="flex flex-wrap gap-3">
+          <div>
+            <span className="text-xs text-gray-500 block mb-1">동향 카테고리</span>
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${categoryInfo.color}`}>
+              {categoryInfo.label}
+            </span>
+          </div>
+          {article.productType && article.productType !== 'none' && (
+            <div>
+              <span className="text-xs text-gray-500 block mb-1">제품 유형</span>
+              <span className={`px-3 py-1 rounded-full text-sm font-medium inline-flex items-center gap-1 ${productTypeInfo.color}`}>
+                <ProductTypeIcon className="w-3 h-3" />
+                {productTypeInfo.label}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* AI Summary */}
+        {article.summary && (
+          <div>
+            <h2 className="text-lg font-semibold mb-2 flex items-center gap-2">
+              <Brain className="w-5 h-5 text-purple-500" />
+              AI 요약
+            </h2>
+            <p className="text-gray-700 bg-purple-50 p-4 rounded-lg border border-purple-100">
+              {article.summary}
+            </p>
+          </div>
+        )}
+
+        {/* Original Article Link - 본문 대신 원문 링크로 안내 */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+          <FileText className="w-12 h-12 text-blue-400 mx-auto mb-3" />
+          <p className="text-gray-600 mb-4">
+            저작권 보호를 위해 기사 본문은 원문 사이트에서 확인해주세요.
+          </p>
+          {article.url ? (
             <a
               href={article.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-blue-600 hover:underline ml-auto"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
-              <ExternalLink className="w-4 h-4" />
-              원문 보기
+              <ExternalLink className="w-5 h-5" />
+              원문 기사 보기
             </a>
+          ) : (
+            <p className="text-gray-400">원문 링크가 없습니다.</p>
           )}
         </div>
-
-        {/* Summary */}
-        {article.summary && (
-          <div>
-            <h2 className="text-lg font-semibold mb-2">요약</h2>
-            <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">{article.summary}</p>
-          </div>
-        )}
-
-        {/* Content */}
-        {article.content && (
-          <div>
-            <h2 className="text-lg font-semibold mb-2">본문</h2>
-            <div className="prose max-w-none text-gray-700 whitespace-pre-wrap">
-              {article.content}
-            </div>
-          </div>
-        )}
 
         {/* Collected Info */}
         <div className="text-sm text-gray-400 border-t pt-4">
