@@ -438,7 +438,7 @@ export class DashboardService {
   }
 
   /**
-   * Get product release timeline data
+   * Get product release timeline data (robots only, excluding RFM, actuator, soc)
    */
   async getProductReleaseTimeline(options: {
     months?: number;
@@ -463,10 +463,13 @@ export class DashboardService {
 
     const result = await query;
 
-    // 타입 필터링 (클라이언트 사이드)
-    let filtered = result;
+    // 로봇 제품만 필터링 (foundation_model, actuator, soc 제외)
+    const robotTypes = ['humanoid', 'service', 'logistics', 'home', 'industrial', 'quadruped'];
+    let filtered = result.filter(r => robotTypes.includes(r.type));
+
+    // 추가 타입 필터링
     if (type) {
-      filtered = result.filter(r => r.type === type);
+      filtered = filtered.filter(r => r.type === type);
     }
 
     return filtered.map(r => ({
@@ -505,6 +508,60 @@ export class DashboardService {
     });
 
     return filtered.map(r => ({
+      id: r.id,
+      name: r.name,
+      type: r.type,
+      releaseDate: r.releaseDate,
+      companyName: r.companyName || 'Unknown',
+    }));
+  }
+
+  /**
+   * Get Actuator timeline data
+   */
+  async getActuatorTimeline(): Promise<ProductReleaseTimelineItem[]> {
+    const result = await db
+      .select({
+        id: products.id,
+        name: products.name,
+        type: products.type,
+        releaseDate: products.releaseDate,
+        companyId: products.companyId,
+        companyName: companies.name,
+      })
+      .from(products)
+      .leftJoin(companies, eq(products.companyId, companies.id))
+      .where(eq(products.type, 'actuator'))
+      .orderBy(desc(products.releaseDate));
+
+    return result.map(r => ({
+      id: r.id,
+      name: r.name,
+      type: r.type,
+      releaseDate: r.releaseDate,
+      companyName: r.companyName || 'Unknown',
+    }));
+  }
+
+  /**
+   * Get SoC timeline data (10+ TOPS)
+   */
+  async getSocTimeline(): Promise<ProductReleaseTimelineItem[]> {
+    const result = await db
+      .select({
+        id: products.id,
+        name: products.name,
+        type: products.type,
+        releaseDate: products.releaseDate,
+        companyId: products.companyId,
+        companyName: companies.name,
+      })
+      .from(products)
+      .leftJoin(companies, eq(products.companyId, companies.id))
+      .where(eq(products.type, 'soc'))
+      .orderBy(desc(products.releaseDate));
+
+    return result.map(r => ({
       id: r.id,
       name: r.name,
       type: r.type,

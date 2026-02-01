@@ -55,4 +55,14 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
   fastify.get('/rfm-timeline', async () => {
     return dashboardService.getRfmTimeline();
   });
+
+  // Get Actuator timeline
+  fastify.get('/actuator-timeline', async () => {
+    return dashboardService.getActuatorTimeline();
+  });
+
+  // Get SoC timeline
+  fastify.get('/soc-timeline', async () => {
+    return dashboardService.getSocTimeline();
+  });
 }

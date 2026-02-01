@@ -186,6 +186,26 @@ class ApiClient {
     }>>('/dashboard/rfm-timeline');
   }
 
+  async getActuatorTimeline() {
+    return this.request<Array<{
+      id: string;
+      name: string;
+      type: string;
+      releaseDate: string | null;
+      companyName: string;
+    }>>('/dashboard/actuator-timeline');
+  }
+
+  async getSocTimeline() {
+    return this.request<Array<{
+      id: string;
+      name: string;
+      type: string;
+      releaseDate: string | null;
+      companyName: string;
+    }>>('/dashboard/soc-timeline');
+  }
+
   // Export
   async exportCompanies(format: 'csv' | 'json' = 'csv') {
     return this.request<string>(`/export/companies?format=${format}`);

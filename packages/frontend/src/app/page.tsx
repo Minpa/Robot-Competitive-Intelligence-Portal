@@ -12,6 +12,9 @@ import {
   TrendingUp,
   ArrowUpRight,
   Cpu,
+  Bot,
+  Cog,
+  CircuitBoard,
 } from 'lucide-react';
 import {
   LineChart,
@@ -136,6 +139,16 @@ export default function DashboardPage() {
     queryFn: () => api.getRfmTimeline(),
   });
 
+  const { data: actuatorTimeline } = useQuery({
+    queryKey: ['actuator-timeline'],
+    queryFn: () => api.getActuatorTimeline(),
+  });
+
+  const { data: socTimeline } = useQuery({
+    queryKey: ['soc-timeline'],
+    queryFn: () => api.getSocTimeline(),
+  });
+
   if (summaryLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -203,7 +216,29 @@ export default function DashboardPage() {
     return {
       ...product,
       x: date,
-      y: index % 3 + 1, // 3개 행으로 분산
+      y: index % 3 + 1,
+      z: 120,
+    };
+  }) || [];
+
+  // 액츄에이터 타임라인 차트 데이터 변환
+  const actuatorChartData = actuatorTimeline?.map((product, index) => {
+    const date = product.releaseDate ? new Date(product.releaseDate).getTime() : Date.now();
+    return {
+      ...product,
+      x: date,
+      y: index % 3 + 1,
+      z: 120,
+    };
+  }) || [];
+
+  // SoC 타임라인 차트 데이터 변환
+  const socChartData = socTimeline?.map((product, index) => {
+    const date = product.releaseDate ? new Date(product.releaseDate).getTime() : Date.now();
+    return {
+      ...product,
+      x: date,
+      y: index % 3 + 1,
       z: 120,
     };
   }) || [];
@@ -308,13 +343,21 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Product Release Timeline */}
+      {/* Robot Product Timeline */}
       {productTimeline && productTimeline.length > 0 && (
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">제품 출시 타임라인</h3>
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-green-100">
+                <Bot className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">로봇 제품 타임라인</h3>
+                <p className="text-xs text-gray-500">휴머노이드, 서비스, 물류 로봇</p>
+              </div>
+            </div>
             <div className="flex items-center gap-3 text-xs">
-              {Object.entries(TYPE_COLORS).filter(([k]) => k !== 'default').map(([type, color]) => (
+              {Object.entries(TYPE_COLORS).filter(([k]) => !['default', 'foundation_model'].includes(k)).map(([type, color]) => (
                 <div key={type} className="flex items-center gap-1">
                   <span className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
                   <span className="text-gray-600">{type}</span>
@@ -495,6 +538,192 @@ export default function DashboardPage() {
             <Cpu className="w-12 h-12 mx-auto mb-2 text-gray-300" />
             <p>등록된 RFM이 없습니다.</p>
             <p className="text-xs mt-1">제품 유형을 'foundation_model'로 설정하거나 이름에 관련 키워드를 포함하세요.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Actuator Timeline */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-orange-100">
+              <Cog className="w-5 h-5 text-orange-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">액츄에이터 타임라인</h3>
+              <p className="text-xs text-gray-500">로봇 관절 모터 및 감속기</p>
+            </div>
+          </div>
+        </div>
+        
+        {actuatorTimeline && actuatorTimeline.length > 0 ? (
+          <>
+            <div className="h-48 mb-6">
+              <ResponsiveContainer width="100%" height="100%">
+                <ScatterChart
+                  margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                  onClick={(data) => {
+                    if (data && data.activePayload && data.activePayload[0]) {
+                      const product = data.activePayload[0].payload;
+                      router.push(`/products/${product.id}`);
+                    }
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    type="number" 
+                    dataKey="x" 
+                    domain={[halfYearTicks[0], halfYearTicks[halfYearTicks.length - 1]]}
+                    ticks={halfYearTicks}
+                    tickFormatter={(value) => {
+                      const date = new Date(value);
+                      const year = date.getFullYear().toString().slice(-2);
+                      const half = date.getMonth() < 6 ? 'H1' : 'H2';
+                      return `${year}' ${half}`;
+                    }}
+                    tick={{ fontSize: 11 }}
+                  />
+                  <YAxis type="number" dataKey="y" hide domain={[0, 4]} />
+                  <ZAxis type="number" dataKey="z" range={[150, 400]} />
+                  <Tooltip content={<ProductTimelineTooltip />} />
+                  <ReferenceLine 
+                    x={nowTimestamp} 
+                    stroke="#EF4444" 
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    label={{ value: '현재', position: 'top', fill: '#EF4444', fontSize: 11 }}
+                  />
+                  <Scatter
+                    name="Actuator"
+                    data={actuatorChartData}
+                    fill="#F97316"
+                    style={{ cursor: 'pointer' }}
+                  />
+                </ScatterChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">액츄에이터 목록</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {actuatorTimeline.map((product) => (
+                  <Link
+                    key={product.id}
+                    href={`/products/${product.id}`}
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-orange-50 transition-colors border border-orange-100"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-xs">
+                      {product.name.substring(0, 3).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 text-sm truncate">{product.name}</p>
+                      <p className="text-xs text-gray-500">{product.companyName}</p>
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {product.releaseDate?.substring(0, 7) || '-'}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <Cog className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+            <p>등록된 액츄에이터가 없습니다.</p>
+          </div>
+        )}
+      </div>
+
+      {/* SoC Timeline */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-cyan-100">
+              <CircuitBoard className="w-5 h-5 text-cyan-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">SoC 타임라인</h3>
+              <p className="text-xs text-gray-500">로봇용 AI 칩 (10+ TOPS)</p>
+            </div>
+          </div>
+        </div>
+        
+        {socTimeline && socTimeline.length > 0 ? (
+          <>
+            <div className="h-48 mb-6">
+              <ResponsiveContainer width="100%" height="100%">
+                <ScatterChart
+                  margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                  onClick={(data) => {
+                    if (data && data.activePayload && data.activePayload[0]) {
+                      const product = data.activePayload[0].payload;
+                      router.push(`/products/${product.id}`);
+                    }
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    type="number" 
+                    dataKey="x" 
+                    domain={[halfYearTicks[0], halfYearTicks[halfYearTicks.length - 1]]}
+                    ticks={halfYearTicks}
+                    tickFormatter={(value) => {
+                      const date = new Date(value);
+                      const year = date.getFullYear().toString().slice(-2);
+                      const half = date.getMonth() < 6 ? 'H1' : 'H2';
+                      return `${year}' ${half}`;
+                    }}
+                    tick={{ fontSize: 11 }}
+                  />
+                  <YAxis type="number" dataKey="y" hide domain={[0, 4]} />
+                  <ZAxis type="number" dataKey="z" range={[150, 400]} />
+                  <Tooltip content={<ProductTimelineTooltip />} />
+                  <ReferenceLine 
+                    x={nowTimestamp} 
+                    stroke="#EF4444" 
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    label={{ value: '현재', position: 'top', fill: '#EF4444', fontSize: 11 }}
+                  />
+                  <Scatter
+                    name="SoC"
+                    data={socChartData}
+                    fill="#06B6D4"
+                    style={{ cursor: 'pointer' }}
+                  />
+                </ScatterChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">SoC 목록</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {socTimeline.map((product) => (
+                  <Link
+                    key={product.id}
+                    href={`/products/${product.id}`}
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-cyan-50 transition-colors border border-cyan-100"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white font-bold text-xs">
+                      {product.name.substring(0, 3).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 text-sm truncate">{product.name}</p>
+                      <p className="text-xs text-gray-500">{product.companyName}</p>
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {product.releaseDate?.substring(0, 7) || '-'}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <CircuitBoard className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+            <p>등록된 SoC가 없습니다.</p>
           </div>
         )}
       </div>
