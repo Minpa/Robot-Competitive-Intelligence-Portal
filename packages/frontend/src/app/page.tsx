@@ -11,9 +11,6 @@ import {
   FileText,
   TrendingUp,
   ArrowUpRight,
-  ArrowDownRight,
-  Bot,
-  Cpu,
 } from 'lucide-react';
 import {
   LineChart,
@@ -26,9 +23,23 @@ import {
   PieChart,
   Pie,
   Cell,
+  ScatterChart,
+  Scatter,
+  ZAxis,
+  ReferenceLine,
 } from 'recharts';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+
+const TYPE_COLORS: Record<string, string> = {
+  humanoid: '#10B981',
+  service: '#3B82F6', 
+  logistics: '#F59E0B',
+  home: '#EF4444',
+  industrial: '#8B5CF6',
+  foundation_model: '#EC4899',
+  default: '#6B7280',
+};
 
 interface CategoryHighlight {
   id: string;
@@ -64,6 +75,28 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         >
           articles : {articles}
         </Link>
+      </div>
+    );
+  }
+  return null;
+};
+
+// Product timeline tooltip
+const ProductTimelineTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 max-w-xs">
+        <div className="flex items-center gap-2 mb-1">
+          <span 
+            className="w-3 h-3 rounded-full" 
+            style={{ backgroundColor: TYPE_COLORS[data.type] || TYPE_COLORS.default }}
+          />
+          <span className="text-xs font-medium text-gray-500">{data.type}</span>
+        </div>
+        <p className="font-semibold text-gray-900">{data.name}</p>
+        <p className="text-sm text-gray-600">{data.companyName}</p>
+        <p className="text-xs text-gray-400 mt-1">{data.releaseDate || '날짜 미정'}</p>
       </div>
     );
   }
@@ -121,6 +154,25 @@ export default function DashboardPage() {
     name: label,
     value: productTypeChart.datasets[0]?.data[i] || 0,
   })) || [];
+
+  // 제품 타임라인 차트 데이터 변환
+  const timelineChartData = productTimeline?.map((product, index) => {
+    const date = product.releaseDate ? new Date(product.releaseDate).getTime() : Date.now();
+    return {
+      ...product,
+      x: date,
+      y: index % 5 + 1, // 5개 행으로 분산
+      z: 100,
+    };
+  }) || [];
+
+  // 타입별로 그룹화
+  const timelineByType = timelineChartData.reduce((acc: Record<string, any[]>, item) => {
+    const type = item.type || 'default';
+    if (!acc[type]) acc[type] = [];
+    acc[type].push(item);
+    return acc;
+  }, {});
 
   return (
     <div className="space-y-6">
@@ -225,44 +277,80 @@ export default function DashboardPage() {
       {/* Product Release Timeline */}
       {productTimeline && productTimeline.length > 0 && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">제품 출시 타임라인</h3>
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {productTimeline.map((product) => {
-              const isRFM = product.type === 'foundation_model' || 
-                product.name.toLowerCase().includes('foundation') ||
-                product.name.toLowerCase().includes('rfm') ||
-                product.name.toLowerCase().includes('model');
-              
-              return (
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">제품 출시 타임라인</h3>
+            <div className="flex items-center gap-3 text-xs">
+              {Object.entries(TYPE_COLORS).filter(([k]) => k !== 'default').map(([type, color]) => (
+                <div key={type} className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+                  <span className="text-gray-600">{type}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Timeline Chart */}
+          <div className="h-64 mb-6">
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart
+                margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                onClick={(data) => {
+                  if (data && data.activePayload && data.activePayload[0]) {
+                    const product = data.activePayload[0].payload;
+                    router.push(`/products/${product.id}`);
+                  }
+                }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  type="number" 
+                  dataKey="x" 
+                  domain={['dataMin', 'dataMax']}
+                  tickFormatter={(value) => new Date(value).toLocaleDateString('ko-KR', { year: '2-digit', month: 'short' })}
+                  tick={{ fontSize: 11 }}
+                />
+                <YAxis type="number" dataKey="y" hide domain={[0, 6]} />
+                <ZAxis type="number" dataKey="z" range={[100, 400]} />
+                <Tooltip content={<ProductTimelineTooltip />} />
+                {Object.entries(timelineByType).map(([type, data]) => (
+                  <Scatter
+                    key={type}
+                    name={type}
+                    data={data}
+                    fill={TYPE_COLORS[type] || TYPE_COLORS.default}
+                    style={{ cursor: 'pointer' }}
+                  />
+                ))}
+              </ScatterChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Product List */}
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-medium text-gray-700 mb-3">최근 제품 목록</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
+              {productTimeline.slice(0, 12).map((product) => (
                 <Link
                   key={product.id}
                   href={`/products/${product.id}`}
                   className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100"
                 >
-                  <div className={`p-2 rounded-lg ${isRFM ? 'bg-purple-100' : 'bg-green-100'}`}>
-                    {isRFM ? (
-                      <Cpu className={`w-4 h-4 ${isRFM ? 'text-purple-600' : 'text-green-600'}`} />
-                    ) : (
-                      <Bot className="w-4 h-4 text-green-600" />
-                    )}
+                  <div 
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+                    style={{ backgroundColor: TYPE_COLORS[product.type] || TYPE_COLORS.default }}
+                  >
+                    {product.name.substring(0, 2).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                        isRFM ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'
-                      }`}>
-                        {isRFM ? 'RFM' : product.type}
-                      </span>
-                      <span className="text-xs text-gray-500">{product.companyName}</span>
-                    </div>
-                    <p className="font-medium text-gray-900 truncate">{product.name}</p>
+                    <p className="font-medium text-gray-900 text-sm truncate">{product.name}</p>
+                    <p className="text-xs text-gray-500">{product.companyName}</p>
                   </div>
                   <div className="text-xs text-gray-400">
-                    {product.releaseDate || '날짜 미정'}
+                    {product.releaseDate?.substring(0, 7) || '-'}
                   </div>
                 </Link>
-              );
-            })}
+              ))}
+            </div>
           </div>
         </div>
       )}
