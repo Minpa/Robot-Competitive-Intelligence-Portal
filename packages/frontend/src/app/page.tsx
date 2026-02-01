@@ -169,6 +169,9 @@ export default function DashboardPage() {
     articles: articleChart.datasets[0]?.data[i] || 0,
   })) || [];
 
+  // 현재 날짜 (YYYY-MM-DD 형식)
+  const todayStr = new Date().toISOString().split('T')[0];
+
   const pieData = productTypeChart?.labels?.map((label: string, i: number) => ({
     name: label,
     value: productTypeChart.datasets[0]?.data[i] || 0,
@@ -305,6 +308,13 @@ export default function DashboardPage() {
                 <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip content={<CustomTooltip />} />
+                <ReferenceLine 
+                  x={todayStr} 
+                  stroke="#EF4444" 
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  label={{ value: '오늘', position: 'top', fill: '#EF4444', fontSize: 11 }}
+                />
                 <Line
                   type="monotone"
                   dataKey="articles"
