@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { formatNumber } from '@/lib/utils';
 import {
@@ -47,7 +48,28 @@ interface WeeklyHighlightsResponse {
   };
 }
 
+// Custom tooltip component with clickable link
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const date = label;
+    const articles = payload[0].value;
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
+        <p className="font-medium text-gray-900">{date}</p>
+        <Link 
+          href={`/articles?date=${date}`}
+          className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+        >
+          articles : {articles}
+        </Link>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function DashboardPage() {
+  const router = useRouter();
   const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ['dashboard-summary'],
     queryFn: () => api.getDashboardSummary(),
@@ -142,11 +164,19 @@ export default function DashboardPage() {
           <h3 className="text-lg font-semibold mb-4">기사 수집 추이</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
+              <LineChart 
+                data={chartData}
+                onClick={(data) => {
+                  if (data && data.activeLabel) {
+                    router.push(`/articles?date=${data.activeLabel}`);
+                  }
+                }}
+                style={{ cursor: 'pointer' }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip />
+                <Tooltip content={<CustomTooltip />} />
                 <Line
                   type="monotone"
                   dataKey="articles"

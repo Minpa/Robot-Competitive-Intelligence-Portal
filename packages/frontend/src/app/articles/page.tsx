@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import { FileText, ExternalLink, Clock, Filter, Calendar, TrendingUp, Sparkles } from 'lucide-react';
+import { FileText, ExternalLink, Clock, Filter, Calendar, TrendingUp, Sparkles, X } from 'lucide-react';
 import { formatDate, cn } from '@/lib/utils';
 
 // 카테고리 태그 추론 함수
@@ -61,10 +62,33 @@ function groupByDate(articles: any[]): Record<string, any[]> {
 type ViewMode = 'card' | 'timeline';
 
 export default function ArticlesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      </div>
+    }>
+      <ArticlesContent />
+    </Suspense>
+  );
+}
+
+function ArticlesContent() {
+  const searchParams = useSearchParams();
+  const dateParam = searchParams.get('date');
+  
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [viewMode, setViewMode] = useState<ViewMode>('card');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [sourceFilter, setSourceFilter] = useState<string>('');
+  const [dateFilter, setDateFilter] = useState<string>(dateParam || '');
+
+  // URL 파라미터 변경 시 dateFilter 업데이트
+  useEffect(() => {
+    if (dateParam) {
+      setDateFilter(dateParam);
+    }
+  }, [dateParam]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['articles', filters],
@@ -85,9 +109,19 @@ export default function ArticlesPage() {
     return articlesWithCategory.filter((article: any) => {
       if (categoryFilter && article.category !== categoryFilter) return false;
       if (sourceFilter && article.source !== sourceFilter) return false;
+      // 날짜 필터
+      if (dateFilter) {
+        const articleDate = article.publishedAt || article.collectedAt;
+        if (articleDate) {
+          const articleDateStr = new Date(articleDate).toISOString().split('T')[0];
+          if (articleDateStr !== dateFilter) return false;
+        } else {
+          return false;
+        }
+      }
       return true;
     });
-  }, [articlesWithCategory, categoryFilter, sourceFilter]);
+  }, [articlesWithCategory, categoryFilter, sourceFilter, dateFilter]);
 
   // 최근 24시간 기사
   const recentArticles = filteredArticles.filter((a: any) => a.isRecent);
@@ -124,6 +158,23 @@ export default function ArticlesPage() {
       <div className="bg-white rounded-lg shadow p-4">
         <div className="flex flex-wrap items-center gap-3">
           <Filter className="w-5 h-5 text-gray-400" />
+          
+          {/* 날짜 필터 표시 */}
+          {dateFilter && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm">
+              <Calendar className="w-4 h-4" />
+              <span>{dateFilter}</span>
+              <button
+                onClick={() => {
+                  setDateFilter('');
+                  window.history.replaceState(null, '', '/articles');
+                }}
+                className="ml-1 hover:bg-blue-200 rounded p-0.5"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
           
           {/* 언어 필터 */}
           <select
