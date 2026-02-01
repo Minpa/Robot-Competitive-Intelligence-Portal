@@ -37,6 +37,7 @@ export interface CrawlResult {
   successCount: number;
   failureCount: number;
   duplicateCount: number;
+  skippedByRobots?: number; // robots.txt로 인해 건너뛴 URL 수
   errors: CrawlError[];
   collectedItems: CollectedItem[];
 }

@@ -1,16 +1,21 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
+import { robotsParser } from './robots-parser.js';
 import type { RateLimitConfig } from '../types.js';
 
 export class HttpClient {
   private client: AxiosInstance;
   private requestCounts: Map<string, { minute: number[]; hour: number[] }> = new Map();
   private rateLimit: RateLimitConfig;
+  private respectRobotsTxt: boolean;
 
-  constructor(timeout: number = 30000, rateLimit?: RateLimitConfig) {
+  constructor(timeout: number = 30000, rateLimit?: RateLimitConfig, respectRobotsTxt: boolean = true) {
+    // 봇임을 명확히 표시하는 User-Agent 사용
+    const userAgent = robotsParser.getUserAgent();
+    
     this.client = axios.create({
       timeout,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': `${userAgent} (+https://github.com/robot-competitive-intelligence)`,
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9,ko;q=0.8',
         'Accept-Encoding': 'gzip, deflate, br',
@@ -24,10 +29,28 @@ export class HttpClient {
       requestsPerHour: 500,
       delayBetweenRequests: 2000,
     };
+    
+    this.respectRobotsTxt = respectRobotsTxt;
   }
 
   async fetch(url: string, retryCount: number = 3): Promise<string> {
     const domain = new URL(url).hostname;
+
+    // robots.txt 확인
+    if (this.respectRobotsTxt) {
+      const robotsCheck = await robotsParser.isAllowed(url);
+      
+      if (!robotsCheck.allowed) {
+        console.log(`[HttpClient] Blocked by robots.txt: ${url} - ${robotsCheck.reason}`);
+        throw new Error(`Blocked by robots.txt: ${robotsCheck.reason}`);
+      }
+
+      // robots.txt의 Crawl-delay 적용 (더 긴 값 사용)
+      if (robotsCheck.crawlDelay && robotsCheck.crawlDelay > this.rateLimit.delayBetweenRequests) {
+        console.log(`[HttpClient] Using robots.txt crawl-delay: ${robotsCheck.crawlDelay}ms for ${domain}`);
+        await this.delay(robotsCheck.crawlDelay);
+      }
+    }
 
     // Check rate limit
     await this.checkRateLimit(domain);
@@ -54,6 +77,7 @@ export class HttpClient {
         if (axiosError.response?.status && axiosError.response.status >= 400 && axiosError.response.status < 500) {
           if (axiosError.response.status === 429) {
             // Rate limited - wait longer
+            console.log(`[HttpClient] Rate limited (429) for ${url}, waiting 60s`);
             await this.delay(60000);
             continue;
           }

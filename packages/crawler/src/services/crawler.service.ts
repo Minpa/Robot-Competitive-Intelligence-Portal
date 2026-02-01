@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import PQueue from 'p-queue';
 import { HttpClient } from './http-client.js';
 import { contentParser } from './content-parser.js';
+import { robotsParser } from './robots-parser.js';
 import type {
   CrawlJobConfig,
   CrawlResult,
@@ -22,6 +23,7 @@ export class CrawlerService {
   /**
    * Execute a crawl job for specified targets
    * Property 4: Crawl Job Resilience - continues on individual failures
+   * robots.txt를 준수하여 크롤링합니다.
    */
   async executeCrawlJob(jobConfig: CrawlJobConfig): Promise<CrawlResult> {
     const jobId = uuidv4();
@@ -40,6 +42,7 @@ export class CrawlerService {
       successCount: 0,
       failureCount: 0,
       duplicateCount: 0,
+      skippedByRobots: 0, // robots.txt로 인해 건너뛴 URL 수
       errors: [],
       collectedItems: [],
     };
@@ -63,6 +66,15 @@ export class CrawlerService {
     const tasks = jobConfig.targetUrls.map((target) =>
       queue.add(async () => {
         try {
+          // robots.txt 사전 확인
+          const robotsCheck = await robotsParser.isAllowed(target.url);
+          
+          if (!robotsCheck.allowed) {
+            console.log(`[Crawler] Skipped (robots.txt): ${target.url} - ${robotsCheck.reason}`);
+            result.skippedByRobots = (result.skippedByRobots || 0) + 1;
+            return;
+          }
+
           const item = await this.crawlUrl(target, jobConfig.timeout, jobConfig.retryCount);
 
           if (item) {
@@ -70,6 +82,15 @@ export class CrawlerService {
             result.successCount++;
           }
         } catch (error) {
+          const errorMessage = (error as Error).message;
+          
+          // robots.txt 차단은 에러로 카운트하지 않음
+          if (errorMessage.includes('Blocked by robots.txt')) {
+            result.skippedByRobots = (result.skippedByRobots || 0) + 1;
+            console.log(`[Crawler] Skipped (robots.txt): ${target.url}`);
+            return;
+          }
+
           const crawlError = this.createCrawlError(target.url, error as Error);
           result.errors.push(crawlError);
           result.failureCount++;
@@ -96,7 +117,7 @@ export class CrawlerService {
     });
 
     console.log(
-      `[Crawler] Job ${jobId} completed: ${result.successCount} success, ${result.failureCount} failures`
+      `[Crawler] Job ${jobId} completed: ${result.successCount} success, ${result.failureCount} failures, ${result.skippedByRobots || 0} skipped by robots.txt`
     );
 
     return result;
