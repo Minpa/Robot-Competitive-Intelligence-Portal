@@ -436,6 +436,47 @@ export class DashboardService {
       }],
     };
   }
+
+  /**
+   * Get product release timeline data
+   */
+  async getProductReleaseTimeline(options: {
+    months?: number;
+  } = {}): Promise<ProductReleaseTimelineItem[]> {
+    const { months = 12 } = options;
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - months);
+
+    const result = await db
+      .select({
+        id: products.id,
+        name: products.name,
+        type: products.type,
+        releaseDate: products.releaseDate,
+        companyId: products.companyId,
+        companyName: companies.name,
+      })
+      .from(products)
+      .leftJoin(companies, eq(products.companyId, companies.id))
+      .where(gte(products.createdAt, startDate))
+      .orderBy(desc(products.createdAt));
+
+    return result.map(r => ({
+      id: r.id,
+      name: r.name,
+      type: r.type,
+      releaseDate: r.releaseDate,
+      companyName: r.companyName || 'Unknown',
+    }));
+  }
+}
+
+export interface ProductReleaseTimelineItem {
+  id: string;
+  name: string;
+  type: string;
+  releaseDate: string | null;
+  companyName: string;
 }
 
 export const dashboardService = new DashboardService();

@@ -166,6 +166,16 @@ class ApiClient {
     return this.request<any>('/dashboard/charts/product-types');
   }
 
+  async getProductReleaseTimeline() {
+    return this.request<Array<{
+      id: string;
+      name: string;
+      type: string;
+      releaseDate: string | null;
+      companyName: string;
+    }>>('/dashboard/product-timeline');
+  }
+
   // Export
   async exportCompanies(format: 'csv' | 'json' = 'csv') {
     return this.request<string>(`/export/companies?format=${format}`);

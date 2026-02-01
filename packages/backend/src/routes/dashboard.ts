@@ -41,4 +41,12 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
   fastify.get('/charts/company-countries', async () => {
     return dashboardService.getCompanyCountryChartData();
   });
+
+  // Get product release timeline
+  fastify.get('/product-timeline', async (request) => {
+    const query = request.query as Record<string, string>;
+    return dashboardService.getProductReleaseTimeline({
+      months: query.months ? parseInt(query.months) : 12,
+    });
+  });
 }

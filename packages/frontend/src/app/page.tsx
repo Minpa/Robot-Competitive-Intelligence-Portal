@@ -12,6 +12,8 @@ import {
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
+  Bot,
+  Cpu,
 } from 'lucide-react';
 import {
   LineChart,
@@ -88,6 +90,11 @@ export default function DashboardPage() {
   const { data: productTypeChart } = useQuery({
     queryKey: ['product-type-chart'],
     queryFn: () => api.getProductTypeChartData(),
+  });
+
+  const { data: productTimeline } = useQuery({
+    queryKey: ['product-timeline'],
+    queryFn: () => api.getProductReleaseTimeline(),
   });
 
   if (summaryLoading) {
@@ -214,6 +221,51 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Product Release Timeline */}
+      {productTimeline && productTimeline.length > 0 && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">제품 출시 타임라인</h3>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {productTimeline.map((product) => {
+              const isRFM = product.type === 'foundation_model' || 
+                product.name.toLowerCase().includes('foundation') ||
+                product.name.toLowerCase().includes('rfm') ||
+                product.name.toLowerCase().includes('model');
+              
+              return (
+                <Link
+                  key={product.id}
+                  href={`/products/${product.id}`}
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100"
+                >
+                  <div className={`p-2 rounded-lg ${isRFM ? 'bg-purple-100' : 'bg-green-100'}`}>
+                    {isRFM ? (
+                      <Cpu className={`w-4 h-4 ${isRFM ? 'text-purple-600' : 'text-green-600'}`} />
+                    ) : (
+                      <Bot className="w-4 h-4 text-green-600" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                        isRFM ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'
+                      }`}>
+                        {isRFM ? 'RFM' : product.type}
+                      </span>
+                      <span className="text-xs text-gray-500">{product.companyName}</span>
+                    </div>
+                    <p className="font-medium text-gray-900 truncate">{product.name}</p>
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {product.releaseDate || '날짜 미정'}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Weekly Highlights */}
       <div className="bg-white rounded-lg shadow p-6">
