@@ -3,6 +3,7 @@ import PQueue from 'p-queue';
 import { HttpClient } from './http-client.js';
 import { contentParser } from './content-parser.js';
 import { robotsParser } from './robots-parser.js';
+import { isWhitelisted } from './whitelist.js';
 import type {
   CrawlJobConfig,
   CrawlResult,
@@ -22,8 +23,11 @@ export class CrawlerService {
 
   /**
    * Execute a crawl job for specified targets
-   * Property 4: Crawl Job Resilience - continues on individual failures
-   * robots.txt를 준수하여 크롤링합니다.
+   * 
+   * 법적 안전성을 위한 3단계 검증:
+   * 1. 화이트리스트 확인 (공식 언론사/합법 사이트만)
+   * 2. robots.txt 준수
+   * 3. Rate limiting
    */
   async executeCrawlJob(jobConfig: CrawlJobConfig): Promise<CrawlResult> {
     const jobId = uuidv4();
@@ -42,7 +46,8 @@ export class CrawlerService {
       successCount: 0,
       failureCount: 0,
       duplicateCount: 0,
-      skippedByRobots: 0, // robots.txt로 인해 건너뛴 URL 수
+      skippedByRobots: 0,
+      skippedByWhitelist: 0, // 화이트리스트 미포함으로 건너뛴 URL
       errors: [],
       collectedItems: [],
     };
@@ -66,15 +71,23 @@ export class CrawlerService {
     const tasks = jobConfig.targetUrls.map((target) =>
       queue.add(async () => {
         try {
-          // robots.txt 사전 확인
+          // 1단계: 화이트리스트 확인
+          const whitelistCheck = isWhitelisted(target.url);
+          if (!whitelistCheck.allowed) {
+            console.log(`[Crawler] Skipped (not whitelisted): ${target.url} - ${whitelistCheck.reason}`);
+            result.skippedByWhitelist = (result.skippedByWhitelist || 0) + 1;
+            return;
+          }
+
+          // 2단계: robots.txt 확인
           const robotsCheck = await robotsParser.isAllowed(target.url);
-          
           if (!robotsCheck.allowed) {
             console.log(`[Crawler] Skipped (robots.txt): ${target.url} - ${robotsCheck.reason}`);
             result.skippedByRobots = (result.skippedByRobots || 0) + 1;
             return;
           }
 
+          // 3단계: 크롤링 실행
           const item = await this.crawlUrl(target, jobConfig.timeout, jobConfig.retryCount);
 
           if (item) {
@@ -84,10 +97,8 @@ export class CrawlerService {
         } catch (error) {
           const errorMessage = (error as Error).message;
           
-          // robots.txt 차단은 에러로 카운트하지 않음
           if (errorMessage.includes('Blocked by robots.txt')) {
             result.skippedByRobots = (result.skippedByRobots || 0) + 1;
-            console.log(`[Crawler] Skipped (robots.txt): ${target.url}`);
             return;
           }
 
@@ -117,7 +128,8 @@ export class CrawlerService {
     });
 
     console.log(
-      `[Crawler] Job ${jobId} completed: ${result.successCount} success, ${result.failureCount} failures, ${result.skippedByRobots || 0} skipped by robots.txt`
+      `[Crawler] Job ${jobId} completed: ${result.successCount} success, ${result.failureCount} failures, ` +
+      `${result.skippedByRobots || 0} blocked by robots.txt, ${result.skippedByWhitelist || 0} not whitelisted`
     );
 
     return result;

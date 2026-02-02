@@ -38,6 +38,7 @@ export interface CrawlResult {
   failureCount: number;
   duplicateCount: number;
   skippedByRobots?: number; // robots.txt로 인해 건너뛴 URL 수
+  skippedByWhitelist?: number; // 화이트리스트 미포함으로 건너뛴 URL 수
   errors: CrawlError[];
   collectedItems: CollectedItem[];
 }

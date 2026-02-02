@@ -28,6 +28,15 @@ export default function RootLayout({
               <main className="flex-1 p-6 bg-gray-50">
                 {children}
               </main>
+              <footer className="bg-white border-t px-6 py-4">
+                <div className="flex items-center justify-between text-sm text-gray-500">
+                  <span>© 2024 RCIP - Robot Competitive Intelligence Portal</span>
+                  <div className="flex gap-4">
+                    <a href="/terms" className="hover:text-gray-700 hover:underline">이용약관</a>
+                    <a href="/copyright" className="hover:text-gray-700 hover:underline">저작권 신고</a>
+                  </div>
+                </div>
+              </footer>
             </div>
           </div>
         </Providers>
