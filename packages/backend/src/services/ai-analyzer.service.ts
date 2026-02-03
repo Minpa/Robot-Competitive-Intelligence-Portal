@@ -1,8 +1,4 @@
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// AI 분석 기능 비활성화 - 저작권 보호
 
 export interface ArticleAnalysis {
   summary: string;
@@ -20,7 +16,6 @@ export async function analyzeArticle(
   _title: string,
   _content: string
 ): Promise<ArticleAnalysis> {
-  // 저작권 보호를 위해 AI 분석 비활성화
   console.log('[AI] Article analysis disabled for copyright protection');
   return { 
     summary: '', 
