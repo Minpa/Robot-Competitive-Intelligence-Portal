@@ -10,7 +10,7 @@ interface MainLayoutProps {
 }
 
 // 인증 없이 접근 가능한 페이지
-const PUBLIC_PATHS = ['/login', '/terms', '/copyright'];
+const PUBLIC_PATHS = ['/login', '/register', '/terms', '/copyright'];
 
 export function MainLayout({ children }: MainLayoutProps) {
   const router = useRouter();
@@ -54,8 +54,8 @@ export function MainLayout({ children }: MainLayoutProps) {
     }
   }, [pathname, router]);
 
-  // 로그인 페이지는 레이아웃 없이 렌더링
-  if (pathname === '/login') {
+  // 로그인/회원가입 페이지는 레이아웃 없이 렌더링
+  if (pathname === '/login' || pathname === '/register') {
     return <>{children}</>;
   }
 

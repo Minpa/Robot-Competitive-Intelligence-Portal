@@ -3,6 +3,15 @@ import { createHash } from 'crypto';
 import { db, users, auditLogs } from '../db/index.js';
 import type { User, UserRole, Permission } from '../types/index.js';
 
+/**
+ * 허용된 이메일 화이트리스트
+ * 이 목록에 있는 이메일만 회원가입 가능
+ */
+const ALLOWED_EMAILS: string[] = [
+  'somewhere010@gmail.com',
+  // 추가 이메일은 여기에 등록
+];
+
 export interface LoginCredentials {
   email: string;
   password: string;
@@ -46,6 +55,11 @@ export class AuthService {
    * Register a new user
    */
   async register(data: RegisterData): Promise<AuthResult> {
+    // 이메일 화이트리스트 확인
+    if (!this.isEmailAllowed(data.email)) {
+      throw new Error('이 이메일은 등록이 허용되지 않습니다. 관리자에게 문의하세요.');
+    }
+
     // Check if user exists
     const existing = await this.findByEmail(data.email);
     if (existing) {
@@ -84,6 +98,20 @@ export class AuthService {
       token,
       expiresAt: new Date(Date.now() + this.tokenExpiry),
     };
+  }
+
+  /**
+   * 이메일이 화이트리스트에 있는지 확인
+   */
+  isEmailAllowed(email: string): boolean {
+    return ALLOWED_EMAILS.includes(email.toLowerCase());
+  }
+
+  /**
+   * 허용된 이메일 목록 조회 (관리자용)
+   */
+  getAllowedEmails(): string[] {
+    return [...ALLOWED_EMAILS];
   }
 
   /**
