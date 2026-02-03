@@ -1,310 +1,235 @@
 'use client';
-// Build cache bust: v3
+
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { api } from '@/lib/api';
-import { Settings, Play, AlertTriangle, RefreshCw, Plus, Trash2, X, CheckCircle, XCircle, AlertCircle, Zap, Brain } from 'lucide-react';
-import { formatDate } from '@/lib/utils';
+import {
+  Settings,
+  Database,
+  BookOpen,
+  Github,
+  Scale,
+  ScrollText,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  ExternalLink,
+  Users,
+  Shield,
+} from 'lucide-react';
+
+interface CollectionResult {
+  source: string;
+  success: boolean;
+  count: number;
+  items: any[];
+  error?: string;
+}
 
 export default function AdminPage() {
   const queryClient = useQueryClient();
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newTarget, setNewTarget] = useState({ domain: '', url: '' });
-  const [aiAnalysisProgress, setAiAnalysisProgress] = useState<{ current: number; total: number } | null>(null);
+  const [isCollecting, setIsCollecting] = useState(false);
+  const [collectingSource, setCollectingSource] = useState<string | null>(null);
+  const [results, setResults] = useState<CollectionResult[]>([]);
+  const [lastCollected, setLastCollected] = useState<Date | null>(null);
 
-  const { data: targets, isLoading: targetsLoading } = useQuery({
-    queryKey: ['crawl-targets'],
-    queryFn: () => api.getCrawlTargets(),
+  const { data: summary } = useQuery({
+    queryKey: ['dashboard-summary'],
+    queryFn: () => api.getDashboardSummary(),
   });
 
-  const { data: errors } = useQuery({
-    queryKey: ['crawl-errors'],
-    queryFn: () => api.getCrawlErrors(),
-  });
-
-  const { data: jobs } = useQuery({
-    queryKey: ['crawl-jobs'],
-    queryFn: () => api.getCrawlJobs().catch(() => ({ items: [], total: 0 })),
-  });
-
-  const { data: aiStatus } = useQuery({
-    queryKey: ['ai-analysis-status'],
-    queryFn: () => api.getAiAnalysisStatus(),
-  });
-
-  const triggerMutation = useMutation({
-    mutationFn: (targetId: string) => api.triggerCrawl(targetId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['crawl-targets'] });
-      queryClient.invalidateQueries({ queryKey: ['crawl-jobs'] });
-      alert('크롤링 작업이 시작되었습니다.');
-    },
-    onError: () => alert('크롤링 시작에 실패했습니다.'),
-  });
-
-  const addTargetMutation = useMutation({
-    mutationFn: (data: { domain: string; urls: string[] }) => api.addCrawlTarget(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['crawl-targets'] });
-      setShowAddModal(false);
-      setNewTarget({ domain: '', url: '' });
-      alert('크롤링 대상이 추가되었습니다.');
-    },
-    onError: () => alert('크롤링 대상 추가에 실패했습니다.'),
-  });
-
-  const deleteTargetMutation = useMutation({
-    mutationFn: (targetId: string) => api.deleteCrawlTarget(targetId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['crawl-targets'] });
-      alert('크롤링 대상이 삭제되었습니다.');
-    },
-    onError: () => alert('크롤링 대상 삭제에 실패했습니다.'),
-  });
-
-  const toggleTargetMutation = useMutation({
-    mutationFn: ({ targetId, enabled }: { targetId: string; enabled: boolean }) => 
-      enabled ? api.enableCrawlTarget(targetId) : api.disableCrawlTarget(targetId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['crawl-targets'] }),
-  });
-
-  const triggerAllMutation = useMutation({
-    mutationFn: () => api.triggerAllCrawls(),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['crawl-targets'] });
-      queryClient.invalidateQueries({ queryKey: ['crawl-jobs'] });
-      alert(`${data.triggered}개 대상에 대해 크롤링이 시작되었습니다.`);
-    },
-    onError: () => alert('전체 크롤링 시작에 실패했습니다.'),
-  });
-
-  const runAiAnalysis = async () => {
+  const collectAll = async () => {
+    setIsCollecting(true);
+    setCollectingSource('all');
     try {
-      setAiAnalysisProgress({ current: 0, total: 1 });
-      
-      const result = await api.runAiAnalysisAll();
-      
-      queryClient.invalidateQueries({ queryKey: ['ai-analysis-status'] });
-      queryClient.invalidateQueries({ queryKey: ['weekly-highlights'] });
-      
-      if (result.analyzed === 0) {
-        alert('분석할 기사가 없습니다. 모든 기사가 이미 분석되었습니다.');
-      } else {
-        alert(`${result.analyzed}개 기사 AI 분석이 완료되었습니다.`);
-      }
+      const result = await api.collectPublicData();
+      setResults(result.results);
+      setLastCollected(new Date());
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
     } catch (error) {
-      console.error('AI analysis error:', error);
-      alert('AI 분석 중 오류가 발생했습니다. OPENAI_API_KEY가 설정되어 있는지 확인해주세요.');
+      console.error('Collection failed:', error);
     } finally {
-      setAiAnalysisProgress(null);
+      setIsCollecting(false);
+      setCollectingSource(null);
     }
   };
 
-  const getTargetStatus = (targetId: string) => {
-    if (!jobs?.items) return { status: 'none' };
-    const targetJobs = jobs.items
-      .filter((job: any) => job.targetId === targetId)
-      .sort((a: any, b: any) => new Date(b.completedAt || b.startedAt || 0).getTime() - new Date(a.completedAt || a.startedAt || 0).getTime());
-    if (targetJobs.length === 0) return { status: 'none' };
-    const lastJob = targetJobs[0];
-    if (lastJob.status === 'pending' || lastJob.status === 'running') return { status: 'pending' };
-    if (lastJob.status === 'failed') return { status: 'failed', error: '크롤링 실패' };
-    if (lastJob.failureCount > 0 && lastJob.successCount === 0) return { status: 'blocked', error: '접근 거부 (403/404)' };
-    if (lastJob.successCount > 0) return { status: 'success' };
-    return { status: 'none' };
+  const collectSingle = async (source: string) => {
+    setCollectingSource(source);
+    try {
+      let result;
+      switch (source) {
+        case 'arxiv': result = await api.collectArxiv(); break;
+        case 'github': result = await api.collectGitHub(); break;
+        case 'sec_edgar': result = await api.collectSecEdgar(); break;
+        case 'patent': result = await api.collectPatents(); break;
+        default: return;
+      }
+      setResults(prev => [...prev.filter(r => r.source !== source), result]);
+      setLastCollected(new Date());
+    } catch (error) {
+      console.error(`Collection failed for ${source}:`, error);
+    } finally {
+      setCollectingSource(null);
+    }
   };
 
-  const handleAddTarget = () => {
-    if (!newTarget.domain || !newTarget.url) { alert('도메인과 URL을 입력해주세요.'); return; }
-    addTargetMutation.mutate({ domain: newTarget.domain, urls: [newTarget.url] });
-  };
+  const getSourceResult = (source: string) => results.find(r => r.source === source);
 
-  const handleDeleteTarget = (targetId: string, domain: string) => {
-    if (confirm(`"${domain}" 크롤링 대상을 삭제하시겠습니까?`)) deleteTargetMutation.mutate(targetId);
-  };
-
-  if (targetsLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-      </div>
-    );
-  }
+  const sources = [
+    { key: 'arxiv', name: 'arXiv', icon: BookOpen, color: 'red', desc: '로봇/AI 논문' },
+    { key: 'github', name: 'GitHub', icon: Github, color: 'gray', desc: '오픈소스 리포' },
+    { key: 'sec_edgar', name: 'SEC EDGAR', icon: Scale, color: 'blue', desc: '미국 공시' },
+    { key: 'patent', name: 'USPTO', icon: ScrollText, color: 'amber', desc: '특허 데이터' },
+  ];
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">관리</h1>
-        <p className="text-gray-500">크롤링 대상 및 에러 모니터링</p>
+        <p className="text-gray-500">공개 데이터 수집 및 시스템 관리</p>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold flex items-center gap-2">
-                <Zap className="w-5 h-5 text-yellow-500" />
-                전체 크롤링
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">모든 활성화된 대상을 크롤링합니다</p>
-            </div>
-            <button
-              onClick={() => triggerAllMutation.mutate()}
-              disabled={triggerAllMutation.isPending}
-              className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50"
-            >
-              {triggerAllMutation.isPending ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Play className="w-4 h-4" />
-              )}
-              전체 시작
-            </button>
-          </div>
+      {/* System Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow p-4">
+          <p className="text-sm text-gray-500">회사</p>
+          <p className="text-2xl font-bold">{summary?.totalCompanies || 0}</p>
         </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold flex items-center gap-2">
-                <Brain className="w-5 h-5 text-purple-500" />
-                AI 분석
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                {aiStatus?.unanalyzedCount ?? 0}개 기사 분석 대기 중
-              </p>
-              {aiAnalysisProgress && (
-                <div className="mt-2">
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-purple-500 h-2 rounded-full transition-all"
-                      style={{ width: `${(aiAnalysisProgress.current / aiAnalysisProgress.total) * 100}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {aiAnalysisProgress.current} / {aiAnalysisProgress.total}
-                  </p>
-                </div>
-              )}
-            </div>
-            <button
-              onClick={runAiAnalysis}
-              disabled={aiAnalysisProgress !== null || (aiStatus?.unanalyzedCount ?? 0) === 0}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:opacity-50"
-            >
-              {aiAnalysisProgress ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Brain className="w-4 h-4" />
-              )}
-              분석 시작
-            </button>
-          </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <p className="text-sm text-gray-500">제품</p>
+          <p className="text-2xl font-bold">{summary?.totalProducts || 0}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <p className="text-sm text-gray-500">키워드</p>
+          <p className="text-2xl font-bold">{summary?.totalKeywords || 0}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4">
+          <p className="text-sm text-gray-500">수집 데이터</p>
+          <p className="text-2xl font-bold">{results.reduce((sum, r) => sum + r.count, 0)}</p>
         </div>
       </div>
 
+      {/* Public Data Collection */}
       <div className="bg-white rounded-lg shadow">
         <div className="p-6 border-b flex items-center justify-between">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            크롤링 대상
-          </h2>
-          <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-            <Plus className="w-4 h-4" />
-            대상 추가
-          </button>
-        </div>
-        <div className="divide-y">
-          {targets && targets.length > 0 ? targets.map((target: any) => {
-            const targetStatus = getTargetStatus(target.id);
-            return (
-              <div key={target.id} className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <p className="font-medium">{target.domain}</p>
-                      {targetStatus.status === 'success' && <span className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700"><CheckCircle className="w-3 h-3" />정상</span>}
-                      {targetStatus.status === 'blocked' && <span className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700"><XCircle className="w-3 h-3" />접근 거부</span>}
-                      {targetStatus.status === 'failed' && <span className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-orange-100 text-orange-700"><AlertCircle className="w-3 h-3" />실패</span>}
-                      {targetStatus.status === 'pending' && <span className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700"><RefreshCw className="w-3 h-3 animate-spin" />진행중</span>}
-                    </div>
-                    <p className="text-sm text-gray-500 mt-1">스케줄: {target.cronExpression} · 마지막 크롤링: {target.lastCrawled ? formatDate(target.lastCrawled) : '없음'}</p>
-                    {targetStatus.error && <p className="text-sm text-red-500 mt-1">⚠️ {targetStatus.error}</p>}
-                    <div className="flex items-center gap-2 mt-2">
-                      <button onClick={() => toggleTargetMutation.mutate({ targetId: target.id, enabled: !target.enabled })} className={`px-2 py-0.5 text-xs rounded-full cursor-pointer transition-colors ${target.enabled ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
-                        {target.enabled ? '활성' : '비활성'}
-                      </button>
-                      <span className="text-xs text-gray-500">URL {target.urls?.length || 0}개</span>
-                    </div>
-                    <div className="mt-2">
-                      {target.urls?.slice(0, 2).map((url: string, idx: number) => <p key={idx} className="text-xs text-gray-400 truncate max-w-md">{url}</p>)}
-                      {target.urls?.length > 2 && <p className="text-xs text-gray-400">+{target.urls.length - 2}개 더...</p>}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => triggerMutation.mutate(target.id)} disabled={triggerMutation.isPending || !target.enabled} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
-                      {triggerMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-                      크롤링
-                    </button>
-                    <button onClick={() => handleDeleteTarget(target.id, target.domain)} disabled={deleteTargetMutation.isPending} className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 disabled:opacity-50">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          }) : <div className="p-6 text-center text-gray-500">등록된 크롤링 대상이 없습니다.</div>}
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-red-500" />
-            최근 에러 ({errors?.total || 0})
-          </h2>
-        </div>
-        <div className="divide-y max-h-96 overflow-y-auto">
-          {errors?.items && errors.items.length > 0 ? errors.items.slice(0, 20).map((error: any) => (
-            <div key={error.id} className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-medium text-red-600">{error.errorType}</p>
-                  <p className="text-sm text-gray-600 mt-1">{error.message}</p>
-                  <p className="text-xs text-gray-400 mt-1 truncate max-w-md">{error.url}</p>
-                </div>
-                <span className="text-xs text-gray-500">{formatDate(error.occurredAt)}</span>
-              </div>
-            </div>
-          )) : <div className="p-6 text-center text-gray-500">에러가 없습니다.</div>}
-        </div>
-      </div>
-
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-            <div className="p-6 border-b flex items-center justify-between">
-              <h3 className="text-lg font-semibold">크롤링 대상 추가</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">도메인 이름</label>
-                <input type="text" value={newTarget.domain} onChange={(e) => setNewTarget({ ...newTarget, domain: e.target.value })} placeholder="예: techcrunch.com" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">크롤링 URL</label>
-                <input type="text" value={newTarget.url} onChange={(e) => setNewTarget({ ...newTarget, url: e.target.value })} placeholder="예: https://techcrunch.com/tag/robots/" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-              </div>
-            </div>
-            <div className="p-6 border-t flex justify-end gap-3">
-              <button onClick={() => setShowAddModal(false)} className="px-4 py-2 text-gray-600 hover:text-gray-800">취소</button>
-              <button onClick={handleAddTarget} disabled={addTargetMutation.isPending} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">{addTargetMutation.isPending ? '추가 중...' : '추가'}</button>
-            </div>
+          <div className="flex items-center gap-2">
+            <Database className="w-5 h-5 text-emerald-600" />
+            <h2 className="text-lg font-semibold">공개 데이터 수집</h2>
+          </div>
+          <div className="flex items-center gap-3">
+            {lastCollected && (
+              <span className="text-sm text-gray-500">
+                마지막: {lastCollected.toLocaleTimeString('ko-KR')}
+              </span>
+            )}
+            <button
+              onClick={collectAll}
+              disabled={isCollecting}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${collectingSource === 'all' ? 'animate-spin' : ''}`} />
+              {collectingSource === 'all' ? '수집 중...' : '전체 수집'}
+            </button>
           </div>
         </div>
-      )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x">
+          {sources.map(({ key, name, icon: Icon, desc }) => {
+            const result = getSourceResult(key);
+            const isLoading = collectingSource === key || collectingSource === 'all';
+
+            return (
+              <div key={key} className="p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Icon className="w-5 h-5 text-gray-600" />
+                    <span className="font-medium">{name}</span>
+                  </div>
+                  <button
+                    onClick={() => collectSingle(key)}
+                    disabled={isLoading}
+                    className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
+                  >
+                    {isLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : '수집'}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mb-3">{desc}</p>
+                {result && (
+                  <div className="flex items-center gap-2">
+                    {result.success ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-red-500" />
+                    )}
+                    <span className={`text-sm ${result.success ? 'text-green-700' : 'text-red-700'}`}>
+                      {result.success ? `${result.count}건` : '실패'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Quick Links */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Link href="/public-data" className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-lg bg-emerald-100">
+              <Database className="w-6 h-6 text-emerald-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold">공개 데이터</h3>
+              <p className="text-sm text-gray-500">트렌드 분석 보기</p>
+            </div>
+            <ExternalLink className="w-4 h-4 text-gray-400 ml-auto" />
+          </div>
+        </Link>
+
+        <Link href="/companies" className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-lg bg-blue-100">
+              <Users className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold">회사 관리</h3>
+              <p className="text-sm text-gray-500">{summary?.totalCompanies || 0}개 등록</p>
+            </div>
+            <ExternalLink className="w-4 h-4 text-gray-400 ml-auto" />
+          </div>
+        </Link>
+
+        <Link href="/terms" className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-lg bg-yellow-100">
+              <Shield className="w-6 h-6 text-yellow-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold">이용약관</h3>
+              <p className="text-sm text-gray-500">데이터 정책 확인</p>
+            </div>
+            <ExternalLink className="w-4 h-4 text-gray-400 ml-auto" />
+          </div>
+        </Link>
+      </div>
+
+      {/* Data Policy Notice */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <Shield className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
+          <div className="text-sm text-yellow-800">
+            <p className="font-medium mb-1">데이터 수집 정책</p>
+            <ul className="list-disc list-inside space-y-1 text-yellow-700">
+              <li>뉴스 기사 크롤링은 저작권 보호를 위해 비활성화되었습니다</li>
+              <li>공개 API(arXiv, GitHub, SEC, USPTO)를 통한 메타데이터만 수집합니다</li>
+              <li>모든 데이터는 연구·트렌드 분석 목적으로만 사용됩니다</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

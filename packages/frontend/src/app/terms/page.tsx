@@ -102,9 +102,37 @@ export default function TermsPage() {
           </ul>
         </section>
 
+        {/* 데이터 출처 표시 */}
+        <section className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4 text-gray-900">제6조 (데이터 출처)</h2>
+          <p className="mb-4">본 서비스의 데이터는 다음 공식 API를 통해 수집됩니다:</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div className="p-3 bg-white rounded border">
+              <p className="font-semibold text-red-700">arXiv API</p>
+              <p className="text-gray-600">https://arxiv.org/help/api</p>
+              <p className="text-xs text-gray-500 mt-1">CC0 1.0 Public Domain (메타데이터)</p>
+            </div>
+            <div className="p-3 bg-white rounded border">
+              <p className="font-semibold text-gray-700">GitHub REST API</p>
+              <p className="text-gray-600">https://docs.github.com/en/rest</p>
+              <p className="text-xs text-gray-500 mt-1">GitHub Terms of Service 준수</p>
+            </div>
+            <div className="p-3 bg-white rounded border">
+              <p className="font-semibold text-blue-700">SEC EDGAR API</p>
+              <p className="text-gray-600">https://www.sec.gov/developer</p>
+              <p className="text-xs text-gray-500 mt-1">Public Domain (미국 연방정부 저작물)</p>
+            </div>
+            <div className="p-3 bg-white rounded border">
+              <p className="font-semibold text-amber-700">USPTO PatentsView API</p>
+              <p className="text-gray-600">https://patentsview.org/apis</p>
+              <p className="text-xs text-gray-500 mt-1">Public Domain (공개 특허 데이터)</p>
+            </div>
+          </div>
+        </section>
+
         {/* 저작권 신고 */}
         <section>
-          <h2 className="text-xl font-semibold mb-4 text-gray-900">제6조 (저작권 문의)</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-900">제7조 (저작권 문의)</h2>
           <p>
             저작권 관련 문의 또는 삭제 요청은{' '}
             <a href="/copyright" className="text-blue-600 hover:underline">저작권 신고 페이지</a>를 
@@ -114,7 +142,7 @@ export default function TermsPage() {
 
         <section className="pt-4 border-t">
           <p className="text-sm text-gray-500">시행일: 2024년 1월 1일</p>
-          <p className="text-sm text-gray-500 mt-1">최종 수정일: 2024년 2월 3일</p>
+          <p className="text-sm text-gray-500 mt-1">최종 수정일: 2026년 2월 3일</p>
         </section>
       </div>
     </div>

@@ -454,6 +454,29 @@ export default function PublicDataPage() {
         </div>
       )}
 
+      {/* Data Sources & Attribution */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <h3 className="font-medium text-gray-900 mb-3">📋 데이터 출처 (Data Sources)</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+          <a href="https://arxiv.org/help/api" target="_blank" rel="noopener noreferrer" className="p-2 bg-white rounded border hover:border-red-300 transition-colors">
+            <p className="font-semibold text-red-700">arXiv API</p>
+            <p className="text-gray-500">CC0 1.0 Public Domain</p>
+          </a>
+          <a href="https://docs.github.com/en/rest" target="_blank" rel="noopener noreferrer" className="p-2 bg-white rounded border hover:border-gray-400 transition-colors">
+            <p className="font-semibold text-gray-700">GitHub REST API</p>
+            <p className="text-gray-500">GitHub ToS 준수</p>
+          </a>
+          <a href="https://www.sec.gov/developer" target="_blank" rel="noopener noreferrer" className="p-2 bg-white rounded border hover:border-blue-300 transition-colors">
+            <p className="font-semibold text-blue-700">SEC EDGAR API</p>
+            <p className="text-gray-500">Public Domain</p>
+          </a>
+          <a href="https://patentsview.org/apis" target="_blank" rel="noopener noreferrer" className="p-2 bg-white rounded border hover:border-amber-300 transition-colors">
+            <p className="font-semibold text-amber-700">USPTO PatentsView</p>
+            <p className="text-gray-500">Public Domain</p>
+          </a>
+        </div>
+      </div>
+
       {/* Disclaimer */}
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
         <div className="flex items-start gap-3">
