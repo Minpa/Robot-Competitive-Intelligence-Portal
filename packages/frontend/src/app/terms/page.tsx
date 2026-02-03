@@ -28,7 +28,9 @@ export default function TermsPage() {
               <ul className="text-sm text-gray-600 mt-1 list-disc pl-4">
                 <li>수집: 제목, 저자, 초록(500자 이내)</li>
                 <li>미수집: PDF 전문 (원문 링크로 대체)</li>
-                <li>라이선스: 각 논문의 CC 라이선스 준수</li>
+                <li>메타데이터: CC0 1.0 Public Domain</li>
+                <li className="text-amber-700">논문 전체/초록: 각 논문의 개별 라이선스(CC BY, CC BY-NC 등) 적용</li>
+                <li>본 서비스는 연구·교육·트렌드 분석 목적의 보조 요약만 제공</li>
               </ul>
             </div>
             
@@ -56,6 +58,8 @@ export default function TermsPage() {
                 <li>수집: 리포지터리 이름, 설명, 스타 수, 언어</li>
                 <li>미수집: 소스코드 본문</li>
                 <li>공식 API 사용, Rate Limit 준수</li>
+                <li className="text-amber-700">GitHub Acceptable Use Policy 및 API 이용약관 준수</li>
+                <li>리포지터리의 콘텐츠 라이선스를 변경·재부여하지 않음</li>
               </ul>
             </div>
           </div>
@@ -88,8 +92,23 @@ export default function TermsPage() {
             <li>원문 전문(PDF, 코드 파일 등)을 미러링하지 않습니다.</li>
             <li>항상 원 사이트로 링크를 제공합니다.</li>
             <li>각 데이터 소스의 API 사용 정책 및 Rate Limit을 준수합니다.</li>
-            <li>User-Agent에 연락처 정보를 명시합니다.</li>
+            <li>User-Agent에 봇 식별 정보를 명시합니다 (<code>RCIPBot/1.0</code>).</li>
           </ul>
+        </section>
+
+        {/* robots.txt 준수 */}
+        <section>
+          <h2 className="text-xl font-semibold mb-4 text-gray-900">제5조 (robots.txt 준수)</h2>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>모든 데이터 수집 시 해당 사이트의 <code>robots.txt</code> 규칙을 확인합니다.</li>
+            <li><code>Disallow</code> 경로는 수집하지 않습니다.</li>
+            <li><code>Crawl-delay</code> 지시를 준수합니다.</li>
+            <li>robots.txt 파서가 구현되어 있으며, 24시간 캐시됩니다.</li>
+          </ul>
+          <div className="mt-4 p-3 bg-gray-100 rounded text-sm font-mono">
+            User-Agent: RCIPBot/1.0<br/>
+            Rate Limits: arXiv(3초), GitHub(2초), SEC(0.2초), USPTO(1초)
+          </div>
         </section>
 
         {/* 면책 */}
@@ -110,12 +129,14 @@ export default function TermsPage() {
             <div className="p-3 bg-white rounded border">
               <p className="font-semibold text-red-700">arXiv API</p>
               <p className="text-gray-600">https://arxiv.org/help/api</p>
-              <p className="text-xs text-gray-500 mt-1">CC0 1.0 Public Domain (메타데이터)</p>
+              <p className="text-xs text-gray-500 mt-1">메타데이터: CC0 1.0 Public Domain</p>
+              <p className="text-xs text-amber-600">논문 본문: 각 논문의 개별 라이선스 적용</p>
             </div>
             <div className="p-3 bg-white rounded border">
               <p className="font-semibold text-gray-700">GitHub REST API</p>
               <p className="text-gray-600">https://docs.github.com/en/rest</p>
-              <p className="text-xs text-gray-500 mt-1">GitHub Terms of Service 준수</p>
+              <p className="text-xs text-gray-500 mt-1">Acceptable Use Policy 및 API ToS 준수</p>
+              <p className="text-xs text-amber-600">리포지터리 라이선스 변경·재부여 안 함</p>
             </div>
             <div className="p-3 bg-white rounded border">
               <p className="font-semibold text-blue-700">SEC EDGAR API</p>
