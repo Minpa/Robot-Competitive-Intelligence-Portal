@@ -8,6 +8,7 @@ import { dashboardRoutes } from './dashboard.js';
 import { exportRoutes } from './export.js';
 import { adminRoutes } from './admin.js';
 import { authRoutes } from './auth.js';
+import { legalRoutes } from './legal.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -19,4 +20,5 @@ export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(exportRoutes, { prefix: '/api/export' });
   fastify.register(adminRoutes, { prefix: '/api/admin' });
   fastify.register(authRoutes, { prefix: '/api/auth' });
+  fastify.register(legalRoutes, { prefix: '/api/legal' });
 }

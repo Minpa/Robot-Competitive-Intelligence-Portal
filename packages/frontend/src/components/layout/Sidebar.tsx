@@ -6,11 +6,11 @@ import {
   LayoutDashboard,
   Building2,
   Package,
-  FileText,
   Search,
   Settings,
   TrendingUp,
   Download,
+  Database,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -18,7 +18,7 @@ const navigation = [
   { name: '대시보드', href: '/', icon: LayoutDashboard },
   { name: '회사', href: '/companies', icon: Building2 },
   { name: '제품', href: '/products', icon: Package },
-  { name: '기사', href: '/articles', icon: FileText },
+  { name: '공개 데이터', href: '/public-data', icon: Database },
   { name: '키워드', href: '/keywords', icon: TrendingUp },
   { name: '검색', href: '/search', icon: Search },
   { name: '내보내기', href: '/export', icon: Download },

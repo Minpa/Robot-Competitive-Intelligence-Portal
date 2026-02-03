@@ -310,6 +310,44 @@ class ApiClient {
       }
     );
   }
+
+  // Legal Data Collection (합법적 데이터 수집)
+  async collectPublicData() {
+    return this.request<{
+      results: Array<{
+        source: string;
+        success: boolean;
+        count: number;
+        items: Array<{
+          id: string;
+          source: string;
+          type: string;
+          title: string;
+          url: string;
+          metadata: Record<string, unknown>;
+          collectedAt: string;
+        }>;
+        error?: string;
+      }>;
+      totalCount: number;
+    }>('/legal/collect-public-data', { method: 'POST' });
+  }
+
+  async collectArxiv() {
+    return this.request<any>('/legal/arxiv', { method: 'POST' });
+  }
+
+  async collectGitHub() {
+    return this.request<any>('/legal/github', { method: 'POST' });
+  }
+
+  async collectSecEdgar() {
+    return this.request<any>('/legal/sec-edgar', { method: 'POST' });
+  }
+
+  async collectPatents() {
+    return this.request<any>('/legal/patents', { method: 'POST' });
+  }
 }
 
 export const api = new ApiClient();
