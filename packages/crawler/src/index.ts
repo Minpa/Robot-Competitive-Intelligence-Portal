@@ -100,7 +100,7 @@ fastify.get('/errors/stats', async () => {
 });
 
 // 합법적 데이터 수집 API
-fastify.post('/legal/collect-all', async () => legalDataCollector.collectAll());
+fastify.post('/legal/collect-public-data', async () => legalDataCollector.collectAll());
 fastify.post('/legal/arxiv', async () => legalDataCollector.collectArxiv());
 fastify.post('/legal/github', async () => legalDataCollector.collectGitHub());
 fastify.post('/legal/sec-edgar', async () => legalDataCollector.collectSecEdgar());
