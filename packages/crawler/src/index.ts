@@ -106,13 +106,14 @@ const start = async () => {
     await fastify.listen({ port, host: '0.0.0.0' });
     console.log(`Crawler service running on port ${port}`);
 
-    // Initialize auto-crawler if DATABASE_URL is set
-    if (process.env.DATABASE_URL) {
-      console.log('DATABASE_URL found, initializing auto-crawler...');
-      await autoCrawlerService.initialize();
-    } else {
-      console.log('DATABASE_URL not set, auto-crawler disabled');
-    }
+    // 크롤러 비활성화 - 법적 검토 완료 후 활성화
+    console.log('[Crawler] Auto-crawler is DISABLED for legal review');
+    // if (process.env.DATABASE_URL) {
+    //   console.log('DATABASE_URL found, initializing auto-crawler...');
+    //   await autoCrawlerService.initialize();
+    // } else {
+    //   console.log('DATABASE_URL not set, auto-crawler disabled');
+    // }
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
