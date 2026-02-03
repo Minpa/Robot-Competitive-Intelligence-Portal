@@ -3,6 +3,7 @@ import { crawlerService } from './services/crawler.service.js';
 import { schedulerService } from './services/scheduler.service.js';
 import { errorLogger } from './services/error-logger.js';
 import { autoCrawlerService } from './services/auto-crawler.service.js';
+import { legalDataCollector } from './services/legal-data-collector.js';
 import type { CrawlJobConfig, TargetUrl } from './types.js';
 
 const fastify = Fastify({ logger: true });
@@ -97,6 +98,39 @@ fastify.get<{
 
 fastify.get('/errors/stats', async () => {
   return errorLogger.getStats();
+});
+
+// ============================================
+// 합법적 데이터 수집 API (공식 API 사용)
+// ============================================
+
+// 모든 소스에서 데이터 수집
+fastify.post('/legal/collect-all', async () => {
+  return legalDataCollector.collectAll();
+});
+
+// arXiv 논문 수집
+fastify.post<{ Querystring: { maxResults?: string } }>('/legal/arxiv', async (request) => {
+  const maxResults = request.query.maxResults ? parseInt(request.query.maxResults) : 50;
+  return legalDataCollector.collectArxiv(maxResults);
+});
+
+// GitHub 리포지터리 수집
+fastify.post<{ Querystring: { maxResults?: string } }>('/legal/github', async (request) => {
+  const maxResults = request.query.maxResults ? parseInt(request.query.maxResults) : 50;
+  return legalDataCollector.collectGitHub(maxResults);
+});
+
+// SEC EDGAR 공시 수집
+fastify.post<{ Querystring: { maxResults?: string } }>('/legal/sec-edgar', async (request) => {
+  const maxResults = request.query.maxResults ? parseInt(request.query.maxResults) : 30;
+  return legalDataCollector.collectSecEdgar(maxResults);
+});
+
+// USPTO 특허 수집
+fastify.post<{ Querystring: { maxResults?: string } }>('/legal/patents', async (request) => {
+  const maxResults = request.query.maxResults ? parseInt(request.query.maxResults) : 50;
+  return legalDataCollector.collectPatents(maxResults);
 });
 
 // Start server
