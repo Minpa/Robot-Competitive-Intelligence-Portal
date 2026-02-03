@@ -2,7 +2,7 @@ import Fastify from 'fastify';
 import { crawlerService } from './services/crawler.service.js';
 import { schedulerService } from './services/scheduler.service.js';
 import { errorLogger } from './services/error-logger.js';
-import { autoCrawlerService } from './services/auto-crawler.service.js';
+// import { autoCrawlerService } from './services/auto-crawler.service.js'; // 비활성화
 import { legalDataCollector } from './services/legal-data-collector.js';
 import type { CrawlJobConfig, TargetUrl } from './types.js';
 
