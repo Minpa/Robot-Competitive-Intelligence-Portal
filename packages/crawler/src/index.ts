@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import { crawlerService } from './services/crawler.service.js';
 import { schedulerService } from './services/scheduler.service.js';
 import { errorLogger } from './services/error-logger.js';
+import { legalDataCollector } from './services/legal-data-collector.js';
 import type { CrawlJobConfig, TargetUrl } from './types.js';
 
 const fastify = Fastify({ logger: true });
@@ -97,6 +98,13 @@ fastify.get<{
 fastify.get('/errors/stats', async () => {
   return errorLogger.getStats();
 });
+
+// 합법적 데이터 수집 API
+fastify.post('/legal/collect-all', async () => legalDataCollector.collectAll());
+fastify.post('/legal/arxiv', async () => legalDataCollector.collectArxiv());
+fastify.post('/legal/github', async () => legalDataCollector.collectGitHub());
+fastify.post('/legal/sec-edgar', async () => legalDataCollector.collectSecEdgar());
+fastify.post('/legal/patents', async () => legalDataCollector.collectPatents());
 
 // Start server
 const start = async () => {
