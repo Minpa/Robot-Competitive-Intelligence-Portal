@@ -14,7 +14,7 @@
     "test:watch": "vitest",
     "lint": "eslint src --ext .ts",
     "clean": "rm -rf dist coverage",
-    "migrate": "drizzle-kit migrate",
+    "migrate": "drizzle-kit push",
     "migrate:generate": "drizzle-kit generate",
     "seed": "tsx src/db/seed.ts",
     "seed:crawl": "tsx src/db/seed-crawl-targets.ts",
