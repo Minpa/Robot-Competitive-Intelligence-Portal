@@ -6,6 +6,16 @@ const fastify = Fastify({
   logger: true,
 });
 
+// Allow empty body for POST requests
+fastify.addContentTypeParser('application/json', { parseAs: 'string' }, function (_req, body, done) {
+  try {
+    const json = body ? JSON.parse(body as string) : {};
+    done(null, json);
+  } catch (err) {
+    done(err as Error, undefined);
+  }
+});
+
 fastify.register(cors, {
   origin: true,
   credentials: true,
