@@ -12,7 +12,7 @@ const fastify = Fastify({
 });
 
 // Add content type parser to allow empty body
-fastify.addContentTypeParser('application/json', { parseAs: 'string' }, function (req, body, done) {
+fastify.addContentTypeParser('application/json', { parseAs: 'string' }, function (_req, body, done) {
   try {
     const json = body ? JSON.parse(body as string) : {};
     done(null, json);
