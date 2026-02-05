@@ -3,6 +3,8 @@
  */
 
 import { createHash } from 'crypto';
+import { getDb, articles } from '../db/index.js';
+import { eq } from 'drizzle-orm';
 
 export interface CollectedData {
   id: string;
@@ -214,6 +216,57 @@ export class PatentCollector {
   }
 }
 
+// DB에 데이터 저장
+async function saveToDatabase(items: CollectedData[]): Promise<{ saved: number; duplicates: number }> {
+  if (items.length === 0) return { saved: 0, duplicates: 0 };
+  
+  try {
+    const db = getDb();
+    let saved = 0;
+    let duplicates = 0;
+
+    for (const item of items) {
+      try {
+        // 중복 체크 (contentHash 기준)
+        const existing = await db.select().from(articles).where(eq(articles.contentHash, item.id)).limit(1);
+        
+        if (existing.length > 0) {
+          duplicates++;
+          continue;
+        }
+
+        // 카테고리 매핑
+        const categoryMap: Record<string, string> = {
+          'arxiv': 'technology',
+          'github': 'technology',
+          'sec_edgar': 'industry',
+          'patent': 'technology',
+        };
+
+        await db.insert(articles).values({
+          title: item.title.substring(0, 500),
+          source: item.source,
+          url: item.url,
+          summary: typeof item.metadata.abstract === 'string' ? item.metadata.abstract : 
+                   typeof item.metadata.description === 'string' ? item.metadata.description : null,
+          contentHash: item.id,
+          category: categoryMap[item.source] || 'other',
+          language: 'en',
+          collectedAt: item.collectedAt,
+        });
+        saved++;
+      } catch (err) {
+        console.error(`Failed to save item ${item.id}:`, err);
+      }
+    }
+
+    return { saved, duplicates };
+  } catch (err) {
+    console.error('Database connection error:', err);
+    return { saved: 0, duplicates: 0 };
+  }
+}
+
 // 통합 수집기
 export class LegalDataCollector {
   private arxiv = new ArxivCollector();
@@ -221,20 +274,49 @@ export class LegalDataCollector {
   private sec = new SecEdgarCollector();
   private patent = new PatentCollector();
 
-  async collectAll(): Promise<{ results: CollectionResult[]; totalCount: number }> {
+  async collectAll(): Promise<{ results: CollectionResult[]; totalCount: number; savedCount: number }> {
     const results = await Promise.all([
       this.arxiv.fetchRoboticsResearch(30),
       this.github.fetchRoboticsRepos(30),
       this.sec.fetchRoboticsFilings(20),
       this.patent.fetchRoboticsPatents(30),
     ]);
-    return { results, totalCount: results.reduce((s, r) => s + r.count, 0) };
+    
+    // DB에 저장
+    const allItems = results.flatMap(r => r.items);
+    const { saved, duplicates } = await saveToDatabase(allItems);
+    console.log(`[LegalDataCollector] Saved ${saved} items, ${duplicates} duplicates skipped`);
+    
+    return { 
+      results, 
+      totalCount: results.reduce((s, r) => s + r.count, 0),
+      savedCount: saved 
+    };
   }
 
-  collectArxiv(n = 50) { return this.arxiv.fetchRoboticsResearch(n); }
-  collectGitHub(n = 50) { return this.github.fetchRoboticsRepos(n); }
-  collectSecEdgar(n = 30) { return this.sec.fetchRoboticsFilings(n); }
-  collectPatents(n = 50) { return this.patent.fetchRoboticsPatents(n); }
+  async collectArxiv(n = 50) { 
+    const result = await this.arxiv.fetchRoboticsResearch(n);
+    const { saved } = await saveToDatabase(result.items);
+    return { ...result, savedCount: saved };
+  }
+  
+  async collectGitHub(n = 50) { 
+    const result = await this.github.fetchRoboticsRepos(n);
+    const { saved } = await saveToDatabase(result.items);
+    return { ...result, savedCount: saved };
+  }
+  
+  async collectSecEdgar(n = 30) { 
+    const result = await this.sec.fetchRoboticsFilings(n);
+    const { saved } = await saveToDatabase(result.items);
+    return { ...result, savedCount: saved };
+  }
+  
+  async collectPatents(n = 50) { 
+    const result = await this.patent.fetchRoboticsPatents(n);
+    const { saved } = await saveToDatabase(result.items);
+    return { ...result, savedCount: saved };
+  }
 }
 
 export const legalDataCollector = new LegalDataCollector();
