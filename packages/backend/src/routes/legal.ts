@@ -8,12 +8,11 @@ export async function legalRoutes(fastify: FastifyInstance) {
     try {
       const response = await fetch(`${CRAWLER_URL}/legal/collect-public-data`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
       });
       
       if (!response.ok) {
-        throw new Error(`Crawler error: ${response.status}`);
+        const text = await response.text();
+        throw new Error(`Crawler error: ${response.status} - ${text}`);
       }
       
       return response.json();
@@ -27,12 +26,11 @@ export async function legalRoutes(fastify: FastifyInstance) {
     try {
       const response = await fetch(`${CRAWLER_URL}/legal/arxiv`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
       });
       
       if (!response.ok) {
-        throw new Error(`Crawler error: ${response.status}`);
+        const text = await response.text();
+        throw new Error(`Crawler error: ${response.status} - ${text}`);
       }
       
       return response.json();
@@ -46,12 +44,11 @@ export async function legalRoutes(fastify: FastifyInstance) {
     try {
       const response = await fetch(`${CRAWLER_URL}/legal/github`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
       });
       
       if (!response.ok) {
-        throw new Error(`Crawler error: ${response.status}`);
+        const text = await response.text();
+        throw new Error(`Crawler error: ${response.status} - ${text}`);
       }
       
       return response.json();
@@ -65,12 +62,11 @@ export async function legalRoutes(fastify: FastifyInstance) {
     try {
       const response = await fetch(`${CRAWLER_URL}/legal/sec-edgar`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
       });
       
       if (!response.ok) {
-        throw new Error(`Crawler error: ${response.status}`);
+        const text = await response.text();
+        throw new Error(`Crawler error: ${response.status} - ${text}`);
       }
       
       return response.json();
@@ -84,12 +80,11 @@ export async function legalRoutes(fastify: FastifyInstance) {
     try {
       const response = await fetch(`${CRAWLER_URL}/legal/patents`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
       });
       
       if (!response.ok) {
-        throw new Error(`Crawler error: ${response.status}`);
+        const text = await response.text();
+        throw new Error(`Crawler error: ${response.status} - ${text}`);
       }
       
       return response.json();
