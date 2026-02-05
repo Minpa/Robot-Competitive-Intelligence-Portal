@@ -9,6 +9,7 @@ export async function legalRoutes(fastify: FastifyInstance) {
       const response = await fetch(`${CRAWLER_URL}/legal/collect-public-data`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       });
       
       if (!response.ok) {
@@ -27,6 +28,7 @@ export async function legalRoutes(fastify: FastifyInstance) {
       const response = await fetch(`${CRAWLER_URL}/legal/arxiv`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       });
       
       if (!response.ok) {
@@ -45,6 +47,7 @@ export async function legalRoutes(fastify: FastifyInstance) {
       const response = await fetch(`${CRAWLER_URL}/legal/github`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       });
       
       if (!response.ok) {
@@ -63,6 +66,7 @@ export async function legalRoutes(fastify: FastifyInstance) {
       const response = await fetch(`${CRAWLER_URL}/legal/sec-edgar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       });
       
       if (!response.ok) {
@@ -81,6 +85,7 @@ export async function legalRoutes(fastify: FastifyInstance) {
       const response = await fetch(`${CRAWLER_URL}/legal/patents`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       });
       
       if (!response.ok) {
