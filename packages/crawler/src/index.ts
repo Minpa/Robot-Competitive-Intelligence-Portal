@@ -5,7 +5,21 @@ import { errorLogger } from './services/error-logger.js';
 import { legalDataCollector } from './services/legal-data-collector.js';
 import type { CrawlJobConfig, TargetUrl } from './types.js';
 
-const fastify = Fastify({ logger: true });
+const fastify = Fastify({ 
+  logger: true,
+  // Allow empty body for POST requests
+  bodyLimit: 1048576,
+});
+
+// Add content type parser to allow empty body
+fastify.addContentTypeParser('application/json', { parseAs: 'string' }, function (req, body, done) {
+  try {
+    const json = body ? JSON.parse(body as string) : {};
+    done(null, json);
+  } catch (err) {
+    done(err as Error, undefined);
+  }
+});
 
 // Health check
 fastify.get('/health', async () => {
