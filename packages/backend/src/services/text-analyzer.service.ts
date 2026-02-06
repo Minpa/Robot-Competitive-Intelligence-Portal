@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
-import { db, companies, products, articles } from '../db/index.js';
-import { eq } from 'drizzle-orm';
+import { db, companies, products, articles, keywords } from '../db/index.js';
+import { eq, and } from 'drizzle-orm';
 import { createHash } from 'crypto';
 
 const openai = new OpenAI({
@@ -37,6 +37,7 @@ export interface SaveResult {
   companiesSaved: number;
   productsSaved: number;
   articlesSaved: number;
+  keywordsSaved: number;
   errors: string[];
 }
 
@@ -132,6 +133,7 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
     companiesSaved: 0,
     productsSaved: 0,
     articlesSaved: 0,
+    keywordsSaved: 0,
     errors: [],
   };
 
@@ -244,6 +246,31 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
       result.articlesSaved++;
     } catch (err) {
       result.errors.push(`Article "${article.title}": ${(err as Error).message}`);
+    }
+  }
+
+  // 4. 키워드 저장
+  for (const keyword of data.keywords) {
+    try {
+      // 중복 체크
+      const existing = await db.select().from(keywords)
+        .where(and(
+          eq(keywords.term, keyword),
+          eq(keywords.language, 'ko')
+        ))
+        .limit(1);
+
+      if (existing.length > 0) continue;
+
+      await db.insert(keywords).values({
+        term: keyword,
+        language: 'ko',
+        category: 'extracted',
+      });
+
+      result.keywordsSaved++;
+    } catch (err) {
+      result.errors.push(`Keyword "${keyword}": ${(err as Error).message}`);
     }
   }
 
