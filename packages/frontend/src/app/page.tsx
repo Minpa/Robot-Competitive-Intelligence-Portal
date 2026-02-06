@@ -181,29 +181,48 @@ const TimelineSection = ({ title, subtitle, products, color, router, halfYearTic
 export default function DashboardPage() {
   const router = useRouter();
 
-  const { data: summary, isLoading: summaryLoading } = useQuery({
+  const { data: summary, isLoading: summaryLoading, error: summaryError } = useQuery({
     queryKey: ['dashboard-summary'],
     queryFn: () => api.getDashboardSummary(),
+    retry: 1,
   });
 
   const { data: productTypeChart } = useQuery({
     queryKey: ['product-type-chart'],
     queryFn: () => api.getProductTypeChartData(),
+    retry: 1,
   });
 
   // 모든 제품을 가져와서 타입별로 그룹화
-  const { data: allProducts } = useQuery({
+  const { data: allProducts, isLoading: productsLoading } = useQuery({
     queryKey: ['all-products-for-timeline'],
     queryFn: async () => {
       const result = await api.getProducts({ pageSize: '1000' });
       return result.items;
     },
+    retry: 1,
   });
 
   if (summaryLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      </div>
+    );
+  }
+
+  if (summaryError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-500 mb-2">데이터를 불러오는 중 오류가 발생했습니다.</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            새로고침
+          </button>
+        </div>
       </div>
     );
   }
@@ -339,7 +358,22 @@ export default function DashboardPage() {
       )}
 
       {/* Robot Product Timeline (통합) */}
-      {robotProducts.length > 0 && (
+      {productsLoading ? (
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-2 rounded-lg bg-green-100">
+              <Package className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">로봇 제품 타임라인</h3>
+              <p className="text-xs text-gray-500">데이터 로딩 중...</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
+          </div>
+        </div>
+      ) : robotProducts.length > 0 ? (
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -431,7 +465,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* 동적 타임라인 섹션들 (로봇 외 타입) */}
       {specialTypes.map((type, index) => {
