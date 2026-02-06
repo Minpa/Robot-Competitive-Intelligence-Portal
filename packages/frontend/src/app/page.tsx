@@ -103,12 +103,9 @@ const ScrollableTimeline = ({
   color,
   showLegend = false,
 }: ScrollableTimelineProps) => {
-  const [scrollPosition, setScrollPosition] = useState(0);
-  
   // 전체 기간 계산 (2020년부터 현재+1년까지)
   const minYear = 2020;
   const maxYear = new Date().getFullYear() + 1;
-  const totalYears = maxYear - minYear + 1;
   
   // 반기 단위 틱 생성
   const allTicks: number[] = [];
@@ -117,9 +114,22 @@ const ScrollableTimeline = ({
     allTicks.push(new Date(year, 6, 1).getTime());
   }
   
-  // 보이는 범위 (3년 = 6개 반기)
+  // 보이는 범위 (4년 = 8개 반기)
   const visibleHalfYears = 8;
   const maxScroll = Math.max(0, allTicks.length - visibleHalfYears);
+  
+  // 현재 시점이 오른쪽에 보이도록 초기 스크롤 위치 계산
+  const calculateInitialScroll = () => {
+    const now = Date.now();
+    let currentTickIndex = 0;
+    for (let i = 0; i < allTicks.length; i++) {
+      if (allTicks[i] <= now) currentTickIndex = i;
+    }
+    // 현재 시점이 오른쪽 끝에서 2번째에 오도록
+    return Math.max(0, Math.min(maxScroll, currentTickIndex - visibleHalfYears + 3));
+  };
+  
+  const [scrollPosition, setScrollPosition] = useState(calculateInitialScroll);
   
   const visibleTicks = allTicks.slice(scrollPosition, scrollPosition + visibleHalfYears);
   const domainStart = visibleTicks[0] || allTicks[0];
@@ -132,6 +142,58 @@ const ScrollableTimeline = ({
     z: 120,
     color: color || typeColors[product.type] || '#6B7280',
   }));
+
+  // 트렌드 분석 생성
+  const generateTrendAnalysis = () => {
+    if (products.length === 0) return null;
+    
+    const now = new Date();
+    const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+    const twoYearsAgo = new Date(now.getFullYear() - 2, now.getMonth(), 1);
+    
+    const recentProducts = products.filter((p: any) => {
+      if (!p.releaseDate) return false;
+      const date = new Date(p.releaseDate);
+      return date >= oneYearAgo;
+    });
+    
+    const olderProducts = products.filter((p: any) => {
+      if (!p.releaseDate) return false;
+      const date = new Date(p.releaseDate);
+      return date >= twoYearsAgo && date < oneYearAgo;
+    });
+    
+    const growthRate = olderProducts.length > 0 
+      ? Math.round(((recentProducts.length - olderProducts.length) / olderProducts.length) * 100)
+      : recentProducts.length > 0 ? 100 : 0;
+    
+    // 타입별 분포
+    const typeDistribution: Record<string, number> = {};
+    recentProducts.forEach((p: any) => {
+      typeDistribution[p.type] = (typeDistribution[p.type] || 0) + 1;
+    });
+    
+    const topType = Object.entries(typeDistribution).sort((a, b) => b[1] - a[1])[0];
+    
+    // 회사별 분포
+    const companyDistribution: Record<string, number> = {};
+    recentProducts.forEach((p: any) => {
+      companyDistribution[p.companyName] = (companyDistribution[p.companyName] || 0) + 1;
+    });
+    
+    const topCompanies = Object.entries(companyDistribution)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+    
+    return {
+      recentCount: recentProducts.length,
+      growthRate,
+      topType: topType ? { name: TYPE_DISPLAY_NAMES[topType[0]] || topType[0], count: topType[1] } : null,
+      topCompanies,
+    };
+  };
+  
+  const trendAnalysis = generateTrendAnalysis();
 
   const handleScrollLeft = () => {
     setScrollPosition(Math.max(0, scrollPosition - 2));
@@ -244,6 +306,48 @@ const ScrollableTimeline = ({
               </ScatterChart>
             </ResponsiveContainer>
           </div>
+          
+          {/* AI 트렌드 분석 섹션 */}
+          {trendAnalysis && (
+            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="w-4 h-4 text-purple-600" />
+                <h4 className="text-sm font-semibold text-gray-800">AI 트렌드 분석</h4>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="bg-white rounded-lg p-3 shadow-sm">
+                  <p className="text-xs text-gray-500 mb-1">최근 1년 출시</p>
+                  <p className="text-xl font-bold text-blue-600">{trendAnalysis.recentCount}개</p>
+                </div>
+                <div className="bg-white rounded-lg p-3 shadow-sm">
+                  <p className="text-xs text-gray-500 mb-1">전년 대비</p>
+                  <p className={`text-xl font-bold ${trendAnalysis.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {trendAnalysis.growthRate >= 0 ? '+' : ''}{trendAnalysis.growthRate}%
+                  </p>
+                </div>
+                {trendAnalysis.topType && (
+                  <div className="bg-white rounded-lg p-3 shadow-sm">
+                    <p className="text-xs text-gray-500 mb-1">주요 타입</p>
+                    <p className="text-sm font-semibold text-gray-800">{trendAnalysis.topType.name}</p>
+                    <p className="text-xs text-gray-400">{trendAnalysis.topType.count}개 제품</p>
+                  </div>
+                )}
+                {trendAnalysis.topCompanies.length > 0 && (
+                  <div className="bg-white rounded-lg p-3 shadow-sm">
+                    <p className="text-xs text-gray-500 mb-1">활발한 기업</p>
+                    <div className="space-y-1">
+                      {trendAnalysis.topCompanies.slice(0, 2).map(([company, count]) => (
+                        <p key={company} className="text-xs">
+                          <span className="font-medium text-gray-700">{company}</span>
+                          <span className="text-gray-400 ml-1">({count})</span>
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           
           <div className="border-t pt-4">
             <h4 className="text-sm font-medium text-gray-700 mb-3">제품 목록</h4>
