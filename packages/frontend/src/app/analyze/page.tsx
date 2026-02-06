@@ -28,7 +28,7 @@ interface SaveResult {
   companiesSaved: number;
   productsSaved: number;
   articlesSaved: number;
-  keywordsSaved: number;
+  keywordsSaved?: number;
   errors: string[];
 }
 
