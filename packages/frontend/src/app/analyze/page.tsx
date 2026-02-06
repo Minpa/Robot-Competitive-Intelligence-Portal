@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import {
   Sparkles,
@@ -14,6 +14,9 @@ import {
   Copy,
   ChevronDown,
   ChevronUp,
+  Plus,
+  X,
+  Settings,
 } from 'lucide-react';
 
 interface AnalyzedData {
@@ -32,25 +35,26 @@ interface SaveResult {
   errors: string[];
 }
 
-const DEFAULT_PROMPT = `아래 JSON 형식으로 로봇 산업 데이터를 정리해줘:
+// 기본 카테고리 설정
+const DEFAULT_PRODUCT_TYPES = [
+  'humanoid', 'service', 'logistics', 'industrial', 'quadruped', 
+  'cobot', 'amr', 'foundation_model', 'actuator', 'soc'
+];
 
-{
-  "companies": [
-    { "name": "회사명 (영문)", "country": "USA/Japan/China/Germany/Korea/Denmark/Switzerland 중 하나", "category": "robotics/AI/semiconductor/actuator/automation 중 하나" }
-  ],
-  "products": [
-    { "name": "제품/모델명", "companyName": "제조사명", "type": "humanoid/service/logistics/industrial/quadruped/cobot/amr/foundation_model/actuator/soc 중 하나", "releaseDate": "YYYY 형식 (예: 2022, 2023, 2024)", "description": "제품 설명" }
-  ],
-  "keywords": ["키워드1", "키워드2", "...최대 15개"],
-  "summary": "한국어 요약 2-3문장"
-}
+const DEFAULT_COMPANY_CATEGORIES = [
+  'robotics', 'AI', 'semiconductor', 'actuator', 'automation'
+];
 
-JSON만 출력. 마크다운 코드블록 없이 순수 JSON으로.`;
+const DEFAULT_COUNTRIES = [
+  'USA', 'Japan', 'China', 'Germany', 'Korea', 'Denmark', 'Switzerland', 'France', 'UK', 'Taiwan'
+];
+
+const STORAGE_KEY = 'rcip_categories';
 
 export default function AnalyzePage() {
   const [text, setText] = useState('');
-  const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [analyzed, setAnalyzed] = useState<AnalyzedData | null>(null);
@@ -58,10 +62,112 @@ export default function AnalyzePage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // 카테고리 상태
+  const [productTypes, setProductTypes] = useState<string[]>(DEFAULT_PRODUCT_TYPES);
+  const [companyCategories, setCompanyCategories] = useState<string[]>(DEFAULT_COMPANY_CATEGORIES);
+  const [countries, setCountries] = useState<string[]>(DEFAULT_COUNTRIES);
+  const [newProductType, setNewProductType] = useState('');
+  const [newCompanyCategory, setNewCompanyCategory] = useState('');
+  const [newCountry, setNewCountry] = useState('');
+
+  // 로컬 스토리지에서 카테고리 로드
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.productTypes) setProductTypes(parsed.productTypes);
+        if (parsed.companyCategories) setCompanyCategories(parsed.companyCategories);
+        if (parsed.countries) setCountries(parsed.countries);
+      } catch (e) {
+        console.error('Failed to load categories:', e);
+      }
+    }
+  }, []);
+
+  // 카테고리 저장
+  const saveCategories = (types: string[], categories: string[], ctrs: string[]) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      productTypes: types,
+      companyCategories: categories,
+      countries: ctrs,
+    }));
+  };
+
+  // 동적 프롬프트 생성
+  const generatePrompt = () => {
+    return `아래 JSON 형식으로 로봇 산업 데이터를 정리해줘:
+
+{
+  "companies": [
+    { "name": "회사명 (영문)", "country": "${countries.join('/')} 중 하나", "category": "${companyCategories.join('/')} 중 하나" }
+  ],
+  "products": [
+    { "name": "제품/모델명", "companyName": "제조사명", "type": "${productTypes.join('/')} 중 하나", "releaseDate": "YYYY 형식 (예: 2022, 2023, 2024)", "description": "제품 설명" }
+  ],
+  "keywords": ["키워드1", "키워드2", "...최대 15개"],
+  "summary": "한국어 요약 2-3문장"
+}
+
+JSON만 출력. 마크다운 코드블록 없이 순수 JSON으로.`;
+  };
+
   const handleCopyPrompt = async () => {
-    await navigator.clipboard.writeText(prompt);
+    await navigator.clipboard.writeText(generatePrompt());
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const addProductType = () => {
+    if (newProductType && !productTypes.includes(newProductType.toLowerCase())) {
+      const updated = [...productTypes, newProductType.toLowerCase()];
+      setProductTypes(updated);
+      saveCategories(updated, companyCategories, countries);
+      setNewProductType('');
+    }
+  };
+
+  const removeProductType = (type: string) => {
+    const updated = productTypes.filter(t => t !== type);
+    setProductTypes(updated);
+    saveCategories(updated, companyCategories, countries);
+  };
+
+  const addCompanyCategory = () => {
+    if (newCompanyCategory && !companyCategories.includes(newCompanyCategory.toLowerCase())) {
+      const updated = [...companyCategories, newCompanyCategory.toLowerCase()];
+      setCompanyCategories(updated);
+      saveCategories(productTypes, updated, countries);
+      setNewCompanyCategory('');
+    }
+  };
+
+  const removeCompanyCategory = (cat: string) => {
+    const updated = companyCategories.filter(c => c !== cat);
+    setCompanyCategories(updated);
+    saveCategories(productTypes, updated, countries);
+  };
+
+  const addCountry = () => {
+    if (newCountry && !countries.includes(newCountry)) {
+      const updated = [...countries, newCountry];
+      setCountries(updated);
+      saveCategories(productTypes, companyCategories, updated);
+      setNewCountry('');
+    }
+  };
+
+  const removeCountry = (country: string) => {
+    const updated = countries.filter(c => c !== country);
+    setCountries(updated);
+    saveCategories(productTypes, companyCategories, updated);
+  };
+
+  const resetToDefaults = () => {
+    setProductTypes(DEFAULT_PRODUCT_TYPES);
+    setCompanyCategories(DEFAULT_COMPANY_CATEGORIES);
+    setCountries(DEFAULT_COUNTRIES);
+    saveCategories(DEFAULT_PRODUCT_TYPES, DEFAULT_COMPANY_CATEGORIES, DEFAULT_COUNTRIES);
   };
 
   const handlePreview = async () => {
@@ -150,17 +256,163 @@ export default function AnalyzePage() {
             <p className="text-sm text-purple-600 mb-2">
               이 질의문을 ChatGPT, Claude 등에 복사하여 사용하세요. 수집한 정보를 붙여넣으면 JSON 형식으로 정리해줍니다.
             </p>
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              className="w-full h-48 p-3 border border-purple-200 rounded-lg bg-white text-sm font-mono focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            />
-            <button
-              onClick={() => setPrompt(DEFAULT_PROMPT)}
-              className="mt-2 text-sm text-purple-600 hover:text-purple-800"
-            >
-              기본값으로 초기화
-            </button>
+            <pre className="w-full p-3 border border-purple-200 rounded-lg bg-white text-sm font-mono whitespace-pre-wrap overflow-x-auto">
+              {generatePrompt()}
+            </pre>
+          </div>
+        )}
+      </div>
+
+      {/* 카테고리 설정 */}
+      <div className="bg-white rounded-lg shadow">
+        <div 
+          className="flex items-center justify-between p-4 cursor-pointer border-b"
+          onClick={() => setShowSettings(!showSettings)}
+        >
+          <div className="flex items-center gap-2">
+            <Settings className="w-5 h-5 text-gray-500" />
+            <h3 className="font-medium text-gray-700">카테고리 설정</h3>
+            <span className="text-xs text-gray-400">
+              (제품 타입 {productTypes.length}개, 회사 카테고리 {companyCategories.length}개, 국가 {countries.length}개)
+            </span>
+          </div>
+          {showSettings ? (
+            <ChevronUp className="w-5 h-5 text-gray-500" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-gray-500" />
+          )}
+        </div>
+
+        {showSettings && (
+          <div className="p-4 space-y-6">
+            {/* 제품 타입 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                제품 타입 (type)
+              </label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {productTypes.map((type) => (
+                  <span
+                    key={type}
+                    className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm"
+                  >
+                    {type}
+                    <button
+                      onClick={() => removeProductType(type)}
+                      className="hover:text-green-900"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newProductType}
+                  onChange={(e) => setNewProductType(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addProductType()}
+                  placeholder="새 제품 타입 추가..."
+                  className="flex-1 px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+                <button
+                  onClick={addProductType}
+                  className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  추가
+                </button>
+              </div>
+            </div>
+
+            {/* 회사 카테고리 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                회사 카테고리 (category)
+              </label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {companyCategories.map((cat) => (
+                  <span
+                    key={cat}
+                    className="flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+                  >
+                    {cat}
+                    <button
+                      onClick={() => removeCompanyCategory(cat)}
+                      className="hover:text-blue-900"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newCompanyCategory}
+                  onChange={(e) => setNewCompanyCategory(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addCompanyCategory()}
+                  placeholder="새 회사 카테고리 추가..."
+                  className="flex-1 px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <button
+                  onClick={addCompanyCategory}
+                  className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  추가
+                </button>
+              </div>
+            </div>
+
+            {/* 국가 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                국가 (country)
+              </label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {countries.map((country) => (
+                  <span
+                    key={country}
+                    className="flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
+                  >
+                    {country}
+                    <button
+                      onClick={() => removeCountry(country)}
+                      className="hover:text-gray-900"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newCountry}
+                  onChange={(e) => setNewCountry(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addCountry()}
+                  placeholder="새 국가 추가..."
+                  className="flex-1 px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                />
+                <button
+                  onClick={addCountry}
+                  className="flex items-center gap-1 px-3 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  추가
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t">
+              <button
+                onClick={resetToDefaults}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                기본값으로 초기화
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -261,7 +513,7 @@ export default function AnalyzePage() {
               <p className="text-gray-500">기사</p>
             </div>
             <div className="text-center p-2 bg-white rounded">
-              <p className="text-2xl font-bold text-green-600">{saveResult.keywordsSaved}</p>
+              <p className="text-2xl font-bold text-green-600">{saveResult.keywordsSaved || 0}</p>
               <p className="text-gray-500">키워드</p>
             </div>
           </div>
