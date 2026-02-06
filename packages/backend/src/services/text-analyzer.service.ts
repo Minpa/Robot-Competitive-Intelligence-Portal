@@ -48,26 +48,48 @@ export async function analyzeText(text: string): Promise<AnalyzedData> {
     throw new Error('OpenAI API key not configured');
   }
 
-  const systemPrompt = `You are a robotics industry analyst. Analyze the given text and extract structured data.
+  const systemPrompt = `You are a robotics industry analyst. Analyze the given text and extract ALL structured data thoroughly.
+
+IMPORTANT: Extract as many items as possible. Be thorough and comprehensive.
 
 Extract the following information in JSON format:
-1. companies: Array of companies mentioned (name, country, category like "robotics", "AI", "semiconductor")
-2. products: Array of products mentioned (name, companyName, type like "humanoid", "service", "logistics", "industrial", "foundation_model", "actuator", "soc", releaseDate if mentioned, description)
-3. articles: If this is news/article content, extract (title, source, url if present, summary, category like "product", "technology", "industry", "other", productType like "robot", "rfm", "soc", "actuator", "none")
-4. keywords: Important technical keywords (max 10)
-5. summary: Brief Korean summary of the entire text (2-3 sentences)
+
+1. companies: Array of ALL companies mentioned
+   - name: company name
+   - country: country (use "USA", "Japan", "China", "Germany", "Switzerland", "Denmark", "Korea", "Unknown" etc.)
+   - category: "robotics", "AI", "semiconductor", "actuator", "automation"
+
+2. products: Array of ALL products/models mentioned (BE THOROUGH - extract every product name)
+   - name: product/model name (e.g., "Optimus", "Digit", "G1", "RT-1", "RT-2", "UR10", "π₀")
+   - companyName: company that makes it
+   - type: one of "humanoid", "service", "logistics", "industrial", "quadruped", "cobot", "amr", "foundation_model", "actuator", "soc"
+   - releaseDate: year or date if mentioned (e.g., "2024", "2023-06")
+   - description: brief description
+
+3. articles: If this is news content, extract article info
+   - title, source, url, summary, category, productType
+
+4. keywords: Important technical keywords (max 15)
+
+5. summary: Brief Korean summary (2-3 sentences)
+
+CRITICAL: For robotics content, products include:
+- Robot models (Optimus, Digit, Atlas, Spot, G1, H1, etc.)
+- Foundation models (RT-1, RT-2, RT-X, π₀, PaLM-E, etc.)
+- Cobot series (UR3, UR5, UR10, etc.)
+- Actuator products (Harmonic Drive series, etc.)
 
 Respond ONLY with valid JSON. No markdown, no explanation.`;
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: text.substring(0, 8000) },
+        { role: 'user', content: text.substring(0, 16000) },
       ],
-      max_tokens: 2000,
-      temperature: 0.3,
+      max_tokens: 4000,
+      temperature: 0.1,
     });
 
     const result = response.choices[0]?.message?.content || '{}';
