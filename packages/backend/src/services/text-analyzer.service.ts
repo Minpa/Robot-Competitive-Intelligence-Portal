@@ -7,6 +7,35 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+/**
+ * releaseDate 문자열을 PostgreSQL date 형식으로 변환
+ * "2022" -> "2022-01-01"
+ * "2023-06" -> "2023-06-01"
+ * "2024-03-15" -> "2024-03-15"
+ */
+function normalizeReleaseDate(dateStr: string | undefined | null): string | null {
+  if (!dateStr) return null;
+  
+  const trimmed = dateStr.trim();
+  
+  // YYYY 형식
+  if (/^\d{4}$/.test(trimmed)) {
+    return `${trimmed}-01-01`;
+  }
+  
+  // YYYY-MM 형식
+  if (/^\d{4}-\d{2}$/.test(trimmed)) {
+    return `${trimmed}-01`;
+  }
+  
+  // YYYY-MM-DD 형식
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+  
+  return null;
+}
+
 export interface AnalyzedData {
   companies: Array<{
     name: string;
@@ -205,10 +234,11 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
       if (existing.length > 0) {
         // 기존 제품이 있으면 releaseDate 업데이트
         const existingProduct = existing[0];
-        if (existingProduct && product.releaseDate) {
+        const normalizedDate = normalizeReleaseDate(product.releaseDate);
+        if (existingProduct && normalizedDate) {
           await db.update(products)
             .set({ 
-              releaseDate: product.releaseDate,
+              releaseDate: normalizedDate,
               type: product.type || existingProduct.type,
             })
             .where(eq(products.id, existingProduct.id));
@@ -221,7 +251,7 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
         companyId,
         name: product.name,
         type: product.type || 'service',
-        releaseDate: product.releaseDate || null,
+        releaseDate: normalizeReleaseDate(product.releaseDate),
         status: 'announced',
       });
 
