@@ -202,7 +202,20 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
         .where(eq(products.name, product.name))
         .limit(1);
 
-      if (existing.length > 0) continue;
+      if (existing.length > 0) {
+        // 기존 제품이 있으면 releaseDate 업데이트
+        const existingProduct = existing[0];
+        if (existingProduct && product.releaseDate) {
+          await db.update(products)
+            .set({ 
+              releaseDate: product.releaseDate,
+              type: product.type || existingProduct.type,
+            })
+            .where(eq(products.id, existingProduct.id));
+          result.productsSaved++;
+        }
+        continue;
+      }
 
       await db.insert(products).values({
         companyId,
