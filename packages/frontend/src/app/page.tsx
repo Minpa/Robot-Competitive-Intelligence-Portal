@@ -1,7 +1,6 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -15,13 +14,7 @@ import {
   Bot,
   Cog,
   CircuitBoard,
-  BookOpen,
-  Github,
-  Scale,
-  ScrollText,
-  RefreshCw,
-  ExternalLink,
-  Database,
+  Sparkles,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -74,8 +67,6 @@ const ProductTimelineTooltip = ({ active, payload }: any) => {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [isCollecting, setIsCollecting] = useState(false);
-  const [collectionResult, setCollectionResult] = useState<any>(null);
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ['dashboard-summary'],
@@ -119,7 +110,6 @@ export default function DashboardPage() {
     { name: '회사', value: summary?.totalCompanies || 0, icon: Building2, color: 'bg-blue-500', href: '/companies' },
     { name: '제품', value: summary?.totalProducts || 0, icon: Package, color: 'bg-green-500', href: '/products' },
     { name: '키워드', value: summary?.totalKeywords || 0, icon: TrendingUp, color: 'bg-purple-500', href: '/keywords' },
-    { name: '공개 데이터', value: collectionResult?.totalCount || 0, icon: Database, color: 'bg-emerald-500', href: '/public-data' },
   ];
 
   const pieData = productTypeChart?.labels?.map((label: string, i: number) => ({
@@ -211,10 +201,10 @@ export default function DashboardPage() {
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center gap-2 mb-2">
-            <Database className="w-5 h-5 text-emerald-500" />
-            <span className="text-sm text-gray-500">공개 데이터 수집</span>
+            <Sparkles className="w-5 h-5 text-purple-500" />
+            <span className="text-sm text-gray-500">AI 데이터 수집</span>
           </div>
-          <Link href="/public-data" className="text-3xl font-bold text-emerald-600 hover:underline">
+          <Link href="/analyze" className="text-3xl font-bold text-purple-600 hover:underline">
             수집하기 →
           </Link>
         </div>
@@ -473,46 +463,35 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Public Data Sources Quick Access */}
+      {/* AI 데이터 수집 */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-emerald-100">
-              <Database className="w-5 h-5 text-emerald-600" />
+            <div className="p-2 rounded-lg bg-purple-100">
+              <Sparkles className="w-5 h-5 text-purple-600" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold">공개 데이터 소스</h3>
-              <p className="text-xs text-gray-500">합법적 API 기반 데이터 수집</p>
+              <h3 className="text-lg font-semibold">AI 데이터 수집</h3>
+              <p className="text-xs text-gray-500">GPT-4o를 활용한 텍스트 분석</p>
             </div>
           </div>
-          <Link href="/public-data" className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm">
+          <Link href="/analyze" className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm">
             데이터 수집하기
           </Link>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-4 rounded-lg bg-red-50 border border-red-200">
-            <BookOpen className="w-6 h-6 text-red-600 mb-2" />
-            <h4 className="font-medium text-red-700">arXiv</h4>
-            <p className="text-xs text-gray-600">로봇/AI 논문</p>
-          </div>
-          <div className="p-4 rounded-lg bg-gray-50 border border-gray-200">
-            <Github className="w-6 h-6 text-gray-700 mb-2" />
-            <h4 className="font-medium text-gray-700">GitHub</h4>
-            <p className="text-xs text-gray-600">오픈소스 리포</p>
-          </div>
-          <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
-            <Scale className="w-6 h-6 text-blue-600 mb-2" />
-            <h4 className="font-medium text-blue-700">SEC EDGAR</h4>
-            <p className="text-xs text-gray-600">미국 공시</p>
-          </div>
-          <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
-            <ScrollText className="w-6 h-6 text-amber-600 mb-2" />
-            <h4 className="font-medium text-amber-700">USPTO</h4>
-            <p className="text-xs text-gray-600">특허 데이터</p>
+        <div className="p-4 bg-purple-50 rounded-lg">
+          <p className="text-sm text-purple-700 mb-3">
+            ChatGPT, Claude 등 AI 서비스에서 수집한 정보를 JSON 형식으로 변환하여 입력하면 자동으로 DB에 저장됩니다.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <span className="px-3 py-1 bg-white text-purple-600 rounded-full text-xs border border-purple-200">회사 정보</span>
+            <span className="px-3 py-1 bg-white text-purple-600 rounded-full text-xs border border-purple-200">제품 정보</span>
+            <span className="px-3 py-1 bg-white text-purple-600 rounded-full text-xs border border-purple-200">키워드</span>
+            <span className="px-3 py-1 bg-white text-purple-600 rounded-full text-xs border border-purple-200">출시일</span>
           </div>
         </div>
-        <div className="mt-4 p-3 bg-yellow-50 rounded-lg text-xs text-yellow-700">
-          ⚠️ 모든 데이터는 공식 API를 통해 수집되며, 메타데이터만 저장합니다. 원문은 각 사이트에서 확인하세요.
+        <div className="mt-4 p-3 bg-green-50 rounded-lg text-xs text-green-700">
+          ✅ 크롤링 없이 합법적으로 데이터를 수집합니다. 사용자가 직접 입력한 텍스트만 분석합니다.
         </div>
       </div>
     </div>

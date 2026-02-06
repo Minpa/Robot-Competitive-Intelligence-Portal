@@ -4,15 +4,16 @@ import { useState } from 'react';
 import { api } from '@/lib/api';
 import {
   Sparkles,
-  Save,
   Building2,
   Package,
-  FileText,
   Tag,
   Loader2,
   CheckCircle,
   AlertCircle,
   Eye,
+  Copy,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 interface AnalyzedData {
@@ -27,16 +28,41 @@ interface SaveResult {
   companiesSaved: number;
   productsSaved: number;
   articlesSaved: number;
+  keywordsSaved: number;
   errors: string[];
 }
 
+const DEFAULT_PROMPT = `아래 JSON 형식으로 로봇 산업 데이터를 정리해줘:
+
+{
+  "companies": [
+    { "name": "회사명 (영문)", "country": "USA/Japan/China/Germany/Korea/Denmark/Switzerland 중 하나", "category": "robotics/AI/semiconductor/actuator/automation 중 하나" }
+  ],
+  "products": [
+    { "name": "제품/모델명", "companyName": "제조사명", "type": "humanoid/service/logistics/industrial/quadruped/cobot/amr/foundation_model/actuator/soc 중 하나", "releaseDate": "YYYY 형식 (예: 2022, 2023, 2024)", "description": "제품 설명" }
+  ],
+  "keywords": ["키워드1", "키워드2", "...최대 15개"],
+  "summary": "한국어 요약 2-3문장"
+}
+
+JSON만 출력. 마크다운 코드블록 없이 순수 JSON으로.`;
+
 export default function AnalyzePage() {
   const [text, setText] = useState('');
+  const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
+  const [showPrompt, setShowPrompt] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [analyzed, setAnalyzed] = useState<AnalyzedData | null>(null);
   const [saveResult, setSaveResult] = useState<SaveResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyPrompt = async () => {
+    await navigator.clipboard.writeText(prompt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handlePreview = async () => {
     if (!text.trim()) {
@@ -80,32 +106,98 @@ export default function AnalyzePage() {
   };
 
   const totalExtracted = analyzed
-    ? analyzed.companies.length + analyzed.products.length + analyzed.articles.length
+    ? analyzed.companies.length + analyzed.products.length
     : 0;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">텍스트 분석</h1>
-        <p className="text-gray-500">텍스트를 입력하면 AI가 분석하여 회사, 제품, 기사 정보를 추출합니다.</p>
+        <h1 className="text-2xl font-bold text-gray-900">데이터 수집</h1>
+        <p className="text-gray-500">AI를 활용하여 로봇 산업 데이터를 수집하고 분석합니다.</p>
+      </div>
+
+      {/* AI 질의문 템플릿 */}
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
+        <div 
+          className="flex items-center justify-between cursor-pointer"
+          onClick={() => setShowPrompt(!showPrompt)}
+        >
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-purple-500" />
+            <h3 className="font-medium text-purple-700">AI 질의문 템플릿</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopyPrompt();
+              }}
+              className="flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm"
+            >
+              <Copy className="w-4 h-4" />
+              {copied ? '복사됨!' : '복사'}
+            </button>
+            {showPrompt ? (
+              <ChevronUp className="w-5 h-5 text-purple-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-purple-500" />
+            )}
+          </div>
+        </div>
+        
+        {showPrompt && (
+          <div className="mt-4">
+            <p className="text-sm text-purple-600 mb-2">
+              이 질의문을 ChatGPT, Claude 등에 복사하여 사용하세요. 수집한 정보를 붙여넣으면 JSON 형식으로 정리해줍니다.
+            </p>
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              className="w-full h-48 p-3 border border-purple-200 rounded-lg bg-white text-sm font-mono focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
+            <button
+              onClick={() => setPrompt(DEFAULT_PROMPT)}
+              className="mt-2 text-sm text-purple-600 hover:text-purple-800"
+            >
+              기본값으로 초기화
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* 사용 방법 안내 */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h4 className="font-medium text-blue-800 mb-3">📋 데이터 수집 방법</h4>
+        <ol className="list-decimal list-inside text-blue-700 space-y-2 text-sm">
+          <li>위의 <strong>"AI 질의문 템플릿"</strong>을 복사합니다.</li>
+          <li>ChatGPT, Claude 등 AI 서비스에 질의문을 붙여넣고, 수집할 정보(뉴스, 보고서 등)를 함께 입력합니다.</li>
+          <li>AI가 생성한 JSON 결과를 아래 입력창에 붙여넣습니다.</li>
+          <li><strong>"분석 및 저장"</strong> 버튼을 클릭하면 데이터가 DB에 저장됩니다.</li>
+        </ol>
       </div>
 
       {/* 입력 영역 */}
       <div className="bg-white rounded-lg shadow p-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          분석할 텍스트 입력
+          분석할 텍스트 또는 JSON 입력
         </label>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="뉴스 기사, 보도자료, 제품 정보 등을 붙여넣기 하세요...
+          placeholder={`AI가 생성한 JSON을 붙여넣거나, 분석할 텍스트를 입력하세요.
 
-예시:
-- 로봇 회사 소개 및 제품 정보
-- 기술 뉴스 기사
-- 제품 출시 보도자료
-- 연구 논문 초록"
-          className="w-full h-64 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
+예시 (JSON):
+{
+  "companies": [
+    { "name": "Tesla", "country": "USA", "category": "robotics" }
+  ],
+  "products": [
+    { "name": "Optimus", "companyName": "Tesla", "type": "humanoid", "releaseDate": "2022", "description": "테슬라 휴머노이드 로봇" }
+  ],
+  "keywords": ["humanoid", "Tesla"],
+  "summary": "테슬라의 휴머노이드 로봇 정보"
+}`}
+          className="w-full h-64 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm font-mono"
         />
         <div className="flex items-center justify-between mt-4">
           <span className="text-sm text-gray-500">
@@ -155,7 +247,7 @@ export default function AnalyzePage() {
             <CheckCircle className="w-5 h-5 text-green-500" />
             <span className="font-medium text-green-700">저장 완료</span>
           </div>
-          <div className="grid grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-4 gap-4 text-sm">
             <div className="text-center p-2 bg-white rounded">
               <p className="text-2xl font-bold text-green-600">{saveResult.companiesSaved}</p>
               <p className="text-gray-500">회사</p>
@@ -167,6 +259,10 @@ export default function AnalyzePage() {
             <div className="text-center p-2 bg-white rounded">
               <p className="text-2xl font-bold text-green-600">{saveResult.articlesSaved}</p>
               <p className="text-gray-500">기사</p>
+            </div>
+            <div className="text-center p-2 bg-white rounded">
+              <p className="text-2xl font-bold text-green-600">{saveResult.keywordsSaved}</p>
+              <p className="text-gray-500">키워드</p>
             </div>
           </div>
           {saveResult.errors.length > 0 && (
@@ -276,47 +372,8 @@ export default function AnalyzePage() {
               </div>
             </div>
           )}
-
-          {/* 기사 */}
-          {analyzed.articles.length > 0 && (
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <FileText className="w-5 h-5 text-orange-500" />
-                <h3 className="font-medium">추출된 기사 ({analyzed.articles.length})</h3>
-              </div>
-              <div className="space-y-2">
-                {analyzed.articles.map((article, i) => (
-                  <div key={i} className="p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{article.title}</span>
-                      <div className="flex gap-2">
-                        <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs">
-                          {article.category}
-                        </span>
-                        <span className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded text-xs">
-                          {article.source}
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-500 mt-1">{article.summary}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
-
-      {/* 사용 안내 */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm">
-        <h4 className="font-medium text-yellow-800 mb-2">💡 사용 팁</h4>
-        <ul className="list-disc list-inside text-yellow-700 space-y-1">
-          <li>뉴스 기사, 보도자료, 제품 소개 등 다양한 텍스트를 분석할 수 있습니다.</li>
-          <li>"미리보기"로 먼저 결과를 확인한 후 저장하세요.</li>
-          <li>이미 저장된 회사/제품은 중복 저장되지 않습니다.</li>
-          <li>긴 텍스트도 입력 가능하지만, 8000자까지만 분석됩니다.</li>
-        </ul>
-      </div>
     </div>
   );
 }

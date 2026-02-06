@@ -10,7 +10,6 @@ import {
   Settings,
   TrendingUp,
   Download,
-  Database,
   Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -19,8 +18,7 @@ const navigation = [
   { name: '대시보드', href: '/', icon: LayoutDashboard },
   { name: '회사', href: '/companies', icon: Building2 },
   { name: '제품', href: '/products', icon: Package },
-  { name: '공개 데이터', href: '/public-data', icon: Database },
-  { name: '텍스트 분석', href: '/analyze', icon: Sparkles },
+  { name: '데이터 수집', href: '/analyze', icon: Sparkles },
   { name: '키워드', href: '/keywords', icon: TrendingUp },
   { name: '검색', href: '/search', icon: Search },
   { name: '내보내기', href: '/export', icon: Download },
