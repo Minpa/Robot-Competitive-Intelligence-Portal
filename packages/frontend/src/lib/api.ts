@@ -350,6 +350,41 @@ class ApiClient {
   async collectPatents() {
     return this.request<any>('/legal/patents', { method: 'POST' });
   }
+
+  // Text Analysis (텍스트 분석)
+  async analyzeTextPreview(text: string) {
+    return this.request<{
+      companies: Array<{ name: string; country: string; category: string; description?: string }>;
+      products: Array<{ name: string; companyName: string; type: string; releaseDate?: string; description?: string }>;
+      articles: Array<{ title: string; source: string; url?: string; summary: string; category: string; productType: string }>;
+      keywords: string[];
+      summary: string;
+    }>('/analyze/preview', {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    });
+  }
+
+  async analyzeAndSave(text: string) {
+    return this.request<{
+      analyzed: {
+        companies: Array<{ name: string; country: string; category: string; description?: string }>;
+        products: Array<{ name: string; companyName: string; type: string; releaseDate?: string; description?: string }>;
+        articles: Array<{ title: string; source: string; url?: string; summary: string; category: string; productType: string }>;
+        keywords: string[];
+        summary: string;
+      };
+      saved: {
+        companiesSaved: number;
+        productsSaved: number;
+        articlesSaved: number;
+        errors: string[];
+      };
+    }>('/analyze/save', {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    });
+  }
 }
 
 export const api = new ApiClient();
