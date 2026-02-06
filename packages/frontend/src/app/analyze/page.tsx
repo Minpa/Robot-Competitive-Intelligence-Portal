@@ -61,6 +61,7 @@ export default function AnalyzePage() {
   const [saveResult, setSaveResult] = useState<SaveResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [categoryUpdated, setCategoryUpdated] = useState(false);
 
   // 카테고리 상태
   const [productTypes, setProductTypes] = useState<string[]>(DEFAULT_PRODUCT_TYPES);
@@ -85,13 +86,15 @@ export default function AnalyzePage() {
     }
   }, []);
 
-  // 카테고리 저장
+  // 카테고리 저장 및 알림
   const saveCategories = (types: string[], categories: string[], ctrs: string[]) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       productTypes: types,
       companyCategories: categories,
       countries: ctrs,
     }));
+    setCategoryUpdated(true);
+    setTimeout(() => setCategoryUpdated(false), 2000);
   };
 
   // 동적 프롬프트 생성
@@ -231,6 +234,11 @@ JSON만 출력. 마크다운 코드블록 없이 순수 JSON으로.`;
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-purple-500" />
             <h3 className="font-medium text-purple-700">AI 질의문 템플릿</h3>
+            {categoryUpdated && (
+              <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs animate-pulse">
+                ✓ 업데이트됨
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button
