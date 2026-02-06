@@ -9,8 +9,8 @@ const openai = new OpenAI({
 
 /**
  * releaseDate 문자열을 PostgreSQL date 형식으로 변환
- * "2022" -> "2022-01-01"
- * "2023-06" -> "2023-06-01"
+ * "2022" -> "2022-07-01" (연도만 있으면 중간값으로)
+ * "2023-06" -> "2023-06-15" (월만 있으면 중간값으로)
  * "2024-03-15" -> "2024-03-15"
  */
 function normalizeReleaseDate(dateStr: string | undefined | null): string | null {
@@ -18,14 +18,14 @@ function normalizeReleaseDate(dateStr: string | undefined | null): string | null
   
   const trimmed = dateStr.trim();
   
-  // YYYY 형식
+  // YYYY 형식 - 연도 중간(7월 1일)으로 설정
   if (/^\d{4}$/.test(trimmed)) {
-    return `${trimmed}-01-01`;
+    return `${trimmed}-07-01`;
   }
   
-  // YYYY-MM 형식
+  // YYYY-MM 형식 - 월 중간(15일)으로 설정
   if (/^\d{4}-\d{2}$/.test(trimmed)) {
-    return `${trimmed}-01`;
+    return `${trimmed}-15`;
   }
   
   // YYYY-MM-DD 형식
@@ -93,7 +93,7 @@ Extract the following information in JSON format:
    - name: product/model name (e.g., "Optimus", "Digit", "G1", "RT-1", "RT-2", "UR10", "π₀")
    - companyName: company that makes it
    - type: one of "humanoid", "service", "logistics", "industrial", "quadruped", "cobot", "amr", "foundation_model", "actuator", "soc"
-   - releaseDate: year or date if mentioned (e.g., "2024", "2023-06")
+   - releaseDate: IMPORTANT - Use YYYY-MM format if month is known (e.g., "2024-03", "2023-09"). Only use YYYY format if only year is known. Search your knowledge for actual release/announcement dates.
    - description: brief description
 
 3. articles: If this is news content, extract article info
@@ -108,6 +108,11 @@ CRITICAL: For robotics content, products include:
 - Foundation models (RT-1, RT-2, RT-X, π₀, PaLM-E, etc.)
 - Cobot series (UR3, UR5, UR10, etc.)
 - Actuator products (Harmonic Drive series, etc.)
+
+CRITICAL for releaseDate: Use your knowledge to provide accurate release/announcement dates in YYYY-MM format when possible. Examples:
+- Tesla Optimus Gen 2: "2023-12"
+- Figure 01: "2024-03"
+- RT-2: "2023-07"
 
 Respond ONLY with valid JSON. No markdown, no explanation.`;
 
