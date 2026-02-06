@@ -195,7 +195,7 @@ export default function DashboardPage() {
   const { data: allProducts } = useQuery({
     queryKey: ['all-products-for-timeline'],
     queryFn: async () => {
-      const result = await api.getProducts({ pageSize: 1000 });
+      const result = await api.getProducts({ pageSize: '1000' });
       return result.items;
     },
   });
