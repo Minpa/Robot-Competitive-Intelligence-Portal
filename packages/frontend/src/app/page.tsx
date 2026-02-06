@@ -143,13 +143,14 @@ const ScrollableTimeline = ({
     color: color || typeColors[product.type] || '#6B7280',
   }));
 
-  // 트렌드 분석 생성
-  const generateTrendAnalysis = () => {
+  // 트렌드 분석 텍스트 생성
+  const generateTrendSummary = (): string | null => {
     if (products.length === 0) return null;
     
     const now = new Date();
-    const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1);
-    const twoYearsAgo = new Date(now.getFullYear() - 2, now.getMonth(), 1);
+    const currentYear = now.getFullYear();
+    const oneYearAgo = new Date(currentYear - 1, now.getMonth(), 1);
+    const twoYearsAgo = new Date(currentYear - 2, now.getMonth(), 1);
     
     const recentProducts = products.filter((p: any) => {
       if (!p.releaseDate) return false;
@@ -163,37 +164,65 @@ const ScrollableTimeline = ({
       return date >= twoYearsAgo && date < oneYearAgo;
     });
     
+    if (recentProducts.length === 0 && olderProducts.length === 0) return null;
+    
     const growthRate = olderProducts.length > 0 
       ? Math.round(((recentProducts.length - olderProducts.length) / olderProducts.length) * 100)
-      : recentProducts.length > 0 ? 100 : 0;
+      : 0;
     
     // 타입별 분포
     const typeDistribution: Record<string, number> = {};
     recentProducts.forEach((p: any) => {
       typeDistribution[p.type] = (typeDistribution[p.type] || 0) + 1;
     });
-    
-    const topType = Object.entries(typeDistribution).sort((a, b) => b[1] - a[1])[0];
+    const sortedTypes = Object.entries(typeDistribution).sort((a, b) => b[1] - a[1]);
     
     // 회사별 분포
     const companyDistribution: Record<string, number> = {};
     recentProducts.forEach((p: any) => {
       companyDistribution[p.companyName] = (companyDistribution[p.companyName] || 0) + 1;
     });
-    
     const topCompanies = Object.entries(companyDistribution)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 3);
+      .slice(0, 3)
+      .map(([name]) => name);
     
-    return {
-      recentCount: recentProducts.length,
-      growthRate,
-      topType: topType ? { name: TYPE_DISPLAY_NAMES[topType[0]] || topType[0], count: topType[1] } : null,
-      topCompanies,
-    };
+    // 기사 형식 텍스트 생성
+    let summary = '';
+    
+    if (recentProducts.length > 0) {
+      summary += `최근 1년간 ${recentProducts.length}개의 신제품이 출시되었습니다. `;
+      
+      if (olderProducts.length > 0) {
+        if (growthRate > 0) {
+          summary += `이는 전년 대비 ${growthRate}% 증가한 수치로, 시장이 빠르게 성장하고 있음을 보여줍니다. `;
+        } else if (growthRate < 0) {
+          summary += `전년 대비 ${Math.abs(growthRate)}% 감소했으나, 기술 고도화에 따른 자연스러운 조정으로 보입니다. `;
+        } else {
+          summary += `전년과 비슷한 수준을 유지하며 안정적인 성장세를 보이고 있습니다. `;
+        }
+      }
+      
+      if (sortedTypes.length > 0) {
+        const topTypeName = TYPE_DISPLAY_NAMES[sortedTypes[0][0]] || sortedTypes[0][0];
+        summary += `특히 ${topTypeName} 분야가 ${sortedTypes[0][1]}개 제품으로 가장 활발한 움직임을 보이고 있습니다. `;
+      }
+      
+      if (topCompanies.length > 0) {
+        if (topCompanies.length === 1) {
+          summary += `${topCompanies[0]}이(가) 시장을 주도하고 있습니다.`;
+        } else {
+          summary += `${topCompanies.slice(0, -1).join(', ')}과(와) ${topCompanies[topCompanies.length - 1]} 등이 시장을 주도하고 있습니다.`;
+        }
+      }
+    } else {
+      summary = `최근 1년간 신규 출시 제품이 없습니다. 전체 ${products.length}개 제품이 등록되어 있으며, 시장 동향을 지속적으로 모니터링하고 있습니다.`;
+    }
+    
+    return summary;
   };
   
-  const trendAnalysis = generateTrendAnalysis();
+  const trendSummary = generateTrendSummary();
 
   const handleScrollLeft = () => {
     setScrollPosition(Math.max(0, scrollPosition - 2));
@@ -308,44 +337,13 @@ const ScrollableTimeline = ({
           </div>
           
           {/* AI 트렌드 분석 섹션 */}
-          {trendAnalysis && (
+          {trendSummary && (
             <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="w-4 h-4 text-purple-600" />
                 <h4 className="text-sm font-semibold text-gray-800">AI 트렌드 분석</h4>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div className="bg-white rounded-lg p-3 shadow-sm">
-                  <p className="text-xs text-gray-500 mb-1">최근 1년 출시</p>
-                  <p className="text-xl font-bold text-blue-600">{trendAnalysis.recentCount}개</p>
-                </div>
-                <div className="bg-white rounded-lg p-3 shadow-sm">
-                  <p className="text-xs text-gray-500 mb-1">전년 대비</p>
-                  <p className={`text-xl font-bold ${trendAnalysis.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {trendAnalysis.growthRate >= 0 ? '+' : ''}{trendAnalysis.growthRate}%
-                  </p>
-                </div>
-                {trendAnalysis.topType && (
-                  <div className="bg-white rounded-lg p-3 shadow-sm">
-                    <p className="text-xs text-gray-500 mb-1">주요 타입</p>
-                    <p className="text-sm font-semibold text-gray-800">{trendAnalysis.topType.name}</p>
-                    <p className="text-xs text-gray-400">{trendAnalysis.topType.count}개 제품</p>
-                  </div>
-                )}
-                {trendAnalysis.topCompanies.length > 0 && (
-                  <div className="bg-white rounded-lg p-3 shadow-sm">
-                    <p className="text-xs text-gray-500 mb-1">활발한 기업</p>
-                    <div className="space-y-1">
-                      {trendAnalysis.topCompanies.slice(0, 2).map(([company, count]) => (
-                        <p key={company} className="text-xs">
-                          <span className="font-medium text-gray-700">{company}</span>
-                          <span className="text-gray-400 ml-1">({count})</span>
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <p className="text-sm text-gray-700 leading-relaxed">{trendSummary}</p>
             </div>
           )}
           
