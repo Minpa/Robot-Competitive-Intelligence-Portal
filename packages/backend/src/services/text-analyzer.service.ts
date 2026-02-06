@@ -123,7 +123,7 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
         .where(eq(companies.name, company.name))
         .limit(1);
 
-      if (existing.length > 0) {
+      if (existing.length > 0 && existing[0]) {
         companyIdMap.set(company.name, existing[0].id);
         continue;
       }

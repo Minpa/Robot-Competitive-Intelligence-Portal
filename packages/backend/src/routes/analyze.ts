@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { textAnalyzerService, AnalyzedData, SaveResult } from '../services/text-analyzer.service.js';
+import { textAnalyzerService, AnalyzedData } from '../services/text-analyzer.service.js';
 
 export async function analyzeRoutes(fastify: FastifyInstance) {
   // 텍스트 분석 (저장하지 않고 미리보기)
