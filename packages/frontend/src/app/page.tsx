@@ -10,11 +10,8 @@ import {
   Package,
   TrendingUp,
   ArrowUpRight,
-  Cpu,
-  Bot,
-  Cog,
-  CircuitBoard,
   Sparkles,
+  Layers,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -31,16 +28,31 @@ import {
   ReferenceLine,
 } from 'recharts';
 
-const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'];
 
-const TYPE_COLORS: Record<string, string> = {
-  humanoid: '#10B981',
-  service: '#3B82F6',
-  logistics: '#F59E0B',
-  home: '#EF4444',
-  industrial: '#8B5CF6',
-  foundation_model: '#EC4899',
-  default: '#6B7280',
+// 타입별 색상 (동적으로 생성)
+const generateTypeColor = (type: string, index: number): string => {
+  const colors = [
+    '#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', 
+    '#EC4899', '#06B6D4', '#F97316', '#84CC16', '#14B8A6',
+    '#A855F7', '#F43F5E', '#0EA5E9', '#EAB308', '#22C55E'
+  ];
+  return colors[index % colors.length];
+};
+
+// 타입별 표시 이름
+const TYPE_DISPLAY_NAMES: Record<string, string> = {
+  humanoid: '휴머노이드',
+  service: '서비스 로봇',
+  logistics: '물류 로봇',
+  industrial: '산업용 로봇',
+  quadruped: '사족보행 로봇',
+  cobot: '협동로봇',
+  amr: 'AMR',
+  foundation_model: 'RFM (파운데이션 모델)',
+  actuator: '액츄에이터',
+  soc: 'SoC',
+  battery: '배터리',
 };
 
 // Product timeline tooltip
@@ -52,7 +64,7 @@ const ProductTimelineTooltip = ({ active, payload }: any) => {
         <div className="flex items-center gap-2 mb-1">
           <span
             className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: TYPE_COLORS[data.type] || TYPE_COLORS.default }}
+            style={{ backgroundColor: data.color || '#6B7280' }}
           />
           <span className="text-xs font-medium text-gray-500">{data.type}</span>
         </div>
@@ -63,6 +75,107 @@ const ProductTimelineTooltip = ({ active, payload }: any) => {
     );
   }
   return null;
+};
+
+// 동적 타임라인 컴포넌트
+interface TimelineSectionProps {
+  title: string;
+  subtitle: string;
+  products: any[];
+  color: string;
+  router: any;
+  halfYearTicks: number[];
+  nowTimestamp: number;
+}
+
+const TimelineSection = ({ title, subtitle, products, color, router, halfYearTicks, nowTimestamp }: TimelineSectionProps) => {
+  const chartData = products.map((product, index) => ({
+    ...product,
+    x: product.releaseDate ? new Date(product.releaseDate).getTime() : Date.now(),
+    y: index % 3 + 1,
+    z: 120,
+    color,
+  }));
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="p-2 rounded-lg" style={{ backgroundColor: `${color}20` }}>
+          <Layers className="w-5 h-5" style={{ color }} />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold">{title}</h3>
+          <p className="text-xs text-gray-500">{subtitle}</p>
+        </div>
+        <span className="ml-auto px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
+          {products.length}개
+        </span>
+      </div>
+      {products.length > 0 ? (
+        <>
+          <div className="h-48 mb-6">
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart 
+                margin={{ top: 20, right: 20, bottom: 20, left: 20 }} 
+                onClick={(data) => {
+                  if (data?.activePayload?.[0]) router.push(`/products/${data.activePayload[0].payload.id}`);
+                }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  type="number" 
+                  dataKey="x" 
+                  domain={[halfYearTicks[0], halfYearTicks[halfYearTicks.length - 1]]} 
+                  ticks={halfYearTicks}
+                  tickFormatter={(value) => `${new Date(value).getFullYear().toString().slice(-2)}' ${new Date(value).getMonth() < 6 ? 'H1' : 'H2'}`} 
+                  tick={{ fontSize: 11 }} 
+                />
+                <YAxis type="number" dataKey="y" hide domain={[0, 4]} />
+                <ZAxis type="number" dataKey="z" range={[150, 400]} />
+                <Tooltip content={<ProductTimelineTooltip />} />
+                <ReferenceLine 
+                  x={nowTimestamp} 
+                  stroke="#EF4444" 
+                  strokeWidth={2} 
+                  strokeDasharray="5 5" 
+                  label={{ value: '현재', position: 'top', fill: '#EF4444', fontSize: 11 }} 
+                />
+                <Scatter name={title} data={chartData} fill={color} style={{ cursor: 'pointer' }} />
+              </ScatterChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="border-t pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-48 overflow-y-auto">
+              {products.map((product) => (
+                <Link 
+                  key={product.id} 
+                  href={`/products/${product.id}`} 
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100"
+                >
+                  <div 
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-xs"
+                    style={{ backgroundColor: color }}
+                  >
+                    {product.name.substring(0, 3).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 text-sm truncate">{product.name}</p>
+                    <p className="text-xs text-gray-500">{product.companyName}</p>
+                  </div>
+                  <div className="text-xs text-gray-400">{product.releaseDate?.substring(0, 7) || '-'}</div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="text-center py-8 text-gray-500">
+          <Layers className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+          <p>등록된 {title}이(가) 없습니다.</p>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default function DashboardPage() {
@@ -78,24 +191,13 @@ export default function DashboardPage() {
     queryFn: () => api.getProductTypeChartData(),
   });
 
-  const { data: productTimeline } = useQuery({
-    queryKey: ['product-timeline'],
-    queryFn: () => api.getProductReleaseTimeline(),
-  });
-
-  const { data: rfmTimeline } = useQuery({
-    queryKey: ['rfm-timeline'],
-    queryFn: () => api.getRfmTimeline(),
-  });
-
-  const { data: actuatorTimeline } = useQuery({
-    queryKey: ['actuator-timeline'],
-    queryFn: () => api.getActuatorTimeline(),
-  });
-
-  const { data: socTimeline } = useQuery({
-    queryKey: ['soc-timeline'],
-    queryFn: () => api.getSocTimeline(),
+  // 모든 제품을 가져와서 타입별로 그룹화
+  const { data: allProducts } = useQuery({
+    queryKey: ['all-products-for-timeline'],
+    queryFn: async () => {
+      const result = await api.getProducts({ pageSize: 1000 });
+      return result.items;
+    },
   });
 
   if (summaryLoading) {
@@ -132,39 +234,35 @@ export default function DashboardPage() {
   const halfYearTicks = generateHalfYearTicks();
   const nowTimestamp = Date.now();
 
-  // 제품 타임라인 차트 데이터 변환
-  const timelineChartData = productTimeline?.map((product, index) => {
-    const date = product.releaseDate ? new Date(product.releaseDate).getTime() : Date.now();
-    return { ...product, x: date, y: index % 5 + 1, z: 100 };
-  }) || [];
-
-  const timelineByType = timelineChartData.reduce((acc: Record<string, any[]>, item) => {
-    const type = item.type || 'default';
+  // 제품을 타입별로 그룹화
+  const productsByType = (allProducts || []).reduce((acc: Record<string, any[]>, product: any) => {
+    const type = product.type || 'other';
     if (!acc[type]) acc[type] = [];
-    acc[type].push(item);
+    acc[type].push(product);
     return acc;
   }, {});
 
-  const rfmChartData = rfmTimeline?.map((product, index) => ({
-    ...product,
-    x: product.releaseDate ? new Date(product.releaseDate).getTime() : Date.now(),
-    y: index % 3 + 1,
-    z: 120,
-  })) || [];
+  // 타입별 색상 맵 생성
+  const typeColors: Record<string, string> = {};
+  Object.keys(productsByType).forEach((type, index) => {
+    typeColors[type] = generateTypeColor(type, index);
+  });
 
-  const actuatorChartData = actuatorTimeline?.map((product, index) => ({
-    ...product,
-    x: product.releaseDate ? new Date(product.releaseDate).getTime() : Date.now(),
-    y: index % 3 + 1,
-    z: 120,
-  })) || [];
+  // 로봇 타입들 (메인 타임라인에 표시)
+  const robotTypes = ['humanoid', 'service', 'logistics', 'industrial', 'quadruped', 'cobot', 'amr'];
+  const robotProducts = (allProducts || []).filter((p: any) => robotTypes.includes(p.type));
 
-  const socChartData = socTimeline?.map((product, index) => ({
+  // 로봇 타임라인 데이터
+  const robotTimelineData = robotProducts.map((product: any, index: number) => ({
     ...product,
     x: product.releaseDate ? new Date(product.releaseDate).getTime() : Date.now(),
-    y: index % 3 + 1,
-    z: 120,
-  })) || [];
+    y: index % 5 + 1,
+    z: 100,
+    color: typeColors[product.type] || '#6B7280',
+  }));
+
+  // 개별 타임라인으로 표시할 타입들 (로봇 제외)
+  const specialTypes = Object.keys(productsByType).filter(type => !robotTypes.includes(type) && type !== 'other');
 
   return (
     <div className="space-y-6">
@@ -174,7 +272,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {stats.map((stat) => (
           <Link key={stat.name} href={stat.href} className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow cursor-pointer">
             <div className="flex items-center justify-between">
@@ -211,82 +309,116 @@ export default function DashboardPage() {
       </div>
 
       {/* Product Type Chart */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold mb-4">제품 유형별 분포</h3>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={5}
-                dataKey="value"
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                onClick={(data) => data?.name && router.push(`/products?type=${data.name}`)}
-                style={{ cursor: 'pointer' }}
-              >
-                {pieData.map((_: any, index: number) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+      {pieData.length > 0 && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">제품 유형별 분포</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  onClick={(data) => data?.name && router.push(`/products?type=${data.name}`)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {pieData.map((_: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Robot Product Timeline */}
-      {productTimeline && productTimeline.length > 0 && (
+      {/* Robot Product Timeline (통합) */}
+      {robotProducts.length > 0 && (
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="p-2 rounded-lg bg-green-100">
-                <Bot className="w-5 h-5 text-green-600" />
+                <Package className="w-5 h-5 text-green-600" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold">로봇 제품 타임라인</h3>
-                <p className="text-xs text-gray-500">휴머노이드, 서비스, 물류 로봇</p>
+                <p className="text-xs text-gray-500">휴머노이드, 서비스, 물류, 산업용, 협동로봇</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 text-xs">
-              {Object.entries(TYPE_COLORS).filter(([k]) => !['default', 'foundation_model'].includes(k)).map(([type, color]) => (
+            <div className="flex items-center gap-3 text-xs flex-wrap">
+              {robotTypes.filter(type => productsByType[type]?.length > 0).map((type) => (
                 <div key={type} className="flex items-center gap-1">
-                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-                  <span className="text-gray-600">{type}</span>
+                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: typeColors[type] }} />
+                  <span className="text-gray-600">{TYPE_DISPLAY_NAMES[type] || type}</span>
                 </div>
               ))}
             </div>
           </div>
           <div className="h-64 mb-6">
             <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }} onClick={(data) => {
-                if (data?.activePayload?.[0]) router.push(`/products/${data.activePayload[0].payload.id}`);
-              }}>
+              <ScatterChart 
+                margin={{ top: 20, right: 20, bottom: 20, left: 20 }} 
+                onClick={(data) => {
+                  if (data?.activePayload?.[0]) router.push(`/products/${data.activePayload[0].payload.id}`);
+                }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" dataKey="x" domain={[halfYearTicks[0], halfYearTicks[halfYearTicks.length - 1]]} ticks={halfYearTicks}
+                <XAxis 
+                  type="number" 
+                  dataKey="x" 
+                  domain={[halfYearTicks[0], halfYearTicks[halfYearTicks.length - 1]]} 
+                  ticks={halfYearTicks}
                   tickFormatter={(value) => {
                     const date = new Date(value);
                     return `${date.getFullYear().toString().slice(-2)}' ${date.getMonth() < 6 ? 'H1' : 'H2'}`;
-                  }} tick={{ fontSize: 11 }} />
+                  }} 
+                  tick={{ fontSize: 11 }} 
+                />
                 <YAxis type="number" dataKey="y" hide domain={[0, 6]} />
                 <ZAxis type="number" dataKey="z" range={[100, 400]} />
                 <Tooltip content={<ProductTimelineTooltip />} />
-                <ReferenceLine x={nowTimestamp} stroke="#EF4444" strokeWidth={2} strokeDasharray="5 5" label={{ value: '현재', position: 'top', fill: '#EF4444', fontSize: 11 }} />
-                {Object.entries(timelineByType).map(([type, data]) => (
-                  <Scatter key={type} name={type} data={data} fill={TYPE_COLORS[type] || TYPE_COLORS.default} style={{ cursor: 'pointer' }} />
-                ))}
+                <ReferenceLine 
+                  x={nowTimestamp} 
+                  stroke="#EF4444" 
+                  strokeWidth={2} 
+                  strokeDasharray="5 5" 
+                  label={{ value: '현재', position: 'top', fill: '#EF4444', fontSize: 11 }} 
+                />
+                {robotTypes.map((type) => {
+                  const typeData = robotTimelineData.filter((p: any) => p.type === type);
+                  if (typeData.length === 0) return null;
+                  return (
+                    <Scatter 
+                      key={type} 
+                      name={type} 
+                      data={typeData} 
+                      fill={typeColors[type]} 
+                      style={{ cursor: 'pointer' }} 
+                    />
+                  );
+                })}
               </ScatterChart>
             </ResponsiveContainer>
           </div>
           <div className="border-t pt-4">
             <h4 className="text-sm font-medium text-gray-700 mb-3">최근 제품 목록</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
-              {productTimeline.slice(0, 12).map((product) => (
-                <Link key={product.id} href={`/products/${product.id}`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: TYPE_COLORS[product.type] || TYPE_COLORS.default }}>
+              {robotProducts.slice(0, 12).map((product: any) => (
+                <Link 
+                  key={product.id} 
+                  href={`/products/${product.id}`} 
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100"
+                >
+                  <div 
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+                    style={{ backgroundColor: typeColors[product.type] || '#6B7280' }}
+                  >
                     {product.name.substring(0, 2).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -301,167 +433,25 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* RFM Timeline */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="p-2 rounded-lg bg-purple-100">
-            <Cpu className="w-5 h-5 text-purple-600" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold">RFM (Robot Foundation Model) 타임라인</h3>
-            <p className="text-xs text-gray-500">로봇 파운데이션 모델 및 VLA 모델</p>
-          </div>
-        </div>
-        {rfmTimeline && rfmTimeline.length > 0 ? (
-          <>
-            <div className="h-48 mb-6">
-              <ResponsiveContainer width="100%" height="100%">
-                <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }} onClick={(data) => {
-                  if (data?.activePayload?.[0]) router.push(`/products/${data.activePayload[0].payload.id}`);
-                }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" dataKey="x" domain={[halfYearTicks[0], halfYearTicks[halfYearTicks.length - 1]]} ticks={halfYearTicks}
-                    tickFormatter={(value) => `${new Date(value).getFullYear().toString().slice(-2)}' ${new Date(value).getMonth() < 6 ? 'H1' : 'H2'}`} tick={{ fontSize: 11 }} />
-                  <YAxis type="number" dataKey="y" hide domain={[0, 4]} />
-                  <ZAxis type="number" dataKey="z" range={[150, 400]} />
-                  <Tooltip content={<ProductTimelineTooltip />} />
-                  <ReferenceLine x={nowTimestamp} stroke="#EF4444" strokeWidth={2} strokeDasharray="5 5" label={{ value: '현재', position: 'top', fill: '#EF4444', fontSize: 11 }} />
-                  <Scatter name="RFM" data={rfmChartData} fill="#EC4899" style={{ cursor: 'pointer' }} />
-                </ScatterChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="border-t pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {rfmTimeline.map((product) => (
-                  <Link key={product.id} href={`/products/${product.id}`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 transition-colors border border-purple-100">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs">
-                      {product.name.substring(0, 3).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 text-sm truncate">{product.name}</p>
-                      <p className="text-xs text-gray-500">{product.companyName}</p>
-                    </div>
-                    <div className="text-xs text-gray-400">{product.releaseDate?.substring(0, 7) || '-'}</div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Cpu className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-            <p>등록된 RFM이 없습니다.</p>
-          </div>
-        )}
-      </div>
-
-      {/* Actuator Timeline */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="p-2 rounded-lg bg-orange-100">
-            <Cog className="w-5 h-5 text-orange-600" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold">액츄에이터 타임라인</h3>
-            <p className="text-xs text-gray-500">로봇 관절 모터 및 감속기</p>
-          </div>
-        </div>
-        {actuatorTimeline && actuatorTimeline.length > 0 ? (
-          <>
-            <div className="h-48 mb-6">
-              <ResponsiveContainer width="100%" height="100%">
-                <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }} onClick={(data) => {
-                  if (data?.activePayload?.[0]) router.push(`/products/${data.activePayload[0].payload.id}`);
-                }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" dataKey="x" domain={[halfYearTicks[0], halfYearTicks[halfYearTicks.length - 1]]} ticks={halfYearTicks}
-                    tickFormatter={(value) => `${new Date(value).getFullYear().toString().slice(-2)}' ${new Date(value).getMonth() < 6 ? 'H1' : 'H2'}`} tick={{ fontSize: 11 }} />
-                  <YAxis type="number" dataKey="y" hide domain={[0, 4]} />
-                  <ZAxis type="number" dataKey="z" range={[150, 400]} />
-                  <Tooltip content={<ProductTimelineTooltip />} />
-                  <ReferenceLine x={nowTimestamp} stroke="#EF4444" strokeWidth={2} strokeDasharray="5 5" label={{ value: '현재', position: 'top', fill: '#EF4444', fontSize: 11 }} />
-                  <Scatter name="Actuator" data={actuatorChartData} fill="#F97316" style={{ cursor: 'pointer' }} />
-                </ScatterChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="border-t pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {actuatorTimeline.map((product) => (
-                  <Link key={product.id} href={`/products/${product.id}`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-orange-50 transition-colors border border-orange-100">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold text-xs">
-                      {product.name.substring(0, 3).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 text-sm truncate">{product.name}</p>
-                      <p className="text-xs text-gray-500">{product.companyName}</p>
-                    </div>
-                    <div className="text-xs text-gray-400">{product.releaseDate?.substring(0, 7) || '-'}</div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Cog className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-            <p>등록된 액츄에이터가 없습니다.</p>
-          </div>
-        )}
-      </div>
-
-      {/* SoC Timeline */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="p-2 rounded-lg bg-cyan-100">
-            <CircuitBoard className="w-5 h-5 text-cyan-600" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold">SoC 타임라인</h3>
-            <p className="text-xs text-gray-500">로봇용 AI 칩 (10+ TOPS)</p>
-          </div>
-        </div>
-        {socTimeline && socTimeline.length > 0 ? (
-          <>
-            <div className="h-48 mb-6">
-              <ResponsiveContainer width="100%" height="100%">
-                <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }} onClick={(data) => {
-                  if (data?.activePayload?.[0]) router.push(`/products/${data.activePayload[0].payload.id}`);
-                }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" dataKey="x" domain={[halfYearTicks[0], halfYearTicks[halfYearTicks.length - 1]]} ticks={halfYearTicks}
-                    tickFormatter={(value) => `${new Date(value).getFullYear().toString().slice(-2)}' ${new Date(value).getMonth() < 6 ? 'H1' : 'H2'}`} tick={{ fontSize: 11 }} />
-                  <YAxis type="number" dataKey="y" hide domain={[0, 4]} />
-                  <ZAxis type="number" dataKey="z" range={[150, 400]} />
-                  <Tooltip content={<ProductTimelineTooltip />} />
-                  <ReferenceLine x={nowTimestamp} stroke="#EF4444" strokeWidth={2} strokeDasharray="5 5" label={{ value: '현재', position: 'top', fill: '#EF4444', fontSize: 11 }} />
-                  <Scatter name="SoC" data={socChartData} fill="#06B6D4" style={{ cursor: 'pointer' }} />
-                </ScatterChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="border-t pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {socTimeline.map((product) => (
-                  <Link key={product.id} href={`/products/${product.id}`} className="flex items-center gap-3 p-3 rounded-lg hover:bg-cyan-50 transition-colors border border-cyan-100">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white font-bold text-xs">
-                      {product.name.substring(0, 3).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 text-sm truncate">{product.name}</p>
-                      <p className="text-xs text-gray-500">{product.companyName}</p>
-                    </div>
-                    <div className="text-xs text-gray-400">{product.releaseDate?.substring(0, 7) || '-'}</div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            <CircuitBoard className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-            <p>등록된 SoC가 없습니다.</p>
-          </div>
-        )}
-      </div>
+      {/* 동적 타임라인 섹션들 (로봇 외 타입) */}
+      {specialTypes.map((type, index) => {
+        const products = productsByType[type] || [];
+        const displayName = TYPE_DISPLAY_NAMES[type] || type;
+        const color = generateTypeColor(type, index + robotTypes.length);
+        
+        return (
+          <TimelineSection
+            key={type}
+            title={displayName}
+            subtitle={`${type} 타입 제품`}
+            products={products}
+            color={color}
+            router={router}
+            halfYearTicks={halfYearTicks}
+            nowTimestamp={nowTimestamp}
+          />
+        );
+      })}
 
       {/* AI 데이터 수집 */}
       <div className="bg-white rounded-lg shadow p-6">
