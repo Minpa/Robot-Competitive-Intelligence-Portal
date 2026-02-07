@@ -135,7 +135,7 @@ export class ProductService {
   async list(
     filters: ProductFiltersDto,
     pagination: PaginationDto
-  ): Promise<PaginatedResult<Product>> {
+  ): Promise<PaginatedResult<Product & { companyName?: string }>> {
     const { page, pageSize, sortBy, sortOrder } = pagination;
     const offset = (page - 1) * pageSize;
 
@@ -170,16 +170,30 @@ export class ProductService {
         : products.updatedAt;
     const orderDirection = sortOrder === 'asc' ? asc : desc;
 
+    // Join with companies to get company name
     const items = await db
-      .select()
+      .select({
+        id: products.id,
+        companyId: products.companyId,
+        name: products.name,
+        series: products.series,
+        type: products.type,
+        releaseDate: products.releaseDate,
+        targetMarket: products.targetMarket,
+        status: products.status,
+        createdAt: products.createdAt,
+        updatedAt: products.updatedAt,
+        companyName: companies.name,
+      })
       .from(products)
+      .leftJoin(companies, eq(products.companyId, companies.id))
       .where(whereClause)
       .orderBy(orderDirection(orderByColumn))
       .limit(pageSize)
       .offset(offset);
 
     return {
-      items: items as Product[],
+      items: items as (Product & { companyName?: string })[],
       total,
       page,
       pageSize,
