@@ -144,7 +144,15 @@ const ScrollableTimeline = ({
   }));
 
   // 트렌드 분석 텍스트 생성 (제품, 시장규모, 사용분야 관점)
-  const generateTrendSummary = (): { product: string; market: string; application: string; overall: string } | null => {
+  const generateTrendSummary = (): { 
+    product: string; 
+    market: string; 
+    application: string; 
+    overall: string;
+    typeDistribution: Array<{ type: string; name: string; count: number; percentage: number }>;
+    companyDistribution: Array<{ name: string; count: number; percentage: number }>;
+    totalProducts: number;
+  } | null => {
     if (products.length === 0) return null;
     
     const now = new Date();
