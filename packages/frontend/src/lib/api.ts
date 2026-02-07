@@ -378,6 +378,7 @@ class ApiClient {
         companiesSaved: number;
         productsSaved: number;
         articlesSaved: number;
+        keywordsSaved: number;
         errors: string[];
       };
     }>('/analyze/save', {
