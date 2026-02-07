@@ -143,14 +143,15 @@ const ScrollableTimeline = ({
     color: color || typeColors[product.type] || '#6B7280',
   }));
 
-  // 트렌드 분석 텍스트 생성
-  const generateTrendSummary = (): string | null => {
+  // 트렌드 분석 텍스트 생성 (제품, 시장규모, 사용분야 관점)
+  const generateTrendSummary = (): { product: string; market: string; application: string; overall: string } | null => {
     if (products.length === 0) return null;
     
     const now = new Date();
     const currentYear = now.getFullYear();
     const oneYearAgo = new Date(currentYear - 1, now.getMonth(), 1);
     const twoYearsAgo = new Date(currentYear - 2, now.getMonth(), 1);
+    const threeYearsAgo = new Date(currentYear - 3, now.getMonth(), 1);
     
     const recentProducts = products.filter((p: any) => {
       if (!p.releaseDate) return false;
@@ -163,66 +164,187 @@ const ScrollableTimeline = ({
       const date = new Date(p.releaseDate);
       return date >= twoYearsAgo && date < oneYearAgo;
     });
+
+    const oldestProducts = products.filter((p: any) => {
+      if (!p.releaseDate) return false;
+      const date = new Date(p.releaseDate);
+      return date >= threeYearsAgo && date < twoYearsAgo;
+    });
     
-    if (recentProducts.length === 0 && olderProducts.length === 0) return null;
+    if (recentProducts.length === 0 && olderProducts.length === 0 && products.length < 3) return null;
     
     const growthRate = olderProducts.length > 0 
       ? Math.round(((recentProducts.length - olderProducts.length) / olderProducts.length) * 100)
       : 0;
+
+    const prevGrowthRate = oldestProducts.length > 0
+      ? Math.round(((olderProducts.length - oldestProducts.length) / oldestProducts.length) * 100)
+      : 0;
     
     // 타입별 분포
     const typeDistribution: Record<string, number> = {};
-    recentProducts.forEach((p: any) => {
+    const recentTypeDistribution: Record<string, number> = {};
+    products.forEach((p: any) => {
       typeDistribution[p.type] = (typeDistribution[p.type] || 0) + 1;
     });
+    recentProducts.forEach((p: any) => {
+      recentTypeDistribution[p.type] = (recentTypeDistribution[p.type] || 0) + 1;
+    });
     const sortedTypes = Object.entries(typeDistribution).sort((a, b) => b[1] - a[1]);
+    const sortedRecentTypes = Object.entries(recentTypeDistribution).sort((a, b) => b[1] - a[1]);
     
     // 회사별 분포 (undefined 필터링)
     const companyDistribution: Record<string, number> = {};
-    recentProducts.forEach((p: any) => {
+    const recentCompanyDistribution: Record<string, number> = {};
+    products.forEach((p: any) => {
       if (p.companyName) {
         companyDistribution[p.companyName] = (companyDistribution[p.companyName] || 0) + 1;
       }
     });
+    recentProducts.forEach((p: any) => {
+      if (p.companyName) {
+        recentCompanyDistribution[p.companyName] = (recentCompanyDistribution[p.companyName] || 0) + 1;
+      }
+    });
     const topCompanies = Object.entries(companyDistribution)
       .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .filter(([name]) => name && name !== 'undefined');
+    const topRecentCompanies = Object.entries(recentCompanyDistribution)
+      .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
-      .map(([name]) => name)
-      .filter(name => name && name !== 'undefined');
+      .filter(([name]) => name && name !== 'undefined');
+
+    // 국가별 분포
+    const countryDistribution: Record<string, number> = {};
+    products.forEach((p: any) => {
+      // companyName에서 국가 추정 (실제로는 회사 데이터에서 가져와야 함)
+      const country = p.country || 'Unknown';
+      countryDistribution[country] = (countryDistribution[country] || 0) + 1;
+    });
     
-    // 기사 형식 텍스트 생성
-    let summary = '';
-    
-    if (recentProducts.length > 0) {
-      summary += `최근 1년간 ${recentProducts.length}개의 신제품이 출시되었습니다. `;
-      
-      if (olderProducts.length > 0) {
-        if (growthRate > 0) {
-          summary += `이는 전년 대비 ${growthRate}% 증가한 수치로, 시장이 빠르게 성장하고 있음을 보여줍니다. `;
-        } else if (growthRate < 0) {
-          summary += `전년 대비 ${Math.abs(growthRate)}% 감소했으나, 기술 고도화에 따른 자연스러운 조정으로 보입니다. `;
-        } else {
-          summary += `전년과 비슷한 수준을 유지하며 안정적인 성장세를 보이고 있습니다. `;
+    // 1. 제품 관점 분석
+    let productAnalysis = '';
+    if (products.length > 0) {
+      productAnalysis = `총 ${products.length}개 제품이 등록되어 있으며, `;
+      if (recentProducts.length > 0) {
+        productAnalysis += `최근 1년간 ${recentProducts.length}개의 신제품이 출시되었습니다. `;
+        if (sortedRecentTypes.length > 0) {
+          const topTypes = sortedRecentTypes.slice(0, 3).map(([type, count]) => 
+            `${TYPE_DISPLAY_NAMES[type] || type}(${count}개)`
+          ).join(', ');
+          productAnalysis += `신제품 유형별로는 ${topTypes} 순으로 출시되었습니다. `;
         }
+        if (topRecentCompanies.length > 0) {
+          const activeCompanies = topRecentCompanies.map(([name, count]) => `${name}(${count}개)`).join(', ');
+          productAnalysis += `최근 가장 활발한 기업은 ${activeCompanies}입니다.`;
+        }
+      } else {
+        productAnalysis += `최근 1년간 신규 출시 제품은 없습니다.`;
+      }
+    }
+
+    // 2. 시장 규모 관점 분석
+    let marketAnalysis = '';
+    if (olderProducts.length > 0 || recentProducts.length > 0) {
+      if (growthRate > 20) {
+        marketAnalysis = `시장이 급성장 중입니다. 전년 대비 ${growthRate}% 증가하여 높은 성장세를 보이고 있습니다. `;
+      } else if (growthRate > 0) {
+        marketAnalysis = `시장이 안정적으로 성장 중입니다. 전년 대비 ${growthRate}% 증가했습니다. `;
+      } else if (growthRate === 0) {
+        marketAnalysis = `시장이 안정기에 접어들었습니다. 전년과 비슷한 수준을 유지하고 있습니다. `;
+      } else {
+        marketAnalysis = `시장이 조정기에 있습니다. 전년 대비 ${Math.abs(growthRate)}% 감소했으나, 기술 고도화에 따른 자연스러운 현상으로 보입니다. `;
+      }
+      
+      if (prevGrowthRate !== 0 && olderProducts.length > 0) {
+        if (growthRate > prevGrowthRate) {
+          marketAnalysis += `성장 가속화 추세입니다(전전년 대비 ${prevGrowthRate}% → 전년 대비 ${growthRate}%). `;
+        } else if (growthRate < prevGrowthRate && growthRate > 0) {
+          marketAnalysis += `성장세가 다소 둔화되고 있습니다. `;
+        }
+      }
+
+      if (topCompanies.length >= 3) {
+        const top3Share = topCompanies.slice(0, 3).reduce((sum, [, count]) => sum + count, 0);
+        const marketConcentration = Math.round((top3Share / products.length) * 100);
+        if (marketConcentration > 60) {
+          marketAnalysis += `상위 3개 기업이 시장의 ${marketConcentration}%를 점유하며 과점 구조를 보입니다.`;
+        } else if (marketConcentration > 40) {
+          marketAnalysis += `상위 3개 기업이 시장의 ${marketConcentration}%를 점유하고 있습니다.`;
+        } else {
+          marketAnalysis += `시장이 다양한 기업들로 분산되어 있어 경쟁이 활발합니다.`;
+        }
+      }
+    } else {
+      marketAnalysis = `시장 규모 분석을 위한 충분한 데이터가 축적되지 않았습니다.`;
+    }
+
+    // 3. 사용 분야 관점 분석
+    let applicationAnalysis = '';
+    if (sortedTypes.length > 0) {
+      const typeBreakdown = sortedTypes.slice(0, 4).map(([type, count]) => {
+        const percentage = Math.round((count / products.length) * 100);
+        return `${TYPE_DISPLAY_NAMES[type] || type} ${percentage}%`;
+      }).join(', ');
+      applicationAnalysis = `분야별 분포: ${typeBreakdown}. `;
+      
+      if (sortedTypes.length > 1) {
+        const topType = sortedTypes[0][0];
+        const topTypeName = TYPE_DISPLAY_NAMES[topType] || topType;
+        applicationAnalysis += `${topTypeName} 분야가 가장 큰 비중을 차지하고 있으며, `;
+        
+        // 성장하는 분야 찾기
+        if (sortedRecentTypes.length > 0) {
+          const growingTypes = sortedRecentTypes.filter(([type]) => {
+            const totalCount = typeDistribution[type] || 0;
+            const recentCount = recentTypeDistribution[type] || 0;
+            return totalCount > 0 && (recentCount / totalCount) > 0.5;
+          });
+          if (growingTypes.length > 0) {
+            const growingNames = growingTypes.slice(0, 2).map(([type]) => TYPE_DISPLAY_NAMES[type] || type).join(', ');
+            applicationAnalysis += `${growingNames} 분야가 최근 빠르게 성장하고 있습니다.`;
+          } else {
+            applicationAnalysis += `전반적으로 균형 잡힌 성장세를 보이고 있습니다.`;
+          }
+        }
+      }
+    } else {
+      applicationAnalysis = `분야별 분석을 위한 데이터가 부족합니다.`;
+    }
+
+    // 4. 종합 분석
+    let overallAnalysis = '';
+    if (products.length >= 5) {
+      overallAnalysis = `【종합】 `;
+      if (growthRate > 10) {
+        overallAnalysis += `로봇 산업이 활발히 성장하고 있습니다. `;
+      } else if (growthRate >= 0) {
+        overallAnalysis += `로봇 산업이 안정적인 성장세를 유지하고 있습니다. `;
+      } else {
+        overallAnalysis += `로봇 산업이 성숙기에 접어들며 기술 고도화에 집중하고 있습니다. `;
+      }
+      
+      if (topCompanies.length > 0) {
+        overallAnalysis += `${topCompanies[0][0]}이(가) ${topCompanies[0][1]}개 제품으로 시장을 선도하고 있으며, `;
       }
       
       if (sortedTypes.length > 0) {
         const topTypeName = TYPE_DISPLAY_NAMES[sortedTypes[0][0]] || sortedTypes[0][0];
-        summary += `특히 ${topTypeName} 분야가 ${sortedTypes[0][1]}개 제품으로 가장 활발한 움직임을 보이고 있습니다. `;
+        overallAnalysis += `${topTypeName} 분야가 핵심 성장 동력입니다. `;
       }
       
-      if (topCompanies.length > 0) {
-        if (topCompanies.length === 1) {
-          summary += `${topCompanies[0]}이(가) 시장을 주도하고 있습니다.`;
-        } else {
-          summary += `${topCompanies.slice(0, -1).join(', ')}과(와) ${topCompanies[topCompanies.length - 1]} 등이 시장을 주도하고 있습니다.`;
-        }
-      }
+      overallAnalysis += `향후 기술 혁신과 시장 확대가 지속될 것으로 전망됩니다.`;
     } else {
-      summary = `최근 1년간 신규 출시 제품이 없습니다. 전체 ${products.length}개 제품이 등록되어 있으며, 시장 동향을 지속적으로 모니터링하고 있습니다.`;
+      overallAnalysis = `데이터 축적 중입니다. 더 많은 데이터가 수집되면 상세한 분석이 가능합니다.`;
     }
     
-    return summary;
+    return {
+      product: productAnalysis,
+      market: marketAnalysis,
+      application: applicationAnalysis,
+      overall: overallAnalysis,
+    };
   };
   
   const trendSummary = generateTrendSummary();
@@ -342,11 +464,44 @@ const ScrollableTimeline = ({
           {/* AI 트렌드 분석 섹션 */}
           {trendSummary && (
             <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-4 h-4 text-purple-600" />
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="w-5 h-5 text-purple-600" />
                 <h4 className="text-sm font-semibold text-gray-800">AI 트렌드 분석</h4>
               </div>
-              <p className="text-sm text-gray-700 leading-relaxed">{trendSummary}</p>
+              
+              <div className="space-y-3">
+                {/* 제품 관점 */}
+                <div className="p-3 bg-white rounded-lg border-l-4 border-green-500">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Package className="w-4 h-4 text-green-600" />
+                    <span className="text-xs font-semibold text-green-700">제품 관점</span>
+                  </div>
+                  <p className="text-sm text-gray-700 leading-relaxed">{trendSummary.product}</p>
+                </div>
+                
+                {/* 시장 규모 관점 */}
+                <div className="p-3 bg-white rounded-lg border-l-4 border-blue-500">
+                  <div className="flex items-center gap-2 mb-1">
+                    <TrendingUp className="w-4 h-4 text-blue-600" />
+                    <span className="text-xs font-semibold text-blue-700">시장 규모 관점</span>
+                  </div>
+                  <p className="text-sm text-gray-700 leading-relaxed">{trendSummary.market}</p>
+                </div>
+                
+                {/* 사용 분야 관점 */}
+                <div className="p-3 bg-white rounded-lg border-l-4 border-orange-500">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Layers className="w-4 h-4 text-orange-600" />
+                    <span className="text-xs font-semibold text-orange-700">사용 분야 관점</span>
+                  </div>
+                  <p className="text-sm text-gray-700 leading-relaxed">{trendSummary.application}</p>
+                </div>
+                
+                {/* 종합 분석 */}
+                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <p className="text-sm text-purple-800 leading-relaxed font-medium">{trendSummary.overall}</p>
+                </div>
+              </div>
             </div>
           )}
           
