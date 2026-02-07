@@ -19,6 +19,8 @@ import {
   Settings,
   Zap,
   RefreshCw,
+  PlayCircle,
+  Trash2,
 } from 'lucide-react';
 
 interface AnalyzedData {
@@ -37,6 +39,12 @@ interface SaveResult {
   errors: string[];
 }
 
+interface AutoQueryTopic {
+  id: string;
+  label: string;
+  query: string;
+}
+
 // 기본 카테고리 설정
 const DEFAULT_PRODUCT_TYPES = [
   'humanoid', 'service', 'logistics', 'industrial', 'quadruped', 
@@ -51,8 +59,8 @@ const DEFAULT_COUNTRIES = [
   'USA', 'Japan', 'China', 'Germany', 'Korea', 'Denmark', 'Switzerland', 'France', 'UK', 'Taiwan'
 ];
 
-// 자동 질의 주제 옵션
-const AUTO_QUERY_TOPICS = [
+// 기본 자동 질의 주제 옵션
+const DEFAULT_AUTO_QUERY_TOPICS: AutoQueryTopic[] = [
   { id: 'humanoid', label: '휴머노이드 로봇', query: '휴머노이드 로봇 시장의 주요 기업들과 제품들을 분석해줘. Tesla Optimus, Figure, Agility Robotics, Boston Dynamics, 1X Technologies, Apptronik, Unitree, UBTECH 등 주요 기업의 제품, 출시일, 매출규모, 시장점유율, 기술 특징을 포함해줘.' },
   { id: 'cobot', label: '협동로봇 (Cobot)', query: '협동로봇(Cobot) 시장의 주요 기업들과 제품들을 분석해줘. Universal Robots, FANUC, ABB, KUKA, Doosan Robotics, Techman Robot 등 주요 기업의 제품 라인업, 출시일, 매출규모, 시장점유율을 포함해줘.' },
   { id: 'amr', label: 'AMR/물류로봇', query: 'AMR(자율이동로봇)과 물류로봇 시장의 주요 기업들과 제품들을 분석해줘. Amazon Robotics, Locus Robotics, 6 River Systems, Fetch Robotics, MiR, Geek+ 등 주요 기업의 제품, 출시일, 매출규모, 시장점유율을 포함해줘.' },
@@ -63,18 +71,22 @@ const AUTO_QUERY_TOPICS = [
 ];
 
 const STORAGE_KEY = 'rcip_categories';
+const AUTO_QUERY_STORAGE_KEY = 'rcip_auto_query_topics';
 
 export default function AnalyzePage() {
   const [text, setText] = useState('');
   const [showPrompt, setShowPrompt] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showAutoQuery, setShowAutoQuery] = useState(false);
+  const [showAutoQuery, setShowAutoQuery] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isAutoQuerying, setIsAutoQuerying] = useState(false);
+  const [isBulkCollecting, setIsBulkCollecting] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, currentTopic: '' });
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [analyzed, setAnalyzed] = useState<AnalyzedData | null>(null);
   const [saveResult, setSaveResult] = useState<SaveResult | null>(null);
+  const [bulkResult, setBulkResult] = useState<{ total: SaveResult; topics: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [categoryUpdated, setCategoryUpdated] = useState(false);
@@ -83,11 +95,13 @@ export default function AnalyzePage() {
   const [productTypes, setProductTypes] = useState<string[]>(DEFAULT_PRODUCT_TYPES);
   const [companyCategories, setCompanyCategories] = useState<string[]>(DEFAULT_COMPANY_CATEGORIES);
   const [countries, setCountries] = useState<string[]>(DEFAULT_COUNTRIES);
+  const [autoQueryTopics, setAutoQueryTopics] = useState<AutoQueryTopic[]>(DEFAULT_AUTO_QUERY_TOPICS);
   const [newProductType, setNewProductType] = useState('');
   const [newCompanyCategory, setNewCompanyCategory] = useState('');
   const [newCountry, setNewCountry] = useState('');
+  const [newAutoQueryLabel, setNewAutoQueryLabel] = useState('');
 
-  // 로컬 스토리지에서 카테고리 로드
+  // 로컬 스토리지에서 카테고리 및 자동 질의 주제 로드
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -98,6 +112,18 @@ export default function AnalyzePage() {
         if (parsed.countries) setCountries(parsed.countries);
       } catch (e) {
         console.error('Failed to load categories:', e);
+      }
+    }
+    
+    const savedTopics = localStorage.getItem(AUTO_QUERY_STORAGE_KEY);
+    if (savedTopics) {
+      try {
+        const parsed = JSON.parse(savedTopics);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setAutoQueryTopics(parsed);
+        }
+      } catch (e) {
+        console.error('Failed to load auto query topics:', e);
       }
     }
   }, []);
@@ -111,6 +137,91 @@ export default function AnalyzePage() {
     }));
     setCategoryUpdated(true);
     setTimeout(() => setCategoryUpdated(false), 2000);
+  };
+
+  // 자동 질의 주제 저장
+  const saveAutoQueryTopics = (topics: AutoQueryTopic[]) => {
+    localStorage.setItem(AUTO_QUERY_STORAGE_KEY, JSON.stringify(topics));
+    setAutoQueryTopics(topics);
+  };
+
+  // 자동 질의 주제 추가
+  const addAutoQueryTopic = () => {
+    if (newAutoQueryLabel.trim()) {
+      const id = newAutoQueryLabel.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+      if (!autoQueryTopics.find(t => t.id === id)) {
+        const newTopic: AutoQueryTopic = {
+          id,
+          label: newAutoQueryLabel.trim(),
+          query: `${newAutoQueryLabel.trim()} 시장의 주요 기업들과 제품들을 분석해줘. 주요 기업의 제품, 출시일, 매출규모, 시장점유율, 기술 특징을 포함해줘.`,
+        };
+        const updated = [...autoQueryTopics, newTopic];
+        saveAutoQueryTopics(updated);
+        setNewAutoQueryLabel('');
+      }
+    }
+  };
+
+  // 자동 질의 주제 삭제
+  const removeAutoQueryTopic = (id: string) => {
+    const updated = autoQueryTopics.filter(t => t.id !== id);
+    saveAutoQueryTopics(updated);
+  };
+
+  // 전체 수집 함수
+  const handleBulkCollect = async () => {
+    if (autoQueryTopics.length === 0) {
+      setError('수집할 카테고리가 없습니다.');
+      return;
+    }
+
+    setIsBulkCollecting(true);
+    setError(null);
+    setSaveResult(null);
+    setBulkResult(null);
+    
+    const totalResult: SaveResult = {
+      companiesSaved: 0,
+      productsSaved: 0,
+      articlesSaved: 0,
+      keywordsSaved: 0,
+      errors: [],
+    };
+    const completedTopics: string[] = [];
+
+    for (let i = 0; i < autoQueryTopics.length; i++) {
+      const topic = autoQueryTopics[i];
+      setBulkProgress({ current: i + 1, total: autoQueryTopics.length, currentTopic: topic.label });
+      
+      try {
+        // GPT-4o 질의
+        const result = await api.autoQuery(topic.id, topic.query);
+        
+        if (result && (result.companies.length > 0 || result.products.length > 0)) {
+          // DB 저장
+          const saveResponse = await api.analyzeAndSave(JSON.stringify(result));
+          
+          totalResult.companiesSaved += saveResponse.saved.companiesSaved;
+          totalResult.productsSaved += saveResponse.saved.productsSaved;
+          totalResult.articlesSaved += saveResponse.saved.articlesSaved;
+          totalResult.keywordsSaved = (totalResult.keywordsSaved || 0) + (saveResponse.saved.keywordsSaved || 0);
+          totalResult.errors.push(...saveResponse.saved.errors);
+          
+          completedTopics.push(topic.label);
+        }
+      } catch (err) {
+        totalResult.errors.push(`${topic.label}: ${(err as Error).message}`);
+      }
+      
+      // API 호출 간 딜레이 (rate limit 방지)
+      if (i < autoQueryTopics.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+
+    setBulkResult({ total: totalResult, topics: completedTopics });
+    setIsBulkCollecting(false);
+    setBulkProgress({ current: 0, total: 0, currentTopic: '' });
   };
 
   // 동적 프롬프트 생성 (더 세세한 분석 요청)
@@ -285,50 +396,154 @@ JSON만 출력. 마크다운 코드블록 없이 순수 JSON으로.`;
               버튼 클릭 한 번으로 GPT-4o에 직접 질의하여 로봇 산업 데이터를 자동으로 수집합니다.
             </p>
             
+            {/* 전체 수집 버튼 */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleBulkCollect}
+                disabled={isAutoQuerying || isBulkCollecting || autoQueryTopics.length === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isBulkCollecting ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <PlayCircle className="w-5 h-5" />
+                )}
+                전체 수집 ({autoQueryTopics.length}개 카테고리)
+              </button>
+              {isBulkCollecting && (
+                <span className="text-sm text-green-700">
+                  {bulkProgress.current}/{bulkProgress.total} - {bulkProgress.currentTopic} 수집 중...
+                </span>
+              )}
+            </div>
+            
+            {/* 전체 수집 결과 */}
+            {bulkResult && (
+              <div className="p-4 bg-green-100 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="font-medium text-green-700">전체 수집 완료!</span>
+                </div>
+                <div className="grid grid-cols-4 gap-2 text-sm mb-2">
+                  <div className="text-center p-2 bg-white rounded">
+                    <p className="text-lg font-bold text-green-600">{bulkResult.total.companiesSaved}</p>
+                    <p className="text-xs text-gray-500">회사</p>
+                  </div>
+                  <div className="text-center p-2 bg-white rounded">
+                    <p className="text-lg font-bold text-green-600">{bulkResult.total.productsSaved}</p>
+                    <p className="text-xs text-gray-500">제품</p>
+                  </div>
+                  <div className="text-center p-2 bg-white rounded">
+                    <p className="text-lg font-bold text-green-600">{bulkResult.total.articlesSaved}</p>
+                    <p className="text-xs text-gray-500">기사</p>
+                  </div>
+                  <div className="text-center p-2 bg-white rounded">
+                    <p className="text-lg font-bold text-green-600">{bulkResult.total.keywordsSaved || 0}</p>
+                    <p className="text-xs text-gray-500">키워드</p>
+                  </div>
+                </div>
+                <p className="text-xs text-green-600">
+                  완료된 카테고리: {bulkResult.topics.join(', ')}
+                </p>
+                {bulkResult.total.errors.length > 0 && (
+                  <p className="text-xs text-orange-600 mt-1">
+                    오류 {bulkResult.total.errors.length}건 발생
+                  </p>
+                )}
+              </div>
+            )}
+            
+            {isAutoQuerying && !isBulkCollecting && (
+              <div className="p-4 bg-green-100 rounded-lg text-center">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-green-600" />
+                <p className="text-sm text-green-700">GPT-4o에 질의 중... (10-30초 소요)</p>
+              </div>
+            )}
+            
+            {/* 개별 카테고리 버튼 */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {AUTO_QUERY_TOPICS.map((topic) => (
-                <button
-                  key={topic.id}
-                  onClick={async () => {
-                    setSelectedTopic(topic.id);
-                    setIsAutoQuerying(true);
-                    setError(null);
-                    try {
-                      const result = await api.autoQuery(topic.id, topic.query);
-                      setText(JSON.stringify(result, null, 2));
-                      setAnalyzed(result);
-                    } catch (err) {
-                      setError((err as Error).message);
-                    } finally {
-                      setIsAutoQuerying(false);
-                      setSelectedTopic(null);
-                    }
-                  }}
-                  disabled={isAutoQuerying}
-                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                    selectedTopic === topic.id
-                      ? 'bg-green-600 text-white'
-                      : 'bg-white text-green-700 border border-green-200 hover:bg-green-100'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  {isAutoQuerying && selectedTopic === topic.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4" />
-                  )}
-                  {topic.label}
-                </button>
+              {autoQueryTopics.map((topic) => (
+                <div key={topic.id} className="relative group">
+                  <button
+                    onClick={async () => {
+                      setSelectedTopic(topic.id);
+                      setIsAutoQuerying(true);
+                      setError(null);
+                      setSaveResult(null);
+                      setBulkResult(null);
+                      try {
+                        console.log('[AutoQuery] Starting query for:', topic.id);
+                        const result = await api.autoQuery(topic.id, topic.query);
+                        console.log('[AutoQuery] Result:', result);
+                        if (result) {
+                          setText(JSON.stringify(result, null, 2));
+                          setAnalyzed(result);
+                        } else {
+                          setError('AI 응답이 비어있습니다. 다시 시도해주세요.');
+                        }
+                      } catch (err) {
+                        console.error('[AutoQuery] Error:', err);
+                        setError(`AI 질의 실패: ${(err as Error).message}`);
+                      } finally {
+                        setIsAutoQuerying(false);
+                        setSelectedTopic(null);
+                      }
+                    }}
+                    disabled={isAutoQuerying || isBulkCollecting}
+                    className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                      selectedTopic === topic.id
+                        ? 'bg-green-600 text-white'
+                        : 'bg-white text-green-700 border border-green-200 hover:bg-green-100'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    {isAutoQuerying && selectedTopic === topic.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                    {topic.label}
+                  </button>
+                  {/* 삭제 버튼 */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeAutoQueryTopic(topic.id);
+                    }}
+                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                    title="카테고리 삭제"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
               ))}
             </div>
             
-            <div className="text-xs text-green-500 mt-2">
-              💡 버튼을 클릭하면 해당 분야의 최신 데이터를 GPT-4o가 분석하여 JSON으로 생성합니다.
+            {/* 새 카테고리 추가 */}
+            <div className="flex gap-2 pt-2 border-t border-green-200">
+              <input
+                type="text"
+                value={newAutoQueryLabel}
+                onChange={(e) => setNewAutoQueryLabel(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && addAutoQueryTopic()}
+                placeholder="새 수집 카테고리 추가 (예: 드론, 의료로봇)..."
+                className="flex-1 px-3 py-2 border border-green-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+              <button
+                onClick={addAutoQueryTopic}
+                disabled={!newAutoQueryLabel.trim()}
+                className="flex items-center gap-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                추가
+              </button>
+            </div>
+            
+            <div className="text-xs text-green-500">
+              💡 개별 버튼: JSON 생성 후 미리보기 | 전체 수집: 모든 카테고리 순차 수집 후 DB 저장
             </div>
           </div>
         )}
-      </div>
-
-      {/* AI 질의문 템플릿 */}
+      </div>      {/* AI 질의문 템플릿 */}
       <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
         <div 
           className="flex items-center justify-between cursor-pointer"
