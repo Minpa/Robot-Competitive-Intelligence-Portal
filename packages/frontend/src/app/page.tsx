@@ -665,6 +665,7 @@ export default function DashboardPage() {
 
   const pieData = productTypeChart?.labels?.map((label: string, i: number) => ({
     name: label,
+    displayName: TYPE_DISPLAY_NAMES[label] || label,
     value: productTypeChart.datasets[0]?.data[i] || 0,
   })) || [];
 
@@ -750,7 +751,7 @@ export default function DashboardPage() {
                   outerRadius={80}
                   paddingAngle={5}
                   dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ displayName, percent }) => `${displayName} ${(percent * 100).toFixed(0)}%`}
                   onClick={(data) => data?.name && router.push(`/products?type=${data.name}`)}
                   style={{ cursor: 'pointer' }}
                 >
@@ -758,7 +759,12 @@ export default function DashboardPage() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip 
+                  formatter={(value: number, name: string, props: any) => [
+                    `${value}개`,
+                    props.payload.displayName
+                  ]}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
