@@ -250,17 +250,22 @@ const AXIS_OPTIONS = [
 const RobotScatterChart = ({ products, typeColors }: { products: any[]; typeColors: Record<string, string> }) => {
   const [xAxis, setXAxis] = useState('payload');
   const [yAxis, setYAxis] = useState('height');
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(['humanoid', 'cobot']);
   
   const robotTypes = ['humanoid', 'cobot', 'amr', 'logistics', 'service', 'quadruped', 'industrial'];
-  const robotProducts = products.filter((p: any) => robotTypes.includes(p.type));
+  const allRobotProducts = products.filter((p: any) => robotTypes.includes(p.type));
+  const availableTypes = robotTypes.filter(type => allRobotProducts.some((p: any) => p.type === type));
   
-  if (robotProducts.length === 0) return null;
+  // 선택된 타입만 필터링
+  const robotProducts = allRobotProducts.filter((p: any) => selectedTypes.includes(p.type));
+  
+  if (availableTypes.length === 0) return null;
 
   // 제품별 데이터 생성 (타입 기본값 + 약간의 랜덤 변동)
   const scatterData = robotProducts.map((product: any, index: number) => {
     const defaults = FORM_FACTOR_DEFAULTS[product.type] || { arms: 50, hands: 50, mobility: 50, height: 50, payload: 50 };
     // 같은 타입 내에서 약간의 변동을 주어 겹치지 않게
-    const variation = (index % 5) * 5 - 10;
+    const variation = (index % 7) * 4 - 12;
     return {
       ...product,
       x: Math.max(0, Math.min(100, defaults[xAxis as keyof typeof defaults] + variation)),
@@ -273,6 +278,49 @@ const RobotScatterChart = ({ products, typeColors }: { products: any[]; typeColo
   const xLabel = AXIS_OPTIONS.find(a => a.key === xAxis)?.label || xAxis;
   const yLabel = AXIS_OPTIONS.find(a => a.key === yAxis)?.label || yAxis;
 
+  const toggleType = (type: string) => {
+    if (selectedTypes.includes(type)) {
+      if (selectedTypes.length > 1) {
+        setSelectedTypes(selectedTypes.filter(t => t !== type));
+      }
+    } else {
+      setSelectedTypes([...selectedTypes, type]);
+    }
+  };
+
+  // 커스텀 라벨 렌더러 (배경 포함)
+  const renderCustomLabel = (props: any) => {
+    const { x, y, value } = props;
+    if (!value) return null;
+    
+    // 이름이 너무 길면 줄임
+    const displayName = value.length > 12 ? value.substring(0, 10) + '..' : value;
+    
+    return (
+      <g>
+        <rect
+          x={x - 30}
+          y={y - 22}
+          width={60}
+          height={14}
+          fill="white"
+          fillOpacity={0.85}
+          rx={2}
+        />
+        <text
+          x={x}
+          y={y - 12}
+          textAnchor="middle"
+          fontSize={9}
+          fontWeight={600}
+          fill="#1F2937"
+        >
+          {displayName}
+        </text>
+      </g>
+    );
+  };
+
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex items-center gap-2 mb-4">
@@ -281,8 +329,32 @@ const RobotScatterChart = ({ products, typeColors }: { products: any[]; typeColo
         </div>
         <div>
           <h3 className="text-lg font-semibold">제품별 Form Factor 분포 (Scatter)</h3>
-          <p className="text-xs text-gray-500">2개 축을 선택하여 개별 제품 위치 확인</p>
+          <p className="text-xs text-gray-500">타입과 축을 선택하여 개별 제품 위치 확인</p>
         </div>
+      </div>
+
+      {/* 타입 필터 버튼 */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <span className="text-sm text-gray-600 self-center mr-2">타입 선택:</span>
+        {availableTypes.map((type) => {
+          const isSelected = selectedTypes.includes(type);
+          const typeName = TYPE_DISPLAY_NAMES[type] || type;
+          const typeCount = allRobotProducts.filter((p: any) => p.type === type).length;
+          return (
+            <button
+              key={type}
+              onClick={() => toggleType(type)}
+              className={`px-3 py-1.5 rounded-full text-sm transition-all ${
+                isSelected
+                  ? 'text-white shadow-md'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              style={isSelected ? { backgroundColor: typeColors[type] || COLORS[0] } : {}}
+            >
+              {typeName} ({typeCount})
+            </button>
+          );
+        })}
       </div>
 
       {/* 축 선택 */}
@@ -311,22 +383,15 @@ const RobotScatterChart = ({ products, typeColors }: { products: any[]; typeColo
             ))}
           </select>
         </div>
-      </div>
-
-      {/* 범례 */}
-      <div className="flex flex-wrap gap-3 mb-4 text-xs">
-        {robotTypes.filter(type => robotProducts.some((p: any) => p.type === type)).map((type) => (
-          <div key={type} className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: typeColors[type] || '#6B7280' }} />
-            <span className="text-gray-600">{TYPE_DISPLAY_NAMES[type] || type}</span>
-          </div>
-        ))}
+        <span className="text-xs text-gray-400 self-center">
+          선택된 제품: {robotProducts.length}개
+        </span>
       </div>
 
       {/* Scatter Chart */}
-      <div className="h-[500px]">
+      <div className="h-[550px]">
         <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart margin={{ top: 20, right: 30, bottom: 40, left: 40 }}>
+          <ScatterChart margin={{ top: 30, right: 30, bottom: 40, left: 50 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
               type="number" 
@@ -344,7 +409,7 @@ const RobotScatterChart = ({ products, typeColors }: { products: any[]; typeColo
               label={{ value: yLabel, angle: -90, position: 'insideLeft', offset: 10 }}
               tick={{ fontSize: 11 }}
             />
-            <ZAxis type="number" dataKey="z" range={[80, 200]} />
+            <ZAxis type="number" dataKey="z" range={[100, 250]} />
             <Tooltip 
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
@@ -364,7 +429,7 @@ const RobotScatterChart = ({ products, typeColors }: { products: any[]; typeColo
                 return null;
               }}
             />
-            {robotTypes.map((type) => {
+            {selectedTypes.map((type) => {
               const typeData = scatterData.filter((p: any) => p.type === type);
               if (typeData.length === 0) return null;
               return (
@@ -379,9 +444,7 @@ const RobotScatterChart = ({ products, typeColors }: { products: any[]; typeColo
                   ))}
                   <LabelList 
                     dataKey="name" 
-                    position="top" 
-                    offset={8}
-                    style={{ fontSize: 9, fill: '#374151', fontWeight: 500 }}
+                    content={renderCustomLabel}
                   />
                 </Scatter>
               );
@@ -390,11 +453,11 @@ const RobotScatterChart = ({ products, typeColors }: { products: any[]; typeColo
         </ResponsiveContainer>
       </div>
 
-      {/* 제품 목록 (점 위에 이름 표시 대신) */}
+      {/* 제품 목록 */}
       <div className="mt-4 border-t pt-4">
-        <p className="text-sm font-medium text-gray-700 mb-2">제품 목록 ({robotProducts.length}개)</p>
+        <p className="text-sm font-medium text-gray-700 mb-2">선택된 제품 목록 ({robotProducts.length}개)</p>
         <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-          {robotProducts.slice(0, 20).map((product: any) => (
+          {robotProducts.slice(0, 30).map((product: any) => (
             <span 
               key={product.id}
               className="px-2 py-1 rounded text-xs"
@@ -406,8 +469,8 @@ const RobotScatterChart = ({ products, typeColors }: { products: any[]; typeColo
               {product.name}
             </span>
           ))}
-          {robotProducts.length > 20 && (
-            <span className="text-xs text-gray-400">+{robotProducts.length - 20}개 더</span>
+          {robotProducts.length > 30 && (
+            <span className="text-xs text-gray-400">+{robotProducts.length - 30}개 더</span>
           )}
         </div>
       </div>
