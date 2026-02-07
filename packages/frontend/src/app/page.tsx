@@ -737,9 +737,10 @@ export default function DashboardPage() {
       </div>
 
       {/* Product Type Chart */}
+      {/* 전체 제품 유형별 분포 */}
       {pieData.length > 0 && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">제품 유형별 분포</h3>
+          <h3 className="text-lg font-semibold mb-4">전체 제품 유형별 분포</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -767,6 +768,80 @@ export default function DashboardPage() {
                 />
               </PieChart>
             </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* 제품 유형별 회사 분포 (개별 파이 차트) */}
+      {Object.keys(productsByType).length > 0 && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold mb-4">제품 유형별 회사 분포</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {Object.entries(productsByType)
+              .filter(([type, prods]) => (prods as any[]).length >= 2)
+              .sort((a, b) => (b[1] as any[]).length - (a[1] as any[]).length)
+              .slice(0, 8)
+              .map(([type, prods], typeIndex) => {
+                const products = prods as any[];
+                const typeName = TYPE_DISPLAY_NAMES[type] || type;
+                
+                // 회사별 그룹화
+                const companyCount: Record<string, number> = {};
+                products.forEach((p: any) => {
+                  const company = p.companyName || 'Unknown';
+                  companyCount[company] = (companyCount[company] || 0) + 1;
+                });
+                
+                const companyData = Object.entries(companyCount)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 5)
+                  .map(([name, count]) => ({
+                    name,
+                    value: count,
+                    percentage: Math.round((count / products.length) * 100),
+                  }));
+                
+                return (
+                  <div key={type} className="text-center">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">{typeName}</h4>
+                    <p className="text-xs text-gray-400 mb-2">{products.length}개 제품</p>
+                    <div className="h-32">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={companyData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={25}
+                            outerRadius={45}
+                            paddingAngle={2}
+                            dataKey="value"
+                          >
+                            {companyData.map((_, index) => (
+                              <Cell key={`cell-${type}-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(value: number, name: string) => [`${value}개`, name]}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      {companyData.slice(0, 3).map((item, idx) => (
+                        <div key={item.name} className="flex items-center justify-center gap-1 text-xs">
+                          <span 
+                            className="w-2 h-2 rounded-full" 
+                            style={{ backgroundColor: COLORS[idx % COLORS.length] }}
+                          />
+                          <span className="text-gray-600 truncate max-w-[80px]">{item.name}</span>
+                          <span className="text-gray-400">({item.percentage}%)</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         </div>
       )}
