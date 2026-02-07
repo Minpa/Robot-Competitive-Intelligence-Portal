@@ -23,9 +23,17 @@ import {
   Trash2,
 } from 'lucide-react';
 
+interface FormFactor {
+  arms?: number;
+  hands?: string;
+  mobility?: string;
+  heightCm?: number;
+  payloadKg?: number;
+}
+
 interface AnalyzedData {
   companies: Array<{ name: string; country: string; category: string; description?: string }>;
-  products: Array<{ name: string; companyName: string; type: string; releaseDate?: string; description?: string }>;
+  products: Array<{ name: string; companyName: string; type: string; releaseDate?: string; description?: string; formFactor?: FormFactor }>;
   articles: Array<{ title: string; source: string; url?: string; summary: string; category: string; productType: string }>;
   keywords: string[];
   summary: string;
@@ -61,13 +69,13 @@ const DEFAULT_COUNTRIES = [
 
 // 기본 자동 질의 주제 옵션
 const DEFAULT_AUTO_QUERY_TOPICS: AutoQueryTopic[] = [
-  { id: 'humanoid', label: '휴머노이드 로봇', query: '휴머노이드 로봇 시장의 주요 기업들과 제품들을 분석해줘. Tesla Optimus, Figure, Agility Robotics, Boston Dynamics, 1X Technologies, Apptronik, Unitree, UBTECH 등 주요 기업의 제품, 출시일, 매출규모, 시장점유율, 기술 특징을 포함해줘.' },
-  { id: 'cobot', label: '협동로봇 (Cobot)', query: '협동로봇(Cobot) 시장의 주요 기업들과 제품들을 분석해줘. Universal Robots, FANUC, ABB, KUKA, Doosan Robotics, Techman Robot 등 주요 기업의 제품 라인업, 출시일, 매출규모, 시장점유율을 포함해줘.' },
-  { id: 'amr', label: 'AMR/물류로봇', query: 'AMR(자율이동로봇)과 물류로봇 시장의 주요 기업들과 제품들을 분석해줘. Amazon Robotics, Locus Robotics, 6 River Systems, Fetch Robotics, MiR, Geek+ 등 주요 기업의 제품, 출시일, 매출규모, 시장점유율을 포함해줘.' },
+  { id: 'humanoid', label: '휴머노이드 로봇', query: '휴머노이드 로봇 시장의 주요 기업들과 제품들을 분석해줘. Tesla Optimus, Figure, Agility Robotics, Boston Dynamics, 1X Technologies, Apptronik, Unitree, UBTECH 등 주요 기업의 제품, 출시일, 매출규모, 시장점유율, 기술 특징을 포함해줘. 각 로봇 제품의 Form Factor 정보도 포함해줘: 팔 개수(0/1/2), 핸드 타입(none/gripper/3finger/5finger), 이동방식(fixed/wheel/biped), 높이(cm), 페이로드(kg).' },
+  { id: 'cobot', label: '협동로봇 (Cobot)', query: '협동로봇(Cobot) 시장의 주요 기업들과 제품들을 분석해줘. Universal Robots, FANUC, ABB, KUKA, Doosan Robotics, Techman Robot 등 주요 기업의 제품 라인업, 출시일, 매출규모, 시장점유율을 포함해줘. 각 로봇 제품의 Form Factor 정보도 포함해줘: 팔 개수(0/1/2), 핸드 타입(none/gripper/3finger/5finger), 이동방식(fixed/wheel), 높이(cm), 페이로드(kg).' },
+  { id: 'amr', label: 'AMR/물류로봇', query: 'AMR(자율이동로봇)과 물류로봇 시장의 주요 기업들과 제품들을 분석해줘. Amazon Robotics, Locus Robotics, 6 River Systems, Fetch Robotics, MiR, Geek+ 등 주요 기업의 제품, 출시일, 매출규모, 시장점유율을 포함해줘. 각 로봇 제품의 Form Factor 정보도 포함해줘: 팔 개수(0/1/2), 핸드 타입(none/gripper), 이동방식(wheel/track), 높이(cm), 페이로드(kg).' },
   { id: 'foundation_model', label: 'RFM (로봇 파운데이션 모델)', query: '로봇 파운데이션 모델(Robot Foundation Model) 분야의 주요 기업들과 모델들을 분석해줘. Google RT-1/RT-2/RT-X, Physical Intelligence π₀, NVIDIA Isaac, OpenAI 등 주요 기업의 모델, 발표일, 기술 특징, 시장 영향력을 포함해줘.' },
   { id: 'actuator', label: '액츄에이터/부품', query: '로봇 액츄에이터와 핵심 부품 시장의 주요 기업들과 제품들을 분석해줘. Harmonic Drive, Nabtesco, Maxon, Faulhaber, 삼성전자, LG전자 등 주요 기업의 제품, 매출규모, 시장점유율, 기술 특징을 포함해줘.' },
-  { id: 'quadruped', label: '사족보행 로봇', query: '사족보행 로봇 시장의 주요 기업들과 제품들을 분석해줘. Boston Dynamics Spot, Unitree Go1/Go2/B2, ANYbotics ANYmal, Ghost Robotics 등 주요 기업의 제품, 출시일, 가격, 매출규모, 시장점유율을 포함해줘.' },
-  { id: 'service', label: '서비스 로봇', query: '서비스 로봇 시장의 주요 기업들과 제품들을 분석해줘. 배달로봇, 안내로봇, 청소로봇 등 분야별 주요 기업의 제품, 출시일, 매출규모, 시장점유율을 포함해줘.' },
+  { id: 'quadruped', label: '사족보행 로봇', query: '사족보행 로봇 시장의 주요 기업들과 제품들을 분석해줘. Boston Dynamics Spot, Unitree Go1/Go2/B2, ANYbotics ANYmal, Ghost Robotics 등 주요 기업의 제품, 출시일, 가격, 매출규모, 시장점유율을 포함해줘. 각 로봇 제품의 Form Factor 정보도 포함해줘: 팔 개수(0/1/2), 핸드 타입(none/gripper), 이동방식(quadruped), 높이(cm), 페이로드(kg).' },
+  { id: 'service', label: '서비스 로봇', query: '서비스 로봇 시장의 주요 기업들과 제품들을 분석해줘. 배달로봇, 안내로봇, 청소로봇 등 분야별 주요 기업의 제품, 출시일, 매출규모, 시장점유율을 포함해줘. 각 로봇 제품의 Form Factor 정보도 포함해줘: 팔 개수(0/1/2), 핸드 타입(none/gripper), 이동방식(wheel/track), 높이(cm), 페이로드(kg).' },
 ];
 
 const STORAGE_KEY = 'rcip_categories';
@@ -153,7 +161,7 @@ export default function AnalyzePage() {
         const newTopic: AutoQueryTopic = {
           id,
           label: newAutoQueryLabel.trim(),
-          query: `${newAutoQueryLabel.trim()} 시장의 주요 기업들과 제품들을 분석해줘. 주요 기업의 제품, 출시일, 매출규모, 시장점유율, 기술 특징을 포함해줘.`,
+          query: `${newAutoQueryLabel.trim()} 시장의 주요 기업들과 제품들을 분석해줘. 주요 기업의 제품, 출시일, 매출규모, 시장점유율, 기술 특징을 포함해줘. 각 로봇 제품의 Form Factor 정보도 포함해줘: 팔 개수(0/1/2), 핸드 타입(none/gripper/3finger/5finger), 이동방식(fixed/wheel/track/quadruped/biped), 높이(cm), 페이로드(kg).`,
         };
         const updated = [...autoQueryTopics, newTopic];
         saveAutoQueryTopics(updated);
@@ -243,7 +251,14 @@ export default function AnalyzePage() {
       "companyName": "제조사명", 
       "type": "${productTypes.join('/')} 중 하나", 
       "releaseDate": "YYYY-MM 형식 (예: 2023-06, 2024-01)", 
-      "description": "제품 설명 (주요 스펙, 가격대, 판매량, 시장 반응, 경쟁 제품 대비 특징 등 포함)"
+      "description": "제품 설명 (주요 스펙, 가격대, 판매량, 시장 반응, 경쟁 제품 대비 특징 등 포함)",
+      "formFactor": {
+        "arms": "팔 개수 (0/1/2)",
+        "hands": "핸드 타입 (none/gripper/3finger/4finger/5finger)",
+        "mobility": "이동 방식 (fixed/wheel/track/quadruped/biped)",
+        "heightCm": "로봇 높이 (cm 숫자)",
+        "payloadKg": "페이로드 용량 (kg 숫자)"
+      }
     }
   ],
   "keywords": ["키워드1", "키워드2", "...최대 15개"],
@@ -256,6 +271,12 @@ export default function AnalyzePage() {
 3. 제품 가격, 판매량, 시장 반응 등 상세 정보 포함
 4. 경쟁사 대비 기술적 우위/열위 분석 포함
 5. 시장 트렌드와 향후 전망 포함
+6. 로봇 제품의 Form Factor 정보 필수 포함:
+   - arms: 팔 개수 (0, 1, 2)
+   - hands: 핸드 타입 (none=없음, gripper=그리퍼, 3finger=3지, 4finger=4지, 5finger=5지)
+   - mobility: 이동 방식 (fixed=고정, wheel=바퀴, track=트랙/무한궤도, quadruped=4족, biped=2족)
+   - heightCm: 로봇 전체 높이 (cm 단위 숫자)
+   - payloadKg: 최대 페이로드 용량 (kg 단위 숫자)
 
 JSON만 출력. 마크다운 코드블록 없이 순수 JSON으로.`;
   };
