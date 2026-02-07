@@ -236,6 +236,342 @@ const RobotFormFactorChart = ({ products, typeColors }: { products: any[]; typeC
   );
 };
 
+// 축 옵션 정의
+const AXIS_OPTIONS = [
+  { key: 'arms', label: '팔 개수' },
+  { key: 'hands', label: '핸드 (손)' },
+  { key: 'mobility', label: '이동체' },
+  { key: 'height', label: '높이' },
+  { key: 'payload', label: '페이로드' },
+];
+
+// Scatter Chart - 개별 제품 점 표시
+const RobotScatterChart = ({ products, typeColors }: { products: any[]; typeColors: Record<string, string> }) => {
+  const [xAxis, setXAxis] = useState('payload');
+  const [yAxis, setYAxis] = useState('height');
+  
+  const robotTypes = ['humanoid', 'cobot', 'amr', 'logistics', 'service', 'quadruped', 'industrial'];
+  const robotProducts = products.filter((p: any) => robotTypes.includes(p.type));
+  
+  if (robotProducts.length === 0) return null;
+
+  // 제품별 데이터 생성 (타입 기본값 + 약간의 랜덤 변동)
+  const scatterData = robotProducts.map((product: any, index: number) => {
+    const defaults = FORM_FACTOR_DEFAULTS[product.type] || { arms: 50, hands: 50, mobility: 50, height: 50, payload: 50 };
+    // 같은 타입 내에서 약간의 변동을 주어 겹치지 않게
+    const variation = (index % 5) * 5 - 10;
+    return {
+      ...product,
+      x: Math.max(0, Math.min(100, defaults[xAxis as keyof typeof defaults] + variation)),
+      y: Math.max(0, Math.min(100, defaults[yAxis as keyof typeof defaults] + variation)),
+      z: 150,
+      color: typeColors[product.type] || '#6B7280',
+    };
+  });
+
+  const xLabel = AXIS_OPTIONS.find(a => a.key === xAxis)?.label || xAxis;
+  const yLabel = AXIS_OPTIONS.find(a => a.key === yAxis)?.label || yAxis;
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="p-2 rounded-lg bg-blue-100">
+          <Layers className="w-5 h-5 text-blue-600" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold">제품별 Form Factor 분포 (Scatter)</h3>
+          <p className="text-xs text-gray-500">2개 축을 선택하여 개별 제품 위치 확인</p>
+        </div>
+      </div>
+
+      {/* 축 선택 */}
+      <div className="flex flex-wrap gap-4 mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">X축:</span>
+          <select 
+            value={xAxis} 
+            onChange={(e) => setXAxis(e.target.value)}
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+          >
+            {AXIS_OPTIONS.map(opt => (
+              <option key={opt.key} value={opt.key}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">Y축:</span>
+          <select 
+            value={yAxis} 
+            onChange={(e) => setYAxis(e.target.value)}
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+          >
+            {AXIS_OPTIONS.map(opt => (
+              <option key={opt.key} value={opt.key}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* 범례 */}
+      <div className="flex flex-wrap gap-3 mb-4 text-xs">
+        {robotTypes.filter(type => robotProducts.some((p: any) => p.type === type)).map((type) => (
+          <div key={type} className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: typeColors[type] || '#6B7280' }} />
+            <span className="text-gray-600">{TYPE_DISPLAY_NAMES[type] || type}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Scatter Chart */}
+      <div className="h-96">
+        <ResponsiveContainer width="100%" height="100%">
+          <ScatterChart margin={{ top: 20, right: 30, bottom: 40, left: 40 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              type="number" 
+              dataKey="x" 
+              domain={[0, 100]} 
+              name={xLabel}
+              label={{ value: xLabel, position: 'bottom', offset: 0 }}
+              tick={{ fontSize: 11 }}
+            />
+            <YAxis 
+              type="number" 
+              dataKey="y" 
+              domain={[0, 100]} 
+              name={yLabel}
+              label={{ value: yLabel, angle: -90, position: 'insideLeft', offset: 10 }}
+              tick={{ fontSize: 11 }}
+            />
+            <ZAxis type="number" dataKey="z" range={[80, 200]} />
+            <Tooltip 
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  const data = payload[0].payload;
+                  return (
+                    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
+                      <p className="font-semibold text-gray-900">{data.name}</p>
+                      <p className="text-sm text-gray-600">{data.companyName || 'Unknown'}</p>
+                      <p className="text-xs text-gray-500 mt-1">{TYPE_DISPLAY_NAMES[data.type] || data.type}</p>
+                      <div className="mt-2 text-xs text-gray-500">
+                        <p>{xLabel}: {data.x}</p>
+                        <p>{yLabel}: {data.y}</p>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+            {robotTypes.map((type) => {
+              const typeData = scatterData.filter((p: any) => p.type === type);
+              if (typeData.length === 0) return null;
+              return (
+                <Scatter 
+                  key={type} 
+                  name={TYPE_DISPLAY_NAMES[type] || type} 
+                  data={typeData} 
+                  fill={typeColors[type] || '#6B7280'}
+                >
+                  {typeData.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Scatter>
+              );
+            })}
+          </ScatterChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* 제품 목록 (점 위에 이름 표시 대신) */}
+      <div className="mt-4 border-t pt-4">
+        <p className="text-sm font-medium text-gray-700 mb-2">제품 목록 ({robotProducts.length}개)</p>
+        <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+          {robotProducts.slice(0, 20).map((product: any) => (
+            <span 
+              key={product.id}
+              className="px-2 py-1 rounded text-xs"
+              style={{ 
+                backgroundColor: `${typeColors[product.type] || '#6B7280'}20`,
+                color: typeColors[product.type] || '#6B7280'
+              }}
+            >
+              {product.name}
+            </span>
+          ))}
+          {robotProducts.length > 20 && (
+            <span className="text-xs text-gray-400">+{robotProducts.length - 20}개 더</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Parallel Coordinates Chart - 5개 축 모두 표시
+const RobotParallelChart = ({ products, typeColors }: { products: any[]; typeColors: Record<string, string> }) => {
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(['humanoid', 'cobot', 'amr', 'logistics']);
+  
+  const robotTypes = ['humanoid', 'cobot', 'amr', 'logistics', 'service', 'quadruped', 'industrial'];
+  const robotProducts = products.filter((p: any) => robotTypes.includes(p.type) && selectedTypes.includes(p.type));
+  
+  const availableTypes = robotTypes.filter(type => 
+    products.some((p: any) => p.type === type)
+  );
+
+  if (availableTypes.length === 0) return null;
+
+  // 제품별 데이터 생성
+  const parallelData = robotProducts.slice(0, 15).map((product: any, index: number) => {
+    const defaults = FORM_FACTOR_DEFAULTS[product.type] || { arms: 50, hands: 50, mobility: 50, height: 50, payload: 50 };
+    const variation = (index % 3) * 8 - 8;
+    return {
+      name: product.name,
+      companyName: product.companyName,
+      type: product.type,
+      arms: Math.max(0, Math.min(100, defaults.arms + variation)),
+      hands: Math.max(0, Math.min(100, defaults.hands + variation)),
+      mobility: Math.max(0, Math.min(100, defaults.mobility + variation)),
+      height: Math.max(0, Math.min(100, defaults.height + variation)),
+      payload: Math.max(0, Math.min(100, defaults.payload + variation)),
+      color: typeColors[product.type] || '#6B7280',
+    };
+  });
+
+  const toggleType = (type: string) => {
+    if (selectedTypes.includes(type)) {
+      if (selectedTypes.length > 1) {
+        setSelectedTypes(selectedTypes.filter(t => t !== type));
+      }
+    } else {
+      setSelectedTypes([...selectedTypes, type]);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="p-2 rounded-lg bg-purple-100">
+          <TrendingUp className="w-5 h-5 text-purple-600" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold">제품별 Form Factor 비교 (Parallel)</h3>
+          <p className="text-xs text-gray-500">5개 축 모두에서 개별 제품 비교 (최대 15개 표시)</p>
+        </div>
+      </div>
+
+      {/* 타입 필터 */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {availableTypes.map((type) => {
+          const isSelected = selectedTypes.includes(type);
+          const typeName = TYPE_DISPLAY_NAMES[type] || type;
+          return (
+            <button
+              key={type}
+              onClick={() => toggleType(type)}
+              className={`px-3 py-1.5 rounded-full text-sm transition-all ${
+                isSelected
+                  ? 'text-white shadow-md'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              style={isSelected ? { backgroundColor: typeColors[type] || COLORS[0] } : {}}
+            >
+              {typeName}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Parallel Coordinates (SVG로 직접 구현) */}
+      <div className="h-96 relative">
+        <svg width="100%" height="100%" viewBox="0 0 800 350" preserveAspectRatio="xMidYMid meet">
+          {/* 축 그리기 */}
+          {AXIS_OPTIONS.map((axis, i) => {
+            const x = 80 + i * 160;
+            return (
+              <g key={axis.key}>
+                {/* 축 선 */}
+                <line x1={x} y1={30} x2={x} y2={280} stroke="#E5E7EB" strokeWidth={2} />
+                {/* 축 라벨 */}
+                <text x={x} y={20} textAnchor="middle" fontSize={12} fill="#374151" fontWeight={500}>
+                  {axis.label}
+                </text>
+                {/* 눈금 */}
+                {[0, 25, 50, 75, 100].map(val => {
+                  const y = 280 - (val / 100) * 250;
+                  return (
+                    <g key={val}>
+                      <line x1={x - 5} y1={y} x2={x + 5} y2={y} stroke="#D1D5DB" />
+                      <text x={x - 10} y={y + 4} textAnchor="end" fontSize={9} fill="#9CA3AF">
+                        {val}
+                      </text>
+                    </g>
+                  );
+                })}
+              </g>
+            );
+          })}
+          
+          {/* 제품 라인 그리기 */}
+          {parallelData.map((product, productIndex) => {
+            const points = AXIS_OPTIONS.map((axis, i) => {
+              const x = 80 + i * 160;
+              const y = 280 - (product[axis.key as keyof typeof product] as number / 100) * 250;
+              return `${x},${y}`;
+            }).join(' ');
+            
+            return (
+              <g key={productIndex}>
+                <polyline
+                  points={points}
+                  fill="none"
+                  stroke={product.color}
+                  strokeWidth={2}
+                  strokeOpacity={0.7}
+                />
+                {/* 각 축에 점 표시 */}
+                {AXIS_OPTIONS.map((axis, i) => {
+                  const x = 80 + i * 160;
+                  const y = 280 - (product[axis.key as keyof typeof product] as number / 100) * 250;
+                  return (
+                    <circle
+                      key={`${productIndex}-${i}`}
+                      cx={x}
+                      cy={y}
+                      r={4}
+                      fill={product.color}
+                    />
+                  );
+                })}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+
+      {/* 제품 범례 */}
+      <div className="mt-4 border-t pt-4">
+        <p className="text-sm font-medium text-gray-700 mb-2">표시된 제품 ({parallelData.length}개)</p>
+        <div className="flex flex-wrap gap-2">
+          {parallelData.map((product, index) => (
+            <div 
+              key={index}
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs"
+              style={{ 
+                backgroundColor: `${product.color}15`,
+                borderLeft: `3px solid ${product.color}`
+              }}
+            >
+              <span className="font-medium" style={{ color: product.color }}>{product.name}</span>
+              <span className="text-gray-400">({product.companyName || 'Unknown'})</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // 스크롤 가능한 타임라인 컴포넌트
 interface ScrollableTimelineProps {
   title: string;
@@ -1087,8 +1423,14 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 로봇 Form Factor 비교 차트 */}
+      {/* 로봇 Form Factor 비교 차트 (레이더) */}
       <RobotFormFactorChart products={allProducts || []} typeColors={typeColors} />
+
+      {/* 로봇 Form Factor 분포 (Scatter) */}
+      <RobotScatterChart products={allProducts || []} typeColors={typeColors} />
+
+      {/* 로봇 Form Factor 비교 (Parallel Coordinates) */}
+      <RobotParallelChart products={allProducts || []} typeColors={typeColors} />
     </div>
   );
 }
