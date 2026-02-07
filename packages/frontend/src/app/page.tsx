@@ -33,6 +33,7 @@ import {
   PolarRadiusAxis,
   Radar,
   Legend,
+  LabelList,
 } from 'recharts';
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -323,7 +324,7 @@ const RobotScatterChart = ({ products, typeColors }: { products: any[]; typeColo
       </div>
 
       {/* Scatter Chart */}
-      <div className="h-96">
+      <div className="h-[500px]">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 20, right: 30, bottom: 40, left: 40 }}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -376,6 +377,12 @@ const RobotScatterChart = ({ products, typeColors }: { products: any[]; typeColo
                   {typeData.map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
+                  <LabelList 
+                    dataKey="name" 
+                    position="top" 
+                    offset={8}
+                    style={{ fontSize: 9, fill: '#374151', fontWeight: 500 }}
+                  />
                 </Scatter>
               );
             })}
