@@ -12,6 +12,7 @@ import {
   ArrowUpRight,
   Sparkles,
   Layers,
+  Cpu,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -26,6 +27,12 @@ import {
   CartesianGrid,
   Tooltip,
   ReferenceLine,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  Legend,
 } from 'recharts';
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -77,6 +84,156 @@ const ProductTimelineTooltip = ({ active, payload }: any) => {
     );
   }
   return null;
+};
+
+// Form Factor 기본값 (제품 타입별) - 5개 축: 팔 개수, 핸드, 이동체, 높이, 페이로드
+// 각 값은 0-100 스케일 (상대적 비교용)
+// arms: 0=없음, 50=1개, 100=2개
+// hands: 0=없음, 25=그리퍼, 50=3지, 75=4지, 100=5지
+// mobility: 0=고정, 25=휠, 50=트랙, 75=4족, 100=2족
+// height: 0=소형(~50cm), 50=중형(~120cm), 100=대형(170cm+)
+// payload: 0=경량(~5kg), 50=중량(~50kg), 100=중량(100kg+)
+const FORM_FACTOR_DEFAULTS: Record<string, { arms: number; hands: number; mobility: number; height: number; payload: number }> = {
+  humanoid: { arms: 100, hands: 100, mobility: 100, height: 100, payload: 30 },  // 2팔, 5지, 2족, 대형, 경량
+  cobot: { arms: 50, hands: 25, mobility: 0, height: 50, payload: 50 },          // 1팔, 그리퍼, 고정, 중형, 중량
+  amr: { arms: 0, hands: 0, mobility: 25, height: 25, payload: 70 },             // 팔없음, 손없음, 휠, 소형, 중량
+  logistics: { arms: 0, hands: 0, mobility: 25, height: 40, payload: 90 },       // 팔없음, 손없음, 휠, 중소형, 중량
+  service: { arms: 50, hands: 25, mobility: 25, height: 60, payload: 20 },       // 1팔, 그리퍼, 휠, 중형, 경량
+  quadruped: { arms: 0, hands: 0, mobility: 75, height: 40, payload: 40 },       // 팔없음, 손없음, 4족, 중소형, 중량
+  industrial: { arms: 50, hands: 25, mobility: 0, height: 70, payload: 100 },    // 1팔, 그리퍼, 고정, 중대형, 중량
+};
+
+// 로봇 Form Factor 비교 차트 컴포넌트
+const RobotFormFactorChart = ({ products, typeColors }: { products: any[]; typeColors: Record<string, string> }) => {
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(['humanoid', 'cobot', 'amr']);
+  
+  // 로봇 타입만 필터링
+  const robotTypes = ['humanoid', 'cobot', 'amr', 'logistics', 'service', 'quadruped', 'industrial'];
+  const availableTypes = robotTypes.filter(type => 
+    products.some((p: any) => p.type === type)
+  );
+
+  // 레이더 차트 데이터 생성 - 5개 축
+  const radarData = [
+    { axis: '팔 개수', key: 'arms', fullMark: 100 },
+    { axis: '핸드 (손)', key: 'hands', fullMark: 100 },
+    { axis: '이동체', key: 'mobility', fullMark: 100 },
+    { axis: '높이', key: 'height', fullMark: 100 },
+    { axis: '페이로드', key: 'payload', fullMark: 100 },
+  ].map(item => {
+    const dataPoint: any = { axis: item.axis, fullMark: item.fullMark };
+    selectedTypes.forEach(type => {
+      const defaults = FORM_FACTOR_DEFAULTS[type] || { arms: 50, hands: 50, mobility: 50, height: 50, payload: 50 };
+      dataPoint[type] = defaults[item.key as keyof typeof defaults];
+    });
+    return dataPoint;
+  });
+
+  const toggleType = (type: string) => {
+    if (selectedTypes.includes(type)) {
+      if (selectedTypes.length > 1) {
+        setSelectedTypes(selectedTypes.filter(t => t !== type));
+      }
+    } else {
+      if (selectedTypes.length < 4) {
+        setSelectedTypes([...selectedTypes, type]);
+      }
+    }
+  };
+
+  if (availableTypes.length === 0) return null;
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="p-2 rounded-lg bg-indigo-100">
+          <Cpu className="w-5 h-5 text-indigo-600" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold">로봇 Form Factor 비교</h3>
+          <p className="text-xs text-gray-500">팔 개수, 핸드, 이동체, 높이, 페이로드 5가지 축으로 비교</p>
+        </div>
+      </div>
+
+      {/* 타입 선택 버튼 */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {availableTypes.map((type) => {
+          const isSelected = selectedTypes.includes(type);
+          const typeName = TYPE_DISPLAY_NAMES[type] || type;
+          const typeCount = products.filter((p: any) => p.type === type).length;
+          return (
+            <button
+              key={type}
+              onClick={() => toggleType(type)}
+              className={`px-3 py-1.5 rounded-full text-sm transition-all ${
+                isSelected
+                  ? 'text-white shadow-md'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              style={isSelected ? { backgroundColor: typeColors[type] || COLORS[0] } : {}}
+            >
+              {typeName} ({typeCount})
+            </button>
+          );
+        })}
+        <span className="text-xs text-gray-400 self-center ml-2">
+          (최대 4개 선택 가능)
+        </span>
+      </div>
+
+      {/* 레이더 차트 */}
+      <div className="h-80">
+        <ResponsiveContainer width="100%" height="100%">
+          <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+            <PolarGrid />
+            <PolarAngleAxis dataKey="axis" tick={{ fontSize: 12 }} />
+            <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
+            {selectedTypes.map((type, index) => (
+              <Radar
+                key={type}
+                name={TYPE_DISPLAY_NAMES[type] || type}
+                dataKey={type}
+                stroke={typeColors[type] || COLORS[index % COLORS.length]}
+                fill={typeColors[type] || COLORS[index % COLORS.length]}
+                fillOpacity={0.2}
+                strokeWidth={2}
+              />
+            ))}
+            <Legend />
+            <Tooltip />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Form Factor 설명 */}
+      <div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+        <div className="p-2 bg-gray-50 rounded">
+          <p className="font-medium text-gray-700">팔 개수</p>
+          <p className="text-gray-500">0개 / 1개 / 2개</p>
+        </div>
+        <div className="p-2 bg-gray-50 rounded">
+          <p className="font-medium text-gray-700">핸드 (손)</p>
+          <p className="text-gray-500">없음/그리퍼/3지/5지</p>
+        </div>
+        <div className="p-2 bg-gray-50 rounded">
+          <p className="font-medium text-gray-700">이동체</p>
+          <p className="text-gray-500">고정/휠/트랙/4족/2족</p>
+        </div>
+        <div className="p-2 bg-gray-50 rounded">
+          <p className="font-medium text-gray-700">높이</p>
+          <p className="text-gray-500">소형~대형</p>
+        </div>
+        <div className="p-2 bg-gray-50 rounded">
+          <p className="font-medium text-gray-700">페이로드</p>
+          <p className="text-gray-500">경량~중량</p>
+        </div>
+      </div>
+
+      <p className="mt-3 text-xs text-gray-400">
+        * 현재는 제품 타입별 대표값으로 표시됩니다. 개별 제품 스펙 데이터가 추가되면 더 정확한 비교가 가능합니다.
+      </p>
+    </div>
+  );
 };
 
 // 스크롤 가능한 타임라인 컴포넌트
@@ -785,11 +942,13 @@ export default function DashboardPage() {
                 const products = prods as any[];
                 const typeName = TYPE_DISPLAY_NAMES[type] || type;
                 
-                // 회사별 그룹화
+                // 회사별 그룹화 (undefined, null, 빈 문자열 필터링)
                 const companyCount: Record<string, number> = {};
                 products.forEach((p: any) => {
-                  const company = p.companyName || 'Unknown';
-                  companyCount[company] = (companyCount[company] || 0) + 1;
+                  const company = p.companyName && p.companyName.trim() ? p.companyName.trim() : null;
+                  if (company) {
+                    companyCount[company] = (companyCount[company] || 0) + 1;
+                  }
                 });
                 
                 const companyData = Object.entries(companyCount)
@@ -927,6 +1086,9 @@ export default function DashboardPage() {
           ✅ 크롤링 없이 합법적으로 데이터를 수집합니다. 사용자가 직접 입력한 텍스트만 분석합니다.
         </div>
       </div>
+
+      {/* 로봇 Form Factor 비교 차트 */}
+      <RobotFormFactorChart products={allProducts || []} typeColors={typeColors} />
     </div>
   );
 }
