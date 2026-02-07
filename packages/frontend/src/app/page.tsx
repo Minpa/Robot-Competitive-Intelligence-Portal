@@ -177,15 +177,18 @@ const ScrollableTimeline = ({
     });
     const sortedTypes = Object.entries(typeDistribution).sort((a, b) => b[1] - a[1]);
     
-    // 회사별 분포
+    // 회사별 분포 (undefined 필터링)
     const companyDistribution: Record<string, number> = {};
     recentProducts.forEach((p: any) => {
-      companyDistribution[p.companyName] = (companyDistribution[p.companyName] || 0) + 1;
+      if (p.companyName) {
+        companyDistribution[p.companyName] = (companyDistribution[p.companyName] || 0) + 1;
+      }
     });
     const topCompanies = Object.entries(companyDistribution)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
-      .map(([name]) => name);
+      .map(([name]) => name)
+      .filter(name => name && name !== 'undefined');
     
     // 기사 형식 텍스트 생성
     let summary = '';

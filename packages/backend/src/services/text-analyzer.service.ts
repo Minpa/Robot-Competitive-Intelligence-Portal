@@ -329,3 +329,84 @@ export const textAnalyzerService = {
   analyzeText,
   saveAnalyzedData,
 };
+
+/**
+ * GPT-4o에 직접 질의하여 로봇 산업 데이터 생성
+ */
+export async function autoQueryAI(topic: string, customPrompt?: string): Promise<AnalyzedData> {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OpenAI API key not configured');
+  }
+
+  const systemPrompt = `You are a robotics industry expert with comprehensive knowledge of the global robotics market.
+Your task is to provide detailed, accurate information about robotics companies and products.
+
+IMPORTANT: Provide real, factual data based on your knowledge. Include:
+- Actual company names, founding years, headquarters locations
+- Real product names with accurate release dates (YYYY-MM format when known)
+- Estimated revenue figures, market share, employee counts when available
+- Technical specifications and competitive positioning
+
+Extract the following information in JSON format:
+
+1. companies: Array of companies in this sector
+   - name: company name (English)
+   - country: headquarters country
+   - category: "robotics", "AI", "semiconductor", "actuator", "automation"
+   - description: detailed description including founding year, revenue, employees, market position
+
+2. products: Array of products/models
+   - name: product/model name
+   - companyName: manufacturer
+   - type: one of "humanoid", "service", "logistics", "industrial", "quadruped", "cobot", "amr", "foundation_model", "actuator", "soc"
+   - releaseDate: YYYY-MM format (e.g., "2023-06", "2024-01")
+   - description: detailed description including specs, price range, sales volume, market reception
+
+3. keywords: Important technical keywords (max 15)
+
+4. summary: Korean summary (3-5 sentences) including market trends, key players, technology direction
+
+Respond ONLY with valid JSON. No markdown, no explanation.`;
+
+  const userPrompt = customPrompt || `${topic}에 대해 상세히 분석해줘. 주요 기업들의 매출규모, 시장점유율, 직원수와 각 제품의 출시일, 가격, 판매량, 기술 특징을 포함해줘.`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      max_tokens: 4000,
+      temperature: 0.3,
+    });
+
+    const result = response.choices[0]?.message?.content || '{}';
+    
+    let parsed: AnalyzedData;
+    try {
+      const cleanJson = result.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      parsed = JSON.parse(cleanJson);
+    } catch {
+      console.error('[AutoQuery] JSON parse failed:', result);
+      parsed = {
+        companies: [],
+        products: [],
+        articles: [],
+        keywords: [],
+        summary: '분석 결과를 파싱할 수 없습니다.',
+      };
+    }
+
+    return {
+      companies: parsed.companies || [],
+      products: parsed.products || [],
+      articles: parsed.articles || [],
+      keywords: parsed.keywords || [],
+      summary: parsed.summary || '',
+    };
+  } catch (error) {
+    console.error('[AutoQuery] Query failed:', error);
+    throw new Error('AI 질의 중 오류가 발생했습니다.');
+  }
+}

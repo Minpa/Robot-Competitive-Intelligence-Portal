@@ -17,6 +17,8 @@ import {
   Plus,
   X,
   Settings,
+  Zap,
+  RefreshCw,
 } from 'lucide-react';
 
 interface AnalyzedData {
@@ -49,14 +51,28 @@ const DEFAULT_COUNTRIES = [
   'USA', 'Japan', 'China', 'Germany', 'Korea', 'Denmark', 'Switzerland', 'France', 'UK', 'Taiwan'
 ];
 
+// 자동 질의 주제 옵션
+const AUTO_QUERY_TOPICS = [
+  { id: 'humanoid', label: '휴머노이드 로봇', query: '휴머노이드 로봇 시장의 주요 기업들과 제품들을 분석해줘. Tesla Optimus, Figure, Agility Robotics, Boston Dynamics, 1X Technologies, Apptronik, Unitree, UBTECH 등 주요 기업의 제품, 출시일, 매출규모, 시장점유율, 기술 특징을 포함해줘.' },
+  { id: 'cobot', label: '협동로봇 (Cobot)', query: '협동로봇(Cobot) 시장의 주요 기업들과 제품들을 분석해줘. Universal Robots, FANUC, ABB, KUKA, Doosan Robotics, Techman Robot 등 주요 기업의 제품 라인업, 출시일, 매출규모, 시장점유율을 포함해줘.' },
+  { id: 'amr', label: 'AMR/물류로봇', query: 'AMR(자율이동로봇)과 물류로봇 시장의 주요 기업들과 제품들을 분석해줘. Amazon Robotics, Locus Robotics, 6 River Systems, Fetch Robotics, MiR, Geek+ 등 주요 기업의 제품, 출시일, 매출규모, 시장점유율을 포함해줘.' },
+  { id: 'foundation_model', label: 'RFM (로봇 파운데이션 모델)', query: '로봇 파운데이션 모델(Robot Foundation Model) 분야의 주요 기업들과 모델들을 분석해줘. Google RT-1/RT-2/RT-X, Physical Intelligence π₀, NVIDIA Isaac, OpenAI 등 주요 기업의 모델, 발표일, 기술 특징, 시장 영향력을 포함해줘.' },
+  { id: 'actuator', label: '액츄에이터/부품', query: '로봇 액츄에이터와 핵심 부품 시장의 주요 기업들과 제품들을 분석해줘. Harmonic Drive, Nabtesco, Maxon, Faulhaber, 삼성전자, LG전자 등 주요 기업의 제품, 매출규모, 시장점유율, 기술 특징을 포함해줘.' },
+  { id: 'quadruped', label: '사족보행 로봇', query: '사족보행 로봇 시장의 주요 기업들과 제품들을 분석해줘. Boston Dynamics Spot, Unitree Go1/Go2/B2, ANYbotics ANYmal, Ghost Robotics 등 주요 기업의 제품, 출시일, 가격, 매출규모, 시장점유율을 포함해줘.' },
+  { id: 'service', label: '서비스 로봇', query: '서비스 로봇 시장의 주요 기업들과 제품들을 분석해줘. 배달로봇, 안내로봇, 청소로봇 등 분야별 주요 기업의 제품, 출시일, 매출규모, 시장점유율을 포함해줘.' },
+];
+
 const STORAGE_KEY = 'rcip_categories';
 
 export default function AnalyzePage() {
   const [text, setText] = useState('');
   const [showPrompt, setShowPrompt] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showAutoQuery, setShowAutoQuery] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAutoQuerying, setIsAutoQuerying] = useState(false);
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [analyzed, setAnalyzed] = useState<AnalyzedData | null>(null);
   const [saveResult, setSaveResult] = useState<SaveResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -97,20 +113,38 @@ export default function AnalyzePage() {
     setTimeout(() => setCategoryUpdated(false), 2000);
   };
 
-  // 동적 프롬프트 생성
+  // 동적 프롬프트 생성 (더 세세한 분석 요청)
   const generatePrompt = () => {
-    return `아래 JSON 형식으로 로봇 산업 데이터를 정리해줘:
+    return `아래 JSON 형식으로 로봇 산업 데이터를 상세히 정리해줘:
 
 {
   "companies": [
-    { "name": "회사명 (영문)", "country": "${countries.join('/')} 중 하나", "category": "${companyCategories.join('/')} 중 하나" }
+    { 
+      "name": "회사명 (영문)", 
+      "country": "${countries.join('/')} 중 하나", 
+      "category": "${companyCategories.join('/')} 중 하나",
+      "description": "회사 설명 (설립연도, 주요 사업, 매출규모, 직원수, 시장 위치 등 포함)"
+    }
   ],
   "products": [
-    { "name": "제품/모델명", "companyName": "제조사명", "type": "${productTypes.join('/')} 중 하나", "releaseDate": "YYYY 형식 (예: 2022, 2023, 2024)", "description": "제품 설명" }
+    { 
+      "name": "제품/모델명", 
+      "companyName": "제조사명", 
+      "type": "${productTypes.join('/')} 중 하나", 
+      "releaseDate": "YYYY-MM 형식 (예: 2023-06, 2024-01)", 
+      "description": "제품 설명 (주요 스펙, 가격대, 판매량, 시장 반응, 경쟁 제품 대비 특징 등 포함)"
+    }
   ],
   "keywords": ["키워드1", "키워드2", "...최대 15개"],
-  "summary": "한국어 요약 2-3문장"
+  "summary": "한국어 요약 3-5문장 (시장 트렌드, 주요 기업 동향, 기술 발전 방향 포함)"
 }
+
+중요 요청사항:
+1. 각 회사의 매출규모, 시장점유율, 직원수 등 정량적 데이터를 최대한 포함
+2. 각 제품의 출시일은 YYYY-MM 형식으로 정확히 기재 (알고 있는 경우)
+3. 제품 가격, 판매량, 시장 반응 등 상세 정보 포함
+4. 경쟁사 대비 기술적 우위/열위 분석 포함
+5. 시장 트렌드와 향후 전망 포함
 
 JSON만 출력. 마크다운 코드블록 없이 순수 JSON으로.`;
   };
@@ -223,6 +257,75 @@ JSON만 출력. 마크다운 코드블록 없이 순수 JSON으로.`;
       <div>
         <h1 className="text-2xl font-bold text-gray-900">데이터 수집</h1>
         <p className="text-gray-500">AI를 활용하여 로봇 산업 데이터를 수집하고 분석합니다.</p>
+      </div>
+
+      {/* 자동 AI 질의 */}
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
+        <div 
+          className="flex items-center justify-between cursor-pointer"
+          onClick={() => setShowAutoQuery(!showAutoQuery)}
+        >
+          <div className="flex items-center gap-2">
+            <Zap className="w-5 h-5 text-green-500" />
+            <h3 className="font-medium text-green-700">자동 AI 질의</h3>
+            <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">
+              GPT-4o 직접 질의
+            </span>
+          </div>
+          {showAutoQuery ? (
+            <ChevronUp className="w-5 h-5 text-green-500" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-green-500" />
+          )}
+        </div>
+        
+        {showAutoQuery && (
+          <div className="mt-4 space-y-4">
+            <p className="text-sm text-green-600">
+              버튼 클릭 한 번으로 GPT-4o에 직접 질의하여 로봇 산업 데이터를 자동으로 수집합니다.
+            </p>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+              {AUTO_QUERY_TOPICS.map((topic) => (
+                <button
+                  key={topic.id}
+                  onClick={async () => {
+                    setSelectedTopic(topic.id);
+                    setIsAutoQuerying(true);
+                    setError(null);
+                    try {
+                      const result = await api.autoQuery(topic.id, topic.query);
+                      setText(JSON.stringify(result, null, 2));
+                      setAnalyzed(result);
+                    } catch (err) {
+                      setError((err as Error).message);
+                    } finally {
+                      setIsAutoQuerying(false);
+                      setSelectedTopic(null);
+                    }
+                  }}
+                  disabled={isAutoQuerying}
+                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    selectedTopic === topic.id
+                      ? 'bg-green-600 text-white'
+                      : 'bg-white text-green-700 border border-green-200 hover:bg-green-100'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {isAutoQuerying && selectedTopic === topic.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                  {topic.label}
+                </button>
+              ))}
+            </div>
+            
+            <div className="text-xs text-green-500 mt-2">
+              💡 버튼을 클릭하면 해당 분야의 최신 데이터를 GPT-4o가 분석하여 JSON으로 생성합니다.
+            </div>
+          </div>
+        )}
       </div>
 
       {/* AI 질의문 템플릿 */}

@@ -385,6 +385,20 @@ class ApiClient {
       body: JSON.stringify({ text }),
     });
   }
+
+  // 자동 AI 질의 (GPT-4o에 직접 질의하여 JSON 생성)
+  async autoQuery(topic: string, customPrompt?: string) {
+    return this.request<{
+      companies: Array<{ name: string; country: string; category: string; description?: string }>;
+      products: Array<{ name: string; companyName: string; type: string; releaseDate?: string; description?: string }>;
+      articles: Array<{ title: string; source: string; url?: string; summary: string; category: string; productType: string }>;
+      keywords: string[];
+      summary: string;
+    }>('/analyze/auto-query', {
+      method: 'POST',
+      body: JSON.stringify({ topic, customPrompt }),
+    });
+  }
 }
 
 export const api = new ApiClient();
