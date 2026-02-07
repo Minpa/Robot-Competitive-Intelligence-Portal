@@ -338,12 +338,29 @@ const ScrollableTimeline = ({
     } else {
       overallAnalysis = `데이터 축적 중입니다. 더 많은 데이터가 수집되면 상세한 분석이 가능합니다.`;
     }
+
+    // 분포 데이터 생성
+    const typeDistributionData = sortedTypes.map(([type, count]) => ({
+      type,
+      name: TYPE_DISPLAY_NAMES[type] || type,
+      count,
+      percentage: Math.round((count / products.length) * 100),
+    }));
+
+    const companyDistributionData = topCompanies.slice(0, 5).map(([name, count]) => ({
+      name,
+      count,
+      percentage: Math.round((count / products.length) * 100),
+    }));
     
     return {
       product: productAnalysis,
       market: marketAnalysis,
       application: applicationAnalysis,
       overall: overallAnalysis,
+      typeDistribution: typeDistributionData,
+      companyDistribution: companyDistributionData,
+      totalProducts: products.length,
     };
   };
   
@@ -490,11 +507,54 @@ const ScrollableTimeline = ({
                 
                 {/* 사용 분야 관점 */}
                 <div className="p-3 bg-white rounded-lg border-l-4 border-orange-500">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-2">
                     <Layers className="w-4 h-4 text-orange-600" />
                     <span className="text-xs font-semibold text-orange-700">사용 분야 관점</span>
                   </div>
-                  <p className="text-sm text-gray-700 leading-relaxed">{trendSummary.application}</p>
+                  <p className="text-sm text-gray-700 leading-relaxed mb-3">{trendSummary.application}</p>
+                  
+                  {/* 제품 유형별 분포 바 차트 */}
+                  {trendSummary.typeDistribution && trendSummary.typeDistribution.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-gray-500 mb-2">제품 유형별 분포</p>
+                      {trendSummary.typeDistribution.slice(0, 6).map((item: any, index: number) => (
+                        <div key={item.type} className="flex items-center gap-2">
+                          <span className="text-xs text-gray-600 w-24 truncate">{item.name}</span>
+                          <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{ 
+                                width: `${item.percentage}%`,
+                                backgroundColor: typeColors[item.type] || COLORS[index % COLORS.length]
+                              }}
+                            />
+                          </div>
+                          <span className="text-xs text-gray-500 w-16 text-right">{item.count}개 ({item.percentage}%)</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* 회사별 분포 */}
+                  {trendSummary.companyDistribution && trendSummary.companyDistribution.length > 0 && (
+                    <div className="mt-4 pt-3 border-t border-gray-100">
+                      <p className="text-xs font-medium text-gray-500 mb-2">주요 기업별 제품 수</p>
+                      <div className="flex flex-wrap gap-2">
+                        {trendSummary.companyDistribution.map((item: any, index: number) => (
+                          <span 
+                            key={item.name}
+                            className="px-2 py-1 rounded-full text-xs"
+                            style={{ 
+                              backgroundColor: `${COLORS[index % COLORS.length]}20`,
+                              color: COLORS[index % COLORS.length]
+                            }}
+                          >
+                            {item.name}: {item.count}개
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 {/* 종합 분석 */}
