@@ -24,8 +24,11 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
     // 토큰 확인
     const token = localStorage.getItem('auth_token');
+    console.log('AuthGuard - pathname:', pathname);
+    console.log('AuthGuard - token:', token ? '있음' : '없음');
     
     if (!token) {
+      console.log('AuthGuard - 토큰 없음, 로그인 페이지로 이동');
       router.push('/login');
       return;
     }
@@ -34,18 +37,23 @@ export function AuthGuard({ children }: AuthGuardProps) {
     try {
       const [, payload] = token.split('.');
       const decoded = JSON.parse(atob(payload));
+      console.log('AuthGuard - 토큰 만료시간:', new Date(decoded.exp).toISOString());
+      console.log('AuthGuard - 현재시간:', new Date().toISOString());
       
       if (decoded.exp && decoded.exp < Date.now()) {
         // 토큰 만료
+        console.log('AuthGuard - 토큰 만료됨');
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user');
         router.push('/login');
         return;
       }
 
+      console.log('AuthGuard - 인증 성공');
       setIsAuthenticated(true);
-    } catch {
+    } catch (err) {
       // 토큰 파싱 실패
+      console.error('AuthGuard - 토큰 파싱 실패:', err);
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user');
       router.push('/login');
