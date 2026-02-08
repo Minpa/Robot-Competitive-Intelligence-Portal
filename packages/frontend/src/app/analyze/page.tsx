@@ -499,11 +499,64 @@ JSON만 출력. 마크다운 코드블록 없이 순수 JSON으로.`;
           specs.gpuModel = gpuMatch[1].trim();
         }
         
+        // 출시 연도 추출
+        let releaseYear: number | undefined;
+        
+        // 1. "(출시 연도: 2022)" 또는 "(출시 연도: 2024~2025)" 패턴 우선 추출
+        const explicitYearMatch = specPart.match(/\(출시\s*연도[:\s]*(\d{4})(?:[~\-](\d{4}))?\s*(?:예상)?\)/);
+        if (explicitYearMatch) {
+          // 범위인 경우 첫 번째 연도 사용
+          releaseYear = parseInt(explicitYearMatch[1]);
+        }
+        
+        // 2. 명시적 연도가 없으면 제품명에서 힌트 추출
+        if (!releaseYear) {
+          const yearHints: Record<string, number> = {
+            // Apple
+            'iPhone 12': 2020, 'A14': 2020,
+            'iPhone 13': 2021, 'A15': 2021,
+            'iPhone 14': 2022, 'A16': 2022,
+            'iPhone 15': 2023, 'A17': 2023,
+            'iPhone 16': 2024, 'A18': 2024,
+            'iPhone 17': 2025, 'A19': 2025,
+            // Google
+            'Pixel 6': 2021, 'Tensor G1': 2021,
+            'Pixel 8': 2023, 'Tensor G3': 2023,
+            'Pixel 9': 2024, 'Tensor G4': 2024,
+            // TPU
+            'TPUv1': 2015, 'TPUv2': 2017, 'TPUv3': 2018, 'TPUv4': 2021,
+            'TPUv5e': 2023, 'TPUv5p': 2024, 'TPUv7': 2025,
+            // NVIDIA
+            'A100': 2020, 'H100': 2022, 'H200': 2023, 'B100': 2025, 'B200': 2025,
+            'Jetson Orin': 2022, 'AGX Orin': 2022,
+            // AMD
+            'MI300': 2023, 'MI325': 2024,
+            // Intel
+            'Meteor Lake': 2023, 'Arrow Lake': 2024, 'Lunar Lake': 2024,
+            // Qualcomm
+            'Snapdragon 8 Gen 3': 2023, 'Snapdragon X': 2024,
+            // MediaTek
+            'Dimensity 9300': 2023, 'Dimensity 9400': 2024,
+            // Amazon
+            'Inferentia 1': 2019, 'Inferentia 2': 2023,
+            'Trainium 1': 2022, 'Trainium 2': 2024,
+          };
+          
+          const fullText = `${productName} ${specPart}`;
+          for (const [hint, year] of Object.entries(yearHints)) {
+            if (fullText.includes(hint)) {
+              releaseYear = year;
+              break;
+            }
+          }
+        }
+        
         products.push({
           name: productName,
           companyName: companyName,
           type: currentCategory,
           description: specPart,
+          releaseDate: releaseYear ? `${releaseYear}-06-01` : undefined,
           specs: Object.keys(specs).length > 0 ? specs : undefined,
         });
       }
