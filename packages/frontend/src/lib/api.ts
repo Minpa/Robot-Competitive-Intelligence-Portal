@@ -387,6 +387,26 @@ class ApiClient {
     });
   }
 
+  // 이미 파싱된 데이터 직접 저장
+  async saveAnalyzedData(data: {
+    companies: Array<{ name: string; country: string; category: string; description?: string }>;
+    products: Array<{ name: string; companyName: string; type: string; releaseDate?: string; description?: string; specs?: Record<string, unknown> }>;
+    articles: Array<{ title: string; source: string; url?: string; summary: string; category: string; productType: string }>;
+    keywords: string[];
+    summary: string;
+  }) {
+    return this.request<{
+      companiesSaved: number;
+      productsSaved: number;
+      articlesSaved: number;
+      keywordsSaved: number;
+      errors: string[];
+    }>('/analyze/save-analyzed', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   // 자동 AI 질의 (GPT-4o에 직접 질의하여 JSON 생성)
   async autoQuery(topic: string, customPrompt?: string) {
     return this.request<{

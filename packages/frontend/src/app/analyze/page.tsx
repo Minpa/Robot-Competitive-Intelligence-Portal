@@ -637,9 +637,9 @@ JSON만 출력. 마크다운 코드블록 없이 순수 JSON으로.`;
         return;
       }
       
-      // JSON으로 변환하여 저장
-      const result = await api.analyzeAndSave(JSON.stringify(parsed));
-      setSaveResult(result.saved);
+      // 파싱된 데이터 직접 저장 (GPT 분석 없이)
+      const result = await api.saveAnalyzedData(parsed);
+      setSaveResult(result);
     } catch (err) {
       setError((err as Error).message);
     } finally {
