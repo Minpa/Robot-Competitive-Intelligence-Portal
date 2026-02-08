@@ -390,6 +390,232 @@ JSON만 출력. 마크다운 코드블록 없이 순수 JSON으로.`;
     saveCategories(DEFAULT_PRODUCT_TYPES, DEFAULT_COMPANY_CATEGORIES, DEFAULT_COUNTRIES);
   };
 
+  // 스펙 텍스트 직접 파싱 함수
+  const parseSpecText = (specText: string): AnalyzedData => {
+    const lines = specText.split(/[•\n]/).filter(line => line.trim());
+    const companies: AnalyzedData['companies'] = [];
+    const products: AnalyzedData['products'] = [];
+    const companySet = new Set<string>();
+    
+    // 카테고리 감지
+    let currentCategory = 'soc';
+    const categoryKeywords: Record<string, string> = {
+      '임베디드': 'soc',
+      '엣지': 'soc',
+      '모바일': 'soc',
+      '스마트폰': 'soc',
+      'PC': 'soc',
+      '노트북': 'soc',
+      '데이터센터': 'soc',
+      'TPU': 'soc',
+      'GPU': 'soc',
+    };
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      
+      // 카테고리 헤더 감지
+      for (const [keyword, category] of Object.entries(categoryKeywords)) {
+        if (trimmed.includes(keyword)) {
+          currentCategory = category;
+          break;
+        }
+      }
+      
+      // "회사 / 제품명 – 스펙" 패턴 파싱
+      // 패턴: "NVIDIA Jetson / Jetson Orin Nano, Orin NX – 최대 약 100 TOPS..."
+      const match = trimmed.match(/^([^/]+)\s*\/\s*([^–-]+)\s*[–-]\s*(.+)$/);
+      if (match) {
+        const companyName = match[1].trim();
+        const productName = match[2].trim();
+        const specPart = match[3].trim();
+        
+        // 회사 추가
+        if (!companySet.has(companyName)) {
+          companySet.add(companyName);
+          companies.push({
+            name: companyName,
+            country: guessCountry(companyName),
+            category: 'semiconductor',
+            description: `${companyName} - AI/반도체 기업`,
+          });
+        }
+        
+        // 스펙 파싱
+        const specs: DynamicSpecs = {};
+        
+        // TOPS 추출 (다양한 패턴)
+        const topsMatch = specPart.match(/(\d+(?:\.\d+)?)\s*TOPS/i);
+        if (topsMatch) {
+          specs.tops = parseFloat(topsMatch[1]);
+        }
+        
+        // NPU TOPS 추출
+        const npuMatch = specPart.match(/NPU\s*(\d+(?:\.\d+)?)\s*TOPS/i);
+        if (npuMatch) {
+          specs.npuTops = parseFloat(npuMatch[1]);
+        }
+        
+        // 공정 추출 (nm, TSMC N5 등)
+        const processMatch = specPart.match(/(\d+\s*nm|TSMC\s*N\d+[A-Z]*|Intel\s*\d+)/i);
+        if (processMatch) {
+          specs.process = processMatch[1].trim();
+        }
+        
+        // 전력 소비 추출
+        const tdpMatch = specPart.match(/(\d+(?:~|–|-)\d+\s*W|\d+\s*W)/i);
+        if (tdpMatch) {
+          specs.tdpWatts = tdpMatch[1].trim();
+        }
+        
+        // 메모리 타입 추출
+        const memoryMatch = specPart.match(/(HBM\d*[E]?|LPDDR\d+[X]?|DDR\d+)/i);
+        if (memoryMatch) {
+          specs.memory = memoryMatch[1].toUpperCase();
+        }
+        
+        // 메모리 대역폭 추출
+        const bandwidthMatch = specPart.match(/(\d+(?:\.\d+)?\s*(?:TB|GB)\/s)/i);
+        if (bandwidthMatch) {
+          specs.memoryBandwidth = bandwidthMatch[1].trim();
+        }
+        
+        // 메모리 용량 추출
+        const memorySizeMatch = specPart.match(/(\d+\s*GB)\s*(?:HBM|메모리)/i);
+        if (memorySizeMatch) {
+          specs.memorySize = memorySizeMatch[1].trim();
+        }
+        
+        // CPU 코어 추출
+        const cpuMatch = specPart.match(/(\d+[-‑]?core\s*(?:Arm\s*)?CPU|\d+[-‑]core\s*CPU|Cortex[-‑][A-Z]\d+)/i);
+        if (cpuMatch) {
+          specs.cpuCores = cpuMatch[1].trim();
+        }
+        
+        // GPU 코어/모델 추출
+        const gpuMatch = specPart.match(/(\d+[-‑]?core\s*(?:Ampere\s*)?GPU|Adreno\s*\d+[A-Z]*|Radeon\s*\d+[A-Z]*|Xe[-‑]?\d*[-‑]?[A-Z]*\s*GPU)/i);
+        if (gpuMatch) {
+          specs.gpuModel = gpuMatch[1].trim();
+        }
+        
+        products.push({
+          name: productName,
+          companyName: companyName,
+          type: currentCategory,
+          description: specPart,
+          specs: Object.keys(specs).length > 0 ? specs : undefined,
+        });
+      }
+    }
+    
+    return {
+      companies,
+      products,
+      articles: [],
+      keywords: extractKeywords(specText),
+      summary: `${products.length}개의 제품과 ${companies.length}개의 회사 정보가 파싱되었습니다.`,
+    };
+  };
+  
+  // 회사명으로 국가 추정
+  const guessCountry = (companyName: string): string => {
+    const countryMap: Record<string, string> = {
+      'NVIDIA': 'USA',
+      'Google': 'USA',
+      'Apple': 'USA',
+      'Qualcomm': 'USA',
+      'AMD': 'USA',
+      'Intel': 'USA',
+      'Microsoft': 'USA',
+      'Amazon': 'USA',
+      'Sony': 'Japan',
+      'Renesas': 'Japan',
+      'MediaTek': 'Taiwan',
+      'Rockchip': 'China',
+      'NXP': 'Netherlands',
+    };
+    
+    for (const [key, country] of Object.entries(countryMap)) {
+      if (companyName.toLowerCase().includes(key.toLowerCase())) {
+        return country;
+      }
+    }
+    return 'USA';
+  };
+  
+  // 키워드 추출
+  const extractKeywords = (text: string): string[] => {
+    const keywords = new Set<string>();
+    const keywordPatterns = [
+      'TOPS', 'NPU', 'GPU', 'CPU', 'TPU', 'HBM', 'LPDDR', 'DDR',
+      'AI', '딥러닝', '추론', '학습', '엣지', '임베디드', '데이터센터',
+      'Ampere', 'Blackwell', 'Tensor', 'Neural Engine',
+    ];
+    
+    for (const pattern of keywordPatterns) {
+      if (text.includes(pattern)) {
+        keywords.add(pattern);
+      }
+    }
+    
+    return Array.from(keywords).slice(0, 15);
+  };
+
+  // 스펙 텍스트 파싱 및 저장
+  const handleParseAndSave = async () => {
+    if (!text.trim()) {
+      setError('텍스트를 입력해주세요.');
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+    setSaveResult(null);
+
+    try {
+      // 텍스트 파싱
+      const parsed = parseSpecText(text);
+      setAnalyzed(parsed);
+      
+      if (parsed.products.length === 0) {
+        setError('파싱된 제품이 없습니다. "회사 / 제품명 – 스펙" 형식인지 확인해주세요.');
+        setIsSaving(false);
+        return;
+      }
+      
+      // JSON으로 변환하여 저장
+      const result = await api.analyzeAndSave(JSON.stringify(parsed));
+      setSaveResult(result.saved);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 스펙 텍스트 미리보기
+  const handleParsePreview = () => {
+    if (!text.trim()) {
+      setError('텍스트를 입력해주세요.');
+      return;
+    }
+
+    setError(null);
+    setSaveResult(null);
+    
+    try {
+      const parsed = parseSpecText(text);
+      setAnalyzed(parsed);
+      
+      if (parsed.products.length === 0) {
+        setError('파싱된 제품이 없습니다. "회사 / 제품명 – 스펙" 형식인지 확인해주세요.');
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
   const handlePreview = async () => {
     if (!text.trim()) {
       setError('텍스트를 입력해주세요.');
@@ -834,52 +1060,79 @@ JSON만 출력. 마크다운 코드블록 없이 순수 JSON으로.`;
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={`AI가 생성한 JSON을 붙여넣거나, 분석할 텍스트를 입력하세요.
+          placeholder={`AI가 생성한 JSON을 붙여넣거나, 스펙 텍스트를 직접 입력하세요.
 
-예시 (JSON):
+예시 1 (JSON):
 {
-  "companies": [
-    { "name": "Tesla", "country": "USA", "category": "robotics" }
-  ],
-  "products": [
-    { "name": "Optimus", "companyName": "Tesla", "type": "humanoid", "releaseDate": "2022", "description": "테슬라 휴머노이드 로봇" }
-  ],
-  "keywords": ["humanoid", "Tesla"],
-  "summary": "테슬라의 휴머노이드 로봇 정보"
-}`}
+  "companies": [{ "name": "Tesla", "country": "USA", "category": "robotics" }],
+  "products": [{ "name": "Optimus", "companyName": "Tesla", "type": "humanoid" }]
+}
+
+예시 2 (스펙 텍스트 - 직접 파싱 가능):
+• NVIDIA Jetson / Jetson AGX Orin – 최대 275 TOPS – 12-core Arm CPU, 2048-core Ampere GPU
+• Apple / A17 Pro – 35 TOPS – TSMC N3B, 16-core Neural Engine
+• Google TPU / TPUv5p – 459 TOPS – HBM 2.76 TB/s, 95 GB HBM`}
           className="w-full h-64 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm font-mono"
         />
         <div className="flex items-center justify-between mt-4">
           <span className="text-sm text-gray-500">
             {text.length.toLocaleString()} 자
           </span>
-          <div className="flex gap-3">
+          <div className="flex gap-2 flex-wrap">
+            {/* 스펙 텍스트 직접 파싱 버튼 */}
+            <button
+              onClick={handleParsePreview}
+              disabled={isAnalyzing || isSaving || !text.trim()}
+              className="flex items-center gap-2 px-3 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              title="회사/제품–스펙 형식 텍스트를 직접 파싱"
+            >
+              <Eye className="w-4 h-4" />
+              스펙 파싱 미리보기
+            </button>
+            <button
+              onClick={handleParseAndSave}
+              disabled={isAnalyzing || isSaving || !text.trim()}
+              className="flex items-center gap-2 px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              title="회사/제품–스펙 형식 텍스트를 파싱하여 저장"
+            >
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Zap className="w-4 h-4" />
+              )}
+              스펙 파싱 저장
+            </button>
+            <div className="w-px bg-gray-300 mx-1" />
+            {/* 기존 JSON 분석 버튼 */}
             <button
               onClick={handlePreview}
               disabled={isAnalyzing || isSaving || !text.trim()}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
             >
               {isAnalyzing ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Eye className="w-4 h-4" />
               )}
-              미리보기
+              JSON 미리보기
             </button>
             <button
               onClick={handleAnalyzeAndSave}
               disabled={isAnalyzing || isSaving || !text.trim()}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
             >
               {isSaving ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Sparkles className="w-4 h-4" />
               )}
-              분석 및 저장
+              JSON 분석 저장
             </button>
           </div>
         </div>
+        <p className="mt-2 text-xs text-gray-400">
+          💡 스펙 텍스트: "회사 / 제품명 – 스펙" 형식 | JSON: AI가 생성한 구조화된 데이터
+        </p>
       </div>
 
       {/* 에러 메시지 */}
