@@ -189,7 +189,7 @@ export class AuthService {
     }
     
     // 삭제
-    const result = await db
+    await db
       .delete(allowedEmails)
       .where(eq(allowedEmails.email, normalizedEmail));
     
