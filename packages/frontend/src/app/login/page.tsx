@@ -14,12 +14,9 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    
-    console.log('로그인 시도:', email);
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      console.log('API URL:', apiUrl);
       
       const res = await fetch(`${apiUrl}/api/auth/login`, {
         method: 'POST',
@@ -28,27 +25,19 @@ export default function LoginPage() {
       });
 
       const data = await res.json();
-      console.log('로그인 응답:', res.status, data);
 
       if (!res.ok) {
         throw new Error(data.error || '로그인에 실패했습니다');
       }
 
       // 토큰 저장
-      console.log('토큰 저장 중...');
       localStorage.setItem('auth_token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       
-      // 저장 확인
-      const savedToken = localStorage.getItem('auth_token');
-      console.log('저장된 토큰:', savedToken ? '있음' : '없음');
-      
       // 토큰 저장 확인 후 이동
       await new Promise(resolve => setTimeout(resolve, 100));
-      console.log('페이지 이동...');
       window.location.href = '/';
     } catch (err) {
-      console.error('로그인 에러:', err);
       setError((err as Error).message);
     } finally {
       setLoading(false);

@@ -53,11 +53,8 @@ export default function AdminPage() {
     queryKey: ['current-user'],
     queryFn: async () => {
       try {
-        const user = await api.getMe();
-        console.log('getMe response:', user);
-        return user;
+        return await api.getMe();
       } catch (err) {
-        console.error('getMe error:', err);
         return null;
       }
     },
@@ -69,12 +66,6 @@ export default function AdminPage() {
   });
 
   const isSuperAdmin = currentUser?.email?.toLowerCase() === 'somewhere010@gmail.com';
-  
-  // 디버깅용 (배포 후 확인하고 제거)
-  console.log('currentUser:', currentUser);
-  console.log('currentUser email:', currentUser?.email);
-  console.log('isSuperAdmin:', isSuperAdmin);
-  console.log('token:', api.getToken());
 
   const addEmailMutation = useMutation({
     mutationFn: ({ email, note }: { email: string; note?: string }) => 

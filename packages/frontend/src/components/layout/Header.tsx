@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Bell, User, Moon, Sun } from 'lucide-react';
+import { Search, Bell, User, Moon, Sun, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export function Header() {
@@ -52,6 +52,19 @@ export function Header() {
         <button className="flex items-center gap-2 p-2 text-gray-700 hover:bg-gray-100 rounded-lg">
           <User className="w-5 h-5" />
           <span className="text-sm">사용자</span>
+        </button>
+
+        <button
+          onClick={() => {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+          }}
+          className="flex items-center gap-2 p-2 text-red-600 hover:bg-red-50 rounded-lg"
+          title="로그아웃"
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="text-sm">로그아웃</span>
         </button>
       </div>
     </header>
