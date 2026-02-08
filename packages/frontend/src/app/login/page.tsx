@@ -32,7 +32,9 @@ export default function LoginPage() {
       localStorage.setItem('auth_token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       
-      router.push('/');
+      // 토큰 저장 확인 후 이동
+      await new Promise(resolve => setTimeout(resolve, 100));
+      window.location.href = '/';
     } catch (err) {
       setError((err as Error).message);
     } finally {
