@@ -1300,10 +1300,10 @@ export default function DashboardPage() {
       </div>
 
       {/* Product Type Chart */}
-      {/* 전체 제품 유형별 분포 */}
+      {/* 전체 데이터 분포 */}
       {pieData.length > 0 && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">전체 제품 유형별 분포</h3>
+          <h3 className="text-lg font-semibold mb-4">전체 데이터 분포</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
