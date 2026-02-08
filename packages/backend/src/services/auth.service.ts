@@ -214,6 +214,13 @@ export class AuthService {
       throw new Error('Invalid credentials');
     }
 
+    // 허용된 이메일인지 확인 (회원가입 후에도 허용 목록에서 삭제되면 로그인 불가)
+    const isAllowed = await this.isEmailAllowed(credentials.email);
+    if (!isAllowed) {
+      await this.logAction(null, 'login_blocked', 'user', user.id, { email: credentials.email, reason: 'not_in_allowed_list' });
+      throw new Error('이 계정은 더 이상 접근이 허용되지 않습니다. 관리자에게 문의하세요.');
+    }
+
     // Update last login
     await db
       .update(users)
