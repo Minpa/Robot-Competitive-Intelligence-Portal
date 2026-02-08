@@ -131,6 +131,66 @@ export default function ProductDetailPage() {
                     <dd className="font-medium">{spec.sdk}</dd>
                   </div>
                 )}
+                
+                {/* Dynamic Specs (SoC, etc.) */}
+                {spec.dynamicSpecs && Object.keys(spec.dynamicSpecs).length > 0 && (
+                  <>
+                    {spec.dynamicSpecs.tops && (
+                      <div>
+                        <dt className="text-sm text-gray-500">TOPS</dt>
+                        <dd className="font-medium">{spec.dynamicSpecs.tops} TOPS</dd>
+                      </div>
+                    )}
+                    {spec.dynamicSpecs.npuTops && (
+                      <div>
+                        <dt className="text-sm text-gray-500">NPU TOPS</dt>
+                        <dd className="font-medium">{spec.dynamicSpecs.npuTops} TOPS</dd>
+                      </div>
+                    )}
+                    {spec.dynamicSpecs.process && (
+                      <div>
+                        <dt className="text-sm text-gray-500">공정</dt>
+                        <dd className="font-medium">{spec.dynamicSpecs.process}</dd>
+                      </div>
+                    )}
+                    {spec.dynamicSpecs.tdpWatts && (
+                      <div>
+                        <dt className="text-sm text-gray-500">전력</dt>
+                        <dd className="font-medium">{spec.dynamicSpecs.tdpWatts}</dd>
+                      </div>
+                    )}
+                    {spec.dynamicSpecs.memory && (
+                      <div>
+                        <dt className="text-sm text-gray-500">메모리</dt>
+                        <dd className="font-medium">{spec.dynamicSpecs.memory}</dd>
+                      </div>
+                    )}
+                    {spec.dynamicSpecs.memorySize && (
+                      <div>
+                        <dt className="text-sm text-gray-500">메모리 용량</dt>
+                        <dd className="font-medium">{spec.dynamicSpecs.memorySize}</dd>
+                      </div>
+                    )}
+                    {spec.dynamicSpecs.memoryBandwidth && (
+                      <div>
+                        <dt className="text-sm text-gray-500">대역폭</dt>
+                        <dd className="font-medium">{spec.dynamicSpecs.memoryBandwidth}</dd>
+                      </div>
+                    )}
+                    {spec.dynamicSpecs.cpuCores && (
+                      <div>
+                        <dt className="text-sm text-gray-500">CPU</dt>
+                        <dd className="font-medium">{spec.dynamicSpecs.cpuCores}</dd>
+                      </div>
+                    )}
+                    {spec.dynamicSpecs.gpuModel && (
+                      <div>
+                        <dt className="text-sm text-gray-500">GPU</dt>
+                        <dd className="font-medium">{spec.dynamicSpecs.gpuModel}</dd>
+                      </div>
+                    )}
+                  </>
+                )}
               </dl>
               
               {(spec.priceMin || spec.priceMax) && (
