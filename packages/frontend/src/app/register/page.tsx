@@ -42,7 +42,7 @@ export default function RegisterPage() {
       }
 
       // 토큰 저장
-      localStorage.setItem('token', data.token);
+      localStorage.setItem('auth_token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       
       router.push('/');
