@@ -65,6 +65,7 @@ export const productSpecs = pgTable('product_specs', {
     .notNull()
     .unique()
     .references(() => products.id, { onDelete: 'cascade' }),
+  // 로봇 공통 스펙
   dof: integer('dof'),
   payloadKg: decimal('payload_kg', { precision: 10, scale: 2 }),
   speedMps: decimal('speed_mps', { precision: 10, scale: 2 }),
@@ -76,9 +77,37 @@ export const productSpecs = pgTable('product_specs', {
   priceMin: decimal('price_min', { precision: 15, scale: 2 }),
   priceMax: decimal('price_max', { precision: 15, scale: 2 }),
   priceCurrency: varchar('price_currency', { length: 10 }).default('USD'),
+  // Form Factor 스펙 (로봇용)
+  arms: integer('arms'), // 팔 개수: 0, 1, 2
+  hands: varchar('hands', { length: 50 }), // none, gripper, 3finger, 4finger, 5finger
+  mobility: varchar('mobility', { length: 50 }), // fixed, wheel, track, quadruped, biped
+  heightCm: decimal('height_cm', { precision: 10, scale: 2 }),
+  // 동적 스펙 (SoC, 액츄에이터 등 다양한 제품 타입용)
+  dynamicSpecs: jsonb('dynamic_specs').$type<DynamicSpecs>(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+// 동적 스펙 타입 정의
+export interface DynamicSpecs {
+  // SoC 스펙
+  tops?: number; // AI 연산 성능 (TOPS)
+  npuTops?: number; // NPU 전용 TOPS
+  process?: string; // 공정 (예: "7nm", "TSMC N5")
+  tdpWatts?: string; // 전력 소비 (예: "15-60W")
+  memory?: string; // 메모리 타입 (예: "HBM2", "LPDDR5")
+  memorySize?: string; // 메모리 용량 (예: "64GB")
+  memoryBandwidth?: string; // 메모리 대역폭 (예: "1.2 TB/s")
+  cpuCores?: string; // CPU 코어 구성 (예: "12-core Arm CPU")
+  gpuCores?: string; // GPU 코어 (예: "2048-core Ampere GPU")
+  gpuModel?: string; // GPU 모델명 (예: "Adreno 750")
+  // 액츄에이터 스펙
+  torqueNm?: number; // 토크 (Nm)
+  rpmMax?: number; // 최대 RPM
+  gearRatio?: string; // 기어비
+  // 기타 동적 필드
+  [key: string]: string | number | boolean | null | undefined;
+}
 
 export interface SensorConfig {
   type: string;

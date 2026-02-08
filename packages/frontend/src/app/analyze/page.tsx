@@ -31,9 +31,29 @@ interface FormFactor {
   payloadKg?: number;
 }
 
+interface DynamicSpecs {
+  // SoC 스펙
+  tops?: number;
+  npuTops?: number;
+  process?: string;
+  tdpWatts?: string;
+  memory?: string;
+  memorySize?: string;
+  memoryBandwidth?: string;
+  cpuCores?: string;
+  gpuCores?: string;
+  gpuModel?: string;
+  // 액츄에이터 스펙
+  torqueNm?: number;
+  rpmMax?: number;
+  gearRatio?: string;
+  // 기타 동적 필드
+  [key: string]: string | number | boolean | null | undefined;
+}
+
 interface AnalyzedData {
   companies: Array<{ name: string; country: string; category: string; description?: string }>;
-  products: Array<{ name: string; companyName: string; type: string; releaseDate?: string; description?: string; formFactor?: FormFactor }>;
+  products: Array<{ name: string; companyName: string; type: string; releaseDate?: string; description?: string; formFactor?: FormFactor; specs?: DynamicSpecs }>;
   articles: Array<{ title: string; source: string; url?: string; summary: string; category: string; productType: string }>;
   keywords: string[];
   summary: string;
@@ -73,9 +93,13 @@ const DEFAULT_AUTO_QUERY_TOPICS: AutoQueryTopic[] = [
   { id: 'cobot', label: '협동로봇 (Cobot)', query: '협동로봇(Cobot) 시장의 주요 기업들과 제품들을 분석해줘. Universal Robots, FANUC, ABB, KUKA, Doosan Robotics, Techman Robot 등 주요 기업의 제품 라인업, 출시일, 매출규모, 시장점유율을 포함해줘. 각 로봇 제품의 Form Factor 정보도 포함해줘: 팔 개수(0/1/2), 핸드 타입(none/gripper/3finger/5finger), 이동방식(fixed/wheel), 높이(cm), 페이로드(kg).' },
   { id: 'amr', label: 'AMR/물류로봇', query: 'AMR(자율이동로봇)과 물류로봇 시장의 주요 기업들과 제품들을 분석해줘. Amazon Robotics, Locus Robotics, 6 River Systems, Fetch Robotics, MiR, Geek+ 등 주요 기업의 제품, 출시일, 매출규모, 시장점유율을 포함해줘. 각 로봇 제품의 Form Factor 정보도 포함해줘: 팔 개수(0/1/2), 핸드 타입(none/gripper), 이동방식(wheel/track), 높이(cm), 페이로드(kg).' },
   { id: 'foundation_model', label: 'RFM (로봇 파운데이션 모델)', query: '로봇 파운데이션 모델(Robot Foundation Model) 분야의 주요 기업들과 모델들을 분석해줘. Google RT-1/RT-2/RT-X, Physical Intelligence π₀, NVIDIA Isaac, OpenAI 등 주요 기업의 모델, 발표일, 기술 특징, 시장 영향력을 포함해줘.' },
-  { id: 'actuator', label: '액츄에이터/부품', query: '로봇 액츄에이터와 핵심 부품 시장의 주요 기업들과 제품들을 분석해줘. Harmonic Drive, Nabtesco, Maxon, Faulhaber, 삼성전자, LG전자 등 주요 기업의 제품, 매출규모, 시장점유율, 기술 특징을 포함해줘.' },
+  { id: 'actuator', label: '액츄에이터/부품', query: '로봇 액츄에이터와 핵심 부품 시장의 주요 기업들과 제품들을 분석해줘. Harmonic Drive, Nabtesco, Maxon, Faulhaber 등 주요 기업의 제품, 매출규모, 시장점유율, 기술 특징을 포함해줘. 각 액츄에이터의 스펙 정보도 포함해줘: 토크(Nm), 최대 RPM, 기어비, 무게(kg).' },
   { id: 'quadruped', label: '사족보행 로봇', query: '사족보행 로봇 시장의 주요 기업들과 제품들을 분석해줘. Boston Dynamics Spot, Unitree Go1/Go2/B2, ANYbotics ANYmal, Ghost Robotics 등 주요 기업의 제품, 출시일, 가격, 매출규모, 시장점유율을 포함해줘. 각 로봇 제품의 Form Factor 정보도 포함해줘: 팔 개수(0/1/2), 핸드 타입(none/gripper), 이동방식(quadruped), 높이(cm), 페이로드(kg).' },
   { id: 'service', label: '서비스 로봇', query: '서비스 로봇 시장의 주요 기업들과 제품들을 분석해줘. 배달로봇, 안내로봇, 청소로봇 등 분야별 주요 기업의 제품, 출시일, 매출규모, 시장점유율을 포함해줘. 각 로봇 제품의 Form Factor 정보도 포함해줘: 팔 개수(0/1/2), 핸드 타입(none/gripper), 이동방식(wheel/track), 높이(cm), 페이로드(kg).' },
+  { id: 'soc_edge', label: 'SoC (엣지/임베디드)', query: '임베디드·엣지 AI용 SoC 시장을 분석해줘. NVIDIA Jetson (Orin Nano, Orin NX, AGX Orin), Google Edge TPU, Qualcomm QCS8250, NXP i.MX 93, Rockchip RK3588, Renesas RZ/V2L, Intel Myriad X, Sony IMX500 등 주요 제품의 스펙을 포함해줘: TOPS, 공정(nm), 전력소비(W), 메모리 타입, 메모리 대역폭, CPU/GPU 코어 구성, 타겟 용도.' },
+  { id: 'soc_mobile', label: 'SoC (모바일)', query: '모바일 SoC 시장을 분석해줘. Apple A시리즈(A14~A19), Google Tensor(G1~G4), Qualcomm Snapdragon 8 Gen 3, MediaTek Dimensity 9300/9400 등 주요 제품의 스펙을 포함해줘: TOPS, NPU TOPS, 공정(nm), 메모리 타입, GPU 모델, 탑재 기기.' },
+  { id: 'soc_pc', label: 'SoC (PC/노트북)', query: 'PC·노트북용 AI SoC 시장을 분석해줘. AMD Ryzen AI 9 (Strix Point), Intel Core Ultra (Meteor Lake, Arrow Lake, Lunar Lake), Qualcomm Snapdragon X Elite/Plus 등 주요 제품의 스펙을 포함해줘: 총 TOPS, NPU TOPS, 공정(nm), GPU 모델, CPU 코어 구성.' },
+  { id: 'soc_datacenter', label: 'SoC (데이터센터)', query: '데이터센터용 AI 가속기 시장을 분석해줘. Google TPU(v4~v7), Amazon Inferentia/Trainium, Microsoft Maia, NVIDIA A100/H100/H200/B100/B200, AMD Instinct MI300 등 주요 제품의 스펙을 포함해줘: TOPS, 공정(nm), 메모리 타입, 메모리 용량, 메모리 대역폭(TB/s).' },
 ];
 
 const STORAGE_KEY = 'rcip_categories';
@@ -253,11 +277,24 @@ export default function AnalyzePage() {
       "releaseDate": "YYYY-MM 형식 (예: 2023-06, 2024-01)", 
       "description": "제품 설명 (주요 스펙, 가격대, 판매량, 시장 반응, 경쟁 제품 대비 특징 등 포함)",
       "formFactor": {
-        "arms": "팔 개수 (0/1/2)",
-        "hands": "핸드 타입 (none/gripper/3finger/4finger/5finger)",
-        "mobility": "이동 방식 (fixed/wheel/track/quadruped/biped)",
-        "heightCm": "로봇 높이 (cm 숫자)",
-        "payloadKg": "페이로드 용량 (kg 숫자)"
+        "arms": "팔 개수 (0/1/2) - 로봇용",
+        "hands": "핸드 타입 (none/gripper/3finger/4finger/5finger) - 로봇용",
+        "mobility": "이동 방식 (fixed/wheel/track/quadruped/biped) - 로봇용",
+        "heightCm": "로봇 높이 (cm 숫자) - 로봇용",
+        "payloadKg": "페이로드 용량 (kg 숫자) - 로봇용"
+      },
+      "specs": {
+        "tops": "AI 연산 성능 (TOPS 숫자) - SoC용",
+        "npuTops": "NPU 전용 TOPS - SoC용",
+        "process": "공정 (예: 7nm, TSMC N5) - SoC용",
+        "tdpWatts": "전력 소비 (예: 15-60W) - SoC용",
+        "memory": "메모리 타입 (예: HBM2, LPDDR5) - SoC용",
+        "memorySize": "메모리 용량 (예: 64GB) - SoC용",
+        "memoryBandwidth": "메모리 대역폭 (예: 1.2 TB/s) - SoC용",
+        "cpuCores": "CPU 코어 구성 (예: 12-core Arm CPU) - SoC용",
+        "gpuCores": "GPU 코어 (예: 2048-core Ampere GPU) - SoC용",
+        "torqueNm": "토크 (Nm 숫자) - 액츄에이터용",
+        "rpmMax": "최대 RPM - 액츄에이터용"
       }
     }
   ],
@@ -271,12 +308,26 @@ export default function AnalyzePage() {
 3. 제품 가격, 판매량, 시장 반응 등 상세 정보 포함
 4. 경쟁사 대비 기술적 우위/열위 분석 포함
 5. 시장 트렌드와 향후 전망 포함
-6. 로봇 제품의 Form Factor 정보 필수 포함:
+6. 제품 타입별 스펙 정보 필수 포함:
+   [로봇 제품 - formFactor]
    - arms: 팔 개수 (0, 1, 2)
-   - hands: 핸드 타입 (none=없음, gripper=그리퍼, 3finger=3지, 4finger=4지, 5finger=5지)
-   - mobility: 이동 방식 (fixed=고정, wheel=바퀴, track=트랙/무한궤도, quadruped=4족, biped=2족)
-   - heightCm: 로봇 전체 높이 (cm 단위 숫자)
-   - payloadKg: 최대 페이로드 용량 (kg 단위 숫자)
+   - hands: 핸드 타입 (none/gripper/3finger/5finger)
+   - mobility: 이동 방식 (fixed/wheel/track/quadruped/biped)
+   - heightCm: 로봇 높이 (cm 숫자)
+   - payloadKg: 페이로드 (kg 숫자)
+   
+   [SoC/칩 제품 - specs]
+   - tops: AI 연산 성능 (TOPS 숫자)
+   - npuTops: NPU 전용 TOPS
+   - process: 제조 공정 (예: 7nm, TSMC N5)
+   - tdpWatts: 전력 소비 (예: 15-60W)
+   - memory: 메모리 타입 (HBM2, LPDDR5 등)
+   - memoryBandwidth: 메모리 대역폭 (예: 1.2 TB/s)
+   - cpuCores, gpuCores: CPU/GPU 코어 구성
+   
+   [액츄에이터 - specs]
+   - torqueNm: 토크 (Nm)
+   - rpmMax: 최대 RPM
 
 JSON만 출력. 마크다운 코드블록 없이 순수 JSON으로.`;
   };
