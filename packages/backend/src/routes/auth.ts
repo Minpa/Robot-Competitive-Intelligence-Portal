@@ -155,4 +155,43 @@ export async function authRoutes(fastify: FastifyInstance) {
       offset: query.offset ? parseInt(query.offset) : 0,
     });
   });
+
+  // 허용된 이메일 목록 조회 (로그인 필요)
+  fastify.get('/allowed-emails', { preHandler: authMiddleware }, async () => {
+    const emails = await authService.getAllowedEmails();
+    return { emails };
+  });
+
+  // 허용 이메일 추가 (슈퍼 관리자만)
+  fastify.post('/allowed-emails', { preHandler: authMiddleware }, async (request, reply) => {
+    const { email, note } = request.body as { email: string; note?: string };
+    
+    if (!email) {
+      reply.status(400).send({ error: '이메일을 입력해주세요.' });
+      return;
+    }
+    
+    const result = await authService.addAllowedEmail(request.user!.email, email, note);
+    
+    if (!result.success) {
+      reply.status(403).send({ error: result.message });
+      return;
+    }
+    
+    return result;
+  });
+
+  // 허용 이메일 삭제 (슈퍼 관리자만)
+  fastify.delete('/allowed-emails/:email', { preHandler: authMiddleware }, async (request, reply) => {
+    const { email } = request.params as { email: string };
+    
+    const result = await authService.removeAllowedEmail(request.user!.email, email);
+    
+    if (!result.success) {
+      reply.status(403).send({ error: result.message });
+      return;
+    }
+    
+    return result;
+  });
 }

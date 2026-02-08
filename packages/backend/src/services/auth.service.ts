@@ -1,16 +1,12 @@
 import { eq } from 'drizzle-orm';
 import { createHash } from 'crypto';
-import { db, users, auditLogs } from '../db/index.js';
+import { db, users, auditLogs, allowedEmails } from '../db/index.js';
 import type { User, UserRole, Permission } from '../types/index.js';
 
 /**
- * 허용된 이메일 화이트리스트
- * 이 목록에 있는 이메일만 회원가입 가능
+ * 슈퍼 관리자 이메일 (하드코딩 - 이 이메일은 항상 허용)
  */
-const ALLOWED_EMAILS: string[] = [
-  'somewhere010@gmail.com',
-  // 추가 이메일은 여기에 등록
-];
+const SUPER_ADMIN_EMAIL = 'somewhere010@gmail.com';
 
 export interface LoginCredentials {
   email: string;
@@ -56,7 +52,8 @@ export class AuthService {
    */
   async register(data: RegisterData): Promise<AuthResult> {
     // 이메일 화이트리스트 확인
-    if (!this.isEmailAllowed(data.email)) {
+    const isAllowed = await this.isEmailAllowed(data.email);
+    if (!isAllowed) {
       throw new Error('이 이메일은 등록이 허용되지 않습니다. 관리자에게 문의하세요.');
     }
 
@@ -101,17 +98,105 @@ export class AuthService {
   }
 
   /**
-   * 이메일이 화이트리스트에 있는지 확인
+   * 이메일이 허용되었는지 확인 (DB 조회)
    */
-  isEmailAllowed(email: string): boolean {
-    return ALLOWED_EMAILS.includes(email.toLowerCase());
+  async isEmailAllowed(email: string): Promise<boolean> {
+    const normalizedEmail = email.toLowerCase();
+    
+    // 슈퍼 관리자는 항상 허용
+    if (normalizedEmail === SUPER_ADMIN_EMAIL) {
+      return true;
+    }
+    
+    // DB에서 허용된 이메일 확인
+    const [allowed] = await db
+      .select()
+      .from(allowedEmails)
+      .where(eq(allowedEmails.email, normalizedEmail))
+      .limit(1);
+    
+    return !!allowed;
   }
 
   /**
    * 허용된 이메일 목록 조회 (관리자용)
    */
-  getAllowedEmails(): string[] {
-    return [...ALLOWED_EMAILS];
+  async getAllowedEmails(): Promise<{ id: string; email: string; note: string | null; createdAt: Date }[]> {
+    const emails = await db
+      .select({
+        id: allowedEmails.id,
+        email: allowedEmails.email,
+        note: allowedEmails.note,
+        createdAt: allowedEmails.createdAt,
+      })
+      .from(allowedEmails)
+      .orderBy(allowedEmails.createdAt);
+    
+    return emails;
+  }
+
+  /**
+   * 허용 이메일 추가 (슈퍼 관리자만 가능)
+   */
+  async addAllowedEmail(adminEmail: string, newEmail: string, note?: string): Promise<{ success: boolean; message: string }> {
+    // 슈퍼 관리자 확인
+    if (adminEmail.toLowerCase() !== SUPER_ADMIN_EMAIL) {
+      return { success: false, message: '권한이 없습니다. 슈퍼 관리자만 이메일을 추가할 수 있습니다.' };
+    }
+    
+    const normalizedEmail = newEmail.toLowerCase();
+    
+    // 이미 등록된 이메일인지 확인
+    const [existing] = await db
+      .select()
+      .from(allowedEmails)
+      .where(eq(allowedEmails.email, normalizedEmail))
+      .limit(1);
+    
+    if (existing) {
+      return { success: false, message: '이미 등록된 이메일입니다.' };
+    }
+    
+    // 관리자 ID 조회
+    const admin = await this.findByEmail(adminEmail);
+    
+    // 이메일 추가
+    await db.insert(allowedEmails).values({
+      email: normalizedEmail,
+      addedBy: admin?.id || null,
+      note: note || null,
+    });
+    
+    await this.logAction(admin?.id || null, 'add_allowed_email', 'allowed_email', undefined, { email: normalizedEmail, note });
+    
+    return { success: true, message: `${normalizedEmail} 이메일이 등록되었습니다.` };
+  }
+
+  /**
+   * 허용 이메일 삭제 (슈퍼 관리자만 가능)
+   */
+  async removeAllowedEmail(adminEmail: string, emailToRemove: string): Promise<{ success: boolean; message: string }> {
+    // 슈퍼 관리자 확인
+    if (adminEmail.toLowerCase() !== SUPER_ADMIN_EMAIL) {
+      return { success: false, message: '권한이 없습니다. 슈퍼 관리자만 이메일을 삭제할 수 있습니다.' };
+    }
+    
+    const normalizedEmail = emailToRemove.toLowerCase();
+    
+    // 슈퍼 관리자 이메일은 삭제 불가
+    if (normalizedEmail === SUPER_ADMIN_EMAIL) {
+      return { success: false, message: '슈퍼 관리자 이메일은 삭제할 수 없습니다.' };
+    }
+    
+    // 삭제
+    const result = await db
+      .delete(allowedEmails)
+      .where(eq(allowedEmails.email, normalizedEmail));
+    
+    const admin = await this.findByEmail(adminEmail);
+    await this.logAction(admin?.id || null, 'remove_allowed_email', 'allowed_email', undefined, { email: normalizedEmail });
+    
+    return { success: true, message: `${normalizedEmail} 이메일이 삭제되었습니다.` };
   }
 
   /**

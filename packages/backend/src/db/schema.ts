@@ -321,6 +321,21 @@ export const auditLogs = pgTable(
   })
 );
 
+// AllowedEmail entity - 회원가입 허용 이메일 관리
+export const allowedEmails = pgTable(
+  'allowed_emails',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    email: varchar('email', { length: 255 }).notNull().unique(),
+    addedBy: uuid('added_by').references(() => users.id, { onDelete: 'set null' }),
+    note: varchar('note', { length: 500 }), // 메모 (예: "팀원 홍길동")
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    emailIdx: uniqueIndex('allowed_emails_email_idx').on(table.email),
+  })
+);
+
 // Relations
 export const companiesRelations = relations(companies, ({ many }) => ({
   products: many(products),

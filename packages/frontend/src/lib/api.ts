@@ -80,6 +80,24 @@ class ApiClient {
     return this.request<any>('/auth/me');
   }
 
+  // 허용된 이메일 관리
+  async getAllowedEmails() {
+    return this.request<{ emails: { id: string; email: string; note: string | null; createdAt: string }[] }>('/auth/allowed-emails');
+  }
+
+  async addAllowedEmail(email: string, note?: string) {
+    return this.request<{ success: boolean; message: string }>('/auth/allowed-emails', {
+      method: 'POST',
+      body: JSON.stringify({ email, note }),
+    });
+  }
+
+  async removeAllowedEmail(email: string) {
+    return this.request<{ success: boolean; message: string }>(`/auth/allowed-emails/${encodeURIComponent(email)}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Companies
   async getCompanies(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';

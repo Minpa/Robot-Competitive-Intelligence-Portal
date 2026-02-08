@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import {
@@ -17,6 +17,10 @@ import {
   ExternalLink,
   Users,
   Shield,
+  Mail,
+  Plus,
+  Trash2,
+  UserPlus,
 } from 'lucide-react';
 
 interface CollectionResult {
@@ -33,11 +37,80 @@ export default function AdminPage() {
   const [collectingSource, setCollectingSource] = useState<string | null>(null);
   const [results, setResults] = useState<CollectionResult[]>([]);
   const [lastCollected, setLastCollected] = useState<Date | null>(null);
+  
+  // 허용 이메일 관리
+  const [newEmail, setNewEmail] = useState('');
+  const [newNote, setNewNote] = useState('');
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailSuccess, setEmailSuccess] = useState<string | null>(null);
 
   const { data: summary } = useQuery({
     queryKey: ['dashboard-summary'],
     queryFn: () => api.getDashboardSummary(),
   });
+
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: () => api.getMe(),
+  });
+
+  const { data: allowedEmailsData, refetch: refetchEmails } = useQuery({
+    queryKey: ['allowed-emails'],
+    queryFn: () => api.getAllowedEmails(),
+  });
+
+  const isSuperAdmin = currentUser?.email === 'somewhere010@gmail.com';
+
+  const addEmailMutation = useMutation({
+    mutationFn: ({ email, note }: { email: string; note?: string }) => 
+      api.addAllowedEmail(email, note),
+    onSuccess: (data) => {
+      if (data.success) {
+        setEmailSuccess(data.message);
+        setNewEmail('');
+        setNewNote('');
+        refetchEmails();
+      } else {
+        setEmailError(data.message);
+      }
+    },
+    onError: (error: Error) => {
+      setEmailError(error.message);
+    },
+  });
+
+  const removeEmailMutation = useMutation({
+    mutationFn: (email: string) => api.removeAllowedEmail(email),
+    onSuccess: (data) => {
+      if (data.success) {
+        setEmailSuccess(data.message);
+        refetchEmails();
+      } else {
+        setEmailError(data.message);
+      }
+    },
+    onError: (error: Error) => {
+      setEmailError(error.message);
+    },
+  });
+
+  const handleAddEmail = () => {
+    setEmailError(null);
+    setEmailSuccess(null);
+    if (!newEmail.trim()) {
+      setEmailError('이메일을 입력해주세요.');
+      return;
+    }
+    addEmailMutation.mutate({ email: newEmail.trim(), note: newNote.trim() || undefined });
+  };
+
+  const handleRemoveEmail = (email: string) => {
+    setEmailError(null);
+    setEmailSuccess(null);
+    if (confirm(`${email} 이메일을 삭제하시겠습니까?`)) {
+      removeEmailMutation.mutate(email);
+    }
+  };
 
   const collectAll = async () => {
     setIsCollecting(true);
@@ -230,6 +303,114 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
+
+      {/* 허용 이메일 관리 (슈퍼 관리자만) */}
+      {isSuperAdmin && (
+        <div className="bg-white rounded-lg shadow">
+          <div className="p-6 border-b flex items-center gap-2">
+            <UserPlus className="w-5 h-5 text-indigo-600" />
+            <h2 className="text-lg font-semibold">회원가입 허용 이메일 관리</h2>
+          </div>
+          
+          <div className="p-6">
+            {/* 알림 메시지 */}
+            {emailError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                {emailError}
+              </div>
+            )}
+            {emailSuccess && (
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+                {emailSuccess}
+              </div>
+            )}
+
+            {/* 이메일 추가 폼 */}
+            <div className="flex gap-3 mb-6">
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="이메일 주소"
+                className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              <input
+                type="text"
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                placeholder="메모 (선택)"
+                className="w-48 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              <button
+                onClick={handleAddEmail}
+                disabled={addEmailMutation.isPending}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              >
+                <Plus className="w-4 h-4" />
+                추가
+              </button>
+            </div>
+
+            {/* 허용된 이메일 목록 */}
+            <div className="border rounded-lg divide-y">
+              <div className="px-4 py-2 bg-gray-50 text-sm font-medium text-gray-600 grid grid-cols-12 gap-4">
+                <div className="col-span-5">이메일</div>
+                <div className="col-span-4">메모</div>
+                <div className="col-span-2">등록일</div>
+                <div className="col-span-1"></div>
+              </div>
+              
+              {/* 슈퍼 관리자 (삭제 불가) */}
+              <div className="px-4 py-3 grid grid-cols-12 gap-4 items-center bg-indigo-50">
+                <div className="col-span-5 flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-indigo-600" />
+                  <span className="font-medium">somewhere010@gmail.com</span>
+                  <span className="px-2 py-0.5 text-xs bg-indigo-600 text-white rounded">슈퍼 관리자</span>
+                </div>
+                <div className="col-span-4 text-gray-500 text-sm">-</div>
+                <div className="col-span-2 text-gray-500 text-sm">-</div>
+                <div className="col-span-1"></div>
+              </div>
+
+              {/* DB에서 가져온 이메일 목록 */}
+              {allowedEmailsData?.emails
+                ?.filter(e => e.email !== 'somewhere010@gmail.com')
+                .map((item) => (
+                  <div key={item.id} className="px-4 py-3 grid grid-cols-12 gap-4 items-center hover:bg-gray-50">
+                    <div className="col-span-5 flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-gray-400" />
+                      <span>{item.email}</span>
+                    </div>
+                    <div className="col-span-4 text-gray-500 text-sm">{item.note || '-'}</div>
+                    <div className="col-span-2 text-gray-500 text-sm">
+                      {new Date(item.createdAt).toLocaleDateString('ko-KR')}
+                    </div>
+                    <div className="col-span-1 flex justify-end">
+                      <button
+                        onClick={() => handleRemoveEmail(item.email)}
+                        disabled={removeEmailMutation.isPending}
+                        className="p-1 text-red-500 hover:bg-red-50 rounded"
+                        title="삭제"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+              {(!allowedEmailsData?.emails || allowedEmailsData.emails.filter(e => e.email !== 'somewhere010@gmail.com').length === 0) && (
+                <div className="px-4 py-6 text-center text-gray-500 text-sm">
+                  추가된 이메일이 없습니다.
+                </div>
+              )}
+            </div>
+
+            <p className="mt-4 text-sm text-gray-500">
+              * 위 목록에 등록된 이메일만 회원가입이 가능합니다.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
