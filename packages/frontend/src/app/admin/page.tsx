@@ -295,21 +295,6 @@ export default function AdminPage() {
         </Link>
       </div>
 
-      {/* Data Policy Notice */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <div className="flex items-start gap-3">
-          <Shield className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
-          <div className="text-sm text-yellow-800">
-            <p className="font-medium mb-1">데이터 수집 정책</p>
-            <ul className="list-disc list-inside space-y-1 text-yellow-700">
-              <li>뉴스 기사 크롤링은 저작권 보호를 위해 비활성화되었습니다</li>
-              <li>공개 API(arXiv, GitHub, SEC, USPTO)를 통한 메타데이터만 수집합니다</li>
-              <li>모든 데이터는 연구·트렌드 분석 목적으로만 사용됩니다</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
       {/* 허용 이메일 관리 (슈퍼 관리자만) */}
       {isSuperAdmin && (
         <div className="bg-white rounded-lg shadow">
