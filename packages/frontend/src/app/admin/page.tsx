@@ -51,7 +51,16 @@ export default function AdminPage() {
 
   const { data: currentUser } = useQuery({
     queryKey: ['current-user'],
-    queryFn: () => api.getMe(),
+    queryFn: async () => {
+      try {
+        const user = await api.getMe();
+        console.log('getMe response:', user);
+        return user;
+      } catch (err) {
+        console.error('getMe error:', err);
+        return null;
+      }
+    },
   });
 
   const { data: allowedEmailsData, refetch: refetchEmails } = useQuery({
@@ -63,7 +72,9 @@ export default function AdminPage() {
   
   // 디버깅용 (배포 후 확인하고 제거)
   console.log('currentUser:', currentUser);
+  console.log('currentUser email:', currentUser?.email);
   console.log('isSuperAdmin:', isSuperAdmin);
+  console.log('token:', api.getToken());
 
   const addEmailMutation = useMutation({
     mutationFn: ({ email, note }: { email: string; note?: string }) => 
