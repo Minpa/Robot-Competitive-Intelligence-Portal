@@ -59,7 +59,11 @@ export default function AdminPage() {
     queryFn: () => api.getAllowedEmails(),
   });
 
-  const isSuperAdmin = currentUser?.email === 'somewhere010@gmail.com';
+  const isSuperAdmin = currentUser?.email?.toLowerCase() === 'somewhere010@gmail.com';
+  
+  // 디버깅용 (배포 후 확인하고 제거)
+  console.log('currentUser:', currentUser);
+  console.log('isSuperAdmin:', isSuperAdmin);
 
   const addEmailMutation = useMutation({
     mutationFn: ({ email, note }: { email: string; note?: string }) => 
