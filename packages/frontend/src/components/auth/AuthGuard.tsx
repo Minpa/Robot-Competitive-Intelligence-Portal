@@ -23,7 +23,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }
 
     // 토큰 확인
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     
     if (!token) {
       router.push('/login');
@@ -37,7 +37,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
       
       if (decoded.exp && decoded.exp < Date.now()) {
         // 토큰 만료
-        localStorage.removeItem('token');
+        localStorage.removeItem('auth_token');
         localStorage.removeItem('user');
         router.push('/login');
         return;
@@ -46,7 +46,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
       setIsAuthenticated(true);
     } catch {
       // 토큰 파싱 실패
-      localStorage.removeItem('token');
+      localStorage.removeItem('auth_token');
       localStorage.removeItem('user');
       router.push('/login');
     }
