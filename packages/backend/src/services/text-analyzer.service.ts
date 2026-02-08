@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { db, companies, products, articles, keywords } from '../db/index.js';
+import { db, companies, products, articles, keywords, productSpecs } from '../db/index.js';
 import { eq, and } from 'drizzle-orm';
 import { createHash } from 'crypto';
 
@@ -49,6 +49,29 @@ export interface AnalyzedData {
     type: string;
     releaseDate?: string;
     description?: string;
+    formFactor?: {
+      arms?: number;
+      hands?: string;
+      mobility?: string;
+      heightCm?: number;
+      payloadKg?: number;
+    };
+    specs?: {
+      tops?: number;
+      npuTops?: number;
+      process?: string;
+      tdpWatts?: string;
+      memory?: string;
+      memorySize?: string;
+      memoryBandwidth?: string;
+      cpuCores?: string;
+      gpuCores?: string;
+      gpuModel?: string;
+      torqueNm?: number;
+      rpmMax?: number;
+      gearRatio?: string;
+      [key: string]: string | number | boolean | null | undefined;
+    };
   }>;
   articles: Array<{
     title: string;
@@ -237,28 +260,79 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
         .limit(1);
 
       if (existing.length > 0) {
-        // 기존 제품이 있으면 releaseDate 업데이트
+        // 기존 제품이 있으면 releaseDate 업데이트 및 스펙 업데이트
         const existingProduct = existing[0];
         const normalizedDate = normalizeReleaseDate(product.releaseDate);
-        if (existingProduct && normalizedDate) {
-          await db.update(products)
-            .set({ 
-              releaseDate: normalizedDate,
-              type: product.type || existingProduct.type,
-            })
-            .where(eq(products.id, existingProduct.id));
+        if (existingProduct) {
+          // 제품 정보 업데이트
+          if (normalizedDate) {
+            await db.update(products)
+              .set({ 
+                releaseDate: normalizedDate,
+                type: product.type || existingProduct.type,
+              })
+              .where(eq(products.id, existingProduct.id));
+          }
+          
+          // 스펙 정보 업데이트 (있으면)
+          if (product.specs || product.formFactor) {
+            const existingSpec = await db.select().from(productSpecs)
+              .where(eq(productSpecs.productId, existingProduct.id))
+              .limit(1);
+            
+            if (existingSpec.length > 0) {
+              // 기존 스펙 업데이트
+              await db.update(productSpecs)
+                .set({
+                  arms: product.formFactor?.arms,
+                  hands: product.formFactor?.hands,
+                  mobility: product.formFactor?.mobility,
+                  heightCm: product.formFactor?.heightCm?.toString(),
+                  payloadKg: product.formFactor?.payloadKg?.toString(),
+                  dynamicSpecs: product.specs || {},
+                  updatedAt: new Date(),
+                })
+                .where(eq(productSpecs.productId, existingProduct.id));
+            } else {
+              // 새 스펙 추가
+              await db.insert(productSpecs).values({
+                productId: existingProduct.id,
+                arms: product.formFactor?.arms,
+                hands: product.formFactor?.hands,
+                mobility: product.formFactor?.mobility,
+                heightCm: product.formFactor?.heightCm?.toString(),
+                payloadKg: product.formFactor?.payloadKg?.toString(),
+                dynamicSpecs: product.specs || {},
+              });
+            }
+          }
+          
           result.productsSaved++;
         }
         continue;
       }
 
-      await db.insert(products).values({
+      // 새 제품 추가
+      const [insertedProduct] = await db.insert(products).values({
         companyId,
         name: product.name,
         type: product.type || 'service',
         releaseDate: normalizeReleaseDate(product.releaseDate),
         status: 'announced',
-      });
+      }).returning({ id: products.id });
+
+      // 스펙 정보 저장 (있으면)
+      if (insertedProduct && (product.specs || product.formFactor)) {
+        await db.insert(productSpecs).values({
+          productId: insertedProduct.id,
+          arms: product.formFactor?.arms,
+          hands: product.formFactor?.hands,
+          mobility: product.formFactor?.mobility,
+          heightCm: product.formFactor?.heightCm?.toString(),
+          payloadKg: product.formFactor?.payloadKg?.toString(),
+          dynamicSpecs: product.specs || {},
+        });
+      }
 
       result.productsSaved++;
     } catch (err) {
