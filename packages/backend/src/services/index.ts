@@ -14,3 +14,7 @@ export { workforceService, WorkforceService } from './workforce.service.js';
 export { componentService, ComponentService } from './component.service.js';
 export { applicationCaseService, ApplicationCaseService } from './application-case.service.js';
 export { articleAnalyzerService, ArticleAnalyzerService } from './article-analyzer.service.js';
+
+// 키워드 추출 및 트렌드 분석 서비스
+export { keywordExtractionService, KeywordExtractionService } from './keyword-extraction.service.js';
+export { keywordStatsService, KeywordStatsService } from './keyword-stats.service.js';

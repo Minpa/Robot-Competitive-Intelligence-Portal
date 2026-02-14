@@ -148,8 +148,8 @@
 - [x] 8. Checkpoint - 기사 분석 서비스
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 9. 키워드 추출 및 트렌드 분석
-  - [ ] 9.1 KeywordExtractionService 구현
+- [x] 9. 키워드 추출 및 트렌드 분석
+  - [x] 9.1 KeywordExtractionService 구현
     - 한국어/영어 키워드 추출
     - 관련성 점수 계산
     - _Requirements: 9.1, 9.2_
@@ -158,7 +158,7 @@
     - **Property 32: Keyword Extraction Coverage**
     - **Validates: Requirements 9.1, 9.2**
   
-  - [ ] 9.3 KeywordStatsService 구현
+  - [x] 9.3 KeywordStatsService 구현
     - 주간/월간 빈도 계산
     - Delta 및 변화율 계산
     - _Requirements: 9.3, 9.4, 9.5, 9.6_
@@ -167,8 +167,8 @@
     - **Property 33: Keyword Statistics Delta Calculation**
     - **Validates: Requirements 9.3-9.5**
 
-- [ ] 10. 대시보드 서비스
-  - [ ] 10.1 DashboardService 구현 - 세그먼트 분석
+- [x] 10. 대시보드 서비스
+  - [x] 10.1 DashboardService 구현 - 세그먼트 분석
     - Segment Matrix (locomotion × purpose)
     - Hand Type Distribution
     - _Requirements: 7.1, 7.2_
@@ -178,7 +178,7 @@
     - **Property 26: Hand Type Distribution Calculation**
     - **Validates: Requirements 7.1, 7.2**
   
-  - [ ] 10.3 DashboardService 구현 - 인력 분석
+  - [x] 10.3 DashboardService 구현 - 인력 분석
     - Workforce by Segment
     - Top N Players Workforce Comparison
     - Job Distribution Radar/Donut
@@ -188,7 +188,7 @@
     - **Property 27: Top N Players Selection**
     - **Validates: Requirements 7.4**
   
-  - [ ] 10.5 DashboardService 구현 - 적용 사례 분석
+  - [x] 10.5 DashboardService 구현 - 적용 사례 분석
     - Environment-Task Matrix
     - Deployment Status Distribution
     - Demo Timeline
@@ -199,7 +199,7 @@
     - **Property 31: Deployment Status Distribution**
     - **Validates: Requirements 8.6, 8.7**
   
-  - [ ] 10.7 Weekly Highlights 구현
+  - [x] 10.7 Weekly Highlights 구현
     - 신규 제품, 회사 업데이트, 트렌딩 토픽, 최근 시연
     - _Requirements: 7.8_
   
