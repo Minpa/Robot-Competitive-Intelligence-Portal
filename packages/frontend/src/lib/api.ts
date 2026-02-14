@@ -438,6 +438,375 @@ class ApiClient {
       body: JSON.stringify({ topic, customPrompt }),
     });
   }
+
+  // ============================================
+  // 휴머노이드 로봇 API
+  // ============================================
+
+  // 휴머노이드 로봇 목록
+  async getHumanoidRobots(params?: {
+    purpose?: string;
+    locomotionType?: string;
+    handType?: string;
+    stage?: string;
+    region?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    page?: number;
+    limit?: number;
+  }) {
+    const query = params ? '?' + new URLSearchParams(
+      Object.entries(params).filter(([_, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
+    ).toString() : '';
+    return this.request<{ items: any[]; total: number; page: number; limit: number }>(`/humanoid-robots${query}`);
+  }
+
+  // 휴머노이드 로봇 상세
+  async getHumanoidRobot(id: string) {
+    return this.request<any>(`/humanoid-robots/${id}`);
+  }
+
+  // 휴머노이드 로봇 생성
+  async createHumanoidRobot(data: any) {
+    return this.request<any>('/humanoid-robots', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // 휴머노이드 로봇 수정
+  async updateHumanoidRobot(id: string, data: any) {
+    return this.request<any>(`/humanoid-robots/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // 휴머노이드 로봇 삭제
+  async deleteHumanoidRobot(id: string) {
+    return this.request<void>(`/humanoid-robots/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // 세그먼트 매트릭스
+  async getSegmentMatrix() {
+    return this.request<{
+      matrix: Array<{
+        locomotionType: string;
+        purpose: string;
+        count: number;
+        robots: Array<{ id: string; name: string; companyName: string }>;
+      }>;
+    }>('/humanoid-robots/analytics/segment-matrix');
+  }
+
+  // Hand 타입 분포
+  async getHandTypeDistribution() {
+    return this.request<{
+      overall: Array<{ handType: string; count: number; percentage: number }>;
+      byPurpose: Record<string, Array<{ handType: string; count: number; percentage: number }>>;
+    }>('/humanoid-robots/analytics/hand-distribution');
+  }
+
+  // 레이더 차트 데이터
+  async getRobotRadarData(id: string) {
+    return this.request<{
+      robotId: string;
+      robotName: string;
+      axes: Array<{ axis: string; value: number; maxValue: number }>;
+    }>(`/humanoid-robots/${id}/radar`);
+  }
+
+  // ============================================
+  // 인력 데이터 API
+  // ============================================
+
+  // 회사별 인력 데이터
+  async getWorkforceData(companyId: string) {
+    return this.request<any>(`/workforce/company/${companyId}`);
+  }
+
+  // 인력 데이터 생성/수정
+  async upsertWorkforceData(companyId: string, data: any) {
+    return this.request<any>(`/workforce/company/${companyId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // 탤런트 트렌드 조회
+  async getTalentTrends(companyId: string) {
+    return this.request<any[]>(`/workforce/company/${companyId}/trends`);
+  }
+
+  // 탤런트 트렌드 추가
+  async addTalentTrend(companyId: string, data: any) {
+    return this.request<any>(`/workforce/company/${companyId}/trends`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // 직무 분포
+  async getJobDistribution(companyId: string) {
+    return this.request<{
+      companyId: string;
+      distribution: Array<{ category: string; count: number; percentage: number }>;
+    }>(`/workforce/company/${companyId}/job-distribution`);
+  }
+
+  // Top N 인력 비교
+  async getTopWorkforceComparison(n: number = 10) {
+    return this.request<{
+      companies: Array<{
+        companyId: string;
+        companyName: string;
+        totalHeadcount: number;
+        roboticsHeadcount: number;
+        humanoidHeadcount: number;
+      }>;
+    }>(`/workforce/analytics/top-comparison?n=${n}`);
+  }
+
+  // 전체 인력 트렌드
+  async getOverallWorkforceTrend() {
+    return this.request<{
+      trends: Array<{ year: number; totalHeadcount: number; roboticsHeadcount: number }>;
+    }>('/workforce/analytics/overall-trend');
+  }
+
+  // ============================================
+  // 부품 API
+  // ============================================
+
+  // 부품 목록
+  async getComponents(params?: {
+    type?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const query = params ? '?' + new URLSearchParams(
+      Object.entries(params).filter(([_, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
+    ).toString() : '';
+    return this.request<{ items: any[]; total: number }>(`/components${query}`);
+  }
+
+  // 부품 상세
+  async getComponent(id: string) {
+    return this.request<any>(`/components/${id}`);
+  }
+
+  // 부품 생성
+  async createComponent(data: any) {
+    return this.request<any>('/components', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // 부품 수정
+  async updateComponent(id: string, data: any) {
+    return this.request<any>(`/components/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // 부품 삭제
+  async deleteComponent(id: string) {
+    return this.request<void>(`/components/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // 로봇-부품 연결
+  async linkRobotComponent(robotId: string, componentId: string, location?: string) {
+    return this.request<any>('/components/robot-link', {
+      method: 'POST',
+      body: JSON.stringify({ robotId, componentId, location }),
+    });
+  }
+
+  // 로봇-부품 연결 해제
+  async unlinkRobotComponent(robotId: string, componentId: string) {
+    return this.request<void>(`/components/robot-link/${robotId}/${componentId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // 토크 밀도 차트 데이터
+  async getTorqueDensityChart() {
+    return this.request<{
+      data: Array<{
+        id: string;
+        name: string;
+        company: string;
+        torqueDensity: number;
+        weight: number;
+      }>;
+    }>('/components/analytics/torque-density');
+  }
+
+  // TOPS 타임라인
+  async getTopsTimeline() {
+    return this.request<{
+      data: Array<{
+        year: number;
+        avgTops: number;
+        maxTops: number;
+        components: Array<{ id: string; name: string; tops: number }>;
+      }>;
+    }>('/components/analytics/tops-timeline');
+  }
+
+  // ============================================
+  // 적용 사례 API
+  // ============================================
+
+  // 적용 사례 목록
+  async getApplicationCases(params?: {
+    environment?: string;
+    taskType?: string;
+    deploymentStatus?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const query = params ? '?' + new URLSearchParams(
+      Object.entries(params).filter(([_, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
+    ).toString() : '';
+    return this.request<{ items: any[]; total: number }>(`/application-cases${query}`);
+  }
+
+  // 적용 사례 상세
+  async getApplicationCase(id: string) {
+    return this.request<any>(`/application-cases/${id}`);
+  }
+
+  // 적용 사례 생성
+  async createApplicationCase(data: any) {
+    return this.request<any>('/application-cases', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // 적용 사례 수정
+  async updateApplicationCase(id: string, data: any) {
+    return this.request<any>(`/application-cases/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // 적용 사례 삭제
+  async deleteApplicationCase(id: string) {
+    return this.request<void>(`/application-cases/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // 환경-작업 매트릭스
+  async getEnvironmentTaskMatrix() {
+    return this.request<{
+      matrix: Array<{
+        environment: string;
+        taskType: string;
+        count: number;
+        cases: Array<{ id: string; title: string; robotName: string }>;
+      }>;
+    }>('/application-cases/analytics/environment-task-matrix');
+  }
+
+  // 배포 상태 분포
+  async getDeploymentStatusDistribution() {
+    return this.request<{
+      distribution: Array<{ status: string; count: number; percentage: number }>;
+    }>('/application-cases/analytics/deployment-distribution');
+  }
+
+  // 시연 타임라인
+  async getDemoTimeline(params?: { year?: number }) {
+    const query = params?.year ? `?year=${params.year}` : '';
+    return this.request<{
+      events: Array<{
+        id: string;
+        title: string;
+        robotName: string;
+        companyName: string;
+        eventDate: string;
+        location: string;
+        description: string;
+      }>;
+    }>(`/application-cases/analytics/demo-timeline${query}`);
+  }
+
+  // ============================================
+  // 기사 분석 API
+  // ============================================
+
+  // 기사 분석 (AI 요약 + 메타데이터 추출)
+  async analyzeArticle(content: string, sourceUrl?: string) {
+    return this.request<{
+      summary: string;
+      metadata: {
+        companies: string[];
+        products: string[];
+        technologies: string[];
+        insights: string[];
+      };
+      suggestedTags: Array<{
+        type: 'robot' | 'company';
+        id: string;
+        name: string;
+        confidence: number;
+      }>;
+      contentHash: string;
+      isDuplicate: boolean;
+      duplicateArticleId?: string;
+    }>('/article-analyzer/analyze', {
+      method: 'POST',
+      body: JSON.stringify({ content, sourceUrl }),
+    });
+  }
+
+  // 분석된 기사 저장
+  async saveAnalyzedArticle(data: {
+    title: string;
+    content: string;
+    summary: string;
+    sourceUrl?: string;
+    metadata: any;
+    robotTags: string[];
+    companyTags: string[];
+  }) {
+    return this.request<any>('/article-analyzer/save', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // 중복 검사
+  async checkDuplicate(content: string) {
+    return this.request<{
+      isDuplicate: boolean;
+      duplicateArticleId?: string;
+      similarity?: number;
+    }>('/article-analyzer/check-duplicate', {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  // 로봇별 기사 조회
+  async getArticlesByRobot(robotId: string) {
+    return this.request<{ items: any[]; total: number }>(`/article-analyzer/by-robot/${robotId}`);
+  }
+
+  // 회사별 기사 조회
+  async getArticlesByCompany(companyId: string) {
+    return this.request<{ items: any[]; total: number }>(`/article-analyzer/by-company/${companyId}`);
+  }
 }
 
 export const api = new ApiClient();

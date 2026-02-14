@@ -20,8 +20,12 @@ export const companies = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     name: varchar('name', { length: 255 }).notNull(),
+    logoUrl: varchar('logo_url', { length: 500 }),
     country: varchar('country', { length: 100 }).notNull(),
+    city: varchar('city', { length: 100 }),
+    foundingYear: integer('founding_year'),
     category: varchar('category', { length: 100 }).notNull(),
+    mainBusiness: varchar('main_business', { length: 255 }),
     homepageUrl: varchar('homepage_url', { length: 500 }),
     description: text('description'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -122,6 +126,7 @@ export const articles = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     productId: uuid('product_id').references(() => products.id, { onDelete: 'set null' }),
     companyId: uuid('company_id').references(() => companies.id, { onDelete: 'set null' }),
+    submittedBy: uuid('submitted_by').references(() => users.id, { onDelete: 'set null' }),
     title: varchar('title', { length: 500 }).notNull(),
     source: varchar('source', { length: 255 }).notNull(),
     url: varchar('url', { length: 1000 }).notNull(),
@@ -132,6 +137,7 @@ export const articles = pgTable(
     category: varchar('category', { length: 50 }).default('other'), // product, technology, industry, other
     productType: varchar('product_type', { length: 50 }).default('none'), // robot, rfm, soc, actuator, none
     contentHash: varchar('content_hash', { length: 64 }).notNull(),
+    extractedMetadata: jsonb('extracted_metadata').$type<ExtractedMetadata>(),
     collectedAt: timestamp('collected_at').defaultNow().notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
@@ -143,6 +149,14 @@ export const articles = pgTable(
     languageIdx: index('articles_language_idx').on(table.language),
   })
 );
+
+export interface ExtractedMetadata {
+  mentionedCompanies?: string[];
+  mentionedRobots?: string[];
+  technologies?: string[];
+  marketInsights?: string[];
+  keyPoints?: string[];
+}
 
 // Keyword entity
 export const keywords = pgTable(
@@ -336,10 +350,283 @@ export const allowedEmails = pgTable(
   })
 );
 
+// ============================================
+// 휴머노이드 로봇 전용 테이블
+// ============================================
+
+// HumanoidRobot entity - 휴머노이드 로봇 제품
+export const humanoidRobots = pgTable(
+  'humanoid_robots',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id, { onDelete: 'cascade' }),
+    name: varchar('name', { length: 255 }).notNull(),
+    announcementYear: integer('announcement_year'),
+    status: varchar('status', { length: 50 }).default('development'), // development, poc, commercial
+    purpose: varchar('purpose', { length: 50 }), // industrial, home, service
+    locomotionType: varchar('locomotion_type', { length: 50 }), // bipedal, wheeled, hybrid
+    handType: varchar('hand_type', { length: 50 }), // gripper, multi_finger, interchangeable
+    commercializationStage: varchar('commercialization_stage', { length: 50 }), // concept, prototype, poc, pilot, commercial
+    region: varchar('region', { length: 50 }), // north_america, europe, china, japan, korea, other
+    imageUrl: varchar('image_url', { length: 500 }),
+    description: text('description'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    companyIdx: index('humanoid_robots_company_idx').on(table.companyId),
+    purposeIdx: index('humanoid_robots_purpose_idx').on(table.purpose),
+    locomotionIdx: index('humanoid_robots_locomotion_idx').on(table.locomotionType),
+    handTypeIdx: index('humanoid_robots_hand_type_idx').on(table.handType),
+    stageIdx: index('humanoid_robots_stage_idx').on(table.commercializationStage),
+    regionIdx: index('humanoid_robots_region_idx').on(table.region),
+  })
+);
+
+// BodySpec entity - 로봇 신체 스펙
+export const bodySpecs = pgTable('body_specs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  robotId: uuid('robot_id')
+    .notNull()
+    .unique()
+    .references(() => humanoidRobots.id, { onDelete: 'cascade' }),
+  heightCm: decimal('height_cm', { precision: 6, scale: 2 }),
+  weightKg: decimal('weight_kg', { precision: 6, scale: 2 }),
+  payloadKg: decimal('payload_kg', { precision: 6, scale: 2 }),
+  dofCount: integer('dof_count'),
+  maxSpeedMps: decimal('max_speed_mps', { precision: 4, scale: 2 }),
+  operationTimeHours: decimal('operation_time_hours', { precision: 4, scale: 2 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// HandSpec entity - 로봇 손 스펙
+export const handSpecs = pgTable('hand_specs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  robotId: uuid('robot_id')
+    .notNull()
+    .unique()
+    .references(() => humanoidRobots.id, { onDelete: 'cascade' }),
+  handType: varchar('hand_type', { length: 50 }),
+  fingerCount: integer('finger_count'),
+  handDof: integer('hand_dof'),
+  gripForceN: decimal('grip_force_n', { precision: 6, scale: 2 }),
+  isInterchangeable: boolean('is_interchangeable').default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ComputingSpec entity - 컴퓨팅 스펙
+export const computingSpecs = pgTable('computing_specs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  robotId: uuid('robot_id')
+    .notNull()
+    .unique()
+    .references(() => humanoidRobots.id, { onDelete: 'cascade' }),
+  mainSoc: varchar('main_soc', { length: 255 }),
+  topsMin: decimal('tops_min', { precision: 8, scale: 2 }),
+  topsMax: decimal('tops_max', { precision: 8, scale: 2 }),
+  architectureType: varchar('architecture_type', { length: 50 }), // onboard, edge, cloud, hybrid
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// SensorSpec entity - 센서 스펙
+export const sensorSpecs = pgTable('sensor_specs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  robotId: uuid('robot_id')
+    .notNull()
+    .unique()
+    .references(() => humanoidRobots.id, { onDelete: 'cascade' }),
+  cameras: jsonb('cameras').$type<{ type: string; count: number; resolution?: string }[]>(),
+  depthSensor: varchar('depth_sensor', { length: 255 }),
+  lidar: varchar('lidar', { length: 255 }),
+  imu: varchar('imu', { length: 255 }),
+  forceTorque: varchar('force_torque', { length: 255 }),
+  touchSensors: jsonb('touch_sensors').$type<{ location: string; type: string }[]>(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// PowerSpec entity - 전원 스펙
+export const powerSpecs = pgTable('power_specs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  robotId: uuid('robot_id')
+    .notNull()
+    .unique()
+    .references(() => humanoidRobots.id, { onDelete: 'cascade' }),
+  batteryType: varchar('battery_type', { length: 100 }),
+  capacityWh: decimal('capacity_wh', { precision: 8, scale: 2 }),
+  operationTimeHours: decimal('operation_time_hours', { precision: 4, scale: 2 }),
+  chargingMethod: varchar('charging_method', { length: 100 }), // fixed, swappable, both
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// WorkforceData entity - 회사 인력 데이터
+export const workforceData = pgTable('workforce_data', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  companyId: uuid('company_id')
+    .notNull()
+    .unique()
+    .references(() => companies.id, { onDelete: 'cascade' }),
+  totalHeadcountMin: integer('total_headcount_min'),
+  totalHeadcountMax: integer('total_headcount_max'),
+  humanoidTeamSize: integer('humanoid_team_size'),
+  jobDistribution: jsonb('job_distribution').$type<JobDistribution>(),
+  recordedAt: timestamp('recorded_at'),
+  source: varchar('source', { length: 255 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export interface JobDistribution {
+  rd?: number;
+  software?: number;
+  controlAi?: number;
+  mechatronics?: number;
+  operations?: number;
+  business?: number;
+}
+
+// TalentTrend entity - 연도별 인력 추이
+export const talentTrends = pgTable(
+  'talent_trends',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id, { onDelete: 'cascade' }),
+    year: integer('year').notNull(),
+    totalHeadcount: integer('total_headcount'),
+    humanoidTeamSize: integer('humanoid_team_size'),
+    jobPostingCount: integer('job_posting_count'),
+    recordedAt: timestamp('recorded_at'),
+    source: varchar('source', { length: 255 }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    companyYearIdx: index('talent_trends_company_year_idx').on(table.companyId, table.year),
+  })
+);
+
+// Component entity - 부품 (액추에이터, SoC, 센서, 전원)
+export const components = pgTable(
+  'components',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    type: varchar('type', { length: 50 }).notNull(), // actuator, soc, sensor, power
+    name: varchar('name', { length: 255 }).notNull(),
+    vendor: varchar('vendor', { length: 255 }),
+    specifications: jsonb('specifications').$type<ComponentSpecs>(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    typeIdx: index('components_type_idx').on(table.type),
+    vendorIdx: index('components_vendor_idx').on(table.vendor),
+  })
+);
+
+export interface ComponentSpecs {
+  // Actuator specs
+  actuatorType?: string; // harmonic, cycloidal, direct_drive
+  ratedTorqueNm?: number;
+  maxTorqueNm?: number;
+  speedRpm?: number;
+  weightKg?: number;
+  integrationLevel?: string; // motor_only, motor_gear, motor_gear_driver, fully_integrated
+  builtInSensors?: string[];
+  // SoC specs
+  processNode?: string;
+  topsMin?: number;
+  topsMax?: number;
+  location?: string; // onboard, edge
+  // Sensor specs
+  sensorType?: string;
+  resolution?: string;
+  range?: string;
+  // Power specs
+  batteryType?: string;
+  capacityWh?: number;
+  // Generic
+  [key: string]: string | number | boolean | string[] | undefined;
+}
+
+// RobotComponent junction table - 로봇-부품 연결
+export const robotComponents = pgTable(
+  'robot_components',
+  {
+    robotId: uuid('robot_id')
+      .notNull()
+      .references(() => humanoidRobots.id, { onDelete: 'cascade' }),
+    componentId: uuid('component_id')
+      .notNull()
+      .references(() => components.id, { onDelete: 'cascade' }),
+    usageLocation: varchar('usage_location', { length: 100 }), // head, torso, arm, leg, hand
+    quantity: integer('quantity').default(1),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: uniqueIndex('robot_components_pk').on(table.robotId, table.componentId),
+  })
+);
+
+// ApplicationCase entity - 적용 사례
+export const applicationCases = pgTable(
+  'application_cases',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    robotId: uuid('robot_id')
+      .notNull()
+      .references(() => humanoidRobots.id, { onDelete: 'cascade' }),
+    environmentType: varchar('environment_type', { length: 50 }), // factory, warehouse, retail, healthcare, hospitality, home, research_lab, other
+    taskType: varchar('task_type', { length: 50 }), // assembly, picking, packing, inspection, delivery, cleaning, assistance, other
+    taskDescription: text('task_description'),
+    deploymentStatus: varchar('deployment_status', { length: 50 }), // concept, pilot, production
+    demoEvent: varchar('demo_event', { length: 255 }),
+    demoDate: date('demo_date'),
+    videoUrl: varchar('video_url', { length: 500 }),
+    notes: text('notes'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    robotIdx: index('application_cases_robot_idx').on(table.robotId),
+    environmentIdx: index('application_cases_environment_idx').on(table.environmentType),
+    taskIdx: index('application_cases_task_idx').on(table.taskType),
+  })
+);
+
+// ArticleRobotTag junction table - 기사-로봇 태그 연결
+export const articleRobotTags = pgTable(
+  'article_robot_tags',
+  {
+    articleId: uuid('article_id')
+      .notNull()
+      .references(() => articles.id, { onDelete: 'cascade' }),
+    robotId: uuid('robot_id')
+      .notNull()
+      .references(() => humanoidRobots.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: uniqueIndex('article_robot_tags_pk').on(table.articleId, table.robotId),
+  })
+);
+
+// ============================================
 // Relations
-export const companiesRelations = relations(companies, ({ many }) => ({
+// ============================================
+
+export const companiesRelations = relations(companies, ({ many, one }) => ({
   products: many(products),
   articles: many(articles),
+  humanoidRobots: many(humanoidRobots),
+  workforceData: one(workforceData),
+  talentTrends: many(talentTrends),
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
@@ -390,4 +677,102 @@ export const crawlJobsRelations = relations(crawlJobs, ({ one, many }) => ({
     references: [crawlTargets.id],
   }),
   errors: many(crawlErrors),
+}));
+
+// 휴머노이드 로봇 Relations
+export const humanoidRobotsRelations = relations(humanoidRobots, ({ one, many }) => ({
+  company: one(companies, {
+    fields: [humanoidRobots.companyId],
+    references: [companies.id],
+  }),
+  bodySpec: one(bodySpecs),
+  handSpec: one(handSpecs),
+  computingSpec: one(computingSpecs),
+  sensorSpec: one(sensorSpecs),
+  powerSpec: one(powerSpecs),
+  components: many(robotComponents),
+  applicationCases: many(applicationCases),
+  articleTags: many(articleRobotTags),
+}));
+
+export const bodySpecsRelations = relations(bodySpecs, ({ one }) => ({
+  robot: one(humanoidRobots, {
+    fields: [bodySpecs.robotId],
+    references: [humanoidRobots.id],
+  }),
+}));
+
+export const handSpecsRelations = relations(handSpecs, ({ one }) => ({
+  robot: one(humanoidRobots, {
+    fields: [handSpecs.robotId],
+    references: [humanoidRobots.id],
+  }),
+}));
+
+export const computingSpecsRelations = relations(computingSpecs, ({ one }) => ({
+  robot: one(humanoidRobots, {
+    fields: [computingSpecs.robotId],
+    references: [humanoidRobots.id],
+  }),
+}));
+
+export const sensorSpecsRelations = relations(sensorSpecs, ({ one }) => ({
+  robot: one(humanoidRobots, {
+    fields: [sensorSpecs.robotId],
+    references: [humanoidRobots.id],
+  }),
+}));
+
+export const powerSpecsRelations = relations(powerSpecs, ({ one }) => ({
+  robot: one(humanoidRobots, {
+    fields: [powerSpecs.robotId],
+    references: [humanoidRobots.id],
+  }),
+}));
+
+export const workforceDataRelations = relations(workforceData, ({ one }) => ({
+  company: one(companies, {
+    fields: [workforceData.companyId],
+    references: [companies.id],
+  }),
+}));
+
+export const talentTrendsRelations = relations(talentTrends, ({ one }) => ({
+  company: one(companies, {
+    fields: [talentTrends.companyId],
+    references: [companies.id],
+  }),
+}));
+
+export const componentsRelations = relations(components, ({ many }) => ({
+  robots: many(robotComponents),
+}));
+
+export const robotComponentsRelations = relations(robotComponents, ({ one }) => ({
+  robot: one(humanoidRobots, {
+    fields: [robotComponents.robotId],
+    references: [humanoidRobots.id],
+  }),
+  component: one(components, {
+    fields: [robotComponents.componentId],
+    references: [components.id],
+  }),
+}));
+
+export const applicationCasesRelations = relations(applicationCases, ({ one }) => ({
+  robot: one(humanoidRobots, {
+    fields: [applicationCases.robotId],
+    references: [humanoidRobots.id],
+  }),
+}));
+
+export const articleRobotTagsRelations = relations(articleRobotTags, ({ one }) => ({
+  article: one(articles, {
+    fields: [articleRobotTags.articleId],
+    references: [articles.id],
+  }),
+  robot: one(humanoidRobots, {
+    fields: [articleRobotTags.robotId],
+    references: [humanoidRobots.id],
+  }),
 }));
