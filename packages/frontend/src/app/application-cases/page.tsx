@@ -109,15 +109,16 @@ export default function ApplicationCasesPage() {
                             const cell = matrix.matrix.find(
                               (m: any) => m.environment === env.id && m.taskType === task.id
                             );
+                            const count = cell?.count ?? 0;
                             return (
                               <td key={task.id} className="px-2 py-1 text-center">
                                 <div className={`inline-flex items-center justify-center w-8 h-8 rounded text-xs font-medium ${
-                                  cell?.count > 3 ? 'bg-blue-600 text-white' :
-                                  cell?.count > 1 ? 'bg-blue-300 text-blue-900' :
-                                  cell?.count > 0 ? 'bg-blue-100 text-blue-800' :
+                                  count > 3 ? 'bg-blue-600 text-white' :
+                                  count > 1 ? 'bg-blue-300 text-blue-900' :
+                                  count > 0 ? 'bg-blue-100 text-blue-800' :
                                   'bg-gray-50 text-gray-400'
                                 }`}>
-                                  {cell?.count || 0}
+                                  {count}
                                 </div>
                               </td>
                             );
