@@ -310,11 +310,11 @@ export class DashboardService {
           articleCount: Number(c.count),
         })),
       trendingTopics: trendingTopics
-        .filter(t => t.delta && t.delta > 0)
+        .filter(t => t.delta && Number(t.delta) > 0)
         .map(t => ({
           term: t.term,
-          delta: t.delta || 0,
-          deltaPercent: t.deltaPercent || 0,
+          delta: Number(t.delta) || 0,
+          deltaPercent: Number(t.deltaPercent) || 0,
         })),
       recentDemos: recentDemos.map(d => ({
         id: d.case.id,
