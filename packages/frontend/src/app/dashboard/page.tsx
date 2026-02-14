@@ -114,15 +114,16 @@ export default function DashboardPage() {
                             const cell = segmentMatrix.matrix.find(
                               (m: any) => m.locomotionType === locomotion && m.purpose === purpose
                             );
+                            const count = cell?.count ?? 0;
                             return (
                               <td key={purpose} className="px-4 py-2 text-center">
                                 <div className={`inline-flex items-center justify-center w-12 h-12 rounded-lg ${
-                                  cell?.count > 5 ? 'bg-blue-600 text-white' :
-                                  cell?.count > 2 ? 'bg-blue-400 text-white' :
-                                  cell?.count > 0 ? 'bg-blue-200 text-blue-800' :
+                                  count > 5 ? 'bg-blue-600 text-white' :
+                                  count > 2 ? 'bg-blue-400 text-white' :
+                                  count > 0 ? 'bg-blue-200 text-blue-800' :
                                   'bg-gray-100 text-gray-400'
                                 }`}>
-                                  {cell?.count || 0}
+                                  {count}
                                 </div>
                               </td>
                             );

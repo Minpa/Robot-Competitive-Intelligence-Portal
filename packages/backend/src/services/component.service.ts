@@ -1,4 +1,4 @@
-import { eq, ilike, sql, and, desc, asc } from 'drizzle-orm';
+import { eq, ilike, sql, and, asc } from 'drizzle-orm';
 import {
   db,
   components,
@@ -116,10 +116,11 @@ export class ComponentService {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const [{ count }] = await db
+    const countResult = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(components)
       .where(whereClause);
+    const count = countResult[0]?.count ?? 0;
 
     const offset = (pagination.page - 1) * pagination.limit;
     const data = await db
@@ -213,13 +214,17 @@ export class ComponentService {
 
     const points = actuators
       .filter(a => a.specifications?.maxTorqueNm && a.specifications?.weightKg)
-      .map(a => ({
-        x: Number(a.specifications!.weightKg),
-        y: Number(a.specifications!.maxTorqueNm) / Number(a.specifications!.weightKg!),
-        label: a.name,
-        vendor: a.vendor,
-        componentId: a.id,
-      }));
+      .map(a => {
+        const weightKg = Number(a.specifications?.weightKg ?? 1);
+        const maxTorqueNm = Number(a.specifications?.maxTorqueNm ?? 0);
+        return {
+          x: weightKg,
+          y: maxTorqueNm / weightKg,
+          label: a.name,
+          vendor: a.vendor,
+          componentId: a.id,
+        };
+      });
 
     return {
       points,
@@ -248,7 +253,8 @@ export class ComponentService {
 
     for (const row of socs) {
       const year = row.robot?.announcementYear;
-      const tops = row.component.specifications?.topsMax || row.component.specifications?.topsMin;
+      const specs = row.component?.specifications;
+      const tops = specs?.topsMax || specs?.topsMin;
 
       if (year && tops) {
         if (!byYear[year]) {
@@ -262,8 +268,14 @@ export class ComponentService {
 
     // Calculate averages
     const years = Object.keys(byYear).map(Number).sort();
-    const avgData = years.map(y => byYear[y].avgTops / byYear[y].count);
-    const maxData = years.map(y => byYear[y].maxTops);
+    const avgData = years.map(y => {
+      const yearData = byYear[y];
+      return yearData ? yearData.avgTops / yearData.count : 0;
+    });
+    const maxData = years.map(y => {
+      const yearData = byYear[y];
+      return yearData ? yearData.maxTops : 0;
+    });
 
     return {
       labels: years,

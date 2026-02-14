@@ -233,12 +233,12 @@ export class ApplicationCaseService {
 
     // Fill matrix
     for (const c of cases) {
-      if (c.environmentType && c.taskType) {
-        if (matrix[c.environmentType]?.[c.taskType]) {
-          matrix[c.environmentType][c.taskType].count++;
-          if (c.robotName && !matrix[c.environmentType][c.taskType].robots.includes(c.robotName)) {
-            matrix[c.environmentType][c.taskType].robots.push(c.robotName);
-          }
+      const envType = c.environmentType;
+      const taskType = c.taskType;
+      if (envType && taskType && matrix[envType] && matrix[envType][taskType]) {
+        matrix[envType][taskType].count++;
+        if (c.robotName && !matrix[envType][taskType].robots.includes(c.robotName)) {
+          matrix[envType][taskType].robots.push(c.robotName);
         }
       }
     }

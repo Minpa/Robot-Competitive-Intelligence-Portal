@@ -42,7 +42,11 @@ export class WorkforceService {
       const [updated] = await db
         .update(workforceData)
         .set({
-          ...data,
+          totalHeadcountMin: data.totalHeadcountMin,
+          totalHeadcountMax: data.totalHeadcountMax,
+          humanoidTeamSize: data.humanoidTeamSize,
+          jobDistribution: data.jobDistribution,
+          source: data.source,
           recordedAt: new Date(),
           updatedAt: new Date(),
         })
@@ -54,7 +58,11 @@ export class WorkforceService {
         .insert(workforceData)
         .values({
           companyId,
-          ...data,
+          totalHeadcountMin: data.totalHeadcountMin,
+          totalHeadcountMax: data.totalHeadcountMax,
+          humanoidTeamSize: data.humanoidTeamSize,
+          jobDistribution: data.jobDistribution,
+          source: data.source,
           recordedAt: new Date(),
         })
         .returning();
@@ -88,6 +96,10 @@ export class WorkforceService {
 
     if (existing.length > 0) {
       // Update existing entry
+      const existingEntry = existing[0];
+      if (!existingEntry) {
+        throw new Error('Existing entry not found');
+      }
       const [updated] = await db
         .update(talentTrends)
         .set({
@@ -97,7 +109,7 @@ export class WorkforceService {
           source: data.source,
           recordedAt: new Date(),
         })
-        .where(eq(talentTrends.id, existing[0].id))
+        .where(eq(talentTrends.id, existingEntry.id))
         .returning();
       return updated;
     } else {
@@ -219,9 +231,10 @@ export class WorkforceService {
     const processedCompanies = new Set<string>();
     for (const row of companiesWithRobots) {
       if (row.purpose && row.humanoidTeamSize && !processedCompanies.has(row.companyId)) {
-        if (byPurpose[row.purpose]) {
-          byPurpose[row.purpose].count++;
-          byPurpose[row.purpose].totalWorkforce += row.humanoidTeamSize;
+        const purposeData = byPurpose[row.purpose];
+        if (purposeData) {
+          purposeData.count++;
+          purposeData.totalWorkforce += row.humanoidTeamSize;
         }
         processedCompanies.add(row.companyId);
       }

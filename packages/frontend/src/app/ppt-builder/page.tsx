@@ -39,7 +39,7 @@ export default function PPTBuilderPage() {
 
   const { data: companies } = useQuery({
     queryKey: ['companies-list'],
-    queryFn: () => api.getCompanies({ limit: 100 }),
+    queryFn: () => api.getCompanies({ limit: '100' }),
   });
 
   const toggleRobot = (id: string) => {

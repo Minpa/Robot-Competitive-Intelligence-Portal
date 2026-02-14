@@ -128,7 +128,7 @@ export class ArticleAnalyzerService {
   /**
    * Simple keyword extraction (placeholder for NLP)
    */
-  private extractKeywords(content: string, language: string): { term: string; relevance: number }[] {
+  private extractKeywords(content: string, _language: string): { term: string; relevance: number }[] {
     const robotKeywords = [
       'humanoid', 'robot', 'actuator', 'sensor', 'AI', 'bipedal', 'manipulation',
       '휴머노이드', '로봇', '액추에이터', '센서', '인공지능', '이족보행', '매니퓰레이션',
@@ -171,7 +171,7 @@ export class ArticleAnalyzerService {
     const contentHash = this.generateContentHash(data.content);
 
     // Create article
-    const [article] = await db
+    const insertResult = await db
       .insert(articles)
       .values({
         title: data.title,
@@ -187,6 +187,15 @@ export class ArticleAnalyzerService {
       })
       .returning();
 
+    const article = insertResult[0];
+    if (!article) {
+      return {
+        success: false,
+        isDuplicate: false,
+        message: '기사 저장에 실패했습니다.',
+      };
+    }
+
     // Create robot tags
     if (data.confirmedRobotIds && data.confirmedRobotIds.length > 0) {
       await db.insert(articleRobotTags).values(
@@ -201,26 +210,31 @@ export class ArticleAnalyzerService {
     const extractedKeywords = this.extractKeywords(data.content, data.language || 'ko');
     for (const kw of extractedKeywords) {
       // Find or create keyword
-      let [keyword] = await db
+      const existingKeywords = await db
         .select()
         .from(keywords)
         .where(and(eq(keywords.term, kw.term), eq(keywords.language, data.language || 'ko')))
         .limit(1);
 
-      if (!keyword) {
-        [keyword] = await db
+      let keywordRecord = existingKeywords[0];
+
+      if (!keywordRecord) {
+        const newKeywords = await db
           .insert(keywords)
           .values({ term: kw.term, language: data.language || 'ko' })
           .returning();
+        keywordRecord = newKeywords[0];
       }
 
       // Link keyword to article
-      await db.insert(articleKeywords).values({
-        articleId: article.id,
-        keywordId: keyword.id,
-        frequency: 1,
-        tfidfScore: String(kw.relevance),
-      }).onConflictDoNothing();
+      if (keywordRecord) {
+        await db.insert(articleKeywords).values({
+          articleId: article.id,
+          keywordId: keywordRecord.id,
+          frequency: 1,
+          tfidfScore: String(kw.relevance),
+        }).onConflictDoNothing();
+      }
     }
 
     return {
@@ -367,10 +381,11 @@ export class ArticleAnalyzerService {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const [{ count }] = await db
+    const countResult = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(articles)
       .where(whereClause);
+    const count = countResult[0]?.count ?? 0;
 
     const offset = (pagination.page - 1) * pagination.limit;
     const data = await db

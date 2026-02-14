@@ -262,10 +262,11 @@ export class HumanoidRobotService {
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     // Get total count
-    const [{ count }] = await db
+    const countResult = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(humanoidRobots)
       .where(whereClause);
+    const count = countResult[0]?.count ?? 0;
 
     // Determine sort order
     let orderBy;
@@ -334,17 +335,26 @@ export class HumanoidRobotService {
       .where(eq(bodySpecs.robotId, robotId))
       .limit(1);
 
+    // Convert number fields to string for decimal columns
+    const dbData: Record<string, unknown> = {};
+    if (data.heightCm !== undefined) dbData.heightCm = String(data.heightCm);
+    if (data.weightKg !== undefined) dbData.weightKg = String(data.weightKg);
+    if (data.payloadKg !== undefined) dbData.payloadKg = String(data.payloadKg);
+    if (data.dofCount !== undefined) dbData.dofCount = data.dofCount;
+    if (data.maxSpeedMps !== undefined) dbData.maxSpeedMps = String(data.maxSpeedMps);
+    if (data.operationTimeHours !== undefined) dbData.operationTimeHours = String(data.operationTimeHours);
+
     if (existing.length > 0) {
       const [spec] = await db
         .update(bodySpecs)
-        .set({ ...data, updatedAt: new Date() })
+        .set({ ...dbData, updatedAt: new Date() })
         .where(eq(bodySpecs.robotId, robotId))
         .returning();
       return spec;
     } else {
       const [spec] = await db
         .insert(bodySpecs)
-        .values({ robotId, ...data })
+        .values({ robotId, ...dbData })
         .returning();
       return spec;
     }
@@ -357,17 +367,25 @@ export class HumanoidRobotService {
       .where(eq(handSpecs.robotId, robotId))
       .limit(1);
 
+    // Convert number fields to string for decimal columns
+    const dbData: Record<string, unknown> = {};
+    if (data.handType !== undefined) dbData.handType = data.handType;
+    if (data.fingerCount !== undefined) dbData.fingerCount = data.fingerCount;
+    if (data.handDof !== undefined) dbData.handDof = data.handDof;
+    if (data.gripForceN !== undefined) dbData.gripForceN = String(data.gripForceN);
+    if (data.isInterchangeable !== undefined) dbData.isInterchangeable = data.isInterchangeable;
+
     if (existing.length > 0) {
       const [spec] = await db
         .update(handSpecs)
-        .set({ ...data, updatedAt: new Date() })
+        .set({ ...dbData, updatedAt: new Date() })
         .where(eq(handSpecs.robotId, robotId))
         .returning();
       return spec;
     } else {
       const [spec] = await db
         .insert(handSpecs)
-        .values({ robotId, ...data })
+        .values({ robotId, ...dbData })
         .returning();
       return spec;
     }
@@ -380,17 +398,24 @@ export class HumanoidRobotService {
       .where(eq(computingSpecs.robotId, robotId))
       .limit(1);
 
+    // Convert number fields to string for decimal columns
+    const dbData: Record<string, unknown> = {};
+    if (data.mainSoc !== undefined) dbData.mainSoc = data.mainSoc;
+    if (data.topsMin !== undefined) dbData.topsMin = String(data.topsMin);
+    if (data.topsMax !== undefined) dbData.topsMax = String(data.topsMax);
+    if (data.architectureType !== undefined) dbData.architectureType = data.architectureType;
+
     if (existing.length > 0) {
       const [spec] = await db
         .update(computingSpecs)
-        .set({ ...data, updatedAt: new Date() })
+        .set({ ...dbData, updatedAt: new Date() })
         .where(eq(computingSpecs.robotId, robotId))
         .returning();
       return spec;
     } else {
       const [spec] = await db
         .insert(computingSpecs)
-        .values({ robotId, ...data })
+        .values({ robotId, ...dbData })
         .returning();
       return spec;
     }
@@ -426,17 +451,24 @@ export class HumanoidRobotService {
       .where(eq(powerSpecs.robotId, robotId))
       .limit(1);
 
+    // Convert number fields to string for decimal columns
+    const dbData: Record<string, unknown> = {};
+    if (data.batteryType !== undefined) dbData.batteryType = data.batteryType;
+    if (data.capacityWh !== undefined) dbData.capacityWh = String(data.capacityWh);
+    if (data.operationTimeHours !== undefined) dbData.operationTimeHours = String(data.operationTimeHours);
+    if (data.chargingMethod !== undefined) dbData.chargingMethod = data.chargingMethod;
+
     if (existing.length > 0) {
       const [spec] = await db
         .update(powerSpecs)
-        .set({ ...data, updatedAt: new Date() })
+        .set({ ...dbData, updatedAt: new Date() })
         .where(eq(powerSpecs.robotId, robotId))
         .returning();
       return spec;
     } else {
       const [spec] = await db
         .insert(powerSpecs)
-        .values({ robotId, ...data })
+        .values({ robotId, ...dbData })
         .returning();
       return spec;
     }
@@ -474,12 +506,16 @@ export class HumanoidRobotService {
     // Fill matrix
     for (const robot of robots) {
       if (robot.locomotionType && robot.purpose) {
-        if (matrix[robot.locomotionType]?.[robot.purpose]) {
-          matrix[robot.locomotionType][robot.purpose].count++;
-          matrix[robot.locomotionType][robot.purpose].robots.push({
-            id: robot.id,
-            name: robot.name,
-          });
+        const locomotionData = matrix[robot.locomotionType];
+        if (locomotionData) {
+          const purposeData = locomotionData[robot.purpose];
+          if (purposeData) {
+            purposeData.count++;
+            purposeData.robots.push({
+              id: robot.id,
+              name: robot.name,
+            });
+          }
         }
       }
     }
@@ -587,9 +623,10 @@ export class HumanoidRobotService {
    * Get summary statistics
    */
   async getSummary() {
-    const [{ totalRobots }] = await db
+    const totalResult = await db
       .select({ totalRobots: sql<number>`count(*)::int` })
       .from(humanoidRobots);
+    const totalRobots = totalResult[0]?.totalRobots ?? 0;
 
     const byStage = await db
       .select({
@@ -620,9 +657,9 @@ export class HumanoidRobotService {
 
     return {
       totalRobots,
-      byStage: Object.fromEntries(byStage.map(s => [s.stage, s.count])),
-      byRegion: Object.fromEntries(byRegion.map(r => [r.region, r.count])),
-      byPurpose: Object.fromEntries(byPurpose.map(p => [p.purpose, p.count])),
+      byStage: Object.fromEntries(byStage.map(s => [s.stage ?? 'unknown', s.count])),
+      byRegion: Object.fromEntries(byRegion.map(r => [r.region ?? 'unknown', r.count])),
+      byPurpose: Object.fromEntries(byPurpose.map(p => [p.purpose ?? 'unknown', p.count])),
     };
   }
 }
