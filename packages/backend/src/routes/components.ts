@@ -26,7 +26,7 @@ export async function componentRoutes(fastify: FastifyInstance) {
   });
 
   // Get torque density scatter data
-  fastify.get('/charts/torque-scatter', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/charts/torque-scatter', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const data = await componentService.getTorqueDensityScatterData();
       return data;
@@ -37,7 +37,7 @@ export async function componentRoutes(fastify: FastifyInstance) {
   });
 
   // Get TOPS timeline data
-  fastify.get('/charts/tops-timeline', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/charts/tops-timeline', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const data = await componentService.getTopsTimelineData();
       return data;
@@ -48,7 +48,7 @@ export async function componentRoutes(fastify: FastifyInstance) {
   });
 
   // Get computing location distribution
-  fastify.get('/charts/computing-location', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/charts/computing-location', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const data = await componentService.getComputingLocationDistribution();
       return data;

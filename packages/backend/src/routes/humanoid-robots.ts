@@ -56,7 +56,7 @@ export async function humanoidRobotRoutes(fastify: FastifyInstance) {
   });
 
   // Get segment matrix
-  fastify.get('/segment-matrix', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/segment-matrix', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const matrix = await humanoidRobotService.getSegmentMatrix();
       return matrix;
@@ -67,7 +67,7 @@ export async function humanoidRobotRoutes(fastify: FastifyInstance) {
   });
 
   // Get hand type distribution
-  fastify.get('/hand-distribution', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/hand-distribution', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const distribution = await humanoidRobotService.getHandTypeDistribution();
       return distribution;
@@ -78,7 +78,7 @@ export async function humanoidRobotRoutes(fastify: FastifyInstance) {
   });
 
   // Get summary
-  fastify.get('/summary', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/summary', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const summary = await humanoidRobotService.getSummary();
       return summary;

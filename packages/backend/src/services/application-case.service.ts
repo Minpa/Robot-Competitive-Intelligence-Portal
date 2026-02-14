@@ -1,4 +1,4 @@
-import { eq, and, sql, desc, asc, gte, lte } from 'drizzle-orm';
+import { eq, and, sql, desc, asc } from 'drizzle-orm';
 import {
   db,
   applicationCases,
@@ -167,10 +167,12 @@ export class ApplicationCaseService {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const [{ count }] = await db
+    const countResult = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(applicationCases)
       .where(whereClause);
+    
+    const total = countResult[0]?.count ?? 0;
 
     const offset = (pagination.page - 1) * pagination.limit;
     const cases = await db
@@ -192,8 +194,8 @@ export class ApplicationCaseService {
       pagination: {
         page: pagination.page,
         limit: pagination.limit,
-        total: count,
-        totalPages: Math.ceil(count / pagination.limit),
+        total,
+        totalPages: Math.ceil(total / pagination.limit),
       },
     };
   }
@@ -271,10 +273,10 @@ export class ApplicationCaseService {
     const conditions = [];
 
     if (startDate) {
-      conditions.push(gte(applicationCases.demoDate, startDate.toISOString().split('T')[0]));
+      conditions.push(sql`${applicationCases.demoDate} >= ${startDate.toISOString().split('T')[0]}`);
     }
     if (endDate) {
-      conditions.push(lte(applicationCases.demoDate, endDate.toISOString().split('T')[0]));
+      conditions.push(sql`${applicationCases.demoDate} <= ${endDate.toISOString().split('T')[0]}`);
     }
 
     const whereClause = conditions.length > 0 

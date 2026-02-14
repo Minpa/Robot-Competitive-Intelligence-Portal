@@ -27,7 +27,7 @@ export async function applicationCaseRoutes(fastify: FastifyInstance) {
   });
 
   // Get environment-task matrix
-  fastify.get('/matrix', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/matrix', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const matrix = await applicationCaseService.getEnvironmentTaskMatrix();
       return matrix;
@@ -38,7 +38,7 @@ export async function applicationCaseRoutes(fastify: FastifyInstance) {
   });
 
   // Get deployment status distribution
-  fastify.get('/deployment-distribution', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/deployment-distribution', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const distribution = await applicationCaseService.getDeploymentStatusDistribution();
       return distribution;

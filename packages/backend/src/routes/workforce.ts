@@ -96,7 +96,7 @@ export async function workforceRoutes(fastify: FastifyInstance) {
   });
 
   // Get workforce by segment
-  fastify.get('/by-segment', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/by-segment', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const bySegment = await workforceService.getWorkforceBySegment();
       return bySegment;
@@ -107,7 +107,7 @@ export async function workforceRoutes(fastify: FastifyInstance) {
   });
 
   // Get aggregated job distribution
-  fastify.get('/job-distribution/aggregated', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/job-distribution/aggregated', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const distribution = await workforceService.getAggregatedJobDistribution();
       return distribution;
