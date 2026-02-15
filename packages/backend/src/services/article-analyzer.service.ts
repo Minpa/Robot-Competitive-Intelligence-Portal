@@ -153,34 +153,38 @@ export class ArticleAnalyzerService {
   }
 
   /**
-   * Submit and save article
+   * Submit and save article metadata only (no original content stored)
    */
   async submitArticle(data: SubmitArticleDto, submittedBy?: string) {
-    // Check for duplicate
-    const { isDuplicate, existingId } = await this.checkDuplicate(data.content);
+    // Check for duplicate using title hash (since we don't store content)
+    const titleHash = this.generateContentHash(data.title);
     
-    if (isDuplicate) {
+    const [existing] = await db
+      .select({ id: articles.id })
+      .from(articles)
+      .where(eq(articles.contentHash, titleHash))
+      .limit(1);
+
+    if (existing) {
       return {
         success: false,
         isDuplicate: true,
-        existingId,
-        message: '동일한 내용의 기사가 이미 존재합니다.',
+        existingId: existing.id,
+        message: '동일한 제목의 기사가 이미 존재합니다.',
       };
     }
 
-    const contentHash = this.generateContentHash(data.content);
-
-    // Create article
+    // Create article with metadata only (no content, url, source stored)
     const insertResult = await db
       .insert(articles)
       .values({
         title: data.title,
-        source: data.source,
-        url: data.url || '',
-        content: data.content,
+        source: '', // Not storing source
+        url: '', // Not storing URL
+        content: '', // Not storing original content
         summary: data.summary,
         language: data.language || 'ko',
-        contentHash,
+        contentHash: titleHash,
         submittedBy,
         extractedMetadata: data.extractedMetadata,
         companyId: data.confirmedCompanyIds?.[0], // Primary company
@@ -206,42 +210,11 @@ export class ArticleAnalyzerService {
       );
     }
 
-    // Extract and save keywords
-    const extractedKeywords = this.extractKeywords(data.content, data.language || 'ko');
-    for (const kw of extractedKeywords) {
-      // Find or create keyword
-      const existingKeywords = await db
-        .select()
-        .from(keywords)
-        .where(and(eq(keywords.term, kw.term), eq(keywords.language, data.language || 'ko')))
-        .limit(1);
-
-      let keywordRecord = existingKeywords[0];
-
-      if (!keywordRecord) {
-        const newKeywords = await db
-          .insert(keywords)
-          .values({ term: kw.term, language: data.language || 'ko' })
-          .returning();
-        keywordRecord = newKeywords[0];
-      }
-
-      // Link keyword to article
-      if (keywordRecord) {
-        await db.insert(articleKeywords).values({
-          articleId: article.id,
-          keywordId: keywordRecord.id,
-          frequency: 1,
-          tfidfScore: String(kw.relevance),
-        }).onConflictDoNothing();
-      }
-    }
-
     return {
       success: true,
       isDuplicate: false,
       article,
-      message: '기사가 성공적으로 저장되었습니다.',
+      message: '메타데이터가 성공적으로 저장되었습니다.',
     };
   }
 

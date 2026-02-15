@@ -7,7 +7,6 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 
 export default function ArticleAnalyzerPage() {
   const [content, setContent] = useState('');
-  const [sourceUrl, setSourceUrl] = useState('');
   const [title, setTitle] = useState('');
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [selectedRobotTags, setSelectedRobotTags] = useState<string[]>([]);
@@ -15,7 +14,7 @@ export default function ArticleAnalyzerPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const analyzeMutation = useMutation({
-    mutationFn: () => api.analyzeArticle(content, sourceUrl || undefined),
+    mutationFn: () => api.analyzeArticle(content),
     onSuccess: (data) => {
       setAnalysisResult(data);
       // 자동으로 높은 신뢰도 태그 선택
@@ -33,10 +32,8 @@ export default function ArticleAnalyzerPage() {
 
   const saveMutation = useMutation({
     mutationFn: () => api.saveAnalyzedArticle({
-      title: title || analysisResult?.metadata?.title || '제목 없음',
-      content,
+      title: title || '제목 없음',
       summary: analysisResult?.summary || '',
-      sourceUrl: sourceUrl || undefined,
       metadata: analysisResult?.metadata || {},
       robotTags: selectedRobotTags,
       companyTags: selectedCompanyTags,
@@ -45,7 +42,6 @@ export default function ArticleAnalyzerPage() {
       setSaveSuccess(true);
       // 폼 초기화
       setContent('');
-      setSourceUrl('');
       setTitle('');
       setAnalysisResult(null);
       setSelectedRobotTags([]);
@@ -120,21 +116,11 @@ export default function ArticleAnalyzerPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      출처 URL (선택)
-                    </label>
-                    <input
-                      type="url"
-                      value={sourceUrl}
-                      onChange={(e) => setSourceUrl(e.target.value)}
-                      placeholder="https://example.com/article"
-                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       기사 내용 *
                     </label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      분석용으로만 사용되며, 원문은 저장되지 않습니다.
+                    </p>
                     <textarea
                       value={content}
                       onChange={(e) => setContent(e.target.value)}

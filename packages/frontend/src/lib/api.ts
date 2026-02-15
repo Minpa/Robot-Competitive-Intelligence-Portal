@@ -952,19 +952,23 @@ class ApiClient {
     };
   }
 
-  // 분석된 기사 저장
+  // 분석된 기사 메타데이터 저장 (원문 저장 안함)
   async saveAnalyzedArticle(data: {
     title: string;
-    content: string;
     summary: string;
-    sourceUrl?: string;
     metadata: any;
     robotTags: string[];
     companyTags: string[];
   }) {
     return this.request<any>('/article-analyzer/submit', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        title: data.title,
+        summary: data.summary,
+        extractedMetadata: data.metadata,
+        confirmedRobotIds: data.robotTags,
+        confirmedCompanyIds: data.companyTags,
+      }),
     });
   }
 
