@@ -52,7 +52,9 @@ const COUNTRIES = [
 ];
 
 const GROUP_LABELS: Record<string, { label: string; icon: string }> = {
-  robot: { label: '로봇 완제품', icon: '🤖' },
+  robotics: { label: '로봇 완제품', icon: '🤖' },
+  automotive: { label: '자동차/로봇', icon: '🚗' },
+  electronics: { label: '전자/로봇', icon: '📱' },
   soc: { label: 'SoC/AI 칩', icon: '💾' },
   actuator: { label: '액추에이터/부품', icon: '⚙️' },
   rfm: { label: 'RFM/AI', icon: '🧠' },
@@ -72,10 +74,10 @@ export default function CompaniesPage() {
   const [groupByRole, setGroupByRole] = useState(false);
   const pageSize = 30;
 
-  // 카테고리 매핑
+  // 카테고리 매핑 (DB에 저장된 값과 매칭)
   const categoryFromRole = (role: string) => {
     switch (role) {
-      case 'robot': return 'robot';
+      case 'robot': return 'robotics'; // DB에는 'robotics'로 저장됨
       case 'soc': return 'soc';
       case 'actuator': return 'actuator';
       case 'rfm': return 'rfm';
@@ -140,7 +142,9 @@ export default function CompaniesPage() {
     if (!groupByRole) return null;
 
     const groups: Record<string, any[]> = {
-      robot: [],
+      robotics: [],
+      automotive: [],
+      electronics: [],
       soc: [],
       actuator: [],
       rfm: [],

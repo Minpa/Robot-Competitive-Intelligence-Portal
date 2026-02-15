@@ -35,6 +35,9 @@ interface CompanyCardProps {
 const ROLE_CONFIG: Record<string, { label: string; bgColor: string; textColor: string; icon: any }> = {
   robot_oem: { label: '로봇 완제품', bgColor: 'bg-blue-500/20', textColor: 'text-blue-400', icon: Bot },
   robot: { label: '로봇 완제품', bgColor: 'bg-blue-500/20', textColor: 'text-blue-400', icon: Bot },
+  robotics: { label: '로봇 완제품', bgColor: 'bg-blue-500/20', textColor: 'text-blue-400', icon: Bot },
+  automotive: { label: '자동차/로봇', bgColor: 'bg-blue-500/20', textColor: 'text-blue-400', icon: Bot },
+  electronics: { label: '전자/로봇', bgColor: 'bg-cyan-500/20', textColor: 'text-cyan-400', icon: Cpu },
   actuator: { label: '액추에이터', bgColor: 'bg-orange-500/20', textColor: 'text-orange-400', icon: Cog },
   soc: { label: 'SoC/칩', bgColor: 'bg-cyan-500/20', textColor: 'text-cyan-400', icon: Cpu },
   rfm: { label: 'RFM/AI', bgColor: 'bg-purple-500/20', textColor: 'text-purple-400', icon: Brain },
