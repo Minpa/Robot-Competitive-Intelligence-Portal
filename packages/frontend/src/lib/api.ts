@@ -886,27 +886,70 @@ class ApiClient {
 
   // 기사 분석 (AI 요약 + 메타데이터 추출)
   async analyzeArticle(content: string, sourceUrl?: string) {
-    return this.request<{
-      summary: string;
-      metadata: {
-        companies: string[];
-        products: string[];
-        technologies: string[];
-        insights: string[];
-      };
-      suggestedTags: Array<{
-        type: 'robot' | 'company';
-        id: string;
-        name: string;
-        confidence: number;
-      }>;
-      contentHash: string;
+    const response = await this.request<{
       isDuplicate: boolean;
-      duplicateArticleId?: string;
+      existingId?: string;
+      message?: string;
+      analysis?: {
+        summary: string;
+        keyPoints: string[];
+        mentionedCompanies: Array<{
+          mentionedName: string;
+          matchedEntity: { id: string; name: string };
+          confidence: number;
+        }>;
+        mentionedRobots: Array<{
+          mentionedName: string;
+          matchedEntity: { id: string; name: string };
+          confidence: number;
+        }>;
+        extractedTechnologies: string[];
+        marketInsights: string[];
+        keywords: Array<{ term: string; relevance: number }>;
+      };
     }>('/article-analyzer/analyze', {
       method: 'POST',
       body: JSON.stringify({ content, sourceUrl }),
     });
+
+    // Transform response to expected format
+    if (response.isDuplicate) {
+      return {
+        isDuplicate: true,
+        duplicateArticleId: response.existingId,
+        summary: '',
+        metadata: { companies: [], products: [], technologies: [], insights: [] },
+        suggestedTags: [],
+        contentHash: '',
+      };
+    }
+
+    const analysis = response.analysis;
+    return {
+      isDuplicate: false,
+      summary: analysis?.summary || '',
+      metadata: {
+        companies: analysis?.mentionedCompanies?.map(c => c.matchedEntity.name) || [],
+        products: analysis?.mentionedRobots?.map(r => r.matchedEntity.name) || [],
+        technologies: analysis?.extractedTechnologies || [],
+        insights: analysis?.marketInsights || [],
+      },
+      suggestedTags: [
+        ...(analysis?.mentionedRobots?.map(r => ({
+          type: 'robot' as const,
+          id: r.matchedEntity.id,
+          name: r.matchedEntity.name,
+          confidence: r.confidence,
+        })) || []),
+        ...(analysis?.mentionedCompanies?.map(c => ({
+          type: 'company' as const,
+          id: c.matchedEntity.id,
+          name: c.matchedEntity.name,
+          confidence: c.confidence,
+        })) || []),
+      ],
+      contentHash: '',
+    };
   }
 
   // 분석된 기사 저장
@@ -919,7 +962,7 @@ class ApiClient {
     robotTags: string[];
     companyTags: string[];
   }) {
-    return this.request<any>('/article-analyzer/save', {
+    return this.request<any>('/article-analyzer/submit', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -939,12 +982,12 @@ class ApiClient {
 
   // 로봇별 기사 조회
   async getArticlesByRobot(robotId: string) {
-    return this.request<{ items: any[]; total: number }>(`/article-analyzer/by-robot/${robotId}`);
+    return this.request<{ items: any[]; total: number }>(`/article-analyzer/robot/${robotId}`);
   }
 
   // 회사별 기사 조회
   async getArticlesByCompany(companyId: string) {
-    return this.request<{ items: any[]; total: number }>(`/article-analyzer/by-company/${companyId}`);
+    return this.request<{ items: any[]; total: number }>(`/article-analyzer/company/${companyId}`);
   }
 
   // ============================================
