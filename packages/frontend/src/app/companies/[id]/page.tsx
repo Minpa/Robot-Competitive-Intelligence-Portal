@@ -155,7 +155,7 @@ export default function CompanyDetailPage() {
             <div className="mt-6">
               <h3 className="text-sm font-medium text-gray-700 mb-3">직무 분포</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                {Object.entries(workforce.jobDistribution).map(([key, value]) => (
+                {Object.entries(workforce.jobDistribution as Record<string, number>).map(([key, value]) => (
                   <div key={key} className="bg-gray-50 rounded-lg p-3 text-center">
                     <p className="text-xs text-gray-500 uppercase">{key}</p>
                     <p className="text-lg font-semibold text-gray-900">{value || 0}%</p>
