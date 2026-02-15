@@ -5,7 +5,6 @@ import {
   bodySpecs,
   handSpecs,
   computingSpecs,
-  sensorSpecs,
   powerSpecs,
   workforceData,
   talentTrends,

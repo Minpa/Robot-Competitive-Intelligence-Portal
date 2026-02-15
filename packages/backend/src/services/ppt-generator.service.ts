@@ -1,6 +1,5 @@
 import { companyService } from './company.service.js';
 import { productService } from './product.service.js';
-import { humanoidRobotService } from './humanoid-robot.service.js';
 import { dashboardService } from './dashboard.service.js';
 
 export type PPTTemplate = 'market_overview' | 'company_deep_dive' | 'tech_components' | 'use_case';
@@ -162,7 +161,7 @@ export class PPTGeneratorService {
     }
 
     for (const companyId of options.companyIds) {
-      const company = await companyService.get(companyId);
+      const company = await companyService.getById(companyId);
       if (!company) continue;
 
       // Company overview slide
@@ -207,7 +206,7 @@ export class PPTGeneratorService {
     return slides;
   }
 
-  private async generateTechComponentsSlides(options: PPTGenerationOptions): Promise<PPTSlide[]> {
+  private async generateTechComponentsSlides(_options: PPTGenerationOptions): Promise<PPTSlide[]> {
     const slides: PPTSlide[] = [];
 
     // Get product timelines
@@ -263,7 +262,7 @@ export class PPTGeneratorService {
     return slides;
   }
 
-  private async generateUseCaseSlides(options: PPTGenerationOptions): Promise<PPTSlide[]> {
+  private async generateUseCaseSlides(_options: PPTGenerationOptions): Promise<PPTSlide[]> {
     const slides: PPTSlide[] = [];
 
     // Environment-Task Matrix

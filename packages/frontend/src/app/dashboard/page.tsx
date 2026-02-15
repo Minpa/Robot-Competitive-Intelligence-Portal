@@ -98,7 +98,7 @@ export default function DashboardPage() {
               <h2 className="text-lg font-medium text-gray-900 mb-4">세그먼트 매트릭스</h2>
               <p className="text-sm text-gray-500 mb-4">이동 방식 × 용도별 로봇 분포</p>
               
-              {segmentMatrix?.matrix && segmentMatrix.matrix.length > 0 ? (
+              {segmentMatrix?.matrix && Object.keys(segmentMatrix.matrix).length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="min-w-full">
                     <thead>
@@ -116,9 +116,7 @@ export default function DashboardPage() {
                             {getLocomotionLabel(locomotion)}
                           </td>
                           {['industrial', 'home', 'service'].map(purpose => {
-                            const cell = segmentMatrix.matrix.find(
-                              (m: any) => m.locomotionType === locomotion && m.purpose === purpose
-                            );
+                            const cell = segmentMatrix.matrix[locomotion]?.[purpose];
                             const count = cell?.count ?? 0;
                             return (
                               <td key={purpose} className="px-4 py-2 text-center">

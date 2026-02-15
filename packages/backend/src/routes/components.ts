@@ -53,8 +53,8 @@ export async function componentRoutes(fastify: FastifyInstance) {
       return {
         data: result.labels.map((year, idx) => ({
           year,
-          avgTops: result.datasets[0].data[idx],
-          maxTops: result.datasets[1].data[idx],
+          avgTops: result.datasets[0]?.data[idx] ?? 0,
+          maxTops: result.datasets[1]?.data[idx] ?? 0,
         })),
       };
     } catch (error) {
