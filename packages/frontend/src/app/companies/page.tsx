@@ -104,14 +104,14 @@ export default function CompaniesPage() {
 
   const totalPages = Math.ceil((data?.total || 0) / pageSize);
 
-  // 회사별 제품 매핑
+  // 회사별 제품 매핑 (회사 ID 기준)
   const companyProductsMap = useMemo(() => {
     const map: Record<string, any[]> = {};
     (robotsData?.items || []).forEach((robot: any) => {
-      const companyName = robot.companyName || robot.company?.name;
-      if (companyName) {
-        if (!map[companyName]) map[companyName] = [];
-        map[companyName].push({
+      const companyId = robot.company?.id;
+      if (companyId) {
+        if (!map[companyId]) map[companyId] = [];
+        map[companyId].push({
           id: robot.id,
           name: robot.name,
           type: robot.purpose,
@@ -124,7 +124,7 @@ export default function CompaniesPage() {
   // 회사 데이터에 제품 정보 추가
   const enrichedCompanies = useMemo(() => {
     return (data?.items || []).map((company: any) => {
-      const products = companyProductsMap[company.name] || [];
+      const products = companyProductsMap[company.id] || [];
       return {
         ...company,
         products,
