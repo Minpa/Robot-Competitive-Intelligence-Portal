@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
-import { db, humanoidRobots, companies, articles, applicationCases } from '../db/index.js';
+import { db, humanoidRobots, companies, articles, applicationCases, workforceData } from '../db/index.js';
 import { sql, desc, gte, and, eq, count } from 'drizzle-orm';
 
 const openai = new OpenAI({
@@ -131,27 +131,30 @@ export class InsightGeneratorService {
     };
 
     // 3. LLM으로 인사이트 생성
+    const periodStart = startDate.toISOString().split('T')[0] || '';
+    const periodEnd = endDate.toISOString().split('T')[0] || '';
+    
     const contextData = {
       period: {
-        start: startDate.toISOString().split('T')[0],
-        end: endDate.toISOString().split('T')[0],
+        start: periodStart,
+        end: periodEnd,
       },
       metrics: keyMetrics,
       newRobots: newRobotsResult.map(r => ({
         name: r.name,
-        company: r.companyName,
-        purpose: r.purpose,
-        stage: r.stage,
+        company: r.companyName || 'Unknown',
+        purpose: r.purpose || 'unknown',
+        stage: r.stage || 'unknown',
       })),
       recentArticles: newArticlesResult.slice(0, 5).map(a => ({
         title: a.title,
-        category: a.category,
+        category: a.category || 'other',
       })),
       recentCases: recentCasesResult.map(c => ({
-        robot: c.robotName,
-        company: c.companyName,
-        status: c.status,
-        event: c.event,
+        robot: c.robotName || 'Unknown',
+        company: c.companyName || 'Unknown',
+        status: c.status || 'unknown',
+        event: c.event || '',
       })),
       segmentDistribution: segmentDataResult,
     };
@@ -226,8 +229,8 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
         title: '이번 주 핵심 인사이트',
         summary: this.generateFallbackSummary(keyMetrics),
         details: '',
-        periodStart: startDate.toISOString().split('T')[0],
-        periodEnd: endDate.toISOString().split('T')[0],
+        periodStart: periodStart,
+        periodEnd: periodEnd,
         keyMetrics,
         highlights: [],
         risks: [],
@@ -297,22 +300,22 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
 
       // 신규 로봇 수
-      let robotQuery = db
-        .select({ count: count() })
-        .from(humanoidRobots)
-        .where(and(
-          gte(humanoidRobots.createdAt, monthStart),
-          sql`${humanoidRobots.createdAt} <= ${monthEnd}`
-        ));
-
+      const robotConditions = [
+        gte(humanoidRobots.createdAt, monthStart),
+        sql`${humanoidRobots.createdAt} <= ${monthEnd}`
+      ];
+      
       if (segment && segment !== 'all') {
-        robotQuery = robotQuery.where(eq(humanoidRobots.purpose, segment)) as typeof robotQuery;
+        robotConditions.push(eq(humanoidRobots.purpose, segment));
       }
 
-      const [robotCount] = await robotQuery;
+      const [robotCount] = await db
+        .select({ count: count() })
+        .from(humanoidRobots)
+        .where(and(...robotConditions));
 
       // 적용 사례 (이벤트) 수
-      let caseQuery = db
+      const caseResults = await db
         .select({
           status: applicationCases.deploymentStatus,
           count: count(),
@@ -323,8 +326,6 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
           sql`${applicationCases.createdAt} <= ${monthEnd}`
         ))
         .groupBy(applicationCases.deploymentStatus);
-
-      const caseResults = await caseQuery;
 
       // 기사 수 (투자 관련)
       const [investmentCount] = await db
@@ -341,9 +342,10 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
       const investments = Number(investmentCount?.count || 0);
 
       const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+      const monthName = monthNames[monthStart.getMonth()] || '1월';
 
       result.push({
-        month: monthNames[monthStart.getMonth()],
+        month: monthName,
         year: monthStart.getFullYear(),
         eventCount: Number(pocs) + Number(productions) + investments,
         newProducts: Number(robotCount?.count || 0),
@@ -398,7 +400,6 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
         .where(eq(humanoidRobots.companyId, company.id));
 
       // 인력 데이터 (workforce_data 테이블에서)
-      const { workforceData } = await import('../db/index.js');
       const [workforce] = await db
         .select({
           totalMin: workforceData.totalHeadcountMin,
@@ -425,12 +426,18 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
 
       // 주력 세그먼트 결정
       let mainSegment: CompanyScatterData['segment'] = 'mixed';
-      if (segments.length === 1) {
-        mainSegment = (segments[0].purpose as CompanyScatterData['segment']) || 'mixed';
+      if (segments.length === 1 && segments[0]?.purpose) {
+        const purpose = segments[0].purpose;
+        if (purpose === 'industrial' || purpose === 'home' || purpose === 'service') {
+          mainSegment = purpose;
+        }
       } else if (segments.length > 1) {
-        const sorted = segments.sort((a, b) => Number(b.count) - Number(a.count));
-        if (Number(sorted[0].count) > Number(sorted[1].count) * 2) {
-          mainSegment = (sorted[0].purpose as CompanyScatterData['segment']) || 'mixed';
+        const sorted = [...segments].sort((a, b) => Number(b.count) - Number(a.count));
+        if (sorted[0] && sorted[1] && Number(sorted[0].count) > Number(sorted[1].count) * 2) {
+          const purpose = sorted[0].purpose;
+          if (purpose === 'industrial' || purpose === 'home' || purpose === 'service') {
+            mainSegment = purpose;
+          }
         }
       }
 
@@ -504,6 +511,8 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
         eq(humanoidRobots.purpose, purpose)
       ));
 
+    const locomotionLabel = locomotion === 'bipedal' ? '2족 보행' : locomotion;
+
     return {
       locomotion,
       purpose,
@@ -512,15 +521,15 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
         id: c.id,
         name: c.name,
         country: c.country,
-        logoUrl: c.logoUrl,
+        logoUrl: c.logoUrl || undefined,
         mainProduct: c.robotName,
-        mainSpec: `${locomotion === 'bipedal' ? '2족 보행' : locomotion}, ${purpose}`,
+        mainSpec: `${locomotionLabel}, ${purpose}`,
       })),
       recentEvents: recentEvents.map(e => ({
         id: e.id,
-        date: e.date || new Date().toISOString().split('T')[0],
-        type: e.status === 'pilot' ? 'poc' : e.status === 'production' ? 'production' : 'other',
-        description: e.event || `${e.robotName} ${e.status}`,
+        date: e.date || new Date().toISOString().split('T')[0] || '',
+        type: (e.status === 'pilot' ? 'poc' : e.status === 'production' ? 'production' : 'other') as 'investment' | 'poc' | 'production' | 'other',
+        description: e.event || `${e.robotName || 'Robot'} ${e.status || ''}`,
       })),
     };
   }
