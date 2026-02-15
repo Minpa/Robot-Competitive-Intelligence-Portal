@@ -10,21 +10,23 @@ const ENVIRONMENTS = [
   { id: 'factory', label: '공장' },
   { id: 'warehouse', label: '물류창고' },
   { id: 'retail', label: '리테일' },
-  { id: 'hospital', label: '병원' },
-  { id: 'hotel', label: '호텔' },
+  { id: 'healthcare', label: '의료' },
+  { id: 'hospitality', label: '호텔/서비스' },
   { id: 'home', label: '가정' },
-  { id: 'outdoor', label: '야외' },
+  { id: 'research_lab', label: '연구소' },
+  { id: 'other', label: '기타' },
 ];
 
 const TASK_TYPES = [
   { id: '', label: '전체' },
   { id: 'assembly', label: '조립' },
   { id: 'picking', label: '피킹' },
+  { id: 'packing', label: '포장' },
   { id: 'inspection', label: '검사' },
   { id: 'delivery', label: '배송' },
   { id: 'cleaning', label: '청소' },
-  { id: 'service', label: '서비스' },
-  { id: 'security', label: '보안' },
+  { id: 'assistance', label: '보조' },
+  { id: 'other', label: '기타' },
 ];
 
 export default function ApplicationCasesPage() {
@@ -57,8 +59,9 @@ export default function ApplicationCasesPage() {
     switch (status) {
       case 'production': return 'bg-green-100 text-green-800';
       case 'pilot': return 'bg-yellow-100 text-yellow-800';
+      case 'poc': return 'bg-orange-100 text-orange-800';
+      case 'concept': return 'bg-purple-100 text-purple-800';
       case 'demo': return 'bg-blue-100 text-blue-800';
-      case 'planned': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -67,8 +70,9 @@ export default function ApplicationCasesPage() {
     const map: Record<string, string> = {
       production: '상용',
       pilot: '파일럿',
+      poc: 'PoC',
+      concept: '컨셉',
       demo: '시연',
-      planned: '계획',
     };
     return map[status] || status;
   };
@@ -88,7 +92,7 @@ export default function ApplicationCasesPage() {
               <h2 className="text-lg font-medium text-gray-900 mb-4">환경-작업 매트릭스</h2>
               <p className="text-sm text-gray-500 mb-4">적용 환경과 작업 유형별 사례 분포</p>
               
-              {matrix?.matrix && matrix.matrix.length > 0 ? (
+              {matrix?.matrix && Object.keys(matrix.matrix).length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
@@ -106,9 +110,7 @@ export default function ApplicationCasesPage() {
                         <tr key={env.id}>
                           <td className="px-2 py-1 text-xs font-medium text-gray-700">{env.label}</td>
                           {TASK_TYPES.filter(t => t.id).slice(0, 5).map(task => {
-                            const cell = matrix.matrix.find(
-                              (m: any) => m.environment === env.id && m.taskType === task.id
-                            );
+                            const cell = matrix.matrix[env.id]?.[task.id];
                             const count = cell?.count ?? 0;
                             return (
                               <td key={task.id} className="px-2 py-1 text-center">
@@ -200,8 +202,9 @@ export default function ApplicationCasesPage() {
                   <option value="">전체</option>
                   <option value="production">상용</option>
                   <option value="pilot">파일럿</option>
+                  <option value="poc">PoC</option>
+                  <option value="concept">컨셉</option>
                   <option value="demo">시연</option>
-                  <option value="planned">계획</option>
                 </select>
               </div>
             </div>
@@ -219,7 +222,7 @@ export default function ApplicationCasesPage() {
                   <div key={caseItem.id} className="p-6 hover:bg-gray-50">
                     <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="text-lg font-medium text-gray-900">{caseItem.title}</h3>
+                        <h3 className="text-lg font-medium text-gray-900">{caseItem.demoEvent || caseItem.description || '적용 사례'}</h3>
                         <p className="text-sm text-gray-500 mt-1">
                           {caseItem.robotName} · {caseItem.companyName}
                         </p>
@@ -238,7 +241,7 @@ export default function ApplicationCasesPage() {
                       </span>
                     </div>
                     
-                    {caseItem.description && (
+                    {caseItem.description && caseItem.demoEvent && (
                       <p className="text-sm text-gray-600 mt-3">{caseItem.description}</p>
                     )}
                     

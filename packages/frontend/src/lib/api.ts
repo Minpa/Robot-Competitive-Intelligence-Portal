@@ -812,7 +812,7 @@ class ApiClient {
         environment: item.case.environmentType,
         taskType: item.case.taskType,
         description: item.case.taskDescription,
-        status: item.case.deploymentStatus,
+        deploymentStatus: item.case.deploymentStatus,
         demoEvent: item.case.demoEvent,
         demoDate: item.case.demoDate,
       })),
