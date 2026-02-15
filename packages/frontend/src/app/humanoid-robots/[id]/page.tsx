@@ -210,8 +210,8 @@ export default function HumanoidRobotDetailPage() {
                       <KpiCard icon={Ruler} label="자유도 (DoF)" value={robot.bodySpec?.dof} color="purple" />
                       <KpiCard icon={Zap} label="최고 속도" value={robot.bodySpec?.maxSpeed} unit="m/s" color="green" />
                       <KpiCard icon={Clock} label="연속 동작" value={robot.bodySpec?.operationTime || robot.powerSpec?.operationTime} unit="h" color="orange" />
-                      <KpiCard icon={Target} label="반복 정밀도" value={robot.bodySpec?.repeatability} unit="mm" color="cyan" />
-                      <KpiCard icon={Shield} label="보호 등급" value={robot.bodySpec?.ipRating || 'IP54'} color="slate" />
+                      <KpiCard icon={Target} label="반복 정밀도" value={(robot.bodySpec as any)?.repeatability} unit="mm" color="cyan" />
+                      <KpiCard icon={Shield} label="보호 등급" value={(robot.bodySpec as any)?.ipRating || 'IP54'} color="slate" />
                     </div>
                   </div>
 
@@ -317,9 +317,9 @@ export default function HumanoidRobotDetailPage() {
                               <SpecRow label="자유도 (DoF)" value={robot.bodySpec.dof} />
                               <SpecRow label="최고 속도" value={robot.bodySpec.maxSpeed} unit="m/s" />
                               <SpecRow label="연속 동작 시간" value={robot.bodySpec.operationTime} unit="시간" />
-                              <SpecRow label="반복 정밀도" value={robot.bodySpec.repeatability} unit="mm" />
-                              <SpecRow label="보호 등급" value={robot.bodySpec.ipRating} />
-                              <SpecRow label="주요 재질" value={robot.bodySpec.material} />
+                              <SpecRow label="반복 정밀도" value={(robot.bodySpec as any).repeatability} unit="mm" />
+                              <SpecRow label="보호 등급" value={(robot.bodySpec as any).ipRating} />
+                              <SpecRow label="주요 재질" value={(robot.bodySpec as any).material} />
                             </tbody>
                           </table>
                         </div>
@@ -349,13 +349,13 @@ export default function HumanoidRobotDetailPage() {
                         <div className="bg-slate-800/30 rounded-lg overflow-hidden">
                           <table className="w-full">
                             <tbody>
-                              <SpecRow label="타입" value={HAND_LABELS[robot.handSpec.type] || robot.handSpec.type} />
-                              <SpecRow label="손가락 수" value={robot.handSpec.fingerCount} />
-                              <SpecRow label="DoF (각 손)" value={robot.handSpec.dofPerHand} />
-                              <SpecRow label="최대 Grip Force" value={robot.handSpec.maxGripForce} unit="N" />
-                              <SpecRow label="최대 토크" value={robot.handSpec.maxTorque} unit="Nm" />
-                              <SpecRow label="교체 가능" value={robot.handSpec.isModular ? '예' : '아니오'} />
-                              <SpecRow label="촉각 센서" value={robot.handSpec.hasTactileSensor ? '있음' : '없음'} />
+                              <SpecRow label="타입" value={HAND_LABELS[(robot.handSpec as any).type] || (robot.handSpec as any).type} />
+                              <SpecRow label="손가락 수" value={(robot.handSpec as any).fingerCount} />
+                              <SpecRow label="DoF (각 손)" value={(robot.handSpec as any).dofPerHand} />
+                              <SpecRow label="최대 Grip Force" value={(robot.handSpec as any).maxGripForce} unit="N" />
+                              <SpecRow label="최대 토크" value={(robot.handSpec as any).maxTorque} unit="Nm" />
+                              <SpecRow label="교체 가능" value={(robot.handSpec as any).isModular ? '예' : '아니오'} />
+                              <SpecRow label="촉각 센서" value={(robot.handSpec as any).hasTactileSensor ? '있음' : '없음'} />
                             </tbody>
                           </table>
                         </div>
@@ -383,12 +383,12 @@ export default function HumanoidRobotDetailPage() {
                         <div className="bg-slate-800/30 rounded-lg overflow-hidden">
                           <table className="w-full">
                             <tbody>
-                              <SpecRow label="메인 SoC" value={robot.computingSpec.mainSoc} />
-                              <SpecRow label="AI 성능 (TOPS)" value={robot.computingSpec.topsRange} />
-                              <SpecRow label="아키텍처" value={robot.computingSpec.architecture} />
-                              <SpecRow label="메모리" value={robot.computingSpec.memory} />
-                              <SpecRow label="OS" value={robot.computingSpec.os} />
-                              <SpecRow label="지원 프레임워크" value={robot.computingSpec.frameworks} />
+                              <SpecRow label="메인 SoC" value={(robot.computingSpec as any).mainSoc} />
+                              <SpecRow label="AI 성능 (TOPS)" value={(robot.computingSpec as any).topsRange} />
+                              <SpecRow label="아키텍처" value={(robot.computingSpec as any).architecture} />
+                              <SpecRow label="메모리" value={(robot.computingSpec as any).memory} />
+                              <SpecRow label="OS" value={(robot.computingSpec as any).os} />
+                              <SpecRow label="지원 프레임워크" value={(robot.computingSpec as any).frameworks} />
                             </tbody>
                           </table>
                         </div>
@@ -396,10 +396,10 @@ export default function HumanoidRobotDetailPage() {
                         <p className="text-slate-500">Computing 스펙 정보가 없습니다.</p>
                       )}
                       {/* 관련 SoC 링크 */}
-                      {robot.computingSpec?.socId && (
+                      {(robot.computingSpec as any)?.socId && (
                         <div className="mt-4">
                           <Link
-                            href={`/components?type=soc&id=${robot.computingSpec.socId}`}
+                            href={`/components?type=soc&id=${(robot.computingSpec as any).socId}`}
                             className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300"
                           >
                             <ExternalLink className="w-4 h-4" />
@@ -461,12 +461,12 @@ export default function HumanoidRobotDetailPage() {
                         <div className="bg-slate-800/30 rounded-lg overflow-hidden">
                           <table className="w-full">
                             <tbody>
-                              <SpecRow label="배터리 종류" value={robot.powerSpec.batteryType} />
-                              <SpecRow label="용량" value={robot.powerSpec.capacity} unit="Wh" />
-                              <SpecRow label="동작 시간" value={robot.powerSpec.operationTime} unit="시간" />
-                              <SpecRow label="충전 방식" value={robot.powerSpec.chargingMethod} />
-                              <SpecRow label="충전 시간" value={robot.powerSpec.chargingTime} unit="시간" />
-                              <SpecRow label="교체 가능" value={robot.powerSpec.isSwappable ? '예' : '아니오'} />
+                              <SpecRow label="배터리 종류" value={(robot.powerSpec as any).batteryType} />
+                              <SpecRow label="용량" value={(robot.powerSpec as any).capacity} unit="Wh" />
+                              <SpecRow label="동작 시간" value={(robot.powerSpec as any).operationTime} unit="시간" />
+                              <SpecRow label="충전 방식" value={(robot.powerSpec as any).chargingMethod} />
+                              <SpecRow label="충전 시간" value={(robot.powerSpec as any).chargingTime} unit="시간" />
+                              <SpecRow label="교체 가능" value={(robot.powerSpec as any).isSwappable ? '예' : '아니오'} />
                             </tbody>
                           </table>
                         </div>
