@@ -164,7 +164,8 @@ export default function ApplicationCasesPage() {
     let maxCell = { env: '', task: '' };
     
     Object.entries(matrixData).forEach(([env, tasks]: [string, any]) => {
-      Object.entries(tasks).forEach(([task, count]: [string, any]) => {
+      Object.entries(tasks).forEach(([task, cellData]: [string, any]) => {
+        const count = typeof cellData === 'object' ? cellData?.count : (cellData || 0);
         if (count > maxCount) {
           maxCount = count;
           maxCell = { env, task };
@@ -305,7 +306,8 @@ export default function ApplicationCasesPage() {
                             {env.label}
                           </td>
                           {TASK_TYPES.slice(1, 6).map(task => {
-                            const count = (matrix?.matrix as any)?.[env.id]?.[task.id] || 0;
+                            const cellData = (matrix?.matrix as any)?.[env.id]?.[task.id];
+                            const count = typeof cellData === 'object' ? cellData?.count : (cellData || 0);
                             return (
                               <td key={task.id} className="p-1 text-center">
                                 <button
