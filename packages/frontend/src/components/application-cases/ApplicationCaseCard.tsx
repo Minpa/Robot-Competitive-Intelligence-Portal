@@ -1,6 +1,6 @@
 'use client';
 
-import { Factory, Warehouse, ShoppingBag, Hospital, Hotel, Home, FlaskConical, MoreHorizontal } from 'lucide-react';
+import { Factory, Warehouse, ShoppingBag, Building2, Hotel, Home, FlaskConical, MoreHorizontal } from 'lucide-react';
 
 interface ApplicationCase {
   id: string;
@@ -28,7 +28,7 @@ const ENVIRONMENT_ICONS: Record<string, React.ReactNode> = {
   factory: <Factory className="w-4 h-4" />,
   warehouse: <Warehouse className="w-4 h-4" />,
   retail: <ShoppingBag className="w-4 h-4" />,
-  healthcare: <Hospital className="w-4 h-4" />,
+  healthcare: <Building2 className="w-4 h-4" />,
   hospitality: <Hotel className="w-4 h-4" />,
   home: <Home className="w-4 h-4" />,
   research_lab: <FlaskConical className="w-4 h-4" />,
