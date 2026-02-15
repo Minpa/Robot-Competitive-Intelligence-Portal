@@ -455,10 +455,43 @@ class ApiClient {
     page?: number;
     limit?: number;
   }) {
-    const query = params ? '?' + new URLSearchParams(
-      Object.entries(params).filter(([_, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
-    ).toString() : '';
-    return this.request<{ items: any[]; total: number; page: number; limit: number }>(`/humanoid-robots${query}`);
+    // Map frontend params to backend params
+    const backendParams: Record<string, string> = {};
+    if (params) {
+      if (params.purpose) backendParams.purpose = params.purpose;
+      if (params.locomotionType) backendParams.locomotionType = params.locomotionType;
+      if (params.handType) backendParams.handType = params.handType;
+      if (params.stage) backendParams.commercializationStage = params.stage; // Map stage to commercializationStage
+      if (params.region) backendParams.region = params.region;
+      if (params.sortBy) backendParams.sortField = params.sortBy;
+      if (params.sortOrder) backendParams.sortDirection = params.sortOrder;
+      if (params.page) backendParams.page = String(params.page);
+      if (params.limit) backendParams.limit = String(params.limit);
+    }
+    const query = Object.keys(backendParams).length > 0 ? '?' + new URLSearchParams(backendParams).toString() : '';
+    
+    const response = await this.request<{ data: any[]; pagination: { total: number; page: number; limit: number } }>(`/humanoid-robots${query}`);
+    
+    // Transform response to expected format
+    return {
+      items: response.data.map((item: any) => ({
+        id: item.robot.id,
+        name: item.robot.name,
+        companyName: item.company?.name,
+        company: item.company,
+        purpose: item.robot.purpose,
+        locomotionType: item.robot.locomotionType,
+        handType: item.robot.handType,
+        stage: item.robot.commercializationStage,
+        region: item.robot.region,
+        announcedYear: item.robot.announcementYear,
+        description: item.robot.description,
+        imageUrl: item.robot.imageUrl,
+      })),
+      total: response.pagination.total,
+      page: response.pagination.page,
+      limit: response.pagination.limit,
+    };
   }
 
   // 휴머노이드 로봇 상세
@@ -540,6 +573,11 @@ class ApiClient {
     return this.request<any[]>(`/workforce/company/${companyId}/trends`);
   }
 
+  // 탤런트 트렌드 조회 (별칭)
+  async getTalentTrend(companyId: string) {
+    return this.getTalentTrends(companyId);
+  }
+
   // 탤런트 트렌드 추가
   async addTalentTrend(companyId: string, data: any) {
     return this.request<any>(`/workforce/company/${companyId}/trends`, {
@@ -595,6 +633,21 @@ class ApiClient {
   // 부품 상세
   async getComponent(id: string) {
     return this.request<any>(`/components/${id}`);
+  }
+
+  // 부품 상세 (별칭)
+  async getComponentById(id: string) {
+    return this.getComponent(id);
+  }
+
+  // 부품별 로봇 조회
+  async getRobotsByComponent(componentId: string) {
+    return this.request<any[]>(`/components/${componentId}/robots`);
+  }
+
+  // 휴머노이드 로봇 상세 (별칭)
+  async getHumanoidRobotById(id: string) {
+    return this.getHumanoidRobot(id);
   }
 
   // 부품 생성
@@ -806,6 +859,49 @@ class ApiClient {
   // 회사별 기사 조회
   async getArticlesByCompany(companyId: string) {
     return this.request<{ items: any[]; total: number }>(`/article-analyzer/by-company/${companyId}`);
+  }
+
+  // ============================================
+  // PPT 생성 API
+  // ============================================
+
+  // PPT 템플릿 목록
+  async getPPTTemplates() {
+    return this.request<Array<{ id: string; name: string; description: string }>>('/export/ppt/templates');
+  }
+
+  // PPT 슬라이드 생성
+  async generatePPTSlides(options: {
+    template: string;
+    theme: string;
+    title: string;
+    subtitle?: string;
+    companyIds?: string[];
+    robotIds?: string[];
+    includeCharts?: boolean;
+    includeTables?: boolean;
+  }) {
+    return this.request<{
+      slides: Array<{
+        id: string;
+        title: string;
+        subtitle?: string;
+        contents: Array<{
+          type: string;
+          title?: string;
+          content?: any;
+        }>;
+      }>;
+      metadata: {
+        template: string;
+        theme: string;
+        generatedAt: string;
+        slideCount: number;
+      };
+    }>('/export/ppt/generate', {
+      method: 'POST',
+      body: JSON.stringify(options),
+    });
   }
 }
 
