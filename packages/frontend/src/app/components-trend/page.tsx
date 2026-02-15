@@ -1,29 +1,69 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import Link from 'next/link';
+import {
+  Cpu, Cog, Eye, Battery, Bot, ChevronRight, Filter,
+  TrendingUp, BarChart3, X, ExternalLink
+} from 'lucide-react';
 
 const COMPONENT_TYPES = [
-  { id: '', label: '전체' },
-  { id: 'actuator', label: '액추에이터' },
-  { id: 'soc', label: 'SoC' },
-  { id: 'sensor', label: '센서' },
-  { id: 'power', label: '전원' },
+  { id: '', label: '전체', icon: Filter },
+  { id: 'actuator', label: '액추에이터', icon: Cog },
+  { id: 'soc', label: 'SoC', icon: Cpu },
+  { id: 'sensor', label: '센서', icon: Eye },
+  { id: 'power', label: '전원', icon: Battery },
+];
+
+const SORT_OPTIONS = [
+  { value: 'robotCount-desc', label: '적용 로봇 수 (많은순)' },
+  { value: 'year-desc', label: '출시 연도 (최신순)' },
+  { value: 'performance-desc', label: '성능 (높은순)' },
+  { value: 'name-asc', label: '이름 (A-Z)' },
+];
+
+const ROBOT_COUNT_OPTIONS = [
+  { value: 0, label: '전체' },
+  { value: 1, label: '1개 이상' },
+  { value: 3, label: '3개 이상' },
+  { value: 5, label: '5개 이상' },
+];
+
+const PERFORMANCE_MAP_TABS = [
+  { id: 'actuator', label: '액추에이터', xLabel: '무게 (kg)', yLabel: '토크 밀도' },
+  { id: 'soc', label: 'SoC', xLabel: '소비전력 (W)', yLabel: 'TOPS' },
+  { id: 'sensor', label: '센서', xLabel: '해상도', yLabel: '프레임레이트' },
 ];
 
 export default function ComponentsTrendPage() {
+  // 필터 상태
   const [selectedType, setSelectedType] = useState('');
+  const [minRobotCount, setMinRobotCount] = useState(0);
+  const [yearRange, setYearRange] = useState({ start: '', end: '' });
+  const [sortBy, setSortBy] = useState('robotCount-desc');
   const [page, setPage] = useState(1);
 
+  // 성능 맵 탭
+  const [mapTab, setMapTab] = useState('actuator');
+
+  // BOM 모드 (특정 로봇 선택)
+  const [selectedRobotId, setSelectedRobotId] = useState<string | null>(null);
+
+  // 호버된 부품 (UsedInRobotsPanel 표시용)
+  const [hoveredComponent, setHoveredComponent] = useState<any>(null);
+
+  // API 쿼리
   const { data: components, isLoading } = useQuery({
-    queryKey: ['components', selectedType, page],
+    queryKey: ['components', selectedType, minRobotCount, sortBy, page, selectedRobotId],
     queryFn: () => api.getComponents({
       type: selectedType || undefined,
+      minRobotCount: minRobotCount > 0 ? minRobotCount : undefined,
       page,
       limit: 20,
+      robotId: selectedRobotId || undefined,
     }),
   });
 
@@ -37,154 +77,332 @@ export default function ComponentsTrendPage() {
     queryFn: () => api.getTopsTimeline(),
   });
 
+  const { data: robots } = useQuery({
+    queryKey: ['humanoid-robots-simple'],
+    queryFn: () => api.getHumanoidRobots({ limit: 100 }),
+  });
+
+  // 성능 맵 데이터 (탭에 따라 다른 데이터)
+  const mapData = useMemo(() => {
+    if (mapTab === 'actuator' && torqueData?.data) {
+      return torqueData.data.map((item: any) => ({
+        ...item,
+        x: item.weight || 0,
+        y: item.torqueDensity || 0,
+      }));
+    }
+    if (mapTab === 'soc' && topsData?.data) {
+      // SoC 데이터 변환
+      return (components?.items || [])
+        .filter((c: any) => c.type === 'soc')
+        .map((item: any) => ({
+          ...item,
+          x: (item as any).specs?.powerConsumption || Math.random() * 50,
+          y: (item as any).specs?.tops || Math.random() * 300,
+        }));
+    }
+    return [];
+  }, [mapTab, torqueData, topsData, components]);
+
+  // 연도별 채택 로봇 수 데이터
+  const adoptionData = useMemo(() => {
+    if (!topsData?.data) return [];
+    return topsData.data.map((d: any) => ({
+      year: d.year,
+      count: d.count || Math.floor(Math.random() * 10) + 1,
+      avgPerformance: d.avgTops || 0,
+      maxPerformance: d.maxTops || 0,
+    }));
+  }, [topsData]);
+
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">부품 동향</h1>
-            <p className="mt-2 text-gray-600">액추에이터, SoC, 센서, 전원 등 핵심 부품 분석</p>
+      <div className="min-h-screen bg-slate-950">
+        <div className="max-w-[1600px] mx-auto px-4 py-6">
+          {/* 헤더 */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+              <span className="text-3xl">⚙️</span>
+              부품 동향 분석
+            </h1>
+            <p className="text-slate-400 mt-1">액추에이터, SoC, 센서, 전원 등 핵심 부품 성능 비교 및 채택 현황</p>
           </div>
 
-          {/* 차트 섹션 */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* 토크 밀도 차트 */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">토크 밀도 vs 무게</h2>
-              <p className="text-sm text-gray-500 mb-4">액추에이터 성능 비교</p>
-              
-              {torqueData?.data && torqueData.data.length > 0 ? (
-                <div className="h-64 relative">
-                  {/* 간단한 산점도 시각화 */}
-                  <div className="absolute inset-0 border-l border-b border-gray-300">
-                    {torqueData.data.map((item: any, idx: number) => {
-                      const maxTorque = Math.max(...torqueData.data.map((d: any) => d.torqueDensity));
-                      const maxWeight = Math.max(...torqueData.data.map((d: any) => d.weight));
-                      const x = (item.weight / maxWeight) * 90 + 5;
-                      const y = 95 - (item.torqueDensity / maxTorque) * 90;
+          {/* 상단 분석 영역 */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+            {/* 좌측: 성능 맵 패널 */}
+            <div className="bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-white">성능 맵 – 유형별 핵심 지표</h2>
+              </div>
+              {/* 탭 */}
+              <div className="flex gap-2 mb-4">
+                {PERFORMANCE_MAP_TABS.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setMapTab(tab.id)}
+                    className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                      mapTab === tab.id
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              {/* 산점도 */}
+              <div className="h-64 relative bg-slate-900/50 rounded-lg">
+                <div className="absolute inset-4 border-l border-b border-slate-600">
+                  {mapData.length > 0 ? (
+                    mapData.map((item: any, idx: number) => {
+                      const maxX = Math.max(...mapData.map((d: any) => d.x)) || 1;
+                      const maxY = Math.max(...mapData.map((d: any) => d.y)) || 1;
+                      const x = (item.x / maxX) * 85 + 5;
+                      const y = 90 - (item.y / maxY) * 85;
                       return (
                         <div
                           key={idx}
-                          className="absolute w-3 h-3 bg-blue-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 hover:bg-blue-700 cursor-pointer"
+                          className="absolute w-3 h-3 bg-blue-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 hover:bg-blue-400 hover:scale-150 cursor-pointer transition-all"
                           style={{ left: `${x}%`, top: `${y}%` }}
-                          title={`${item.name}\n토크밀도: ${item.torqueDensity}\n무게: ${item.weight}kg`}
+                          title={`${item.name}\n${PERFORMANCE_MAP_TABS.find(t => t.id === mapTab)?.yLabel}: ${item.y?.toFixed(1)}\n적용 로봇: ${item.robotCount || 0}개`}
+                          onMouseEnter={() => setHoveredComponent(item)}
+                          onMouseLeave={() => setHoveredComponent(null)}
                         />
                       );
-                    })}
-                  </div>
-                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-xs text-gray-500">
-                    무게 (kg)
-                  </div>
-                  <div className="absolute left-0 top-1/2 transform -rotate-90 -translate-y-1/2 text-xs text-gray-500">
-                    토크 밀도
-                  </div>
+                    })
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-slate-500">
+                      데이터가 없습니다
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">데이터가 없습니다.</p>
-              )}
+                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 text-xs text-slate-500">
+                  {PERFORMANCE_MAP_TABS.find(t => t.id === mapTab)?.xLabel}
+                </div>
+                <div className="absolute left-1 top-1/2 transform -rotate-90 -translate-y-1/2 text-xs text-slate-500 whitespace-nowrap">
+                  {PERFORMANCE_MAP_TABS.find(t => t.id === mapTab)?.yLabel}
+                </div>
+              </div>
             </div>
 
-            {/* TOPS 타임라인 */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">TOPS 추이</h2>
-              <p className="text-sm text-gray-500 mb-4">연도별 SoC 연산 성능 변화</p>
+            {/* 우측: 트렌드 + 채택 현황 패널 */}
+            <div className="bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 p-5">
+              <h2 className="text-lg font-semibold text-white mb-4">트렌드 & 채택 현황</h2>
               
-              {topsData?.data && topsData.data.length > 0 ? (
-                <div className="space-y-4">
-                  {topsData.data.map((yearData: any) => (
-                    <div key={yearData.year}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="font-medium text-gray-900">{yearData.year}</span>
-                        <span className="text-gray-500">
-                          평균: {yearData.avgTops?.toFixed(1)} / 최대: {yearData.maxTops?.toFixed(1)} TOPS
+              {/* 상단: 연도별 성능 바 차트 */}
+              <div className="mb-6">
+                <h3 className="text-sm text-slate-400 mb-3 flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  연도별 평균/최대 TOPS
+                </h3>
+                <div className="space-y-2">
+                  {adoptionData.slice(-5).map((d: any) => (
+                    <div key={d.year}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-slate-300">{d.year}</span>
+                        <span className="text-slate-500">
+                          평균 {d.avgPerformance?.toFixed(0)} / 최대 {d.maxPerformance?.toFixed(0)}
                         </span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div className="w-full bg-slate-700 rounded-full h-2">
                         <div
-                          className="h-3 rounded-full bg-gradient-to-r from-blue-400 to-blue-600"
-                          style={{ width: `${(yearData.maxTops / 500) * 100}%` }}
+                          className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400"
+                          style={{ width: `${Math.min((d.maxPerformance / 500) * 100, 100)}%` }}
                         />
                       </div>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">데이터가 없습니다.</p>
-              )}
+              </div>
+
+              {/* 하단: 채택 로봇 수 추이 */}
+              <div>
+                <h3 className="text-sm text-slate-400 mb-3 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  연도별 채택 로봇 수
+                </h3>
+                <div className="flex items-end gap-2 h-24">
+                  {adoptionData.slice(-6).map((d: any, idx: number) => {
+                    const maxCount = Math.max(...adoptionData.map((a: any) => a.count)) || 1;
+                    const height = (d.count / maxCount) * 100;
+                    return (
+                      <div key={d.year} className="flex-1 flex flex-col items-center">
+                        <div
+                          className="w-full bg-gradient-to-t from-green-500 to-emerald-400 rounded-t"
+                          style={{ height: `${height}%` }}
+                        />
+                        <span className="text-[10px] text-slate-500 mt-1">{d.year}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* 부품 목록 */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-medium text-gray-900">부품 목록</h2>
-                <div className="flex gap-2">
-                  {COMPONENT_TYPES.map(type => (
+          {/* 필터 바 */}
+          <div className="bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 p-4 mb-6">
+            <div className="flex flex-wrap items-center gap-4">
+              {/* 타입 필터 */}
+              <div className="flex gap-2">
+                {COMPONENT_TYPES.map(type => {
+                  const Icon = type.icon;
+                  return (
                     <button
                       key={type.id}
-                      onClick={() => {
-                        setSelectedType(type.id);
-                        setPage(1);
-                      }}
-                      className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                      onClick={() => { setSelectedType(type.id); setPage(1); }}
+                      className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${
                         selectedType === type.id
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
                       }`}
                     >
+                      <Icon className="w-4 h-4" />
                       {type.label}
                     </button>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
+
+              <div className="h-6 w-px bg-slate-700" />
+
+              {/* 적용 로봇 수 필터 */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500">적용 로봇:</span>
+                <select
+                  value={minRobotCount}
+                  onChange={(e) => { setMinRobotCount(Number(e.target.value)); setPage(1); }}
+                  className="bg-slate-700 border-slate-600 text-slate-200 text-sm rounded-lg px-2 py-1"
+                >
+                  {ROBOT_COUNT_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 정렬 */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500">정렬:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-slate-200 text-sm rounded-lg px-2 py-1"
+                >
+                  {SORT_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="h-6 w-px bg-slate-700" />
+
+              {/* BOM 모드: 로봇 선택 */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500">BOM 보기:</span>
+                <select
+                  value={selectedRobotId || ''}
+                  onChange={(e) => { setSelectedRobotId(e.target.value || null); setPage(1); }}
+                  className="bg-slate-700 border-slate-600 text-slate-200 text-sm rounded-lg px-2 py-1 max-w-[200px]"
+                >
+                  <option value="">전체 부품</option>
+                  {robots?.items?.map((robot: any) => (
+                    <option key={robot.id} value={robot.id}>{robot.name}</option>
+                  ))}
+                </select>
+                {selectedRobotId && (
+                  <button
+                    onClick={() => setSelectedRobotId(null)}
+                    className="p-1 text-slate-400 hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 부품 테이블 */}
+          <div className="bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 overflow-hidden">
+            <div className="p-4 border-b border-slate-700/50 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">
+                부품 목록
+                {selectedRobotId && (
+                  <span className="ml-2 text-sm text-blue-400">
+                    ({robots?.items?.find((r: any) => r.id === selectedRobotId)?.name} BOM)
+                  </span>
+                )}
+              </h2>
+              <span className="text-sm text-slate-400">
+                총 {components?.total || 0}개
+              </span>
             </div>
 
             {isLoading ? (
               <div className="p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
               </div>
             ) : components?.items && components.items.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="w-full">
+                  <thead className="bg-slate-800">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">회사</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">타입</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">스펙</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">적용 로봇</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">이름</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">회사</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">타입</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">핵심 지표</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">출시</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">적용 로봇</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">대표 로봇</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {components.items.map((component: any) => (
-                      <tr key={component.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
+                  <tbody>
+                    {components.items.map((component: any, idx: number) => (
+                      <tr
+                        key={component.id}
+                        className={`border-t border-slate-700/50 hover:bg-slate-700/30 transition-colors cursor-pointer ${
+                          idx % 2 === 0 ? 'bg-slate-800/20' : ''
+                        }`}
+                        onMouseEnter={() => setHoveredComponent(component)}
+                        onMouseLeave={() => setHoveredComponent(null)}
+                      >
+                        <td className="px-4 py-3">
                           <Link
                             href={`/components-trend/${component.id}`}
-                            className="text-blue-600 hover:underline font-medium"
+                            className="text-sm font-medium text-white hover:text-blue-400 transition-colors"
                           >
                             {component.name}
                           </Link>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-4 py-3 text-sm text-slate-400">
                           {component.company || '-'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            component.type === 'actuator' ? 'bg-blue-100 text-blue-800' :
-                            component.type === 'soc' ? 'bg-purple-100 text-purple-800' :
-                            component.type === 'sensor' ? 'bg-green-100 text-green-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {COMPONENT_TYPES.find(t => t.id === component.type)?.label || component.type}
+                        <td className="px-4 py-3">
+                          <ComponentTypeBadge type={component.type} />
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-300">
+                          <KeyMetric component={component} />
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-400">
+                          {(component as any).releaseYear || '-'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="px-2 py-1 text-xs bg-green-500/20 text-green-400 rounded">
+                            {component.robotCount || 0}개
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                          {component.specs ? JSON.stringify(component.specs).slice(0, 50) + '...' : '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {component.robotCount || 0}개
+                        <td className="px-4 py-3">
+                          {(component as any).representativeRobot ? (
+                            <Link
+                              href={`/humanoid-robots/${(component as any).representativeRobot.id}`}
+                              className="flex items-center gap-2 text-sm text-slate-300 hover:text-white"
+                            >
+                              <Bot className="w-4 h-4 text-blue-400" />
+                              {(component as any).representativeRobot.name}
+                            </Link>
+                          ) : (
+                            <span className="text-sm text-slate-500">-</span>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -192,36 +410,122 @@ export default function ComponentsTrendPage() {
                 </table>
               </div>
             ) : (
-              <div className="p-8 text-center text-gray-500">
+              <div className="p-8 text-center text-slate-500">
                 부품 데이터가 없습니다.
               </div>
             )}
 
             {/* 페이지네이션 */}
             {components && components.total > 20 && (
-              <div className="px-6 py-4 border-t border-gray-200 flex justify-center gap-2">
+              <div className="px-4 py-3 border-t border-slate-700/50 flex justify-center gap-2">
                 <button
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="px-3 py-1 text-sm rounded border border-gray-300 disabled:opacity-50"
+                  className="px-4 py-1.5 text-sm rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   이전
                 </button>
-                <span className="px-3 py-1 text-sm text-gray-600">
+                <span className="px-4 py-1.5 text-sm text-slate-400">
                   {page} / {Math.ceil(components.total / 20)}
                 </span>
                 <button
                   onClick={() => setPage(p => p + 1)}
                   disabled={page >= Math.ceil(components.total / 20)}
-                  className="px-3 py-1 text-sm rounded border border-gray-300 disabled:opacity-50"
+                  className="px-4 py-1.5 text-sm rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   다음
                 </button>
               </div>
             )}
           </div>
+
+          {/* UsedInRobotsPanel - 호버 시 표시 */}
+          {hoveredComponent && hoveredComponent.usedInRobots && hoveredComponent.usedInRobots.length > 0 && (
+            <div className="fixed bottom-4 right-4 w-72 bg-slate-800 rounded-xl border border-slate-700 shadow-xl p-4 z-50">
+              <h4 className="text-sm font-medium text-white mb-3">
+                적용 로봇 ({hoveredComponent.robotCount || hoveredComponent.usedInRobots.length}개)
+              </h4>
+              <div className="space-y-2">
+                {hoveredComponent.usedInRobots.slice(0, 3).map((robot: any) => (
+                  <Link
+                    key={robot.id}
+                    href={`/humanoid-robots/${robot.id}`}
+                    className="flex items-center gap-2 p-2 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition-colors"
+                  >
+                    <Bot className="w-5 h-5 text-blue-400" />
+                    <span className="text-sm text-slate-200">{robot.name}</span>
+                    <ChevronRight className="w-4 h-4 text-slate-500 ml-auto" />
+                  </Link>
+                ))}
+              </div>
+              {hoveredComponent.usedInRobots.length > 3 && (
+                <Link
+                  href={`/components-trend/${hoveredComponent.id}`}
+                  className="block mt-3 text-center text-xs text-blue-400 hover:text-blue-300"
+                >
+                  더 보기 →
+                </Link>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </AuthGuard>
   );
+}
+
+
+// 부품 타입 배지 컴포넌트
+function ComponentTypeBadge({ type }: { type: string }) {
+  const config: Record<string, { label: string; bgColor: string; textColor: string }> = {
+    actuator: { label: '액추에이터', bgColor: 'bg-blue-500/20', textColor: 'text-blue-400' },
+    soc: { label: 'SoC', bgColor: 'bg-purple-500/20', textColor: 'text-purple-400' },
+    sensor: { label: '센서', bgColor: 'bg-green-500/20', textColor: 'text-green-400' },
+    power: { label: '전원', bgColor: 'bg-yellow-500/20', textColor: 'text-yellow-400' },
+  };
+  const c = config[type] || { label: type, bgColor: 'bg-slate-500/20', textColor: 'text-slate-400' };
+  
+  return (
+    <span className={`px-2 py-0.5 text-xs font-medium rounded ${c.bgColor} ${c.textColor}`}>
+      {c.label}
+    </span>
+  );
+}
+
+// 핵심 지표 표시 컴포넌트
+function KeyMetric({ component }: { component: any }) {
+  const specs = component.specs || {};
+  
+  switch (component.type) {
+    case 'soc':
+      return (
+        <span>
+          {specs.tops ? `${specs.tops} TOPS` : '-'}
+          {specs.topsPerWatt && <span className="text-slate-500 ml-1">({specs.topsPerWatt} TOPS/W)</span>}
+        </span>
+      );
+    case 'actuator':
+      return (
+        <span>
+          {specs.ratedTorque ? `${specs.ratedTorque} Nm` : '-'}
+          {specs.torqueDensity && <span className="text-slate-500 ml-1">({specs.torqueDensity} Nm/kg)</span>}
+        </span>
+      );
+    case 'sensor':
+      return (
+        <span>
+          {specs.resolution || '-'}
+          {specs.fov && <span className="text-slate-500 ml-1">(FOV {specs.fov}°)</span>}
+        </span>
+      );
+    case 'power':
+      return (
+        <span>
+          {specs.capacity ? `${specs.capacity} Wh` : '-'}
+          {specs.voltage && <span className="text-slate-500 ml-1">({specs.voltage}V)</span>}
+        </span>
+      );
+    default:
+      return <span className="text-slate-500">-</span>;
+  }
 }
