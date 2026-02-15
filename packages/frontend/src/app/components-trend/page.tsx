@@ -60,11 +60,9 @@ export default function ComponentsTrendPage() {
     queryKey: ['components', selectedType, minRobotCount, sortBy, page, selectedRobotId],
     queryFn: () => api.getComponents({
       type: selectedType || undefined,
-      minRobotCount: minRobotCount > 0 ? minRobotCount : undefined,
       page,
       limit: 20,
-      robotId: selectedRobotId || undefined,
-    }),
+    } as any),
   });
 
   const { data: torqueData } = useQuery({
