@@ -150,8 +150,8 @@ export default function HumanoidRobotDetailPage() {
               <SummaryCard 
                 icon={DollarSign} 
                 label="가격/지역" 
-                value={robot.listPrice ? `~${(robot.listPrice / 1000).toFixed(0)}K USD` : '미공개'}
-                subValue={robot.salesRegions || '글로벌'}
+                value={(robot as any).listPrice ? `~${((robot as any).listPrice / 1000).toFixed(0)}K USD` : '미공개'}
+                subValue={(robot as any).salesRegions || '글로벌'}
               />
             </div>
           </div>
@@ -191,9 +191,9 @@ export default function HumanoidRobotDetailPage() {
                       {robot.description || '설명이 없습니다.'}
                     </p>
                     {/* 주요 특징 태그 */}
-                    {robot.features && robot.features.length > 0 && (
+                    {(robot as any).features && (robot as any).features.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-4">
-                        {robot.features.map((feature: string, idx: number) => (
+                        {(robot as any).features.map((feature: string, idx: number) => (
                           <span key={idx} className="px-3 py-1 text-xs bg-blue-500/20 text-blue-400 rounded-full">
                             {feature}
                           </span>
@@ -222,20 +222,20 @@ export default function HumanoidRobotDetailPage() {
                       <div>
                         <p className="text-xs text-slate-500 mb-1">기준 가격</p>
                         <p className="text-slate-200 font-medium">
-                          {robot.listPrice ? `~${(robot.listPrice / 1000).toFixed(0)}K USD` : '미공개'}
+                          {(robot as any).listPrice ? `~${((robot as any).listPrice / 1000).toFixed(0)}K USD` : '미공개'}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs text-slate-500 mb-1">판매 지역</p>
-                        <p className="text-slate-200 font-medium">{robot.salesRegions || '글로벌'}</p>
+                        <p className="text-slate-200 font-medium">{(robot as any).salesRegions || '글로벌'}</p>
                       </div>
                       <div>
                         <p className="text-xs text-slate-500 mb-1">판매 채널</p>
-                        <p className="text-slate-200 font-medium">{robot.salesChannel || '직판/파트너'}</p>
+                        <p className="text-slate-200 font-medium">{(robot as any).salesChannel || '직판/파트너'}</p>
                       </div>
                       <div>
                         <p className="text-xs text-slate-500 mb-1">예상 리드타임</p>
-                        <p className="text-slate-200 font-medium">{robot.leadTime || '3-6개월'}</p>
+                        <p className="text-slate-200 font-medium">{(robot as any).leadTime || '3-6개월'}</p>
                       </div>
                     </div>
                   </div>
@@ -250,10 +250,10 @@ export default function HumanoidRobotDetailPage() {
                         </div>
                         <div>
                           <p className="text-slate-200 font-medium">
-                            적용 사례 {robot.applicationCaseCount ?? robot.applicationCases?.length ?? 0}건
+                            적용 사례 {(robot as any).applicationCaseCount ?? robot.applicationCases?.length ?? 0}건
                           </p>
                           <p className="text-xs text-slate-500">
-                            상용 {robot.productionCount ?? 0} / PoC {robot.pocCount ?? 0}
+                            상용 {(robot as any).productionCount ?? 0} / PoC {(robot as any).pocCount ?? 0}
                           </p>
                         </div>
                       </div>
@@ -263,7 +263,7 @@ export default function HumanoidRobotDetailPage() {
                         </div>
                         <div>
                           <p className="text-slate-200 font-medium">
-                            적용 환경 {robot.distinctEnvironmentsCount ?? 0}개
+                            적용 환경 {(robot as any).distinctEnvironmentsCount ?? 0}개
                           </p>
                           <p className="text-xs text-slate-500">공장, 물류센터 등</p>
                         </div>
@@ -274,9 +274,9 @@ export default function HumanoidRobotDetailPage() {
                         </div>
                         <div>
                           <p className="text-slate-200 font-medium">
-                            기사/이벤트 {robot.newsEventCount ?? 0}건
+                            기사/이벤트 {(robot as any).newsEventCount ?? 0}건
                           </p>
-                          <p className="text-xs text-slate-500">최근 업데이트: {robot.lastNewsDate || '-'}</p>
+                          <p className="text-xs text-slate-500">최근 업데이트: {(robot as any).lastNewsDate || '-'}</p>
                         </div>
                       </div>
                     </div>
@@ -537,7 +537,7 @@ export default function HumanoidRobotDetailPage() {
               {activeTab === 'cases' && (
                 <div>
                   <p className="text-slate-400 mb-6">
-                    이 로봇은 현재 주로 {robot.mainEnvironments || '공장, 물류센터'}에서 {robot.mainStage || 'PoC'} 단계로 활용 중입니다.
+                    이 로봇은 현재 주로 {(robot as any).mainEnvironments || '공장, 물류센터'}에서 {(robot as any).mainStage || 'PoC'} 단계로 활용 중입니다.
                   </p>
                   {robot.applicationCases && robot.applicationCases.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
