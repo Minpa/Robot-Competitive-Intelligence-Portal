@@ -851,12 +851,9 @@ class ApiClient {
   // 환경-작업 매트릭스
   async getEnvironmentTaskMatrix() {
     return this.request<{
-      matrix: Array<{
-        environment: string;
-        taskType: string;
-        count: number;
-        cases: Array<{ id: string; title: string; robotName: string }>;
-      }>;
+      rows: string[];
+      columns: string[];
+      matrix: Record<string, Record<string, { count: number; robots: string[] }>>;
     }>('/application-cases/matrix');
   }
 
