@@ -492,7 +492,7 @@ export class HumanoidRobotService {
       .from(humanoidRobots);
 
     const matrix: Record<string, Record<string, { count: number; robots: { id: string; name: string }[] }>> = {};
-    const locomotionTypes = ['bipedal', 'wheeled', 'hybrid'];
+    const locomotionTypes = ['biped', 'wheel', 'hybrid'];
     const purposes = ['industrial', 'home', 'service'];
 
     // Initialize matrix

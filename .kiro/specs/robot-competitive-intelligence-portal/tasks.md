@@ -207,11 +207,11 @@
     - **Property 28: Weekly Highlights Recency**
     - **Validates: Requirements 7.8**
 
-- [ ] 11. Checkpoint - 대시보드 서비스
+- [x] 11. Checkpoint - 대시보드 서비스
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 12. 내보내기 및 PPT 생성 서비스
-  - [ ] 12.1 ExportService 구현
+- [x] 12. 내보내기 및 PPT 생성 서비스
+  - [x] 12.1 ExportService 구현
     - CSV 내보내기
     - Excel 내보내기
     - 필터 적용된 데이터 내보내기
@@ -221,12 +221,12 @@
     - **Property 36: Export Filter Consistency**
     - **Validates: Requirements 11.4**
   
-  - [ ] 12.3 PPTGeneratorService 구현
+  - [x] 12.3 PPTGeneratorService 구현
     - pptxgenjs 라이브러리 설정
     - 템플릿 구조 정의 (Market Overview, Company Deep Dive, Tech Components, Use Case)
     - _Requirements: 10.1-10.7_
   
-  - [ ] 12.4 PPT 슬라이드 생성 구현
+  - [x] 12.4 PPT 슬라이드 생성 구현
     - Title 슬라이드
     - 데이터 테이블 슬라이드
     - 차트 이미지 슬라이드
@@ -237,10 +237,10 @@
     - **Property 35: PPT Theme Consistency**
     - **Validates: Requirements 10.1-10.7**
 
-- [ ] 13. Checkpoint - 내보내기 및 PPT 서비스
+- [x] 13. Checkpoint - 내보내기 및 PPT 서비스
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 14. Frontend - 프로젝트 설정
+- [x] 14. Frontend - 프로젝트 설정
   - [x] 14.1 Next.js 프로젝트 초기화
     - TypeScript, Tailwind CSS 설정
     - React Query 설정
@@ -259,8 +259,8 @@
     - 반응형 디자인
     - _Requirements: 7.6_
 
-- [ ] 15. Frontend - 차트 컴포넌트
-  - [ ] 15.1 Recharts 기반 차트 컴포넌트 구현
+- [x] 15. Frontend - 차트 컴포넌트
+  - [x] 15.1 Recharts 기반 차트 컴포넌트 구현
     - LineChart (Talent Trend, TOPS Timeline)
     - BarChart (Workforce Comparison)
     - ScatterChart (Torque vs Weight)
@@ -268,21 +268,21 @@
     - RadarChart (Robot Performance, Company Capability)
     - _Requirements: 3.9, 4.9, 5.5, 5.6, 5.7, 6.8, 6.9, 7.1-7.5_
   
-  - [ ] 15.2 Heatmap 및 Matrix 컴포넌트
+  - [x] 15.2 Heatmap 및 Matrix 컴포넌트
     - Segment Matrix Heatmap
     - Environment-Task Matrix
     - _Requirements: 7.1, 8.6_
   
-  - [ ] 15.3 Timeline 컴포넌트
+  - [x] 15.3 Timeline 컴포넌트
     - Demo Timeline (수평/수직)
     - _Requirements: 8.9_
   
-  - [ ] 15.4 Infographic 컴포넌트
+  - [x] 15.4 Infographic 컴포넌트
     - Sensor Stack Infographic
     - BOM Breakdown Infographic
     - _Requirements: 6.10_
 
-- [ ] 16. Frontend - 카탈로그 페이지
+- [x] 16. Frontend - 카탈로그 페이지
   - [x] 16.1 로봇 카탈로그 목록 페이지
     - 제품 카드 그리드 뷰
     - 필터 패널 (purpose, locomotion, hand, stage, region)
@@ -297,19 +297,19 @@
     - 적용 사례 테이블
     - _Requirements: 4.1-4.9_
   
-  - [ ] 16.3 로봇 비교 기능
+  - [x] 16.3 로봇 비교 기능
     - 다중 로봇 선택
     - 스펙 비교 테이블
     - 레이더 차트 오버레이
     - _Requirements: 3.9_
 
-- [ ] 17. Frontend - 회사 및 인력 페이지
-  - [ ] 17.1 회사 목록 페이지
+- [x] 17. Frontend - 회사 및 인력 페이지
+  - [x] 17.1 회사 목록 페이지
     - 회사 카드 그리드
     - 국가/지역 필터
     - _Requirements: 5.1_
   
-  - [ ] 17.2 회사 프로필 페이지
+  - [x] 17.2 회사 프로필 페이지
     - 회사 정보 카드
     - 인력 규모 카드 (headcount 범위)
     - 조직 구조 도넛 차트
@@ -317,13 +317,13 @@
     - 휴머노이드 제품 목록
     - _Requirements: 5.1-5.7_
 
-- [ ] 18. Frontend - 부품 및 적용 사례 페이지
+- [x] 18. Frontend - 부품 및 적용 사례 페이지
   - [x] 18.1 부품 목록 페이지
     - 타입별 탭 (Actuator, SoC, Sensor, Power)
     - 필터 패널
     - _Requirements: 6.1-6.6_
   
-  - [ ] 18.2 부품 상세 페이지
+  - [x] 18.2 부품 상세 페이지
     - 스펙 정보
     - 적용 로봇 목록
     - _Requirements: 6.5_
@@ -340,7 +340,7 @@
     - 시연 타임라인
     - _Requirements: 8.4, 8.6, 8.7, 8.9_
 
-- [ ] 19. Frontend - 대시보드 페이지
+- [x] 19. Frontend - 대시보드 페이지
   - [x] 19.1 메인 대시보드
     - Summary Cards (총 로봇, 회사, 기사, 주간 변화)
     - Segment Matrix Heatmap
@@ -353,14 +353,14 @@
     - 인력 규모 vs 세그먼트 차트
     - _Requirements: 7.3, 7.4, 7.5_
   
-  - [ ] 19.3 Weekly Highlights 섹션
+  - [x] 19.3 Weekly Highlights 섹션
     - 신규 제품 카드
     - 회사 업데이트 목록
     - 트렌딩 토픽 태그
     - 최근 시연 타임라인
     - _Requirements: 7.8_
 
-- [ ] 20. Frontend - 기사 분석 도구
+- [x] 20. Frontend - 기사 분석 도구
   - [x] 20.1 기사 입력 페이지
     - 텍스트 입력 영역
     - AI 분석 버튼
@@ -377,7 +377,7 @@
     - 기사 목록 페이지
     - _Requirements: 2-1.5, 2-1.7_
 
-- [ ] 21. Frontend - PPT 빌더
+- [x] 21. Frontend - PPT 빌더
   - [x] 21.1 PPT 빌더 UI
     - 템플릿 선택 (Market Overview, Company Deep Dive, Tech Components, Use Case)
     - 포함할 항목 선택 (로봇, 회사, 차트)
@@ -389,24 +389,24 @@
     - 순서 변경
     - _Requirements: 10.4, 10.5, 10.6_
   
-  - [ ] 21.3 PPT 다운로드
+  - [x] 21.3 PPT 다운로드
     - 생성 요청 및 다운로드
     - _Requirements: 10.3_
 
-- [ ] 22. Frontend - 관리자 패널
-  - [ ] 22.1 데이터 입력/수정 UI
+- [x] 22. Frontend - 관리자 패널
+  - [x] 22.1 데이터 입력/수정 UI
     - 로봇 추가/수정 폼
     - 회사 추가/수정 폼
     - 부품 추가/수정 폼
     - 적용 사례 추가/수정 폼
     - _Requirements: 1.3, 4.7, 6.7_
   
-  - [ ] 22.2 내보내기 UI
+  - [x] 22.2 내보내기 UI
     - CSV/Excel 내보내기 버튼
     - 필터 적용 상태 표시
     - _Requirements: 11.1, 11.4_
 
-- [ ] 23. Checkpoint - Frontend 완료
+- [x] 23. Checkpoint - Frontend 완료
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 24. 통합 테스트 및 최종 검증

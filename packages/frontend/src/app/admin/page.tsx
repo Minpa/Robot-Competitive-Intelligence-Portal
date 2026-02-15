@@ -254,15 +254,15 @@ export default function AdminPage() {
       </div>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link href="/public-data" className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Link href="/admin/robots" className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-emerald-100">
-              <Database className="w-6 h-6 text-emerald-600" />
+            <div className="p-3 rounded-lg bg-blue-100">
+              <Settings className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <h3 className="font-semibold">공개 데이터</h3>
-              <p className="text-sm text-gray-500">트렌드 분석 보기</p>
+              <h3 className="font-semibold">로봇 관리</h3>
+              <p className="text-sm text-gray-500">추가/수정/삭제</p>
             </div>
             <ExternalLink className="w-4 h-4 text-gray-400 ml-auto" />
           </div>
@@ -270,12 +270,25 @@ export default function AdminPage() {
 
         <Link href="/companies" className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-blue-100">
-              <Users className="w-6 h-6 text-blue-600" />
+            <div className="p-3 rounded-lg bg-green-100">
+              <Users className="w-6 h-6 text-green-600" />
             </div>
             <div>
               <h3 className="font-semibold">회사 관리</h3>
               <p className="text-sm text-gray-500">{summary?.totalCompanies || 0}개 등록</p>
+            </div>
+            <ExternalLink className="w-4 h-4 text-gray-400 ml-auto" />
+          </div>
+        </Link>
+
+        <Link href="/admin/components" className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-lg bg-purple-100">
+              <Database className="w-6 h-6 text-purple-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold">부품 관리</h3>
+              <p className="text-sm text-gray-500">추가/수정/삭제</p>
             </div>
             <ExternalLink className="w-4 h-4 text-gray-400 ml-auto" />
           </div>
@@ -293,6 +306,61 @@ export default function AdminPage() {
             <ExternalLink className="w-4 h-4 text-gray-400 ml-auto" />
           </div>
         </Link>
+      </div>
+
+      {/* Export Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Database className="w-5 h-5 text-gray-600" />
+          데이터 내보내기
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button
+            onClick={async () => {
+              const data = await api.exportCompanies('csv');
+              const blob = new Blob([data], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'companies.csv';
+              a.click();
+            }}
+            className="p-4 border rounded-lg hover:bg-gray-50 text-left"
+          >
+            <p className="font-medium">회사 데이터</p>
+            <p className="text-sm text-gray-500">CSV 형식으로 다운로드</p>
+          </button>
+          <button
+            onClick={async () => {
+              const data = await api.exportProducts('csv', true);
+              const blob = new Blob([data], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'products.csv';
+              a.click();
+            }}
+            className="p-4 border rounded-lg hover:bg-gray-50 text-left"
+          >
+            <p className="font-medium">제품 데이터</p>
+            <p className="text-sm text-gray-500">스펙 포함 CSV 다운로드</p>
+          </button>
+          <button
+            onClick={async () => {
+              const data = await api.exportArticles('csv');
+              const blob = new Blob([data], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'articles.csv';
+              a.click();
+            }}
+            className="p-4 border rounded-lg hover:bg-gray-50 text-left"
+          >
+            <p className="font-medium">기사 데이터</p>
+            <p className="text-sm text-gray-500">CSV 형식으로 다운로드</p>
+          </button>
+        </div>
       </div>
 
       {/* 허용 이메일 관리 (슈퍼 관리자만) */}

@@ -17,6 +17,7 @@
     "migrate": "tsx src/db/migrate.ts",
     "migrate:generate": "drizzle-kit generate",
     "seed": "tsx src/db/seed.ts",
+    "seed:humanoid": "tsx src/db/seed-humanoid.ts",
     "seed:crawl": "tsx src/db/seed-crawl-targets.ts",
     "seed:rfm": "tsx src/db/seed-rfm.ts",
     "seed:components": "tsx src/db/seed-components.ts",

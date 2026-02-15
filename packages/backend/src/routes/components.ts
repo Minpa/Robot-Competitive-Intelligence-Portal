@@ -26,10 +26,19 @@ export async function componentRoutes(fastify: FastifyInstance) {
   });
 
   // Get torque density scatter data
-  fastify.get('/charts/torque-scatter', async (_request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/analytics/torque-density', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const data = await componentService.getTorqueDensityScatterData();
-      return data;
+      const result = await componentService.getTorqueDensityScatterData();
+      // Transform to match frontend expected format
+      return {
+        data: result.points.map(p => ({
+          id: p.componentId,
+          name: p.label,
+          company: p.vendor,
+          torqueDensity: p.y,
+          weight: p.x,
+        })),
+      };
     } catch (error) {
       console.error('Error getting torque scatter data:', error);
       reply.status(500).send({ error: 'Failed to get torque scatter data' });
@@ -37,10 +46,17 @@ export async function componentRoutes(fastify: FastifyInstance) {
   });
 
   // Get TOPS timeline data
-  fastify.get('/charts/tops-timeline', async (_request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/analytics/tops-timeline', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const data = await componentService.getTopsTimelineData();
-      return data;
+      const result = await componentService.getTopsTimelineData();
+      // Transform to match frontend expected format
+      return {
+        data: result.labels.map((year, idx) => ({
+          year,
+          avgTops: result.datasets[0].data[idx],
+          maxTops: result.datasets[1].data[idx],
+        })),
+      };
     } catch (error) {
       console.error('Error getting TOPS timeline data:', error);
       reply.status(500).send({ error: 'Failed to get TOPS timeline data' });
@@ -86,14 +102,29 @@ export async function componentRoutes(fastify: FastifyInstance) {
   fastify.get('/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
-      const component = await componentService.getComponent(id);
-      if (!component) {
+      const result = await componentService.getComponent(id);
+      if (!result) {
         return reply.status(404).send({ error: 'Component not found' });
       }
-      return component;
+      return result.component;
     } catch (error) {
       console.error('Error getting component:', error);
       reply.status(500).send({ error: 'Failed to get component' });
+    }
+  });
+
+  // Get robots using this component
+  fastify.get('/:id/robots', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const result = await componentService.getComponent(id);
+      if (!result) {
+        return reply.status(404).send({ error: 'Component not found' });
+      }
+      return result.robots;
+    } catch (error) {
+      console.error('Error getting robots by component:', error);
+      reply.status(500).send({ error: 'Failed to get robots by component' });
     }
   });
 

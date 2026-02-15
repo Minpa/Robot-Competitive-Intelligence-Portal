@@ -581,21 +581,25 @@ class ApiClient {
   // 세그먼트 매트릭스
   async getSegmentMatrix() {
     return this.request<{
-      matrix: Array<{
-        locomotionType: string;
-        purpose: string;
-        count: number;
-        robots: Array<{ id: string; name: string; companyName: string }>;
-      }>;
-    }>('/humanoid-robots/analytics/segment-matrix');
+      rows: string[];
+      columns: string[];
+      matrix: Record<string, Record<string, { count: number; robots: Array<{ id: string; name: string }> }>>;
+      totalCount: number;
+    }>('/humanoid-robots/segment-matrix');
   }
 
   // Hand 타입 분포
   async getHandTypeDistribution() {
-    return this.request<{
-      overall: Array<{ handType: string; count: number; percentage: number }>;
-      byPurpose: Record<string, Array<{ handType: string; count: number; percentage: number }>>;
-    }>('/humanoid-robots/analytics/hand-distribution');
+    const response = await this.request<Array<{ handType: string; count: number }>>('/humanoid-robots/hand-distribution');
+    const total = response.reduce((sum, item) => sum + item.count, 0);
+    return {
+      overall: response.map(item => ({
+        handType: item.handType,
+        count: item.count,
+        percentage: total > 0 ? Math.round((item.count / total) * 100) : 0,
+      })),
+      byPurpose: {},
+    };
   }
 
   // 레이더 차트 데이터
@@ -683,7 +687,19 @@ class ApiClient {
     const query = params ? '?' + new URLSearchParams(
       Object.entries(params).filter(([_, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
     ).toString() : '';
-    return this.request<{ items: any[]; total: number }>(`/components${query}`);
+    const response = await this.request<{ data: any[]; pagination: { total: number } }>(`/components${query}`);
+    
+    // Transform response
+    return {
+      items: response.data.map((item: any) => ({
+        id: item.id,
+        type: item.type,
+        name: item.name,
+        vendor: item.vendor,
+        specifications: item.specifications,
+      })),
+      total: response.pagination.total,
+    };
   }
 
   // 부품 상세
@@ -784,7 +800,24 @@ class ApiClient {
     const query = params ? '?' + new URLSearchParams(
       Object.entries(params).filter(([_, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
     ).toString() : '';
-    return this.request<{ items: any[]; total: number }>(`/application-cases${query}`);
+    const response = await this.request<{ data: any[]; pagination: { total: number } }>(`/application-cases${query}`);
+    
+    // Transform response
+    return {
+      items: response.data.map((item: any) => ({
+        id: item.case.id,
+        robotId: item.case.robotId,
+        robotName: item.robot?.name,
+        companyName: item.company?.name,
+        environment: item.case.environmentType,
+        taskType: item.case.taskType,
+        description: item.case.taskDescription,
+        status: item.case.deploymentStatus,
+        demoEvent: item.case.demoEvent,
+        demoDate: item.case.demoDate,
+      })),
+      total: response.pagination.total,
+    };
   }
 
   // 적용 사례 상세
@@ -824,14 +857,14 @@ class ApiClient {
         count: number;
         cases: Array<{ id: string; title: string; robotName: string }>;
       }>;
-    }>('/application-cases/analytics/environment-task-matrix');
+    }>('/application-cases/matrix');
   }
 
   // 배포 상태 분포
   async getDeploymentStatusDistribution() {
     return this.request<{
       distribution: Array<{ status: string; count: number; percentage: number }>;
-    }>('/application-cases/analytics/deployment-distribution');
+    }>('/application-cases/deployment-distribution');
   }
 
   // 시연 타임라인
@@ -847,7 +880,7 @@ class ApiClient {
         location: string;
         description: string;
       }>;
-    }>(`/application-cases/analytics/demo-timeline${query}`);
+    }>(`/application-cases/timeline${query}`);
   }
 
   // ============================================

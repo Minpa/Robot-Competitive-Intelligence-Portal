@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 
@@ -15,7 +15,6 @@ const TEMPLATES = [
 const THEMES = [
   { id: 'light', name: 'Light', color: 'bg-white' },
   { id: 'dark', name: 'Dark', color: 'bg-gray-800' },
-  { id: 'corporate', name: 'Corporate', color: 'bg-blue-900' },
 ];
 
 export default function PPTBuilderPage() {
@@ -23,6 +22,7 @@ export default function PPTBuilderPage() {
   const [selectedTheme, setSelectedTheme] = useState('light');
   const [selectedRobots, setSelectedRobots] = useState<string[]>([]);
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
+  const [generatedSlides, setGeneratedSlides] = useState<any>(null);
   const [includeCharts, setIncludeCharts] = useState({
     segmentMatrix: true,
     handDistribution: true,
@@ -42,6 +42,22 @@ export default function PPTBuilderPage() {
     queryFn: () => api.getCompanies({ limit: '100' }),
   });
 
+  const generateMutation = useMutation({
+    mutationFn: () => api.generatePPTSlides({
+      template: selectedTemplate,
+      theme: selectedTheme,
+      title: TEMPLATES.find(t => t.id === selectedTemplate)?.name || 'Report',
+      subtitle: '휴머노이드 로봇 인텔리전스 리포트',
+      companyIds: selectedCompanies.length > 0 ? selectedCompanies : undefined,
+      robotIds: selectedRobots.length > 0 ? selectedRobots : undefined,
+      includeCharts: Object.values(includeCharts).some(Boolean),
+      includeTables: true,
+    }),
+    onSuccess: (data) => {
+      setGeneratedSlides(data);
+    },
+  });
+
   const toggleRobot = (id: string) => {
     setSelectedRobots(prev =>
       prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]
@@ -55,8 +71,22 @@ export default function PPTBuilderPage() {
   };
 
   const handleGenerate = () => {
-    // TODO: Claude API 연동 후 실제 PPT 생성 구현
-    alert('PPT 생성 기능은 Claude API 연동 후 활성화됩니다.\n\n선택된 옵션:\n- 템플릿: ' + selectedTemplate + '\n- 테마: ' + selectedTheme + '\n- 로봇: ' + selectedRobots.length + '개\n- 회사: ' + selectedCompanies.length + '개');
+    generateMutation.mutate();
+  };
+
+  const handleDownload = () => {
+    if (!generatedSlides) return;
+    
+    // JSON으로 다운로드 (실제 PPTX 생성은 pptxgenjs 라이브러리 필요)
+    const blob = new Blob([JSON.stringify(generatedSlides, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${selectedTemplate}_report_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -230,15 +260,47 @@ export default function PPTBuilderPage() {
 
                 <button
                   onClick={handleGenerate}
-                  className="w-full py-3 px-4 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+                  disabled={generateMutation.isPending}
+                  className="w-full py-3 px-4 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
-                  PPT 생성 및 다운로드
+                  {generateMutation.isPending ? '생성 중...' : 'PPT 슬라이드 생성'}
                 </button>
 
+                {generatedSlides && (
+                  <button
+                    onClick={handleDownload}
+                    className="w-full py-3 px-4 mt-2 bg-green-600 text-white rounded-md font-medium hover:bg-green-700 transition-colors"
+                  >
+                    JSON 다운로드 ({generatedSlides.metadata?.slideCount || 0}개 슬라이드)
+                  </button>
+                )}
+
                 <p className="text-xs text-gray-500 text-center mt-4">
-                  생성된 PPT는 .pptx 형식으로 다운로드됩니다.
+                  생성된 슬라이드 데이터를 JSON으로 다운로드합니다.
                 </p>
               </div>
+
+              {/* 생성된 슬라이드 미리보기 */}
+              {generatedSlides && (
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h2 className="text-lg font-medium text-gray-900 mb-4">생성된 슬라이드</h2>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {generatedSlides.slides?.map((slide: any, idx: number) => (
+                      <div key={slide.id} className="border rounded-lg p-3">
+                        <p className="text-sm font-medium text-gray-900">
+                          {idx + 1}. {slide.title}
+                        </p>
+                        {slide.subtitle && (
+                          <p className="text-xs text-gray-500">{slide.subtitle}</p>
+                        )}
+                        <p className="text-xs text-gray-400 mt-1">
+                          {slide.contents?.length || 0}개 콘텐츠
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

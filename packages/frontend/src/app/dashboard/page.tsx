@@ -31,6 +31,11 @@ export default function DashboardPage() {
     queryFn: () => api.getDeploymentStatusDistribution(),
   });
 
+  const { data: weeklyHighlights } = useQuery({
+    queryKey: ['weekly-highlights'],
+    queryFn: () => api.getWeeklyHighlights(),
+  });
+
   const getLocomotionLabel = (type: string) => {
     const map: Record<string, string> = {
       biped: '2족 보행',
@@ -238,7 +243,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Quick Links */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-6 mb-8">
             <h2 className="text-lg font-medium text-gray-900 mb-4">빠른 링크</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Link
@@ -269,6 +274,92 @@ export default function DashboardPage() {
                 <span className="text-2xl">📊</span>
                 <p className="mt-2 text-sm font-medium text-orange-900">PPT 빌더</p>
               </Link>
+            </div>
+          </div>
+
+          {/* Weekly Highlights */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-2">주간 하이라이트</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {weeklyHighlights?.periodStart} ~ {weeklyHighlights?.periodEnd}
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* 제품 동향 */}
+              <div className="border rounded-lg p-4">
+                <h3 className="text-sm font-medium text-blue-600 mb-3">🤖 제품 동향</h3>
+                {weeklyHighlights?.categories?.product && weeklyHighlights.categories.product.length > 0 ? (
+                  <ul className="space-y-2">
+                    {weeklyHighlights.categories.product.slice(0, 3).map((item) => (
+                      <li key={item.id} className="text-sm">
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-blue-600 line-clamp-2">
+                          {item.title}
+                        </a>
+                        <p className="text-xs text-gray-400">{item.source}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-gray-400">데이터 없음</p>
+                )}
+              </div>
+
+              {/* 기술 동향 */}
+              <div className="border rounded-lg p-4">
+                <h3 className="text-sm font-medium text-purple-600 mb-3">🔬 기술 동향</h3>
+                {weeklyHighlights?.categories?.technology && weeklyHighlights.categories.technology.length > 0 ? (
+                  <ul className="space-y-2">
+                    {weeklyHighlights.categories.technology.slice(0, 3).map((item) => (
+                      <li key={item.id} className="text-sm">
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-purple-600 line-clamp-2">
+                          {item.title}
+                        </a>
+                        <p className="text-xs text-gray-400">{item.source}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-gray-400">데이터 없음</p>
+                )}
+              </div>
+
+              {/* 산업 동향 */}
+              <div className="border rounded-lg p-4">
+                <h3 className="text-sm font-medium text-green-600 mb-3">📈 산업 동향</h3>
+                {weeklyHighlights?.categories?.industry && weeklyHighlights.categories.industry.length > 0 ? (
+                  <ul className="space-y-2">
+                    {weeklyHighlights.categories.industry.slice(0, 3).map((item) => (
+                      <li key={item.id} className="text-sm">
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-green-600 line-clamp-2">
+                          {item.title}
+                        </a>
+                        <p className="text-xs text-gray-400">{item.source}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-gray-400">데이터 없음</p>
+                )}
+              </div>
+
+              {/* 기타 동향 */}
+              <div className="border rounded-lg p-4">
+                <h3 className="text-sm font-medium text-orange-600 mb-3">📰 기타 동향</h3>
+                {weeklyHighlights?.categories?.other && weeklyHighlights.categories.other.length > 0 ? (
+                  <ul className="space-y-2">
+                    {weeklyHighlights.categories.other.slice(0, 3).map((item) => (
+                      <li key={item.id} className="text-sm">
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-orange-600 line-clamp-2">
+                          {item.title}
+                        </a>
+                        <p className="text-xs text-gray-400">{item.source}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-gray-400">데이터 없음</p>
+                )}
+              </div>
             </div>
           </div>
         </div>

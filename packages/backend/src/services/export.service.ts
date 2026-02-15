@@ -4,7 +4,7 @@ import { articleService } from './article.service.js';
 import type { Company, Product, Article, ProductSpec } from '../types/index.js';
 import type { CompanyFiltersDto, ProductFiltersDto, ArticleFiltersDto, PaginationDto } from '../types/dto.js';
 
-export type ExportFormat = 'csv' | 'json';
+export type ExportFormat = 'csv' | 'json' | 'xlsx';
 
 export interface ExportOptions {
   format: ExportFormat;

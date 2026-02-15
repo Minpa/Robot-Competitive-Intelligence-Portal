@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { exportService } from '../services/export.service.js';
+import { pptGeneratorService } from '../services/ppt-generator.service.js';
 import { CompanyFiltersSchema, ProductFiltersSchema, ArticleFiltersSchema } from '../types/dto.js';
 
 export async function exportRoutes(fastify: FastifyInstance) {
@@ -79,5 +80,26 @@ export async function exportRoutes(fastify: FastifyInstance) {
     
     reply.header('Content-Type', 'text/html');
     return html;
+  });
+
+  // Get PPT templates
+  fastify.get('/ppt/templates', async () => {
+    return pptGeneratorService.getTemplates();
+  });
+
+  // Generate PPT slides
+  fastify.post('/ppt/generate', async (request) => {
+    const body = request.body as {
+      template: 'market_overview' | 'company_deep_dive' | 'tech_components' | 'use_case';
+      theme: 'light' | 'dark';
+      title: string;
+      subtitle?: string;
+      companyIds?: string[];
+      robotIds?: string[];
+      includeCharts?: boolean;
+      includeTables?: boolean;
+    };
+    
+    return pptGeneratorService.generateSlides(body);
   });
 }

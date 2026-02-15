@@ -18,3 +18,7 @@ export { articleAnalyzerService, ArticleAnalyzerService } from './article-analyz
 // 키워드 추출 및 트렌드 분석 서비스
 export { keywordExtractionService, KeywordExtractionService } from './keyword-extraction.service.js';
 export { keywordStatsService, KeywordStatsService } from './keyword-stats.service.js';
+
+// 내보내기 및 PPT 생성 서비스
+export { exportService, ExportService } from './export.service.js';
+export { pptGeneratorService, PPTGeneratorService } from './ppt-generator.service.js';
