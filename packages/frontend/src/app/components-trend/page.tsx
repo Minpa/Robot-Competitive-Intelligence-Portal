@@ -89,18 +89,36 @@ export default function ComponentsTrendPage() {
         y: item.torqueDensity || 0,
       }));
     }
-    if (mapTab === 'soc' && topsData?.data) {
-      // SoC 데이터 변환
-      return (components?.items || [])
+    if (mapTab === 'soc' && components?.items) {
+      // SoC 데이터 변환 - specifications 필드에서 값 추출
+      return (components.items || [])
         .filter((c: any) => c.type === 'soc')
-        .map((item: any) => ({
-          ...item,
-          x: (item as any).specs?.powerConsumption || Math.random() * 50,
-          y: (item as any).specs?.tops || Math.random() * 300,
-        }));
+        .map((item: any) => {
+          const specs = item.specifications || item.specs || {};
+          return {
+            ...item,
+            x: specs.powerConsumption || 0,
+            y: specs.topsMax || specs.topsMin || specs.tops || 0,
+            vendor: item.vendor || item.company,
+          };
+        });
+    }
+    if (mapTab === 'actuator' && components?.items) {
+      // Actuator 데이터 변환
+      return (components.items || [])
+        .filter((c: any) => c.type === 'actuator')
+        .map((item: any) => {
+          const specs = item.specifications || item.specs || {};
+          return {
+            ...item,
+            x: specs.weightKg || 0,
+            y: specs.torqueDensity || 0,
+            vendor: item.vendor || item.company,
+          };
+        });
     }
     return [];
-  }, [mapTab, torqueData, topsData, components]);
+  }, [mapTab, torqueData, components]);
 
   // 연도별 채택 로봇 수 데이터
   const adoptionData = useMemo(() => {
@@ -150,37 +168,90 @@ export default function ComponentsTrendPage() {
                 ))}
               </div>
               {/* 산점도 */}
-              <div className="h-64 relative bg-slate-900/50 rounded-lg">
-                <div className="absolute inset-4 border-l border-b border-slate-600">
-                  {mapData.length > 0 ? (
-                    mapData.map((item: any, idx: number) => {
-                      const maxX = Math.max(...mapData.map((d: any) => d.x)) || 1;
-                      const maxY = Math.max(...mapData.map((d: any) => d.y)) || 1;
-                      const x = (item.x / maxX) * 85 + 5;
-                      const y = 90 - (item.y / maxY) * 85;
-                      return (
-                        <div
-                          key={idx}
-                          className="absolute w-3 h-3 bg-blue-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 hover:bg-blue-400 hover:scale-150 cursor-pointer transition-all"
-                          style={{ left: `${x}%`, top: `${y}%` }}
-                          title={`${item.name}\n${PERFORMANCE_MAP_TABS.find(t => t.id === mapTab)?.yLabel}: ${item.y?.toFixed(1)}\n적용 로봇: ${item.robotCount || 0}개`}
-                          onMouseEnter={() => setHoveredComponent(item)}
-                          onMouseLeave={() => setHoveredComponent(null)}
-                        />
-                      );
-                    })
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-slate-500">
-                      데이터가 없습니다
-                    </div>
-                  )}
-                </div>
-                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 text-xs text-slate-500">
-                  {PERFORMANCE_MAP_TABS.find(t => t.id === mapTab)?.xLabel}
-                </div>
-                <div className="absolute left-1 top-1/2 transform -rotate-90 -translate-y-1/2 text-xs text-slate-500 whitespace-nowrap">
-                  {PERFORMANCE_MAP_TABS.find(t => t.id === mapTab)?.yLabel}
-                </div>
+              <div className="h-72 relative bg-slate-900/50 rounded-lg">
+                {(() => {
+                  const maxX = Math.max(...mapData.map((d: any) => d.x), 1);
+                  const maxY = Math.max(...mapData.map((d: any) => d.y), 1);
+                  // Y축 눈금 계산 (5단계)
+                  const yTicks = [0, 0.25, 0.5, 0.75, 1].map(ratio => Math.round(maxY * ratio));
+                  // X축 눈금 계산 (5단계)
+                  const xTicks = [0, 0.25, 0.5, 0.75, 1].map(ratio => Math.round(maxX * ratio));
+                  
+                  return (
+                    <>
+                      {/* Y축 눈금 */}
+                      <div className="absolute left-0 top-4 bottom-8 w-10 flex flex-col justify-between text-right pr-1">
+                        {yTicks.reverse().map((tick, i) => (
+                          <span key={i} className="text-[10px] text-slate-500">{tick}</span>
+                        ))}
+                      </div>
+                      
+                      {/* X축 눈금 */}
+                      <div className="absolute left-10 right-4 bottom-0 h-6 flex justify-between">
+                        {xTicks.map((tick, i) => (
+                          <span key={i} className="text-[10px] text-slate-500">{tick}</span>
+                        ))}
+                      </div>
+                      
+                      {/* 차트 영역 */}
+                      <div className="absolute left-10 right-4 top-4 bottom-8 border-l border-b border-slate-600">
+                        {/* 그리드 라인 */}
+                        {[0.25, 0.5, 0.75].map(ratio => (
+                          <div
+                            key={`h-${ratio}`}
+                            className="absolute w-full border-t border-slate-700/50"
+                            style={{ top: `${ratio * 100}%` }}
+                          />
+                        ))}
+                        {[0.25, 0.5, 0.75].map(ratio => (
+                          <div
+                            key={`v-${ratio}`}
+                            className="absolute h-full border-l border-slate-700/50"
+                            style={{ left: `${ratio * 100}%` }}
+                          />
+                        ))}
+                        
+                        {mapData.length > 0 ? (
+                          mapData.map((item: any, idx: number) => {
+                            const x = (item.x / maxX) * 100;
+                            const y = 100 - (item.y / maxY) * 100;
+                            return (
+                              <div
+                                key={idx}
+                                className="absolute transform -translate-x-1/2 group"
+                                style={{ left: `${x}%`, top: `${y}%` }}
+                                onMouseEnter={() => setHoveredComponent(item)}
+                                onMouseLeave={() => setHoveredComponent(null)}
+                              >
+                                {/* 회사명 라벨 */}
+                                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] text-slate-400 group-hover:text-white transition-colors">
+                                  {item.vendor || item.company || ''}
+                                </div>
+                                {/* 점 */}
+                                <div
+                                  className="w-3 h-3 bg-blue-500 rounded-full hover:bg-blue-400 hover:scale-150 cursor-pointer transition-all"
+                                  title={`${item.name}\n${PERFORMANCE_MAP_TABS.find(t => t.id === mapTab)?.yLabel}: ${item.y?.toFixed(1)}\n적용 로봇: ${item.robotCount || 0}개`}
+                                />
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-slate-500">
+                            데이터가 없습니다
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* 축 라벨 */}
+                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-xs text-slate-400 font-medium">
+                        {PERFORMANCE_MAP_TABS.find(t => t.id === mapTab)?.xLabel}
+                      </div>
+                      <div className="absolute left-0 top-1/2 transform -rotate-90 -translate-y-1/2 text-xs text-slate-400 font-medium whitespace-nowrap origin-center">
+                        {PERFORMANCE_MAP_TABS.find(t => t.id === mapTab)?.yLabel}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
 
