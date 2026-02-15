@@ -496,7 +496,63 @@ class ApiClient {
 
   // 휴머노이드 로봇 상세
   async getHumanoidRobot(id: string) {
-    return this.request<any>(`/humanoid-robots/${id}`);
+    const response = await this.request<any>(`/humanoid-robots/${id}`);
+    
+    // Transform response to expected format
+    return {
+      id: response.robot.id,
+      name: response.robot.name,
+      company: response.company,
+      companyName: response.company?.name,
+      purpose: response.robot.purpose,
+      locomotionType: response.robot.locomotionType,
+      handType: response.robot.handType,
+      stage: response.robot.commercializationStage,
+      region: response.robot.region,
+      announcedYear: response.robot.announcementYear,
+      description: response.robot.description,
+      imageUrl: response.robot.imageUrl,
+      bodySpec: response.bodySpec ? {
+        height: parseFloat(response.bodySpec.heightCm) || null,
+        weight: parseFloat(response.bodySpec.weightKg) || null,
+        payload: parseFloat(response.bodySpec.payloadKg) || null,
+        dof: response.bodySpec.dofCount,
+        maxSpeed: parseFloat(response.bodySpec.maxSpeedMps) || null,
+        operationTime: parseFloat(response.bodySpec.operationTimeHours) || null,
+      } : null,
+      handSpec: response.handSpec ? {
+        type: response.handSpec.handType,
+        fingerCount: response.handSpec.fingerCount,
+        dofPerHand: response.handSpec.handDof,
+        maxGripForce: parseFloat(response.handSpec.gripForceN) || null,
+        maxTorque: null,
+        isModular: response.handSpec.isInterchangeable,
+      } : null,
+      computingSpec: response.computingSpec ? {
+        mainSoc: response.computingSpec.mainSoc,
+        topsRange: `${response.computingSpec.topsMin}-${response.computingSpec.topsMax} TOPS`,
+        architecture: response.computingSpec.architectureType,
+      } : null,
+      sensorSpec: response.sensorSpec,
+      sensorSpecs: response.sensorSpec ? [response.sensorSpec] : [],
+      powerSpec: response.powerSpec ? {
+        batteryType: response.powerSpec.batteryType,
+        capacity: parseFloat(response.powerSpec.capacityWh) || null,
+        operationTime: parseFloat(response.powerSpec.operationTimeHours) || null,
+        chargingMethod: response.powerSpec.chargingMethod,
+        isSwappable: response.powerSpec.chargingMethod === 'swappable' || response.powerSpec.chargingMethod === 'both',
+      } : null,
+      applicationCases: (response.applicationCases || []).map((c: any) => ({
+        id: c.id,
+        title: c.demoEvent || c.taskDescription,
+        environment: c.environmentType,
+        taskType: c.taskType,
+        description: c.taskDescription,
+        status: c.deploymentStatus,
+        demoDate: c.demoDate,
+      })),
+      relatedArticles: response.relatedArticles || [],
+    };
   }
 
   // 휴머노이드 로봇 생성
