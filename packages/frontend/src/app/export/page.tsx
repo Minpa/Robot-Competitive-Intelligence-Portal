@@ -56,71 +56,73 @@ export default function ExportPage() {
       title: '회사 데이터',
       description: '등록된 모든 회사 정보를 내보냅니다.',
       icon: Building2,
-      color: 'bg-blue-100 text-blue-600',
+      color: 'bg-blue-500/20 text-blue-400',
     },
     {
       type: 'products',
       title: '제품 데이터',
       description: '제품 정보와 스펙을 포함하여 내보냅니다.',
       icon: Package,
-      color: 'bg-green-100 text-green-600',
+      color: 'bg-emerald-500/20 text-emerald-400',
     },
     {
       type: 'articles',
       title: '기사 데이터',
       description: '수집된 기사 목록을 내보냅니다.',
       icon: FileText,
-      color: 'bg-yellow-100 text-yellow-600',
+      color: 'bg-amber-500/20 text-amber-400',
     },
   ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">내보내기</h1>
-        <p className="text-gray-500">데이터를 CSV 또는 JSON 형식으로 내보냅니다.</p>
-      </div>
+    <div className="min-h-screen bg-slate-950">
+      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-white">내보내기</h1>
+          <p className="text-slate-400">데이터를 CSV 또는 JSON 형식으로 내보냅니다.</p>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {exportOptions.map((option) => (
-          <div key={option.type} className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className={`p-3 rounded-lg ${option.color}`}>
-                <option.icon className="w-6 h-6" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {exportOptions.map((option) => (
+            <div key={option.type} className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`p-3 rounded-lg ${option.color}`}>
+                  <option.icon className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white">{option.title}</h3>
+                  <p className="text-sm text-slate-400">{option.description}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold">{option.title}</h3>
-                <p className="text-sm text-gray-500">{option.description}</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleExport(option.type, 'csv')}
+                  disabled={loading !== null}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg disabled:opacity-50 text-slate-300 transition-colors"
+                >
+                  {loading === `${option.type}-csv` ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-slate-500 border-t-slate-300" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                  CSV
+                </button>
+                <button
+                  onClick={() => handleExport(option.type, 'json')}
+                  disabled={loading !== null}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg disabled:opacity-50 text-slate-300 transition-colors"
+                >
+                  {loading === `${option.type}-json` ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-slate-500 border-t-slate-300" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                  JSON
+                </button>
               </div>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleExport(option.type, 'csv')}
-                disabled={loading !== null}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50"
-              >
-                {loading === `${option.type}-csv` ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600" />
-                ) : (
-                  <Download className="w-4 h-4" />
-                )}
-                CSV
-              </button>
-              <button
-                onClick={() => handleExport(option.type, 'json')}
-                disabled={loading !== null}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50"
-              >
-                {loading === `${option.type}-json` ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600" />
-                ) : (
-                  <Download className="w-4 h-4" />
-                )}
-                JSON
-              </button>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
