@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 const ENVIRONMENTS = [
-  { id: '', label: '전체', icon: null },
+  { id: '', label: '전체', icon: HelpCircle },
   { id: 'factory', label: '공장', icon: Factory },
   { id: 'warehouse', label: '물류센터', icon: Warehouse },
   { id: 'retail', label: '리테일', icon: Store },
