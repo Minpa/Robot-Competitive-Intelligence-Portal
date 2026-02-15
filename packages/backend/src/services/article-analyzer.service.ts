@@ -220,7 +220,7 @@ Format your response as JSON:
       // JSON 블록 추출 (```json ... ``` 형식 처리)
       let jsonStr = result;
       const jsonMatch = result.match(/```json\s*([\s\S]*?)\s*```/);
-      if (jsonMatch) {
+      if (jsonMatch && jsonMatch[1]) {
         jsonStr = jsonMatch[1];
       }
       
