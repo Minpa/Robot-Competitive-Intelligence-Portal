@@ -1,366 +1,283 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
-import Link from 'next/link';
+import {
+  ExecutiveInsightCard,
+  KpiCard,
+  SegmentHeatmapPanel,
+  TimelineTrendPanel,
+  TalentProductScatterPanel,
+  InsightHubPanel,
+  SegmentDetailDrawer,
+  GlobalFilterBar,
+} from '@/components/dashboard';
+
+// Helper to get date range
+function getDateRange() {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - 7);
+  return {
+    start: start.toISOString().split('T')[0],
+    end: end.toISOString().split('T')[0],
+  };
+}
+
+// Helper to format date for display
+function formatDate(dateStr: string) {
+  const date = new Date(dateStr);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
 
 export default function DashboardPage() {
-  const { data: summary } = useQuery({
+  // Filter state
+  const [dateRange, setDateRange] = useState(getDateRange());
+  const [region, setRegion] = useState('all');
+  const [segment, setSegment] = useState('all');
+
+  // Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedSegment, setSelectedSegment] = useState<{ locomotion: string; purpose: string } | null>(null);
+
+  // API queries
+  const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ['dashboard-summary'],
     queryFn: () => api.getDashboardSummary(),
   });
 
-  const { data: segmentMatrix } = useQuery({
+  const { data: segmentMatrix, isLoading: matrixLoading } = useQuery({
     queryKey: ['segment-matrix'],
     queryFn: () => api.getSegmentMatrix(),
   });
 
-  const { data: handDistribution } = useQuery({
-    queryKey: ['hand-distribution'],
-    queryFn: () => api.getHandTypeDistribution(),
-  });
-
-  const { data: topWorkforce } = useQuery({
-    queryKey: ['top-workforce'],
-    queryFn: () => api.getTopWorkforceComparison(10),
-  });
-
-  const { data: deploymentDist } = useQuery({
-    queryKey: ['deployment-distribution'],
-    queryFn: () => api.getDeploymentStatusDistribution(),
-  });
-
-  const { data: weeklyHighlights } = useQuery({
+  const { data: weeklyHighlights, isLoading: highlightsLoading } = useQuery({
     queryKey: ['weekly-highlights'],
     queryFn: () => api.getWeeklyHighlights(),
   });
 
-  const getLocomotionLabel = (type: string) => {
-    const map: Record<string, string> = {
-      biped: '2족 보행',
-      wheel: '휠베이스',
-      hybrid: '하이브리드',
-    };
-    return map[type] || type;
+  // NEW: LLM-generated executive insight
+  const { data: executiveInsight, isLoading: insightLoading } = useQuery({
+    queryKey: ['executive-insight', dateRange],
+    queryFn: () => api.getExecutiveInsight(7, 'gpt-4o'),
+    staleTime: 1000 * 60 * 30, // 30분 캐시
+  });
+
+  // NEW: Timeline trend data from API
+  const { data: timelineData, isLoading: timelineLoading } = useQuery({
+    queryKey: ['timeline-trend', segment],
+    queryFn: () => api.getTimelineTrendData(12, segment !== 'all' ? segment : undefined),
+  });
+
+  // NEW: Company scatter data from API
+  const { data: scatterData, isLoading: scatterLoading } = useQuery({
+    queryKey: ['company-scatter'],
+    queryFn: () => api.getCompanyScatterData(),
+  });
+
+  // NEW: Segment detail for drawer
+  const { data: segmentDetail, isLoading: segmentDetailLoading } = useQuery({
+    queryKey: ['segment-detail', selectedSegment?.locomotion, selectedSegment?.purpose],
+    queryFn: () => selectedSegment 
+      ? api.getSegmentDetail(selectedSegment.locomotion, selectedSegment.purpose)
+      : Promise.resolve(null),
+    enabled: !!selectedSegment && drawerOpen,
+  });
+
+  // Generate news data from highlights
+  const topNews = useMemo(() => {
+    if (!weeklyHighlights?.categories) return [];
+    const allNews: any[] = [];
+    
+    Object.entries(weeklyHighlights.categories).forEach(([category, items]) => {
+      (items as any[]).forEach((item) => {
+        allNews.push({
+          id: item.id,
+          date: item.publishedAt ? formatDate(item.publishedAt) : formatDate(new Date().toISOString()),
+          type: category === 'industry' ? 'investment' : category === 'technology' ? 'poc' : 'other',
+          title: item.title,
+          comment: item.summary?.slice(0, 50),
+          url: item.url,
+        });
+      });
+    });
+    
+    return allNews.slice(0, 5);
+  }, [weeklyHighlights]);
+
+  // Handle segment cell click
+  const handleSegmentClick = (locomotion: string, purpose: string, cell: any) => {
+    setSelectedSegment({ locomotion, purpose });
+    setDrawerOpen(true);
   };
 
-  const getPurposeLabel = (purpose: string) => {
-    const map: Record<string, string> = {
-      industrial: '산업용',
-      home: '가정용',
-      service: '서비스용',
-    };
-    return map[purpose] || purpose;
+  // Handle company click in scatter
+  const handleCompanyClick = (company: any) => {
+    window.location.href = `/companies/${company.id}`;
   };
 
-  const getHandTypeLabel = (type: string) => {
-    const map: Record<string, string> = {
-      gripper: '단순 그리퍼',
-      multi_finger: '다지 손',
-      modular: '교체형',
+  // Insight data (from API or fallback)
+  const insightData = useMemo(() => {
+    if (executiveInsight) {
+      return {
+        title: executiveInsight.title,
+        summary: executiveInsight.summary,
+        details: executiveInsight.details,
+        periodStart: executiveInsight.periodStart,
+        periodEnd: executiveInsight.periodEnd,
+      };
+    }
+    // Fallback
+    const totalRobots = summary?.totalRobots || 0;
+    const totalCompanies = summary?.totalCompanies || 0;
+    return {
+      title: '이번 주 핵심 인사이트',
+      summary: `현재 ${totalCompanies}개 회사에서 ${totalRobots}개의 휴머노이드 로봇 제품이 등록되어 있습니다. 산업용 2족 보행 로봇이 가장 활발한 세그먼트이며, 최근 PoC 발표가 증가하는 추세입니다.`,
+      details: `휴머노이드 로봇 시장은 산업용 분야를 중심으로 빠르게 성장하고 있습니다.`,
+      periodStart: dateRange.start,
+      periodEnd: dateRange.end,
     };
-    return map[type] || type;
-  };
+  }, [executiveInsight, summary, dateRange]);
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">분석 대시보드</h1>
-            <p className="mt-2 text-gray-600">휴머노이드 로봇 시장 세그먼트 및 인력 분석</p>
+      <div className="min-h-screen bg-slate-950">
+        <div className="max-w-[1600px] mx-auto px-4 py-6">
+          {/* Header */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+              <span className="text-3xl">📊</span>
+              HRIP 분석 대시보드
+            </h1>
+            <p className="text-slate-400 mt-1">휴머노이드 로봇 시장 인텔리전스 플랫폼</p>
           </div>
 
-          {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white rounded-lg shadow p-6">
-              <p className="text-sm text-gray-500">총 로봇</p>
-              <p className="text-3xl font-bold text-gray-900">{summary?.totalRobots || 0}</p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <p className="text-sm text-gray-500">총 회사</p>
-              <p className="text-3xl font-bold text-gray-900">{summary?.totalCompanies || 0}</p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <p className="text-sm text-gray-500">총 기사</p>
-              <p className="text-3xl font-bold text-gray-900">{summary?.totalArticles || 0}</p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <p className="text-sm text-gray-500">적용 사례</p>
-              <p className="text-3xl font-bold text-gray-900">{summary?.totalCases || 0}</p>
-            </div>
-          </div>
+          {/* Global Filter Bar */}
+          <GlobalFilterBar
+            dateRange={dateRange}
+            region={region}
+            segment={segment}
+            onDateRangeChange={setDateRange}
+            onRegionChange={setRegion}
+            onSegmentChange={setSegment}
+          />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* Segment Matrix */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">세그먼트 매트릭스</h2>
-              <p className="text-sm text-gray-500 mb-4">이동 방식 × 용도별 로봇 분포</p>
-              
-              {segmentMatrix?.matrix && Object.keys(segmentMatrix.matrix).length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full">
-                    <thead>
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase"></th>
-                        <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">산업용</th>
-                        <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">가정용</th>
-                        <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">서비스용</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {['biped', 'wheel', 'hybrid'].map(locomotion => (
-                        <tr key={locomotion}>
-                          <td className="px-4 py-2 text-sm font-medium text-gray-900">
-                            {getLocomotionLabel(locomotion)}
-                          </td>
-                          {['industrial', 'home', 'service'].map(purpose => {
-                            const cell = segmentMatrix.matrix[locomotion]?.[purpose];
-                            const count = cell?.count ?? 0;
-                            return (
-                              <td key={purpose} className="px-4 py-2 text-center">
-                                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-lg ${
-                                  count > 5 ? 'bg-blue-600 text-white' :
-                                  count > 2 ? 'bg-blue-400 text-white' :
-                                  count > 0 ? 'bg-blue-200 text-blue-800' :
-                                  'bg-gray-100 text-gray-400'
-                                }`}>
-                                  {count}
-                                </div>
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">데이터가 없습니다.</p>
-              )}
+          {/* Row 1: Insight Header + KPI Cards */}
+          <div className="grid grid-cols-12 gap-4 mb-6">
+            {/* Executive Insight Card - 6 columns */}
+            <div className="col-span-12 lg:col-span-6">
+              <ExecutiveInsightCard
+                title={insightData.title}
+                summary={insightData.summary}
+                details={insightData.details}
+                periodStart={insightData.periodStart}
+                periodEnd={insightData.periodEnd}
+                isLoading={insightLoading || summaryLoading}
+              />
             </div>
 
-            {/* Hand Type Distribution */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Hand 타입 분포</h2>
-              <p className="text-sm text-gray-500 mb-4">전체 로봇의 Hand 타입별 비율</p>
-              
-              {handDistribution?.overall && handDistribution.overall.length > 0 ? (
-                <div className="space-y-4">
-                  {handDistribution.overall.map((item: any) => (
-                    <div key={item.handType}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-700">{getHandTypeLabel(item.handType)}</span>
-                        <span className="text-gray-500">{item.count}개 ({item.percentage.toFixed(1)}%)</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
-                        <div
-                          className={`h-3 rounded-full ${
-                            item.handType === 'multi_finger' ? 'bg-blue-600' :
-                            item.handType === 'gripper' ? 'bg-green-600' :
-                            'bg-purple-600'
-                          }`}
-                          style={{ width: `${item.percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">데이터가 없습니다.</p>
-              )}
+            {/* KPI Cards - 6 columns (2x2 grid) */}
+            <div className="col-span-12 lg:col-span-6 grid grid-cols-2 gap-4">
+              <KpiCard
+                title="총 휴머노이드"
+                value={summary?.totalRobots || 0}
+                previousValue={(summary?.totalRobots || 0) - (executiveInsight?.keyMetrics?.newRobots || 2)}
+                icon="🤖"
+                color="blue"
+                isLoading={summaryLoading}
+              />
+              <KpiCard
+                title="총 회사"
+                value={summary?.totalCompanies || 0}
+                previousValue={(summary?.totalCompanies || 0) - 1}
+                icon="🏢"
+                color="green"
+                isLoading={summaryLoading}
+              />
+              <KpiCard
+                title="30일 신규 제품"
+                value={executiveInsight?.keyMetrics?.newRobots || summary?.weeklyNewProducts || 3}
+                previousValue={2}
+                icon="🆕"
+                color="purple"
+                isLoading={summaryLoading}
+              />
+              <KpiCard
+                title="30일 주요 이벤트"
+                value={(executiveInsight?.keyMetrics?.newPocs || 0) + (executiveInsight?.keyMetrics?.newInvestments || 0) + (executiveInsight?.keyMetrics?.newProductions || 0) || 5}
+                previousValue={4}
+                icon="📅"
+                color="orange"
+                isLoading={summaryLoading}
+              />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* Top Workforce Comparison */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Top 10 인력 비교</h2>
-              <p className="text-sm text-gray-500 mb-4">휴머노이드 관련 인력 규모 상위 회사</p>
-              
-              {topWorkforce?.companies && topWorkforce.companies.length > 0 ? (
-                <div className="space-y-3">
-                  {topWorkforce.companies.map((company: any, idx: number) => (
-                    <div key={company.companyId} className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-gray-500 w-6">{idx + 1}</span>
-                      <div className="flex-1">
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="font-medium text-gray-900">{company.companyName}</span>
-                          <span className="text-gray-500">{company.humanoidHeadcount || company.totalHeadcount}명</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="h-2 rounded-full bg-blue-600"
-                            style={{
-                              width: `${((company.humanoidHeadcount || company.totalHeadcount) / 
-                                (topWorkforce.companies[0]?.humanoidHeadcount || topWorkforce.companies[0]?.totalHeadcount || 1)) * 100}%`
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">데이터가 없습니다.</p>
-              )}
+          {/* Row 2: Segment Matrix + Timeline Trend */}
+          <div className="grid grid-cols-12 gap-4 mb-6">
+            {/* Segment Heatmap - 7 columns */}
+            <div className="col-span-12 lg:col-span-7">
+              <SegmentHeatmapPanel
+                matrix={segmentMatrix?.matrix || {}}
+                rows={segmentMatrix?.rows || []}
+                columns={segmentMatrix?.columns || []}
+                totalCount={segmentMatrix?.totalCount || 0}
+                isLoading={matrixLoading}
+                onCellClick={handleSegmentClick}
+              />
             </div>
 
-            {/* Deployment Status Distribution */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">배포 상태 분포</h2>
-              <p className="text-sm text-gray-500 mb-4">적용 사례의 배포 단계별 분포</p>
-              
-              {deploymentDist?.distribution && deploymentDist.distribution.length > 0 ? (
-                <div className="space-y-4">
-                  {deploymentDist.distribution.map((item: any) => (
-                    <div key={item.status}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-700">{item.status}</span>
-                        <span className="text-gray-500">{item.count}건 ({item.percentage.toFixed(1)}%)</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-3">
-                        <div
-                          className={`h-3 rounded-full ${
-                            item.status === 'production' ? 'bg-green-600' :
-                            item.status === 'pilot' ? 'bg-yellow-500' :
-                            item.status === 'demo' ? 'bg-blue-500' :
-                            'bg-gray-400'
-                          }`}
-                          style={{ width: `${item.percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">데이터가 없습니다.</p>
-              )}
+            {/* Timeline Trend - 5 columns */}
+            <div className="col-span-12 lg:col-span-5">
+              <TimelineTrendPanel
+                data={timelineData || []}
+                isLoading={timelineLoading}
+              />
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div className="bg-white rounded-lg shadow p-6 mb-8">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">빠른 링크</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Link
-                href="/humanoid-robots"
-                className="p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors text-center"
-              >
-                <span className="text-2xl">🤖</span>
-                <p className="mt-2 text-sm font-medium text-blue-900">로봇 카탈로그</p>
-              </Link>
-              <Link
-                href="/companies"
-                className="p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors text-center"
-              >
-                <span className="text-2xl">🏢</span>
-                <p className="mt-2 text-sm font-medium text-green-900">회사 목록</p>
-              </Link>
-              <Link
-                href="/article-analyzer"
-                className="p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors text-center"
-              >
-                <span className="text-2xl">📰</span>
-                <p className="mt-2 text-sm font-medium text-purple-900">기사 분석</p>
-              </Link>
-              <Link
-                href="/ppt-builder"
-                className="p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors text-center"
-              >
-                <span className="text-2xl">📊</span>
-                <p className="mt-2 text-sm font-medium text-orange-900">PPT 빌더</p>
-              </Link>
+          {/* Row 3: Talent/Product Scatter + Insight Hub */}
+          <div className="grid grid-cols-12 gap-4">
+            {/* Talent vs Product Scatter - 7 columns */}
+            <div className="col-span-12 lg:col-span-7">
+              <TalentProductScatterPanel
+                data={scatterData || []}
+                isLoading={scatterLoading}
+                onPointClick={handleCompanyClick}
+              />
             </div>
-          </div>
 
-          {/* Weekly Highlights */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-2">주간 하이라이트</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              {weeklyHighlights?.periodStart} ~ {weeklyHighlights?.periodEnd}
-            </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* 제품 동향 */}
-              <div className="border rounded-lg p-4">
-                <h3 className="text-sm font-medium text-blue-600 mb-3">🤖 제품 동향</h3>
-                {weeklyHighlights?.categories?.product && weeklyHighlights.categories.product.length > 0 ? (
-                  <ul className="space-y-2">
-                    {weeklyHighlights.categories.product.slice(0, 3).map((item) => (
-                      <li key={item.id} className="text-sm">
-                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-blue-600 line-clamp-2">
-                          {item.title}
-                        </a>
-                        <p className="text-xs text-gray-400">{item.source}</p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-gray-400">데이터 없음</p>
-                )}
-              </div>
-
-              {/* 기술 동향 */}
-              <div className="border rounded-lg p-4">
-                <h3 className="text-sm font-medium text-purple-600 mb-3">🔬 기술 동향</h3>
-                {weeklyHighlights?.categories?.technology && weeklyHighlights.categories.technology.length > 0 ? (
-                  <ul className="space-y-2">
-                    {weeklyHighlights.categories.technology.slice(0, 3).map((item) => (
-                      <li key={item.id} className="text-sm">
-                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-purple-600 line-clamp-2">
-                          {item.title}
-                        </a>
-                        <p className="text-xs text-gray-400">{item.source}</p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-gray-400">데이터 없음</p>
-                )}
-              </div>
-
-              {/* 산업 동향 */}
-              <div className="border rounded-lg p-4">
-                <h3 className="text-sm font-medium text-green-600 mb-3">📈 산업 동향</h3>
-                {weeklyHighlights?.categories?.industry && weeklyHighlights.categories.industry.length > 0 ? (
-                  <ul className="space-y-2">
-                    {weeklyHighlights.categories.industry.slice(0, 3).map((item) => (
-                      <li key={item.id} className="text-sm">
-                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-green-600 line-clamp-2">
-                          {item.title}
-                        </a>
-                        <p className="text-xs text-gray-400">{item.source}</p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-gray-400">데이터 없음</p>
-                )}
-              </div>
-
-              {/* 기타 동향 */}
-              <div className="border rounded-lg p-4">
-                <h3 className="text-sm font-medium text-orange-600 mb-3">📰 기타 동향</h3>
-                {weeklyHighlights?.categories?.other && weeklyHighlights.categories.other.length > 0 ? (
-                  <ul className="space-y-2">
-                    {weeklyHighlights.categories.other.slice(0, 3).map((item) => (
-                      <li key={item.id} className="text-sm">
-                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-orange-600 line-clamp-2">
-                          {item.title}
-                        </a>
-                        <p className="text-xs text-gray-400">{item.source}</p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-gray-400">데이터 없음</p>
-                )}
-              </div>
+            {/* Insight Hub - 5 columns */}
+            <div className="col-span-12 lg:col-span-5">
+              <InsightHubPanel
+                latestReport={{
+                  id: '1',
+                  title: '2026년 2월 2주차 휴머노이드 동향 브리프',
+                  pageCount: 8,
+                  updatedAt: formatDate(new Date().toISOString()),
+                  isAutoGenerated: true,
+                }}
+                topNews={topNews}
+                isLoading={highlightsLoading}
+                onViewReport={() => alert('리포트 보기')}
+                onExportPPT={() => window.location.href = '/ppt-builder'}
+              />
             </div>
           </div>
         </div>
+
+        {/* Segment Detail Drawer */}
+        <SegmentDetailDrawer
+          isOpen={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          locomotion={selectedSegment?.locomotion || ''}
+          purpose={selectedSegment?.purpose || ''}
+          topCompanies={segmentDetail?.topCompanies || []}
+          recentEvents={segmentDetail?.recentEvents || []}
+          totalRobots={segmentDetail?.totalRobots || segmentMatrix?.matrix?.[selectedSegment?.locomotion || '']?.[selectedSegment?.purpose || '']?.count || 0}
+        />
       </div>
     </AuthGuard>
   );

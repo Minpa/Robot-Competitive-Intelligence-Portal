@@ -13,7 +13,7 @@ export { humanoidRobotService, HumanoidRobotService } from './humanoid-robot.ser
 export { workforceService, WorkforceService } from './workforce.service.js';
 export { componentService, ComponentService } from './component.service.js';
 export { applicationCaseService, ApplicationCaseService } from './application-case.service.js';
-export { articleAnalyzerService, ArticleAnalyzerService } from './article-analyzer.service.js';
+export { articleAnalyzerService, ArticleAnalyzerService, type AIModel } from './article-analyzer.service.js';
 
 // 키워드 추출 및 트렌드 분석 서비스
 export { keywordExtractionService, KeywordExtractionService } from './keyword-extraction.service.js';
@@ -22,3 +22,6 @@ export { keywordStatsService, KeywordStatsService } from './keyword-stats.servic
 // 내보내기 및 PPT 생성 서비스
 export { exportService, ExportService } from './export.service.js';
 export { pptGeneratorService, PPTGeneratorService } from './ppt-generator.service.js';
+
+// LLM 기반 인사이트 생성 서비스
+export { insightGeneratorService, InsightGeneratorService } from './insight-generator.service.js';

@@ -1,12 +1,16 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { articleAnalyzerService } from '../services/index.js';
+import { articleAnalyzerService, type AIModel } from '../services/index.js';
 import { authService } from '../services/auth.service.js';
 
 export async function articleAnalyzerRoutes(fastify: FastifyInstance) {
   // Analyze article (preview before saving)
   fastify.post('/analyze', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const { content, language } = request.body as { content: string; language?: string };
+      const { content, language, model } = request.body as { 
+        content: string; 
+        language?: string;
+        model?: AIModel;
+      };
       
       if (!content) {
         return reply.status(400).send({ error: 'Content is required' });
@@ -23,7 +27,11 @@ export async function articleAnalyzerRoutes(fastify: FastifyInstance) {
         };
       }
 
-      const analysis = await articleAnalyzerService.analyzeArticle(content, language || 'ko');
+      const analysis = await articleAnalyzerService.analyzeArticle(
+        content, 
+        language || 'ko',
+        model || 'gpt-4o'
+      );
       
       return {
         isDuplicate: false,

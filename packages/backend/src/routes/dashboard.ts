@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { dashboardService } from '../services/dashboard.service.js';
+import { insightGeneratorService } from '../services/insight-generator.service.js';
 
 export async function dashboardRoutes(fastify: FastifyInstance) {
   // Get dashboard summary
@@ -131,5 +132,48 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
     const startDate = query.startDate ? new Date(query.startDate) : undefined;
     const endDate = query.endDate ? new Date(query.endDate) : undefined;
     return dashboardService.getDemoTimeline(startDate, endDate);
+  });
+
+  // ============================================
+  // Executive Insight & Advanced Analytics
+  // ============================================
+
+  // Generate LLM-based executive insight
+  fastify.get('/executive-insight', async (request) => {
+    const query = request.query as Record<string, string>;
+    const days = query.days ? parseInt(query.days) : 7;
+    const model = (query.model as 'gpt-4o' | 'claude') || 'gpt-4o';
+
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    return insightGeneratorService.generateWeeklyInsight(startDate, endDate, model);
+  });
+
+  // Get timeline trend data (monthly events/products)
+  fastify.get('/timeline-trend', async (request) => {
+    const query = request.query as Record<string, string>;
+    const months = query.months ? parseInt(query.months) : 12;
+    const segment = query.segment || undefined;
+
+    return insightGeneratorService.getTimelineTrendData(months, segment);
+  });
+
+  // Get company scatter data (talent vs products)
+  fastify.get('/company-scatter', async () => {
+    return insightGeneratorService.getCompanyScatterData();
+  });
+
+  // Get segment detail (for drawer)
+  fastify.get('/segment-detail', async (request) => {
+    const query = request.query as Record<string, string>;
+    const { locomotion, purpose } = query;
+
+    if (!locomotion || !purpose) {
+      throw new Error('locomotion and purpose are required');
+    }
+
+    return insightGeneratorService.getSegmentDetail(locomotion, purpose);
   });
 }

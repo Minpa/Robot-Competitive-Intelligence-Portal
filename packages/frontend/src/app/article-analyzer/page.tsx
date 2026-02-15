@@ -5,16 +5,19 @@ import { useMutation } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 
+type AIModel = 'gpt-4o' | 'claude';
+
 export default function ArticleAnalyzerPage() {
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
+  const [selectedModel, setSelectedModel] = useState<AIModel>('gpt-4o');
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [selectedRobotTags, setSelectedRobotTags] = useState<string[]>([]);
   const [selectedCompanyTags, setSelectedCompanyTags] = useState<string[]>([]);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const analyzeMutation = useMutation({
-    mutationFn: () => api.analyzeArticle(content),
+    mutationFn: () => api.analyzeArticle(content, selectedModel),
     onSuccess: (data) => {
       setAnalysisResult(data);
       // 자동으로 높은 신뢰도 태그 선택
@@ -112,6 +115,25 @@ export default function ArticleAnalyzerPage() {
                       placeholder="기사 제목을 입력하세요"
                       className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      AI 모델 선택
+                    </label>
+                    <select
+                      value={selectedModel}
+                      onChange={(e) => setSelectedModel(e.target.value as AIModel)}
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    >
+                      <option value="gpt-4o">GPT-4o (OpenAI)</option>
+                      <option value="claude">Claude (Anthropic)</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {selectedModel === 'gpt-4o' 
+                        ? 'GPT-4o: 빠르고 정확한 분석' 
+                        : 'Claude: 깊이 있는 분석과 맥락 이해'}
+                    </p>
                   </div>
 
                   <div>

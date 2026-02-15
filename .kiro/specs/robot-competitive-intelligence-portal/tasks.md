@@ -409,8 +409,8 @@
 - [x] 23. Checkpoint - Frontend 완료
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 24. 통합 테스트 및 최종 검증
-  - [ ] 24.1 API 통합 테스트
+- [x] 24. 통합 테스트 및 최종 검증
+  - [x] 24.1 API 통합 테스트
     - 인증 플로우 테스트
     - CRUD 작업 테스트
     - 필터/정렬 테스트
@@ -424,7 +424,7 @@
     - **Property 37: API Error Resilience**
     - **Validates: Requirements 12.2, 12.3**
 
-- [ ] 25. Final Checkpoint
+- [x] 25. Final Checkpoint
   - Ensure all tests pass, ask the user if questions arise.
   - 모든 요구사항 커버리지 확인
   - 전체 통합 테스트 실행

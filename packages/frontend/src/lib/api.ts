@@ -179,6 +179,79 @@ class ApiClient {
     }>('/dashboard/highlights');
   }
 
+  // Executive Insight (LLM-generated)
+  async getExecutiveInsight(days: number = 7, model: 'gpt-4o' | 'claude' = 'gpt-4o') {
+    return this.request<{
+      title: string;
+      summary: string;
+      details: string;
+      periodStart: string;
+      periodEnd: string;
+      keyMetrics: {
+        newRobots: number;
+        newPocs: number;
+        newInvestments: number;
+        newProductions: number;
+      };
+      highlights: string[];
+      risks: string[];
+      opportunities: string[];
+      generatedAt: string;
+    }>(`/dashboard/executive-insight?days=${days}&model=${model}`);
+  }
+
+  // Timeline Trend Data (monthly events/products)
+  async getTimelineTrendData(months: number = 12, segment?: string) {
+    const params = new URLSearchParams({ months: String(months) });
+    if (segment && segment !== 'all') params.append('segment', segment);
+    return this.request<Array<{
+      month: string;
+      year: number;
+      eventCount: number;
+      newProducts: number;
+      investments: number;
+      pocs: number;
+      productions: number;
+    }>>(`/dashboard/timeline-trend?${params.toString()}`);
+  }
+
+  // Company Scatter Data (talent vs products)
+  async getCompanyScatterData() {
+    return this.request<Array<{
+      id: string;
+      name: string;
+      talentSize: number;
+      productCount: number;
+      eventCount: number;
+      segment: 'industrial' | 'home' | 'service' | 'mixed';
+      country: string;
+      recentEvent?: string;
+    }>>('/dashboard/company-scatter');
+  }
+
+  // Segment Detail (for drawer)
+  async getSegmentDetail(locomotion: string, purpose: string) {
+    return this.request<{
+      locomotion: string;
+      purpose: string;
+      totalRobots: number;
+      topCompanies: Array<{
+        id: string;
+        name: string;
+        country: string;
+        logoUrl?: string;
+        mainProduct: string;
+        mainSpec: string;
+      }>;
+      recentEvents: Array<{
+        id: string;
+        date: string;
+        type: 'investment' | 'poc' | 'production' | 'other';
+        description: string;
+      }>;
+    }>(`/dashboard/segment-detail?locomotion=${encodeURIComponent(locomotion)}&purpose=${encodeURIComponent(purpose)}`);
+  }
+
   async getTimeline(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';
     return this.request<any[]>(`/dashboard/timeline${query}`);
@@ -885,7 +958,7 @@ class ApiClient {
   // ============================================
 
   // 기사 분석 (AI 요약 + 메타데이터 추출)
-  async analyzeArticle(content: string, sourceUrl?: string) {
+  async analyzeArticle(content: string, model: 'gpt-4o' | 'claude' = 'gpt-4o') {
     const response = await this.request<{
       isDuplicate: boolean;
       existingId?: string;
@@ -909,7 +982,7 @@ class ApiClient {
       };
     }>('/article-analyzer/analyze', {
       method: 'POST',
-      body: JSON.stringify({ content, sourceUrl }),
+      body: JSON.stringify({ content, model }),
     });
 
     // Transform response to expected format

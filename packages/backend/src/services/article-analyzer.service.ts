@@ -1,5 +1,7 @@
 import { createHash } from 'crypto';
 import { eq, ilike, sql, desc, and, inArray } from 'drizzle-orm';
+import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import {
   db,
   articles,
@@ -10,6 +12,12 @@ import {
   articleKeywords,
   type ExtractedMetadata,
 } from '../db/index.js';
+
+// AI 클라이언트 초기화
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
+
+export type AIModel = 'gpt-4o' | 'claude';
 
 export interface ArticleAnalysisResult {
   summary: string;
@@ -74,10 +82,9 @@ export class ArticleAnalyzerService {
   }
 
   /**
-   * Analyze article content (placeholder for AI integration)
-   * This will be connected to Claude API later
+   * Analyze article content using AI (GPT-4o or Claude)
    */
-  async analyzeArticle(content: string, language: string = 'ko'): Promise<ArticleAnalysisResult> {
+  async analyzeArticle(content: string, language: string = 'ko', model: AIModel = 'gpt-4o'): Promise<ArticleAnalysisResult> {
     // Find mentioned companies
     const allCompanies = await db.select({ id: companies.id, name: companies.name }).from(companies);
     const mentionedCompanies: EntityMatch[] = [];
@@ -106,22 +113,138 @@ export class ArticleAnalyzerService {
       }
     }
 
-    // Extract keywords (simple implementation - will be enhanced with NLP)
+    // Extract keywords (simple implementation)
     const extractedKeywords = this.extractKeywords(content, language);
 
-    // Placeholder summary (will be replaced with AI)
-    const summary = content.length > 500 
-      ? content.substring(0, 500) + '...' 
-      : content;
+    // AI 분석 수행
+    const aiAnalysis = await this.performAIAnalysis(content, language, model);
 
     return {
-      summary,
-      keyPoints: [],
+      summary: aiAnalysis.summary,
+      keyPoints: aiAnalysis.keyPoints,
       mentionedCompanies,
       mentionedRobots,
-      extractedTechnologies: [],
-      marketInsights: [],
+      extractedTechnologies: aiAnalysis.technologies,
+      marketInsights: aiAnalysis.insights,
       keywords: extractedKeywords,
+    };
+  }
+
+  /**
+   * Perform AI analysis using selected model
+   */
+  private async performAIAnalysis(
+    content: string, 
+    language: string, 
+    model: AIModel
+  ): Promise<{ summary: string; keyPoints: string[]; technologies: string[]; insights: string[] }> {
+    const systemPrompt = `You are a robotics industry analyst. Analyze the given article and extract:
+1. A concise summary (2-3 sentences)
+2. Key points (3-5 bullet points)
+3. Technologies mentioned
+4. Market insights
+
+Respond in ${language === 'ko' ? 'Korean' : 'English'}.
+Format your response as JSON:
+{
+  "summary": "...",
+  "keyPoints": ["...", "..."],
+  "technologies": ["...", "..."],
+  "insights": ["...", "..."]
+}`;
+
+    const userPrompt = `Analyze this article:\n\n${content.substring(0, 4000)}`;
+
+    try {
+      if (model === 'claude' && anthropic) {
+        return await this.analyzeWithClaude(systemPrompt, userPrompt);
+      } else if (openai) {
+        return await this.analyzeWithGPT(systemPrompt, userPrompt);
+      } else {
+        // Fallback: no AI available
+        console.log('[AI] No AI API configured, using fallback');
+        return this.getFallbackAnalysis(content);
+      }
+    } catch (error) {
+      console.error('[AI] Analysis failed:', error);
+      return this.getFallbackAnalysis(content);
+    }
+  }
+
+  /**
+   * Analyze with GPT-4o
+   */
+  private async analyzeWithGPT(systemPrompt: string, userPrompt: string) {
+    if (!openai) throw new Error('OpenAI not configured');
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      max_tokens: 1000,
+      temperature: 0.3,
+      response_format: { type: 'json_object' },
+    });
+
+    const result = response.choices[0]?.message?.content || '{}';
+    return this.parseAIResponse(result);
+  }
+
+  /**
+   * Analyze with Claude
+   */
+  private async analyzeWithClaude(systemPrompt: string, userPrompt: string) {
+    if (!anthropic) throw new Error('Anthropic not configured');
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [
+        { role: 'user', content: userPrompt },
+      ],
+    });
+
+    const textBlock = response.content.find(block => block.type === 'text');
+    const result = textBlock?.type === 'text' ? textBlock.text : '{}';
+    return this.parseAIResponse(result);
+  }
+
+  /**
+   * Parse AI response JSON
+   */
+  private parseAIResponse(result: string): { summary: string; keyPoints: string[]; technologies: string[]; insights: string[] } {
+    try {
+      // JSON 블록 추출 (```json ... ``` 형식 처리)
+      let jsonStr = result;
+      const jsonMatch = result.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[1];
+      }
+      
+      const parsed = JSON.parse(jsonStr);
+      return {
+        summary: parsed.summary || '',
+        keyPoints: Array.isArray(parsed.keyPoints) ? parsed.keyPoints : [],
+        technologies: Array.isArray(parsed.technologies) ? parsed.technologies : [],
+        insights: Array.isArray(parsed.insights) ? parsed.insights : [],
+      };
+    } catch {
+      return { summary: '', keyPoints: [], technologies: [], insights: [] };
+    }
+  }
+
+  /**
+   * Fallback analysis when AI is not available
+   */
+  private getFallbackAnalysis(content: string) {
+    return {
+      summary: content.length > 500 ? content.substring(0, 500) + '...' : content,
+      keyPoints: [],
+      technologies: [],
+      insights: [],
     };
   }
 
