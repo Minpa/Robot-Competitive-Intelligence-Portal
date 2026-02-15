@@ -93,7 +93,7 @@ export default function HumanoidRobotDetailPage() {
   }
 
   const stageConfig = STAGE_CONFIG[robot.stage] || STAGE_CONFIG.concept;
-  const salesConfig = SALES_CONFIG[robot.salesStatus || 'not_for_sale'] || SALES_CONFIG.not_for_sale;
+  const salesConfig = SALES_CONFIG[(robot as any).salesStatus || 'not_for_sale'] || SALES_CONFIG.not_for_sale;
 
   return (
     <AuthGuard>
