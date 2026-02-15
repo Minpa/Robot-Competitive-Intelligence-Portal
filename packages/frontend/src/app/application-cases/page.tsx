@@ -1,17 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
+import {
+  EnhancedEnvironmentTaskMatrix,
+  RecentDeploymentEventsCard,
+  ApplicationCaseCard,
+  CaseDetailDrawer,
+} from '@/components/application-cases';
 
 const ENVIRONMENTS = [
   { id: '', label: '전체' },
   { id: 'factory', label: '공장' },
-  { id: 'warehouse', label: '물류창고' },
+  { id: 'warehouse', label: '물류센터' },
   { id: 'retail', label: '리테일' },
-  { id: 'healthcare', label: '의료' },
-  { id: 'hospitality', label: '호텔/서비스' },
+  { id: 'healthcare', label: '병원' },
+  { id: 'hospitality', label: '호텔' },
   { id: 'home', label: '가정' },
   { id: 'research_lab', label: '연구소' },
   { id: 'other', label: '기타' },
@@ -26,7 +32,33 @@ const TASK_TYPES = [
   { id: 'delivery', label: '배송' },
   { id: 'cleaning', label: '청소' },
   { id: 'assistance', label: '보조' },
+  { id: 'transport', label: '운반' },
   { id: 'other', label: '기타' },
+];
+
+const SPACE_TYPES = [
+  { id: '', label: '전체' },
+  { id: 'factory_line', label: '공장 라인' },
+  { id: 'logistics_center', label: '물류센터' },
+  { id: 'retail_store', label: '리테일 매장' },
+  { id: 'hospital', label: '병원' },
+  { id: 'hotel', label: '호텔' },
+  { id: 'home', label: '가정' },
+  { id: 'other', label: '기타' },
+];
+
+const ROBOT_TYPES = [
+  { id: '', label: '전체' },
+  { id: 'humanoid', label: '휴머노이드' },
+  { id: 'arm', label: '팔형 로봇' },
+  { id: 'amr', label: 'AMR' },
+  { id: 'other', label: '기타' },
+];
+
+const SORT_OPTIONS = [
+  { id: 'latest', label: '최신 적용일' },
+  { id: 'impact', label: '임팩트' },
+  { id: 'difficulty', label: '난이도' },
 ];
 
 export default function ApplicationCasesPage() {
@@ -34,240 +66,274 @@ export default function ApplicationCasesPage() {
     environment: '',
     taskType: '',
     deploymentStatus: '',
+    spaceType: '',
+    robotType: '',
+    sortBy: 'latest',
   });
 
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // 적용 사례 목록
   const { data: cases, isLoading } = useQuery({
     queryKey: ['application-cases', filters],
     queryFn: () => api.getApplicationCases(
       Object.fromEntries(
-        Object.entries(filters).filter(([_, v]) => v !== '')
+        Object.entries(filters).filter(([k, v]) => v !== '' && k !== 'sortBy' && k !== 'spaceType' && k !== 'robotType')
       ) as any
     ),
   });
 
+  // 환경-작업 매트릭스
   const { data: matrix } = useQuery({
     queryKey: ['environment-task-matrix'],
     queryFn: () => api.getEnvironmentTaskMatrix(),
   });
 
+  // 시연 타임라인
   const { data: demoTimeline } = useQuery({
     queryKey: ['demo-timeline'],
     queryFn: () => api.getDemoTimeline(),
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'production': return 'bg-green-100 text-green-800';
-      case 'pilot': return 'bg-yellow-100 text-yellow-800';
-      case 'poc': return 'bg-orange-100 text-orange-800';
-      case 'concept': return 'bg-purple-100 text-purple-800';
-      case 'demo': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  // 선택된 케이스 상세
+  const { data: selectedCaseDetail } = useQuery({
+    queryKey: ['application-case', selectedCaseId],
+    queryFn: () => selectedCaseId ? api.getApplicationCase(selectedCaseId) : null,
+    enabled: !!selectedCaseId,
+  });
+
+  // 통계 계산
+  const stats = useMemo(() => {
+    const items = cases?.items || [];
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    return {
+      newDeployments30d: items.filter((c: any) => {
+        if (!c.demoDate) return false;
+        return new Date(c.demoDate) >= thirtyDaysAgo;
+      }).length,
+      pocToProductionCount: items.filter((c: any) => c.deploymentStatus === 'production').length,
+      failedCount: items.filter((c: any) => c.deploymentStatus === 'ended').length,
+    };
+  }, [cases]);
+
+  // 하이라이트 사례
+  const highlights = useMemo(() => {
+    const items = cases?.items || [];
+    return items.slice(0, 2).map((c: any) => ({
+      id: c.id,
+      title: c.demoEvent || c.description || '적용 사례',
+      companyName: c.companyName || '',
+      robotName: c.robotName || '',
+      description: c.description || '',
+      status: c.deploymentStatus || 'poc',
+    }));
+  }, [cases]);
+
+  // 케이스 카드 데이터 변환
+  const caseCards = useMemo(() => {
+    return (cases?.items || []).map((c: any) => ({
+      id: c.id,
+      title: c.demoEvent || c.description || '적용 사례',
+      status: c.deploymentStatus || 'poc',
+      environment: c.environment || 'other',
+      taskType: c.taskType || 'other',
+      robotName: c.robotName || '',
+      companyName: c.companyName || '',
+      description: c.description,
+      robotType: 'humanoid', // 기본값
+    }));
+  }, [cases]);
+
+  // 케이스 상세 데이터 변환
+  const drawerCaseDetail = useMemo(() => {
+    if (!selectedCaseDetail) return null;
+    const c = selectedCaseDetail;
+    return {
+      id: c.case?.id || c.id,
+      title: c.case?.demoEvent || c.demoEvent || '적용 사례',
+      status: c.case?.deploymentStatus || c.deploymentStatus || 'poc',
+      environment: c.case?.environmentType || c.environment || 'other',
+      taskType: c.case?.taskType || c.taskType || 'other',
+      description: c.case?.taskDescription || c.description,
+      robots: c.robot ? [{
+        id: c.robot.id,
+        name: c.robot.name,
+        companyName: c.company?.name || '',
+        mainSpec: '',
+        role: c.case?.taskType || '작업 수행',
+      }] : [],
+      effects: [],
+      relatedLinks: [],
+    };
+  }, [selectedCaseDetail]);
+
+  const handleCellClick = (environment: string, task: string) => {
+    setFilters(prev => ({
+      ...prev,
+      environment,
+      taskType: task,
+    }));
   };
 
-  const getStatusLabel = (status: string) => {
-    const map: Record<string, string> = {
-      production: '상용',
-      pilot: '파일럿',
-      poc: 'PoC',
-      concept: '컨셉',
-      demo: '시연',
-    };
-    return map[status] || status;
+  const handleCaseClick = (id: string) => {
+    setSelectedCaseId(id);
+    setIsDrawerOpen(true);
   };
 
   return (
     <AuthGuard>
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 py-8">
+          {/* 헤더 */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">적용 사례</h1>
             <p className="mt-2 text-gray-600">휴머노이드 로봇 실제 적용 사례 및 시연 이벤트</p>
           </div>
 
+          {/* 상단 요약 영역 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* 환경-작업 매트릭스 */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">환경-작업 매트릭스</h2>
-              <p className="text-sm text-gray-500 mb-4">적용 환경과 작업 유형별 사례 분포</p>
-              
-              {matrix?.matrix && Object.keys(matrix.matrix).length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-sm">
-                    <thead>
-                      <tr>
-                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500"></th>
-                        {TASK_TYPES.filter(t => t.id).slice(0, 5).map(task => (
-                          <th key={task.id} className="px-2 py-1 text-center text-xs font-medium text-gray-500">
-                            {task.label}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ENVIRONMENTS.filter(e => e.id).slice(0, 5).map(env => (
-                        <tr key={env.id}>
-                          <td className="px-2 py-1 text-xs font-medium text-gray-700">{env.label}</td>
-                          {TASK_TYPES.filter(t => t.id).slice(0, 5).map(task => {
-                            const cell = matrix.matrix[env.id]?.[task.id];
-                            const count = cell?.count ?? 0;
-                            return (
-                              <td key={task.id} className="px-2 py-1 text-center">
-                                <div className={`inline-flex items-center justify-center w-8 h-8 rounded text-xs font-medium ${
-                                  count > 3 ? 'bg-blue-600 text-white' :
-                                  count > 1 ? 'bg-blue-300 text-blue-900' :
-                                  count > 0 ? 'bg-blue-100 text-blue-800' :
-                                  'bg-gray-50 text-gray-400'
-                                }`}>
-                                  {count}
-                                </div>
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">데이터가 없습니다.</p>
-              )}
-            </div>
+            {/* 환경×작업 인사이트 매트릭스 */}
+            <EnhancedEnvironmentTaskMatrix
+              matrix={matrix?.matrix || {}}
+              environments={ENVIRONMENTS}
+              tasks={TASK_TYPES}
+              onCellClick={handleCellClick}
+            />
 
-            {/* 시연 타임라인 */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">최근 시연 이벤트</h2>
-              <p className="text-sm text-gray-500 mb-4">주요 시연 및 발표 일정</p>
-              
-              {demoTimeline?.events && demoTimeline.events.length > 0 ? (
-                <div className="space-y-4 max-h-80 overflow-y-auto">
-                  {demoTimeline.events.map((event: any) => (
-                    <div key={event.id} className="flex gap-4 border-l-2 border-blue-500 pl-4">
-                      <div className="flex-shrink-0 text-sm text-gray-500">
-                        {event.eventDate ? new Date(event.eventDate).toLocaleDateString() : '-'}
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{event.title}</p>
-                        <p className="text-sm text-gray-500">
-                          {event.robotName} · {event.companyName}
-                        </p>
-                        {event.location && (
-                          <p className="text-xs text-gray-400 mt-1">📍 {event.location}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">시연 이벤트가 없습니다.</p>
-              )}
-            </div>
+            {/* 최근 적용·도입 이벤트 */}
+            <RecentDeploymentEventsCard
+              stats={stats}
+              highlights={highlights}
+              onCaseClick={handleCaseClick}
+            />
           </div>
 
-          {/* 필터 */}
+          {/* 필터 영역 */}
           <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {/* 환경 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">환경</label>
                 <select
                   value={filters.environment}
                   onChange={(e) => setFilters(prev => ({ ...prev, environment: e.target.value }))}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                 >
                   {ENVIRONMENTS.map(env => (
                     <option key={env.id} value={env.id}>{env.label}</option>
                   ))}
                 </select>
               </div>
+
+              {/* 작업 유형 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">작업 유형</label>
                 <select
                   value={filters.taskType}
                   onChange={(e) => setFilters(prev => ({ ...prev, taskType: e.target.value }))}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                 >
                   {TASK_TYPES.map(task => (
                     <option key={task.id} value={task.id}>{task.label}</option>
                   ))}
                 </select>
               </div>
+
+              {/* 배포 상태 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">배포 상태</label>
                 <select
                   value={filters.deploymentStatus}
                   onChange={(e) => setFilters(prev => ({ ...prev, deploymentStatus: e.target.value }))}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                 >
                   <option value="">전체</option>
                   <option value="production">상용</option>
                   <option value="pilot">파일럿</option>
                   <option value="poc">PoC</option>
-                  <option value="concept">컨셉</option>
-                  <option value="demo">시연</option>
+                  <option value="expanding">확대 중</option>
+                  <option value="ended">종료</option>
+                </select>
+              </div>
+
+              {/* 공간 타입 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">공간 타입</label>
+                <select
+                  value={filters.spaceType}
+                  onChange={(e) => setFilters(prev => ({ ...prev, spaceType: e.target.value }))}
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                >
+                  {SPACE_TYPES.map(space => (
+                    <option key={space.id} value={space.id}>{space.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 로봇 유형 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">로봇 유형</label>
+                <select
+                  value={filters.robotType}
+                  onChange={(e) => setFilters(prev => ({ ...prev, robotType: e.target.value }))}
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                >
+                  {ROBOT_TYPES.map(type => (
+                    <option key={type.id} value={type.id}>{type.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 정렬 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">정렬</label>
+                <select
+                  value={filters.sortBy}
+                  onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value }))}
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                >
+                  {SORT_OPTIONS.map(opt => (
+                    <option key={opt.id} value={opt.id}>{opt.label}</option>
+                  ))}
                 </select>
               </div>
             </div>
           </div>
 
-          {/* 사례 목록 */}
-          <div className="bg-white rounded-lg shadow">
-            {isLoading ? (
-              <div className="p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              </div>
-            ) : cases?.items && cases.items.length > 0 ? (
-              <div className="divide-y divide-gray-200">
-                {cases.items.map((caseItem: any) => (
-                  <div key={caseItem.id} className="p-6 hover:bg-gray-50">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="text-lg font-medium text-gray-900">{caseItem.demoEvent || caseItem.description || '적용 사례'}</h3>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {caseItem.robotName} · {caseItem.companyName}
-                        </p>
-                      </div>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(caseItem.deploymentStatus)}`}>
-                        {getStatusLabel(caseItem.deploymentStatus)}
-                      </span>
-                    </div>
-                    
-                    <div className="flex gap-2 mt-3">
-                      <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
-                        {ENVIRONMENTS.find(e => e.id === caseItem.environment)?.label || caseItem.environment}
-                      </span>
-                      <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
-                        {TASK_TYPES.find(t => t.id === caseItem.taskType)?.label || caseItem.taskType}
-                      </span>
-                    </div>
-                    
-                    {caseItem.description && caseItem.demoEvent && (
-                      <p className="text-sm text-gray-600 mt-3">{caseItem.description}</p>
-                    )}
-                    
-                    {caseItem.metrics && (
-                      <div className="mt-3 flex gap-4 text-sm text-gray-500">
-                        {caseItem.metrics.efficiency && (
-                          <span>효율성: {caseItem.metrics.efficiency}%</span>
-                        )}
-                        {caseItem.metrics.accuracy && (
-                          <span>정확도: {caseItem.metrics.accuracy}%</span>
-                        )}
-                        {caseItem.metrics.throughput && (
-                          <span>처리량: {caseItem.metrics.throughput}/h</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-8 text-center text-gray-500">
-                적용 사례가 없습니다.
-              </div>
-            )}
-          </div>
+          {/* 사례 목록 (카드 그리드) */}
+          {isLoading ? (
+            <div className="bg-white rounded-lg shadow p-8 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            </div>
+          ) : caseCards.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {caseCards.map((caseData: any) => (
+                <ApplicationCaseCard
+                  key={caseData.id}
+                  caseData={caseData}
+                  onClick={() => handleCaseClick(caseData.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+              적용 사례가 없습니다.
+            </div>
+          )}
         </div>
+
+        {/* 상세 드로어 */}
+        <CaseDetailDrawer
+          isOpen={isDrawerOpen}
+          onClose={() => {
+            setIsDrawerOpen(false);
+            setSelectedCaseId(null);
+          }}
+          caseDetail={drawerCaseDetail}
+        />
       </div>
     </AuthGuard>
   );
