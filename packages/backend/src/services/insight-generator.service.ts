@@ -287,6 +287,7 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
 
   /**
    * 월별 이벤트/제품 타임라인 데이터 생성
+   * announcementYear 기반으로 연도별 제품 수를 계산하고, 월별로 분배
    */
   async getTimelineTrendData(
     months: number = 12,
@@ -295,26 +296,44 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
     const result: TimelineTrendData[] = [];
     const now = new Date();
 
+    // 먼저 연도별 로봇 수를 가져옴
+    const robotsByYear = await db
+      .select({
+        year: humanoidRobots.announcementYear,
+        purpose: humanoidRobots.purpose,
+        count: count(),
+      })
+      .from(humanoidRobots)
+      .where(segment && segment !== 'all' ? eq(humanoidRobots.purpose, segment) : sql`1=1`)
+      .groupBy(humanoidRobots.announcementYear, humanoidRobots.purpose);
+
+    // 연도별 총 로봇 수 맵 생성
+    const yearlyRobotCount: Record<number, number> = {};
+    robotsByYear.forEach(r => {
+      if (r.year) {
+        yearlyRobotCount[r.year] = (yearlyRobotCount[r.year] || 0) + Number(r.count);
+      }
+    });
+
     for (let i = months - 1; i >= 0; i--) {
       const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+      const year = monthStart.getFullYear();
+      const month = monthStart.getMonth();
 
-      // 신규 로봇 수
-      const robotConditions = [
-        gte(humanoidRobots.createdAt, monthStart),
-        sql`${humanoidRobots.createdAt} <= ${monthEnd}`
-      ];
-      
-      if (segment && segment !== 'all') {
-        robotConditions.push(eq(humanoidRobots.purpose, segment));
-      }
+      // 해당 연도의 로봇 수를 12개월로 나눠서 분배 (간단한 분배 로직)
+      // 실제로는 발표 월 데이터가 있으면 더 정확하게 할 수 있음
+      const yearlyCount = yearlyRobotCount[year] || 0;
+      // 연도의 로봇을 분기별로 분배 (Q1: 1-3월, Q2: 4-6월, Q3: 7-9월, Q4: 10-12월)
+      // 대부분의 발표가 CES(1월), MWC(2-3월), 하반기 전시회에 집중되므로 가중치 적용
+      const quarterWeights = [0.35, 0.25, 0.15, 0.25]; // Q1, Q2, Q3, Q4
+      const quarter = Math.floor(month / 3);
+      const quarterMonths = 3;
+      const quarterWeight = quarterWeights[quarter] ?? 0.25;
+      const quarterCount = Math.round(yearlyCount * quarterWeight);
+      const monthlyCount = Math.round(quarterCount / quarterMonths);
 
-      const [robotCount] = await db
-        .select({ count: count() })
-        .from(humanoidRobots)
-        .where(and(...robotConditions));
-
-      // 적용 사례 (이벤트) 수
+      // 적용 사례 (이벤트) 수 - demoDate 기반으로 변경
       const caseResults = await db
         .select({
           status: applicationCases.deploymentStatus,
@@ -322,18 +341,18 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
         })
         .from(applicationCases)
         .where(and(
-          gte(applicationCases.createdAt, monthStart),
-          sql`${applicationCases.createdAt} <= ${monthEnd}`
+          sql`${applicationCases.demoDate} >= ${monthStart.toISOString().split('T')[0]}`,
+          sql`${applicationCases.demoDate} <= ${monthEnd.toISOString().split('T')[0]}`
         ))
         .groupBy(applicationCases.deploymentStatus);
 
-      // 기사 수 (투자 관련)
+      // 기사 수 (투자 관련) - publishedAt 기반으로 변경
       const [investmentCount] = await db
         .select({ count: count() })
         .from(articles)
         .where(and(
-          gte(articles.createdAt, monthStart),
-          sql`${articles.createdAt} <= ${monthEnd}`,
+          gte(articles.publishedAt, monthStart),
+          sql`${articles.publishedAt} <= ${monthEnd}`,
           eq(articles.category, 'industry')
         ));
 
@@ -348,7 +367,7 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
         month: monthName,
         year: monthStart.getFullYear(),
         eventCount: Number(pocs) + Number(productions) + investments,
-        newProducts: Number(robotCount?.count || 0),
+        newProducts: monthlyCount,
         investments,
         pocs: Number(pocs),
         productions: Number(productions),

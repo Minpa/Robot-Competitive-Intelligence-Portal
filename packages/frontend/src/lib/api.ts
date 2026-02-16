@@ -1109,6 +1109,97 @@ class ApiClient {
       body: JSON.stringify(options),
     });
   }
+
+  // ============================================
+  // 키워드 분석 API
+  // ============================================
+
+  // Top 키워드 분석 데이터
+  async getKeywordAnalytics(params?: {
+    limit?: number;
+    category?: string;
+    sortBy?: 'count' | 'growth' | 'coverage';
+  }) {
+    const query = params ? '?' + new URLSearchParams(
+      Object.entries(params).filter(([_, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
+    ).toString() : '';
+    return this.request<Array<{
+      id: string;
+      term: string;
+      language: string;
+      category: string | null;
+      totalCount: number;
+      recentCount3m: number;
+      recentCount6m: number;
+      recentCount12m: number;
+      relatedCompanies: number;
+      relatedProducts: number;
+      relatedArticles: number;
+      relatedCases: number;
+      growthRate3m: number;
+      growthRate6m: number;
+      growthRate12m: number;
+      peakMonth: string | null;
+      trendStatus: 'rising_star' | 'big_stable' | 'niche' | 'declining';
+    }>>(`/keywords/analytics/top${query}`);
+  }
+
+  // 키워드 포지션 맵 데이터 (2D 산점도)
+  async getKeywordPositionMap() {
+    return this.request<{
+      keywords: Array<{
+        id: string;
+        term: string;
+        category: string | null;
+        x: number;
+        y: number;
+        quadrant: 'rising_star' | 'big_stable' | 'niche' | 'declining';
+      }>;
+    }>('/keywords/analytics/position-map');
+  }
+
+  // 월간 키워드 브리프
+  async getKeywordBrief() {
+    return this.request<{
+      period: string;
+      risingKeywords: Array<{ term: string; growthRate: number }>;
+      decliningKeywords: Array<{ term: string; growthRate: number }>;
+      broadestKeywords: Array<{ term: string; coverage: number }>;
+      summary: string;
+      generatedAt: string;
+    }>('/keywords/analytics/brief');
+  }
+
+  // 키워드 트렌드 라인 (선택한 키워드들의 월별 추이)
+  async getKeywordTrendLines(keywordIds: string[]) {
+    const ids = keywordIds.join(',');
+    return this.request<{
+      months: string[];
+      series: Array<{ keywordId: string; term: string; data: number[] }>;
+    }>(`/keywords/analytics/trend-lines?ids=${encodeURIComponent(ids)}`);
+  }
+
+  // 키워드 상세 인사이트
+  async getKeywordInsight(keywordId: string) {
+    return this.request<{
+      keyword: {
+        id: string;
+        term: string;
+        language: string;
+        category: string | null;
+        totalCount: number;
+        recentCount3m: number;
+        growthRate3m: number;
+        trendStatus: string;
+      };
+      trendData: Array<{ month: string; year: number; count: number }>;
+      topCompanies: Array<{ id: string; name: string; articleCount: number }>;
+      topProducts: Array<{ id: string; name: string; articleCount: number }>;
+      topCases: Array<{ id: string; robotName: string; environment: string; task: string }>;
+      description: string;
+      aiComment: string;
+    }>(`/keywords/analytics/${keywordId}`);
+  }
 }
 
 export const api = new ApiClient();

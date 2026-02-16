@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { keywordService } from '../services/keyword.service.js';
 import { keywordExtractionService } from '../services/keyword-extraction.service.js';
 import { keywordStatsService } from '../services/keyword-stats.service.js';
+import { keywordAnalyticsService } from '../services/keyword-analytics.service.js';
 import { CreateKeywordSchema, PaginationSchema } from '../types/dto.js';
 
 export async function keywordsRoutes(fastify: FastifyInstance) {
@@ -130,5 +131,50 @@ export async function keywordsRoutes(fastify: FastifyInstance) {
     } catch (error) {
       reply.status(500).send({ error: 'Failed to recalculate stats' });
     }
+  });
+
+  // ============================================
+  // 키워드 분석 API (새로 추가)
+  // ============================================
+
+  // Top 키워드 분석 데이터
+  fastify.get('/analytics/top', async (request) => {
+    const query = request.query as Record<string, string>;
+    const analytics = await keywordAnalyticsService.getTopKeywords({
+      limit: parseInt(query.limit || '20'),
+      category: query.category,
+      sortBy: (query.sortBy as 'count' | 'growth' | 'coverage') || 'count',
+    });
+    return analytics;
+  });
+
+  // 키워드 포지션 맵 데이터 (2D 산점도)
+  fastify.get('/analytics/position-map', async () => {
+    return keywordAnalyticsService.getKeywordPositionMap();
+  });
+
+  // 월간 키워드 브리프
+  fastify.get('/analytics/brief', async () => {
+    return keywordAnalyticsService.generateMonthlyBrief();
+  });
+
+  // 키워드 트렌드 라인 (선택한 키워드들의 월별 추이)
+  fastify.get('/analytics/trend-lines', async (request) => {
+    const query = request.query as Record<string, string>;
+    const keywordIds = query.ids?.split(',').filter(Boolean) || [];
+    if (keywordIds.length === 0) {
+      return { months: [], series: [] };
+    }
+    return keywordAnalyticsService.getKeywordTrendLines(keywordIds);
+  });
+
+  // 키워드 상세 인사이트
+  fastify.get('/analytics/:keywordId', async (request) => {
+    const { keywordId } = request.params as { keywordId: string };
+    const insight = await keywordAnalyticsService.getKeywordInsight(keywordId);
+    if (!insight) {
+      return { error: 'Keyword not found' };
+    }
+    return insight;
   });
 }
