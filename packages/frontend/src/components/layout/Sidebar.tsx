@@ -103,7 +103,7 @@ export function Sidebar() {
     <aside className="w-64 bg-slate-900 text-white min-h-screen flex flex-col border-r border-slate-800">
       {/* Logo */}
       <div className="p-4 border-b border-slate-800">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/executive" className="flex items-center gap-2">
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center">
             <Bot className="w-6 h-6 text-white" />
           </div>

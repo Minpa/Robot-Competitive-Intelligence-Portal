@@ -35,7 +35,7 @@ export default function LoginPage() {
       localStorage.setItem('user', JSON.stringify(data.user));
       
       await new Promise(resolve => setTimeout(resolve, 100));
-      window.location.href = '/';
+      window.location.href = '/executive';
     } catch (err) {
       setError((err as Error).message);
     } finally {
