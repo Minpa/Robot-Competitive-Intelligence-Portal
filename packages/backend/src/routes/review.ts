@@ -3,8 +3,8 @@
  */
 
 import { FastifyInstance } from 'fastify';
-import { db, companies, humanoidRobots, components, keywords, applicationCases } from '../db/index.js';
-import { gte, sql } from 'drizzle-orm';
+import { db, companies, humanoidRobots, components, applicationCases } from '../db/index.js';
+import { gte } from 'drizzle-orm';
 import { validationRulesEngine } from '../services/validation-rules.service.js';
 
 interface ReviewEntity {

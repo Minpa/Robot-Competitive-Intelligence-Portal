@@ -5,8 +5,8 @@
  * 인메모리 캐시 (TTL 기반)
  */
 
-import { db, humanoidRobots, applicationCases, robotComponents, components, articleKeywords, keywords, keywordStats, companies } from '../db/index.js';
-import { eq, sql, and, gte, lte, count } from 'drizzle-orm';
+import { db, humanoidRobots, applicationCases, robotComponents, components, articleKeywords, keywords, keywordStats } from '../db/index.js';
+import { eq, sql } from 'drizzle-orm';
 
 export interface SegmentAggregation {
   environment: string;

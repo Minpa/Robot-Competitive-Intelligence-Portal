@@ -37,7 +37,7 @@ export class PipelineLogger {
       status: 'running',
       triggeredBy: triggeredBy || null,
     }).returning({ id: pipelineRuns.id });
-    return run.id;
+    return run!.id;
   }
 
   /**

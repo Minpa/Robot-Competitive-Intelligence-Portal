@@ -65,7 +65,7 @@ Be concise and data-driven.`,
     return response.choices[0]?.message?.content || this.generateFallbackMarkdown(data);
   }
 
-  private async generatePptx(markdown: string, data: Record<string, unknown>): Promise<Buffer> {
+  private async generatePptx(markdown: string, _data: Record<string, unknown>): Promise<Buffer> {
     // pptxgenjs 동적 import (설치되어 있을 때만)
     try {
       const PptxGenJS = (await import('pptxgenjs')).default;

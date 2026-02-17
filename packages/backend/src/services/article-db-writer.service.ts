@@ -6,7 +6,7 @@
  */
 
 import { db, articles, articleCompanies, articleComponents, articleApplications, articleRobotTags, articleKeywords, keywords } from '../db/index.js';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 export interface ArticleSaveRequest {
   title: string;
