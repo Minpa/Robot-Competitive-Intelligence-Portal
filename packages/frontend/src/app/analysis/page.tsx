@@ -40,7 +40,7 @@ export default function AnalysisPage() {
     },
   });
 
-  const handleAnalyze = (text: string, options: Record<string, boolean>) => {
+  const handleAnalyze = (text: string, options: { companies: boolean; products: boolean; components: boolean; applications: boolean; keywords: boolean; summary: boolean }) => {
     parseMutation.mutate({ text, options });
   };
 

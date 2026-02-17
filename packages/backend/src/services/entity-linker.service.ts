@@ -7,7 +7,6 @@
  */
 
 import { db, companies, humanoidRobots, components, keywords } from '../db/index.js';
-import { sql } from 'drizzle-orm';
 import type { ParsedEntity } from './article-parser.service.js';
 
 export interface LinkCandidate {

@@ -99,11 +99,11 @@ export class PipelineLogger {
    * 파이프라인 실행 완료 및 요약 반환
    */
   async getSummary(runId: string): Promise<PipelineRunSummary> {
-    const [run] = await db.select().from(pipelineRuns).where(eq(pipelineRuns.id, runId));
+    const [runRow] = await db.select().from(pipelineRuns).where(eq(pipelineRuns.id, runId));
     const steps = await db.select().from(pipelineStepLogs).where(eq(pipelineStepLogs.runId, runId));
 
     const now = new Date();
-    const startedAt = run ? new Date(run.startedAt) : now;
+    const startedAt = runRow ? new Date(runRow.startedAt) : now;
     const totalDurationMs = now.getTime() - startedAt.getTime();
 
     // 상태 결정

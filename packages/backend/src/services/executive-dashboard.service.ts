@@ -2,8 +2,8 @@
  * ExecutiveDashboardService - 경영진 대시보드 10개 뷰
  */
 
-import { db, humanoidRobots, applicationCases, companies, components, robotComponents, bodySpecs, keywords, keywordStats, articleKeywords, articles, talentTrends, workforceData } from '../db/index.js';
-import { eq, sql, and, gte, lte, desc } from 'drizzle-orm';
+import { db, humanoidRobots, applicationCases, companies, bodySpecs, keywords, articles, talentTrends } from '../db/index.js';
+import { eq, gte, desc } from 'drizzle-orm';
 import { aggregationService } from './aggregation.service.js';
 
 export class ExecutiveDashboardService {
