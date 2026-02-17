@@ -1,0 +1,346 @@
+# 구현 계획: HRIP 분석 파이프라인
+
+## 개요
+
+기사 입력·분석 파이프라인(백엔드 서비스 → API 라우트 → 프론트엔드)을 먼저 구현하고, 이후 경영진 대시보드 10개 뷰를 구현합니다. 각 단계는 이전 단계 위에 점진적으로 빌드됩니다.
+
+## Tasks
+
+- [x] 1. DB 스키마 확장 및 ValidationRulesEngine 구현
+  - [x] 1.1 신규 관계 테이블 스키마 추가 (article_companies, article_components, article_applications, pipeline_runs, pipeline_step_logs)
+    - `packages/backend/src/db/schema.ts`에 테이블 정의 추가
+    - Drizzle relations 추가
+    - 마이그레이션 파일 생성
+    - _Requirements: 4.2, 10.1_
+  - [x] 1.2 ValidationRulesEngine 서비스 구현
+    - `packages/backend/src/services/validation-rules.service.ts` 생성
+    - 연도 범위(1990~2035), TOPS 범위(0.1~10000), 토크 범위(0.01~5000) 검증
+    - 휴머노이드 필수 필드(locomotion_type, hand_type) 경고 생성
+    - errors/warnings 분리 반환, errors 시 저장 차단 로직
+    - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8_
+  - [ ]* 1.3 ValidationRulesEngine 속성 기반 테스트 작성
+    - **Property 10: 검증 규칙 범위 체크**
+    - **Property 11: 휴머노이드 필수 필드 경고**
+    - **Property 12: 검증 결과 구조 및 저장 차단 규칙**
+    - **Validates: Requirements 6.1~6.8**
+
+- [x] 2. 체크포인트 - 스키마 마이그레이션 및 검증 엔진 확인
+  - 모든 테스트 통과 확인, 질문이 있으면 사용자에게 문의
+
+- [x] 3. ArticleParser 서비스 구현
+  - [x] 3.1 ArticleParserService 구현
+    - `packages/backend/src/services/article-parser.service.ts` 생성
+    - LLM API(GPT-4o/Claude) 호출하여 엔티티/키워드/요약 추출
+    - 언어 자동 감지 로직 구현
+    - 한국어/영어 공통 출력 스키마 매핑
+    - 빈 입력/최소 길이 검증
+    - 각 엔티티에 confidence 점수 부여
+    - 기존 `ai-analyzer.service.ts` 패턴 참고
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+  - [ ]* 3.2 ArticleParser 속성 기반 테스트 작성
+    - **Property 1: 파서 출력 스키마 일관성**
+    - **Property 2: 빈 입력 거부**
+    - **Property 3: 언어 자동 감지 정확성**
+    - **Validates: Requirements 2.1~2.5**
+
+- [x] 4. EntityLinker 서비스 구현
+  - [x] 4.1 EntityLinkerService 구현
+    - `packages/backend/src/services/entity-linker.service.ts` 생성
+    - fuzzy 매칭 알고리즘 구현 (Levenshtein distance 또는 trigram 유사도)
+    - 타입별(company, product, component, keyword) 독립 매칭
+    - 후보 최대 5개, 유사도 점수 0.0~1.0
+    - score >= 0.8 자동 추천 표시
+    - 미매칭 엔티티 → unmatched 배열
+    - 신규 엔티티 생성 로직
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
+  - [ ]* 4.2 EntityLinker 속성 기반 테스트 작성
+    - **Property 4: 엔티티 링킹 후보 제약**
+    - **Property 5: 미매칭 엔티티 분류**
+    - **Property 6: 타입별 독립 매칭**
+    - **Validates: Requirements 3.1~3.6**
+
+- [x] 5. ArticleToDBWriter 서비스 구현
+  - [x] 5.1 ArticleToDBWriterService 구현
+    - `packages/backend/src/services/article-db-writer.service.ts` 생성
+    - 기사 메타데이터(제목, 날짜, URL, 요약) 저장
+    - 관계 테이블(article_companies, article_robot_tags, article_components, article_applications) 레코드 생성
+    - content_hash 중복 체크
+    - 단일 트랜잭션 처리 (Drizzle transaction)
+    - 저장 결과(articleId, linkedEntities 카운트) 반환
+    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
+  - [ ]* 5.2 ArticleToDBWriter 속성 기반 테스트 작성
+    - **Property 7: 기사 저장 라운드트립**
+    - **Property 8: 중복 기사 거부**
+    - **Property 9: 트랜잭션 원자성**
+    - **Validates: Requirements 4.1~4.5**
+
+- [x] 6. PipelineLogger 서비스 구현
+  - [x] 6.1 PipelineLogger 서비스 구현
+    - `packages/backend/src/services/pipeline-logger.service.ts` 생성
+    - startRun, startStep, completeStep, failStep, getSummary 메서드
+    - pipeline_runs, pipeline_step_logs 테이블에 기록
+    - _Requirements: 10.1, 10.2, 10.3, 10.4_
+  - [ ]* 6.2 PipelineLogger 속성 기반 테스트 작성
+    - **Property 17: 파이프라인 로깅 완전성**
+    - **Validates: Requirements 10.1~10.4**
+
+- [x] 7. 체크포인트 - 파이프라인 핵심 서비스 확인
+  - 모든 테스트 통과 확인, 질문이 있으면 사용자에게 문의
+
+- [x] 8. 분석 파이프라인 API 라우트 구현
+  - [x] 8.1 분석 API 라우트 구현
+    - `packages/backend/src/routes/analysis.ts` 생성
+    - POST /api/analysis/parse → ArticleParserService.parse
+    - POST /api/analysis/link → EntityLinkerService.findCandidates
+    - POST /api/analysis/save → ValidationRulesEngine.validate + ArticleToDBWriterService.save
+    - POST /api/analysis/validate → ValidationRulesEngine.validate
+    - PipelineLogger 통합 (각 단계 로깅)
+    - `packages/backend/src/routes/index.ts`에 라우트 등록
+    - _Requirements: 1.3, 2.1, 3.1, 4.1, 10.1_
+
+- [x] 9. ArticleAnalysisUI 프론트엔드 구현
+  - [x] 9.1 ArticleInputPanel 컴포넌트 구현
+    - `packages/frontend/src/components/analysis/ArticleInputPanel.tsx` 생성
+    - 기사 원문 텍스트 입력 영역 (textarea)
+    - 분석 옵션 체크박스 (회사/제품/부품/적용 사례/키워드/요약)
+    - 분석 버튼, 로딩 상태, 중복 요청 방지
+    - 다크 테마(bg-slate-950) 적용
+    - _Requirements: 1.1, 1.4, 1.5_
+  - [x] 9.2 AnalysisResultPanel 컴포넌트 구현
+    - `packages/frontend/src/components/analysis/AnalysisResultPanel.tsx` 생성
+    - 추출된 엔티티(회사, 제품, 부품, 적용 사례) 카드 표시
+    - 키워드 태그 표시
+    - 요약 텍스트 표시
+    - _Requirements: 1.2_
+  - [x] 9.3 EntityLinkingPanel 컴포넌트 구현
+    - `packages/frontend/src/components/analysis/EntityLinkingPanel.tsx` 생성
+    - 각 엔티티별 후보 리스트 표시 (유사도 점수 포함)
+    - 자동 추천 후보 하이라이트
+    - 후보 선택/신규 생성 UI
+    - _Requirements: 3.1, 3.3, 3.4, 3.5_
+  - [x] 9.4 분석 페이지 조합
+    - `packages/frontend/src/app/analysis/page.tsx` 생성
+    - 좌측: ArticleInputPanel, 우측: AnalysisResultPanel + EntityLinkingPanel
+    - React Query로 API 호출 연결
+    - 저장 확인 다이얼로그
+    - _Requirements: 1.1, 1.2, 1.3_
+
+- [x] 10. 체크포인트 - 기사 분석 파이프라인 E2E 확인
+  - 모든 테스트 통과 확인, 질문이 있으면 사용자에게 문의
+
+- [x] 11. AggregationService 및 집계 API 구현
+  - [x] 11.1 AggregationService 구현
+    - `packages/backend/src/services/aggregation.service.ts` 생성
+    - 세그먼트별(환경×작업×이동 방식) 로봇/사례 수 집계
+    - 연도별 출시/적용/이벤트 수 집계
+    - 부품별 채택 로봇 수, 성능 지표 평균 집계
+    - 키워드별 기사 등장 수, 증감률 집계
+    - 인메모리 캐시 (TTL 기반)
+    - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
+  - [x] 11.2 집계 API 라우트 구현
+    - `packages/backend/src/routes/aggregation.ts` 생성
+    - GET /api/aggregation/segment, /yearly, /component, /keyword
+    - `packages/backend/src/routes/index.ts`에 등록
+    - _Requirements: 7.1~7.5_
+  - [ ]* 11.3 AggregationService 속성 기반 테스트 작성
+    - **Property 13: 세그먼트 집계 정합성**
+    - **Property 14: 집계 캐시 멱등성**
+    - **Validates: Requirements 7.1, 7.5**
+
+- [x] 12. InsightCardsGenerator 및 MonthlyBriefGenerator 구현
+  - [x] 12.1 InsightCardsGenerator 서비스 구현
+    - `packages/backend/src/services/insight-cards.service.ts` 생성
+    - AggregationService 데이터 기반 카드 생성
+    - LLM API 호출로 자연어 인사이트 문장 생성
+    - LLM 실패 시 숫자 기반 폴백 카드 생성
+    - 최소 4개 카드 보장
+    - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
+  - [x] 12.2 MonthlyBriefGenerator 서비스 구현
+    - `packages/backend/src/services/monthly-brief.service.ts` 생성
+    - 집계 JSON → Markdown 브리프 생성
+    - Markdown → PPTX 변환 (pptxgenjs 라이브러리)
+    - LLM 실패 시 템플릿 기반 폴백
+    - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
+  - [x] 12.3 인사이트 API 라우트 구현
+    - `packages/backend/src/routes/insights.ts` 생성
+    - GET /api/insights/cards
+    - POST /api/insights/monthly-brief
+    - `packages/backend/src/routes/index.ts`에 등록
+    - _Requirements: 8.1~8.5, 9.1~9.5_
+  - [ ]* 12.4 InsightCards/MonthlyBrief 속성 기반 테스트 작성
+    - **Property 15: 인사이트 카드 최소 개수 및 폴백**
+    - **Property 16: 월간 브리프 생성 완전성**
+    - **Validates: Requirements 8.3, 8.4, 9.1, 9.2, 9.5**
+
+- [x] 13. NewEntitiesReviewDashboard 구현
+  - [x] 13.1 엔티티 검토 API 구현
+    - `packages/backend/src/routes/review.ts` 생성
+    - GET /api/review/entities?period=7d|30d|all&type=company|product|component|keyword|application
+    - 필수 필드 누락 감지, 중복 가능성 감지, 분류 미지정 감지
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
+  - [x] 13.2 NewEntitiesReviewDashboard 프론트엔드 구현
+    - `packages/frontend/src/app/review/page.tsx` 생성
+    - `packages/frontend/src/components/review/EntityReviewTable.tsx` 생성
+    - `packages/frontend/src/components/review/ValidationWarnings.tsx` 생성
+    - 탭별 엔티티 목록, 경고 표시, 기간 필터
+    - _Requirements: 5.1~5.5_
+  - [ ]* 13.3 엔티티 검토 속성 기반 테스트 작성
+    - **Property 18: 엔티티 검토 필수 필드 감지**
+    - **Validates: Requirements 5.2, 5.4**
+
+- [x] 14. 체크포인트 - 분석 파이프라인 전체 확인
+  - 모든 테스트 통과 확인, 질문이 있으면 사용자에게 문의
+
+- [x] 15. ExecutiveDashboardService 백엔드 구현 (뷰 1~5)
+  - [x] 15.1 세그먼트 히트맵 API 구현 (뷰 1)
+    - ExecutiveDashboardService.getSegmentHeatmap() 구현
+    - 환경×작업×이동 방식 3차원 매트릭스 집계
+    - GET /api/executive/segment-heatmap
+    - _Requirements: 11.1, 11.2, 11.3_
+  - [x] 15.2 상용화 전환 분석 API 구현 (뷰 2)
+    - ExecutiveDashboardService.getCommercializationAnalysis() 구현
+    - PoC→Pilot→Commercial 전환율, 환경별 전환 속도
+    - GET /api/executive/commercialization
+    - _Requirements: 12.1, 12.2, 12.3_
+  - [x] 15.3 플레이어 확장 추이 API 구현 (뷰 3)
+    - ExecutiveDashboardService.getPlayerExpansion() 구현
+    - 회사별 타임라인, 인력 추이, 포트폴리오 맵
+    - GET /api/executive/player-expansion
+    - _Requirements: 13.1, 13.2, 13.3_
+  - [x] 15.4 가격·성능 트렌드 API 구현 (뷰 4)
+    - ExecutiveDashboardService.getPricePerformanceTrend() 구현
+    - 연도별 가격 밴드, payload/DoF/동작시간 트렌드
+    - GET /api/executive/price-performance
+    - _Requirements: 14.1, 14.2, 14.3_
+  - [x] 15.5 부품 채택 트렌드 API 구현 (뷰 5)
+    - ExecutiveDashboardService.getComponentTrend() 구현
+    - 부품별 채택 수 추이, 성능 상관관계 산점도
+    - GET /api/executive/component-trend
+    - _Requirements: 15.1, 15.2, 15.3_
+
+- [x] 16. ExecutiveDashboardService 백엔드 구현 (뷰 6~10)
+  - [x] 16.1 키워드 포지션 맵 API 구현 (뷰 6)
+    - ExecutiveDashboardService.getKeywordPositionMap() 구현
+    - 빈도×증감률 포지션, Rising/Declining Top 10
+    - GET /api/executive/keyword-position
+    - _Requirements: 16.1, 16.3_
+  - [x] 16.2 산업별 도입 현황 API 구현 (뷰 7)
+    - ExecutiveDashboardService.getIndustryAdoption() 구현
+    - 산업별 적용 건수, 단계 분포, 대표 사례
+    - GET /api/executive/industry-adoption
+    - _Requirements: 17.1, 17.2, 17.3_
+  - [x] 16.3 지역별 경쟁 구도 API 구현 (뷰 8)
+    - ExecutiveDashboardService.getRegionalCompetition() 구현
+    - 지역별 회사/제품/사례 수, 대표 플레이어
+    - GET /api/executive/regional-competition
+    - _Requirements: 18.1, 18.2, 18.3_
+  - [x] 16.4 핵심 기술 축 API 구현 (뷰 9)
+    - ExecutiveDashboardService.getTechAxis() 구현
+    - 기술 키워드별 기사/제품 수 버블, 연도별 추이
+    - GET /api/executive/tech-axis
+    - _Requirements: 19.1, 19.2, 19.3_
+  - [x] 16.5 Top 10 이벤트 API 구현 (뷰 10)
+    - ExecutiveDashboardService.getTopEvents() 구현
+    - 중요도 스코어 랭킹, 기간 필터
+    - GET /api/executive/top-events
+    - _Requirements: 20.1, 20.2, 20.3, 20.4_
+  - [x] 16.6 경영진 대시보드 API 라우트 통합
+    - `packages/backend/src/routes/executive.ts` 생성
+    - 모든 10개 뷰 엔드포인트 등록
+    - `packages/backend/src/routes/index.ts`에 등록
+    - _Requirements: 11~20_
+
+- [x] 17. 체크포인트 - 경영진 대시보드 백엔드 확인
+  - 모든 테스트 통과 확인, 질문이 있으면 사용자에게 문의
+
+- [x] 18. 경영진 대시보드 프론트엔드 구현 (뷰 1~5)
+  - [x] 18.1 경영진 대시보드 페이지 레이아웃 구현
+    - `packages/frontend/src/app/executive/page.tsx` 생성
+    - 탭 또는 스크롤 기반 10개 뷰 레이아웃
+    - 다크 테마(bg-slate-950) 적용
+    - _Requirements: 11~20_
+  - [x] 18.2 세그먼트 히트맵 컴포넌트 구현 (뷰 1)
+    - `packages/frontend/src/components/executive/SegmentHeatmap.tsx` 생성
+    - Recharts 기반 히트맵, 셀 클릭 드릴다운
+    - _Requirements: 11.1, 11.2, 11.3_
+  - [x] 18.3 상용화 전환 차트 컴포넌트 구현 (뷰 2)
+    - `packages/frontend/src/components/executive/CommercializationChart.tsx` 생성
+    - 전환율 퍼널 차트, 환경별 속도 바 차트
+    - _Requirements: 12.1, 12.2_
+  - [x] 18.4 플레이어 확장 추이 컴포넌트 구현 (뷰 3)
+    - `packages/frontend/src/components/executive/PlayerExpansion.tsx` 생성
+    - 타임라인, 인력 라인 차트, 포트폴리오 맵
+    - _Requirements: 13.1, 13.2, 13.3_
+  - [x] 18.5 가격·성능 트렌드 컴포넌트 구현 (뷰 4)
+    - `packages/frontend/src/components/executive/PricePerformance.tsx` 생성
+    - 가격 밴드 차트, 성능 트렌드 라인
+    - _Requirements: 14.1, 14.2_
+  - [x] 18.6 부품 채택 트렌드 컴포넌트 구현 (뷰 5)
+    - `packages/frontend/src/components/executive/ComponentTrend.tsx` 생성
+    - 채택 수 추이 차트, 성능 산점도
+    - _Requirements: 15.1, 15.2_
+
+- [x] 19. 경영진 대시보드 프론트엔드 구현 (뷰 6~10)
+  - [x] 19.1 키워드 포지션 맵 컴포넌트 구현 (뷰 6)
+    - `packages/frontend/src/components/executive/KeywordPositionMap.tsx` 생성
+    - 빈도×증감률 산점도, Rising/Declining 리스트
+    - _Requirements: 16.1, 16.2, 16.3_
+  - [x] 19.2 산업별 도입 현황 컴포넌트 구현 (뷰 7)
+    - `packages/frontend/src/components/executive/IndustryAdoption.tsx` 생성
+    - 산업별 바 차트, 대표 사례 카드
+    - _Requirements: 17.1, 17.2_
+  - [x] 19.3 지역별 경쟁 구도 컴포넌트 구현 (뷰 8)
+    - `packages/frontend/src/components/executive/RegionalCompetition.tsx` 생성
+    - 지역별 통계 카드, 대표 플레이어 리스트
+    - _Requirements: 18.1, 18.2_
+  - [x] 19.4 핵심 기술 축 컴포넌트 구현 (뷰 9)
+    - `packages/frontend/src/components/executive/TechAxis.tsx` 생성
+    - 버블 차트, 기술 키워드 트렌드 라인
+    - _Requirements: 19.1, 19.2_
+  - [x] 19.5 Top 10 이벤트 컴포넌트 구현 (뷰 10)
+    - `packages/frontend/src/components/executive/TopEvents.tsx` 생성
+    - 이벤트 카드 리스트, 기간 필터, 클릭 상세
+    - _Requirements: 20.1, 20.2, 20.3, 20.4_
+
+- [x] 20. 월간 브리프 UI 구현
+  - [x] 20.1 월간 브리프 페이지 구현
+    - `packages/frontend/src/app/brief/page.tsx` 생성
+    - 브리프 생성 버튼, Markdown 미리보기, PPTX 다운로드
+    - _Requirements: 9.1, 9.2_
+
+- [x] 21. 네비게이션 통합
+  - [x] 21.1 사이드바/헤더에 새 메뉴 항목 추가
+    - 기사 분석 (/analysis)
+    - 엔티티 검토 (/review)
+    - 경영진 대시보드 (/executive)
+    - 월간 브리프 (/brief)
+    - 기존 레이아웃 컴포넌트 수정
+    - _Requirements: 1.1, 5.1, 11~20, 9.1_
+
+- [ ] 22. 경영진 대시보드 속성 기반 테스트 작성
+  - [ ]* 22.1 상용화 전환율 속성 테스트
+    - **Property 19: 상용화 전환율 범위**
+    - **Validates: Requirements 12.1, 12.2**
+  - [ ]* 22.2 가격 밴드 정합성 속성 테스트
+    - **Property 20: 가격 밴드 정합성**
+    - **Validates: Requirements 14.1**
+  - [ ]* 22.3 키워드 포지션 맵 분류 속성 테스트
+    - **Property 21: 키워드 포지션 맵 분류 정확성**
+    - **Validates: Requirements 16.1, 16.3**
+  - [ ]* 22.4 지역별 집계 정합성 속성 테스트
+    - **Property 22: 지역별 집계 정합성**
+    - **Validates: Requirements 18.1**
+  - [ ]* 22.5 Top 10 이벤트 정렬 속성 테스트
+    - **Property 23: Top 10 이벤트 정렬 및 완전성**
+    - **Validates: Requirements 20.1, 20.2**
+
+- [ ] 23. 최종 체크포인트 - 전체 통합 확인
+  - 모든 테스트 통과 확인, 질문이 있으면 사용자에게 문의
+
+## 참고사항
+
+- `*` 표시된 태스크는 선택적이며 빠른 MVP를 위해 건너뛸 수 있습니다
+- 각 태스크는 특정 요구사항을 참조하여 추적 가능합니다
+- 체크포인트에서 점진적 검증을 수행합니다
+- 속성 기반 테스트는 fast-check 라이브러리를 사용하며 각 테스트 최소 100회 반복합니다
+- 단위 테스트는 Vitest를 사용합니다 (기존 프로젝트 설정)

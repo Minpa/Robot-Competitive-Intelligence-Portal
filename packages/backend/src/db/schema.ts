@@ -776,3 +776,109 @@ export const articleRobotTagsRelations = relations(articleRobotTags, ({ one }) =
     references: [humanoidRobots.id],
   }),
 }));
+
+// ============================================
+// 기사-엔티티 관계 테이블 (분석 파이프라인용)
+// ============================================
+
+// 기사-회사 관계 테이블
+export const articleCompanies = pgTable(
+  'article_companies',
+  {
+    articleId: uuid('article_id').notNull().references(() => articles.id, { onDelete: 'cascade' }),
+    companyId: uuid('company_id').notNull().references(() => companies.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: uniqueIndex('article_companies_pk').on(table.articleId, table.companyId),
+  })
+);
+
+// 기사-부품 관계 테이블
+export const articleComponents = pgTable(
+  'article_components',
+  {
+    articleId: uuid('article_id').notNull().references(() => articles.id, { onDelete: 'cascade' }),
+    componentId: uuid('component_id').notNull().references(() => components.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: uniqueIndex('article_components_pk').on(table.articleId, table.componentId),
+  })
+);
+
+// 기사-적용사례 관계 테이블
+export const articleApplications = pgTable(
+  'article_applications',
+  {
+    articleId: uuid('article_id').notNull().references(() => articles.id, { onDelete: 'cascade' }),
+    applicationId: uuid('application_id').notNull().references(() => applicationCases.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: uniqueIndex('article_applications_pk').on(table.articleId, table.applicationId),
+  })
+);
+
+// ============================================
+// 파이프라인 로그 테이블
+// ============================================
+
+// 파이프라인 실행 로그
+export const pipelineRuns = pgTable('pipeline_runs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  status: varchar('status', { length: 50 }).notNull().default('running'),
+  startedAt: timestamp('started_at').defaultNow().notNull(),
+  completedAt: timestamp('completed_at'),
+  totalDurationMs: integer('total_duration_ms'),
+  triggeredBy: uuid('triggered_by').references(() => users.id, { onDelete: 'set null' }),
+});
+
+// 파이프라인 단계 로그
+export const pipelineStepLogs = pgTable(
+  'pipeline_step_logs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    runId: uuid('run_id').notNull().references(() => pipelineRuns.id, { onDelete: 'cascade' }),
+    stepName: varchar('step_name', { length: 100 }).notNull(),
+    startedAt: timestamp('started_at').defaultNow().notNull(),
+    completedAt: timestamp('completed_at'),
+    durationMs: integer('duration_ms'),
+    inputCount: integer('input_count').default(0),
+    successCount: integer('success_count').default(0),
+    failureCount: integer('failure_count').default(0),
+    errorMessage: text('error_message'),
+    errorStack: text('error_stack'),
+  },
+  (table) => ({
+    runIdx: index('pipeline_step_logs_run_idx').on(table.runId),
+  })
+);
+
+// ============================================
+// 신규 Relations
+// ============================================
+
+export const articleCompaniesRelations = relations(articleCompanies, ({ one }) => ({
+  article: one(articles, { fields: [articleCompanies.articleId], references: [articles.id] }),
+  company: one(companies, { fields: [articleCompanies.companyId], references: [companies.id] }),
+}));
+
+export const articleComponentsRelations = relations(articleComponents, ({ one }) => ({
+  article: one(articles, { fields: [articleComponents.articleId], references: [articles.id] }),
+  component: one(components, { fields: [articleComponents.componentId], references: [components.id] }),
+}));
+
+export const articleApplicationsRelations = relations(articleApplications, ({ one }) => ({
+  article: one(articles, { fields: [articleApplications.articleId], references: [articles.id] }),
+  applicationCase: one(applicationCases, { fields: [articleApplications.applicationId], references: [applicationCases.id] }),
+}));
+
+export const pipelineRunsRelations = relations(pipelineRuns, ({ many, one }) => ({
+  steps: many(pipelineStepLogs),
+  triggeredByUser: one(users, { fields: [pipelineRuns.triggeredBy], references: [users.id] }),
+}));
+
+export const pipelineStepLogsRelations = relations(pipelineStepLogs, ({ one }) => ({
+  run: one(pipelineRuns, { fields: [pipelineStepLogs.runId], references: [pipelineRuns.id] }),
+}));

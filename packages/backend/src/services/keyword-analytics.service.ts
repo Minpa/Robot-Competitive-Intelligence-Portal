@@ -1,5 +1,5 @@
-import { eq, and, desc, sql, gte, lte, count } from 'drizzle-orm';
-import { db, keywords, keywordStats, articleKeywords, productKeywords, articles, companies, humanoidRobots } from '../db/index.js';
+import { eq, and, sql, gte, lte } from 'drizzle-orm';
+import { db, keywords, keywordStats } from '../db/index.js';
 
 export interface KeywordAnalytics {
   id: string;
@@ -75,17 +75,11 @@ export class KeywordAnalyticsService {
     const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 12, 1);
 
     for (const kw of allKeywords) {
-      // 기사 연결 수
-      const [articleCount] = await db
-        .select({ count: count() })
-        .from(articleKeywords)
-        .where(eq(articleKeywords.keywordId, kw.id));
-
-      // 제품 연결 수
-      const [productCount] = await db
-        .select({ count: count() })
-        .from(productKeywords)
-        .where(eq(productKeywords.keywordId, kw.id));
+      // 전체 통계 합계 (totalCount로 사용)
+      const [totalStats] = await db
+        .select({ total: sql<number>`COALESCE(SUM(${keywordStats.count}), 0)` })
+        .from(keywordStats)
+        .where(eq(keywordStats.keywordId, kw.id));
 
       // 최근 3/6/12개월 기사 수 (키워드 통계 기반)
       const threeMonthsAgoStr = threeMonthsAgo.toISOString().split('T')[0] || '';
@@ -131,14 +125,13 @@ export class KeywordAnalyticsService {
       const prevCount3m = Number(prev3m[0]?.total || 0);
       const growthRate3m = prevCount3m > 0 ? Math.round(((recentCount3m - prevCount3m) / prevCount3m) * 100) : 0;
 
-      const totalCount = Number(articleCount?.count || 0);
-      const relatedProducts = Number(productCount?.count || 0);
+      const totalCount = Number(totalStats?.total || 0);
 
       // 트렌드 상태 결정
       let trendStatus: KeywordAnalytics['trendStatus'] = 'niche';
-      if (growthRate3m > 20 && totalCount > 5) {
+      if (growthRate3m > 20 && totalCount > 50) {
         trendStatus = 'rising_star';
-      } else if (growthRate3m >= -10 && growthRate3m <= 20 && totalCount > 10) {
+      } else if (growthRate3m >= -10 && growthRate3m <= 20 && totalCount > 100) {
         trendStatus = 'big_stable';
       } else if (growthRate3m < -20) {
         trendStatus = 'declining';
@@ -153,10 +146,10 @@ export class KeywordAnalyticsService {
         recentCount3m,
         recentCount6m: Number(stats6m[0]?.total || 0),
         recentCount12m: Number(stats12m[0]?.total || 0),
-        relatedCompanies: 0, // TODO: 회사 연결 테이블 필요
-        relatedProducts,
+        relatedCompanies: 0,
+        relatedProducts: 0,
         relatedArticles: totalCount,
-        relatedCases: 0, // TODO: 적용 사례 연결 테이블 필요
+        relatedCases: 0,
         growthRate3m,
         growthRate6m: 0,
         growthRate12m: 0,
@@ -212,34 +205,9 @@ export class KeywordAnalyticsService {
       });
     }
 
-    // 관련 회사 Top 5 (기사 기반)
-    const topCompanies = await db
-      .select({
-        id: companies.id,
-        name: companies.name,
-        articleCount: count(),
-      })
-      .from(articleKeywords)
-      .innerJoin(articles, eq(articleKeywords.articleId, articles.id))
-      .innerJoin(companies, eq(articles.companyId, companies.id))
-      .where(eq(articleKeywords.keywordId, keywordId))
-      .groupBy(companies.id, companies.name)
-      .orderBy(desc(count()))
-      .limit(5);
-
-    // 관련 제품 Top 5
-    const topProducts = await db
-      .select({
-        id: humanoidRobots.id,
-        name: humanoidRobots.name,
-        articleCount: count(),
-      })
-      .from(productKeywords)
-      .innerJoin(humanoidRobots, eq(productKeywords.productId, humanoidRobots.id))
-      .where(eq(productKeywords.keywordId, keywordId))
-      .groupBy(humanoidRobots.id, humanoidRobots.name)
-      .orderBy(desc(count()))
-      .limit(5);
+    // 관련 회사/제품은 현재 연결 테이블이 없어서 빈 배열 반환
+    const topCompanies: { id: string; name: string; articleCount: number }[] = [];
+    const topProducts: { id: string; name: string; articleCount: number }[] = [];
 
     // 카테고리별 설명 생성
     const categoryDescriptions: Record<string, string> = {
@@ -266,16 +234,8 @@ export class KeywordAnalyticsService {
     return {
       keyword: analytics,
       trendData,
-      topCompanies: topCompanies.map(c => ({
-        id: c.id,
-        name: c.name,
-        articleCount: Number(c.articleCount),
-      })),
-      topProducts: topProducts.map(p => ({
-        id: p.id,
-        name: p.name,
-        articleCount: Number(p.articleCount),
-      })),
+      topCompanies,
+      topProducts,
       topCases: [],
       description,
       aiComment,

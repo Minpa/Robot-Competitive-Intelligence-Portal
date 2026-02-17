@@ -25,3 +25,14 @@ export { pptGeneratorService, PPTGeneratorService } from './ppt-generator.servic
 
 // LLM 기반 인사이트 생성 서비스
 export { insightGeneratorService, InsightGeneratorService } from './insight-generator.service.js';
+
+// 분석 파이프라인 서비스
+export { articleParserService, ArticleParserService } from './article-parser.service.js';
+export { entityLinkerService, EntityLinkerService } from './entity-linker.service.js';
+export { articleDBWriterService, ArticleToDBWriterService } from './article-db-writer.service.js';
+export { validationRulesEngine, ValidationRulesEngine } from './validation-rules.service.js';
+export { pipelineLogger, PipelineLogger } from './pipeline-logger.service.js';
+export { aggregationService, AggregationService } from './aggregation.service.js';
+export { insightCardsGenerator, InsightCardsGenerator } from './insight-cards.service.js';
+export { monthlyBriefGenerator, MonthlyBriefGenerator } from './monthly-brief.service.js';
+export { executiveDashboardService, ExecutiveDashboardService } from './executive-dashboard.service.js';

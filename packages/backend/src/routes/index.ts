@@ -14,6 +14,11 @@ import { workforceRoutes } from './workforce.js';
 import { componentRoutes } from './components.js';
 import { applicationCaseRoutes } from './application-cases.js';
 import { articleAnalyzerRoutes } from './article-analyzer.js';
+import { analysisRoutes } from './analysis.js';
+import { aggregationRoutes } from './aggregation.js';
+import { insightsRoutes } from './insights.js';
+import { reviewRoutes } from './review.js';
+import { executiveRoutes } from './executive.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -33,4 +38,11 @@ export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(componentRoutes, { prefix: '/api/components' });
   fastify.register(applicationCaseRoutes, { prefix: '/api/application-cases' });
   fastify.register(articleAnalyzerRoutes, { prefix: '/api/article-analyzer' });
+
+  // 분석 파이프라인 라우트
+  fastify.register(analysisRoutes, { prefix: '/api/analysis' });
+  fastify.register(aggregationRoutes, { prefix: '/api/aggregation' });
+  fastify.register(insightsRoutes, { prefix: '/api/insights' });
+  fastify.register(reviewRoutes, { prefix: '/api/review' });
+  fastify.register(executiveRoutes, { prefix: '/api/executive' });
 }

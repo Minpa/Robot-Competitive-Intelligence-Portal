@@ -20,6 +20,9 @@ import {
   Database,
   ChevronDown,
   ChevronRight,
+  FlaskConical,
+  ClipboardCheck,
+  LineChart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -56,12 +59,16 @@ const navigationGroups: NavGroup[] = [
     title: '기사·이벤트',
     items: [
       { name: '기사 분석 도구', href: '/article-analyzer', icon: FileText },
-      { name: '키워드 트렌드', href: '/keywords', icon: TrendingUp },
+      { name: '기사 분석 파이프라인', href: '/analysis', icon: FlaskConical },
+      { name: '엔티티 검토', href: '/review', icon: ClipboardCheck },
+      // { name: '키워드 트렌드', href: '/keywords', icon: TrendingUp }, // 임시 비활성화 - 실제 기사 데이터 필요
     ],
   },
   {
     title: '리포트',
     items: [
+      { name: '경영진 대시보드', href: '/executive', icon: LineChart },
+      { name: '월간 브리프', href: '/brief', icon: FileText },
       { name: 'PPT 리포트 빌더', href: '/ppt-builder', icon: Presentation },
       { name: '데이터 내보내기', href: '/export', icon: Download },
     ],

@@ -1200,6 +1200,108 @@ class ApiClient {
       aiComment: string;
     }>(`/keywords/analytics/${keywordId}`);
   }
+  // ============================================
+  // 분석 파이프라인 API
+  // ============================================
+
+  async parseArticle(text: string, lang?: string, options?: Record<string, boolean>) {
+    return this.request<{
+      runId: string;
+      result: {
+        companies: Array<{ name: string; type: string; confidence: number; context: string }>;
+        products: Array<{ name: string; type: string; confidence: number; context: string }>;
+        components: Array<{ name: string; type: string; confidence: number; context: string }>;
+        applications: Array<{ name: string; type: string; confidence: number; context: string }>;
+        keywords: Array<{ term: string; relevance: number }>;
+        summary: string;
+        detectedLanguage: string;
+      };
+    }>('/analysis/parse', {
+      method: 'POST',
+      body: JSON.stringify({ text, lang, options }),
+    });
+  }
+
+  async linkEntities(entities: Array<{ name: string; type: string; confidence: number; context: string }>) {
+    return this.request<{
+      candidates: Record<string, Array<{
+        entityId: string;
+        entityName: string;
+        entityType: string;
+        similarityScore: number;
+        isAutoRecommended: boolean;
+      }>>;
+      unmatched: Array<{ name: string; type: string }>;
+    }>('/analysis/link', {
+      method: 'POST',
+      body: JSON.stringify({ entities }),
+    });
+  }
+
+  async confirmEntityLinks(data: {
+    links: Array<{ parsedName: string; linkedEntityId: string }>;
+    newEntities: Array<{ name: string; type: string; metadata?: Record<string, unknown> }>;
+  }) {
+    return this.request<{ linkedCount: number; createdCount: number }>('/analysis/link/confirm', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async validateEntity(entityType: string, data: Record<string, unknown>) {
+    return this.request<{
+      isValid: boolean;
+      errors: Array<{ field: string; value: unknown; rule: string; message: string }>;
+      warnings: Array<{ field: string; value: unknown; rule: string; message: string }>;
+    }>('/analysis/validate', {
+      method: 'POST',
+      body: JSON.stringify({ entityType, data }),
+    });
+  }
+
+  async saveAnalysis(data: {
+    title: string;
+    publishedAt?: string;
+    url?: string;
+    source?: string;
+    summary: string;
+    contentHash: string;
+    language?: string;
+    linkedCompanyIds: string[];
+    linkedRobotIds: string[];
+    linkedComponentIds: string[];
+    linkedApplicationIds: string[];
+    keywords: Array<{ term: string; relevance: number }>;
+  }) {
+    return this.request<{
+      articleId: string;
+      linkedEntities: { companies: number; robots: number; components: number; applications: number; keywords: number };
+      isNew: boolean;
+    }>('/analysis/save', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ============================================
+  // 경영진 대시보드 API
+  // ============================================
+
+  async getSegmentHeatmap() { return this.request<any>('/executive/segment-heatmap'); }
+  async getCommercializationAnalysis() { return this.request<any>('/executive/commercialization'); }
+  async getPlayerExpansion(companyIds?: string[]) {
+    const params = companyIds?.length ? `?companyIds=${companyIds.join(',')}` : '';
+    return this.request<any>(`/executive/player-expansion${params}`);
+  }
+  async getPricePerformanceTrend() { return this.request<any>('/executive/price-performance'); }
+  async getComponentTrendData() { return this.request<any>('/executive/component-trend'); }
+  async getKeywordPositionMapData() { return this.request<any>('/executive/keyword-position'); }
+  async getIndustryAdoption() { return this.request<any>('/executive/industry-adoption'); }
+  async getRegionalCompetition() { return this.request<any>('/executive/regional-competition'); }
+  async getTechAxisData() { return this.request<any>('/executive/tech-axis'); }
+  async getTopEventsData(period: string = 'month') { return this.request<any>(`/executive/top-events?period=${period}`); }
+  async getInsightCards() { return this.request<any>('/insights/cards'); }
+  async generateMonthlyBrief() { return this.request<any>('/insights/monthly-brief', { method: 'POST' }); }
 }
 
 export const api = new ApiClient();
