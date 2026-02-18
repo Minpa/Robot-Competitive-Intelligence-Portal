@@ -288,6 +288,7 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
   /**
    * 월별 이벤트/제품 타임라인 데이터 생성
    * announcementYear 기반으로 연도별 제품 수를 계산하고, 월별로 분배
+   * 데이터가 없는 최근 기간 대신, 실제 데이터가 존재하는 기간을 자동 감지
    */
   async getTimelineTrendData(
     months: number = 12,
@@ -315,17 +316,48 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
       }
     });
 
+    // 실제 데이터가 존재하는 기간 감지 (demoDate 기준)
+    const [latestCase] = await db
+      .select({ maxDate: sql<string>`MAX(${applicationCases.demoDate})` })
+      .from(applicationCases);
+    const [latestArticle] = await db
+      .select({ maxDate: sql<string>`MAX(${articles.publishedAt})` })
+      .from(articles);
+
+    // 가장 최근 데이터 날짜 결정
+    let endDate = now;
+    const latestCaseDate = latestCase?.maxDate ? new Date(latestCase.maxDate) : null;
+    const latestArticleDate = latestArticle?.maxDate ? new Date(latestArticle.maxDate) : null;
+
+    // 최근 데이터가 현재보다 6개월 이상 오래된 경우, 데이터 기준으로 타임라인 생성
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+    const latestDataDate = [latestCaseDate, latestArticleDate]
+      .filter((d): d is Date => d !== null)
+      .sort((a, b) => b.getTime() - a.getTime())[0];
+
+    if (latestDataDate && latestDataDate < sixMonthsAgo) {
+      // 데이터가 오래된 경우: 가장 최근 데이터 월의 다음 달을 끝점으로 사용
+      endDate = new Date(latestDataDate.getFullYear(), latestDataDate.getMonth() + 1, 1);
+    }
+
+    // announcementYear 기반 최대 연도도 고려
+    const maxAnnouncementYear = Math.max(...Object.keys(yearlyRobotCount).map(Number), 0);
+    if (maxAnnouncementYear > 0 && latestDataDate && latestDataDate < sixMonthsAgo) {
+      // announcementYear의 12월까지도 고려
+      const announcementEnd = new Date(maxAnnouncementYear, 11, 31);
+      if (announcementEnd > endDate) {
+        endDate = new Date(maxAnnouncementYear + 1, 0, 1);
+      }
+    }
+
     for (let i = months - 1; i >= 0; i--) {
-      const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+      const monthStart = new Date(endDate.getFullYear(), endDate.getMonth() - i, 1);
+      const monthEnd = new Date(endDate.getFullYear(), endDate.getMonth() - i + 1, 0);
       const year = monthStart.getFullYear();
       const month = monthStart.getMonth();
 
-      // 해당 연도의 로봇 수를 12개월로 나눠서 분배 (간단한 분배 로직)
-      // 실제로는 발표 월 데이터가 있으면 더 정확하게 할 수 있음
+      // 해당 연도의 로봇 수를 12개월로 나눠서 분배
       const yearlyCount = yearlyRobotCount[year] || 0;
-      // 연도의 로봇을 분기별로 분배 (Q1: 1-3월, Q2: 4-6월, Q3: 7-9월, Q4: 10-12월)
-      // 대부분의 발표가 CES(1월), MWC(2-3월), 하반기 전시회에 집중되므로 가중치 적용
       const quarterWeights = [0.35, 0.25, 0.15, 0.25]; // Q1, Q2, Q3, Q4
       const quarter = Math.floor(month / 3);
       const quarterMonths = 3;
@@ -333,7 +365,7 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
       const quarterCount = Math.round(yearlyCount * quarterWeight);
       const monthlyCount = Math.round(quarterCount / quarterMonths);
 
-      // 적용 사례 (이벤트) 수 - demoDate 기반으로 변경
+      // 적용 사례 (이벤트) 수 - demoDate 기반
       const caseResults = await db
         .select({
           status: applicationCases.deploymentStatus,
@@ -346,7 +378,7 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
         ))
         .groupBy(applicationCases.deploymentStatus);
 
-      // 기사 수 (투자 관련) - publishedAt 기반으로 변경
+      // 기사 수 (투자 관련) - publishedAt 기반
       const [investmentCount] = await db
         .select({ count: count() })
         .from(articles)
