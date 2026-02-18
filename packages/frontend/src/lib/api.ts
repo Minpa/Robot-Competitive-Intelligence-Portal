@@ -1,4 +1,5 @@
 // Remove trailing /api if present (Railway may add it automatically)
+import type { AIAgentInput, AnalysisResult } from '@/types/insight-pipeline';
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const API_BASE = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
 
@@ -1280,6 +1281,13 @@ class ApiClient {
     }>('/analysis/save', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  }
+
+  async aiSearch(request: AIAgentInput) {
+    return this.request<AnalysisResult>('/analysis/ai-search', {
+      method: 'POST',
+      body: JSON.stringify(request),
     });
   }
 

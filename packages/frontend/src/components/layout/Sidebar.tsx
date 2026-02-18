@@ -58,10 +58,8 @@ const navigationGroups: NavGroup[] = [
   {
     title: '기사·이벤트',
     items: [
-      { name: '기사 분석 도구', href: '/article-analyzer', icon: FileText },
-      { name: '기사 분석 파이프라인', href: '/analysis', icon: FlaskConical },
+      { name: '기사 인사이트 파이프라인', href: '/insight-pipeline', icon: FlaskConical },
       { name: '엔티티 검토', href: '/review', icon: ClipboardCheck },
-      // { name: '키워드 트렌드', href: '/keywords', icon: TrendingUp }, // 임시 비활성화 - 실제 기사 데이터 필요
     ],
   },
   {
@@ -70,13 +68,11 @@ const navigationGroups: NavGroup[] = [
       { name: '경영진 대시보드', href: '/executive', icon: LineChart },
       { name: '월간 브리프', href: '/brief', icon: FileText },
       { name: 'PPT 리포트 빌더', href: '/ppt-builder', icon: Presentation },
-      { name: '데이터 내보내기', href: '/export', icon: Download },
     ],
   },
   {
     title: '관리',
     items: [
-      { name: '데이터 수집', href: '/analyze', icon: Sparkles },
       { name: '검색', href: '/search', icon: Search },
       { name: '관리자 설정', href: '/admin', icon: Settings },
     ],

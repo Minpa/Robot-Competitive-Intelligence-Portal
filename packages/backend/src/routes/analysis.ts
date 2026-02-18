@@ -5,6 +5,7 @@
  * POST /api/analysis/link - 엔티티 링킹
  * POST /api/analysis/save - 검증 + 저장
  * POST /api/analysis/validate - 검증만
+ * POST /api/analysis/ai-search - AI 기반 검색·요약
  */
 
 import { FastifyInstance } from 'fastify';
@@ -13,9 +14,11 @@ import { entityLinkerService } from '../services/entity-linker.service.js';
 import { articleDBWriterService } from '../services/article-db-writer.service.js';
 import { validationRulesEngine } from '../services/validation-rules.service.js';
 import { pipelineLogger } from '../services/pipeline-logger.service.js';
+import { externalAIAgent, convertToParseResult } from '../services/external-ai-agent.service.js';
 import type { ParsedEntity } from '../services/article-parser.service.js';
 import type { ArticleSaveRequest } from '../services/article-db-writer.service.js';
 import type { LinkConfirmation } from '../services/entity-linker.service.js';
+import type { AISearchRequest } from '../services/external-ai-agent.service.js';
 
 export async function analysisRoutes(fastify: FastifyInstance) {
   /**
@@ -121,6 +124,67 @@ export async function analysisRoutes(fastify: FastifyInstance) {
         return result;
       } catch (error) {
         return reply.status(500).send({ error: (error as Error).message });
+      }
+    }
+  );
+
+  /**
+   * POST /ai-search - AI 기반 검색·요약
+   *
+   * ExternalAIAgent로 검색 → ParseResult 변환 → EntityLinker 후보 검색 → 통합 결과 반환
+   */
+  fastify.post<{ Body: AISearchRequest }>(
+    '/ai-search',
+    async (request, reply) => {
+      try {
+        const { query, targetTypes, timeRange, region, provider } = request.body;
+
+        if (!query || query.trim().length === 0) {
+          return reply.status(400).send({ error: '검색 질의가 비어있습니다.' });
+        }
+
+        // 1. ExternalAIAgent로 검색·요약
+        const aiResponse = await externalAIAgent.search({
+          query,
+          targetTypes: targetTypes || ['company', 'product', 'component', 'application', 'keyword'],
+          timeRange: timeRange || { start: '2024', end: '2025' },
+          region: region || '글로벌',
+          provider: provider || 'chatgpt',
+        });
+
+        // 2. AISearchResponse → ParseResult 변환
+        const parseResult = convertToParseResult(aiResponse);
+
+        // 3. EntityLinker로 후보 검색
+        const allEntities = [
+          ...parseResult.companies,
+          ...parseResult.products,
+          ...parseResult.components,
+          ...parseResult.applications,
+        ];
+
+        const linkResult = allEntities.length > 0
+          ? await entityLinkerService.findCandidates(allEntities)
+          : { candidates: {}, unmatched: [] };
+
+        // 4. 통합 결과 반환
+        return {
+          result: {
+            summary: parseResult.summary,
+            companies: parseResult.companies,
+            products: parseResult.products,
+            components: parseResult.components,
+            applications: parseResult.applications,
+            keywords: parseResult.keywords,
+            detectedLanguage: parseResult.detectedLanguage,
+          },
+          linkResult,
+          sources: aiResponse.sources,
+        };
+      } catch (error) {
+        const message = (error as Error).message;
+        const statusCode = message.includes('환경 변수가 설정되지 않았습니다') ? 400 : 500;
+        return reply.status(statusCode).send({ error: message });
       }
     }
   );
