@@ -182,7 +182,7 @@ confidence는 정보의 신뢰도를 나타냅니다 (0.9+: 확실, 0.7~0.9: 높
     // JSON 블록이 ```json ... ``` 으로 감싸져 있을 수 있음
     let jsonStr = raw.trim();
     const jsonBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (jsonBlockMatch) {
+    if (jsonBlockMatch && jsonBlockMatch[1]) {
       jsonStr = jsonBlockMatch[1].trim();
     }
 
