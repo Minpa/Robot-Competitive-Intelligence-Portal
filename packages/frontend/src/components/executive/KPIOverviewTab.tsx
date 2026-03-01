@@ -29,33 +29,37 @@ export function KPIOverviewTab({ filters }: KPIOverviewTabProps) {
   const isStale = data?.isStale === true;
   const cachedAt = data?.cachedAt ?? null;
 
+  // API returns { kpiCards: {...}, insights: InsightCard[] }
+  const kpi = inner?.kpiCards ?? inner;
+  const insights = inner?.insights ?? [];
+
   const kpiCards: KPICard[] = [
     {
       label: '총 로봇 수',
-      value: inner?.totalRobots ?? null,
-      trend: inner?.robotsTrend,
-      trendValue: inner?.robotsTrendValue,
+      value: kpi?.totalRobots ?? null,
+      trend: kpi?.robotsTrend,
+      trendValue: kpi?.robotsTrendValue,
       icon: '🤖',
     },
     {
       label: '총 회사 수',
-      value: inner?.totalCompanies ?? null,
-      trend: inner?.companiesTrend,
-      trendValue: inner?.companiesTrendValue,
+      value: kpi?.totalCompanies ?? null,
+      trend: kpi?.companiesTrend,
+      trendValue: kpi?.companiesTrendValue,
       icon: '🏢',
     },
     {
       label: '총 기사 수',
-      value: inner?.totalArticles ?? null,
-      trend: inner?.articlesTrend,
-      trendValue: inner?.articlesTrendValue,
+      value: kpi?.totalArticles ?? null,
+      trend: kpi?.articlesTrend,
+      trendValue: kpi?.articlesTrendValue,
       icon: '📰',
     },
     {
       label: '시장 규모',
-      value: inner?.marketSize ?? null,
-      trend: inner?.marketTrend,
-      trendValue: inner?.marketTrendValue,
+      value: kpi?.marketSize ?? null,
+      trend: kpi?.marketTrend,
+      trendValue: kpi?.marketTrendValue,
       icon: '💰',
     },
   ];
@@ -113,14 +117,14 @@ export function KPIOverviewTab({ filters }: KPIOverviewTabProps) {
       </div>
 
       {/* Insight Summary */}
-      {inner?.insights && inner.insights.length > 0 && (
+      {insights && insights.length > 0 && (
         <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
           <h3 className="text-sm font-semibold text-white mb-3">📊 인사이트 요약</h3>
           <ul className="space-y-2">
-            {inner.insights.map((insight: string, i: number) => (
-              <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
+            {insights.map((insight: any, i: number) => (
+              <li key={insight.id || i} className="text-sm text-slate-300 flex items-start gap-2">
                 <span className="text-violet-400 mt-0.5">•</span>
-                {insight}
+                <span>{typeof insight === 'string' ? insight : (insight.title || insight.description || '')}</span>
               </li>
             ))}
           </ul>
