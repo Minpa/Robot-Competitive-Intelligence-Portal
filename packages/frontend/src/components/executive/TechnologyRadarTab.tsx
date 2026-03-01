@@ -17,7 +17,8 @@ export function TechnologyRadarTab({ filters }: TechnologyRadarTabProps) {
     gcTime: 86_400_000,
   });
 
-  const bubbles = data?.bubbles || [];
+  const inner = data?.data ?? data;
+  const bubbles = inner?.bubbles || (Array.isArray(inner) ? inner : []);
   const isStale = data?.isStale === true;
   const cachedAt = data?.cachedAt ?? null;
 

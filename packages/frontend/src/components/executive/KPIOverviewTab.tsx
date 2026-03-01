@@ -25,36 +25,37 @@ export function KPIOverviewTab({ filters }: KPIOverviewTabProps) {
     gcTime: 3_600_000,
   });
 
+  const inner = data?.data ?? data;
   const isStale = data?.isStale === true;
   const cachedAt = data?.cachedAt ?? null;
 
   const kpiCards: KPICard[] = [
     {
       label: '총 로봇 수',
-      value: data?.totalRobots ?? null,
-      trend: data?.robotsTrend,
-      trendValue: data?.robotsTrendValue,
+      value: inner?.totalRobots ?? null,
+      trend: inner?.robotsTrend,
+      trendValue: inner?.robotsTrendValue,
       icon: '🤖',
     },
     {
       label: '총 회사 수',
-      value: data?.totalCompanies ?? null,
-      trend: data?.companiesTrend,
-      trendValue: data?.companiesTrendValue,
+      value: inner?.totalCompanies ?? null,
+      trend: inner?.companiesTrend,
+      trendValue: inner?.companiesTrendValue,
       icon: '🏢',
     },
     {
       label: '총 기사 수',
-      value: data?.totalArticles ?? null,
-      trend: data?.articlesTrend,
-      trendValue: data?.articlesTrendValue,
+      value: inner?.totalArticles ?? null,
+      trend: inner?.articlesTrend,
+      trendValue: inner?.articlesTrendValue,
       icon: '📰',
     },
     {
       label: '시장 규모',
-      value: data?.marketSize ?? null,
-      trend: data?.marketTrend,
-      trendValue: data?.marketTrendValue,
+      value: inner?.marketSize ?? null,
+      trend: inner?.marketTrend,
+      trendValue: inner?.marketTrendValue,
       icon: '💰',
     },
   ];
@@ -112,11 +113,11 @@ export function KPIOverviewTab({ filters }: KPIOverviewTabProps) {
       </div>
 
       {/* Insight Summary */}
-      {data?.insights && data.insights.length > 0 && (
+      {inner?.insights && inner.insights.length > 0 && (
         <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
           <h3 className="text-sm font-semibold text-white mb-3">📊 인사이트 요약</h3>
           <ul className="space-y-2">
-            {data.insights.map((insight: string, i: number) => (
+            {inner.insights.map((insight: string, i: number) => (
               <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
                 <span className="text-violet-400 mt-0.5">•</span>
                 {insight}

@@ -17,7 +17,8 @@ export function InvestmentFlowTab({ filters }: InvestmentFlowTabProps) {
     gcTime: 86_400_000,
   });
 
-  const flows = data?.flows || data?.data || [];
+  const inner = data?.data ?? data;
+  const flows = inner?.flows || (Array.isArray(inner) ? inner : []);
   const isStale = data?.isStale === true;
   const cachedAt = data?.cachedAt ?? null;
 

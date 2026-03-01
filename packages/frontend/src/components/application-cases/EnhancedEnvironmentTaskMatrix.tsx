@@ -38,8 +38,8 @@ export function EnhancedEnvironmentTaskMatrix({
   };
 
   // 전체 건수 계산
-  const totalCases = Object.values(matrix).reduce((sum, envData) => {
-    return sum + Object.values(envData).reduce((s, cell) => s + (cell.count || 0), 0);
+  const totalCases = Object.values(matrix || {}).reduce((sum, envData) => {
+    return sum + Object.values(envData || {}).reduce((s, cell) => s + (cell?.count || 0), 0);
   }, 0);
 
   // 가장 많은 조합 찾기

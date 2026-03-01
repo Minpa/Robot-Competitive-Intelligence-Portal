@@ -29,13 +29,17 @@ export function SegmentHeatmapTab({ filters }: SegmentHeatmapTabProps) {
     enabled: !!selectedCell && drawerOpen,
   });
 
+  // Unwrap cached response wrapper { data, isStale, cachedAt }
+  const inner = data?.data ?? data;
+  const drawerInner = drawerData?.data ?? drawerData;
+
   // Transform API data to SegmentHeatmapPanel format
   const matrix: Record<string, Record<string, SegmentCell>> = {};
   const environments = ['industrial', 'home', 'service'];
   const locomotions = ['biped', 'wheeled', 'hybrid'];
 
-  if (data?.cells) {
-    for (const cell of data.cells) {
+  if (inner?.cells) {
+    for (const cell of inner.cells) {
       const env = cell.environment?.toLowerCase() || '';
       const loco = cell.locomotion?.toLowerCase() || '';
       if (!matrix[env]) matrix[env] = {};
@@ -57,8 +61,8 @@ export function SegmentHeatmapTab({ filters }: SegmentHeatmapTabProps) {
     }
   }
 
-  const totalCount = Object.values(matrix).reduce(
-    (sum, row) => sum + Object.values(row).reduce((s, cell) => s + cell.count, 0),
+  const totalCount = Object.values(matrix || {}).reduce(
+    (sum, row) => sum + Object.values(row || {}).reduce((s, cell) => s + (cell?.count || 0), 0),
     0
   );
 
@@ -84,7 +88,7 @@ export function SegmentHeatmapTab({ filters }: SegmentHeatmapTabProps) {
           totalCount={totalCount}
           isLoading={isLoading}
           taskTypeFilter={taskTypeFilter}
-          taskTypes={data?.taskTypes || undefined}
+          taskTypes={inner?.taskTypes || undefined}
           onCellClick={(env, loco) => handleCellClick(env, loco)}
           onTaskTypeChange={setTaskTypeFilter}
         />
@@ -130,10 +134,10 @@ export function SegmentHeatmapTab({ filters }: SegmentHeatmapTabProps) {
           onClose={() => { setDrawerOpen(false); setSelectedCell(null); }}
           locomotion={selectedCell?.locomotion || ''}
           purpose={selectedCell?.env || ''}
-          topCompanies={drawerData?.topCompanies || []}
-          recentEvents={drawerData?.recentEvents || []}
-          totalRobots={drawerData?.totalCount || 0}
-          robots={drawerData?.robots || []}
+          topCompanies={drawerInner?.topCompanies || []}
+          recentEvents={drawerInner?.recentEvents || []}
+          totalRobots={drawerInner?.totalCount || 0}
+          robots={drawerInner?.robots || []}
           isLoading={drawerLoading}
         />
       )}

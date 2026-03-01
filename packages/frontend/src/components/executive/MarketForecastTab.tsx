@@ -27,7 +27,8 @@ export function MarketForecastTab({ filters }: MarketForecastTabProps) {
     gcTime: 604_800_000,
   });
 
-  const chartData = data?.forecast || data?.data || [];
+  const inner = data?.data ?? data;
+  const chartData = inner?.forecast || (Array.isArray(inner) ? inner : []);
   const isStale = data?.isStale === true;
   const cachedAt = data?.cachedAt ?? null;
 

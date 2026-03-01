@@ -17,7 +17,8 @@ export function PlayerExpansionTab({ filters }: PlayerExpansionTabProps) {
     gcTime: 86_400_000,
   });
 
-  const companies = data?.companies || [];
+  const inner = data?.data ?? data;
+  const companies = inner?.companies || (Array.isArray(inner) ? inner : []);
   const isStale = data?.isStale === true;
   const cachedAt = data?.cachedAt ?? null;
 

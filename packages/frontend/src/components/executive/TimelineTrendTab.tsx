@@ -29,7 +29,8 @@ export function TimelineTrendTab({ filters }: TimelineTrendTabProps) {
     gcTime: 21_600_000,
   });
 
-  const chartData = data?.data || data || [];
+  const inner = data?.data ?? data;
+  const chartData = Array.isArray(inner) ? inner : (inner?.data || []);
   const isStale = data?.isStale === true;
   const cachedAt = data?.cachedAt ?? null;
 

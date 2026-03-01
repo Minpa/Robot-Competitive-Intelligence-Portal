@@ -84,8 +84,9 @@ export function TalentProductScatterTab({ filters }: TalentProductScatterTabProp
     gcTime: 86_400_000,
   });
 
-  const companies: ScatterDataPoint[] = data?.companies || data || [];
-  const excludedCount = data?.excludedCount ?? 0;
+  const inner = data?.data ?? data;
+  const companies: ScatterDataPoint[] = inner?.companies || (Array.isArray(inner) ? inner : []);
+  const excludedCount = inner?.excludedCount ?? 0;
   const isStale = data?.isStale === true;
   const cachedAt = data?.cachedAt ?? null;
 

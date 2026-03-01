@@ -17,7 +17,8 @@ export function TopEventsTab({ filters }: TopEventsTabProps) {
     gcTime: 3_600_000,
   });
 
-  const events = data?.events || [];
+  const inner = data?.data ?? data;
+  const events = inner?.events || (Array.isArray(inner) ? inner : []);
   const isStale = data?.isStale === true;
   const cachedAt = data?.cachedAt ?? null;
 

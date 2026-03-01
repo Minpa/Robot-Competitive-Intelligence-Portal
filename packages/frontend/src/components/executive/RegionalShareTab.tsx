@@ -27,7 +27,8 @@ export function RegionalShareTab({ filters }: RegionalShareTabProps) {
     gcTime: 604_800_000,
   });
 
-  const chartData = data?.regions || data?.data || [];
+  const inner = data?.data ?? data;
+  const chartData = inner?.regions || (Array.isArray(inner) ? inner : []);
   const isStale = data?.isStale === true;
   const cachedAt = data?.cachedAt ?? null;
 

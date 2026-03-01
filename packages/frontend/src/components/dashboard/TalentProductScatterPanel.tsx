@@ -50,10 +50,10 @@ export function TalentProductScatterPanel({
     const events = data.map(d => d.eventCount);
     
     return {
-      maxTalent: Math.max(...talents),
-      maxProduct: Math.max(...products),
-      avgTalent: talents.reduce((a, b) => a + b, 0) / talents.length,
-      avgProduct: products.reduce((a, b) => a + b, 0) / products.length,
+      maxTalent: Math.max(...talents, 1),
+      maxProduct: Math.max(...products, 1),
+      avgTalent: talents.length > 0 ? talents.reduce((a, b) => a + b, 0) / talents.length : 0,
+      avgProduct: products.length > 0 ? products.reduce((a, b) => a + b, 0) / products.length : 0,
       maxEvents: Math.max(...events, 1),
     };
   }, [data]);

@@ -17,7 +17,8 @@ export function InsightHubTab({ filters }: InsightHubTabProps) {
     gcTime: 21_600_000,
   });
 
-  const insights = data?.insights || data?.data || [];
+  const inner = data?.data ?? data;
+  const insights = inner?.insights || (Array.isArray(inner) ? inner : []);
   const isStale = data?.isStale === true;
   const cachedAt = data?.cachedAt ?? null;
 

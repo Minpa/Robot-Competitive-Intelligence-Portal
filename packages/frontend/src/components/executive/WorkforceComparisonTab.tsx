@@ -27,8 +27,9 @@ export function WorkforceComparisonTab({ filters }: WorkforceComparisonTabProps)
     gcTime: 86_400_000,
   });
 
-  const companies = data?.companies || data?.data || [];
-  const missingCount = data?.missingCount ?? 0;
+  const inner = data?.data ?? data;
+  const companies = inner?.companies || (Array.isArray(inner) ? inner : []);
+  const missingCount = inner?.missingCount ?? 0;
   const isStale = data?.isStale === true;
   const cachedAt = data?.cachedAt ?? null;
 
