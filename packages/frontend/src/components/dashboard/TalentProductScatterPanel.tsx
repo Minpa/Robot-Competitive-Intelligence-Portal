@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { EmptyChartPlaceholder } from '../shared/EmptyChartPlaceholder';
 
 interface CompanyDataPoint {
   id: string;
@@ -76,6 +77,20 @@ export function TalentProductScatterPanel({
       <div className="bg-slate-900 rounded-xl p-6 h-full animate-pulse">
         <div className="h-6 bg-slate-700 rounded w-2/3 mb-4" />
         <div className="h-64 bg-slate-800 rounded" />
+      </div>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="bg-slate-900 rounded-xl p-6 h-full">
+        <EmptyChartPlaceholder
+          title="인력-제품 데이터 없음"
+          message="인력-제품 데이터가 없습니다"
+          icon="👥"
+          dataType="회사"
+          minDataCount={1}
+        />
       </div>
     );
   }

@@ -27,6 +27,8 @@ export interface LinkCandidate {
   entityType: string;
   similarityScore: number;
   isAutoRecommended: boolean;
+  matchedVia: 'direct' | 'alias';
+  aliasName?: string;
 }
 
 export interface SourceReference {

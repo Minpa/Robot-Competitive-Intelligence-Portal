@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { EmptyChartPlaceholder } from '../shared/EmptyChartPlaceholder';
 
 interface TimelineEvent {
   month: string;
@@ -62,6 +63,20 @@ export function TimelineTrendPanel({
             <div key={i} className="flex-1 bg-slate-800 rounded-t" style={{ height: `${30 + Math.random() * 70}%` }} />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="bg-slate-900 rounded-xl p-6 h-full">
+        <EmptyChartPlaceholder
+          title="타임라인 데이터 없음"
+          message="타임라인 데이터가 없습니다"
+          icon="📈"
+          dataType="이벤트"
+          minDataCount={1}
+        />
       </div>
     );
   }

@@ -1,12 +1,14 @@
 /**
  * EntityLinkerService - 파싱된 엔티티를 DB와 fuzzy 매칭
  * 
- * Levenshtein distance 기반 유사도 계산
- * 타입별 독립 매칭 (company→companies, product→humanoidRobots, component→components)
- * 후보 최대 5개, score >= 0.8 자동 추천
+ * pg_trgm similarity() 기반 유사도 계산 (GIN 인덱스 활용)
+ * 타입별 독립 매칭 (company→companies, product→humanoidRobots, component→components, keyword→keywords)
+ * Entity_Alias 테이블도 함께 검색하여 다국어 별칭 매칭 지원
+ * 후보 최대 5개, score >= 0.7 자동 추천
  */
 
 import { db, companies, humanoidRobots, components, keywords } from '../db/index.js';
+import { sql } from 'drizzle-orm';
 import type { ParsedEntity } from './article-parser.service.js';
 
 export interface LinkCandidate {
@@ -15,6 +17,8 @@ export interface LinkCandidate {
   entityType: string;
   similarityScore: number;
   isAutoRecommended: boolean;
+  matchedVia: 'direct' | 'alias';
+  aliasName?: string;
 }
 
 export interface LinkResult {
@@ -28,7 +32,8 @@ export interface LinkConfirmation {
 }
 
 const MAX_CANDIDATES = 5;
-const AUTO_RECOMMEND_THRESHOLD = 0.8;
+const AUTO_RECOMMEND_THRESHOLD = 0.7;
+const MIN_CANDIDATE_THRESHOLD = 0.4;
 
 export class EntityLinkerService {
   /**
@@ -95,91 +100,196 @@ export class EntityLinkerService {
   }
 
   /**
-   * 타입별 fuzzy 매칭
+   * 타입별 pg_trgm fuzzy 매칭 — 직접 테이블 + Entity_Alias 테이블 동시 검색
+   * Public API: entityType은 'company' | 'product' | 'component' | 'keyword'
    */
-  private async fuzzyMatch(name: string, type: string): Promise<LinkCandidate[]> {
-    const normalizedName = name.toLowerCase().trim();
-    let rows: { id: string; name: string }[] = [];
+  async fuzzyMatch(name: string, type: string): Promise<LinkCandidate[]> {
+    const query = name.trim();
+    if (!query) return [];
 
     try {
-      switch (type) {
-        case 'company':
-          rows = await db.select({ id: companies.id, name: companies.name }).from(companies);
-          break;
-        case 'product':
-          rows = await db.select({ id: humanoidRobots.id, name: humanoidRobots.name }).from(humanoidRobots);
-          break;
-        case 'component':
-          rows = await db.select({ id: components.id, name: components.name }).from(components);
-          break;
-        case 'keyword':
-          rows = (await db.select({ id: keywords.id, name: keywords.term }).from(keywords)) as any;
-          break;
-        default:
-          return [];
-      }
+      // 1) 직접 매칭: 해당 타입의 테이블에서 pg_trgm similarity() 검색
+      const directResults = await this.directMatch(query, type);
+
+      // 2) 별칭 매칭: entity_aliases 테이블에서 pg_trgm similarity() 검색
+      const aliasEntityType = this.mapTypeToAliasEntityType(type);
+      const aliasResults = aliasEntityType
+        ? await this.aliasMatch(query, aliasEntityType)
+        : [];
+
+      // 3) 결과 병합: 동일 entityId는 높은 similarity 유지
+      const merged = this.mergeResults(directResults, aliasResults, type);
+
+      return merged;
     } catch (error) {
-      console.error(`[EntityLinker] DB query failed for type ${type}`, error);
+      console.error(`[EntityLinker] pg_trgm query failed for type ${type}`, error);
       return [];
     }
-
-    // 유사도 계산 및 정렬
-    const scored = rows
-      .map(row => ({
-        entityId: row.id,
-        entityName: row.name,
-        entityType: type,
-        similarityScore: this.calculateSimilarity(normalizedName, row.name.toLowerCase()),
-        isAutoRecommended: false,
-      }))
-      .filter(c => c.similarityScore > 0.3)
-      .sort((a, b) => b.similarityScore - a.similarityScore)
-      .slice(0, MAX_CANDIDATES);
-
-    // 자동 추천 표시
-    scored.forEach(c => {
-      c.isAutoRecommended = c.similarityScore >= AUTO_RECOMMEND_THRESHOLD;
-    });
-
-    return scored;
   }
 
   /**
-   * Levenshtein distance 기반 유사도 (0.0~1.0)
+   * 직접 테이블에서 pg_trgm similarity() 매칭
    */
-  calculateSimilarity(a: string, b: string): number {
-    if (a === b) return 1.0;
-    if (a.length === 0 || b.length === 0) return 0.0;
+  private async directMatch(query: string, type: string): Promise<LinkCandidate[]> {
+    let results: { id: string; name: string; sim: number }[] = [];
 
-    // 포함 관계 보너스
-    if (a.includes(b) || b.includes(a)) {
-      const shorter = Math.min(a.length, b.length);
-      const longer = Math.max(a.length, b.length);
-      return 0.7 + (shorter / longer) * 0.3;
+    switch (type) {
+      case 'company':
+        results = await db.execute(sql`
+          SELECT id, name, similarity(name, ${query}) as sim
+          FROM companies
+          WHERE similarity(name, ${query}) >= ${MIN_CANDIDATE_THRESHOLD}
+          ORDER BY sim DESC
+          LIMIT ${MAX_CANDIDATES}
+        `) as any;
+        break;
+      case 'product':
+        results = await db.execute(sql`
+          SELECT id, name, similarity(name, ${query}) as sim
+          FROM humanoid_robots
+          WHERE similarity(name, ${query}) >= ${MIN_CANDIDATE_THRESHOLD}
+          ORDER BY sim DESC
+          LIMIT ${MAX_CANDIDATES}
+        `) as any;
+        break;
+      case 'component':
+        results = await db.execute(sql`
+          SELECT id, name, similarity(name, ${query}) as sim
+          FROM components
+          WHERE similarity(name, ${query}) >= ${MIN_CANDIDATE_THRESHOLD}
+          ORDER BY sim DESC
+          LIMIT ${MAX_CANDIDATES}
+        `) as any;
+        break;
+      case 'keyword':
+        results = await db.execute(sql`
+          SELECT id, term as name, similarity(term, ${query}) as sim
+          FROM keywords
+          WHERE similarity(term, ${query}) >= ${MIN_CANDIDATE_THRESHOLD}
+          ORDER BY sim DESC
+          LIMIT ${MAX_CANDIDATES}
+        `) as any;
+        break;
+      default:
+        return [];
     }
 
-    const matrix: number[][] = [];
-    for (let i = 0; i <= a.length; i++) {
-      matrix[i] = [i];
-    }
-    for (let j = 0; j <= b.length; j++) {
-      matrix[0]![j] = j;
+    // drizzle execute returns { rows: [...] } in node-postgres mode
+    const rows = Array.isArray(results) ? results : (results as any).rows ?? [];
+
+    return rows.map((row: any) => ({
+      entityId: row.id,
+      entityName: row.name,
+      entityType: type,
+      similarityScore: parseFloat(row.sim),
+      isAutoRecommended: parseFloat(row.sim) >= AUTO_RECOMMEND_THRESHOLD,
+      matchedVia: 'direct' as const,
+    }));
+  }
+
+  /**
+   * Entity_Alias 테이블에서 pg_trgm similarity() 매칭
+   */
+  private async aliasMatch(query: string, aliasEntityType: string): Promise<LinkCandidate[]> {
+    const results = await db.execute(sql`
+      SELECT entity_id, entity_type, alias_name, similarity(alias_name, ${query}) as sim
+      FROM entity_aliases
+      WHERE entity_type = ${aliasEntityType}
+        AND similarity(alias_name, ${query}) >= ${MIN_CANDIDATE_THRESHOLD}
+      ORDER BY sim DESC
+      LIMIT ${MAX_CANDIDATES}
+    `);
+
+    const rows = Array.isArray(results) ? results : (results as any).rows ?? [];
+
+    // 별칭 매칭 결과에 대해 원본 엔티티 이름을 조회
+    const candidates: LinkCandidate[] = [];
+    for (const row of rows as any[]) {
+      const entityName = await this.resolveEntityName(row.entity_id, row.entity_type);
+      candidates.push({
+        entityId: row.entity_id,
+        entityName: entityName || row.alias_name,
+        entityType: this.mapAliasEntityTypeToType(row.entity_type),
+        similarityScore: parseFloat(row.sim),
+        isAutoRecommended: parseFloat(row.sim) >= AUTO_RECOMMEND_THRESHOLD,
+        matchedVia: 'alias' as const,
+        aliasName: row.alias_name,
+      });
     }
 
-    for (let i = 1; i <= a.length; i++) {
-      for (let j = 1; j <= b.length; j++) {
-        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-        matrix[i]![j] = Math.min(
-          (matrix[i - 1]?.[j] ?? 0) + 1,
-          (matrix[i]?.[j - 1] ?? 0) + 1,
-          (matrix[i - 1]?.[j - 1] ?? 0) + cost
-        );
+    return candidates;
+  }
+
+  /**
+   * 엔티티 ID로 원본 이름 조회
+   */
+  private async resolveEntityName(entityId: string, entityType: string): Promise<string | null> {
+    try {
+      let result: any[];
+      switch (entityType) {
+        case 'company':
+          result = await db.select({ name: companies.name }).from(companies).where(sql`id = ${entityId}`).limit(1);
+          return result[0]?.name ?? null;
+        case 'robot':
+          result = await db.select({ name: humanoidRobots.name }).from(humanoidRobots).where(sql`id = ${entityId}`).limit(1);
+          return result[0]?.name ?? null;
+        default:
+          return null;
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * 직접 매칭 + 별칭 매칭 결과 병합 (동일 entityId는 높은 similarity 유지)
+   */
+  private mergeResults(
+    directResults: LinkCandidate[],
+    aliasResults: LinkCandidate[],
+    _type: string,
+  ): LinkCandidate[] {
+    const map = new Map<string, LinkCandidate>();
+
+    // 직접 매칭 결과 먼저 추가
+    for (const candidate of directResults) {
+      map.set(candidate.entityId, candidate);
+    }
+
+    // 별칭 매칭 결과 병합 (더 높은 similarity만 대체)
+    for (const candidate of aliasResults) {
+      const existing = map.get(candidate.entityId);
+      if (!existing || candidate.similarityScore > existing.similarityScore) {
+        map.set(candidate.entityId, candidate);
       }
     }
 
-    const maxLen = Math.max(a.length, b.length);
-    const distance = matrix[a.length]?.[b.length] ?? maxLen;
-    return Math.round((1 - distance / maxLen) * 100) / 100;
+    return Array.from(map.values())
+      .sort((a, b) => b.similarityScore - a.similarityScore)
+      .slice(0, MAX_CANDIDATES);
+  }
+
+  /**
+   * ParsedEntity type → entity_aliases.entity_type 매핑
+   * entity_aliases는 'company' | 'robot'만 지원
+   */
+  private mapTypeToAliasEntityType(type: string): string | null {
+    switch (type) {
+      case 'company': return 'company';
+      case 'product': return 'robot';
+      default: return null; // component, keyword는 별칭 테이블 미지원
+    }
+  }
+
+  /**
+   * entity_aliases.entity_type → ParsedEntity type 역매핑
+   */
+  private mapAliasEntityTypeToType(aliasEntityType: string): string {
+    switch (aliasEntityType) {
+      case 'company': return 'company';
+      case 'robot': return 'product';
+      default: return aliasEntityType;
+    }
   }
 }
 

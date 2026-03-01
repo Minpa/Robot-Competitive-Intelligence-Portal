@@ -3,6 +3,13 @@ import type { AIAgentInput, AnalysisResult } from '@/types/insight-pipeline';
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const API_BASE = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
 
+export interface GlobalFilterParams {
+  startDate?: string;
+  endDate?: string;
+  regions?: string[];
+  segments?: string[];
+}
+
 class ApiClient {
   private token: string | null = null;
 
@@ -249,6 +256,15 @@ class ApiClient {
         date: string;
         type: 'investment' | 'poc' | 'production' | 'other';
         description: string;
+      }>;
+      robots: Array<{
+        id: string;
+        name: string;
+        companyName: string;
+        commercializationStage: string;
+        dofCount?: number;
+        payloadKg?: number;
+        mainSoc?: string;
       }>;
     }>(`/dashboard/segment-detail?locomotion=${encodeURIComponent(locomotion)}&purpose=${encodeURIComponent(purpose)}`);
   }
@@ -1295,19 +1311,45 @@ class ApiClient {
   // 경영진 대시보드 API
   // ============================================
 
-  async getSegmentHeatmap() { return this.request<any>('/executive/segment-heatmap'); }
-  async getCommercializationAnalysis() { return this.request<any>('/executive/commercialization'); }
-  async getPlayerExpansion(companyIds?: string[]) {
-    const params = companyIds?.length ? `?companyIds=${companyIds.join(',')}` : '';
-    return this.request<any>(`/executive/player-expansion${params}`);
+  private buildFilterQuery(filters?: GlobalFilterParams): string {
+    if (!filters) return '';
+    const params = new URLSearchParams();
+    if (filters.startDate) params.set('startDate', filters.startDate);
+    if (filters.endDate) params.set('endDate', filters.endDate);
+    if (filters.regions?.length) params.set('region', filters.regions.join(','));
+    if (filters.segments?.length) params.set('segment', filters.segments.join(','));
+    const qs = params.toString();
+    return qs ? `?${qs}` : '';
   }
-  async getPricePerformanceTrend() { return this.request<any>('/executive/price-performance'); }
-  async getComponentTrendData() { return this.request<any>('/executive/component-trend'); }
-  async getKeywordPositionMapData() { return this.request<any>('/executive/keyword-position'); }
-  async getIndustryAdoption() { return this.request<any>('/executive/industry-adoption'); }
-  async getRegionalCompetition() { return this.request<any>('/executive/regional-competition'); }
-  async getTechAxisData() { return this.request<any>('/executive/tech-axis'); }
-  async getTopEventsData(period: string = 'month') { return this.request<any>(`/executive/top-events?period=${period}`); }
+
+  async getSegmentHeatmap(filters?: GlobalFilterParams) { return this.request<any>(`/executive/segment-heatmap${this.buildFilterQuery(filters)}`); }
+  async getSegmentHeatmapRobots(env: string, locomotion: string) { return this.request<any>(`/executive/segment-heatmap/${env}/${locomotion}/robots`); }
+  async getCommercializationAnalysis(filters?: GlobalFilterParams) { return this.request<any>(`/executive/commercialization${this.buildFilterQuery(filters)}`); }
+  async getPlayerExpansion(companyIds?: string[], filters?: GlobalFilterParams) {
+    const qs = this.buildFilterQuery(filters);
+    const sep = qs ? '&' : '?';
+    const companyParam = companyIds?.length ? `${qs ? sep : '?'}companyIds=${companyIds.join(',')}` : '';
+    return this.request<any>(`/executive/player-expansion${qs}${companyParam}`);
+  }
+  async getPricePerformanceTrend(filters?: GlobalFilterParams) { return this.request<any>(`/executive/price-performance${this.buildFilterQuery(filters)}`); }
+  async getComponentTrendData(filters?: GlobalFilterParams) { return this.request<any>(`/executive/component-trend${this.buildFilterQuery(filters)}`); }
+  async getKeywordPositionMapData(filters?: GlobalFilterParams) { return this.request<any>(`/executive/keyword-position${this.buildFilterQuery(filters)}`); }
+  async getIndustryAdoption(filters?: GlobalFilterParams) { return this.request<any>(`/executive/industry-adoption${this.buildFilterQuery(filters)}`); }
+  async getRegionalCompetition(filters?: GlobalFilterParams) { return this.request<any>(`/executive/regional-competition${this.buildFilterQuery(filters)}`); }
+  async getTechAxisData(filters?: GlobalFilterParams) { return this.request<any>(`/executive/tech-axis${this.buildFilterQuery(filters)}`); }
+  async getTopEventsData(period: string = 'month', filters?: GlobalFilterParams) {
+    const qs = this.buildFilterQuery(filters);
+    const sep = qs ? '&' : '?';
+    return this.request<any>(`/executive/top-events${qs}${sep}period=${period}`);
+  }
+  async getExecutiveOverview(filters?: GlobalFilterParams) { return this.request<any>(`/executive/overview${this.buildFilterQuery(filters)}`); }
+  async getExecutiveTimelineTrend(filters?: GlobalFilterParams) { return this.request<any>(`/executive/timeline-trend${this.buildFilterQuery(filters)}`); }
+  async getExecutiveTalentProductScatter(filters?: GlobalFilterParams) { return this.request<any>(`/executive/talent-product-scatter${this.buildFilterQuery(filters)}`); }
+  async getExecutiveMarketForecast(filters?: GlobalFilterParams) { return this.request<any>(`/executive/market-forecast${this.buildFilterQuery(filters)}`); }
+  async getExecutiveRegionalShare(filters?: GlobalFilterParams) { return this.request<any>(`/executive/regional-share${this.buildFilterQuery(filters)}`); }
+  async getExecutiveWorkforceComparison(filters?: GlobalFilterParams) { return this.request<any>(`/executive/workforce-comparison${this.buildFilterQuery(filters)}`); }
+  async getExecutiveInvestmentFlow(filters?: GlobalFilterParams) { return this.request<any>(`/executive/investment-flow${this.buildFilterQuery(filters)}`); }
+  async getExecutiveInsightHub(filters?: GlobalFilterParams) { return this.request<any>(`/executive/insight-hub${this.buildFilterQuery(filters)}`); }
   async getInsightCards() { return this.request<any>('/insights/cards'); }
   async generateMonthlyBrief() { return this.request<any>('/insights/monthly-brief', { method: 'POST' }); }
 }

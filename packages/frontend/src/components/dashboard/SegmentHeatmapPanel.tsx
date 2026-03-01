@@ -1,22 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { EmptyChartPlaceholder } from '../shared/EmptyChartPlaceholder';
 
-interface SegmentCell {
+export interface SegmentCell {
   count: number;
   robots: Array<{ id: string; name: string }>;
   companyCount?: number;
   recentEvents?: number;
 }
 
-interface SegmentHeatmapPanelProps {
+export interface SegmentHeatmapPanelProps {
   matrix: Record<string, Record<string, SegmentCell>>;
-  rows: string[];
-  columns: string[];
+  rows: string[];      // environment types (industrial, home, service)
+  columns: string[];   // locomotion types (bipedal/biped, wheeled/wheel, hybrid)
   totalCount: number;
   isLoading?: boolean;
-  onCellClick?: (locomotion: string, purpose: string, cell: SegmentCell) => void;
+  taskTypeFilter?: string;
+  taskTypes?: string[];
+  onCellClick?: (environment: string, locomotion: string, cell: SegmentCell) => void;
+  onTaskTypeChange?: (taskType: string) => void;
 }
+
+const environmentLabels: Record<string, string> = {
+  industrial: '산업용',
+  home: '가정용',
+  service: '서비스용',
+};
 
 const locomotionLabels: Record<string, string> = {
   bipedal: '2족 보행',
@@ -26,12 +36,19 @@ const locomotionLabels: Record<string, string> = {
   hybrid: '하이브리드',
 };
 
-const purposeLabels: Record<string, string> = {
-  industrial: '산업용',
-  home: '가정용',
-  service: '서비스용',
-  other: '기타',
-};
+const DEFAULT_TASK_TYPES = [
+  '전체',
+  'Assembly',
+  'Picking',
+  'Inspection',
+  'Delivery',
+  'Cleaning',
+  'Assistance',
+  'Other',
+];
+
+const DEFAULT_ENVIRONMENTS = ['industrial', 'home', 'service'];
+const DEFAULT_LOCOMOTIONS = ['biped', 'wheeled', 'hybrid'];
 
 export function SegmentHeatmapPanel({
   matrix,
@@ -39,9 +56,32 @@ export function SegmentHeatmapPanel({
   columns,
   totalCount,
   isLoading = false,
+  taskTypeFilter,
+  taskTypes,
   onCellClick,
+  onTaskTypeChange,
 }: SegmentHeatmapPanelProps) {
   const [hoveredCell, setHoveredCell] = useState<{ row: string; col: string } | null>(null);
+  const [localTaskType, setLocalTaskType] = useState<string>('전체');
+
+  const activeTaskType = taskTypeFilter ?? localTaskType;
+  const availableTaskTypes = taskTypes ?? DEFAULT_TASK_TYPES;
+
+  const allCellsEmpty = useMemo(() => {
+    const displayRows = rows.length > 0 ? rows : DEFAULT_ENVIRONMENTS;
+    const displayCols = columns.length > 0 ? columns : DEFAULT_LOCOMOTIONS;
+    return displayRows.every((row) =>
+      displayCols.every((col) => {
+        const cell = matrix[row]?.[col];
+        return !cell || cell.count === 0;
+      })
+    );
+  }, [matrix, rows, columns]);
+
+  const handleTaskTypeChange = (value: string) => {
+    setLocalTaskType(value);
+    onTaskTypeChange?.(value);
+  };
 
   const getHeatmapColor = (count: number) => {
     if (count === 0) return 'bg-slate-800/50';
@@ -69,8 +109,23 @@ export function SegmentHeatmapPanel({
     );
   }
 
-  const displayRows = rows.length > 0 ? rows : ['bipedal', 'wheeled', 'hybrid'];
-  const displayCols = columns.length > 0 ? columns : ['industrial', 'home', 'service'];
+  if (allCellsEmpty) {
+    return (
+      <div className="bg-slate-900 rounded-xl p-6 h-full">
+        <EmptyChartPlaceholder
+          title="세그먼트 데이터 없음"
+          message="세그먼트 데이터가 없습니다"
+          icon="🗺️"
+          dataType="로봇"
+          minDataCount={1}
+        />
+      </div>
+    );
+  }
+
+  // Rows = environment (Y axis), Columns = locomotion (X axis)
+  const displayRows = rows.length > 0 ? rows : DEFAULT_ENVIRONMENTS;
+  const displayCols = columns.length > 0 ? columns : DEFAULT_LOCOMOTIONS;
 
   return (
     <div className="bg-slate-900 rounded-xl p-6 h-full">
@@ -81,14 +136,28 @@ export function SegmentHeatmapPanel({
             <span className="text-xl">🗺️</span>
             세그먼트 매트릭스
           </h3>
-          <p className="text-xs text-slate-400 mt-1">용도 × 이동 방식별 로봇 분포</p>
+          <p className="text-xs text-slate-400 mt-1">환경 × 이동 방식별 로봇 분포</p>
         </div>
-        <span className="text-sm text-slate-400 bg-slate-800 px-3 py-1 rounded-full">
-          총 {totalCount}개
-        </span>
+        <div className="flex items-center gap-3">
+          {/* Task type dropdown filter */}
+          <select
+            value={activeTaskType}
+            onChange={(e) => handleTaskTypeChange(e.target.value)}
+            className="text-sm bg-slate-800 text-slate-300 border border-slate-700 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            {availableTaskTypes.map((type) => (
+              <option key={type} value={type}>
+                {type === '전체' ? '작업 유형: 전체' : type}
+              </option>
+            ))}
+          </select>
+          <span className="text-sm text-slate-400 bg-slate-800 px-3 py-1 rounded-full">
+            총 {totalCount}개
+          </span>
+        </div>
       </div>
 
-      {/* Matrix */}
+      {/* Matrix: rows=environment, columns=locomotion */}
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
@@ -96,7 +165,7 @@ export function SegmentHeatmapPanel({
               <th className="p-2 text-left text-xs font-medium text-slate-500 uppercase w-24" />
               {displayCols.map((col) => (
                 <th key={col} className="p-2 text-center text-xs font-medium text-slate-400 uppercase">
-                  {purposeLabels[col] || col}
+                  {locomotionLabels[col] || col}
                 </th>
               ))}
             </tr>
@@ -105,7 +174,7 @@ export function SegmentHeatmapPanel({
             {displayRows.map((row) => (
               <tr key={row}>
                 <td className="p-2 text-sm font-medium text-slate-300">
-                  {locomotionLabels[row] || row}
+                  {environmentLabels[row] || row}
                 </td>
                 {displayCols.map((col) => {
                   const cell = matrix[row]?.[col] || { count: 0, robots: [] };

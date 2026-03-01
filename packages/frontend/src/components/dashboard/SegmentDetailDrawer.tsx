@@ -18,6 +18,16 @@ interface Event {
   description: string;
 }
 
+interface Robot {
+  id: string;
+  name: string;
+  companyName: string;
+  commercializationStage: string;
+  dofCount?: number;
+  payloadKg?: number;
+  mainSoc?: string;
+}
+
 interface SegmentDetailDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -26,6 +36,8 @@ interface SegmentDetailDrawerProps {
   topCompanies: Company[];
   recentEvents: Event[];
   totalRobots: number;
+  robots?: Robot[];
+  isLoading?: boolean;
 }
 
 const locomotionLabels: Record<string, string> = {
@@ -50,6 +62,14 @@ const eventTypeStyles: Record<string, { bg: string; text: string; label: string 
   other: { bg: 'bg-slate-500/20', text: 'text-slate-400', label: '기타' },
 };
 
+const stageBadgeStyles: Record<string, { bg: string; text: string }> = {
+  concept: { bg: 'bg-slate-500/20', text: 'text-slate-300' },
+  prototype: { bg: 'bg-blue-500/20', text: 'text-blue-400' },
+  poc: { bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
+  pilot: { bg: 'bg-orange-500/20', text: 'text-orange-400' },
+  commercial: { bg: 'bg-green-500/20', text: 'text-green-400' },
+};
+
 export function SegmentDetailDrawer({
   isOpen,
   onClose,
@@ -58,6 +78,8 @@ export function SegmentDetailDrawer({
   topCompanies,
   recentEvents,
   totalRobots,
+  robots,
+  isLoading,
 }: SegmentDetailDrawerProps) {
   // Close on escape key
   useEffect(() => {
@@ -76,6 +98,8 @@ export function SegmentDetailDrawer({
 
   if (!isOpen) return null;
 
+  const isEmptySegment = totalRobots === 0 && (!robots || robots.length === 0);
+
   return (
     <>
       {/* Backdrop */}
@@ -87,7 +111,7 @@ export function SegmentDetailDrawer({
       {/* Drawer */}
       <div className="fixed right-0 top-0 h-full w-full max-w-md bg-slate-900 border-l border-slate-800 z-50 shadow-2xl overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-slate-900 border-b border-slate-800 p-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-slate-900 border-b border-slate-800 p-4 flex items-center justify-between z-10">
           <div>
             <h2 className="text-lg font-semibold text-white">
               {locomotionLabels[locomotion] || locomotion} × {purposeLabels[purpose] || purpose}
@@ -97,6 +121,7 @@ export function SegmentDetailDrawer({
           <button
             onClick={onClose}
             className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+            aria-label="닫기"
           >
             <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -106,105 +131,167 @@ export function SegmentDetailDrawer({
 
         {/* Content */}
         <div className="p-4 space-y-6">
-          {/* Top Companies */}
-          <section>
-            <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
-              <span>🏢</span>
-              Top 3 회사
-            </h3>
-            <div className="space-y-3">
-              {topCompanies.length > 0 ? (
-                topCompanies.slice(0, 3).map((company, idx) => (
-                  <div
-                    key={company.id}
-                    className="bg-slate-800/50 rounded-lg p-4 hover:bg-slate-800 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-start gap-3">
-                      {/* Rank badge */}
-                      <div className={`
-                        w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
-                        ${idx === 0 ? 'bg-yellow-500/20 text-yellow-400' :
-                          idx === 1 ? 'bg-slate-400/20 text-slate-300' :
-                          'bg-orange-500/20 text-orange-400'}
-                      `}>
-                        {idx + 1}
-                      </div>
-
-                      {/* Company info */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-white">{company.name}</span>
-                          <span className="text-xs text-slate-500">{company.country}</span>
-                        </div>
-                        <p className="text-sm text-slate-400">대표 제품: {company.mainProduct}</p>
-                        <p className="text-xs text-slate-500 mt-1">{company.mainSpec}</p>
-                      </div>
-
-                      {/* Logo placeholder */}
-                      {company.logoUrl ? (
-                        <img
-                          src={company.logoUrl}
-                          alt={company.name}
-                          className="w-10 h-10 rounded object-contain bg-white"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded bg-slate-700 flex items-center justify-center text-slate-500 text-xs">
-                          Logo
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-slate-500 text-center py-4">회사 정보가 없습니다</p>
-              )}
+          {/* Loading state */}
+          {isLoading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
             </div>
-          </section>
+          )}
 
-          {/* Recent Events Timeline */}
-          <section>
-            <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
-              <span>📅</span>
-              최근 이벤트
-            </h3>
-            <div className="relative">
-              {/* Timeline line */}
-              <div className="absolute left-4 top-0 bottom-0 w-px bg-slate-700" />
+          {/* Empty segment message */}
+          {!isLoading && isEmptySegment && (
+            <div className="flex items-center justify-center py-16">
+              <p className="text-sm text-slate-400 text-center">
+                해당 세그먼트에 등록된 로봇이 없습니다
+              </p>
+            </div>
+          )}
 
-              {/* Events */}
-              <div className="space-y-4">
-                {recentEvents.length > 0 ? (
-                  recentEvents.slice(0, 3).map((event) => {
-                    const style = eventTypeStyles[event.type] || eventTypeStyles.other;
-                    return (
-                      <div key={event.id} className="relative pl-10">
-                        {/* Timeline dot */}
-                        <div className={`absolute left-2 w-4 h-4 rounded-full ${style.bg} border-2 border-slate-900`} />
-
-                        {/* Event content */}
-                        <div className="bg-slate-800/30 rounded-lg p-3">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs text-slate-500">{event.date}</span>
-                            <span className={`text-xs px-2 py-0.5 rounded ${style.bg} ${style.text}`}>
-                              {style.label}
-                            </span>
-                          </div>
-                          <p className="text-sm text-white">{event.description}</p>
-                        </div>
+          {/* Robot list section */}
+          {!isLoading && !isEmptySegment && robots && robots.length > 0 && (
+            <section>
+              <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
+                <span>🤖</span>
+                로봇 목록 ({robots.length})
+              </h3>
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {robots.map((robot) => {
+                  const stageStyle = stageBadgeStyles[robot.commercializationStage] || stageBadgeStyles.concept;
+                  return (
+                    <div
+                      key={robot.id}
+                      className="bg-slate-800/50 rounded-lg p-3 hover:bg-slate-800 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-white text-sm">{robot.name}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded ${stageStyle.bg} ${stageStyle.text}`}>
+                          {robot.commercializationStage}
+                        </span>
                       </div>
-                    );
-                  })
+                      <p className="text-xs text-slate-400 mb-2">{robot.companyName}</p>
+                      <div className="flex gap-3 text-xs text-slate-500">
+                        {robot.dofCount != null && (
+                          <span>DoF: {robot.dofCount}</span>
+                        )}
+                        {robot.payloadKg != null && (
+                          <span>Payload: {robot.payloadKg}kg</span>
+                        )}
+                        {robot.mainSoc && (
+                          <span>SoC: {robot.mainSoc}</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Top Companies */}
+          {!isLoading && !isEmptySegment && (
+            <section>
+              <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
+                <span>🏢</span>
+                Top 3 회사
+              </h3>
+              <div className="space-y-3">
+                {topCompanies.length > 0 ? (
+                  topCompanies.slice(0, 3).map((company, idx) => (
+                    <div
+                      key={company.id}
+                      className="bg-slate-800/50 rounded-lg p-4 hover:bg-slate-800 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Rank badge */}
+                        <div className={`
+                          w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
+                          ${idx === 0 ? 'bg-yellow-500/20 text-yellow-400' :
+                            idx === 1 ? 'bg-slate-400/20 text-slate-300' :
+                            'bg-orange-500/20 text-orange-400'}
+                        `}>
+                          {idx + 1}
+                        </div>
+
+                        {/* Company info */}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-white">{company.name}</span>
+                            <span className="text-xs text-slate-500">{company.country}</span>
+                          </div>
+                          <p className="text-sm text-slate-400">대표 제품: {company.mainProduct}</p>
+                          <p className="text-xs text-slate-500 mt-1">{company.mainSpec}</p>
+                        </div>
+
+                        {/* Logo placeholder */}
+                        {company.logoUrl ? (
+                          <img
+                            src={company.logoUrl}
+                            alt={company.name}
+                            className="w-10 h-10 rounded object-contain bg-white"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded bg-slate-700 flex items-center justify-center text-slate-500 text-xs">
+                            Logo
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))
                 ) : (
-                  <p className="text-sm text-slate-500 text-center py-4 pl-10">이벤트가 없습니다</p>
+                  <p className="text-sm text-slate-500 text-center py-4">회사 정보가 없습니다</p>
                 )}
               </div>
-            </div>
-          </section>
+            </section>
+          )}
+
+          {/* Recent Events Timeline */}
+          {!isLoading && !isEmptySegment && (
+            <section>
+              <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
+                <span>📅</span>
+                최근 이벤트
+              </h3>
+              <div className="relative">
+                {/* Timeline line */}
+                <div className="absolute left-4 top-0 bottom-0 w-px bg-slate-700" />
+
+                {/* Events */}
+                <div className="space-y-4">
+                  {recentEvents.length > 0 ? (
+                    recentEvents.slice(0, 3).map((event) => {
+                      const style = eventTypeStyles[event.type] || eventTypeStyles.other;
+                      return (
+                        <div key={event.id} className="relative pl-10">
+                          {/* Timeline dot */}
+                          <div className={`absolute left-2 w-4 h-4 rounded-full ${style.bg} border-2 border-slate-900`} />
+
+                          {/* Event content */}
+                          <div className="bg-slate-800/30 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs text-slate-500">{event.date}</span>
+                              <span className={`text-xs px-2 py-0.5 rounded ${style.bg} ${style.text}`}>
+                                {style.label}
+                              </span>
+                            </div>
+                            <p className="text-sm text-white">{event.description}</p>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-slate-500 text-center py-4 pl-10">이벤트가 없습니다</p>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* View All Button */}
-          <button className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors">
-            이 세그먼트 전체 보기 →
-          </button>
+          {!isLoading && !isEmptySegment && (
+            <button className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors">
+              이 세그먼트 전체 보기 →
+            </button>
+          )}
         </div>
       </div>
     </>

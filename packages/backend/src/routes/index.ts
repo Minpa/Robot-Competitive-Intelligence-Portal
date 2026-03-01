@@ -19,6 +19,7 @@ import { aggregationRoutes } from './aggregation.js';
 import { insightsRoutes } from './insights.js';
 import { reviewRoutes } from './review.js';
 import { executiveRoutes } from './executive.js';
+import { entityAliasRoutes } from './entity-aliases.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -45,4 +46,5 @@ export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(insightsRoutes, { prefix: '/api/insights' });
   fastify.register(reviewRoutes, { prefix: '/api/review' });
   fastify.register(executiveRoutes, { prefix: '/api/executive' });
+  fastify.register(entityAliasRoutes, { prefix: '/api/entity-aliases' });
 }

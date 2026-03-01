@@ -14,6 +14,7 @@ import {
   SegmentDetailDrawer,
   GlobalFilterBar,
 } from '@/components/dashboard';
+import { ErrorFallbackWrapper } from '@/components/shared/ErrorFallbackWrapper';
 
 // Helper to get date range
 function getDateRange() {
@@ -42,20 +43,29 @@ export default function DashboardPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedSegment, setSelectedSegment] = useState<{ locomotion: string; purpose: string } | null>(null);
 
-  // API queries
-  const { data: summary, isLoading: summaryLoading } = useQuery({
-    queryKey: ['dashboard-summary'],
+  // Task type filter state for segment heatmap
+  const [taskTypeFilter, setTaskTypeFilter] = useState<string>('전체');
+
+  // API queries — with error states for fallback handling
+  const { data: summary, isLoading: summaryLoading, isError: summaryError, error: summaryErr, refetch: refetchSummary } = useQuery({
+    queryKey: ['dashboard-summary', dateRange, region, segment],
     queryFn: () => api.getDashboardSummary(),
+    staleTime: 3_600_000, // 1h — synced with ViewCacheConfig kpi_cards TTL
+    gcTime: 3_600_000,
   });
 
-  const { data: segmentMatrix, isLoading: matrixLoading } = useQuery({
-    queryKey: ['segment-matrix'],
+  const { data: segmentMatrix, isLoading: matrixLoading, isError: matrixError, refetch: refetchMatrix } = useQuery({
+    queryKey: ['segment-matrix', dateRange, region, segment],
     queryFn: () => api.getSegmentMatrix(),
+    staleTime: 86_400_000, // 24h — synced with ViewCacheConfig segment_matrix TTL
+    gcTime: 86_400_000,
   });
 
-  const { data: weeklyHighlights, isLoading: highlightsLoading } = useQuery({
-    queryKey: ['weekly-highlights'],
+  const { data: weeklyHighlights, isLoading: highlightsLoading, isError: highlightsError } = useQuery({
+    queryKey: ['weekly-highlights', dateRange, region, segment],
     queryFn: () => api.getWeeklyHighlights(),
+    staleTime: 3_600_000,
+    gcTime: 3_600_000,
   });
 
   // NEW: LLM-generated executive insight
@@ -66,15 +76,19 @@ export default function DashboardPage() {
   });
 
   // NEW: Timeline trend data from API
-  const { data: timelineData, isLoading: timelineLoading } = useQuery({
-    queryKey: ['timeline-trend', segment],
+  const { data: timelineData, isLoading: timelineLoading, isError: timelineError, refetch: refetchTimeline } = useQuery({
+    queryKey: ['timeline-trend', dateRange, region, segment],
     queryFn: () => api.getTimelineTrendData(12, segment !== 'all' ? segment : undefined),
+    staleTime: 86_400_000,
+    gcTime: 86_400_000,
   });
 
   // NEW: Company scatter data from API
-  const { data: scatterData, isLoading: scatterLoading } = useQuery({
-    queryKey: ['company-scatter'],
+  const { data: scatterData, isLoading: scatterLoading, isError: scatterError, refetch: refetchScatter } = useQuery({
+    queryKey: ['company-scatter', dateRange, region, segment],
     queryFn: () => api.getCompanyScatterData(),
+    staleTime: 86_400_000,
+    gcTime: 86_400_000,
   });
 
   // NEW: Segment detail for drawer
@@ -85,6 +99,40 @@ export default function DashboardPage() {
       : Promise.resolve(null),
     enabled: !!selectedSegment && drawerOpen,
   });
+
+  // Transform segment matrix: swap axes from matrix[locomotion][purpose] to matrix[environment][locomotion]
+  const transposedMatrix = useMemo(() => {
+    if (!segmentMatrix?.matrix) return { rows: [], columns: [], matrix: {}, totalCount: 0 };
+
+    const environments = segmentMatrix.columns; // purposes from backend = environments
+    const locomotions = segmentMatrix.rows;     // locomotion types from backend
+    const newMatrix: Record<string, Record<string, { count: number; robots: Array<{ id: string; name: string }> }>> = {};
+
+    // Initialize all 9 cells (3 env × 3 locomotion)
+    for (const env of environments) {
+      newMatrix[env] = {};
+      for (const loc of locomotions) {
+        newMatrix[env][loc] = { count: 0, robots: [] };
+      }
+    }
+
+    // Transpose: old matrix[locomotion][purpose] → new matrix[environment][locomotion]
+    for (const loc of locomotions) {
+      for (const env of environments) {
+        const cell = segmentMatrix.matrix[loc]?.[env];
+        if (cell) {
+          newMatrix[env][loc] = cell;
+        }
+      }
+    }
+
+    return {
+      rows: environments,     // Y axis = environment
+      columns: locomotions,   // X axis = locomotion
+      matrix: newMatrix,
+      totalCount: segmentMatrix.totalCount,
+    };
+  }, [segmentMatrix]);
 
   // Generate news data from highlights
   const topNews = useMemo(() => {
@@ -107,9 +155,9 @@ export default function DashboardPage() {
     return allNews.slice(0, 5);
   }, [weeklyHighlights]);
 
-  // Handle segment cell click
-  const handleSegmentClick = (locomotion: string, purpose: string, cell: any) => {
-    setSelectedSegment({ locomotion, purpose });
+  // Handle segment cell click (environment = row, locomotion = column)
+  const handleSegmentClick = (environment: string, locomotion: string, _cell: any) => {
+    setSelectedSegment({ locomotion, purpose: environment });
     setDrawerOpen(true);
   };
 
@@ -178,92 +226,136 @@ export default function DashboardPage() {
               />
             </div>
 
-            {/* KPI Cards - 6 columns (2x2 grid) */}
-            <div className="col-span-12 lg:col-span-6 grid grid-cols-2 gap-4">
-              <KpiCard
-                title="총 휴머노이드"
-                value={summary?.totalRobots || 0}
-                previousValue={(summary?.totalRobots || 0) - (executiveInsight?.keyMetrics?.newRobots || 2)}
-                icon="🤖"
-                color="blue"
-                isLoading={summaryLoading}
-              />
-              <KpiCard
-                title="총 회사"
-                value={summary?.totalCompanies || 0}
-                previousValue={(summary?.totalCompanies || 0) - 1}
-                icon="🏢"
-                color="green"
-                isLoading={summaryLoading}
-              />
-              <KpiCard
-                title="30일 신규 제품"
-                value={executiveInsight?.keyMetrics?.newRobots || summary?.weeklyNewProducts || 3}
-                previousValue={2}
-                icon="🆕"
-                color="purple"
-                isLoading={summaryLoading}
-              />
-              <KpiCard
-                title="30일 주요 이벤트"
-                value={(executiveInsight?.keyMetrics?.newPocs || 0) + (executiveInsight?.keyMetrics?.newInvestments || 0) + (executiveInsight?.keyMetrics?.newProductions || 0) || 5}
-                previousValue={4}
-                icon="📅"
-                color="orange"
-                isLoading={summaryLoading}
-              />
+            {/* KPI Cards - 6 columns (2x2 grid) — fallback: cache + stale badge (TTL 1h) */}
+            <div className="col-span-12 lg:col-span-6">
+              <ErrorFallbackWrapper
+                isError={summaryError}
+                isLoading={false}
+                fallbackType="cache"
+                cachedData={summary}
+                isStale={summaryError && !!summary}
+                onRetry={() => refetchSummary()}
+              >
+                <div className="grid grid-cols-2 gap-4">
+                  <KpiCard
+                    title="총 휴머노이드"
+                    value={summary?.totalRobots || 0}
+                    previousValue={(summary?.totalRobots || 0) - (executiveInsight?.keyMetrics?.newRobots || 2)}
+                    icon="🤖"
+                    color="blue"
+                    isLoading={summaryLoading}
+                  />
+                  <KpiCard
+                    title="총 회사"
+                    value={summary?.totalCompanies || 0}
+                    previousValue={(summary?.totalCompanies || 0) - 1}
+                    icon="🏢"
+                    color="green"
+                    isLoading={summaryLoading}
+                  />
+                  <KpiCard
+                    title="30일 신규 제품"
+                    value={executiveInsight?.keyMetrics?.newRobots || summary?.weeklyNewProducts || 3}
+                    previousValue={2}
+                    icon="🆕"
+                    color="purple"
+                    isLoading={summaryLoading}
+                  />
+                  <KpiCard
+                    title="30일 주요 이벤트"
+                    value={(executiveInsight?.keyMetrics?.newPocs || 0) + (executiveInsight?.keyMetrics?.newInvestments || 0) + (executiveInsight?.keyMetrics?.newProductions || 0) || 5}
+                    previousValue={4}
+                    icon="📅"
+                    color="orange"
+                    isLoading={summaryLoading}
+                  />
+                </div>
+              </ErrorFallbackWrapper>
             </div>
           </div>
 
           {/* Row 2: Segment Matrix + Timeline Trend */}
           <div className="grid grid-cols-12 gap-4 mb-6">
-            {/* Segment Heatmap - 7 columns */}
+            {/* Segment Heatmap - 7 columns — fallback: cache (TTL 24h) */}
             <div className="col-span-12 lg:col-span-7">
-              <SegmentHeatmapPanel
-                matrix={segmentMatrix?.matrix || {}}
-                rows={segmentMatrix?.rows || []}
-                columns={segmentMatrix?.columns || []}
-                totalCount={segmentMatrix?.totalCount || 0}
-                isLoading={matrixLoading}
-                onCellClick={handleSegmentClick}
-              />
+              <ErrorFallbackWrapper
+                isError={matrixError}
+                isLoading={false}
+                fallbackType="cache"
+                cachedData={segmentMatrix}
+                isStale={matrixError && !!segmentMatrix}
+                onRetry={() => refetchMatrix()}
+              >
+                <SegmentHeatmapPanel
+                  matrix={transposedMatrix.matrix}
+                  rows={transposedMatrix.rows}
+                  columns={transposedMatrix.columns}
+                  totalCount={transposedMatrix.totalCount}
+                  isLoading={matrixLoading}
+                  taskTypeFilter={taskTypeFilter}
+                  onTaskTypeChange={setTaskTypeFilter}
+                  onCellClick={handleSegmentClick}
+                />
+              </ErrorFallbackWrapper>
             </div>
 
-            {/* Timeline Trend - 5 columns */}
+            {/* Timeline Trend - 5 columns — fallback: empty_retry */}
             <div className="col-span-12 lg:col-span-5">
-              <TimelineTrendPanel
-                data={timelineData || []}
-                isLoading={timelineLoading}
-              />
+              <ErrorFallbackWrapper
+                isError={timelineError}
+                isLoading={false}
+                fallbackType="empty_retry"
+                onRetry={() => refetchTimeline()}
+                emptyMessage="타임라인 데이터를 불러올 수 없습니다"
+              >
+                <TimelineTrendPanel
+                  data={timelineData || []}
+                  isLoading={timelineLoading}
+                />
+              </ErrorFallbackWrapper>
             </div>
           </div>
 
           {/* Row 3: Talent/Product Scatter + Insight Hub */}
           <div className="grid grid-cols-12 gap-4">
-            {/* Talent vs Product Scatter - 7 columns */}
+            {/* Talent vs Product Scatter - 7 columns — fallback: empty_retry */}
             <div className="col-span-12 lg:col-span-7">
-              <TalentProductScatterPanel
-                data={scatterData || []}
-                isLoading={scatterLoading}
-                onPointClick={handleCompanyClick}
-              />
+              <ErrorFallbackWrapper
+                isError={scatterError}
+                isLoading={false}
+                fallbackType="empty_retry"
+                onRetry={() => refetchScatter()}
+                emptyMessage="인력-제품 데이터를 불러올 수 없습니다"
+              >
+                <TalentProductScatterPanel
+                  data={scatterData || []}
+                  isLoading={scatterLoading}
+                  onPointClick={handleCompanyClick}
+                />
+              </ErrorFallbackWrapper>
             </div>
 
-            {/* Insight Hub - 5 columns */}
+            {/* Insight Hub - 5 columns — fallback: hide (highlights section) */}
             <div className="col-span-12 lg:col-span-5">
-              <InsightHubPanel
-                latestReport={{
-                  id: '1',
-                  title: '2026년 2월 2주차 휴머노이드 동향 브리프',
-                  pageCount: 8,
-                  updatedAt: formatDate(new Date().toISOString()),
-                  isAutoGenerated: true,
-                }}
-                topNews={topNews}
-                isLoading={highlightsLoading}
-                onViewReport={() => alert('리포트 보기')}
-                onExportPPT={() => window.location.href = '/ppt-builder'}
-              />
+              <ErrorFallbackWrapper
+                isError={highlightsError}
+                isLoading={false}
+                fallbackType="hide"
+              >
+                <InsightHubPanel
+                  latestReport={{
+                    id: '1',
+                    title: '2026년 2월 2주차 휴머노이드 동향 브리프',
+                    pageCount: 8,
+                    updatedAt: formatDate(new Date().toISOString()),
+                    isAutoGenerated: true,
+                  }}
+                  topNews={topNews}
+                  isLoading={highlightsLoading}
+                  onViewReport={() => alert('리포트 보기')}
+                  onExportPPT={() => window.location.href = '/ppt-builder'}
+                />
+              </ErrorFallbackWrapper>
             </div>
           </div>
         </div>
@@ -277,6 +369,8 @@ export default function DashboardPage() {
           topCompanies={segmentDetail?.topCompanies || []}
           recentEvents={segmentDetail?.recentEvents || []}
           totalRobots={segmentDetail?.totalRobots || segmentMatrix?.matrix?.[selectedSegment?.locomotion || '']?.[selectedSegment?.purpose || '']?.count || 0}
+          robots={segmentDetail?.robots}
+          isLoading={segmentDetailLoading}
         />
       </div>
     </AuthGuard>

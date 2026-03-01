@@ -36,3 +36,7 @@ export { aggregationService, AggregationService } from './aggregation.service.js
 export { insightCardsGenerator, InsightCardsGenerator } from './insight-cards.service.js';
 export { monthlyBriefGenerator, MonthlyBriefGenerator } from './monthly-brief.service.js';
 export { executiveDashboardService, ExecutiveDashboardService } from './executive-dashboard.service.js';
+export type { GlobalFilterParams } from './executive-dashboard.service.js';
+export { entityAliasService, EntityAliasService } from './entity-alias.service.js';
+export { viewCacheService, ViewCacheService, VIEW_CACHE_CONFIGS } from './view-cache.service.js';
+export type { ViewCacheConfig, CacheEntry, CacheResult } from './view-cache.service.js';

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { EmptyChartPlaceholder } from '../shared/EmptyChartPlaceholder';
 
 interface BriefReport {
   id: string;
@@ -51,6 +52,20 @@ export function InsightHubPanel({
             <div key={i} className="h-12 bg-slate-800 rounded" />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (!latestReport && topNews.length === 0) {
+    return (
+      <div className="bg-slate-900 rounded-xl p-6 h-full">
+        <EmptyChartPlaceholder
+          title="인사이트 데이터 없음"
+          message="인사이트 데이터가 없습니다"
+          icon="📋"
+          dataType="기사"
+          minDataCount={1}
+        />
       </div>
     );
   }

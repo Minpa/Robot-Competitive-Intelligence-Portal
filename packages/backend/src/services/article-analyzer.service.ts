@@ -12,6 +12,7 @@ import {
   articleKeywords,
   type ExtractedMetadata,
 } from '../db/index.js';
+import { entityLinkerService, type LinkCandidate } from './entity-linker.service.js';
 
 // AI 클라이언트 초기화
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
@@ -27,6 +28,10 @@ export interface ArticleAnalysisResult {
   extractedTechnologies: string[];
   marketInsights: string[];
   keywords: { term: string; relevance: number }[];
+  entityLinks: {
+    companies: LinkCandidate[];
+    robots: LinkCandidate[];
+  };
 }
 
 export interface EntityMatch {
@@ -83,33 +88,53 @@ export class ArticleAnalyzerService {
 
   /**
    * Analyze article content using AI (GPT-4o or Claude)
+   * Uses EntityLinkerService pg_trgm matching for company/robot entity linking
    */
   async analyzeArticle(content: string, language: string = 'ko', model: AIModel = 'gpt-4o'): Promise<ArticleAnalysisResult> {
-    // Find mentioned companies
-    const allCompanies = await db.select({ id: companies.id, name: companies.name }).from(companies);
+    // Extract potential entity names from content for pg_trgm matching
+    const potentialNames = this.extractPotentialEntityNames(content);
+
+    // Use EntityLinkerService pg_trgm fuzzy matching for companies
+    const companyLinkCandidates: LinkCandidate[] = [];
     const mentionedCompanies: EntityMatch[] = [];
-    
-    for (const company of allCompanies) {
-      if (content.toLowerCase().includes(company.name.toLowerCase())) {
-        mentionedCompanies.push({
-          mentionedName: company.name,
-          matchedEntity: { id: company.id, name: company.name },
-          confidence: 0.9,
-        });
+    const seenCompanyIds = new Set<string>();
+
+    for (const name of potentialNames) {
+      const candidates = await entityLinkerService.fuzzyMatch(name, 'company');
+      for (const candidate of candidates) {
+        if (!seenCompanyIds.has(candidate.entityId)) {
+          seenCompanyIds.add(candidate.entityId);
+          companyLinkCandidates.push(candidate);
+          mentionedCompanies.push({
+            mentionedName: candidate.matchedVia === 'alias' && candidate.aliasName
+              ? candidate.aliasName
+              : name,
+            matchedEntity: { id: candidate.entityId, name: candidate.entityName },
+            confidence: candidate.similarityScore,
+          });
+        }
       }
     }
 
-    // Find mentioned robots
-    const allRobots = await db.select({ id: humanoidRobots.id, name: humanoidRobots.name }).from(humanoidRobots);
+    // Use EntityLinkerService pg_trgm fuzzy matching for robots
+    const robotLinkCandidates: LinkCandidate[] = [];
     const mentionedRobots: EntityMatch[] = [];
-    
-    for (const robot of allRobots) {
-      if (content.toLowerCase().includes(robot.name.toLowerCase())) {
-        mentionedRobots.push({
-          mentionedName: robot.name,
-          matchedEntity: { id: robot.id, name: robot.name },
-          confidence: 0.9,
-        });
+    const seenRobotIds = new Set<string>();
+
+    for (const name of potentialNames) {
+      const candidates = await entityLinkerService.fuzzyMatch(name, 'product');
+      for (const candidate of candidates) {
+        if (!seenRobotIds.has(candidate.entityId)) {
+          seenRobotIds.add(candidate.entityId);
+          robotLinkCandidates.push(candidate);
+          mentionedRobots.push({
+            mentionedName: candidate.matchedVia === 'alias' && candidate.aliasName
+              ? candidate.aliasName
+              : name,
+            matchedEntity: { id: candidate.entityId, name: candidate.entityName },
+            confidence: candidate.similarityScore,
+          });
+        }
       }
     }
 
@@ -127,7 +152,60 @@ export class ArticleAnalyzerService {
       extractedTechnologies: aiAnalysis.technologies,
       marketInsights: aiAnalysis.insights,
       keywords: extractedKeywords,
+      entityLinks: {
+        companies: companyLinkCandidates,
+        robots: robotLinkCandidates,
+      },
     };
+  }
+
+  /**
+   * Extract potential entity names from article content for pg_trgm matching.
+   * Uses a combination of capitalized phrases, known patterns, and word n-grams.
+   */
+  private extractPotentialEntityNames(content: string): string[] {
+    const names = new Set<string>();
+
+    // 1) Extract capitalized multi-word phrases (e.g., "Boston Dynamics", "Tesla Optimus")
+    const capitalizedPattern = /\b([A-Z][a-zA-Z]*(?:\s+[A-Z][a-zA-Z]*)+)\b/g;
+    let match;
+    while ((match = capitalizedPattern.exec(content)) !== null) {
+      const phrase = match[1]!.trim();
+      if (phrase.length >= 3 && phrase.length <= 100) {
+        names.add(phrase);
+      }
+    }
+
+    // 2) Extract single capitalized words (potential company/robot names)
+    const singleCapPattern = /\b([A-Z][a-zA-Z]{2,})\b/g;
+    while ((match = singleCapPattern.exec(content)) !== null) {
+      const word = match[1]!.trim();
+      // Skip common English words
+      const commonWords = new Set([
+        'The', 'This', 'That', 'These', 'Those', 'What', 'When', 'Where', 'Which',
+        'Who', 'How', 'And', 'But', 'For', 'Not', 'With', 'From', 'Into', 'About',
+        'After', 'Before', 'Between', 'During', 'Through', 'Under', 'Over',
+      ]);
+      if (!commonWords.has(word)) {
+        names.add(word);
+      }
+    }
+
+    // 3) Extract Korean entity-like phrases (2~6 characters, typically company/product names)
+    const koreanPattern = /([가-힣]{2,6}(?:\s[가-힣]{2,6})*)/g;
+    while ((match = koreanPattern.exec(content)) !== null) {
+      const phrase = match[1]!.trim();
+      // Skip very common Korean words
+      const commonKorean = new Set([
+        '그리고', '하지만', '그래서', '때문에', '이것은', '그것은', '있다', '없다',
+        '한다', '된다', '이다', '아니다', '것이다', '대한', '위한', '통해',
+      ]);
+      if (phrase.length >= 2 && !commonKorean.has(phrase)) {
+        names.add(phrase);
+      }
+    }
+
+    return Array.from(names);
   }
 
   /**

@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
-import { db, humanoidRobots, companies, articles, applicationCases, workforceData } from '../db/index.js';
+import { db, humanoidRobots, companies, articles, applicationCases, workforceData, bodySpecs, computingSpecs } from '../db/index.js';
 import { sql, desc, gte, and, eq, count } from 'drizzle-orm';
 
 const openai = new OpenAI({
@@ -517,73 +517,103 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
    * 세그먼트 상세 정보 (Drawer용)
    */
   async getSegmentDetail(locomotion: string, purpose: string) {
-    // Top 3 회사
-    const topCompanies = await db
-      .select({
-        id: companies.id,
-        name: companies.name,
-        country: companies.country,
-        logoUrl: companies.logoUrl,
-        robotName: humanoidRobots.name,
-        robotId: humanoidRobots.id,
-      })
-      .from(humanoidRobots)
-      .innerJoin(companies, eq(humanoidRobots.companyId, companies.id))
-      .where(and(
-        eq(humanoidRobots.locomotionType, locomotion),
-        eq(humanoidRobots.purpose, purpose)
-      ))
-      .limit(3);
+      // Top 3 회사
+      const topCompanies = await db
+        .select({
+          id: companies.id,
+          name: companies.name,
+          country: companies.country,
+          logoUrl: companies.logoUrl,
+          robotName: humanoidRobots.name,
+          robotId: humanoidRobots.id,
+        })
+        .from(humanoidRobots)
+        .innerJoin(companies, eq(humanoidRobots.companyId, companies.id))
+        .where(and(
+          eq(humanoidRobots.locomotionType, locomotion),
+          eq(humanoidRobots.purpose, purpose)
+        ))
+        .limit(3);
 
-    // 최근 이벤트
-    const recentEvents = await db
-      .select({
-        id: applicationCases.id,
-        date: applicationCases.demoDate,
-        status: applicationCases.deploymentStatus,
-        event: applicationCases.demoEvent,
-        robotName: humanoidRobots.name,
-      })
-      .from(applicationCases)
-      .innerJoin(humanoidRobots, eq(applicationCases.robotId, humanoidRobots.id))
-      .where(and(
-        eq(humanoidRobots.locomotionType, locomotion),
-        eq(humanoidRobots.purpose, purpose)
-      ))
-      .orderBy(desc(applicationCases.createdAt))
-      .limit(3);
+      // 최근 이벤트
+      const recentEvents = await db
+        .select({
+          id: applicationCases.id,
+          date: applicationCases.demoDate,
+          status: applicationCases.deploymentStatus,
+          event: applicationCases.demoEvent,
+          robotName: humanoidRobots.name,
+        })
+        .from(applicationCases)
+        .innerJoin(humanoidRobots, eq(applicationCases.robotId, humanoidRobots.id))
+        .where(and(
+          eq(humanoidRobots.locomotionType, locomotion),
+          eq(humanoidRobots.purpose, purpose)
+        ))
+        .orderBy(desc(applicationCases.createdAt))
+        .limit(3);
 
-    // 총 로봇 수
-    const [totalCount] = await db
-      .select({ count: count() })
-      .from(humanoidRobots)
-      .where(and(
-        eq(humanoidRobots.locomotionType, locomotion),
-        eq(humanoidRobots.purpose, purpose)
-      ));
+      // 총 로봇 수
+      const [totalCount] = await db
+        .select({ count: count() })
+        .from(humanoidRobots)
+        .where(and(
+          eq(humanoidRobots.locomotionType, locomotion),
+          eq(humanoidRobots.purpose, purpose)
+        ));
 
-    const locomotionLabel = locomotion === 'bipedal' ? '2족 보행' : locomotion;
+      // 세그먼트 내 전체 로봇 목록 (key specs 포함)
+      const robots = await db
+        .select({
+          id: humanoidRobots.id,
+          name: humanoidRobots.name,
+          companyName: companies.name,
+          commercializationStage: humanoidRobots.commercializationStage,
+          dofCount: bodySpecs.dofCount,
+          payloadKg: bodySpecs.payloadKg,
+          mainSoc: computingSpecs.mainSoc,
+        })
+        .from(humanoidRobots)
+        .innerJoin(companies, eq(humanoidRobots.companyId, companies.id))
+        .leftJoin(bodySpecs, eq(bodySpecs.robotId, humanoidRobots.id))
+        .leftJoin(computingSpecs, eq(computingSpecs.robotId, humanoidRobots.id))
+        .where(and(
+          eq(humanoidRobots.locomotionType, locomotion),
+          eq(humanoidRobots.purpose, purpose)
+        ))
+        .orderBy(humanoidRobots.name);
 
-    return {
-      locomotion,
-      purpose,
-      totalRobots: Number(totalCount?.count || 0),
-      topCompanies: topCompanies.map(c => ({
-        id: c.id,
-        name: c.name,
-        country: c.country,
-        logoUrl: c.logoUrl || undefined,
-        mainProduct: c.robotName,
-        mainSpec: `${locomotionLabel}, ${purpose}`,
-      })),
-      recentEvents: recentEvents.map(e => ({
-        id: e.id,
-        date: e.date || new Date().toISOString().split('T')[0] || '',
-        type: (e.status === 'pilot' ? 'poc' : e.status === 'production' ? 'production' : 'other') as 'investment' | 'poc' | 'production' | 'other',
-        description: e.event || `${e.robotName || 'Robot'} ${e.status || ''}`,
-      })),
-    };
-  }
+      const locomotionLabel = locomotion === 'bipedal' ? '2족 보행' : locomotion;
+
+      return {
+        locomotion,
+        purpose,
+        totalRobots: Number(totalCount?.count || 0),
+        topCompanies: topCompanies.map(c => ({
+          id: c.id,
+          name: c.name,
+          country: c.country,
+          logoUrl: c.logoUrl || undefined,
+          mainProduct: c.robotName,
+          mainSpec: `${locomotionLabel}, ${purpose}`,
+        })),
+        recentEvents: recentEvents.map(e => ({
+          id: e.id,
+          date: e.date || new Date().toISOString().split('T')[0] || '',
+          type: (e.status === 'pilot' ? 'poc' : e.status === 'production' ? 'production' : 'other') as 'investment' | 'poc' | 'production' | 'other',
+          description: e.event || `${e.robotName || 'Robot'} ${e.status || ''}`,
+        })),
+        robots: robots.map(r => ({
+          id: r.id,
+          name: r.name,
+          companyName: r.companyName,
+          commercializationStage: r.commercializationStage || 'concept',
+          dofCount: r.dofCount ?? undefined,
+          payloadKg: r.payloadKg ? Number(r.payloadKg) : undefined,
+          mainSoc: r.mainSoc ?? undefined,
+        })),
+      };
+    }
 }
 
 export const insightGeneratorService = new InsightGeneratorService();

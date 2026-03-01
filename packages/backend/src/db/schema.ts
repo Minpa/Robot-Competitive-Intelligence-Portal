@@ -28,6 +28,7 @@ export const companies = pgTable(
     mainBusiness: varchar('main_business', { length: 255 }),
     homepageUrl: varchar('homepage_url', { length: 500 }),
     description: text('description'),
+    valuationUsd: decimal('valuation_usd', { precision: 15, scale: 2 }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
@@ -882,3 +883,45 @@ export const pipelineRunsRelations = relations(pipelineRuns, ({ many, one }) => 
 export const pipelineStepLogsRelations = relations(pipelineStepLogs, ({ one }) => ({
   run: one(pipelineRuns, { fields: [pipelineStepLogs.runId], references: [pipelineRuns.id] }),
 }));
+
+// ============================================
+// v1.2 신규 테이블
+// ============================================
+
+// Entity_Alias 테이블 — 다국어 별칭 관리 (pg_trgm GIN 인덱스 기반 fuzzy 매칭)
+export const entityAliases = pgTable(
+  'entity_aliases',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    entityType: varchar('entity_type', { length: 50 }).notNull(), // 'company' | 'robot'
+    entityId: uuid('entity_id').notNull(),
+    aliasName: varchar('alias_name', { length: 300 }).notNull(),
+    language: varchar('language', { length: 5 }), // 'ko' | 'en' | 'zh' | null
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    entityIdx: index('entity_aliases_entity_idx').on(table.entityType, table.entityId),
+    // GIN 인덱스는 SQL 마이그레이션으로 생성:
+    // CREATE INDEX entity_aliases_alias_gin ON entity_aliases USING gin (alias_name gin_trgm_ops);
+  })
+);
+
+// Entity_Alias Relations
+export const entityAliasesRelations = relations(entityAliases, ({ }) => ({
+  // entityType에 따라 동적 참조 — 애플리케이션 레벨에서 처리
+}));
+
+// View_Cache 테이블 — 뷰별 캐시 영속화 (서버 재시작 시 warm-up용)
+export const viewCache = pgTable(
+  'view_cache',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    viewName: varchar('view_name', { length: 100 }).notNull().unique(),
+    data: jsonb('data').notNull(),
+    cachedAt: timestamp('cached_at').defaultNow().notNull(),
+    ttlMs: integer('ttl_ms').notNull(),
+  },
+  (table) => ({
+    viewNameIdx: uniqueIndex('view_cache_view_name_idx').on(table.viewName),
+  })
+);
