@@ -1452,6 +1452,9 @@ class ApiClient {
   async runScoringPipelineForRobot(robotId: string) { return this.request<any>(`/scoring-pipeline/run/${robotId}`, { method: 'POST' }); }
   async getScoringPipelineStatus() { return this.request<any>('/scoring-pipeline/status'); }
 
+  // DB 마이그레이션
+  async runMigration() { return this.request<any>('/admin/migrate', { method: 'POST' }); }
+
   // PPT Export
   async exportHumanoidTrendPpt(options: { theme: string; chartImages?: string[] }): Promise<Blob> {
     const token = this.getToken();

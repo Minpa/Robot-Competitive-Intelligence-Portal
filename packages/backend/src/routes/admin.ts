@@ -3,6 +3,10 @@ import { adminCrawlerService } from '../services/admin-crawler.service.js';
 import { analyzeArticle } from '../services/ai-analyzer.service.js';
 import { aiUsageService } from '../services/ai-usage.service.js';
 import { CreateCrawlTargetSchema, UpdateCrawlTargetSchema, RateLimitConfigSchema } from '../types/dto.js';
+import pg from 'pg';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 export async function adminRoutes(fastify: FastifyInstance) {
   // Crawl Targets
@@ -237,5 +241,72 @@ export async function adminRoutes(fastify: FastifyInstance) {
     const limit = query.limit ? parseInt(query.limit) : 50;
     const logs = await aiUsageService.getRecentLogs(limit);
     return { logs };
+  });
+
+  // ── DB 마이그레이션 ──────────────────────────────────────────────
+
+  // POST /api/admin/migrate — DB 마이그레이션 실행
+  fastify.post('/migrate', async (_request, reply) => {
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+      return reply.status(500).send({ error: 'DATABASE_URL이 설정되지 않았습니다.' });
+    }
+
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const drizzleDir = path.join(__dirname, '../../drizzle');
+
+    // dist에서 실행될 때 drizzle 폴더 경로 보정
+    const resolvedDir = fs.existsSync(drizzleDir)
+      ? drizzleDir
+      : path.join(__dirname, '../../../drizzle');
+
+    if (!fs.existsSync(resolvedDir)) {
+      return reply.status(500).send({ error: `마이그레이션 폴더를 찾을 수 없습니다: ${resolvedDir}` });
+    }
+
+    const client = new pg.Client({ connectionString });
+    const results: { file: string; status: string; error?: string }[] = [];
+
+    try {
+      await client.connect();
+
+      const files = fs.readdirSync(resolvedDir)
+        .filter((f: string) => f.endsWith('.sql'))
+        .sort();
+
+      for (const file of files) {
+        const sql = fs.readFileSync(path.join(resolvedDir, file), 'utf-8');
+        const statements = sql.split('--> statement-breakpoint');
+
+        let fileStatus = 'success';
+        let fileError: string | undefined;
+
+        for (const statement of statements) {
+          const trimmed = statement.trim();
+          if (!trimmed) continue;
+          try {
+            await client.query(trimmed);
+          } catch (err: any) {
+            if (!err.message.includes('already exists') && !err.message.includes('duplicate key')) {
+              fileStatus = 'error';
+              fileError = err.message;
+            }
+          }
+        }
+
+        results.push({ file, status: fileStatus, ...(fileError && { error: fileError }) });
+      }
+
+      return {
+        success: true,
+        message: `${files.length}개 마이그레이션 파일 처리 완료`,
+        results,
+      };
+    } catch (err) {
+      return reply.status(500).send({ error: `마이그레이션 실패: ${(err as Error).message}` });
+    } finally {
+      await client.end();
+    }
   });
 }

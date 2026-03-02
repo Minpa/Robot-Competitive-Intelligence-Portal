@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { Play, RefreshCw, Loader2, CheckCircle2, XCircle, AlertTriangle, Clock } from 'lucide-react';
+import { Play, RefreshCw, Loader2, CheckCircle2, XCircle, AlertTriangle, Clock, Database } from 'lucide-react';
 
 interface PipelineError {
   robotId: string;
@@ -79,6 +79,15 @@ export default function ScoringPipelineAdmin() {
 
   const isRunning = fullRunMutation.isPending || robotRunMutation.isPending;
 
+  // Migration mutation
+  const migrationMutation = useMutation({
+    mutationFn: () => api.runMigration(),
+    onSuccess: (data: any) => {
+      setMigrationResult(data);
+    },
+  });
+  const [migrationResult, setMigrationResult] = useState<any>(null);
+
   const handleFullRun = useCallback(() => {
     setResult(null);
     fullRunMutation.mutate();
@@ -139,6 +148,36 @@ export default function ScoringPipelineAdmin() {
       ) : (
         <div className="text-xs text-gray-400">실행 기록 없음</div>
       )}
+
+      {/* DB Migration section */}
+      <div className="border border-gray-200 dark:border-gray-700 rounded p-3 space-y-2">
+        <div className="text-xs font-medium text-gray-500 dark:text-gray-400">DB 마이그레이션</div>
+        <button
+          onClick={() => { setMigrationResult(null); migrationMutation.mutate(); }}
+          disabled={migrationMutation.isPending}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {migrationMutation.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Database className="w-4 h-4" />
+          )}
+          마이그레이션 실행
+        </button>
+        {migrationMutation.isError && (
+          <div className="text-xs text-red-500">오류: {(migrationMutation.error as any)?.message || '알 수 없는 오류'}</div>
+        )}
+        {migrationResult && (
+          <div className="text-xs space-y-1">
+            <div className="text-green-600 dark:text-green-400">{migrationResult.message}</div>
+            {migrationResult.results?.map((r: any, i: number) => (
+              <div key={i} className={`pl-2 border-l-2 ${r.status === 'success' ? 'border-green-300 text-gray-500 dark:text-gray-400' : 'border-red-300 text-red-500'}`}>
+                {r.file}: {r.status === 'success' ? '✓' : `✗ ${r.error}`}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Full recalculation button */}
       <button
