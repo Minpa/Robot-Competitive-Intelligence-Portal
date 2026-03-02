@@ -102,21 +102,6 @@ export default function ComponentsTrendPage() {
         vendor: item.vendor || '',
       }));
     }
-    }
-    if (mapTab === 'actuator' && components?.items) {
-      // Actuator 데이터 변환
-      return (components.items || [])
-        .filter((c: any) => c.type === 'actuator')
-        .map((item: any) => {
-          const specs = item.specifications || item.specs || {};
-          return {
-            ...item,
-            x: Number(specs.weightKg) || 0,
-            y: Number(specs.torqueDensity) || 0,
-            vendor: item.vendor || item.company,
-          };
-        });
-    }
     return [];
   }, [mapTab, torqueData, socScatterData, components]);
 
