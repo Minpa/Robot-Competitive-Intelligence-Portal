@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Sparkles, Brain } from 'lucide-react';
+import { Search, Sparkles, Brain, Globe } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { AnalysisResult } from '@/types/insight-pipeline';
 
@@ -42,6 +42,7 @@ export function AIAgentMode({
   const [endYear, setEndYear] = useState('2026');
   const [region, setRegion] = useState('글로벌');
   const [provider, setProvider] = useState<'chatgpt' | 'claude'>('chatgpt');
+  const [webSearch, setWebSearch] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const canSearch = searchQuery.trim().length > 0 && selectedTypes.size > 0 && !isAnalyzing;
@@ -70,6 +71,7 @@ export function AIAgentMode({
         timeRange: { start: startYear, end: endYear },
         region,
         provider,
+        webSearch,
       });
 
       // The API returns { result, linkResult, sources } — transform into AnalysisResult
@@ -203,6 +205,32 @@ export function AIAgentMode({
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Web search toggle */}
+      <div className="flex items-center justify-between px-4 py-3 bg-slate-800/30 border border-slate-700/50 rounded-lg">
+        <div className="flex items-center gap-2">
+          <Globe className="w-4 h-4 text-emerald-400" />
+          <div>
+            <p className="text-sm text-slate-300">웹 검색 (실시간 최신 정보)</p>
+            <p className="text-xs text-slate-500">활성화 시 최신 뉴스·발표 기반으로 응답합니다</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setWebSearch(!webSearch)}
+          className={`relative w-11 h-6 rounded-full transition-colors ${
+            webSearch ? 'bg-emerald-500' : 'bg-slate-600'
+          }`}
+          role="switch"
+          aria-checked={webSearch}
+          aria-label="웹 검색 활성화"
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+              webSearch ? 'translate-x-5' : 'translate-x-0'
+            }`}
+          />
+        </button>
       </div>
 
       {/* Error message */}

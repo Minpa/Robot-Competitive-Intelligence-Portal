@@ -6,6 +6,7 @@ export interface AIAgentInput {
   timeRange: { start: string; end: string };
   region: string;
   provider: 'chatgpt' | 'claude';
+  webSearch?: boolean;
 }
 
 export interface EntityItem {
