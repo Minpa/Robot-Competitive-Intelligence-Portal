@@ -12,7 +12,7 @@
  */
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { authMiddleware, requireRole } from './auth.js';
+import { authMiddleware } from './auth.js';
 import { scoringPipelineService } from '../services/scoring-pipeline.service.js';
 import { getPocRubric, getRfmRubric, getPositioningRubric } from '../services/scoring/rubric-provider.js';
 
