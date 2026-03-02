@@ -150,6 +150,7 @@ export async function analysisRoutes(fastify: FastifyInstance) {
           timeRange: timeRange || { start: '2024', end: '2025' },
           region: region || '글로벌',
           provider: provider || 'chatgpt',
+          webSearch: (request.body as any).webSearch === true,
         });
 
         // 2. AISearchResponse → ParseResult 변환

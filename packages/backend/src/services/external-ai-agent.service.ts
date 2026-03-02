@@ -17,6 +17,8 @@ export interface AISearchRequest {
   timeRange: { start: string; end: string };
   region: string;
   provider: 'chatgpt' | 'claude';
+  /** 웹 검색을 활성화하여 실시간 최신 정보를 가져올지 여부 (기본: false) */
+  webSearch?: boolean;
 }
 
 export interface AISearchResponse {
@@ -47,19 +49,20 @@ export class ExternalAIAgentService {
     this.validateApiKey(request.provider);
 
     const prompt = this.buildPrompt(request);
+    const useWebSearch = request.webSearch === true;
     let raw: string;
 
+    const callFn = () => request.provider === 'chatgpt'
+      ? (useWebSearch ? this.callOpenAIWithWebSearch(prompt) : this.callOpenAI(prompt))
+      : (useWebSearch ? this.callClaudeWithWebSearch(prompt) : this.callClaude(prompt));
+
     try {
-      raw = request.provider === 'chatgpt'
-        ? await this.callOpenAI(prompt)
-        : await this.callClaude(prompt);
+      raw = await callFn();
     } catch (firstError) {
       // 1회 재시도
       console.warn(`[ExternalAIAgent] ${request.provider} API 호출 실패, 재시도 중...`, firstError);
       try {
-        raw = request.provider === 'chatgpt'
-          ? await this.callOpenAI(prompt)
-          : await this.callClaude(prompt);
+        raw = await callFn();
       } catch (retryError) {
         console.error(`[ExternalAIAgent] 재시도 실패`, retryError);
         throw new Error(
@@ -87,10 +90,14 @@ export class ExternalAIAgentService {
       .map(t => targetTypeLabels[t] || t)
       .join(', ');
 
+    const webSearchNote = request.webSearch
+      ? `\n**중요:** 웹 검색을 통해 최신 실시간 정보를 기반으로 답변하세요. 가능한 최근 뉴스와 발표를 포함하세요.`
+      : '';
+
     return `당신은 로봇 산업 전문 리서치 분석가입니다.
 
 아래 질의에 대해 구조화된 팩트와 메타데이터만 반환하세요.
-
+${webSearchNote}
 **중요 규칙:**
 - 기사 원문 텍스트를 절대 포함하지 마세요.
 - 각 팩트는 요약된 설명(1~2문장)만 포함하세요.
@@ -171,6 +178,54 @@ confidence는 정보의 신뢰도를 나타냅니다 (0.9+: 확실, 0.7~0.9: 높
     const textBlock = response.content.find(block => block.type === 'text');
     if (!textBlock || textBlock.type !== 'text') {
       throw new Error('Claude 응답이 비어있습니다.');
+    }
+    return textBlock.text;
+  }
+
+  /**
+   * OpenAI Responses API + web_search 도구 (실시간 웹 검색)
+   */
+  private async callOpenAIWithWebSearch(prompt: string): Promise<string> {
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const response = await openai.responses.create({
+      model: 'gpt-4o-mini',
+      tools: [{ type: 'web_search_preview' }],
+      instructions: '당신은 로봇 산업 전문 리서치 분석가입니다. 웹 검색을 통해 최신 정보를 수집한 후, 반드시 유효한 JSON으로만 응답하세요. JSON 외의 텍스트는 포함하지 마세요.',
+      input: prompt,
+    });
+
+    // Responses API: output_text에서 텍스트 추출
+    const text = response.output_text;
+    if (!text) {
+      throw new Error('OpenAI 웹 검색 응답이 비어있습니다.');
+    }
+    return text;
+  }
+
+  /**
+   * Anthropic API + web_search 도구 (실시간 웹 검색)
+   */
+  private async callClaudeWithWebSearch(prompt: string): Promise<string> {
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 3000,
+      tools: [{
+        type: 'web_search_20250305' as any,
+        name: 'web_search',
+        max_uses: 5,
+      } as any],
+      messages: [
+        { role: 'user', content: `${prompt}\n\n웹 검색을 통해 최신 정보를 수집한 후, 반드시 유효한 JSON으로만 응답하세요. 다른 텍스트는 포함하지 마세요.` },
+      ],
+    });
+
+    // web_search 응답에서 text 블록 추출
+    const textBlock = response.content.find(block => block.type === 'text');
+    if (!textBlock || textBlock.type !== 'text') {
+      throw new Error('Claude 웹 검색 응답이 비어있습니다.');
     }
     return textBlock.text;
   }
