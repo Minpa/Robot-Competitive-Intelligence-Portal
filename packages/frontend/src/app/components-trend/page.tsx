@@ -80,6 +80,13 @@ export default function ComponentsTrendPage() {
     queryFn: () => api.getHumanoidRobots({ limit: 100 }),
   });
 
+  // 성능 맵용 SoC 전용 쿼리 (type=soc 필터, 전체 조회)
+  const { data: socComponents } = useQuery({
+    queryKey: ['components-soc-map'],
+    queryFn: () => api.getComponents({ type: 'soc', limit: 100 } as any),
+    enabled: mapTab === 'soc',
+  });
+
   // 성능 맵 데이터 (탭에 따라 다른 데이터)
   const mapData = useMemo(() => {
     if (mapTab === 'actuator' && torqueData?.data) {
@@ -89,16 +96,15 @@ export default function ComponentsTrendPage() {
         y: item.torqueDensity || 0,
       }));
     }
-    if (mapTab === 'soc' && components?.items) {
+    if (mapTab === 'soc' && socComponents?.items) {
       // SoC 데이터 변환 - specifications 필드에서 값 추출
-      return (components.items || [])
-        .filter((c: any) => c.type === 'soc')
+      return (socComponents.items || [])
         .map((item: any) => {
           const specs = item.specifications || item.specs || {};
           return {
             ...item,
-            x: specs.powerConsumption || 0,
-            y: specs.topsMax || specs.topsMin || specs.tops || 0,
+            x: Number(specs.powerConsumption) || 0,
+            y: Number(specs.topsMax) || Number(specs.topsMin) || Number(specs.tops) || 0,
             vendor: item.vendor || item.company,
           };
         });
@@ -111,14 +117,14 @@ export default function ComponentsTrendPage() {
           const specs = item.specifications || item.specs || {};
           return {
             ...item,
-            x: specs.weightKg || 0,
-            y: specs.torqueDensity || 0,
+            x: Number(specs.weightKg) || 0,
+            y: Number(specs.torqueDensity) || 0,
             vendor: item.vendor || item.company,
           };
         });
     }
     return [];
-  }, [mapTab, torqueData, components]);
+  }, [mapTab, torqueData, socComponents, components]);
 
   // 연도별 채택 로봇 수 데이터
   const adoptionData = useMemo(() => {
