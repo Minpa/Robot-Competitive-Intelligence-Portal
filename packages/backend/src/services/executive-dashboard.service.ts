@@ -157,8 +157,11 @@ export class ExecutiveDashboardService {
             .where(inArray(applicationCases.robotId, Array.from(robotIds)))
         : [];
 
-      // Build robot → purpose/locomotion map
-      const robotMap = new Map(robots.map(r => [r.id, { purpose: r.purpose, locomotion: r.locomotionType }]));
+      // Build robot → purpose/locomotion map (normalize legacy values)
+      const robotMap = new Map(robots.map(r => [r.id, { 
+        purpose: r.purpose, 
+        locomotion: r.locomotionType === 'biped' ? 'bipedal' : r.locomotionType 
+      }]));
 
       // Build 3×3 matrix with task type breakdown
       const cellMap = new Map<string, { robotIds: Set<string>; taskTypes: Record<string, number> }>();
@@ -173,7 +176,9 @@ export class ExecutiveDashboardService {
       // Populate cells from robots
       for (const robot of robots) {
         const env = robot.purpose || 'unknown';
-        const loc = robot.locomotionType || 'unknown';
+        // Normalize legacy locomotionType values
+        const rawLoc = robot.locomotionType || 'unknown';
+        const loc = rawLoc === 'biped' ? 'bipedal' : rawLoc;
         const key = `${env}|${loc}`;
         const cell = cellMap.get(key);
         if (cell) {
