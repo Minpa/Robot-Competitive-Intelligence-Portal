@@ -98,16 +98,26 @@ export default function ComponentsTrendPage() {
     }
     if (mapTab === 'soc' && socComponents?.items) {
       // SoC 데이터 변환 - specifications 필드에서 값 추출
-      return (socComponents.items || [])
+      const result = (socComponents.items || [])
         .map((item: any) => {
-          const specs = item.specifications || item.specs || {};
+          // specifications가 문자열로 올 수 있으므로 파싱
+          let specs = item.specifications || item.specs || {};
+          if (typeof specs === 'string') {
+            try { specs = JSON.parse(specs); } catch { specs = {}; }
+          }
+          // powerConsumption 또는 tdpWatts에서 전력값 추출
+          const power = Number(specs.powerConsumption) || parseFloat(String(specs.tdpWatts || '0')) || 0;
           return {
             ...item,
-            x: Number(specs.powerConsumption) || 0,
+            x: power,
             y: Number(specs.topsMax) || Number(specs.topsMin) || Number(specs.tops) || 0,
             vendor: item.vendor || item.company,
           };
         });
+      // DEBUG: 브라우저 콘솔에서 확인용 (문제 해결 후 제거)
+      console.log('[SoC Map Debug] socComponents.items:', socComponents.items);
+      console.log('[SoC Map Debug] mapped result:', result);
+      return result;
     }
     if (mapTab === 'actuator' && components?.items) {
       // Actuator 데이터 변환
