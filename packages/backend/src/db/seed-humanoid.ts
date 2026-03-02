@@ -17,6 +17,12 @@ import { eq } from 'drizzle-orm';
 async function seedHumanoid() {
   console.log('Seeding humanoid robot data...');
 
+  // Fix legacy locomotionType values: 'biped' → 'bipedal'
+  await db.execute(
+    `UPDATE humanoid_robots SET locomotion_type = 'bipedal' WHERE locomotion_type = 'biped'`
+  );
+  console.log('Fixed legacy locomotionType values (biped → bipedal)');
+
   // 1. 회사 데이터 추가/업데이트
   const companiesData = [
     { name: 'Tesla', country: 'USA', category: 'automotive', city: 'Austin', foundingYear: 2003, mainBusiness: '전기차, 에너지, AI 로봇' },
@@ -52,7 +58,7 @@ async function seedHumanoid() {
       announcementYear: 2023,
       status: 'development',
       purpose: 'industrial',
-      locomotionType: 'biped',
+      locomotionType: 'bipedal',
       handType: 'multi_finger',
       commercializationStage: 'prototype',
       region: 'north_america',
@@ -64,7 +70,7 @@ async function seedHumanoid() {
       announcementYear: 2024,
       status: 'development',
       purpose: 'industrial',
-      locomotionType: 'biped',
+      locomotionType: 'bipedal',
       handType: 'multi_finger',
       commercializationStage: 'prototype',
       region: 'north_america',
@@ -76,7 +82,7 @@ async function seedHumanoid() {
       announcementYear: 2023,
       status: 'commercial',
       purpose: 'industrial',
-      locomotionType: 'biped',
+      locomotionType: 'bipedal',
       handType: 'gripper',
       commercializationStage: 'commercial',
       region: 'north_america',
@@ -88,7 +94,7 @@ async function seedHumanoid() {
       announcementYear: 2024,
       status: 'development',
       purpose: 'industrial',
-      locomotionType: 'biped',
+      locomotionType: 'bipedal',
       handType: 'multi_finger',
       commercializationStage: 'poc',
       region: 'north_america',
@@ -100,7 +106,7 @@ async function seedHumanoid() {
       announcementYear: 2024,
       status: 'development',
       purpose: 'home',
-      locomotionType: 'biped',
+      locomotionType: 'bipedal',
       handType: 'multi_finger',
       commercializationStage: 'prototype',
       region: 'europe',
@@ -112,7 +118,7 @@ async function seedHumanoid() {
       announcementYear: 2023,
       status: 'commercial',
       purpose: 'service',
-      locomotionType: 'biped',
+      locomotionType: 'bipedal',
       handType: 'gripper',
       commercializationStage: 'commercial',
       region: 'china',
@@ -124,7 +130,7 @@ async function seedHumanoid() {
       announcementYear: 2024,
       status: 'commercial',
       purpose: 'service',
-      locomotionType: 'biped',
+      locomotionType: 'bipedal',
       handType: 'multi_finger',
       commercializationStage: 'commercial',
       region: 'china',
@@ -136,7 +142,7 @@ async function seedHumanoid() {
       announcementYear: 2021,
       status: 'commercial',
       purpose: 'service',
-      locomotionType: 'biped',
+      locomotionType: 'bipedal',
       handType: 'multi_finger',
       commercializationStage: 'pilot',
       region: 'china',
@@ -148,7 +154,7 @@ async function seedHumanoid() {
       announcementYear: 2022,
       status: 'development',
       purpose: 'home',
-      locomotionType: 'biped',
+      locomotionType: 'bipedal',
       handType: 'multi_finger',
       commercializationStage: 'concept',
       region: 'china',
@@ -160,7 +166,7 @@ async function seedHumanoid() {
       announcementYear: 2023,
       status: 'commercial',
       purpose: 'service',
-      locomotionType: 'biped',
+      locomotionType: 'bipedal',
       handType: 'multi_finger',
       commercializationStage: 'pilot',
       region: 'china',
@@ -172,7 +178,7 @@ async function seedHumanoid() {
       announcementYear: 2023,
       status: 'development',
       purpose: 'industrial',
-      locomotionType: 'biped',
+      locomotionType: 'bipedal',
       handType: 'multi_finger',
       commercializationStage: 'poc',
       region: 'north_america',

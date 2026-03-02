@@ -3,6 +3,8 @@ import { executiveDashboardService } from '../services/executive-dashboard.servi
 import { insightCardsGenerator } from '../services/insight-cards.service.js';
 import { viewCacheService, VIEW_CACHE_CONFIGS } from '../services/view-cache.service.js';
 import type { GlobalFilterParams } from '../services/executive-dashboard.service.js';
+import { db, humanoidRobots, companies, articles } from '../db/index.js';
+import { count } from 'drizzle-orm';
 
 /**
  * Parse GlobalFilterParams from query string.
@@ -59,22 +61,26 @@ export async function executiveRoutes(fastify: FastifyInstance) {
   fastify.get<FilterQuery>('/overview', async (req) => {
     const filters = parseFilters(req.query);
     return cachedResponse('kpi-overview', async () => {
-      const [heatmap, commercialization, regionalCompetition, topEvents, insightCards] =
+      const [heatmap, regionalCompetition, topEvents, insightCards, robotCountResult, companyCountResult, articleCountResult] =
         await Promise.all([
           executiveDashboardService.getSegmentHeatmap(filters),
-          executiveDashboardService.getCommercializationAnalysis(filters),
           executiveDashboardService.getRegionalCompetition(filters),
           executiveDashboardService.getTopEvents('month', filters),
           insightCardsGenerator.generateCards(),
+          db.select({ count: count() }).from(humanoidRobots),
+          db.select({ count: count() }).from(companies),
+          db.select({ count: count() }).from(articles),
         ]);
 
-      const totalRobots = heatmap.matrix.reduce((sum, cell) => sum + cell.robotCount, 0);
+      const totalRobots = robotCountResult[0]?.count ?? 0;
+      const totalCompanies = companyCountResult[0]?.count ?? 0;
+      const totalArticles = articleCountResult[0]?.count ?? 0;
 
       return {
         kpiCards: {
           totalRobots,
-          totalCompanies: commercialization.conversionRates.length,
-          totalArticles: topEvents.events.length,
+          totalCompanies,
+          totalArticles,
           regionalBreakdown: regionalCompetition,
         },
         insights: insightCards,
