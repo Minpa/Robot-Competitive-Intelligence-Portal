@@ -15,6 +15,9 @@ import {
   Plus,
   Lightbulb,
   Save,
+  Users,
+  TrendingUp,
+  Zap,
 } from 'lucide-react';
 import type {
   AnalysisResult,
@@ -39,6 +42,9 @@ const ENTITY_GROUPS = [
   { key: 'products' as const, label: '제품·로봇', icon: Bot, color: 'emerald' },
   { key: 'components' as const, label: '부품', icon: Cpu, color: 'purple' },
   { key: 'applications' as const, label: '적용 사례', icon: Briefcase, color: 'amber' },
+  { key: 'workforce' as const, label: '인력·채용', icon: Users, color: 'orange' },
+  { key: 'market' as const, label: '시장·투자', icon: TrendingUp, color: 'rose' },
+  { key: 'technology' as const, label: '기술 트렌드', icon: Zap, color: 'indigo' },
   { key: 'keywords' as const, label: '키워드', icon: Tag, color: 'cyan' },
 ] as const;
 

@@ -18,6 +18,9 @@ const TARGET_TYPES = [
   { key: 'product', label: '제품·로봇' },
   { key: 'component', label: '부품' },
   { key: 'application', label: '적용 사례' },
+  { key: 'workforce', label: '인력·채용' },
+  { key: 'market', label: '시장·투자' },
+  { key: 'technology', label: '기술 트렌드' },
   { key: 'keyword', label: '키워드' },
 ] as const;
 
@@ -83,6 +86,9 @@ export function AIAgentMode({
           products: raw.result?.products ?? raw.entities?.products ?? [],
           components: raw.result?.components ?? raw.entities?.components ?? [],
           applications: raw.result?.applications ?? raw.entities?.applications ?? [],
+          workforce: raw.result?.workforce ?? raw.entities?.workforce ?? [],
+          market: raw.result?.market ?? raw.entities?.market ?? [],
+          technology: raw.result?.technology ?? raw.entities?.technology ?? [],
           keywords: raw.result?.keywords ?? raw.entities?.keywords ?? [],
         },
         linkCandidates: raw.linkResult?.candidates ?? raw.linkCandidates ?? {},

@@ -44,6 +44,9 @@ export interface AnalysisResult {
     products: EntityItem[];
     components: EntityItem[];
     applications: EntityItem[];
+    workforce: EntityItem[];
+    market: EntityItem[];
+    technology: EntityItem[];
     keywords: KeywordItem[];
   };
   linkCandidates: Record<string, LinkCandidate[]>;

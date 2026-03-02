@@ -100,6 +100,9 @@ export default function InsightPipelinePage() {
           products: updateEntities(prev.entities.products),
           components: updateEntities(prev.entities.components),
           applications: updateEntities(prev.entities.applications),
+          workforce: updateEntities(prev.entities.workforce),
+          market: updateEntities(prev.entities.market),
+          technology: updateEntities(prev.entities.technology),
           keywords: prev.entities.keywords,
         },
       };

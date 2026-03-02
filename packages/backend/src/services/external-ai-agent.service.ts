@@ -14,7 +14,7 @@ import { aiUsageService } from './ai-usage.service.js';
 
 export interface AISearchRequest {
   query: string;
-  targetTypes: ('company' | 'product' | 'component' | 'application' | 'keyword')[];
+  targetTypes: ('company' | 'product' | 'component' | 'application' | 'workforce' | 'market' | 'technology' | 'keyword')[];
   timeRange: { start: string; end: string };
   region: string;
   provider: 'chatgpt' | 'claude';
@@ -29,7 +29,7 @@ export interface AISearchResponse {
 }
 
 export interface StructuredFact {
-  category: 'company' | 'product' | 'component' | 'application' | 'keyword';
+  category: 'company' | 'product' | 'component' | 'application' | 'workforce' | 'market' | 'technology' | 'keyword';
   name: string;
   description: string;
   confidence: number;
@@ -97,6 +97,9 @@ export class ExternalAIAgentService {
       product: '제품/로봇',
       component: '부품 (SoC, 액추에이터, 센서 등)',
       application: '적용 사례/환경',
+      workforce: '인력/채용 동향 (팀 규모, 직무 분포, 채용 트렌드)',
+      market: '시장 전망/투자 (시장 규모, 투자 라운드, 밸류에이션)',
+      technology: '기술 트렌드 (AI, 제어, 센싱, 자율주행 등)',
       keyword: '핵심 키워드/기술 트렌드',
     };
 
@@ -130,7 +133,7 @@ ${webSearchNote}
   "summary": "전체 요약 (한국어, 2~3문장)",
   "facts": [
     {
-      "category": "company | product | component | application | keyword",
+      "category": "company | product | component | application | workforce | market | technology | keyword",
       "name": "엔티티 이름",
       "description": "요약된 팩트 설명 (1~2문장, 원문 텍스트 금지)",
       "confidence": 0.0~1.0
@@ -258,7 +261,7 @@ confidence는 정보의 신뢰도를 나타냅니다 (0.9+: 확실, 0.7~0.9: 높
     try {
       const data = JSON.parse(jsonStr) as Record<string, unknown>;
 
-      const validCategories = new Set(['company', 'product', 'component', 'application', 'keyword']);
+      const validCategories = new Set(['company', 'product', 'component', 'application', 'workforce', 'market', 'technology', 'keyword']);
 
       const facts: StructuredFact[] = (Array.isArray(data.facts) ? data.facts : [])
         .filter((f: any) => f && typeof f.name === 'string' && f.name.length > 0)
@@ -327,7 +330,7 @@ export function convertToParseResult(aiResponse: AISearchResponse): ParseResult 
       .filter(f => f.category === 'application')
       .map(f => ({ name: f.name, type: 'application' as const, confidence: f.confidence, context: f.description })),
     keywords: aiResponse.facts
-      .filter(f => f.category === 'keyword')
+      .filter(f => ['keyword', 'workforce', 'market', 'technology'].includes(f.category))
       .map(f => ({ term: f.name, relevance: f.confidence })),
     summary: aiResponse.summary,
     detectedLanguage: 'ko',
