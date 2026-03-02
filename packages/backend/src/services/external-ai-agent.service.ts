@@ -8,6 +8,7 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import type { ParseResult } from './article-parser.service.js';
+import { aiUsageService } from './ai-usage.service.js';
 
 // ── Interfaces ──
 
@@ -70,6 +71,19 @@ export class ExternalAIAgentService {
         );
       }
     }
+
+    // 사용량 기록 (비동기, 실패해도 무시)
+    const model = request.provider === 'chatgpt' ? 'gpt-4o-mini' : 'claude-sonnet-4-20250514';
+    const estimatedInputTokens = Math.ceil(prompt.length / 3);
+    const estimatedOutputTokens = Math.ceil(raw.length / 3);
+    aiUsageService.logUsage({
+      provider: request.provider,
+      model,
+      webSearch: useWebSearch,
+      inputTokens: estimatedInputTokens,
+      outputTokens: estimatedOutputTokens,
+      query: request.query,
+    }).catch(() => {});
 
     return this.parseResponse(raw);
   }

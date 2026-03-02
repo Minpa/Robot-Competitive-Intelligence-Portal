@@ -421,6 +421,23 @@ class ApiClient {
     );
   }
 
+  // AI 사용량 추적
+  async getAiUsageSummary(startDate?: string, endDate?: string) {
+    const params = new URLSearchParams();
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
+    const qs = params.toString();
+    return this.request<{ summary: Array<{ provider: string; totalCalls: number; totalInputTokens: number; totalOutputTokens: number; totalCostUsd: number; webSearchCalls: number }> }>(
+      `/admin/ai-usage/summary${qs ? `?${qs}` : ''}`
+    );
+  }
+
+  async getAiUsageLogs(limit: number = 50) {
+    return this.request<{ logs: Array<{ id: string; provider: string; model: string; webSearch: boolean; inputTokens: number; outputTokens: number; estimatedCostUsd: string; query: string | null; createdAt: string }> }>(
+      `/admin/ai-usage/logs?limit=${limit}`
+    );
+  }
+
   // Legal Data Collection (합법적 데이터 수집)
   async collectPublicData() {
     return this.request<{

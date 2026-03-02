@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { adminCrawlerService } from '../services/admin-crawler.service.js';
 import { analyzeArticle } from '../services/ai-analyzer.service.js';
+import { aiUsageService } from '../services/ai-usage.service.js';
 import { CreateCrawlTargetSchema, UpdateCrawlTargetSchema, RateLimitConfigSchema } from '../types/dto.js';
 
 export async function adminRoutes(fastify: FastifyInstance) {
@@ -219,5 +220,22 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
 
     return { success: true, analyzed, total: articles.length, results };
+  });
+
+  // ── AI 사용량 추적 ──────────────────────────────────────────────
+
+  // GET /api/admin/ai-usage/summary — provider별 사용량 요약
+  fastify.get('/ai-usage/summary', async (request) => {
+    const query = request.query as Record<string, string>;
+    const summary = await aiUsageService.getSummary(query.startDate, query.endDate);
+    return { summary };
+  });
+
+  // GET /api/admin/ai-usage/logs — 최근 호출 로그
+  fastify.get('/ai-usage/logs', async (request) => {
+    const query = request.query as Record<string, string>;
+    const limit = query.limit ? parseInt(query.limit) : 50;
+    const logs = await aiUsageService.getRecentLogs(limit);
+    return { logs };
   });
 }

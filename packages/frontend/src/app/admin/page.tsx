@@ -21,6 +21,8 @@ import {
   Plus,
   Trash2,
   UserPlus,
+  DollarSign,
+  Cpu,
 } from 'lucide-react';
 
 interface CollectionResult {
@@ -65,6 +67,18 @@ export default function AdminPage() {
   });
 
   const isSuperAdmin = currentUser?.email?.toLowerCase() === 'somewhere010@gmail.com';
+
+  const { data: aiUsageSummary } = useQuery({
+    queryKey: ['ai-usage-summary'],
+    queryFn: () => api.getAiUsageSummary(),
+    enabled: isSuperAdmin,
+  });
+
+  const { data: aiUsageLogs } = useQuery({
+    queryKey: ['ai-usage-logs'],
+    queryFn: () => api.getAiUsageLogs(20),
+    enabled: isSuperAdmin,
+  });
 
   const addEmailMutation = useMutation({
     mutationFn: ({ email, note }: { email: string; note?: string }) => 
@@ -362,6 +376,96 @@ export default function AdminPage() {
             </button>
           </div>
         </div>
+
+        {/* AI API 사용량 (슈퍼 관리자만) */}
+        {isSuperAdmin && (
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl">
+            <div className="p-6 border-b border-slate-800 flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-emerald-400" />
+              <h2 className="text-lg font-semibold text-white">AI API 사용량</h2>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Provider별 요약 카드 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(aiUsageSummary?.summary || []).map((s) => (
+                  <div key={s.provider} className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Cpu className="w-5 h-5 text-violet-400" />
+                      <h3 className="font-semibold text-white">
+                        {s.provider === 'chatgpt' ? 'OpenAI (ChatGPT)' : 'Anthropic (Claude)'}
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-slate-400">총 호출</p>
+                        <p className="text-lg font-bold text-white">{s.totalCalls}회</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">예상 비용</p>
+                        <p className="text-lg font-bold text-emerald-400">${s.totalCostUsd.toFixed(4)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">입력 토큰</p>
+                        <p className="text-sm text-slate-300">{s.totalInputTokens.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">출력 토큰</p>
+                        <p className="text-sm text-slate-300">{s.totalOutputTokens.toLocaleString()}</p>
+                      </div>
+                      {s.webSearchCalls > 0 && (
+                        <div className="col-span-2">
+                          <p className="text-xs text-slate-400">웹 검색 호출</p>
+                          <p className="text-sm text-blue-400">{s.webSearchCalls}회</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {(!aiUsageSummary?.summary || aiUsageSummary.summary.length === 0) && (
+                  <div className="col-span-2 text-center py-8 text-slate-500">
+                    아직 AI API 호출 기록이 없습니다.
+                  </div>
+                )}
+              </div>
+
+              {/* 최근 호출 로그 */}
+              {aiUsageLogs?.logs && aiUsageLogs.logs.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-400 mb-3">최근 호출 로그</h3>
+                  <div className="border border-slate-700 rounded-lg overflow-hidden">
+                    <div className="px-4 py-2 bg-slate-800/50 text-xs font-medium text-slate-400 grid grid-cols-12 gap-2">
+                      <div className="col-span-2">Provider</div>
+                      <div className="col-span-2">모델</div>
+                      <div className="col-span-1">웹검색</div>
+                      <div className="col-span-2">토큰 (In/Out)</div>
+                      <div className="col-span-2">비용</div>
+                      <div className="col-span-3">시간</div>
+                    </div>
+                    {aiUsageLogs.logs.map((log) => (
+                      <div key={log.id} className="px-4 py-2 grid grid-cols-12 gap-2 text-sm border-t border-slate-700/50 hover:bg-slate-800/30">
+                        <div className="col-span-2">
+                          <span className={`px-2 py-0.5 rounded text-xs ${
+                            log.provider === 'chatgpt' ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'
+                          }`}>
+                            {log.provider === 'chatgpt' ? 'OpenAI' : 'Claude'}
+                          </span>
+                        </div>
+                        <div className="col-span-2 text-slate-300 truncate text-xs">{log.model}</div>
+                        <div className="col-span-1">{log.webSearch ? '🌐' : '—'}</div>
+                        <div className="col-span-2 text-slate-400 text-xs">{log.inputTokens}/{log.outputTokens}</div>
+                        <div className="col-span-2 text-emerald-400 text-xs">${Number(log.estimatedCostUsd).toFixed(4)}</div>
+                        <div className="col-span-3 text-slate-500 text-xs">
+                          {new Date(log.createdAt).toLocaleString('ko-KR')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* 허용 이메일 관리 (슈퍼 관리자만) */}
         {isSuperAdmin && (

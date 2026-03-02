@@ -925,3 +925,23 @@ export const viewCache = pgTable(
     viewNameIdx: uniqueIndex('view_cache_view_name_idx').on(table.viewName),
   })
 );
+
+// AI 사용량 로그 — OpenAI/Claude API 호출 추적
+export const aiUsageLogs = pgTable(
+  'ai_usage_logs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    provider: varchar('provider', { length: 20 }).notNull(), // 'chatgpt' | 'claude'
+    model: varchar('model', { length: 100 }).notNull(),
+    webSearch: boolean('web_search').default(false).notNull(),
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    estimatedCostUsd: decimal('estimated_cost_usd', { precision: 10, scale: 6 }).notNull().default('0'),
+    query: text('query'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    providerIdx: index('ai_usage_logs_provider_idx').on(table.provider),
+    createdAtIdx: index('ai_usage_logs_created_at_idx').on(table.createdAt),
+  })
+);
