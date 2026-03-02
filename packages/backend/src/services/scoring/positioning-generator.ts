@@ -32,14 +32,8 @@ export interface PositioningValues {
 // Constants
 // ============================================
 
-// SoC 벤더별 X축 매핑 (mainSoc에서 벤더명 추출)
-const SOC_VENDOR_MAP: Record<string, number> = {
-  nvidia: 1,
-  tesla: 2,
-  qualcomm: 3,
-  intel: 4,
-  custom: 5,
-};
+// SoC X축: mainSoc 칩명을 그대로 사용 (카테고리형)
+// xValue는 고유 인덱스로 매핑, 프론트엔드에서 라벨 표시
 
 const REGION_COLOR_MAP: Record<string, string> = {
   north_america: 'blue',
@@ -130,11 +124,10 @@ export function generatePocPositioning(
 
 /**
  * Generate SoC ecosystem positioning data.
- * - xValue mapped from mainSoc vendor: NVIDIA→1, Tesla→2, Qualcomm→3, Intel→4, Custom/Other→5
+ * - xValue = mainSoc 칩명 기반 카테고리 인덱스 (프론트엔드에서 라벨 매핑)
  * - yValue = topsMax (default 0)
  * - bubbleSize = applicationCaseCount (minimum 1)
- * - colorGroup mapped from region: north_america→blue, china→orange, korea→pink,
- *   europe→green, japan→purple, other→gray (default gray)
+ * - colorGroup mapped from region
  * - chartType = 'soc_ecosystem'
  *
  * Requirement 3.17, 3.18, 3.19
@@ -146,18 +139,10 @@ export function generateSocPositioning(
   companyName: string,
   region: string | null
 ): PositioningValues {
-  // X축: mainSoc에서 벤더명 추출
-  const mainSocLower = computingSpec?.mainSoc?.toLowerCase() ?? '';
-  let xValue = 5; // default: custom/other
-  for (const [vendor, val] of Object.entries(SOC_VENDOR_MAP)) {
-    if (mainSocLower.includes(vendor)) {
-      xValue = val;
-      break;
-    }
-  }
+  // mainSoc 칩명을 그대로 label로 사용, xValue는 0 (프론트엔드에서 카테고리 인덱스 재매핑)
+  const mainSoc = computingSpec?.mainSoc ?? 'Unknown';
 
   const yValue = computingSpec?.topsMax ?? 0;
-
   const bubbleSize = Math.max(1, applicationCaseCount);
 
   const regionKey = region?.toLowerCase() ?? 'other';
@@ -166,18 +151,19 @@ export function generateSocPositioning(
   return {
     chartType: 'soc_ecosystem',
     label: `${robotName} (${companyName})`,
-    xValue,
+    xValue: 0, // 프론트엔드에서 mainSoc 기반으로 재매핑
     yValue,
     bubbleSize,
     colorGroup,
     metadata: {
       source: 'auto',
-      xFormula: 'mainSoc vendor (NVIDIA=1, Tesla=2, Qualcomm=3, Intel=4, Custom=5)',
+      mainSoc,
+      xFormula: 'mainSoc chip name (categorical)',
       yFormula: 'topsMax',
       bubbleSizeFormula: 'applicationCaseCount (min 1)',
       colorGroupFormula: 'region mapping',
       sourceValues: {
-        mainSoc: computingSpec?.mainSoc ?? null,
+        mainSoc,
         topsMax: computingSpec?.topsMax ?? null,
         applicationCaseCount,
         region,

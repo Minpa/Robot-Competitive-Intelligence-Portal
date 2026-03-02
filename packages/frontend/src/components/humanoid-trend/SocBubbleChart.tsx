@@ -16,14 +16,6 @@ const COUNTRY_LEGEND = [
   { value: 'Other', color: '#94A3B8' },
 ];
 
-const VENDOR_TICKS = [
-  { value: 1, label: 'NVIDIA' },
-  { value: 2, label: 'Tesla' },
-  { value: 3, label: 'Qualcomm' },
-  { value: 4, label: 'Intel' },
-  { value: 5, label: 'Custom' },
-];
-
 export default function SocBubbleChart({ data }: Props) {
   if (!data || data.length < 2) {
     return (
@@ -33,31 +25,47 @@ export default function SocBubbleChart({ data }: Props) {
     );
   }
 
-  const chartData = data.map((d) => ({
-    x: d.xValue,
-    y: d.yValue,
-    z: d.bubbleSize,
-    label: d.label,
-    robotName: d.robotName || d.label,
-    colorGroup: d.colorGroup || 'Other',
-    metadata: d.metadata,
-    color: getCountryColor(d.colorGroup || ''),
-  }));
+  // mainSoc 칩명 목록 추출 (고유값, 순서 유지)
+  const socNames: string[] = [];
+  for (const d of data) {
+    const meta = d.metadata as Record<string, unknown> | null;
+    const soc = (meta?.mainSoc as string) ?? 'Unknown';
+    if (!socNames.includes(soc)) socNames.push(soc);
+  }
+  socNames.sort();
+
+  const chartData = data.map((d) => {
+    const meta = d.metadata as Record<string, unknown> | null;
+    const soc = (meta?.mainSoc as string) ?? 'Unknown';
+    const xIndex = socNames.indexOf(soc) + 1; // 1-based index
+    return {
+      x: xIndex,
+      y: d.yValue,
+      z: d.bubbleSize,
+      label: d.label,
+      robotName: d.robotName || d.label,
+      colorGroup: d.colorGroup || 'Other',
+      mainSoc: soc,
+      metadata: d.metadata,
+      color: getCountryColor(d.colorGroup || ''),
+    };
+  });
 
   return (
     <div className="h-[480px]">
       <ResponsiveContainer width="100%" height="100%">
-        <ScatterChart margin={{ top: 20, right: 30, bottom: 30, left: 30 }}>
+        <ScatterChart margin={{ top: 20, right: 30, bottom: 40, left: 30 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
           <XAxis
             type="number"
             dataKey="x"
-            domain={[0.5, 5.5]}
-            ticks={[1, 2, 3, 4, 5]}
-            tickFormatter={(v: number) => VENDOR_TICKS.find(t => t.value === v)?.label ?? ''}
-            tick={{ fontSize: 11, fill: '#9CA3AF' }}
+            domain={[0.5, socNames.length + 0.5]}
+            ticks={socNames.map((_, i) => i + 1)}
+            tickFormatter={(v: number) => socNames[v - 1] ?? ''}
+            tick={{ fontSize: 10, fill: '#9CA3AF' }}
+            interval={0}
           >
-            <Label value="SoC 벤더" position="bottom" offset={10} style={{ fontSize: 12, fill: '#9CA3AF' }} />
+            <Label value="SoC 칩셋" position="bottom" offset={20} style={{ fontSize: 12, fill: '#9CA3AF' }} />
           </XAxis>
           <YAxis type="number" dataKey="y" tick={{ fontSize: 11, fill: '#9CA3AF' }}>
             <Label value="TOPS" angle={-90} position="insideLeft" offset={-10} style={{ fontSize: 12, fill: '#9CA3AF' }} />
@@ -67,12 +75,10 @@ export default function SocBubbleChart({ data }: Props) {
             content={({ payload }) => {
               if (!payload?.[0]) return null;
               const d = payload[0].payload;
-              const meta = d.metadata as Record<string, unknown> | null;
               return (
                 <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 text-xs text-gray-200">
                   <p className="font-semibold">{d.robotName}</p>
-                  <p>SoC 벤더: {VENDOR_TICKS.find(t => t.value === d.x)?.label ?? 'Unknown'}</p>
-                  {meta?.sourceValues && (meta.sourceValues as any).mainSoc && <p>SoC: {String((meta.sourceValues as any).mainSoc)}</p>}
+                  <p>SoC: {d.mainSoc}</p>
                   <p>TOPS: {d.y}</p>
                   <p>적용 사례: {d.z}건</p>
                   <p>국가: {d.colorGroup}</p>
