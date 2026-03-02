@@ -18,7 +18,7 @@ import { getPocRubric, getRfmRubric, getPositioningRubric } from '../services/sc
 
 export async function scoringPipelineRoutes(fastify: FastifyInstance) {
   // POST /run — Admin only, triggers full robot recalculation
-  fastify.post('/run', { preHandler: requireRole('admin') }, async (_request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post('/run', { preHandler: requireRole('admin', 'analyst') }, async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const result = await scoringPipelineService.runFullPipeline('admin_manual');
       return result;
@@ -33,7 +33,7 @@ export async function scoringPipelineRoutes(fastify: FastifyInstance) {
   });
 
   // POST /run/:robotId — Admin only, triggers single robot recalculation
-  fastify.post('/run/:robotId', { preHandler: requireRole('admin') }, async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post('/run/:robotId', { preHandler: requireRole('admin', 'analyst') }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { robotId } = request.params as { robotId: string };
       const result = await scoringPipelineService.runForRobot(robotId, 'admin_manual');
@@ -49,7 +49,7 @@ export async function scoringPipelineRoutes(fastify: FastifyInstance) {
   });
 
   // GET /status — Admin only, returns last pipeline run status
-  fastify.get('/status', { preHandler: requireRole('admin') }, async (_request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/status', { preHandler: requireRole('admin', 'analyst') }, async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const status = await scoringPipelineService.getLastRunStatus();
       return status ?? { status: 'no_runs', message: 'No pipeline runs found' };
