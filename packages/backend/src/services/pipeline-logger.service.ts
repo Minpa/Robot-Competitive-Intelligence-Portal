@@ -33,9 +33,11 @@ export class PipelineLogger {
    * 새 파이프라인 실행 시작
    */
   async startRun(triggeredBy?: string): Promise<string> {
+    // triggeredBy가 UUID가 아닌 경우 null로 처리 (pipeline_runs.triggered_by는 users.id FK)
+    const isUuid = triggeredBy && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(triggeredBy);
     const [run] = await db.insert(pipelineRuns).values({
       status: 'running',
-      triggeredBy: triggeredBy || null,
+      triggeredBy: isUuid ? triggeredBy : null,
     }).returning({ id: pipelineRuns.id });
     return run!.id;
   }
