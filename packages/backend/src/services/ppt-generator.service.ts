@@ -10,8 +10,9 @@ import { companyService } from './company.service.js';
 import { productService } from './product.service.js';
 import { dashboardService } from './dashboard.service.js';
 import { aiUsageService } from './ai-usage.service.js';
+import { humanoidTrendService } from './humanoid-trend.service.js';
 
-export type PPTTemplate = 'market_overview' | 'company_deep_dive' | 'tech_components' | 'use_case';
+export type PPTTemplate = 'market_overview' | 'company_deep_dive' | 'tech_components' | 'use_case' | 'humanoid_trend';
 export type PPTTheme = 'light' | 'dark';
 
 export interface PPTGenerationOptions {
@@ -24,6 +25,7 @@ export interface PPTGenerationOptions {
   includeCharts?: boolean;
   includeTables?: boolean;
   includeAICommentary?: boolean;
+  chartImages?: string[];
 }
 
 export interface PPTGenerationResult {
@@ -103,6 +105,9 @@ export class PPTGeneratorService {
         break;
       case 'use_case':
         await this.addUseCaseSlides(pptx, options, theme);
+        break;
+      case 'humanoid_trend':
+        await this.addHumanoidTrendSlides(pptx, options, theme);
         break;
     }
 
@@ -306,6 +311,158 @@ export class PPTGeneratorService {
     }
   }
 
+  // ── Humanoid Trend ──
+  private async addHumanoidTrendSlides(pptx: PptxGenJS, options: PPTGenerationOptions, theme: ThemeColors): Promise<void> {
+    const chartTitles = [
+      '산업용 PoC 팩터별 역량 비교',
+      'RFM 역량 비교',
+      'RFM 경쟁력 포지셔닝 맵',
+      '산업용 PoC 로봇 포지셔닝 맵',
+      'TOPS × SoC 에코시스템 포지셔닝 맵',
+      '산업 배치 핵심 스펙 비교',
+    ];
+
+    // Title slide
+    const titleSlide = pptx.addSlide();
+    titleSlide.background = { color: theme.bg };
+    titleSlide.addText('휴머노이드 동향 리포트', {
+      x: 0.8, y: 1.5, w: '85%', h: 1.5,
+      fontSize: 32, fontFace: 'Arial', color: theme.titleColor, bold: true,
+    });
+    titleSlide.addText(new Date().toLocaleDateString('ko-KR'), {
+      x: 0.8, y: 3.2, w: '85%', h: 0.6,
+      fontSize: 16, fontFace: 'Arial', color: theme.subtitleColor,
+    });
+    titleSlide.addText('HRI Portal — 휴머노이드 로봇 인텔리전스', {
+      x: 0.8, y: 4.5, w: '85%', h: 0.5,
+      fontSize: 12, fontFace: 'Arial', color: theme.accentColor,
+    });
+    titleSlide.addShape('rect' as any, {
+      x: 0.8, y: 4.2, w: 3, h: 0.04, fill: { color: theme.accentColor },
+    });
+
+    const chartImages = options.chartImages || [];
+
+    if (chartImages.length > 0) {
+      // Insert chart images as slides
+      for (let i = 0; i < chartTitles.length; i++) {
+        const title = chartTitles[i]!;
+        const slide = this.addSectionSlide(pptx, title, theme);
+        const img = chartImages[i];
+        if (img) {
+          slide.addImage({
+            data: img.startsWith('data:') ? img : `data:image/png;base64,${img}`,
+            x: 0.5, y: 1.1, w: 12, h: 5.5,
+          });
+        }
+      }
+    } else {
+      // Data table fallback
+      await this.addHumanoidTrendFallbackSlides(pptx, chartTitles as [string, string, string, string, string, string], theme);
+    }
+  }
+
+  private async addHumanoidTrendFallbackSlides(pptx: PptxGenJS, chartTitles: [string, string, string, string, string, string], theme: ThemeColors): Promise<void> {
+    // Slide 1: PoC Factor Radar
+    const pocScores = await humanoidTrendService.getPocScores();
+    const pocSlide = this.addSectionSlide(pptx, chartTitles[0], theme);
+    if (pocScores.length > 0) {
+      const headers = ['로봇', '회사', '페이로드', '운용시간', '핑거DoF', '폼팩터', 'PoC배포', '가성비', '평균'];
+      const rows = pocScores.map(s => [
+        s.robotName, s.companyName,
+        String(s.payloadScore), String(s.operationTimeScore), String(s.fingerDofScore),
+        String(s.formFactorScore), String(s.pocDeploymentScore), String(s.costEfficiencyScore),
+        String(s.averageScore),
+      ]);
+      this.addTableToSlide(pocSlide, headers, rows, theme);
+    } else {
+      pocSlide.addText('PoC 평가 데이터가 등록되지 않았습니다.', {
+        x: 0.8, y: 2, w: '90%', fontSize: 14, color: theme.subtitleColor,
+      });
+    }
+
+    // Slide 2: RFM Overlay Radar
+    const rfmScores = await humanoidTrendService.getRfmScores();
+    const rfmSlide = this.addSectionSlide(pptx, chartTitles[1], theme);
+    if (rfmScores.length > 0) {
+      const headers = ['로봇', 'RFM 모델', '범용성', '실세계', '엣지추론', '멀티로봇', '오픈소스', '상용성숙도'];
+      const rows = rfmScores.map(s => [
+        s.robotName, s.rfmModelName,
+        String(s.generalityScore), String(s.realWorldDataScore), String(s.edgeInferenceScore),
+        String(s.multiRobotCollabScore), String(s.openSourceScore), String(s.commercialMaturityScore),
+      ]);
+      this.addTableToSlide(rfmSlide, headers, rows, theme);
+    } else {
+      rfmSlide.addText('RFM 평가 데이터가 등록되지 않았습니다.', {
+        x: 0.8, y: 2, w: '90%', fontSize: 14, color: theme.subtitleColor,
+      });
+    }
+
+    // Slide 3: RFM Competitiveness Positioning
+    const rfmPos = await humanoidTrendService.getPositioningData('rfm_competitiveness');
+    const rfmPosSlide = this.addSectionSlide(pptx, chartTitles[2], theme);
+    if (rfmPos.length > 0) {
+      const headers = ['라벨', 'X (엣지추론)', 'Y (범용성)', '버블 크기', '색상 그룹'];
+      const rows = rfmPos.map(d => [
+        d.label, String(d.xValue), String(d.yValue), String(d.bubbleSize), d.colorGroup || '-',
+      ]);
+      this.addTableToSlide(rfmPosSlide, headers, rows, theme);
+    } else {
+      rfmPosSlide.addText('RFM 포지셔닝 데이터가 등록되지 않았습니다.', {
+        x: 0.8, y: 2, w: '90%', fontSize: 14, color: theme.subtitleColor,
+      });
+    }
+
+    // Slide 4: PoC Robot Positioning
+    const pocPos = await humanoidTrendService.getPositioningData('poc_positioning');
+    const pocPosSlide = this.addSectionSlide(pptx, chartTitles[3], theme);
+    if (pocPos.length > 0) {
+      const headers = ['라벨', 'X (폼팩터)', 'Y (산업적합성)', '버블 크기', '색상 그룹'];
+      const rows = pocPos.map(d => [
+        d.label, String(d.xValue), String(d.yValue), String(d.bubbleSize), d.colorGroup || '-',
+      ]);
+      this.addTableToSlide(pocPosSlide, headers, rows, theme);
+    } else {
+      pocPosSlide.addText('PoC 포지셔닝 데이터가 등록되지 않았습니다.', {
+        x: 0.8, y: 2, w: '90%', fontSize: 14, color: theme.subtitleColor,
+      });
+    }
+
+    // Slide 5: SoC Ecosystem Positioning
+    const socPos = await humanoidTrendService.getPositioningData('soc_ecosystem');
+    const socPosSlide = this.addSectionSlide(pptx, chartTitles[4], theme);
+    if (socPos.length > 0) {
+      const headers = ['라벨', 'X (SoC 수준)', 'Y (TOPS)', '버블 크기', '색상 그룹'];
+      const rows = socPos.map(d => [
+        d.label, String(d.xValue), String(d.yValue), String(d.bubbleSize), d.colorGroup || '-',
+      ]);
+      this.addTableToSlide(socPosSlide, headers, rows, theme);
+    } else {
+      socPosSlide.addText('SoC 에코시스템 데이터가 등록되지 않았습니다.', {
+        x: 0.8, y: 2, w: '90%', fontSize: 14, color: theme.subtitleColor,
+      });
+    }
+
+    // Slide 6: Bar Spec Comparison
+    const barSpecs = await humanoidTrendService.getBarSpecs();
+    const barSlide = this.addSectionSlide(pptx, chartTitles[5], theme);
+    if (barSpecs.length > 0) {
+      const headers = ['로봇', '회사', '페이로드(kg)', '운용시간(h)', '핑거DoF', 'PoC배포(x/10)'];
+      const rows = barSpecs.map(s => [
+        s.robotName, s.companyName,
+        s.payloadKg != null ? String(s.payloadKg) : '-',
+        s.operationTimeHours != null ? String(s.operationTimeHours) : '-',
+        s.handDof != null ? String(s.handDof) : '-',
+        s.pocDeploymentScore != null ? String(s.pocDeploymentScore) : '-',
+      ]);
+      this.addTableToSlide(barSlide, headers, rows, theme);
+    } else {
+      barSlide.addText('스펙 비교 데이터가 등록되지 않았습니다.', {
+        x: 0.8, y: 2, w: '90%', fontSize: 14, color: theme.subtitleColor,
+      });
+    }
+  }
+
   // ── Claude AI 코멘터리 ──
   private async addAICommentarySlide(pptx: PptxGenJS, options: PPTGenerationOptions, theme: ThemeColors) {
     if (!process.env.ANTHROPIC_API_KEY) {
@@ -397,6 +554,7 @@ export class PPTGeneratorService {
       { id: 'company_deep_dive', name: '기업 심층 분석', description: '특정 회사 심층 분석' },
       { id: 'tech_components', name: '기술 부품 동향', description: '기술 부품 동향 분석' },
       { id: 'use_case', name: '적용 사례', description: '적용 사례 및 시연 분석' },
+      { id: 'humanoid_trend', name: '휴머노이드 동향 리포트', description: '휴머노이드 로봇 산업 경쟁 인텔리전스 차트 6종 리포트' },
     ];
   }
 }

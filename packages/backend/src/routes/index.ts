@@ -20,6 +20,7 @@ import { insightsRoutes } from './insights.js';
 import { reviewRoutes } from './review.js';
 import { executiveRoutes } from './executive.js';
 import { entityAliasRoutes } from './entity-aliases.js';
+import { humanoidTrendRoutes } from './humanoid-trend.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -47,4 +48,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(reviewRoutes, { prefix: '/api/review' });
   fastify.register(executiveRoutes, { prefix: '/api/executive' });
   fastify.register(entityAliasRoutes, { prefix: '/api/entity-aliases' });
+
+  // 휴머노이드 동향 대시보드 라우트
+  fastify.register(humanoidTrendRoutes, { prefix: '/api/humanoid-trend' });
 }

@@ -1420,6 +1420,39 @@ class ApiClient {
   async getExecutiveInsightHub(filters?: GlobalFilterParams) { return this.request<any>(`/executive/insight-hub${this.buildFilterQuery(filters)}`); }
   async getInsightCards() { return this.request<any>('/insights/cards'); }
   async generateMonthlyBrief() { return this.request<any>('/insights/monthly-brief', { method: 'POST' }); }
+
+  // ── 휴머노이드 동향 대시보드 ──
+  async getHumanoidTrendPocScores() { return this.request<any>('/humanoid-trend/poc-scores'); }
+  async getHumanoidTrendRfmScores() { return this.request<any>('/humanoid-trend/rfm-scores'); }
+  async getHumanoidTrendPositioning(chartType: string) { return this.request<any>(`/humanoid-trend/positioning/${chartType}`); }
+  async getHumanoidTrendBarSpecs() { return this.request<any>('/humanoid-trend/bar-specs'); }
+
+  // Admin CRUD — PoC Scores
+  async createPocScore(data: any) { return this.request<any>('/humanoid-trend/poc-scores', { method: 'POST', body: JSON.stringify(data) }); }
+  async updatePocScore(id: string, data: any) { return this.request<any>(`/humanoid-trend/poc-scores/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
+  async deletePocScore(id: string) { return this.request<void>(`/humanoid-trend/poc-scores/${id}`, { method: 'DELETE' }); }
+
+  // Admin CRUD — RFM Scores
+  async createRfmScore(data: any) { return this.request<any>('/humanoid-trend/rfm-scores', { method: 'POST', body: JSON.stringify(data) }); }
+  async updateRfmScore(id: string, data: any) { return this.request<any>(`/humanoid-trend/rfm-scores/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
+  async deleteRfmScore(id: string) { return this.request<void>(`/humanoid-trend/rfm-scores/${id}`, { method: 'DELETE' }); }
+
+  // Admin CRUD — Positioning Data
+  async createPositioningData(data: any) { return this.request<any>('/humanoid-trend/positioning', { method: 'POST', body: JSON.stringify(data) }); }
+  async updatePositioningData(id: string, data: any) { return this.request<any>(`/humanoid-trend/positioning/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
+  async deletePositioningData(id: string) { return this.request<void>(`/humanoid-trend/positioning/${id}`, { method: 'DELETE' }); }
+
+  // PPT Export
+  async exportHumanoidTrendPpt(options: { theme: string; chartImages?: string[] }): Promise<Blob> {
+    const token = this.getToken();
+    const res = await fetch(`${API_BASE}/humanoid-trend/export-ppt`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify(options),
+    });
+    if (!res.ok) throw new Error('PPT 생성 실패');
+    return res.blob();
+  }
 }
 
 export const api = new ApiClient();

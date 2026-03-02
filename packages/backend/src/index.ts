@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { registerRoutes } from './routes/index.js';
 import { aiUsageService } from './services/ai-usage.service.js';
+import { fixSocPowerConsumption } from './db/fix-soc-startup.js';
 
 const fastify = Fastify({
   logger: true,
@@ -35,6 +36,7 @@ const start = async () => {
   try {
     const port = parseInt(process.env.PORT || '3001', 10);
     await aiUsageService.ensureTable();
+    await fixSocPowerConsumption();
     await fastify.listen({ port, host: '0.0.0.0' });
     console.log(`Backend server running on port ${port}`);
   } catch (err) {

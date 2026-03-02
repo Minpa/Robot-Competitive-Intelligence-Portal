@@ -40,3 +40,13 @@ export type { GlobalFilterParams } from './executive-dashboard.service.js';
 export { entityAliasService, EntityAliasService } from './entity-alias.service.js';
 export { viewCacheService, ViewCacheService, VIEW_CACHE_CONFIGS } from './view-cache.service.js';
 export type { ViewCacheConfig, CacheEntry, CacheResult } from './view-cache.service.js';
+
+// 휴머노이드 동향 대시보드 서비스
+export { humanoidTrendService, HumanoidTrendService } from './humanoid-trend.service.js';
+export type {
+  PocScoreWithRobot,
+  RfmScoreWithRobot,
+  PositioningDataWithRobot,
+  BarSpecData,
+} from './humanoid-trend.service.js';
+

@@ -694,6 +694,9 @@ export const humanoidRobotsRelations = relations(humanoidRobots, ({ one, many })
   components: many(robotComponents),
   applicationCases: many(applicationCases),
   articleTags: many(articleRobotTags),
+  pocScores: many(pocScores),
+  rfmScores: many(rfmScores),
+  positioningData: many(positioningData),
 }));
 
 export const bodySpecsRelations = relations(bodySpecs, ({ one }) => ({
@@ -945,3 +948,103 @@ export const aiUsageLogs = pgTable(
     createdAtIdx: index('ai_usage_logs_created_at_idx').on(table.createdAt),
   })
 );
+
+// ============================================
+// 휴머노이드 동향 대시보드 테이블
+// ============================================
+
+// PoC Scores — 산업용 PoC 팩터별 역량 점수
+export const pocScores = pgTable(
+  'poc_scores',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    robotId: uuid('robot_id')
+      .notNull()
+      .references(() => humanoidRobots.id, { onDelete: 'cascade' }),
+    payloadScore: integer('payload_score').notNull(),           // 1–10
+    operationTimeScore: integer('operation_time_score').notNull(), // 1–10
+    fingerDofScore: integer('finger_dof_score').notNull(),      // 1–10
+    formFactorScore: integer('form_factor_score').notNull(),    // 1–10
+    pocDeploymentScore: integer('poc_deployment_score').notNull(), // 1–10
+    costEfficiencyScore: integer('cost_efficiency_score').notNull(), // 1–10
+    evaluatedAt: timestamp('evaluated_at').defaultNow().notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    robotIdx: index('poc_scores_robot_idx').on(table.robotId),
+  })
+);
+
+// RFM Scores — Robot Foundation Model 역량 점수
+export const rfmScores = pgTable(
+  'rfm_scores',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    robotId: uuid('robot_id')
+      .notNull()
+      .references(() => humanoidRobots.id, { onDelete: 'cascade' }),
+    rfmModelName: varchar('rfm_model_name', { length: 255 }).notNull(),
+    generalityScore: integer('generality_score').notNull(),          // 1–5
+    realWorldDataScore: integer('real_world_data_score').notNull(),   // 1–5
+    edgeInferenceScore: integer('edge_inference_score').notNull(),    // 1–5
+    multiRobotCollabScore: integer('multi_robot_collab_score').notNull(), // 1–5
+    openSourceScore: integer('open_source_score').notNull(),         // 1–5
+    commercialMaturityScore: integer('commercial_maturity_score').notNull(), // 1–5
+    evaluatedAt: timestamp('evaluated_at').defaultNow().notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    robotIdx: index('rfm_scores_robot_idx').on(table.robotId),
+  })
+);
+
+// Positioning Data — 버블 차트용 포지셔닝 데이터
+export const positioningData = pgTable(
+  'positioning_data',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    chartType: varchar('chart_type', { length: 50 }).notNull(), // 'rfm_competitiveness' | 'poc_positioning' | 'soc_ecosystem'
+    robotId: uuid('robot_id')
+      .references(() => humanoidRobots.id, { onDelete: 'cascade' }),
+    label: varchar('label', { length: 255 }).notNull(),
+    xValue: decimal('x_value', { precision: 10, scale: 4 }).notNull(),
+    yValue: decimal('y_value', { precision: 10, scale: 4 }).notNull(),
+    bubbleSize: decimal('bubble_size', { precision: 10, scale: 4 }).notNull(),
+    colorGroup: varchar('color_group', { length: 50 }),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    evaluatedAt: timestamp('evaluated_at').defaultNow().notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    robotIdx: index('positioning_data_robot_idx').on(table.robotId),
+    chartTypeIdx: index('positioning_data_chart_type_idx').on(table.chartType),
+  })
+);
+
+// ============================================
+// 휴머노이드 동향 대시보드 Relations
+// ============================================
+
+export const pocScoresRelations = relations(pocScores, ({ one }) => ({
+  robot: one(humanoidRobots, {
+    fields: [pocScores.robotId],
+    references: [humanoidRobots.id],
+  }),
+}));
+
+export const rfmScoresRelations = relations(rfmScores, ({ one }) => ({
+  robot: one(humanoidRobots, {
+    fields: [rfmScores.robotId],
+    references: [humanoidRobots.id],
+  }),
+}));
+
+export const positioningDataRelations = relations(positioningData, ({ one }) => ({
+  robot: one(humanoidRobots, {
+    fields: [positioningData.robotId],
+    references: [humanoidRobots.id],
+  }),
+}));

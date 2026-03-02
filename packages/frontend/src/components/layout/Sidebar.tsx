@@ -44,6 +44,7 @@ const navigationGroups: NavGroup[] = [
     title: '분석',
     items: [
       { name: '분석 대시보드', href: '/dashboard', icon: BarChart3 },
+      { name: '휴머노이드 동향', href: '/humanoid-trend', icon: TrendingUp },
     ],
   },
   {
