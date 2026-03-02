@@ -240,14 +240,18 @@ async function seedSoC() {
     },
   ];
 
-  // Insert SoC data
+  // Insert/Update SoC data
   for (const soc of socData) {
     const existing = await db.select().from(components)
       .where(eq(components.name, soc.name))
       .limit(1);
 
     if (existing.length > 0) {
-      console.log(`SoC already exists: ${soc.name}`);
+      // Update specifications to ensure powerConsumption etc. are present
+      await db.update(components)
+        .set({ specifications: soc.specifications, vendor: soc.vendor, updatedAt: new Date() })
+        .where(eq(components.name, soc.name));
+      console.log(`Updated SoC: ${soc.name}`);
       continue;
     }
 
@@ -255,14 +259,17 @@ async function seedSoC() {
     console.log(`Added SoC: ${soc.name}`);
   }
 
-  // Insert Actuator data
+  // Insert/Update Actuator data
   for (const actuator of actuatorData) {
     const existing = await db.select().from(components)
       .where(eq(components.name, actuator.name))
       .limit(1);
 
     if (existing.length > 0) {
-      console.log(`Actuator already exists: ${actuator.name}`);
+      await db.update(components)
+        .set({ specifications: actuator.specifications, vendor: actuator.vendor, updatedAt: new Date() })
+        .where(eq(components.name, actuator.name));
+      console.log(`Updated Actuator: ${actuator.name}`);
       continue;
     }
 

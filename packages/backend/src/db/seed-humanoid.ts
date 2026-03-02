@@ -376,10 +376,10 @@ async function seedHumanoid() {
     { type: 'actuator', name: 'Tesla Rotary Actuator', vendor: 'Tesla', specifications: { actuatorType: 'direct_drive', ratedTorqueNm: 50, maxTorqueNm: 100, speedRpm: 100, weightKg: 1.2, integrationLevel: 'fully_integrated' } },
     { type: 'actuator', name: 'Unitree A1 Motor', vendor: 'Unitree', specifications: { actuatorType: 'direct_drive', ratedTorqueNm: 33, maxTorqueNm: 66, speedRpm: 21, weightKg: 0.5, integrationLevel: 'motor_gear_driver' } },
     { type: 'actuator', name: 'Fourier FSA Actuator', vendor: 'Fourier', specifications: { actuatorType: 'harmonic', ratedTorqueNm: 80, maxTorqueNm: 160, speedRpm: 50, weightKg: 1.5, integrationLevel: 'fully_integrated' } },
-    { type: 'soc', name: 'NVIDIA Jetson AGX Orin', vendor: 'NVIDIA', specifications: { processNode: '8nm', topsMin: 200, topsMax: 275, location: 'onboard' } },
-    { type: 'soc', name: 'NVIDIA Jetson Orin NX', vendor: 'NVIDIA', specifications: { processNode: '8nm', topsMin: 70, topsMax: 100, location: 'onboard' } },
-    { type: 'soc', name: 'Tesla FSD Chip', vendor: 'Tesla', specifications: { processNode: '14nm', topsMin: 72, topsMax: 144, location: 'onboard' } },
-    { type: 'soc', name: 'Qualcomm Snapdragon 8 Gen 2', vendor: 'Qualcomm', specifications: { processNode: '4nm', topsMin: 15, topsMax: 26, location: 'onboard' } },
+    { type: 'soc', name: 'NVIDIA Jetson AGX Orin', vendor: 'NVIDIA', specifications: { processNode: '8nm', topsMin: 200, topsMax: 275, location: 'onboard', powerConsumption: 60, topsPerWatt: 4.58, releaseYear: 2022 } },
+    { type: 'soc', name: 'NVIDIA Jetson Orin NX', vendor: 'NVIDIA', specifications: { processNode: '8nm', topsMin: 70, topsMax: 100, location: 'onboard', powerConsumption: 25, topsPerWatt: 4, releaseYear: 2022 } },
+    { type: 'soc', name: 'Tesla FSD Chip', vendor: 'Tesla', specifications: { processNode: '14nm', topsMin: 72, topsMax: 144, location: 'onboard', powerConsumption: 36, topsPerWatt: 4, releaseYear: 2019 } },
+    { type: 'soc', name: 'Qualcomm Snapdragon 8 Gen 2', vendor: 'Qualcomm', specifications: { processNode: '4nm', topsMin: 15, topsMax: 26, location: 'onboard', powerConsumption: 10, topsPerWatt: 2.6, releaseYear: 2022 } },
     { type: 'sensor', name: 'Intel RealSense D435', vendor: 'Intel', specifications: { sensorType: 'depth_camera', resolution: '1280x720', range: '0.2-10m' } },
     { type: 'sensor', name: 'Velodyne VLP-16', vendor: 'Velodyne', specifications: { sensorType: 'lidar', resolution: '16 channels', range: '100m' } },
     { type: 'sensor', name: 'Force/Torque Sensor ATI Mini45', vendor: 'ATI', specifications: { sensorType: 'force_torque', resolution: '6-axis', range: '145N/5Nm' } },
@@ -392,6 +392,10 @@ async function seedHumanoid() {
     const existing = await db.select().from(components).where(eq(components.name, c.name)).limit(1);
     if (existing.length > 0) {
       componentMap[c.name] = existing[0]!.id;
+      // Update specifications to ensure all fields are present
+      await db.update(components)
+        .set({ specifications: c.specifications, vendor: c.vendor, updatedAt: new Date() })
+        .where(eq(components.name, c.name));
     } else {
       const [inserted] = await db.insert(components).values(c).returning();
       componentMap[c.name] = inserted!.id;
