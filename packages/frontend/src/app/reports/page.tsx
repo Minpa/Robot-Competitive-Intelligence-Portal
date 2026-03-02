@@ -25,7 +25,7 @@ export default function ReportsPage() {
 
   const { data: companies } = useQuery({
     queryKey: ['companies-list'],
-    queryFn: () => api.getCompanies({ page: 1, pageSize: 50 }),
+    queryFn: () => api.getCompanies({ page: '1', pageSize: '50' }),
   });
 
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
