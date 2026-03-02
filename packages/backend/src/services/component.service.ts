@@ -232,6 +232,33 @@ export class ComponentService {
       yLabel: '토크 밀도 (Nm/kg)',
     };
   }
+  /**
+   * Get SoC performance scatter data (TOPS vs Power Consumption)
+   */
+  async getSocPerformanceScatterData() {
+    const socs = await db
+      .select()
+      .from(components)
+      .where(eq(components.type, 'soc'));
+
+    const points = socs.map(s => {
+      const specs = s.specifications as Record<string, unknown> || {};
+      const power = Number(specs.powerConsumption) || parseFloat(String(specs.tdpWatts || '0')) || 0;
+      const tops = Number(specs.topsMax) || Number(specs.topsMin) || Number(specs.tops) || 0;
+      return {
+        id: s.id,
+        name: s.name,
+        vendor: s.vendor,
+        x: power,
+        y: tops,
+        specifications: specs,
+      };
+    });
+
+    return { data: points };
+  }
+
+
 
   /**
    * Get TOPS timeline data for SoCs

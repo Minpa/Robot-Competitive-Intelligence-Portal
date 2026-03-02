@@ -880,6 +880,20 @@ class ApiClient {
     }>('/components/analytics/torque-density');
   }
 
+  // SoC 성능 맵 scatter 데이터
+  async getSocScatterData() {
+    return this.request<{
+      data: Array<{
+        id: string;
+        name: string;
+        vendor: string;
+        x: number;
+        y: number;
+        specifications: Record<string, unknown>;
+      }>;
+    }>('/components/analytics/soc-scatter');
+  }
+
   // TOPS 타임라인
   async getTopsTimeline() {
     return this.request<{

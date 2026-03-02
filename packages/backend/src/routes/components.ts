@@ -25,6 +25,17 @@ export async function componentRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Get SoC performance scatter data
+  fastify.get('/analytics/soc-scatter', async (_request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const result = await componentService.getSocPerformanceScatterData();
+      return result;
+    } catch (error) {
+      console.error('Error getting SoC scatter data:', error);
+      reply.status(500).send({ error: 'Failed to get SoC scatter data' });
+    }
+  });
+
   // Get torque density scatter data
   fastify.get('/analytics/torque-density', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {

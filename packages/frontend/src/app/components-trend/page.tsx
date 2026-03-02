@@ -80,10 +80,10 @@ export default function ComponentsTrendPage() {
     queryFn: () => api.getHumanoidRobots({ limit: 100 }),
   });
 
-  // 성능 맵용 SoC 전용 쿼리 (type=soc 필터, 전체 조회)
-  const { data: socComponents } = useQuery({
-    queryKey: ['components-soc-map'],
-    queryFn: () => api.getComponents({ type: 'soc', limit: 100 } as any),
+  // 성능 맵용 SoC 전용 쿼리 (백엔드에서 powerConsumption 추출)
+  const { data: socScatterData } = useQuery({
+    queryKey: ['soc-scatter'],
+    queryFn: () => api.getSocScatterData(),
     enabled: mapTab === 'soc',
   });
 
@@ -96,28 +96,12 @@ export default function ComponentsTrendPage() {
         y: item.torqueDensity || 0,
       }));
     }
-    if (mapTab === 'soc' && socComponents?.items) {
-      // SoC 데이터 변환 - specifications 필드에서 값 추출
-      const result = (socComponents.items || [])
-        .map((item: any) => {
-          // specifications가 문자열로 올 수 있으므로 파싱
-          let specs = item.specifications || item.specs || {};
-          if (typeof specs === 'string') {
-            try { specs = JSON.parse(specs); } catch { specs = {}; }
-          }
-          // powerConsumption 또는 tdpWatts에서 전력값 추출
-          const power = Number(specs.powerConsumption) || parseFloat(String(specs.tdpWatts || '0')) || 0;
-          return {
-            ...item,
-            x: power,
-            y: Number(specs.topsMax) || Number(specs.topsMin) || Number(specs.tops) || 0,
-            vendor: item.vendor || item.company,
-          };
-        });
-      // DEBUG: 브라우저 콘솔에서 확인용 (문제 해결 후 제거)
-      console.log('[SoC Map Debug] socComponents.items:', socComponents.items);
-      console.log('[SoC Map Debug] mapped result:', result);
-      return result;
+    if (mapTab === 'soc' && socScatterData?.data) {
+      return socScatterData.data.map((item: any) => ({
+        ...item,
+        vendor: item.vendor || '',
+      }));
+    }
     }
     if (mapTab === 'actuator' && components?.items) {
       // Actuator 데이터 변환
@@ -134,7 +118,7 @@ export default function ComponentsTrendPage() {
         });
     }
     return [];
-  }, [mapTab, torqueData, socComponents, components]);
+  }, [mapTab, torqueData, socScatterData, components]);
 
   // 연도별 채택 로봇 수 데이터
   const adoptionData = useMemo(() => {
