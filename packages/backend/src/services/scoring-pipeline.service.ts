@@ -473,8 +473,8 @@ class ScoringPipelineService {
       }
     }
 
-    // Get summary from logger (this also updates the pipeline run status)
-    const summary = await pipelineLogger.getSummary(runId);
+    // Finalize pipeline run status in logger
+    await pipelineLogger.getSummary(runId);
 
     const totalDurationMs = Date.now() - startTime;
 
