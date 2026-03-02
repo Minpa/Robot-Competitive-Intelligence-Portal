@@ -67,7 +67,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: '경영진 대시보드', href: '/executive', icon: LineChart },
       { name: '월간 브리프', href: '/brief', icon: FileText },
-      { name: 'PPT 리포트 빌더', href: '/ppt-builder', icon: Presentation },
+      { name: 'PPT 리포트 빌더', href: '/reports', icon: Presentation },
     ],
   },
   {

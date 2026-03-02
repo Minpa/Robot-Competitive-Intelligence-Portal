@@ -87,7 +87,29 @@ export async function exportRoutes(fastify: FastifyInstance) {
     return pptGeneratorService.getTemplates();
   });
 
-  // Generate PPT slides
+  // Generate & download PPTX file
+  fastify.post('/ppt/download', async (request, reply) => {
+    const body = request.body as {
+      template: 'market_overview' | 'company_deep_dive' | 'tech_components' | 'use_case';
+      theme: 'light' | 'dark';
+      title: string;
+      subtitle?: string;
+      companyIds?: string[];
+      robotIds?: string[];
+      includeCharts?: boolean;
+      includeTables?: boolean;
+      includeAICommentary?: boolean;
+    };
+
+    const result = await pptGeneratorService.generatePptx(body);
+
+    reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+    reply.header('Content-Disposition', `attachment; filename="${result.metadata.filename}"`);
+    reply.header('X-Slide-Count', String(result.metadata.slideCount));
+    return reply.send(result.buffer);
+  });
+
+  // Generate PPT slides (JSON preview - legacy)
   fastify.post('/ppt/generate', async (request) => {
     const body = request.body as {
       template: 'market_overview' | 'company_deep_dive' | 'tech_components' | 'use_case';
@@ -100,6 +122,10 @@ export async function exportRoutes(fastify: FastifyInstance) {
       includeTables?: boolean;
     };
     
-    return pptGeneratorService.generateSlides(body);
+    // Legacy: return metadata only
+    const result = await pptGeneratorService.generatePptx(body);
+    return {
+      metadata: result.metadata,
+    };
   });
 }

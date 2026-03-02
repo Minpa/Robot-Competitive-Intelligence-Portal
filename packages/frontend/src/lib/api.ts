@@ -1144,6 +1144,43 @@ class ApiClient {
     });
   }
 
+  async downloadPPTX(options: {
+    template: string;
+    theme: string;
+    title: string;
+    subtitle?: string;
+    companyIds?: string[];
+    robotIds?: string[];
+    includeAICommentary?: boolean;
+  }): Promise<void> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const token = this.getToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(`${API_BASE}/export/ppt/download`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(options),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'PPT 생성에 실패했습니다.');
+    }
+
+    const blob = await response.blob();
+    const disposition = response.headers.get('Content-Disposition');
+    const filenameMatch = disposition?.match(/filename="(.+?)"/);
+    const filename = filenameMatch?.[1] || 'HRI_Report.pptx';
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   // ============================================
   // 키워드 분석 API
   // ============================================
