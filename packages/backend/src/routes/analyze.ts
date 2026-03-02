@@ -1,5 +1,28 @@
 import { FastifyInstance } from 'fastify';
 import { textAnalyzerService, AnalyzedData, autoQueryAI } from '../services/text-analyzer.service.js';
+import { scoringPipelineService } from '../services/scoring-pipeline.service.js';
+import { db, humanoidRobots, companies } from '../db/index.js';
+import { eq, inArray } from 'drizzle-orm';
+
+/**
+ * 분석된 데이터에서 회사명을 추출하고, 해당 회사에 연결된 humanoid robot ID 목록을 조회한다.
+ */
+async function findRobotIdsByAnalyzedData(data: AnalyzedData): Promise<string[]> {
+  const companyNames = data.companies.map(c => c.name).filter(Boolean);
+  if (companyNames.length === 0) return [];
+
+  try {
+    const rows = await db
+      .select({ robotId: humanoidRobots.id })
+      .from(humanoidRobots)
+      .innerJoin(companies, eq(humanoidRobots.companyId, companies.id))
+      .where(inArray(companies.name, companyNames));
+
+    return rows.map(r => r.robotId);
+  } catch {
+    return [];
+  }
+}
 
 export async function analyzeRoutes(fastify: FastifyInstance) {
   // 텍스트 분석 (저장하지 않고 미리보기)
@@ -33,6 +56,13 @@ export async function analyzeRoutes(fastify: FastifyInstance) {
       // 저장
       const saveResult = await textAnalyzerService.saveAnalyzedData(analyzed);
 
+      // 자동 스코어링 트리거: 연결된 로봇이 있으면 비동기(fire-and-forget)로 스코어링 실행
+      const robotIds = await findRobotIdsByAnalyzedData(analyzed);
+      if (robotIds.length > 0) {
+        scoringPipelineService.runForRobots(robotIds, 'analyze_pipeline')
+          .catch(err => console.error('Auto-scoring failed:', err));
+      }
+
       return {
         analyzed,
         saved: saveResult,
@@ -47,6 +77,14 @@ export async function analyzeRoutes(fastify: FastifyInstance) {
     try {
       const data = request.body;
       const saveResult = await textAnalyzerService.saveAnalyzedData(data);
+
+      // 자동 스코어링 트리거: 연결된 로봇이 있으면 비동기(fire-and-forget)로 스코어링 실행
+      const robotIds = await findRobotIdsByAnalyzedData(data);
+      if (robotIds.length > 0) {
+        scoringPipelineService.runForRobots(robotIds, 'analyze_pipeline')
+          .catch(err => console.error('Auto-scoring failed:', err));
+      }
+
       return saveResult;
     } catch (error) {
       return reply.status(500).send({ error: (error as Error).message });

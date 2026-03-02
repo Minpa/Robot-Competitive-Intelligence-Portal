@@ -11,11 +11,16 @@ import SocBubbleChart from '@/components/humanoid-trend/SocBubbleChart';
 import SpecBarCharts from '@/components/humanoid-trend/SpecBarCharts';
 import AdminDataPanel from '@/components/humanoid-trend/AdminDataPanel';
 import PptDownloadButton from '@/components/humanoid-trend/PptDownloadButton';
+import RubricPanel from '@/components/humanoid-trend/RubricPanel';
+import ScoreBadge from '@/components/humanoid-trend/ScoreBadge';
 
-function ChartSection({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+function ChartSection({ id, title, rubricType, children }: { id: string; title: string; rubricType?: 'poc' | 'rfm' | 'positioning'; children: React.ReactNode }) {
   return (
     <section id={id} className="scroll-mt-16">
-      <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4">{title}</h2>
+      <div className="flex items-center gap-3 mb-4">
+        <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">{title}</h2>
+        {rubricType && <RubricPanel type={rubricType} />}
+      </div>
       {children}
     </section>
   );
@@ -53,23 +58,23 @@ function HumanoidTrendContent() {
           <PptDownloadButton />
         </div>
 
-        <ChartSection id="poc-radar" title="1. 산업용 PoC 팩터별 역량 비교">
+        <ChartSection id="poc-radar" title="1. 산업용 PoC 팩터별 역량 비교" rubricType="poc">
           {pocLoading ? <LoadingSkeleton /> : <PocRadarSection data={pocScores || []} />}
         </ChartSection>
 
-        <ChartSection id="rfm-radar" title="2. RFM 역량 비교">
+        <ChartSection id="rfm-radar" title="2. RFM 역량 비교" rubricType="rfm">
           {rfmLoading ? <LoadingSkeleton /> : <RfmOverlayRadar data={rfmScores || []} />}
         </ChartSection>
 
-        <ChartSection id="rfm-positioning" title="3. RFM 경쟁력 포지셔닝 맵">
+        <ChartSection id="rfm-positioning" title="3. RFM 경쟁력 포지셔닝 맵" rubricType="positioning">
           {rfmPosLoading ? <LoadingSkeleton /> : <RfmBubbleChart data={rfmPositioning || []} />}
         </ChartSection>
 
-        <ChartSection id="poc-positioning" title="4. 산업용 PoC 로봇 포지셔닝 맵">
+        <ChartSection id="poc-positioning" title="4. 산업용 PoC 로봇 포지셔닝 맵" rubricType="positioning">
           {pocPosLoading ? <LoadingSkeleton /> : <PocBubbleChart data={pocPositioning || []} />}
         </ChartSection>
 
-        <ChartSection id="soc-ecosystem" title="5. TOPS × SoC 에코시스템 포지셔닝 맵">
+        <ChartSection id="soc-ecosystem" title="5. TOPS × SoC 에코시스템 포지셔닝 맵" rubricType="positioning">
           {socPosLoading ? <LoadingSkeleton /> : <SocBubbleChart data={socPositioning || []} />}
         </ChartSection>
 

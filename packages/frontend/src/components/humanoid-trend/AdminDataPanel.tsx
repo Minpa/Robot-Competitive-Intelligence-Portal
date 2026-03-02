@@ -10,8 +10,9 @@ import {
   usePocScores, useRfmScores,
 } from '@/hooks/useHumanoidTrend';
 import { Settings, X, Plus, Trash2 } from 'lucide-react';
+import ScoringPipelineAdmin from './ScoringPipelineAdmin';
 
-type Tab = 'poc' | 'rfm' | 'positioning';
+type Tab = 'poc' | 'rfm' | 'positioning' | 'pipeline';
 
 export default function AdminDataPanel() {
   const { data: user } = useQuery({ queryKey: ['me'], queryFn: () => api.getMe() });
@@ -44,13 +45,13 @@ export default function AdminDataPanel() {
             </div>
 
             <div className="flex border-b border-gray-200 dark:border-gray-700">
-              {(['poc', 'rfm', 'positioning'] as Tab[]).map((t) => (
+              {(['poc', 'rfm', 'positioning', 'pipeline'] as Tab[]).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
                   className={`flex-1 py-2 text-sm font-medium ${tab === t ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500'}`}
                 >
-                  {t === 'poc' ? 'PoC 점수' : t === 'rfm' ? 'RFM 점수' : '포지셔닝'}
+                  {t === 'poc' ? 'PoC 점수' : t === 'rfm' ? 'RFM 점수' : t === 'positioning' ? '포지셔닝' : '파이프라인'}
                 </button>
               ))}
             </div>
@@ -59,6 +60,7 @@ export default function AdminDataPanel() {
               {tab === 'poc' && <PocTab />}
               {tab === 'rfm' && <RfmTab />}
               {tab === 'positioning' && <PositioningTab />}
+              {tab === 'pipeline' && <ScoringPipelineAdmin />}
             </div>
           </div>
         </div>

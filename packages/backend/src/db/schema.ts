@@ -967,6 +967,7 @@ export const pocScores = pgTable(
     formFactorScore: integer('form_factor_score').notNull(),    // 1–10
     pocDeploymentScore: integer('poc_deployment_score').notNull(), // 1–10
     costEfficiencyScore: integer('cost_efficiency_score').notNull(), // 1–10
+    metadata: jsonb('metadata').$type<Record<string, unknown>>().default({}),
     evaluatedAt: timestamp('evaluated_at').defaultNow().notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -991,6 +992,7 @@ export const rfmScores = pgTable(
     multiRobotCollabScore: integer('multi_robot_collab_score').notNull(), // 1–5
     openSourceScore: integer('open_source_score').notNull(),         // 1–5
     commercialMaturityScore: integer('commercial_maturity_score').notNull(), // 1–5
+    metadata: jsonb('metadata').$type<Record<string, unknown>>().default({}),
     evaluatedAt: timestamp('evaluated_at').defaultNow().notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),

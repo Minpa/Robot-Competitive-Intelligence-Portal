@@ -19,6 +19,7 @@ import type { ParsedEntity } from '../services/article-parser.service.js';
 import type { ArticleSaveRequest } from '../services/article-db-writer.service.js';
 import type { LinkConfirmation } from '../services/entity-linker.service.js';
 import type { AISearchRequest } from '../services/external-ai-agent.service.js';
+import { scoringPipelineService } from '../services/scoring-pipeline.service.js';
 
 export async function analysisRoutes(fastify: FastifyInstance) {
   /**
@@ -119,6 +120,13 @@ export async function analysisRoutes(fastify: FastifyInstance) {
         const result = await articleDBWriterService.save(saveRequest);
         if (!result.isNew) {
           return reply.status(409).send({ error: '중복 기사입니다.', result });
+        }
+
+        // 자동 스코어링 트리거: 연결된 로봇이 있으면 비동기(fire-and-forget)로 스코어링 실행
+        const robotIds = saveRequest.linkedRobotIds;
+        if (robotIds && robotIds.length > 0) {
+          scoringPipelineService.runForRobots(robotIds, 'analysis_pipeline')
+            .catch(err => console.error('Auto-scoring failed:', err));
         }
 
         return result;

@@ -1442,6 +1442,16 @@ class ApiClient {
   async updatePositioningData(id: string, data: any) { return this.request<any>(`/humanoid-trend/positioning/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
   async deletePositioningData(id: string) { return this.request<void>(`/humanoid-trend/positioning/${id}`, { method: 'DELETE' }); }
 
+  // Scoring Pipeline — Rubric
+  async getScoringRubricPoc() { return this.request<any>('/scoring-pipeline/rubric/poc'); }
+  async getScoringRubricRfm() { return this.request<any>('/scoring-pipeline/rubric/rfm'); }
+  async getScoringRubricPositioning() { return this.request<any>('/scoring-pipeline/rubric/positioning'); }
+
+  // Scoring Pipeline — Execution
+  async runScoringPipeline() { return this.request<any>('/scoring-pipeline/run', { method: 'POST' }); }
+  async runScoringPipelineForRobot(robotId: string) { return this.request<any>(`/scoring-pipeline/run/${robotId}`, { method: 'POST' }); }
+  async getScoringPipelineStatus() { return this.request<any>('/scoring-pipeline/status'); }
+
   // PPT Export
   async exportHumanoidTrendPpt(options: { theme: string; chartImages?: string[] }): Promise<Blob> {
     const token = this.getToken();
