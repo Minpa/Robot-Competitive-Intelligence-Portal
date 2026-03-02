@@ -28,7 +28,12 @@ export function RegionalShareTab({ filters }: RegionalShareTabProps) {
   });
 
   const inner = data?.data ?? data;
-  const chartData = inner?.regions || (Array.isArray(inner) ? inner : []);
+  const rawRegions = inner?.regions || (Array.isArray(inner) ? inner : []);
+  // Transform API data to have 'value' key for PieChart
+  const chartData = rawRegions.map((r: any) => ({
+    ...r,
+    value: r.productCount || r.companyCount || 0,
+  }));
   const isStale = data?.isStale === true;
   const cachedAt = data?.cachedAt ?? null;
 

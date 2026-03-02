@@ -18,7 +18,11 @@ export function PlayerExpansionTab({ filters }: PlayerExpansionTabProps) {
   });
 
   const inner = data?.data ?? data;
-  const companies = inner?.companies || (Array.isArray(inner) ? inner : []);
+  const rawCompanies = inner?.companies || (Array.isArray(inner) ? inner : []);
+  // Sort: companies with timeline events first
+  const companies = [...rawCompanies].sort((a: any, b: any) => 
+    (b.timeline?.length || 0) - (a.timeline?.length || 0)
+  );
   const isStale = data?.isStale === true;
   const cachedAt = data?.cachedAt ?? null;
 

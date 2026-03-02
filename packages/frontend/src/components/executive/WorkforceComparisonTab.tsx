@@ -28,7 +28,17 @@ export function WorkforceComparisonTab({ filters }: WorkforceComparisonTabProps)
   });
 
   const inner = data?.data ?? data;
-  const companies = inner?.companies || (Array.isArray(inner) ? inner : []);
+  const rawCompanies = inner?.companies || (Array.isArray(inner) ? inner : []);
+  // Transform: extract latest workforceTrend headcount as workforceSize
+  const companies = rawCompanies.map((c: any) => {
+    const latestTrend = c.workforceTrend?.sort((a: any, b: any) => b.year - a.year)?.[0];
+    return {
+      ...c,
+      workforceSize: c.workforceSize ?? latestTrend?.headcount ?? 0,
+    };
+  }).filter((c: any) => c.workforceSize > 0)
+    .sort((a: any, b: any) => b.workforceSize - a.workforceSize)
+    .slice(0, 10);
   const missingCount = inner?.missingCount ?? 0;
   const isStale = data?.isStale === true;
   const cachedAt = data?.cachedAt ?? null;
