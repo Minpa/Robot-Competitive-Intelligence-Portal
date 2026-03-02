@@ -12,14 +12,14 @@ import {
   robotComponents,
   applicationCases,
 } from './index.js';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 async function seedHumanoid() {
   console.log('Seeding humanoid robot data...');
 
   // Fix legacy locomotionType values: 'biped' → 'bipedal'
   await db.execute(
-    `UPDATE humanoid_robots SET locomotion_type = 'bipedal' WHERE locomotion_type = 'biped'`
+    sql`UPDATE humanoid_robots SET locomotion_type = 'bipedal' WHERE locomotion_type = 'biped'`
   );
   console.log('Fixed legacy locomotionType values (biped → bipedal)');
 

@@ -61,11 +61,9 @@ export async function executiveRoutes(fastify: FastifyInstance) {
   fastify.get<FilterQuery>('/overview', async (req) => {
     const filters = parseFilters(req.query);
     return cachedResponse('kpi-overview', async () => {
-      const [heatmap, regionalCompetition, topEvents, insightCards, robotCountResult, companyCountResult, articleCountResult] =
+      const [regionalCompetition, insightCards, robotCountResult, companyCountResult, articleCountResult] =
         await Promise.all([
-          executiveDashboardService.getSegmentHeatmap(filters),
           executiveDashboardService.getRegionalCompetition(filters),
-          executiveDashboardService.getTopEvents('month', filters),
           insightCardsGenerator.generateCards(),
           db.select({ count: count() }).from(humanoidRobots),
           db.select({ count: count() }).from(companies),
