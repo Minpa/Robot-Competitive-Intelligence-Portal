@@ -130,6 +130,22 @@ export class AIUsageService {
     await this.ensureTable();
     return db.select().from(aiUsageLogs).orderBy(desc(aiUsageLogs.createdAt)).limit(limit);
   }
+
+  /**
+   * 이번 달 총 비용 조회 (USD)
+   */
+  async getCurrentMonthCostUsd(): Promise<number> {
+    await this.ensureTable();
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const rows = await db
+      .select()
+      .from(aiUsageLogs)
+      .where(gte(aiUsageLogs.createdAt, firstDay));
+
+    return rows.reduce((sum, row) => sum + Number(row.estimatedCostUsd), 0);
+  }
 }
 
 export const aiUsageService = new AIUsageService();

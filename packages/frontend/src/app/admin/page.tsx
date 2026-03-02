@@ -386,6 +386,33 @@ export default function AdminPage() {
             </div>
             
             <div className="p-6 space-y-6">
+              {/* 월간 비용 한도 */}
+              {(() => {
+                const totalCost = (aiUsageSummary?.summary || []).reduce((sum, s) => sum + s.totalCostUsd, 0);
+                const limitUsd = 7.0;
+                const pct = Math.min(100, (totalCost / limitUsd) * 100);
+                const isNearLimit = pct >= 80;
+                const isOverLimit = pct >= 100;
+                return (
+                  <div className={`p-4 rounded-xl border ${isOverLimit ? 'bg-red-500/10 border-red-500/30' : isNearLimit ? 'bg-amber-500/10 border-amber-500/30' : 'bg-slate-800/50 border-slate-700/50'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-slate-300">이번 달 사용량</span>
+                      <span className={`text-sm font-medium ${isOverLimit ? 'text-red-400' : isNearLimit ? 'text-amber-400' : 'text-emerald-400'}`}>
+                        ${totalCost.toFixed(4)} / ${limitUsd.toFixed(2)} (≈₩10,000)
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${isOverLimit ? 'bg-red-500' : isNearLimit ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    {isOverLimit && (
+                      <p className="text-xs text-red-400 mt-2">한도 초과 — AI 검색이 차단됩니다. 다음 달에 자동 초기화됩니다.</p>
+                    )}
+                  </div>
+                );
+              })()}
               {/* Provider별 요약 카드 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {(aiUsageSummary?.summary || []).map((s) => (

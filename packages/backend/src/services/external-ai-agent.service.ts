@@ -43,11 +43,22 @@ export interface SourceReference {
 // ── Service ──
 
 export class ExternalAIAgentService {
+  // 월간 비용 한도 (USD) — 약 10,000원
+  private static MONTHLY_COST_LIMIT_USD = 7.0;
+
   /**
    * AI 기반 검색·요약 수행
    */
   async search(request: AISearchRequest): Promise<AISearchResponse> {
     this.validateApiKey(request.provider);
+
+    // 월간 비용 한도 체크
+    const currentMonthCost = await aiUsageService.getCurrentMonthCostUsd();
+    if (currentMonthCost >= ExternalAIAgentService.MONTHLY_COST_LIMIT_USD) {
+      throw new Error(
+        `이번 달 AI 사용 비용이 한도($${ExternalAIAgentService.MONTHLY_COST_LIMIT_USD.toFixed(2)}, 약 ₩10,000)에 도달했습니다. 현재 사용액: $${currentMonthCost.toFixed(4)}. 다음 달에 다시 시도해주세요.`
+      );
+    }
 
     const prompt = this.buildPrompt(request);
     const useWebSearch = request.webSearch === true;
