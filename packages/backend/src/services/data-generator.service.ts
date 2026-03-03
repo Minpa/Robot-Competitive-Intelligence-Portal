@@ -12,6 +12,8 @@ import { externalAIAgent } from './external-ai-agent.service.js';
 import { saveAnalyzedData } from './text-analyzer.service.js';
 import type { AISearchRequest, AISearchResponse } from './external-ai-agent.service.js';
 import type { AnalyzedData } from './text-analyzer.service.js';
+import { db, humanoidRobots, companies } from '../db/index.js';
+import { eq } from 'drizzle-orm';
 
 export interface GenerationTopic {
   query: string;
@@ -26,6 +28,7 @@ export interface GenerationResult {
   productsSaved: number;
   articlesSaved: number;
   keywordsSaved: number;
+  robotsSaved: number;
   errors: string[];
 }
 
@@ -110,6 +113,77 @@ function convertToAnalyzedData(response: AISearchResponse): AnalyzedData {
   return { companies, products, articles, keywords, summary: response.summary };
 }
 
+/**
+ * AI 응답에서 humanoid_robots 테이블에 저장할 로봇 추출 및 저장
+ */
+async function saveHumanoidRobots(response: AISearchResponse): Promise<number> {
+  let saved = 0;
+  const productFacts = response.facts.filter(f => f.category === 'product');
+
+  // locomotion type 추론
+  const locomotionKeywords: Record<string, string> = {
+    bipedal: 'bipedal', biped: 'bipedal', '2족': 'bipedal', '이족': 'bipedal',
+    wheeled: 'wheeled', wheel: 'wheeled', '휠': 'wheeled', '바퀴': 'wheeled',
+    hybrid: 'hybrid', '하이브리드': 'hybrid',
+    quadruped: 'quadruped', '4족': 'quadruped', '사족': 'quadruped',
+  };
+  const purposeKeywords: Record<string, string> = {
+    industrial: 'industrial', factory: 'industrial', manufacturing: 'industrial', '산업': 'industrial', '제조': 'industrial',
+    service: 'service', hospital: 'service', hotel: 'service', retail: 'service', '서비스': 'service',
+    home: 'home', domestic: 'home', '가정': 'home',
+  };
+
+  for (const fact of productFacts) {
+    const desc = (fact.description + ' ' + fact.name).toLowerCase();
+
+    // humanoid/robot 관련 키워드가 있는지 확인
+    const isRobot = /humanoid|로봇|robot|android|avatar/i.test(desc);
+    if (!isRobot) continue;
+
+    // 이미 존재하는지 확인
+    const existing = await db.select().from(humanoidRobots).where(eq(humanoidRobots.name, fact.name)).limit(1);
+    if (existing.length > 0) continue;
+
+    // 회사 찾기
+    const companyFact = response.facts.find(cf => cf.category === 'company' && fact.description.includes(cf.name));
+    let companyId: string | null = null;
+    if (companyFact) {
+      const comp = await db.select().from(companies).where(eq(companies.name, companyFact.name)).limit(1);
+      if (comp.length > 0) companyId = comp[0]!.id;
+    }
+    if (!companyId) continue; // company_id는 NOT NULL
+
+    // locomotion type 추론
+    let locomotionType = 'bipedal';
+    for (const [kw, type] of Object.entries(locomotionKeywords)) {
+      if (desc.includes(kw)) { locomotionType = type; break; }
+    }
+
+    // purpose 추론
+    let purpose = 'service';
+    for (const [kw, type] of Object.entries(purposeKeywords)) {
+      if (desc.includes(kw)) { purpose = type; break; }
+    }
+
+    try {
+      await db.insert(humanoidRobots).values({
+        companyId,
+        name: fact.name,
+        purpose,
+        locomotionType,
+        handType: 'multi_finger',
+        commercializationStage: 'prototype',
+        region: 'global',
+        description: fact.description,
+      });
+      saved++;
+    } catch {
+      // 중복 등 무시
+    }
+  }
+  return saved;
+}
+
 // 기본 주제 목록 - 휴머노이드 로봇 산업 전반을 커버
 const DEFAULT_TOPICS: GenerationTopic[] = [
   // 주요 기업 & 제품
@@ -185,11 +259,13 @@ class DataGeneratorService {
       const aiResponse = await externalAIAgent.search(request);
       const analyzedData = convertToAnalyzedData(aiResponse);
       const saveResult = await saveAnalyzedData(analyzedData);
+      const robotsSaved = await saveHumanoidRobots(aiResponse);
 
       return {
         topic: topic.query.substring(0, 80),
         provider,
         ...saveResult,
+        robotsSaved,
       };
     } catch (error) {
       return {
@@ -199,6 +275,7 @@ class DataGeneratorService {
         productsSaved: 0,
         articlesSaved: 0,
         keywordsSaved: 0,
+        robotsSaved: 0,
         errors: [(error as Error).message],
       };
     }
