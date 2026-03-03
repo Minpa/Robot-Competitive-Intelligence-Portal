@@ -216,18 +216,16 @@ export function TimelineTrendPanel({
               labelStyle={{ color: '#F8FAFC', fontWeight: 600, marginBottom: 4 }}
               formatter={(value: number, name: string) => {
                 const labels: Record<string, string> = {
-                  eventCount: '총 이벤트',
-                  newProducts: '신규 제품',
                   investments: '투자',
                   pocs: 'PoC',
                   productions: '양산',
+                  newProducts: '신규 제품',
                 };
                 const units: Record<string, string> = {
-                  eventCount: '건',
-                  newProducts: '개',
                   investments: '건',
                   pocs: '건',
                   productions: '건',
+                  newProducts: '개',
                 };
                 return [`${value}${units[name] || ''}`, labels[name] || name];
               }}
@@ -236,21 +234,23 @@ export function TimelineTrendPanel({
               wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
               formatter={(value: string) => {
                 const labels: Record<string, string> = {
-                  eventCount: '이벤트 수',
+                  investments: '투자',
+                  pocs: 'PoC',
+                  productions: '양산',
                   newProducts: '신규 제품',
                 };
                 return <span style={{ color: '#94A3B8' }}>{labels[value] || value}</span>;
               }}
             />
-            <Bar
-              yAxisId="left"
-              dataKey="eventCount"
-              fill="#3B82F6"
-              radius={[4, 4, 0, 0]}
-              maxBarSize={40}
-              onClick={(data) => onBarClick?.(data.month, data.year)}
-              cursor="pointer"
-            />
+            {eventTypes.investments && (
+              <Bar yAxisId="left" dataKey="investments" stackId="events" fill="#22C55E" maxBarSize={40} />
+            )}
+            {eventTypes.pocs && (
+              <Bar yAxisId="left" dataKey="pocs" stackId="events" fill="#EAB308" maxBarSize={40} />
+            )}
+            {eventTypes.productions && (
+              <Bar yAxisId="left" dataKey="productions" stackId="events" fill="#A855F7" radius={[4, 4, 0, 0]} maxBarSize={40} />
+            )}
             <Line
               yAxisId="right"
               type="monotone"
