@@ -2,7 +2,7 @@
 
 import {
   ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Cell, Label,
+  Tooltip, ResponsiveContainer, Cell, Label, LabelList,
 } from 'recharts';
 import { getRobotColor } from './color-utils';
 import type { PositioningDataWithRobot } from '@/types/humanoid-trend';
@@ -22,15 +22,16 @@ export default function RfmBubbleChart({ data }: Props) {
     x: d.xValue,
     y: d.yValue,
     z: d.bubbleSize,
-    label: d.label,
+    label: d.robotName || d.label,
+    displayLabel: `${d.robotName || d.label} (성숙도:${d.bubbleSize})`,
     robotName: d.robotName || d.label,
     color: d.robotId ? getRobotColor(d.robotId) : '#8B5CF6',
   }));
 
   return (
-    <div className="h-[480px]">
+    <div className="h-[520px]">
       <ResponsiveContainer width="100%" height="100%">
-        <ScatterChart margin={{ top: 20, right: 30, bottom: 30, left: 30 }}>
+        <ScatterChart margin={{ top: 30, right: 40, bottom: 30, left: 30 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
           <XAxis type="number" dataKey="x" domain={[0, 5]} tick={{ fontSize: 11, fill: '#9CA3AF' }}>
             <Label value="엣지 추론 역량 (Edge Inference)" position="bottom" offset={10} style={{ fontSize: 12, fill: '#9CA3AF' }} />
@@ -57,6 +58,12 @@ export default function RfmBubbleChart({ data }: Props) {
             {chartData.map((d, i) => (
               <Cell key={i} fill={d.color} fillOpacity={0.7} />
             ))}
+            <LabelList
+              dataKey="displayLabel"
+              position="top"
+              offset={12}
+              style={{ fontSize: 10, fill: '#D1D5DB', fontWeight: 500 }}
+            />
           </Scatter>
         </ScatterChart>
       </ResponsiveContainer>

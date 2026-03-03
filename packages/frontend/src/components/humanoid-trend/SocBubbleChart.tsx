@@ -1,8 +1,8 @@
 'use client';
 
-import {
+  import {
   ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Cell, Label, Legend,
+  Tooltip, ResponsiveContainer, Cell, Label, Legend, LabelList,
 } from 'recharts';
 import { getCountryColor } from './color-utils';
 import type { PositioningDataWithRobot } from '@/types/humanoid-trend';
@@ -42,7 +42,8 @@ export default function SocBubbleChart({ data }: Props) {
       x: xIndex,
       y: d.yValue,
       z: d.bubbleSize,
-      label: d.label,
+      label: d.robotName || d.label,
+      displayLabel: `${d.robotName || d.label} (${d.bubbleSize}건)`,
       robotName: d.robotName || d.label,
       colorGroup: d.colorGroup || 'Other',
       mainSoc: soc,
@@ -94,6 +95,12 @@ export default function SocBubbleChart({ data }: Props) {
             {chartData.map((d, i) => (
               <Cell key={i} fill={d.color} fillOpacity={0.7} />
             ))}
+            <LabelList
+              dataKey="displayLabel"
+              position="top"
+              offset={12}
+              style={{ fontSize: 10, fill: '#D1D5DB', fontWeight: 500 }}
+            />
           </Scatter>
         </ScatterChart>
       </ResponsiveContainer>

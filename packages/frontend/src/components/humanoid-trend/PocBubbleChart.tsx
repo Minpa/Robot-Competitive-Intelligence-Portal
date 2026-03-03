@@ -2,7 +2,7 @@
 
 import {
   ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Cell, Label,
+  Tooltip, ResponsiveContainer, Cell, Label, LabelList,
 } from 'recharts';
 import { getRobotColor } from './color-utils';
 import type { PositioningDataWithRobot } from '@/types/humanoid-trend';
@@ -22,16 +22,17 @@ export default function PocBubbleChart({ data }: Props) {
     x: d.xValue,
     y: d.yValue,
     z: d.bubbleSize,
-    label: d.label,
+    label: d.robotName || d.label,
+    displayLabel: `${d.robotName || d.label} (DoF:${d.bubbleSize})`,
     robotName: d.robotName || d.label,
     metadata: d.metadata,
     color: d.robotId ? getRobotColor(d.robotId) : '#8B5CF6',
   }));
 
   return (
-    <div className="h-[480px]">
+    <div className="h-[520px]">
       <ResponsiveContainer width="100%" height="100%">
-        <ScatterChart margin={{ top: 20, right: 30, bottom: 30, left: 30 }}>
+        <ScatterChart margin={{ top: 30, right: 40, bottom: 30, left: 30 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
           <XAxis type="number" dataKey="x" tick={{ fontSize: 11, fill: '#9CA3AF' }}>
             <Label value="폼팩터 / 인체 유사도 (Form Factor)" position="bottom" offset={10} style={{ fontSize: 12, fill: '#9CA3AF' }} />
@@ -44,15 +45,12 @@ export default function PocBubbleChart({ data }: Props) {
             content={({ payload }) => {
               if (!payload?.[0]) return null;
               const d = payload[0].payload;
-              const meta = d.metadata as Record<string, unknown> | null;
               return (
                 <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 text-xs text-gray-200">
                   <p className="font-semibold">{d.robotName}</p>
                   <p>폼팩터: {d.x}</p>
-                  <p>산업 적합성: {d.y}</p>
-                  <p>핑거 DoF: {d.z}</p>
-                  {meta?.payload != null && <p>페이로드: {String(meta.payload)}kg</p>}
-                  {meta?.operationTime != null && <p>운용시간: {String(meta.operationTime)}h</p>}
+                  <p>산업 적합성: {d.y.toFixed(1)}</p>
+                  <p>핑거 DoF 점수: {d.z}</p>
                 </div>
               );
             }}
@@ -61,6 +59,12 @@ export default function PocBubbleChart({ data }: Props) {
             {chartData.map((d, i) => (
               <Cell key={i} fill={d.color} fillOpacity={0.7} />
             ))}
+            <LabelList
+              dataKey="displayLabel"
+              position="top"
+              offset={12}
+              style={{ fontSize: 10, fill: '#D1D5DB', fontWeight: 500 }}
+            />
           </Scatter>
         </ScatterChart>
       </ResponsiveContainer>
