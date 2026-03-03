@@ -262,11 +262,21 @@ confidence는 정보의 신뢰도를 나타냅니다 (0.9+: 확실, 0.7~0.9: 높
    * AI 응답 JSON 파싱
    */
   private parseResponse(raw: string): AISearchResponse {
-    // JSON 블록이 ```json ... ``` 으로 감싸져 있을 수 있음
     let jsonStr = raw.trim();
+
+    // 1) ```json ... ``` 코드블록 추출
     const jsonBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonBlockMatch && jsonBlockMatch[1]) {
       jsonStr = jsonBlockMatch[1].trim();
+    }
+
+    // 2) JSON 앞뒤에 텍스트가 붙어있는 경우: 첫 번째 '{' ~ 마지막 '}' 추출
+    if (!jsonStr.startsWith('{')) {
+      const firstBrace = jsonStr.indexOf('{');
+      const lastBrace = jsonStr.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace > firstBrace) {
+        jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+      }
     }
 
     try {
@@ -296,7 +306,7 @@ confidence는 정보의 신뢰도를 나타냅니다 (0.9+: 확실, 0.7~0.9: 높
         sources,
       };
     } catch (error) {
-      console.error('[ExternalAIAgent] JSON 파싱 실패:', error);
+      console.error('[ExternalAIAgent] JSON 파싱 실패:', error, '\nRaw (first 500 chars):', raw.substring(0, 500));
       throw new Error('AI 응답을 파싱할 수 없습니다. 다시 시도해주세요.');
     }
   }
