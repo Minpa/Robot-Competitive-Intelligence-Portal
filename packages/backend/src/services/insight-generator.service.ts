@@ -356,14 +356,26 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
       const year = monthStart.getFullYear();
       const month = monthStart.getMonth();
 
-      // 해당 연도의 로봇 수를 12개월로 나눠서 분배
+      // 해당 연도의 로봇 수를 연도 단위로 1월에 집중 배치 (소수점 손실 방지)
+      // 월별 분배 시 Math.round로 0이 되는 문제 해결
+      let monthlyCount = 0;
       const yearlyCount = yearlyRobotCount[year] || 0;
-      const quarterWeights = [0.35, 0.25, 0.15, 0.25]; // Q1, Q2, Q3, Q4
-      const quarter = Math.floor(month / 3);
-      const quarterMonths = 3;
-      const quarterWeight = quarterWeights[quarter] ?? 0.25;
-      const quarterCount = Math.round(yearlyCount * quarterWeight);
-      const monthlyCount = Math.round(quarterCount / quarterMonths);
+      if (yearlyCount > 0) {
+        if (yearlyCount <= 3) {
+          // 3개 이하: 1월에 모두 배치
+          monthlyCount = month === 0 ? yearlyCount : 0;
+        } else {
+          // 4개 이상: 분기별 가중치로 분배하되, 분기 첫 달에 집중
+          const quarterWeights = [0.35, 0.25, 0.15, 0.25];
+          const quarter = Math.floor(month / 3);
+          const quarterMonth = month % 3; // 0, 1, 2 within quarter
+          if (quarterMonth === 0) {
+            // 분기 첫 달에 해당 분기 몫 배치
+            const quarterWeight = quarterWeights[quarter] ?? 0.25;
+            monthlyCount = Math.round(yearlyCount * quarterWeight);
+          }
+        }
+      }
 
       // 적용 사례 (이벤트) 수 - demoDate 기반
       const caseResults = await db
