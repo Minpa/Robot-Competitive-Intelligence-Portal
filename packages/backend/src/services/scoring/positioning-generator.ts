@@ -35,13 +35,13 @@ export interface PositioningValues {
 // SoC X축: mainSoc 칩명을 그대로 사용 (카테고리형)
 // xValue는 고유 인덱스로 매핑, 프론트엔드에서 라벨 표시
 
-const REGION_COLOR_MAP: Record<string, string> = {
-  north_america: 'blue',
-  china: 'orange',
-  korea: 'pink',
-  europe: 'green',
-  japan: 'purple',
-  other: 'gray',
+const REGION_TO_COUNTRY: Record<string, string> = {
+  north_america: 'US',
+  china: 'CN',
+  korea: 'KR',
+  europe: 'EU',
+  japan: 'JP',
+  other: 'Other',
 };
 
 // ============================================
@@ -61,15 +61,18 @@ const REGION_COLOR_MAP: Record<string, string> = {
 export function generateRfmPositioning(
   rfmScore: RfmScoreValues,
   robotName: string,
-  companyName: string
+  companyName: string,
+  region: string | null
 ): PositioningValues {
+  const regionKey = region?.toLowerCase() ?? 'other';
+  const colorGroup = REGION_TO_COUNTRY[regionKey] ?? 'Other';
   return {
     chartType: 'rfm_competitiveness',
     label: `${robotName} (${companyName})`,
     xValue: rfmScore.edgeInferenceScore,
     yValue: rfmScore.generalityScore,
     bubbleSize: rfmScore.commercialMaturityScore,
-    colorGroup: null,
+    colorGroup,
     metadata: {
       source: 'auto',
       xFormula: 'edgeInferenceScore',
@@ -97,15 +100,18 @@ export function generateRfmPositioning(
 export function generatePocPositioning(
   pocScore: PocScoreValues,
   robotName: string,
-  companyName: string
+  companyName: string,
+  region: string | null
 ): PositioningValues {
+  const regionKey = region?.toLowerCase() ?? 'other';
+  const colorGroup = REGION_TO_COUNTRY[regionKey] ?? 'Other';
   return {
     chartType: 'poc_positioning',
     label: `${robotName} (${companyName})`,
     xValue: pocScore.formFactorScore,
     yValue: (pocScore.payloadScore * pocScore.operationTimeScore) / 10,
     bubbleSize: pocScore.fingerDofScore,
-    colorGroup: null,
+    colorGroup,
     metadata: {
       source: 'auto',
       xFormula: 'formFactorScore',
@@ -146,7 +152,7 @@ export function generateSocPositioning(
   const bubbleSize = Math.max(1, applicationCaseCount);
 
   const regionKey = region?.toLowerCase() ?? 'other';
-  const colorGroup = REGION_COLOR_MAP[regionKey] ?? 'gray';
+  const colorGroup = REGION_TO_COUNTRY[regionKey] ?? 'Other';
 
   return {
     chartType: 'soc_ecosystem',
@@ -188,8 +194,8 @@ export function generateAllPositioning(
   const companyName = specs.company.name;
 
   return [
-    generateRfmPositioning(rfmScore, robotName, companyName),
-    generatePocPositioning(pocScore, robotName, companyName),
+    generateRfmPositioning(rfmScore, robotName, companyName, specs.robot.region),
+    generatePocPositioning(pocScore, robotName, companyName, specs.robot.region),
     generateSocPositioning(
       specs.computingSpec,
       specs.applicationCases.length,

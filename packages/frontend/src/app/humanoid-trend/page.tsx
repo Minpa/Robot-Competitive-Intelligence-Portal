@@ -21,7 +21,9 @@ function ChartSection({ id, title, rubricType, children }: { id: string; title: 
         <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">{title}</h2>
         {rubricType && <RubricPanel type={rubricType} />}
       </div>
-      {children}
+      <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
+        {children}
+      </div>
     </section>
   );
 }

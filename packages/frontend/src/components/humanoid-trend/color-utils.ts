@@ -8,6 +8,8 @@ const COUNTRY_COLORS: Record<string, string> = {
   US: '#3B82F6',   // blue
   CN: '#F97316',   // orange
   KR: '#EC4899',   // pink/red
+  EU: '#10B981',   // green
+  JP: '#8B5CF6',   // purple
 };
 
 /**
