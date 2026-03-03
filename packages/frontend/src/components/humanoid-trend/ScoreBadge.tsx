@@ -49,8 +49,8 @@ export default function ScoreBadge({ metadata, evaluatedAt }: ScoreBadgeProps) {
       <span
         className={
           source === 'auto'
-            ? 'px-1.5 py-0.5 rounded font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
-            : 'px-1.5 py-0.5 rounded font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400'
+            ? 'px-1.5 py-0.5 rounded font-medium bg-emerald-900/40 text-emerald-400'
+            : 'px-1.5 py-0.5 rounded font-medium bg-blue-900/40 text-blue-400'
         }
       >
         {source === 'auto' ? '자동' : '수동'}
@@ -63,16 +63,16 @@ export default function ScoreBadge({ metadata, evaluatedAt }: ScoreBadgeProps) {
           onMouseEnter={() => setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
         >
-          <AlertTriangle className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 cursor-help" />
+          <AlertTriangle className="w-3.5 h-3.5 text-amber-400 cursor-help" />
           {showTooltip && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50 w-48 px-2.5 py-2 rounded-lg bg-gray-900 dark:bg-gray-700 text-white text-[11px] leading-relaxed shadow-lg">
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50 w-48 px-2.5 py-2 rounded-lg bg-gray-700 text-white text-[11px] leading-relaxed shadow-lg">
               <p className="font-medium mb-1">데이터 부족으로 추정된 항목:</p>
               <ul className="space-y-0.5">
                 {estimatedFields.map((field) => (
                   <li key={field}>• {FIELD_LABELS[field] ?? field}</li>
                 ))}
               </ul>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-700" />
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
             </div>
           )}
         </div>
@@ -80,7 +80,7 @@ export default function ScoreBadge({ metadata, evaluatedAt }: ScoreBadgeProps) {
 
       {/* 평가 시점 */}
       {evaluatedAt && (
-        <span className="text-gray-400 dark:text-gray-500">
+        <span className="text-gray-500">
           {formatDate(evaluatedAt)}
         </span>
       )}

@@ -78,7 +78,7 @@ export default function DashboardPage() {
   // NEW: Timeline trend data from API
   const { data: timelineData, isLoading: timelineLoading, isError: timelineError, refetch: refetchTimeline } = useQuery({
     queryKey: ['timeline-trend', dateRange, region, segment],
-    queryFn: () => api.getTimelineTrendData(12, segment !== 'all' ? segment : undefined),
+    queryFn: () => api.getTimelineTrendData(36, segment !== 'all' ? segment : undefined),
     staleTime: 86_400_000,
     gcTime: 86_400_000,
   });

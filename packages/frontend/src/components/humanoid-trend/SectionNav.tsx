@@ -15,12 +15,12 @@ export default function SectionNav() {
   };
 
   return (
-    <nav className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 px-4 py-2 flex gap-2 overflow-x-auto">
+    <nav className="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-sm border-b border-slate-700 px-4 py-2 flex gap-2 overflow-x-auto">
       {SECTIONS.map((s) => (
         <button
           key={s.id}
           onClick={() => scrollTo(s.id)}
-          className="whitespace-nowrap px-3 py-1.5 text-xs font-medium rounded-full border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-violet-50 dark:hover:bg-violet-900/30 hover:border-violet-400 dark:hover:border-violet-500 transition-colors"
+          className="whitespace-nowrap px-3 py-1.5 text-xs font-medium rounded-full border border-slate-600 text-gray-300 hover:bg-violet-900/30 hover:border-violet-500 transition-colors"
         >
           {s.label}
         </button>

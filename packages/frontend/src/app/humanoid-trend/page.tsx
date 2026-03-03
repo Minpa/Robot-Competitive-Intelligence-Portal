@@ -18,10 +18,10 @@ function ChartSection({ id, title, rubricType, children }: { id: string; title: 
   return (
     <section id={id} className="scroll-mt-16">
       <div className="flex items-center gap-3 mb-4">
-        <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">{title}</h2>
+        <h2 className="text-lg font-bold text-gray-100">{title}</h2>
         {rubricType && <RubricPanel type={rubricType} />}
       </div>
-      <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
+      <div className="rounded-xl border border-slate-700 bg-slate-800 p-4">
         {children}
       </div>
     </section>
@@ -31,8 +31,8 @@ function ChartSection({ id, title, rubricType, children }: { id: string; title: 
 function LoadingSkeleton() {
   return (
     <div className="animate-pulse space-y-4">
-      <div className="h-8 bg-gray-200 dark:bg-slate-700 rounded w-1/3" />
-      <div className="h-64 bg-gray-200 dark:bg-slate-700 rounded" />
+      <div className="h-8 bg-slate-700 rounded w-1/3" />
+      <div className="h-64 bg-slate-700 rounded" />
     </div>
   );
 }
@@ -46,14 +46,14 @@ function HumanoidTrendContent() {
   const { data: barSpecs, isLoading: barLoading } = useBarSpecs();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-slate-950">
       <SectionNav />
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-10">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">휴머노이드 동향</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <h1 className="text-2xl font-bold text-white">휴머노이드 동향</h1>
+            <p className="text-sm text-gray-400 mt-1">
               휴머노이드 로봇 산업 경쟁 인텔리전스 차트 6종
             </p>
           </div>

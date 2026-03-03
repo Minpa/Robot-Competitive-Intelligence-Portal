@@ -34,13 +34,13 @@ function buildRadarData(score: PocScoreWithRobot) {
 
 function PlaceholderCard({ robotName, companyName }: { robotName?: string; companyName?: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 p-6 flex flex-col items-center justify-center min-h-[320px]">
+    <div className="rounded-xl border border-slate-700 bg-slate-800 p-6 flex flex-col items-center justify-center min-h-[320px]">
       {robotName && (
-        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          {robotName} {companyName && <span className="text-gray-400 dark:text-gray-500">({companyName})</span>}
+        <p className="text-sm font-medium text-gray-300 mb-2">
+          {robotName} {companyName && <span className="text-gray-500">({companyName})</span>}
         </p>
       )}
-      <p className="text-gray-400 dark:text-gray-500 text-sm">PoC 평가 데이터 미등록</p>
+      <p className="text-gray-500 text-sm">PoC 평가 데이터 미등록</p>
     </div>
   );
 }
@@ -56,12 +56,12 @@ function RobotRadarCard({ score }: { score: PocScoreWithRobot }) {
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 p-4">
+    <div className="rounded-xl border border-slate-700 bg-slate-800 p-4">
       <div className="text-center mb-2">
-        <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+        <p className="text-sm font-semibold text-gray-100">
           {score.robotName}
         </p>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
+        <p className="text-xs text-gray-400">
           {score.companyName} · 평균 {avg}
         </p>
       </div>
@@ -106,7 +106,7 @@ function RobotRadarCard({ score }: { score: PocScoreWithRobot }) {
 export default function PocRadarSection({ data }: PocRadarSectionProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[200px] text-gray-400 dark:text-gray-500 text-sm">
+      <div className="flex items-center justify-center min-h-[200px] text-gray-500 text-sm">
         PoC 평가 데이터가 없습니다.
       </div>
     );

@@ -58,20 +58,20 @@ function FactorTable({ factors }: { factors: RubricFactor[] }) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-gray-200 dark:border-gray-700">
-            <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">팩터명</th>
-            <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">데이터 소스</th>
-            <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">점수 구간</th>
-            <th className="text-left py-2 px-3 font-semibold text-gray-700 dark:text-gray-300">계산 공식</th>
+          <tr className="border-b border-gray-700">
+            <th className="text-left py-2 px-3 font-semibold text-gray-300">팩터명</th>
+            <th className="text-left py-2 px-3 font-semibold text-gray-300">데이터 소스</th>
+            <th className="text-left py-2 px-3 font-semibold text-gray-300">점수 구간</th>
+            <th className="text-left py-2 px-3 font-semibold text-gray-300">계산 공식</th>
           </tr>
         </thead>
         <tbody>
           {factors.map((f) => (
-            <tr key={f.factorKey} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-slate-800/50">
-              <td className="py-2.5 px-3 font-medium text-gray-800 dark:text-gray-200 whitespace-nowrap">{f.factorName}</td>
-              <td className="py-2.5 px-3 text-gray-600 dark:text-gray-400 font-mono text-xs">{f.dataSource}</td>
-              <td className="py-2.5 px-3 text-gray-600 dark:text-gray-400">{f.scoreRange}</td>
-              <td className="py-2.5 px-3 text-gray-600 dark:text-gray-400">{f.formula}</td>
+            <tr key={f.factorKey} className="border-b border-gray-800 hover:bg-slate-800/50">
+              <td className="py-2.5 px-3 font-medium text-gray-200 whitespace-nowrap">{f.factorName}</td>
+              <td className="py-2.5 px-3 text-gray-400 font-mono text-xs">{f.dataSource}</td>
+              <td className="py-2.5 px-3 text-gray-400">{f.scoreRange}</td>
+              <td className="py-2.5 px-3 text-gray-400">{f.formula}</td>
             </tr>
           ))}
         </tbody>
@@ -84,29 +84,29 @@ function PositioningTable({ charts }: { charts: PositioningRubric[] }) {
   return (
     <div className="space-y-4">
       {charts.map((chart) => (
-        <div key={chart.chartType} className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-          <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">{chart.chartName}</h4>
+        <div key={chart.chartType} className="rounded-lg border border-gray-700 p-4">
+          <h4 className="font-semibold text-gray-200 mb-3">{chart.chartName}</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div>
-              <span className="text-gray-500 dark:text-gray-400">X축:</span>{' '}
-              <span className="font-medium text-gray-800 dark:text-gray-200">{chart.xAxis.label}</span>
-              <p className="text-xs text-gray-400 dark:text-gray-500 font-mono mt-0.5">{chart.xAxis.source}</p>
+              <span className="text-gray-400">X축:</span>{' '}
+              <span className="font-medium text-gray-200">{chart.xAxis.label}</span>
+              <p className="text-xs text-gray-500 font-mono mt-0.5">{chart.xAxis.source}</p>
             </div>
             <div>
-              <span className="text-gray-500 dark:text-gray-400">Y축:</span>{' '}
-              <span className="font-medium text-gray-800 dark:text-gray-200">{chart.yAxis.label}</span>
-              <p className="text-xs text-gray-400 dark:text-gray-500 font-mono mt-0.5">{chart.yAxis.source}</p>
+              <span className="text-gray-400">Y축:</span>{' '}
+              <span className="font-medium text-gray-200">{chart.yAxis.label}</span>
+              <p className="text-xs text-gray-500 font-mono mt-0.5">{chart.yAxis.source}</p>
             </div>
             <div>
-              <span className="text-gray-500 dark:text-gray-400">버블 크기:</span>{' '}
-              <span className="font-medium text-gray-800 dark:text-gray-200">{chart.bubbleSize.label}</span>
-              <p className="text-xs text-gray-400 dark:text-gray-500 font-mono mt-0.5">{chart.bubbleSize.source}</p>
+              <span className="text-gray-400">버블 크기:</span>{' '}
+              <span className="font-medium text-gray-200">{chart.bubbleSize.label}</span>
+              <p className="text-xs text-gray-500 font-mono mt-0.5">{chart.bubbleSize.source}</p>
             </div>
             {chart.colorGroup && (
               <div>
-                <span className="text-gray-500 dark:text-gray-400">색상 그룹:</span>{' '}
-                <span className="font-medium text-gray-800 dark:text-gray-200">{chart.colorGroup.label}</span>
-                <p className="text-xs text-gray-400 dark:text-gray-500 font-mono mt-0.5">{chart.colorGroup.source}</p>
+                <span className="text-gray-400">색상 그룹:</span>{' '}
+                <span className="font-medium text-gray-200">{chart.colorGroup.label}</span>
+                <p className="text-xs text-gray-500 font-mono mt-0.5">{chart.colorGroup.source}</p>
               </div>
             )}
           </div>
@@ -126,7 +126,7 @@ export default function RubricPanel({ type }: RubricPanelProps) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+        className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
       >
         <BookOpen className="w-3.5 h-3.5" />
         평가 기준 보기
@@ -138,15 +138,15 @@ export default function RubricPanel({ type }: RubricPanelProps) {
           <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
 
           {/* Modal */}
-          <div className="relative w-full max-w-3xl max-h-[80vh] mx-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-700 shadow-2xl overflow-hidden">
+          <div className="relative w-full max-w-3xl max-h-[80vh] mx-4 rounded-xl bg-slate-900 border border-gray-700 shadow-2xl overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700">
+              <h3 className="text-base font-bold text-white">
                 {TITLES[type]}
               </h3>
               <button
                 onClick={() => setOpen(false)}
-                className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 dark:text-gray-400 transition-colors"
+                className="p-1 rounded-lg hover:bg-slate-800 text-gray-400 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -162,7 +162,7 @@ export default function RubricPanel({ type }: RubricPanelProps) {
               )}
 
               {error && (
-                <div className="text-center py-12 text-red-500 dark:text-red-400 text-sm">
+                <div className="text-center py-12 text-red-400 text-sm">
                   루브릭 데이터를 불러오지 못했습니다.
                 </div>
               )}

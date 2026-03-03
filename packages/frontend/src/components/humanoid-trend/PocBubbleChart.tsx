@@ -23,7 +23,7 @@ function CustomLabel(props: any) {
 export default function PocBubbleChart({ data }: Props) {
   if (!data || data.length < 2) {
     return (
-      <div className="flex items-center justify-center min-h-[300px] text-gray-400 dark:text-gray-500 text-sm">
+      <div className="flex items-center justify-center min-h-[300px] text-gray-500 text-sm">
         포지셔닝 비교를 위해 최소 2개 이상의 데이터가 필요합니다.
       </div>
     );

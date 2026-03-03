@@ -19,8 +19,8 @@ interface TimelineTrendPanelProps {
   onBarClick?: (month: string, year: number) => void;
 }
 
-type PeriodFilter = '3m' | '6m' | '12m';
-type SegmentFilter = 'all' | 'industrial' | 'home' | 'service';
+type PeriodFilter = '3m' | '6m' | '12m' | '24m' | '36m';
+type GroupBy = 'month' | 'quarter' | 'year';
 
 export function TimelineTrendPanel({
   data,
@@ -28,7 +28,7 @@ export function TimelineTrendPanel({
   onBarClick,
 }: TimelineTrendPanelProps) {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('6m');
-  const [segmentFilter, setSegmentFilter] = useState<SegmentFilter>('all');
+  const [groupBy, setGroupBy] = useState<GroupBy>('month');
   const [eventTypes, setEventTypes] = useState({
     investments: true,
     pocs: true,
@@ -37,9 +37,47 @@ export function TimelineTrendPanel({
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
 
   const filteredData = useMemo(() => {
-    const months = periodFilter === '3m' ? 3 : periodFilter === '6m' ? 6 : 12;
-    return data.slice(-months);
-  }, [data, periodFilter]);
+    const months = periodFilter === '3m' ? 3 : periodFilter === '6m' ? 6 : periodFilter === '12m' ? 12 : periodFilter === '24m' ? 24 : 36;
+    const sliced = data.slice(-months);
+
+    if (groupBy === 'month') return sliced;
+
+    if (groupBy === 'quarter') {
+      const quarterMap = new Map<string, TimelineEvent>();
+      for (const item of sliced) {
+        const monthNum = parseInt(item.month);
+        const q = Math.ceil(monthNum / 3);
+        const key = `${item.year}-Q${q}`;
+        const existing = quarterMap.get(key);
+        if (existing) {
+          existing.eventCount += item.eventCount;
+          existing.newProducts += item.newProducts;
+          existing.investments += item.investments;
+          existing.pocs += item.pocs;
+          existing.productions += item.productions;
+        } else {
+          quarterMap.set(key, { ...item, month: `Q${q}` });
+        }
+      }
+      return Array.from(quarterMap.values());
+    }
+
+    // year
+    const yearMap = new Map<number, TimelineEvent>();
+    for (const item of sliced) {
+      const existing = yearMap.get(item.year);
+      if (existing) {
+        existing.eventCount += item.eventCount;
+        existing.newProducts += item.newProducts;
+        existing.investments += item.investments;
+        existing.pocs += item.pocs;
+        existing.productions += item.productions;
+      } else {
+        yearMap.set(item.year, { ...item, month: `${item.year}` });
+      }
+    }
+    return Array.from(yearMap.values());
+  }, [data, periodFilter, groupBy]);
 
   const maxValue = useMemo(() => {
     return Math.max(...filteredData.map(d => d.eventCount), 1);
@@ -98,7 +136,7 @@ export function TimelineTrendPanel({
       <div className="flex flex-wrap gap-2 mb-4">
         {/* Period filter */}
         <div className="flex bg-slate-800 rounded-lg p-1">
-          {(['3m', '6m', '12m'] as PeriodFilter[]).map((period) => (
+          {(['3m', '6m', '12m', '24m', '36m'] as PeriodFilter[]).map((period) => (
             <button
               key={period}
               onClick={() => setPeriodFilter(period)}
@@ -108,7 +146,28 @@ export function TimelineTrendPanel({
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              {period === '3m' ? '3개월' : period === '6m' ? '6개월' : '12개월'}
+              {period === '3m' ? '3개월' : period === '6m' ? '6개월' : period === '12m' ? '1년' : period === '24m' ? '2년' : '3년'}
+            </button>
+          ))}
+        </div>
+
+        {/* Group by filter */}
+        <div className="flex bg-slate-800 rounded-lg p-1">
+          {([
+            { key: 'month' as GroupBy, label: '월별' },
+            { key: 'quarter' as GroupBy, label: '분기별' },
+            { key: 'year' as GroupBy, label: '연별' },
+          ]).map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setGroupBy(key)}
+              className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                groupBy === key
+                  ? 'bg-emerald-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {label}
             </button>
           ))}
         </div>

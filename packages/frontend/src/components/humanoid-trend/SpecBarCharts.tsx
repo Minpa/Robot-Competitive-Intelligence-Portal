@@ -29,8 +29,8 @@ function SingleBarChart({ data, chartKey, title, unit }: {
   }));
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 p-4">
-      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">{title}</h4>
+    <div className="rounded-xl border border-slate-700 bg-slate-800 p-4">
+      <h4 className="text-sm font-semibold text-gray-200 mb-3">{title}</h4>
       <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
@@ -65,7 +65,7 @@ function SingleBarChart({ data, chartKey, title, unit }: {
 export default function SpecBarCharts({ data }: Props) {
   if (!data || data.length < 2) {
     return (
-      <div className="flex items-center justify-center min-h-[300px] text-gray-400 dark:text-gray-500 text-sm">
+      <div className="flex items-center justify-center min-h-[300px] text-gray-500 text-sm">
         비교를 위해 최소 2개 이상의 로봇 데이터가 필요합니다.
       </div>
     );
