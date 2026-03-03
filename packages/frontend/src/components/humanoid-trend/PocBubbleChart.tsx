@@ -22,7 +22,7 @@ export default function PocBubbleChart({ data }: Props) {
     if (x == null || y == null || !value) return null;
 
     const labelW = value.length * 5;
-    const candidates = [
+    const candidates: Array<{ dy: number; dx: number; anchor: 'start' | 'middle' | 'end' }> = [
       { dy: -18, dx: 0, anchor: 'middle' },
       { dy: 24, dx: 0, anchor: 'middle' },
       { dy: -12, dx: 10, anchor: 'start' },
@@ -53,8 +53,10 @@ export default function PocBubbleChart({ data }: Props) {
 
     placedRef.current.push({ x: x + best.dx, y: y + best.dy, w: labelW });
 
+    const anchor = best.anchor as 'start' | 'middle' | 'end';
+
     return (
-      <text x={x + best.dx} y={y + best.dy} textAnchor={best.anchor} fontSize={9} fill="#E2E8F0" fontWeight={500}>
+      <text x={x + best.dx} y={y + best.dy} textAnchor={anchor} fontSize={9} fill="#E2E8F0" fontWeight={500}>
         {value}
       </text>
     );
