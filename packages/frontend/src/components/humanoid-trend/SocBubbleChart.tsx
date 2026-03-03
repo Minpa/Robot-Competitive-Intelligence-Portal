@@ -1,6 +1,6 @@
 'use client';
 
-  import {
+import {
   ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell, Label, Legend, LabelList,
 } from 'recharts';
