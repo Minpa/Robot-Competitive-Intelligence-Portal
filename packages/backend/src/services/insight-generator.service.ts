@@ -339,10 +339,10 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
 
     let endDate = now;
     if (candidateDates.length > 0) {
-      const latestDataDate = candidateDates.sort((a, b) => b.getTime() - a.getTime())[0];
+      const sorted = candidateDates.sort((a, b) => b.getTime() - a.getTime());
+      const latestDataDate = sorted[0]!;
       const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1);
       if (latestDataDate < sixMonthsAgo) {
-        // 데이터가 오래된 경우: 가장 최근 데이터의 다음 달 1일을 끝점으로 사용
         endDate = new Date(latestDataDate.getFullYear(), latestDataDate.getMonth() + 2, 1);
       }
     }
