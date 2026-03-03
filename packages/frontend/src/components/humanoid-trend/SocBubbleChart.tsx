@@ -69,7 +69,6 @@ export default function SocBubbleChart({ data }: Props) {
     );
   }, []);
 
-export default function SocBubbleChart({ data }: Props) {
   if (!data || data.length < 2) {
     return (
       <div className="flex items-center justify-center min-h-[300px] text-gray-500 text-sm">
