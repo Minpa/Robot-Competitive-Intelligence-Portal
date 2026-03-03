@@ -1466,6 +1466,28 @@ class ApiClient {
     if (!res.ok) throw new Error('PPT 생성 실패');
     return res.blob();
   }
+
+  // ── Data Generator: AI 배치 데이터 생성 ──
+
+  async getDataGeneratorTopics() {
+    return this.request<Array<{ query: string; targetTypes: string[]; region?: string }>>('/admin/data-generator/topics');
+  }
+
+  async generateDataForTopic(data: { query: string; targetTypes?: string[]; region?: string; provider?: 'chatgpt' | 'claude'; webSearch?: boolean }) {
+    return this.request<{
+      topic: string; provider: string;
+      companiesSaved: number; productsSaved: number; articlesSaved: number; keywordsSaved: number;
+      errors: string[];
+    }>('/admin/data-generator/generate', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async generateDataBatch(provider: 'chatgpt' | 'claude' = 'claude', webSearch: boolean = false) {
+    return this.request<{
+      totalTopics: number; completed: number; failed: number;
+      results: Array<{ topic: string; provider: string; companiesSaved: number; productsSaved: number; articlesSaved: number; keywordsSaved: number; errors: string[] }>;
+      totalCost: string;
+    }>('/admin/data-generator/batch', { method: 'POST', body: JSON.stringify({ provider, webSearch }) });
+  }
 }
 
 export const api = new ApiClient();

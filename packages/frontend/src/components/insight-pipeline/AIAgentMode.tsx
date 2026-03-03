@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Sparkles, Brain, Globe } from 'lucide-react';
+import { Search, Sparkles, Brain, Globe, Database } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { AnalysisResult } from '@/types/insight-pipeline';
 
@@ -47,6 +47,11 @@ export function AIAgentMode({
   const [provider, setProvider] = useState<'chatgpt' | 'claude'>('chatgpt');
   const [webSearch, setWebSearch] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isBatchRunning, setIsBatchRunning] = useState(false);
+  const [batchResult, setBatchResult] = useState<{
+    totalTopics: number; completed: number; failed: number;
+    results: Array<{ topic: string; companiesSaved: number; productsSaved: number; articlesSaved: number; keywordsSaved: number; errors: string[] }>;
+  } | null>(null);
 
   const canSearch = searchQuery.trim().length > 0 && selectedTypes.size > 0 && !isAnalyzing;
 
@@ -255,6 +260,55 @@ export function AIAgentMode({
         <Sparkles className="w-4 h-4" />
         {isAnalyzing ? 'AI 검색 중...' : 'AI 검색 시작'}
       </button>
+
+      {/* Batch data generation */}
+      <div className="border-t border-slate-700/50 pt-5 mt-2 space-y-3">
+        <div className="flex items-center gap-2 text-slate-300">
+          <Database className="w-4 h-4 text-amber-400" />
+          <p className="text-sm font-medium">배치 데이터 생성</p>
+        </div>
+        <p className="text-xs text-slate-500">
+          10개 주제(기업, 중국시장, 일한, SoC, 액추에이터, 적용사례, 투자, AI모델, 유럽, 센서)를 한 번에 실행하여 DB에 저장합니다.
+        </p>
+        <button
+          onClick={async () => {
+            setIsBatchRunning(true);
+            setBatchResult(null);
+            setError(null);
+            try {
+              const result = await api.generateDataBatch(provider, webSearch);
+              setBatchResult(result);
+            } catch (err: any) {
+              setError(err?.message ?? '배치 실행 중 오류가 발생했습니다.');
+            } finally {
+              setIsBatchRunning(false);
+            }
+          }}
+          disabled={isBatchRunning || isAnalyzing}
+          className="w-full py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-amber-600 hover:bg-amber-500 text-white"
+        >
+          <Database className="w-4 h-4" />
+          {isBatchRunning ? '배치 실행 중... (약 1~2분 소요)' : '배치 데이터 생성 (10개 주제)'}
+        </button>
+
+        {batchResult && (
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 space-y-2">
+            <p className="text-sm text-emerald-400">
+              완료: {batchResult.completed}/{batchResult.totalTopics} 주제 | 실패: {batchResult.failed}
+            </p>
+            <div className="text-xs text-slate-400 space-y-1 max-h-40 overflow-y-auto">
+              {batchResult.results.map((r, i) => (
+                <div key={i} className="flex justify-between">
+                  <span className="truncate flex-1 mr-2">{r.topic}</span>
+                  <span className="text-slate-500 whitespace-nowrap">
+                    기업 {r.companiesSaved} · 제품 {r.productsSaved} · 기사 {r.articlesSaved} · 키워드 {r.keywordsSaved}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
