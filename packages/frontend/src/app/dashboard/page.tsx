@@ -143,7 +143,7 @@ export default function DashboardPage() {
       (items as any[]).forEach((item) => {
         allNews.push({
           id: item.id,
-          date: item.publishedAt ? formatDate(item.publishedAt) : formatDate(new Date().toISOString()),
+          date: item.publishedAt ? formatDate(item.publishedAt) : '날짜 없음',
           type: category === 'industry' ? 'investment' : category === 'technology' ? 'poc' : 'other',
           title: item.title,
           comment: item.summary?.slice(0, 50),

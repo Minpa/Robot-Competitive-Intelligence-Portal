@@ -157,6 +157,7 @@ export class DashboardService {
         source: articles.source,
         url: articles.url,
         publishedAt: articles.publishedAt,
+        createdAt: articles.createdAt,
         category: articles.category,
         productType: articles.productType,
       })
@@ -186,7 +187,7 @@ export class DashboardService {
         summary: article.summary || '',
         source: article.source,
         url: article.url,
-        publishedAt: article.publishedAt?.toISOString() || null,
+        publishedAt: article.publishedAt?.toISOString() || article.createdAt?.toISOString() || null,
       };
 
       const cat = article.category as keyof typeof categories;
