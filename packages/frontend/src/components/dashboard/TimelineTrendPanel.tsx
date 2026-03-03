@@ -1,6 +1,10 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import {
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer,
+} from 'recharts';
 import { EmptyChartPlaceholder } from '../shared/EmptyChartPlaceholder';
 
 interface TimelineEvent {
@@ -27,28 +31,27 @@ export function TimelineTrendPanel({
   isLoading = false,
   onBarClick,
 }: TimelineTrendPanelProps) {
-  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('6m');
-  const [groupBy, setGroupBy] = useState<GroupBy>('month');
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('36m');
+  const [groupBy, setGroupBy] = useState<GroupBy>('year');
   const [eventTypes, setEventTypes] = useState({
     investments: true,
     pocs: true,
     productions: true,
   });
-  const [hoveredBar, setHoveredBar] = useState<number | null>(null);
 
-  const filteredData = useMemo(() => {
+  const chartData = useMemo(() => {
     const months = periodFilter === '3m' ? 3 : periodFilter === '6m' ? 6 : periodFilter === '12m' ? 12 : periodFilter === '24m' ? 24 : 36;
     const sliced = data.slice(-months);
 
     if (groupBy === 'month') {
       return sliced.map(item => ({
         ...item,
-        displayMonth: `${item.month}월`,
+        label: `${item.month}월`,
       }));
     }
 
     if (groupBy === 'quarter') {
-      const quarterMap = new Map<string, TimelineEvent & { displayMonth: string }>();
+      const quarterMap = new Map<string, TimelineEvent & { label: string }>();
       for (const item of sliced) {
         const monthNum = parseInt(item.month);
         const q = Math.ceil(monthNum / 3);
@@ -61,14 +64,14 @@ export function TimelineTrendPanel({
           existing.pocs += item.pocs;
           existing.productions += item.productions;
         } else {
-          quarterMap.set(key, { ...item, month: `Q${q}`, displayMonth: `Q${q}` });
+          quarterMap.set(key, { ...item, month: `Q${q}`, label: `${item.year} Q${q}` });
         }
       }
       return Array.from(quarterMap.values());
     }
 
     // year
-    const yearMap = new Map<number, TimelineEvent & { displayMonth: string }>();
+    const yearMap = new Map<number, TimelineEvent & { label: string }>();
     for (const item of sliced) {
       const existing = yearMap.get(item.year);
       if (existing) {
@@ -78,19 +81,11 @@ export function TimelineTrendPanel({
         existing.pocs += item.pocs;
         existing.productions += item.productions;
       } else {
-        yearMap.set(item.year, { ...item, month: `${item.year}`, displayMonth: `${item.year}` });
+        yearMap.set(item.year, { ...item, label: `${item.year}` });
       }
     }
     return Array.from(yearMap.values());
   }, [data, periodFilter, groupBy]);
-
-  const maxValue = useMemo(() => {
-    return Math.max(...filteredData.map(d => d.eventCount), 1);
-  }, [filteredData]);
-
-  const maxProducts = useMemo(() => {
-    return Math.max(...filteredData.map(d => d.newProducts), 1);
-  }, [filteredData]);
 
   if (isLoading) {
     return (
@@ -101,11 +96,7 @@ export function TimelineTrendPanel({
             <div key={i} className="h-8 bg-slate-800 rounded w-16" />
           ))}
         </div>
-        <div className="flex items-end gap-2 h-48">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex-1 bg-slate-800 rounded-t" style={{ height: `${30 + Math.random() * 70}%` }} />
-          ))}
-        </div>
+        <div className="h-48 bg-slate-800 rounded" />
       </div>
     );
   }
@@ -127,28 +118,23 @@ export function TimelineTrendPanel({
   return (
     <div className="bg-slate-900 rounded-xl p-6 h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <span className="text-xl">📈</span>
-            월별 이벤트/신규 제품 트렌드
-          </h3>
-          <p className="text-xs text-slate-400 mt-1">이벤트 수(막대) vs 신규 제품(라인)</p>
-        </div>
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+          <span className="text-xl">📈</span>
+          월별 이벤트/신규 제품 트렌드
+        </h3>
+        <p className="text-xs text-slate-400 mt-1">이벤트 수(막대) vs 신규 제품(라인)</p>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-4">
-        {/* Period filter */}
         <div className="flex bg-slate-800 rounded-lg p-1">
           {(['3m', '6m', '12m', '24m', '36m'] as PeriodFilter[]).map((period) => (
             <button
               key={period}
               onClick={() => setPeriodFilter(period)}
               className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                periodFilter === period
-                  ? 'bg-blue-600 text-white'
-                  : 'text-slate-400 hover:text-white'
+                periodFilter === period ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
               }`}
             >
               {period === '3m' ? '3개월' : period === '6m' ? '6개월' : period === '12m' ? '1년' : period === '24m' ? '2년' : '3년'}
@@ -156,7 +142,6 @@ export function TimelineTrendPanel({
           ))}
         </div>
 
-        {/* Group by filter */}
         <div className="flex bg-slate-800 rounded-lg p-1">
           {([
             { key: 'month' as GroupBy, label: '월별' },
@@ -167,9 +152,7 @@ export function TimelineTrendPanel({
               key={key}
               onClick={() => setGroupBy(key)}
               className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                groupBy === key
-                  ? 'bg-emerald-600 text-white'
-                  : 'text-slate-400 hover:text-white'
+                groupBy === key ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
               }`}
             >
               {label}
@@ -177,7 +160,6 @@ export function TimelineTrendPanel({
           ))}
         </div>
 
-        {/* Event type toggles */}
         <div className="flex gap-1">
           {[
             { key: 'investments', label: '투자', color: 'bg-green-500' },
@@ -188,9 +170,7 @@ export function TimelineTrendPanel({
               key={key}
               onClick={() => setEventTypes(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))}
               className={`flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-colors ${
-                eventTypes[key as keyof typeof eventTypes]
-                  ? 'bg-slate-700 text-white'
-                  : 'bg-slate-800 text-slate-500'
+                eventTypes[key as keyof typeof eventTypes] ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-500'
               }`}
             >
               <span className={`w-2 h-2 rounded-full ${color}`} />
@@ -200,128 +180,88 @@ export function TimelineTrendPanel({
         </div>
       </div>
 
-      {/* Chart */}
-      <div className="flex-1 flex flex-col">
-        {/* Y-axis labels and chart area */}
-        <div className="flex-1 flex">
-          {/* Y-axis (events) */}
-          <div className="w-8 flex flex-col justify-between text-xs text-slate-500 pr-2">
-            <span>{maxValue}</span>
-            <span>{Math.round(maxValue / 2)}</span>
-            <span>0</span>
-          </div>
-
-          {/* Bars */}
-          <div className="flex-1 flex items-end gap-1 relative">
-            {filteredData.map((item, idx) => {
-              const barHeight = (item.eventCount / maxValue) * 100;
-              const lineY = 100 - (item.newProducts / maxProducts) * 100;
-
-              return (
-                <div
-                  key={idx}
-                  className="flex-1 flex flex-col items-center relative"
-                  onMouseEnter={() => setHoveredBar(idx)}
-                  onMouseLeave={() => setHoveredBar(null)}
-                >
-                  {/* Bar */}
-                  <div
-                    className={`w-full rounded-t cursor-pointer transition-all ${
-                      hoveredBar === idx ? 'bg-blue-400' : 'bg-blue-600'
-                    }`}
-                    style={{ height: `${barHeight}%`, minHeight: item.eventCount > 0 ? '4px' : '0' }}
-                    onClick={() => onBarClick?.(item.month, item.year)}
-                  />
-
-                  {/* Line point */}
-                  <div
-                    className="absolute w-3 h-3 bg-orange-500 rounded-full border-2 border-slate-900 z-10"
-                    style={{ bottom: `${100 - lineY}%`, transform: 'translateY(50%)' }}
-                  />
-
-                  {/* Tooltip */}
-                  {hoveredBar === idx && (
-                    <div className="absolute z-50 bottom-full mb-2 bg-slate-800 border border-slate-700 rounded-lg p-3 shadow-xl min-w-[160px] left-1/2 -translate-x-1/2">
-                      <div className="text-sm font-medium text-white mb-2">
-                        {item.year}년 {(item as any).displayMonth || item.month}
-                      </div>
-                      <div className="space-y-1 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">총 이벤트</span>
-                          <span className="text-white">{item.eventCount}건</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">신규 제품</span>
-                          <span className="text-orange-400">{item.newProducts}개</span>
-                        </div>
-                        {eventTypes.investments && (
-                          <div className="flex justify-between">
-                            <span className="text-green-400">투자</span>
-                            <span className="text-white">{item.investments}건</span>
-                          </div>
-                        )}
-                        {eventTypes.pocs && (
-                          <div className="flex justify-between">
-                            <span className="text-yellow-400">PoC</span>
-                            <span className="text-white">{item.pocs}건</span>
-                          </div>
-                        )}
-                        {eventTypes.productions && (
-                          <div className="flex justify-between">
-                            <span className="text-purple-400">양산</span>
-                            <span className="text-white">{item.productions}건</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-            {/* Connect line points */}
-            <svg className="absolute inset-0 pointer-events-none overflow-visible">
-              <polyline
-                fill="none"
-                stroke="#f97316"
-                strokeWidth="2"
-                points={filteredData.map((item, idx) => {
-                  const x = (idx + 0.5) * (100 / filteredData.length);
-                  const y = 100 - (item.newProducts / maxProducts) * 100;
-                  return `${x}%,${y}%`;
-                }).join(' ')}
-              />
-            </svg>
-          </div>
-
-          {/* Y-axis (products) */}
-          <div className="w-8 flex flex-col justify-between text-xs text-orange-400 pl-2">
-            <span>{maxProducts}</span>
-            <span>{Math.round(maxProducts / 2)}</span>
-            <span>0</span>
-          </div>
-        </div>
-
-        {/* X-axis labels */}
-        <div className="flex mt-2 ml-8 mr-8">
-          {filteredData.map((item, idx) => (
-            <div key={idx} className="flex-1 text-center text-xs text-slate-500">
-              {(item as any).displayMonth || item.month}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center justify-center gap-4 mt-4 text-xs">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-blue-600 rounded" />
-          <span className="text-slate-400">이벤트 수</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-orange-500 rounded-full" />
-          <span className="text-slate-400">신규 제품</span>
-        </div>
+      {/* Recharts ComposedChart */}
+      <div className="flex-1 min-h-[280px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={chartData} margin={{ top: 10, right: 10, bottom: 10, left: -10 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 11, fill: '#94A3B8' }}
+              axisLine={{ stroke: '#475569' }}
+              tickLine={false}
+            />
+            <YAxis
+              yAxisId="left"
+              tick={{ fontSize: 11, fill: '#94A3B8' }}
+              axisLine={false}
+              tickLine={false}
+              allowDecimals={false}
+            />
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              tick={{ fontSize: 11, fill: '#F97316' }}
+              axisLine={false}
+              tickLine={false}
+              allowDecimals={false}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: '#1E293B',
+                border: '1px solid #475569',
+                borderRadius: '8px',
+                fontSize: '12px',
+              }}
+              labelStyle={{ color: '#F8FAFC', fontWeight: 600, marginBottom: 4 }}
+              formatter={(value: number, name: string) => {
+                const labels: Record<string, string> = {
+                  eventCount: '총 이벤트',
+                  newProducts: '신규 제품',
+                  investments: '투자',
+                  pocs: 'PoC',
+                  productions: '양산',
+                };
+                const units: Record<string, string> = {
+                  eventCount: '건',
+                  newProducts: '개',
+                  investments: '건',
+                  pocs: '건',
+                  productions: '건',
+                };
+                return [`${value}${units[name] || ''}`, labels[name] || name];
+              }}
+            />
+            <Legend
+              wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
+              formatter={(value: string) => {
+                const labels: Record<string, string> = {
+                  eventCount: '이벤트 수',
+                  newProducts: '신규 제품',
+                };
+                return <span style={{ color: '#94A3B8' }}>{labels[value] || value}</span>;
+              }}
+            />
+            <Bar
+              yAxisId="left"
+              dataKey="eventCount"
+              fill="#3B82F6"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={40}
+              onClick={(data) => onBarClick?.(data.month, data.year)}
+              cursor="pointer"
+            />
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="newProducts"
+              stroke="#F97316"
+              strokeWidth={2}
+              dot={{ r: 5, fill: '#F97316', stroke: '#0F172A', strokeWidth: 2 }}
+              activeDot={{ r: 7 }}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
