@@ -40,10 +40,15 @@ export function TimelineTrendPanel({
     const months = periodFilter === '3m' ? 3 : periodFilter === '6m' ? 6 : periodFilter === '12m' ? 12 : periodFilter === '24m' ? 24 : 36;
     const sliced = data.slice(-months);
 
-    if (groupBy === 'month') return sliced;
+    if (groupBy === 'month') {
+      return sliced.map(item => ({
+        ...item,
+        displayMonth: `${item.month}월`,
+      }));
+    }
 
     if (groupBy === 'quarter') {
-      const quarterMap = new Map<string, TimelineEvent>();
+      const quarterMap = new Map<string, TimelineEvent & { displayMonth: string }>();
       for (const item of sliced) {
         const monthNum = parseInt(item.month);
         const q = Math.ceil(monthNum / 3);
@@ -56,14 +61,14 @@ export function TimelineTrendPanel({
           existing.pocs += item.pocs;
           existing.productions += item.productions;
         } else {
-          quarterMap.set(key, { ...item, month: `Q${q}` });
+          quarterMap.set(key, { ...item, month: `Q${q}`, displayMonth: `Q${q}` });
         }
       }
       return Array.from(quarterMap.values());
     }
 
     // year
-    const yearMap = new Map<number, TimelineEvent>();
+    const yearMap = new Map<number, TimelineEvent & { displayMonth: string }>();
     for (const item of sliced) {
       const existing = yearMap.get(item.year);
       if (existing) {
@@ -73,7 +78,7 @@ export function TimelineTrendPanel({
         existing.pocs += item.pocs;
         existing.productions += item.productions;
       } else {
-        yearMap.set(item.year, { ...item, month: `${item.year}` });
+        yearMap.set(item.year, { ...item, month: `${item.year}`, displayMonth: `${item.year}` });
       }
     }
     return Array.from(yearMap.values());
@@ -238,7 +243,7 @@ export function TimelineTrendPanel({
                   {hoveredBar === idx && (
                     <div className="absolute z-50 bottom-full mb-2 bg-slate-800 border border-slate-700 rounded-lg p-3 shadow-xl min-w-[160px] left-1/2 -translate-x-1/2">
                       <div className="text-sm font-medium text-white mb-2">
-                        {item.year}년 {item.month}
+                        {item.year}년 {(item as any).displayMonth || item.month}
                       </div>
                       <div className="space-y-1 text-xs">
                         <div className="flex justify-between">
@@ -301,7 +306,7 @@ export function TimelineTrendPanel({
         <div className="flex mt-2 ml-8 mr-8">
           {filteredData.map((item, idx) => (
             <div key={idx} className="flex-1 text-center text-xs text-slate-500">
-              {item.month}
+              {(item as any).displayMonth || item.month}
             </div>
           ))}
         </div>

@@ -316,7 +316,8 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
       }
     });
 
-    // 실제 데이터가 존재하는 기간 감지 (demoDate 기준)
+    // endDate 결정: 데이터가 있는 가장 최근 시점 기준
+    // 1) application_cases, articles, humanoid_robots 중 가장 최근 날짜 탐색
     const [latestCase] = await db
       .select({ maxDate: sql<string>`MAX(${applicationCases.demoDate})` })
       .from(applicationCases);
@@ -324,40 +325,84 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
       .select({ maxDate: sql<string>`MAX(${articles.publishedAt})` })
       .from(articles);
 
-    // 가장 최근 데이터 날짜 결정
-    let endDate = now;
     const latestCaseDate = latestCase?.maxDate ? new Date(latestCase.maxDate) : null;
     const latestArticleDate = latestArticle?.maxDate ? new Date(latestArticle.maxDate) : null;
+    const maxAnnouncementYear = Object.keys(yearlyRobotCount).length > 0
+      ? Math.max(...Object.keys(yearlyRobotCount).map(Number))
+      : 0;
 
-    // 최근 데이터가 현재보다 6개월 이상 오래된 경우, 데이터 기준으로 타임라인 생성
-    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1);
-    const latestDataDate = [latestCaseDate, latestArticleDate]
-      .filter((d): d is Date => d !== null)
-      .sort((a, b) => b.getTime() - a.getTime())[0];
+    // 모든 데이터 소스에서 가장 최근 날짜 수집
+    const candidateDates: Date[] = [];
+    if (latestCaseDate) candidateDates.push(latestCaseDate);
+    if (latestArticleDate) candidateDates.push(latestArticleDate);
+    if (maxAnnouncementYear > 0) candidateDates.push(new Date(maxAnnouncementYear, 11, 31));
 
-    if (latestDataDate && latestDataDate < sixMonthsAgo) {
-      // 데이터가 오래된 경우: 가장 최근 데이터 월의 다음 달을 끝점으로 사용
-      endDate = new Date(latestDataDate.getFullYear(), latestDataDate.getMonth() + 1, 1);
+    let endDate = now;
+    if (candidateDates.length > 0) {
+      const latestDataDate = candidateDates.sort((a, b) => b.getTime() - a.getTime())[0];
+      const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+      if (latestDataDate < sixMonthsAgo) {
+        // 데이터가 오래된 경우: 가장 최근 데이터의 다음 달 1일을 끝점으로 사용
+        endDate = new Date(latestDataDate.getFullYear(), latestDataDate.getMonth() + 2, 1);
+      }
     }
 
-    // announcementYear 기반 최대 연도도 고려
-    const maxAnnouncementYear = Math.max(...Object.keys(yearlyRobotCount).map(Number), 0);
-    if (maxAnnouncementYear > 0 && latestDataDate && latestDataDate < sixMonthsAgo) {
-      // announcementYear의 12월까지도 고려
-      const announcementEnd = new Date(maxAnnouncementYear, 11, 31);
-      if (announcementEnd > endDate) {
-        endDate = new Date(maxAnnouncementYear + 1, 0, 1);
-      }
+    // 전체 기간의 이벤트를 한 번에 조회 (N+1 쿼리 방지)
+    const rangeStart = new Date(endDate.getFullYear(), endDate.getMonth() - months + 1, 1);
+    const rangeEnd = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0);
+
+    const allCases = await db
+      .select({
+        demoDate: applicationCases.demoDate,
+        status: applicationCases.deploymentStatus,
+      })
+      .from(applicationCases)
+      .where(and(
+        sql`${applicationCases.demoDate} >= ${rangeStart.toISOString().split('T')[0]}`,
+        sql`${applicationCases.demoDate} <= ${rangeEnd.toISOString().split('T')[0]}`
+      ));
+
+    const allArticles = await db
+      .select({
+        publishedAt: articles.publishedAt,
+      })
+      .from(articles)
+      .where(and(
+        gte(articles.publishedAt, rangeStart),
+        sql`${articles.publishedAt} <= ${rangeEnd}`,
+        eq(articles.category, 'industry')
+      ));
+
+    // 월별 이벤트 맵 생성
+    const casesByMonth = new Map<string, { pilot: number; poc: number; production: number; concept: number }>();
+    for (const c of allCases) {
+      if (!c.demoDate) continue;
+      const d = new Date(c.demoDate);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      const entry = casesByMonth.get(key) || { pilot: 0, poc: 0, production: 0, concept: 0 };
+      const status = (c.status || '').toLowerCase();
+      if (status === 'pilot') entry.pilot++;
+      else if (status === 'poc') entry.poc++;
+      else if (status === 'production') entry.production++;
+      else if (status === 'concept') entry.concept++;
+      casesByMonth.set(key, entry);
+    }
+
+    const articlesByMonth = new Map<string, number>();
+    for (const a of allArticles) {
+      if (!a.publishedAt) continue;
+      const d = new Date(a.publishedAt);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      articlesByMonth.set(key, (articlesByMonth.get(key) || 0) + 1);
     }
 
     for (let i = months - 1; i >= 0; i--) {
       const monthStart = new Date(endDate.getFullYear(), endDate.getMonth() - i, 1);
-      const monthEnd = new Date(endDate.getFullYear(), endDate.getMonth() - i + 1, 0);
       const year = monthStart.getFullYear();
       const month = monthStart.getMonth();
+      const monthKey = `${year}-${month}`;
 
-      // 해당 연도의 로봇 수를 연도 단위로 1월에 집중 배치 (소수점 손실 방지)
-      // 월별 분배 시 Math.round로 0이 되는 문제 해결
+      // 신규 제품: 연도별 로봇 수를 월별로 분배
       let monthlyCount = 0;
       const yearlyCount = yearlyRobotCount[year] || 0;
       if (yearlyCount > 0) {
@@ -368,53 +413,30 @@ ${contextData.recentCases.map(c => `- ${c.robot} (${c.company}): ${c.status} - $
           // 4개 이상: 분기별 가중치로 분배하되, 분기 첫 달에 집중
           const quarterWeights = [0.35, 0.25, 0.15, 0.25];
           const quarter = Math.floor(month / 3);
-          const quarterMonth = month % 3; // 0, 1, 2 within quarter
+          const quarterMonth = month % 3;
           if (quarterMonth === 0) {
-            // 분기 첫 달에 해당 분기 몫 배치
             const quarterWeight = quarterWeights[quarter] ?? 0.25;
-            monthlyCount = Math.round(yearlyCount * quarterWeight);
+            monthlyCount = Math.max(1, Math.round(yearlyCount * quarterWeight));
           }
         }
       }
 
-      // 적용 사례 (이벤트) 수 - demoDate 기반
-      const caseResults = await db
-        .select({
-          status: applicationCases.deploymentStatus,
-          count: count(),
-        })
-        .from(applicationCases)
-        .where(and(
-          sql`${applicationCases.demoDate} >= ${monthStart.toISOString().split('T')[0]}`,
-          sql`${applicationCases.demoDate} <= ${monthEnd.toISOString().split('T')[0]}`
-        ))
-        .groupBy(applicationCases.deploymentStatus);
+      // 이벤트 수 집계 (pilot + poc + production + concept + articles)
+      const cases = casesByMonth.get(monthKey) || { pilot: 0, poc: 0, production: 0, concept: 0 };
+      const investments = articlesByMonth.get(monthKey) || 0;
+      const pocs = cases.pilot + cases.poc;
+      const productions = cases.production;
 
-      // 기사 수 (투자 관련) - publishedAt 기반
-      const [investmentCount] = await db
-        .select({ count: count() })
-        .from(articles)
-        .where(and(
-          gte(articles.publishedAt, monthStart),
-          sql`${articles.publishedAt} <= ${monthEnd}`,
-          eq(articles.category, 'industry')
-        ));
-
-      const pocs = caseResults.find(c => c.status === 'pilot')?.count || 0;
-      const productions = caseResults.find(c => c.status === 'production')?.count || 0;
-      const investments = Number(investmentCount?.count || 0);
-
-      const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
-      const monthName = monthNames[monthStart.getMonth()] || '1월';
+      const monthStr = String(month + 1);
 
       result.push({
-        month: monthName,
-        year: monthStart.getFullYear(),
-        eventCount: Number(pocs) + Number(productions) + investments,
+        month: monthStr,
+        year,
+        eventCount: pocs + productions + cases.concept + investments,
         newProducts: monthlyCount,
         investments,
-        pocs: Number(pocs),
-        productions: Number(productions),
+        pocs,
+        productions,
       });
     }
 
