@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { adminCrawlerService } from '../services/admin-crawler.service.js';
 import { analyzeArticle } from '../services/ai-analyzer.service.js';
 import { aiUsageService } from '../services/ai-usage.service.js';
+import { dataGeneratorService } from '../services/data-generator.service.js';
 import { CreateCrawlTargetSchema, UpdateCrawlTargetSchema, RateLimitConfigSchema } from '../types/dto.js';
 import pg from 'pg';
 import fs from 'fs';
@@ -307,6 +308,63 @@ export async function adminRoutes(fastify: FastifyInstance) {
       return reply.status(500).send({ error: `마이그레이션 실패: ${(err as Error).message}` });
     } finally {
       await client.end();
+    }
+  });
+
+  // ── Data Generator: AI 기반 초기 데이터 대량 생성 ──
+
+  // 기본 주제 목록 조회
+  fastify.get('/data-generator/topics', async () => {
+    return dataGeneratorService.getDefaultTopics();
+  });
+
+  // 단일 주제 데이터 생성
+  fastify.post('/data-generator/generate', async (request, reply) => {
+    try {
+      const body = request.body as {
+        query: string;
+        targetTypes?: string[];
+        region?: string;
+        provider?: 'chatgpt' | 'claude';
+        webSearch?: boolean;
+      };
+
+      if (!body.query) {
+        return reply.status(400).send({ error: 'query is required' });
+      }
+
+      const result = await dataGeneratorService.generateForTopic(
+        {
+          query: body.query,
+          targetTypes: (body.targetTypes || ['company', 'product', 'technology']) as any,
+          region: body.region,
+        },
+        body.provider || 'claude',
+        body.webSearch || false
+      );
+
+      return result;
+    } catch (err) {
+      return reply.status(500).send({ error: (err as Error).message });
+    }
+  });
+
+  // 배치 데이터 생성 (기본 주제 전체)
+  fastify.post('/data-generator/batch', async (request, reply) => {
+    try {
+      const body = request.body as {
+        provider?: 'chatgpt' | 'claude';
+        webSearch?: boolean;
+      };
+
+      const result = await dataGeneratorService.generateBatch(
+        body?.provider || 'claude',
+        body?.webSearch || false
+      );
+
+      return result;
+    } catch (err) {
+      return reply.status(500).send({ error: (err as Error).message });
     }
   });
 }
