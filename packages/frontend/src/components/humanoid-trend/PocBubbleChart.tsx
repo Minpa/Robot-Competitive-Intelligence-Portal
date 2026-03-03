@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef, useCallback } from 'react';
 import {
   ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell, Label, LabelList,
@@ -9,18 +10,56 @@ import type { PositioningDataWithRobot } from '@/types/humanoid-trend';
 
 interface Props { data: PositioningDataWithRobot[]; }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-function CustomLabel(props: any) {
-  const { x, y, value, index } = props;
-  const offsetY = index % 2 === 0 ? -14 : 20;
-  return (
-    <text x={x} y={y + offsetY} textAnchor="middle" fontSize={9} fill="#E2E8F0" fontWeight={500}>
-      {value}
-    </text>
-  );
-}
+const LABEL_H = 14;
+const MIN_GAP = 4;
 
 export default function PocBubbleChart({ data }: Props) {
+  const placedRef = useRef<Array<{ x: number; y: number; w: number }>>([]);
+  placedRef.current = [];
+
+  const renderLabel = useCallback((props: any) => {
+    const { x, y, value } = props;
+    if (x == null || y == null || !value) return null;
+
+    const labelW = value.length * 5;
+    const candidates = [
+      { dy: -18, dx: 0, anchor: 'middle' },
+      { dy: 24, dx: 0, anchor: 'middle' },
+      { dy: -12, dx: 10, anchor: 'start' },
+      { dy: -12, dx: -10, anchor: 'end' },
+      { dy: 22, dx: 10, anchor: 'start' },
+      { dy: 22, dx: -10, anchor: 'end' },
+      { dy: 2, dx: 24, anchor: 'start' },
+      { dy: 2, dx: -24, anchor: 'end' },
+    ];
+
+    let best = candidates[0];
+    let bestOverlap = Infinity;
+    for (const c of candidates) {
+      const lx = x + c.dx;
+      const ly = y + c.dy;
+      let overlap = 0;
+      for (const p of placedRef.current) {
+        const xOv = Math.max(0, Math.min(lx + labelW / 2, p.x + p.w / 2) - Math.max(lx - labelW / 2, p.x - p.w / 2));
+        const yOv = Math.max(0, (LABEL_H + MIN_GAP) - Math.abs(ly - p.y));
+        overlap += xOv * yOv;
+      }
+      if (overlap < bestOverlap) {
+        bestOverlap = overlap;
+        best = c;
+        if (overlap === 0) break;
+      }
+    }
+
+    placedRef.current.push({ x: x + best.dx, y: y + best.dy, w: labelW });
+
+    return (
+      <text x={x + best.dx} y={y + best.dy} textAnchor={best.anchor} fontSize={9} fill="#E2E8F0" fontWeight={500}>
+        {value}
+      </text>
+    );
+  }, []);
+
   if (!data || data.length < 2) {
     return (
       <div className="flex items-center justify-center min-h-[300px] text-gray-500 text-sm">
@@ -69,7 +108,7 @@ export default function PocBubbleChart({ data }: Props) {
             {chartData.map((d, i) => (
               <Cell key={i} fill={d.color} fillOpacity={0.8} />
             ))}
-            <LabelList dataKey="displayLabel" content={<CustomLabel />} />
+            <LabelList dataKey="displayLabel" content={renderLabel} />
           </Scatter>
         </ScatterChart>
       </ResponsiveContainer>
