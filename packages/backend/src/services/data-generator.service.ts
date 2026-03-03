@@ -48,7 +48,7 @@ function convertToAnalyzedData(response: AISearchResponse): AnalyzedData {
       const countryMatch = f.description.match(/\b(USA|China|Japan|Korea|Germany|Switzerland|Denmark|France|Spain|Canada|UK|Israel|India)\b/i);
       return {
         name: f.name,
-        country: countryMatch ? countryMatch[1] : 'Unknown',
+        country: countryMatch?.[1] ?? 'Unknown',
         category: 'robotics',
         description: f.description,
       };
@@ -89,7 +89,7 @@ function convertToAnalyzedData(response: AISearchResponse): AnalyzedData {
         name: f.name,
         companyName: companyFact?.name || 'Unknown',
         type: productType,
-        releaseDate: dateMatch ? `${dateMatch[1]}-${dateMatch[2].padStart(2, '0')}` : yearMatch ? yearMatch[1] : undefined,
+        releaseDate: dateMatch ? `${dateMatch[1]!}-${dateMatch[2]!.padStart(2, '0')}` : yearMatch ? yearMatch[1]! : undefined,
         description: f.description,
       };
     });
