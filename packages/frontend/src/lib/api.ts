@@ -1488,6 +1488,159 @@ class ApiClient {
       totalCost: string;
     }>('/admin/data-generator/batch', { method: 'POST', body: JSON.stringify({ provider, webSearch }) });
   }
+
+  // ── War Room — Dashboard ──
+
+  async getWarRoomDashboard(lgRobotId: string) {
+    return this.request<any>(`/war-room/dashboard?lgRobotId=${encodeURIComponent(lgRobotId)}`);
+  }
+
+  async getWarRoomLgRobots() {
+    return this.request<any>('/war-room/lg-robots');
+  }
+
+  // ── War Room — Competitive ──
+
+  async getWarRoomGapAnalysis(robotId: string) {
+    return this.request<any>(`/war-room/competitive/${encodeURIComponent(robotId)}`);
+  }
+
+  async getWarRoomCompetitiveOverlay(robotId: string) {
+    return this.request<any>(`/war-room/competitive/${encodeURIComponent(robotId)}/overlay`);
+  }
+
+  // ── War Room — Score History ──
+
+  async getWarRoomScoreHistory(robotIds: string[], months?: number) {
+    const params = new URLSearchParams();
+    params.set('robot_ids', robotIds.join(','));
+    if (months !== undefined) params.set('months', String(months));
+    return this.request<any>(`/war-room/score-history?${params.toString()}`);
+  }
+
+  // ── War Room — Alerts ──
+
+  async getWarRoomAlerts(filters?: { type?: string; is_read?: string }) {
+    const params = new URLSearchParams();
+    if (filters?.type) params.set('type', filters.type);
+    if (filters?.is_read) params.set('is_read', filters.is_read);
+    const qs = params.toString();
+    return this.request<any>(`/war-room/alerts${qs ? `?${qs}` : ''}`);
+  }
+
+  async markWarRoomAlertRead(alertId: string, userId?: string) {
+    return this.request<any>(`/war-room/alerts/${encodeURIComponent(alertId)}/read`, {
+      method: 'PUT',
+      body: userId ? JSON.stringify({ userId }) : undefined,
+    });
+  }
+
+  // ── War Room — CLOiD Management ──
+
+  async getWarRoomLgRobotsManagement() {
+    return this.request<any>('/war-room/lg-robots');
+  }
+
+  async createWarRoomLgRobot(data: any) {
+    return this.request<any>('/war-room/lg-robots', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateWarRoomLgRobotSpecs(robotId: string, specs: any) {
+    return this.request<any>(`/war-room/lg-robots/${encodeURIComponent(robotId)}/specs`, {
+      method: 'PUT',
+      body: JSON.stringify(specs),
+    });
+  }
+
+  async getWarRoomLgRobotHistory(robotId: string) {
+    return this.request<any>(`/war-room/lg-robots/${encodeURIComponent(robotId)}/history`);
+  }
+
+  // ── War Room — Partners (Phase 4) ──
+
+  async getWarRoomPartners(filters?: { category?: string; sub_category?: string; country?: string }) {
+    const params = new URLSearchParams();
+    if (filters?.category) params.set('category', filters.category);
+    if (filters?.sub_category) params.set('sub_category', filters.sub_category);
+    if (filters?.country) params.set('country', filters.country);
+    const qs = params.toString();
+    return this.request<any>(`/war-room/partners${qs ? `?${qs}` : ''}`);
+  }
+
+  async getWarRoomPartner(id: string) {
+    return this.request<any>(`/war-room/partners/${encodeURIComponent(id)}`);
+  }
+
+  async getWarRoomPartnerAdoptions() {
+    return this.request<any>('/war-room/partner-adoptions');
+  }
+
+  // ── War Room — Domains (Phase 4) ──
+
+  async getWarRoomDomains() {
+    return this.request<any>('/war-room/domains');
+  }
+
+  async getWarRoomDomain(id: string) {
+    return this.request<any>(`/war-room/domains/${encodeURIComponent(id)}`);
+  }
+
+  async getWarRoomDomainRobotFit() {
+    return this.request<any>('/war-room/domain-robot-fit');
+  }
+
+  // ── War Room — Scenarios (Phase 4) ──
+
+  async getWarRoomScenarios(userId?: string) {
+    const params = userId ? `?userId=${encodeURIComponent(userId)}` : '';
+    return this.request<any>(`/war-room/scenarios${params}`);
+  }
+
+  async createWarRoomScenario(data: any) {
+    return this.request<any>('/war-room/scenarios', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteWarRoomScenario(id: string, userId?: string, userRole?: string) {
+    const params = new URLSearchParams();
+    if (userId) params.set('userId', userId);
+    if (userRole) params.set('userRole', userRole);
+    const qs = params.toString();
+    return this.request<any>(`/war-room/scenarios/${encodeURIComponent(id)}${qs ? `?${qs}` : ''}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ── War Room — Goals (Phase 4) ──
+
+  async getWarRoomGoals() {
+    return this.request<any>('/war-room/goals');
+  }
+
+  async createWarRoomGoal(data: any) {
+    return this.request<any>('/war-room/goals', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateWarRoomGoal(id: string, data: any) {
+    return this.request<any>(`/war-room/goals/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ── War Room — Investment Priority (Phase 4) ──
+
+  async getWarRoomInvestmentPriority() {
+    return this.request<any>('/war-room/investment-priority');
+  }
 }
 
 export const api = new ApiClient();

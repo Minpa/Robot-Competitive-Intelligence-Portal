@@ -22,6 +22,7 @@ import { executiveRoutes } from './executive.js';
 import { entityAliasRoutes } from './entity-aliases.js';
 import { humanoidTrendRoutes } from './humanoid-trend.js';
 import { scoringPipelineRoutes } from './scoring-pipeline.js';
+import { warRoomRoutes } from './war-room.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -55,4 +56,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // 스코어링 파이프라인 라우트
   fastify.register(scoringPipelineRoutes, { prefix: '/api/scoring-pipeline' });
+
+  // 전략 워룸 라우트
+  fastify.register(warRoomRoutes, { prefix: '/api/war-room' });
 }

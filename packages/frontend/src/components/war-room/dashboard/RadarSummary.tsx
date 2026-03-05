@@ -1,0 +1,82 @@
+'use client';
+
+import {
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  Radar,
+  ResponsiveContainer,
+} from 'recharts';
+import type { LgPositioning } from '@/types/war-room';
+
+interface RadarSummaryProps {
+  data: LgPositioning | null;
+  isLoading: boolean;
+}
+
+// Default PoC 6-Factor labels for radar display
+const defaultFactors = [
+  { key: 'hardware', label: '하드웨어' },
+  { key: 'software', label: '소프트웨어' },
+  { key: 'deployment', label: '배치' },
+  { key: 'safety', label: '안전성' },
+  { key: 'interaction', label: '상호작용' },
+  { key: 'autonomy', label: '자율성' },
+];
+
+export function RadarSummary({ data, isLoading }: RadarSummaryProps) {
+  if (isLoading) {
+    return (
+      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <div className="mb-3 h-5 w-48 animate-pulse rounded bg-slate-800" />
+        <div className="flex h-52 items-center justify-center">
+          <div className="h-40 w-40 animate-pulse rounded-full bg-slate-800" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!data || !data.positioningData || data.positioningData.length === 0) {
+    return (
+      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+        <h3 className="text-sm font-semibold text-white">LG vs Top 5 레이더</h3>
+        <div className="flex h-52 items-center justify-center">
+          <p className="text-sm text-slate-500">포지셔닝 데이터가 없습니다</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Build radar data from positioning points
+  const radarData = defaultFactors.map((f, i) => ({
+    factor: f.label,
+    value: data.positioningData[i]?.xValue ?? 0,
+  }));
+
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+      <h3 className="text-sm font-semibold text-white">LG vs Top 5 레이더</h3>
+      <p className="mt-1 text-xs text-slate-400">{data.robotName} PoC 요약</p>
+
+      <div className="mt-2 h-52">
+        <ResponsiveContainer width="100%" height="100%">
+          <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
+            <PolarGrid stroke="#334155" />
+            <PolarAngleAxis
+              dataKey="factor"
+              tick={{ fill: '#94a3b8', fontSize: 11 }}
+            />
+            <Radar
+              name={data.robotName}
+              dataKey="value"
+              stroke="#3b82f6"
+              fill="#3b82f6"
+              fillOpacity={0.25}
+              strokeWidth={2}
+            />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}

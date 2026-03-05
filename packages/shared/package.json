@@ -1,0 +1,27 @@
+{
+  "name": "@rcip/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared pure functions for Robot Competitive Intelligence Portal",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./scoring/*": {
+      "types": "./dist/scoring/*.d.ts",
+      "import": "./dist/scoring/*.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}

@@ -23,6 +23,7 @@ import {
   FlaskConical,
   ClipboardCheck,
   LineChart,
+  Swords,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -45,6 +46,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: '분석 대시보드', href: '/dashboard', icon: BarChart3 },
       { name: '휴머노이드 동향', href: '/humanoid-trend', icon: TrendingUp },
+      { name: '전략 워룸', href: '/war-room', icon: Swords },
     ],
   },
   {

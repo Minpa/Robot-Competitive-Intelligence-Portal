@@ -697,6 +697,13 @@ export const humanoidRobotsRelations = relations(humanoidRobots, ({ one, many })
   pocScores: many(pocScores),
   rfmScores: many(rfmScores),
   positioningData: many(positioningData),
+  // v1.4 War Room relations
+  partnerAdoptions: many(partnerRobotAdoptions),
+  domainFits: many(domainRobotFit),
+  scoreHistories: many(scoreHistory),
+  competitiveAlerts: many(competitiveAlerts),
+  whatifScenarios: many(whatifScenarios),
+  specChangeLogs: many(specChangeLogs),
 }));
 
 export const bodySpecsRelations = relations(bodySpecs, ({ one }) => ({
@@ -1048,5 +1055,337 @@ export const positioningDataRelations = relations(positioningData, ({ one }) => 
   robot: one(humanoidRobots, {
     fields: [positioningData.robotId],
     references: [humanoidRobots.id],
+  }),
+}));
+
+// ============================================
+// v1.4 전략 워룸 (War Room) 테이블
+// ============================================
+
+// Partners — 전략 파트너
+export const partners = pgTable(
+  'partners',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: varchar('name', { length: 255 }).notNull(),
+    category: varchar('category', { length: 50 }).notNull(), // 'component' | 'rfm' | 'data' | 'platform' | 'integration'
+    subCategory: varchar('sub_category', { length: 100 }), // 'vision_sensor' | 'battery' | 'ai_chip' | 'actuator' | 'motor' | 'reducer' | 'force_sensor' | null
+    country: varchar('country', { length: 100 }),
+    description: text('description'),
+    logoUrl: varchar('logo_url', { length: 500 }),
+    websiteUrl: varchar('website_url', { length: 500 }),
+    techCapability: integer('tech_capability'), // 1-10
+    lgCompatibility: integer('lg_compatibility'), // 1-10
+    marketShare: decimal('market_share', { precision: 5, scale: 4 }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    categoryIdx: index('partners_category_idx').on(table.category),
+    subCategoryIdx: index('partners_sub_category_idx').on(table.subCategory),
+    countryIdx: index('partners_country_idx').on(table.country),
+  })
+);
+
+// Partner Robot Adoptions — 파트너-로봇 채택 관계
+export const partnerRobotAdoptions = pgTable(
+  'partner_robot_adoptions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    partnerId: uuid('partner_id')
+      .notNull()
+      .references(() => partners.id, { onDelete: 'cascade' }),
+    robotId: uuid('robot_id')
+      .notNull()
+      .references(() => humanoidRobots.id, { onDelete: 'cascade' }),
+    adoptionStatus: varchar('adoption_status', { length: 50 }).notNull().default('evaluating'), // 'evaluating' | 'adopted' | 'strategic'
+    adoptedAt: timestamp('adopted_at'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    partnerRobotUniq: uniqueIndex('partner_robot_adoptions_partner_robot_uniq').on(table.partnerId, table.robotId),
+    partnerIdx: index('partner_robot_adoptions_partner_idx').on(table.partnerId),
+    robotIdx: index('partner_robot_adoptions_robot_idx').on(table.robotId),
+  })
+);
+
+// Partner Evaluations — 파트너 평가
+export const partnerEvaluations = pgTable(
+  'partner_evaluations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    partnerId: uuid('partner_id')
+      .notNull()
+      .references(() => partners.id, { onDelete: 'cascade' }),
+    evaluatedBy: uuid('evaluated_by')
+      .references(() => users.id, { onDelete: 'set null' }),
+    techScore: integer('tech_score').notNull(), // 1-10
+    qualityScore: integer('quality_score').notNull(), // 1-10
+    costScore: integer('cost_score').notNull(), // 1-10
+    deliveryScore: integer('delivery_score').notNull(), // 1-10
+    supportScore: integer('support_score').notNull(), // 1-10
+    overallScore: decimal('overall_score', { precision: 4, scale: 2 }), // auto-calculated average
+    comments: text('comments'),
+    evaluatedAt: timestamp('evaluated_at').defaultNow().notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    partnerIdx: index('partner_evaluations_partner_idx').on(table.partnerId),
+    evaluatedByIdx: index('partner_evaluations_evaluated_by_idx').on(table.evaluatedBy),
+  })
+);
+
+// Application Domains — 사업화 분야
+export const applicationDomains = pgTable(
+  'application_domains',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: varchar('name', { length: 255 }).notNull().unique(),
+    marketSizeBillionUsd: decimal('market_size_billion_usd', { precision: 10, scale: 2 }),
+    cagrPercent: decimal('cagr_percent', { precision: 6, scale: 2 }),
+    somBillionUsd: decimal('som_billion_usd', { precision: 10, scale: 2 }),
+    keyTasks: jsonb('key_tasks').$type<string[]>(),
+    entryBarriers: jsonb('entry_barriers').$type<string[]>(),
+    lgExistingBusiness: decimal('lg_existing_business', { precision: 3, scale: 2 }), // 0-1 scale
+    lgReadiness: decimal('lg_readiness', { precision: 3, scale: 2 }), // 0-1 scale, auto-calculated
+    description: text('description'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    nameIdx: uniqueIndex('application_domains_name_idx').on(table.name),
+  })
+);
+
+// Domain Robot Fit — 로봇-분야 적합도
+export const domainRobotFit = pgTable(
+  'domain_robot_fit',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    domainId: uuid('domain_id')
+      .notNull()
+      .references(() => applicationDomains.id, { onDelete: 'cascade' }),
+    robotId: uuid('robot_id')
+      .notNull()
+      .references(() => humanoidRobots.id, { onDelete: 'cascade' }),
+    fitScore: decimal('fit_score', { precision: 3, scale: 2 }), // 0-1
+    fitDetails: jsonb('fit_details'),
+    calculatedAt: timestamp('calculated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    domainRobotUniq: uniqueIndex('domain_robot_fit_domain_robot_uniq').on(table.domainId, table.robotId),
+    domainIdx: index('domain_robot_fit_domain_idx').on(table.domainId),
+    robotIdx: index('domain_robot_fit_robot_idx').on(table.robotId),
+  })
+);
+
+// Score History — 월별 스코어 스냅샷
+export const scoreHistory = pgTable(
+  'score_history',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    robotId: uuid('robot_id')
+      .notNull()
+      .references(() => humanoidRobots.id, { onDelete: 'cascade' }),
+    snapshotMonth: varchar('snapshot_month', { length: 7 }).notNull(), // 'YYYY-MM'
+    pocScores: jsonb('poc_scores'), // PocScoreValues
+    rfmScores: jsonb('rfm_scores'), // RfmScoreValues
+    combinedScore: decimal('combined_score', { precision: 6, scale: 2 }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    robotMonthUniq: uniqueIndex('score_history_robot_month_uniq').on(table.robotId, table.snapshotMonth),
+    robotIdx: index('score_history_robot_idx').on(table.robotId),
+    snapshotMonthIdx: index('score_history_snapshot_month_idx').on(table.snapshotMonth),
+  })
+);
+
+// Competitive Alerts — 경쟁 알림
+export const competitiveAlerts = pgTable(
+  'competitive_alerts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    robotId: uuid('robot_id')
+      .references(() => humanoidRobots.id, { onDelete: 'set null' }),
+    type: varchar('type', { length: 50 }).notNull(), // 'score_spike' | 'mass_production' | 'funding' | 'partnership'
+    severity: varchar('severity', { length: 20 }).default('info'), // 'info' | 'warning' | 'critical'
+    title: varchar('title', { length: 500 }).notNull(),
+    summary: text('summary'),
+    triggerData: jsonb('trigger_data'),
+    isRead: boolean('is_read').default(false).notNull(),
+    readBy: uuid('read_by')
+      .references(() => users.id, { onDelete: 'set null' }),
+    readAt: timestamp('read_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    robotIdx: index('competitive_alerts_robot_idx').on(table.robotId),
+    typeIdx: index('competitive_alerts_type_idx').on(table.type),
+    isReadIdx: index('competitive_alerts_is_read_idx').on(table.isRead),
+    createdAtIdx: index('competitive_alerts_created_at_idx').on(table.createdAt),
+  })
+);
+
+// What-If Scenarios — What-If 시나리오
+export const whatifScenarios = pgTable(
+  'whatif_scenarios',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: varchar('name', { length: 255 }).notNull(),
+    description: text('description'),
+    createdBy: uuid('created_by')
+      .references(() => users.id, { onDelete: 'set null' }),
+    baseRobotId: uuid('base_robot_id')
+      .references(() => humanoidRobots.id, { onDelete: 'set null' }),
+    parameterOverrides: jsonb('parameter_overrides').notNull(),
+    calculatedScores: jsonb('calculated_scores'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    createdByIdx: index('whatif_scenarios_created_by_idx').on(table.createdBy),
+    baseRobotIdx: index('whatif_scenarios_base_robot_idx').on(table.baseRobotId),
+  })
+);
+
+// Strategic Goals — 전략 목표
+export const strategicGoals = pgTable(
+  'strategic_goals',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    title: varchar('title', { length: 500 }).notNull(),
+    description: text('description'),
+    metricType: varchar('metric_type', { length: 100 }).notNull(), // 'poc_rank' | 'rfm_rank' | 'combined_rank' | 'partner_count' | 'domain_coverage' | 'custom'
+    targetValue: decimal('target_value', { precision: 10, scale: 2 }).notNull(),
+    currentValue: decimal('current_value', { precision: 10, scale: 2 }),
+    deadline: date('deadline'),
+    status: varchar('status', { length: 50 }).default('on_track'), // 'achieved' | 'on_track' | 'at_risk' | 'behind'
+    requiredActions: jsonb('required_actions').$type<string[]>(),
+    createdBy: uuid('created_by')
+      .references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    metricTypeIdx: index('strategic_goals_metric_type_idx').on(table.metricType),
+    statusIdx: index('strategic_goals_status_idx').on(table.status),
+    createdByIdx: index('strategic_goals_created_by_idx').on(table.createdBy),
+  })
+);
+
+// Spec Change Logs — 스펙 변경 이력
+export const specChangeLogs = pgTable(
+  'spec_change_logs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    robotId: uuid('robot_id')
+      .notNull()
+      .references(() => humanoidRobots.id, { onDelete: 'cascade' }),
+    changedBy: uuid('changed_by')
+      .references(() => users.id, { onDelete: 'set null' }),
+    fieldName: varchar('field_name', { length: 255 }).notNull(),
+    tableName: varchar('table_name', { length: 100 }).notNull(),
+    oldValue: text('old_value'),
+    newValue: text('new_value'),
+    changedAt: timestamp('changed_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    robotIdx: index('spec_change_logs_robot_idx').on(table.robotId),
+    changedByIdx: index('spec_change_logs_changed_by_idx').on(table.changedBy),
+    changedAtIdx: index('spec_change_logs_changed_at_idx').on(table.changedAt),
+  })
+);
+
+// ============================================
+// v1.4 전략 워룸 Relations
+// ============================================
+
+export const partnersRelations = relations(partners, ({ many }) => ({
+  adoptions: many(partnerRobotAdoptions),
+  evaluations: many(partnerEvaluations),
+}));
+
+export const partnerRobotAdoptionsRelations = relations(partnerRobotAdoptions, ({ one }) => ({
+  partner: one(partners, {
+    fields: [partnerRobotAdoptions.partnerId],
+    references: [partners.id],
+  }),
+  robot: one(humanoidRobots, {
+    fields: [partnerRobotAdoptions.robotId],
+    references: [humanoidRobots.id],
+  }),
+}));
+
+export const partnerEvaluationsRelations = relations(partnerEvaluations, ({ one }) => ({
+  partner: one(partners, {
+    fields: [partnerEvaluations.partnerId],
+    references: [partners.id],
+  }),
+  evaluator: one(users, {
+    fields: [partnerEvaluations.evaluatedBy],
+    references: [users.id],
+  }),
+}));
+
+export const applicationDomainsRelations = relations(applicationDomains, ({ many }) => ({
+  robotFits: many(domainRobotFit),
+}));
+
+export const domainRobotFitRelations = relations(domainRobotFit, ({ one }) => ({
+  domain: one(applicationDomains, {
+    fields: [domainRobotFit.domainId],
+    references: [applicationDomains.id],
+  }),
+  robot: one(humanoidRobots, {
+    fields: [domainRobotFit.robotId],
+    references: [humanoidRobots.id],
+  }),
+}));
+
+export const scoreHistoryRelations = relations(scoreHistory, ({ one }) => ({
+  robot: one(humanoidRobots, {
+    fields: [scoreHistory.robotId],
+    references: [humanoidRobots.id],
+  }),
+}));
+
+export const competitiveAlertsRelations = relations(competitiveAlerts, ({ one }) => ({
+  robot: one(humanoidRobots, {
+    fields: [competitiveAlerts.robotId],
+    references: [humanoidRobots.id],
+  }),
+  reader: one(users, {
+    fields: [competitiveAlerts.readBy],
+    references: [users.id],
+  }),
+}));
+
+export const whatifScenariosRelations = relations(whatifScenarios, ({ one }) => ({
+  creator: one(users, {
+    fields: [whatifScenarios.createdBy],
+    references: [users.id],
+  }),
+  baseRobot: one(humanoidRobots, {
+    fields: [whatifScenarios.baseRobotId],
+    references: [humanoidRobots.id],
+  }),
+}));
+
+export const strategicGoalsRelations = relations(strategicGoals, ({ one }) => ({
+  creator: one(users, {
+    fields: [strategicGoals.createdBy],
+    references: [users.id],
+  }),
+}));
+
+export const specChangeLogsRelations = relations(specChangeLogs, ({ one }) => ({
+  robot: one(humanoidRobots, {
+    fields: [specChangeLogs.robotId],
+    references: [humanoidRobots.id],
+  }),
+  changedByUser: one(users, {
+    fields: [specChangeLogs.changedBy],
+    references: [users.id],
   }),
 }));

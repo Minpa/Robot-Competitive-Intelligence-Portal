@@ -27,6 +27,11 @@ import { calculatePocScores, type RobotWithSpecs, type PocScoreValues } from './
 import { calculateRfmScores, type RfmScoreValues } from './scoring/rfm-calculator.js';
 import { generateAllPositioning, type PositioningValues } from './scoring/positioning-generator.js';
 import { pipelineLogger } from './pipeline-logger.service.js';
+import { executeScoreHistoryStep } from './scoring/score-history-step.js';
+import { executeCompetitiveAlertStep } from './scoring/competitive-alert-step.js';
+import { executeDomainFitStep } from './scoring/domain-fit-step.js';
+import { executeStrategicGoalStep } from './scoring/strategic-goal-step.js';
+import { executePartnerMatchStep } from './scoring/partner-match-step.js';
 
 // ============================================
 // Interfaces
@@ -448,15 +453,18 @@ class ScoringPipelineService {
     const errors: { robotId: string; step: string; message: string }[] = [];
 
     for (const robotId of robotIds) {
+      let robotWithSpecs: RobotWithSpecs | null = null;
+      let scoringResult: ScoringResult | null = null;
+
       try {
         // Fetch specs
-        const robotWithSpecs = await this.fetchRobotWithSpecs(robotId);
+        robotWithSpecs = await this.fetchRobotWithSpecs(robotId);
 
         // Process (calculate scores)
-        const result = await this.processRobot(robotWithSpecs, runId);
+        scoringResult = await this.processRobot(robotWithSpecs, runId);
 
         // Upsert to DB
-        await this.upsertScores(robotId, result);
+        await this.upsertScores(robotId, scoringResult);
 
         successCount++;
       } catch (err) {
@@ -469,6 +477,55 @@ class ScoringPipelineService {
           await pipelineLogger.failStep(runId, `processing_${robotId}`, err instanceof Error ? err : new Error(message));
         } catch {
           console.error(`Failed to log pipeline error for robot ${robotId}:`, message);
+        }
+        continue; // Skip new steps if core scoring failed
+      }
+
+      // === New 5 pipeline steps (each with independent try-catch for error isolation) ===
+      // Requirements: 17.105, 17.111, 17.112
+
+      const newSteps: { name: string; fn: () => Promise<void> }[] = [
+        {
+          name: `score_history_${robotId}`,
+          fn: () => executeScoreHistoryStep(robotId, scoringResult!.pocScore, scoringResult!.rfmScore),
+        },
+        {
+          name: `competitive_alert_${robotId}`,
+          fn: () => executeCompetitiveAlertStep(
+            robotId,
+            scoringResult!.pocScore,
+            scoringResult!.rfmScore,
+            robotWithSpecs!.articleKeywords
+          ),
+        },
+        {
+          name: `domain_fit_${robotId}`,
+          fn: () => executeDomainFitStep(robotId, scoringResult!.pocScore),
+        },
+        {
+          name: `strategic_goal_${robotId}`,
+          fn: () => executeStrategicGoalStep(),
+        },
+        {
+          name: `partner_match_${robotId}`,
+          fn: () => executePartnerMatchStep(robotId),
+        },
+      ];
+
+      for (const step of newSteps) {
+        try {
+          await pipelineLogger.startStep(runId, step.name, 1);
+          await step.fn();
+          await pipelineLogger.completeStep(runId, step.name, 1, 0);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          errors.push({ robotId, step: step.name, message });
+          try {
+            await pipelineLogger.failStep(runId, step.name, err instanceof Error ? err : new Error(message));
+          } catch {
+            console.error(`Failed to log step error for ${step.name}:`, message);
+          }
+          // Continue to next step — error isolation (Requirement 17.112)
         }
       }
     }

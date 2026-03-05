@@ -1,0 +1,410 @@
+# Implementation Plan: v1.4 전략 워룸 / 전략 분석 레이어
+
+## Overview
+
+전략 워룸 기능을 Phase 3 → Phase 4 순서로 구현한다. DB 스키마 → 시드 데이터 → Shared 패키지 → 백엔드 서비스 → 파이프라인 확장 → API 라우트 → 프론트엔드 순서로 의존성을 고려하여 진행한다.
+
+## Tasks
+
+- [x] 1. DB 스키마 정의 및 마이그레이션
+  - [x] 1.1 Drizzle ORM 스키마에 10종 신규 테이블 추가
+    - `packages/backend/src/db/schema.ts`에 partners, partner_robot_adoptions, partner_evaluations, application_domains, domain_robot_fit, score_history, competitive_alerts, whatif_scenarios, strategic_goals, spec_change_logs 테이블 정의
+    - 모든 인덱스, FK, unique constraint 포함
+    - _Requirements: 18.113, 18.114, 18.115, 18.116, 18.117, 18.118, 18.119, 18.120, 18.121_
+  - [x] 1.2 Drizzle ORM 마이그레이션 생성 및 실행
+    - `npx drizzle-kit generate` 및 `npx drizzle-kit push` 실행
+    - _Requirements: 18.113–18.121_
+
+- [x] 2. 시드 데이터 생성
+  - [x] 2.1 파트너 시드 데이터 14건 작성
+    - `packages/backend/src/db/seeds/` 디렉토리에 war-room-seed.ts 생성
+    - 14개 파트너 (Intel RealSense, Orbbec, Samsung SDI, CATL, NVIDIA, Qualcomm, Harmonic Drive, Maxon, Nabtesco, ATI Industrial, Google DeepMind, Scale AI, ROS/Open Robotics, Foxconn)
+    - _Requirements: 13.45_
+  - [x] 2.2 사업화 분야 시드 데이터 8건 작성
+    - manufacturing, logistics, retail, healthcare, hospitality, home, agriculture, construction
+    - market_size, CAGR, SOM, key_tasks, entry_barriers, lg_existing_business 포함
+    - _Requirements: 14.60_
+  - [x] 2.3 CLOiD 초기 데이터 확인 및 보완
+    - CLOiD 로봇 데이터가 humanoid_robots 테이블에 존재하는지 확인
+    - 없으면 CLOiD 초기값(height 105-143cm, wheeled, arm DoF 7×2 등) 시드 추가
+    - _Requirements: 16.100_
+
+- [x] 3. Checkpoint — DB 스키마 및 시드 데이터 검증
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 4. Shared 패키지 — 순수 함수 추출
+  - [x] 4.1 packages/shared 패키지 생성 및 설정
+    - `packages/shared/package.json`, `tsconfig.json` 생성
+    - 모노레포 workspace 설정에 shared 패키지 추가
+    - _Requirements: 15.67_
+  - [x] 4.2 기존 순수 함수를 shared 패키지로 이동
+    - `packages/backend/src/services/scoring/poc-calculator.ts` → `packages/shared/src/scoring/poc-calculator.ts`
+    - `packages/backend/src/services/scoring/rfm-calculator.ts` → `packages/shared/src/scoring/rfm-calculator.ts`
+    - `packages/backend/src/services/scoring/positioning-generator.ts` → `packages/shared/src/scoring/positioning-generator.ts`
+    - 백엔드 기존 import 경로에 re-export 파일 생성하여 호환성 유지
+    - _Requirements: 15.67, 20.131_
+  - [ ]* 4.3 순수 함수 이동 후 기존 테스트 통과 확인
+    - 기존 스코어링 관련 테스트가 shared 패키지 경로에서도 동일하게 통과하는지 검증
+    - _Requirements: 15.67_
+
+- [x] 5. 백엔드 서비스 — Phase 3 (워룸 메인, 경쟁 분석, 시계열, 알림, CLOiD 관리)
+  - [x] 5.1 WarRoomDashboardService 구현
+    - `packages/backend/src/services/war-room-dashboard.service.ts` 생성
+    - getDashboardSummary(lgRobotId): LG 포지셔닝, 최근 알림 5건, 파트너 요약, 도메인 상위 3, 목표 상태 집계
+    - getLgRobots(): region='KR' AND company ILIKE '%LG%' 필터링
+    - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.8_
+  - [ ]* 5.2 Property 1 테스트 — LG 로봇 필터링 정확성
+    - **Property 1: LG 로봇 필터링 정확성**
+    - fast-check으로 임의의 로봇 데이터셋 생성 → region='KR' AND company ILIKE '%LG%' 필터 결과 검증
+    - **Validates: Requirements 11.8, 16.89**
+  - [x] 5.3 CompetitiveAnalysisService 구현
+    - `packages/backend/src/services/war-room-competitive.service.ts` 생성
+    - getGapAnalysis(lgRobotId): 12팩터 GAP 계산 (LG - Top1), 색상 분류 (green/red/gray)
+    - getCompetitiveOverlay(lgRobotId): LG vs Top 5 오버레이 데이터
+    - lgRanking: pocRank, rfmRank, combinedRank 계산
+    - _Requirements: 11.10, 11.11, 11.12, 11.13_
+  - [ ]* 5.4 Property 3 테스트 — GAP 분석 계산 정확성
+    - **Property 3: GAP 분석 계산 정확성**
+    - fast-check으로 임의의 12팩터 스코어 쌍 → GAP = LG - Top1, 색상 분류 검증
+    - **Validates: Requirements 11.11, 11.12, 15.70**
+  - [ ]* 5.5 Property 4 테스트 — 로봇 순위 계산 정확성
+    - **Property 4: 로봇 순위 계산 정확성**
+    - fast-check으로 임의의 스코어 목록 → 순위 = (자신보다 높은 점수 수 + 1) 검증
+    - **Validates: Requirements 11.13**
+  - [x] 5.6 ScoreHistoryService 구현
+    - `packages/backend/src/services/war-room-score-history.service.ts` 생성
+    - getTimeSeries(robotIds, months): 시계열 데이터 조회
+    - createSnapshot(robotId, pocScores, rfmScores): 월별 스냅샷 upsert (robot_id + snapshot_month unique)
+    - _Requirements: 12.18, 12.19, 12.20, 12.24_
+  - [ ]* 5.7 Property 6 테스트 — Score_History 스냅샷 upsert 멱등성
+    - **Property 6: Score_History 스냅샷 upsert 멱등성**
+    - 동일 로봇/월에 2회 스냅샷 → 레코드 수 1, 두 번째 값으로 업데이트 검증
+    - **Validates: Requirements 12.18, 12.19, 17.106**
+  - [x] 5.8 CompetitiveAlertService 구현
+    - `packages/backend/src/services/war-room-alert.service.ts` 생성
+    - getAlerts(filters): 알림 목록 조회 (created_at DESC, type/isRead 필터)
+    - markAsRead(alertId, userId): 읽음 처리
+    - detectScoreSpike(): 20% 이상 변화 감지 → score_spike 알림 생성
+    - detectMassProduction(): pocDeploymentScore 2점 이상 증가 → mass_production 알림
+    - detectKeywordAlerts(): funding/partnership 키워드 매칭 → 알림 생성
+    - _Requirements: 12.25, 12.26, 12.27, 12.28, 12.29, 12.30, 12.31, 12.32_
+  - [ ]* 5.9 Property 7 테스트 — 경쟁 알림 감지 정확성
+    - **Property 7: 경쟁 알림 감지 정확성**
+    - fast-check으로 임의의 스코어 변화율 → score_spike(20%+), mass_production(2점+), funding/partnership 키워드 매칭 검증
+    - **Validates: Requirements 12.25, 12.26, 12.27, 12.28, 17.107**
+  - [ ]* 5.10 Property 8 테스트 — 알림 쿼리 정렬 및 필터링
+    - **Property 8: 알림 쿼리 정렬 및 필터링**
+    - fast-check으로 임의의 알림 목록 + 필터 → created_at DESC 정렬, type 필터 검증
+    - **Validates: Requirements 12.29, 12.32**
+  - [x] 5.11 LgRobotManagementService 구현
+    - `packages/backend/src/services/war-room-lg-robot.service.ts` 생성
+    - getLgRobots(): LG 로봇 목록 + 전체 스펙 데이터
+    - updateSpecs(robotId, specs, userId): 스펙 업데이트 + 변경 이력 기록 (spec_change_logs)
+    - createLgRobot(data, userId): 새 LG 로봇 생성
+    - getChangeHistory(robotId): 변경 이력 조회
+    - logSpecChanges(): old/new 값 비교 후 변경된 필드만 이력 기록
+    - _Requirements: 16.88, 16.89, 16.90, 16.91, 16.97, 16.98, 16.99_
+  - [ ]* 5.12 Property 17 테스트 — 스펙 변경 이력 기록 라운드트립
+    - **Property 17: 스펙 변경 이력 기록 라운드트립**
+    - 임의의 스펙 변경 → 저장 후 이력 조회 시 old_value, new_value, changed_by, changed_at 정확성 검증
+    - **Validates: Requirements 16.97**
+
+- [x] 6. 스코어링 파이프라인 확장 — 5개 신규 스텝
+  - [x] 6.1 score-history-step 구현
+    - `packages/backend/src/services/scoring/score-history-step.ts` 생성
+    - 현재 월(YYYY-MM) 기준 score_history upsert
+    - _Requirements: 17.105, 17.106_
+  - [x] 6.2 competitive-alert-step 구현
+    - `packages/backend/src/services/scoring/competitive-alert-step.ts` 생성
+    - 이전 월 score_history와 비교하여 score_spike, mass_production 감지
+    - 기사 키워드에서 funding, partnership 키워드 매칭
+    - _Requirements: 17.105, 17.107_
+  - [x] 6.3 domain-fit-step 구현
+    - `packages/backend/src/services/scoring/domain-fit-step.ts` 생성
+    - 각 로봇-도메인 쌍의 fit_score 계산 (PoC scores alignment with domain key_tasks)
+    - lg_readiness 재계산: (poc_fulfillment × 0.4) + (lg_biz × 0.3) + (partner_avail × 0.3)
+    - _Requirements: 17.105, 17.108, 14.55_
+  - [ ]* 6.4 Property 10 테스트 — lg_readiness 계산 공식 정확성
+    - **Property 10: lg_readiness 계산 공식 정확성**
+    - fast-check으로 임의의 PoC 평균(0-10), lg_existing_business, 파트너 가용성(0-1) → 공식 검증, 결과 [0,1] 범위 검증
+    - **Validates: Requirements 14.55**
+  - [x] 6.5 strategic-goal-step 구현
+    - `packages/backend/src/services/scoring/strategic-goal-step.ts` 생성
+    - 각 strategic_goal의 current_value 업데이트 (metric_type별 최신 데이터 조회)
+    - 상태 자동 판정: achieved/on_track/at_risk/behind
+    - at_risk/behind 시 required_actions 자동 생성
+    - _Requirements: 17.105, 17.109, 15.77, 15.78, 15.79_
+  - [ ]* 6.6 Property 14 테스트 — 전략 목표 상태 자동 판정
+    - **Property 14: 전략 목표 상태 자동 판정**
+    - fast-check으로 임의의 target_value, current_value, deadline → 상태 판정 로직 검증
+    - **Validates: Requirements 15.77, 15.78, 17.109**
+  - [x] 6.7 partner-match-step 구현
+    - `packages/backend/src/services/scoring/partner-match-step.ts` 생성
+    - 각 로봇의 부품 요구사항과 Partner 레코드 매칭 (sub_category + evaluation score 기반)
+    - _Requirements: 17.105, 17.110, 13.44_
+  - [x] 6.8 ScoringPipelineService에 5개 신규 스텝 통합
+    - `packages/backend/src/services/scoring-pipeline.service.ts` 수정
+    - processRobot() 메서드에 5개 스텝 순차 실행 추가
+    - 각 스텝 독립 try-catch로 오류 격리
+    - pipelineStepLogs에 각 스텝 로깅 (step_name, input_count, success_count, failure_count, duration)
+    - _Requirements: 17.105, 17.111, 17.112_
+  - [ ]* 6.9 Property 15 테스트 — 파이프라인 5단계 실행 및 로깅
+    - **Property 15: 파이프라인 5단계 실행 및 로깅**
+    - 파이프라인 실행 후 5개 스텝 로그 존재 검증
+    - **Validates: Requirements 17.105, 17.111**
+  - [ ]* 6.10 Property 16 테스트 — 파이프라인 오류 격리
+    - **Property 16: 파이프라인 오류 격리**
+    - 특정 스텝 실패 주입 → 나머지 스텝 정상 실행, 에러 로그 기록 검증
+    - **Validates: Requirements 17.112**
+
+- [x] 7. Checkpoint — 백엔드 서비스 및 파이프라인 확장 검증
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 8. API 라우트 — Phase 3 (대시보드, 경쟁 분석, 시계열, 알림, CLOiD 관리)
+  - [x] 8.1 War Room 라우트 파일 생성 및 역할 기반 접근 제어 설정
+    - `packages/backend/src/routes/war-room.ts` 생성
+    - 모든 /api/war-room/* 엔드포인트에 Viewer 차단 미들웨어 적용
+    - 일관된 JSON 오류 응답 형식 적용
+    - _Requirements: 19.128, 19.129, 11.14, 11.15, 11.16_
+  - [ ]* 8.2 Property 2 테스트 — 역할 기반 접근 제어
+    - **Property 2: 역할 기반 접근 제어**
+    - fast-check으로 임의의 역할 + 엔드포인트 조합 → Viewer=403, Analyst=읽기+시나리오, Admin=전체 CRUD 검증
+    - **Validates: Requirements 11.14, 11.15, 11.16, 16.88, 19.128, 20.133**
+  - [x] 8.3 대시보드 API 엔드포인트 구현
+    - GET /api/war-room/dashboard?lgRobotId=:id
+    - _Requirements: 19.122_
+  - [x] 8.4 경쟁 분석 API 엔드포인트 구현
+    - GET /api/war-room/competitive/:robotId
+    - _Requirements: 19.123_
+  - [x] 8.5 시계열 API 엔드포인트 구현
+    - GET /api/war-room/score-history?robot_ids=:ids&months=:n
+    - _Requirements: 19.124_
+  - [x] 8.6 알림 API 엔드포인트 구현
+    - GET /api/war-room/alerts?type=:type&is_read=:bool
+    - PUT /api/war-room/alerts/:id/read
+    - _Requirements: 19.125, 19.126_
+  - [x] 8.7 CLOiD 관리 API 엔드포인트 구현
+    - GET /api/war-room/lg-robots
+    - POST /api/war-room/lg-robots (Admin only)
+    - PUT /api/war-room/lg-robots/:id/specs (Admin only)
+    - GET /api/war-room/lg-robots/:id/history
+    - _Requirements: 16.101, 16.102, 16.103, 16.104_
+  - [ ]* 8.8 Property 18 테스트 — 입력 유효성 검증
+    - **Property 18: 입력 유효성 검증**
+    - fast-check으로 범위 밖 입력(평가 점수 1-10 외, 잘못된 타입 등) → 400 Bad Request 검증
+    - **Validates: Requirements 20.137**
+
+- [x] 9. Checkpoint — Phase 3 API 엔드포인트 검증
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 10. 프론트엔드 — War Room 타입 정의 및 API 클라이언트
+  - [x] 10.1 War Room 타입 정의
+    - `packages/frontend/src/types/war-room.ts` 생성
+    - DashboardSummary, GapAnalysis, ScoreHistoryEntry, CompetitiveAlertRecord, Partner, ApplicationDomain, WhatifScenario, StrategicGoal, SpecChangeLog 등 전체 타입 정의
+    - _Requirements: 11–16_
+  - [x] 10.2 War Room API 클라이언트 함수 추가
+    - `packages/frontend/src/lib/api.ts`에 war-room 관련 API 함수 추가
+    - getDashboardSummary, getGapAnalysis, getScoreHistory, getAlerts, markAlertRead, getPartners, getDomains, getScenarios, getGoals, getLgRobots 등
+    - _Requirements: 19.122–19.129_
+  - [x] 10.3 useWarRoom React Query 훅 생성
+    - `packages/frontend/src/hooks/useWarRoom.ts` 생성
+    - useWarRoomDashboard, useGapAnalysis, useScoreHistory, useAlerts, usePartners, useDomains, useScenarios, useGoals, useLgRobots 등 훅 정의
+    - 파이프라인 실행/데이터 수정 후 캐시 무효화 로직 포함
+    - _Requirements: 20.136_
+
+- [x] 11. 프론트엔드 — War Room 레이아웃 및 메인 대시보드 (Phase 3)
+  - [x] 11.1 WarRoomLayout 및 탭 네비게이션 구현
+    - `packages/frontend/src/app/war-room/layout.tsx` 생성
+    - `packages/frontend/src/components/war-room/WarRoomLayout.tsx` 생성
+    - 5-탭 네비게이션 (대시보드, 경쟁 분석, 파트너 전략, 사업 전략, 시뮬레이션)
+    - `packages/frontend/src/components/war-room/LgRobotSelector.tsx` — LG 로봇 드롭다운 (CLOiD 기본값)
+    - 다크 테마 slate-950 적용
+    - _Requirements: 11.7, 11.8, 11.9, 20.135_
+  - [x] 11.2 메인 대시보드 페이지 구현
+    - `packages/frontend/src/app/war-room/page.tsx` 생성
+    - LgPositioningCard, AlertPanel (최근 5건), RadarSummary (LG vs Top 5), PartnerSummaryCard, TopDomainsCard, GoalStatusCard 컴포넌트 구현
+    - `packages/frontend/src/components/war-room/dashboard/` 디렉토리에 6개 컴포넌트 생성
+    - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 20.130_
+
+- [x] 12. 프론트엔드 — 경쟁 분석 탭 (Phase 3)
+  - [x] 12.1 경쟁 분석 페이지 및 컴포넌트 구현
+    - `packages/frontend/src/app/war-room/competitive/page.tsx` 생성
+    - GapAnalysisGrid: 12팩터 GAP 카드 그리드 (green/red/gray 색상 코딩)
+    - LgOverlayRadar: 기존 PoC RadarChart에 LG vs Top 5 오버레이
+    - LgOverlayBubble: 기존 BubbleChart에 LG vs Top 5 오버레이
+    - LgRankingCard: LG 종합 순위 (PoC/RFM/Combined)
+    - `packages/frontend/src/components/war-room/competitive/` 디렉토리에 4개 컴포넌트 생성
+    - _Requirements: 11.10, 11.11, 11.12, 11.13_
+
+- [x] 13. 프론트엔드 — 시계열 + 알림 탭 (Phase 3)
+  - [x] 13.1 시계열 추이 페이지 및 컴포넌트 구현
+    - `packages/frontend/src/app/war-room/timeline/page.tsx` 생성
+    - ScoreTrendChart: Recharts LineChart (X=월, Y=스코어, 멀티 로봇/팩터)
+    - RobotMultiSelect: 최대 10개 로봇 선택
+    - FactorMultiSelect: PoC/RFM 팩터 및 합계 선택
+    - AlertList: 경쟁 알림 패널 (type 아이콘, 로봇명, 요약, 타임스탬프, 읽음 토글)
+    - AlertDetailModal: 알림 상세 모달 (트리거 데이터, 관련 로봇 링크)
+    - `packages/frontend/src/components/war-room/timeline/` 디렉토리에 5개 컴포넌트 생성
+    - _Requirements: 12.21, 12.22, 12.23, 12.24, 12.29, 12.30, 12.31, 12.32, 20.132_
+
+- [x] 14. 프론트엔드 — CLOiD 관리 페이지 (Phase 3)
+  - [x] 14.1 CLOiD 관리 페이지 및 컴포넌트 구현
+    - `packages/frontend/src/app/war-room/lg-robot-management/page.tsx` 생성 (Admin only)
+    - LgRobotList: LG 로봇 목록 (이름, 상태, 최종 수정일)
+    - SpecEditorForm: 인라인 스펙 편집 폼 (Body/Hand/Computing/Sensor/Power 5개 카테고리)
+    - ChangeHistoryPanel: 변경 이력 패널 (필드명, old/new 값, 편집자, 타임스탬프)
+    - CreateRobotModal: 새 LG 로봇 추가 모달
+    - CLOiD 초기값 pre-population 적용
+    - 저장 시 자동 파이프라인 트리거
+    - `packages/frontend/src/components/war-room/lg-management/` 디렉토리에 4개 컴포넌트 생성
+    - _Requirements: 16.88, 16.89, 16.90, 16.91, 16.92, 16.93, 16.94, 16.95, 16.96, 16.97, 16.98, 16.99, 16.100_
+
+- [x] 15. Checkpoint — Phase 3 프론트엔드 검증
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 16. 백엔드 서비스 — Phase 4 (파트너십, 사업화, 시뮬레이션)
+  - [x] 16.1 PartnerService 구현
+    - `packages/backend/src/services/war-room-partner.service.ts` 생성
+    - list(filters): 카테고리/서브카테고리/국가 필터링
+    - getById(id): 파트너 상세 + 평가 + 채택 관계
+    - create/update: 파트너 CRUD
+    - submitEvaluation: 평가 제출 (overall_score 자동 계산 = 5개 차원 평균)
+    - getAdoptionMatrix: 채택 히트맵 데이터
+    - autoMatch(robotId): 부품 호환성 + 평가 점수 기반 자동 매칭
+    - _Requirements: 13.33, 13.34, 13.35, 13.38, 13.39, 13.40, 13.44, 13.46, 13.47, 13.48, 13.49, 13.50, 13.51_
+  - [ ]* 16.2 Property 9 테스트 — 파트너 평가 overall_score 자동 계산
+    - **Property 9: 파트너 평가 overall_score 자동 계산**
+    - fast-check으로 임의의 5개 1-10 정수 → overall_score = 산술 평균 검증
+    - **Validates: Requirements 13.35**
+  - [x] 16.3 DomainService 구현
+    - `packages/backend/src/services/war-room-domain.service.ts` 생성
+    - list(): 도메인 목록 + lg_readiness + fit 데이터
+    - getById(id): 도메인 상세 + 전체 Domain_Robot_Fit 엔트리
+    - update(id, data): 도메인 업데이트
+    - getFitMatrix(): 전체 로봇-도메인 적합도 매트릭스
+    - calculateLgReadiness/calculateFitScore: 계산 로직
+    - _Requirements: 14.52, 14.53, 14.54, 14.55, 14.56, 14.57, 14.61, 14.62, 14.63, 14.64_
+  - [ ]* 16.4 Property 5 테스트 — 도메인 기회 순위 정확성
+    - **Property 5: 도메인 기회 순위 정확성**
+    - fast-check으로 임의의 도메인 목록 → lg_readiness × SOM 내림차순 정렬, 상위 3개 선택 검증
+    - **Validates: Requirements 11.5, 14.57**
+  - [x] 16.5 ScenarioService 구현
+    - `packages/backend/src/services/war-room-scenario.service.ts` 생성
+    - list(userId): 사용자별 시나리오 목록
+    - create(data): 시나리오 저장 (parameter_overrides + calculated_scores)
+    - delete(id, userId, userRole): 생성자 또는 Admin만 삭제 가능
+    - _Requirements: 15.65, 15.73, 15.74_
+  - [ ]* 16.6 Property 13 테스트 — 시나리오 저장/로드 라운드트립
+    - **Property 13: 시나리오 저장/로드 라운드트립**
+    - fast-check으로 임의의 시나리오 데이터 → 저장(POST) 후 로드(GET) 시 원본과 동일 검증
+    - **Validates: Requirements 15.73**
+  - [x] 16.7 StrategicGoalService 구현
+    - `packages/backend/src/services/war-room-goal.service.ts` 생성
+    - list(): 전략 목표 목록 + 현재 상태
+    - create/update: 목표 CRUD
+    - updateCurrentValues(): 파이프라인에서 호출, metric_type별 최신 데이터로 current_value 업데이트
+    - determineStatus(): achieved/on_track/at_risk/behind 자동 판정
+    - _Requirements: 15.76, 15.77, 15.78, 15.79, 15.80, 15.85, 15.86, 15.87_
+
+- [x] 17. API 라우트 — Phase 4 (파트너, 사업화, 시나리오, 목표, 투자 우선순위)
+  - [x] 17.1 파트너 API 엔드포인트 구현
+    - GET /api/war-room/partners, GET /api/war-room/partners/:id
+    - POST /api/war-room/partners (Admin), PUT /api/war-room/partners/:id (Admin)
+    - POST /api/war-room/partner-evaluations (Admin + Analyst)
+    - GET /api/war-room/partner-adoptions
+    - _Requirements: 13.46, 13.47, 13.48, 13.49, 13.50, 13.51_
+  - [x] 17.2 사업화 분야 API 엔드포인트 구현
+    - GET /api/war-room/domains, GET /api/war-room/domains/:id
+    - PUT /api/war-room/domains/:id (Admin)
+    - GET /api/war-room/domain-robot-fit
+    - _Requirements: 14.61, 14.62, 14.63, 14.64_
+  - [x] 17.3 시나리오 API 엔드포인트 구현
+    - GET /api/war-room/scenarios
+    - POST /api/war-room/scenarios (Admin + Analyst)
+    - DELETE /api/war-room/scenarios/:id (Creator or Admin)
+    - _Requirements: 15.82, 15.83, 15.84_
+  - [x] 17.4 전략 목표 API 엔드포인트 구현
+    - GET /api/war-room/goals
+    - POST /api/war-room/goals (Admin), PUT /api/war-room/goals/:id (Admin)
+    - _Requirements: 15.85, 15.86, 15.87_
+  - [x] 17.5 투자 우선순위 API 엔드포인트 구현
+    - GET /api/war-room/investment-priority
+    - _Requirements: 19.127_
+
+- [x] 18. Checkpoint — Phase 4 백엔드 및 API 검증
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 19. 프론트엔드 — 파트너 전략 탭 (Phase 4)
+  - [x] 19.1 파트너 전략 페이지 및 컴포넌트 구현
+    - `packages/frontend/src/app/war-room/partners/page.tsx` 생성
+    - CategoryTabs: 카테고리별 탭 (component, rfm, data, platform, integration)
+    - SubCategoryTabs: 부품 서브카테고리 탭 (vision_sensor, battery, ai_chip, actuator, motor, reducer, force_sensor)
+    - PartnerGrid: 파트너 카드 그리드 (이름, 로고, 카테고리, 국가, 평가 점수, 채택 수)
+    - CompetitivenessMatrix: Recharts ScatterChart (X=tech_capability, Y=lg_compatibility, size=market_share)
+    - AdoptionHeatmap: 채택 히트맵 (evaluating=light, adopted=medium, strategic=dark)
+    - ComponentImpactPanel: 부품 영향도 분석
+    - PartnerCompareTable: 파트너 비교 테이블 (vision_sensor, battery, ai_chip 서브카테고리)
+    - RoadmapTimeline: LG 부품 로드맵 타임라인
+    - `packages/frontend/src/components/war-room/partners/` 디렉토리에 8개 컴포넌트 생성
+    - _Requirements: 13.36, 13.37, 13.38, 13.39, 13.40, 13.41, 13.42, 13.43_
+
+- [x] 20. 프론트엔드 — 사업 전략 탭 (Phase 4)
+  - [x] 20.1 사업 전략 페이지 및 컴포넌트 구현
+    - `packages/frontend/src/app/war-room/business/page.tsx` 생성
+    - OpportunityMatrix: Recharts ScatterChart (X=lg_readiness, Y=SOM, size=CAGR, label=도메인명)
+    - DomainFitHeatmap: 로봇-분야 적합도 히트맵 (fit_score 색상 강도)
+    - EntryOrderList: CLOiD 최적 진입 순서 (lg_readiness × SOM 내림차순)
+    - RevenueSimulator: 수익 모델 시뮬레이터 (hardware_sales, raas, b2b2c 3개 템플릿, 실시간 계산)
+    - `packages/frontend/src/components/war-room/business/` 디렉토리에 4개 컴포넌트 생성
+    - _Requirements: 14.54, 14.56, 14.57, 14.58, 14.59_
+  - [ ]* 20.2 Property 11 테스트 — 수익 모델 계산 정확성
+    - **Property 11: 수익 모델 계산 정확성**
+    - fast-check으로 임의의 수익 모델 파라미터 → hardware_sales=price×volume, raas=fee×subs×months, b2b2c=platform_fee+commission 검증
+    - **Validates: Requirements 14.58, 14.59**
+
+- [x] 21. 프론트엔드 — 시뮬레이션 탭 (Phase 4)
+  - [x] 21.1 Client-Side 스코어링 계산 엔진 구현
+    - `packages/frontend/src/lib/war-room-calculator.ts` 생성
+    - shared 패키지의 calculatePocScores, calculateRfmScores, generateAllPositioning import
+    - 파라미터 오버라이드 적용 후 재계산 함수 구현
+    - 500ms 이내 재계산 보장
+    - _Requirements: 15.67, 20.131_
+  - [ ]* 21.2 Property 12 테스트 — What-If 클라이언트 사이드 재계산 일관성
+    - **Property 12: What-If 클라이언트 사이드 재계산 일관성**
+    - fast-check으로 임의의 RobotWithSpecs + 오버라이드 → 클라이언트/서버 동일 결과 검증 (동일 순수 함수)
+    - **Validates: Requirements 15.67**
+  - [x] 21.3 What-If 시뮬레이터 페이지 및 컴포넌트 구현
+    - `packages/frontend/src/app/war-room/simulation/page.tsx` 생성
+    - WhatIfForm: 스펙 파라미터 편집 폼 (10개 scoreable 파라미터, LG 로봇 현재값 pre-populated)
+    - PrebuiltScenarios: 6 프리빌트 시나리오 버튼 (Jetson Thor, 전고체 배터리, RoboSense AC2, 보행 추가, 양산 전환, 가격 경쟁력)
+    - BeforeAfterRadar: Before vs After RadarChart 오버레이
+    - BeforeAfterBubble: Before vs After BubbleChart 포지션 시프트
+    - BeforeAfterGapTable: Before vs After GAP 테이블
+    - ScenarioManager: 시나리오 저장/로드/비교 (최대 3개 시나리오 비교)
+    - `packages/frontend/src/components/war-room/simulation/` 디렉토리에 6개 컴포넌트 생성
+    - _Requirements: 15.66, 15.67, 15.68, 15.69, 15.70, 15.71, 15.72, 15.73, 15.74, 15.75_
+  - [x] 21.4 전략 목표 트래커 및 투자 우선순위 컴포넌트 구현
+    - GoalTracker: 전략 목표 관리 (상태 배지, 진행 바, 마감일 표시)
+    - InvestmentPriorityMatrix: Recharts ScatterChart (X=impact, Y=feasibility, label=투자 영역)
+    - `packages/frontend/src/components/war-room/simulation/` 디렉토리에 2개 컴포넌트 추가
+    - _Requirements: 15.80, 15.81_
+
+- [x] 22. 프론트엔드 — Viewer 역할 접근 제어 및 리다이렉트
+  - [x] 22.1 War Room 접근 제어 구현
+    - layout.tsx에서 Viewer 역할 감지 시 /dashboard로 리다이렉트 + "접근 권한이 없습니다" 알림
+    - Analyst 역할: 읽기 전용 + 시나리오 생성 허용
+    - Admin 역할: 전체 CRUD 허용
+    - _Requirements: 11.14, 11.15, 11.16, 20.133_
+
+- [-] 23. Final Checkpoint — 전체 기능 통합 검증
+  - Ensure all tests pass, ask the user if questions arise.
+
+## Notes
+
+- Tasks marked with `*` are optional and can be skipped for faster MVP
+- Each task references specific requirements for traceability
+- Checkpoints ensure incremental validation
+- Property tests validate universal correctness properties from the design document
+- Phase 3 (Tasks 1–15): DB + 시드 + 파이프라인 확장 + 워룸 메인/경쟁분석/시계열/알림/CLOiD 관리
+- Phase 4 (Tasks 16–22): 파트너십 + 사업화 + What-If/전략목표
+- Shared 패키지 추출은 Phase 4 시뮬레이션 탭 구현 전에 완료되어야 함
