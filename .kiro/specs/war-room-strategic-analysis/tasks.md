@@ -396,7 +396,7 @@
     - Admin 역할: 전체 CRUD 허용
     - _Requirements: 11.14, 11.15, 11.16, 20.133_
 
-- [-] 23. Final Checkpoint — 전체 기능 통합 검증
+- [x] 23. Final Checkpoint — 전체 기능 통합 검증
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

@@ -28,7 +28,6 @@
     "clear:content": "tsx src/db/clear-article-content.ts"
   },
   "dependencies": {
-    "@rcip/shared": "*",
     "@anthropic-ai/sdk": "^0.74.0",
     "@elastic/elasticsearch": "^8.11.0",
     "@fastify/cors": "^9.0.0",
