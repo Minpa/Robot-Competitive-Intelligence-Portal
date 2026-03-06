@@ -38,10 +38,13 @@ export function SegmentHeatmapTab({ filters }: SegmentHeatmapTabProps) {
   const environments = ['industrial', 'home', 'service'];
   const locomotions = ['biped', 'wheeled', 'hybrid'];
 
-  if (inner?.cells) {
-    for (const cell of inner.cells) {
+  if (inner?.matrix || inner?.cells) {
+    const cells = inner.matrix || inner.cells;
+    for (const cell of cells) {
       const env = cell.environment?.toLowerCase() || '';
-      const loco = cell.locomotion?.toLowerCase() || '';
+      let loco = cell.locomotion?.toLowerCase() || '';
+      // Normalize: API may return 'bipedal', frontend expects 'biped'
+      if (loco === 'bipedal') loco = 'biped';
       if (!matrix[env]) matrix[env] = {};
       matrix[env][loco] = {
         count: cell.robotCount || 0,
