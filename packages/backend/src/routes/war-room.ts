@@ -271,7 +271,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
 
   fastify.get<{ Querystring: { userId?: string } }>('/scenarios', async (request, reply) => {
     try {
-      const userId = request.query.userId || 'anonymous';
+      const userId = request.query.userId || null;
       return await warRoomScenarioService.list(userId);
     } catch (error) {
       reply.status(500).send({ error: (error as Error).message });
@@ -288,7 +288,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
         baseRobotId: body.baseRobotId,
         parameterOverrides: body.parameterOverrides,
         calculatedScores: body.calculatedScores,
-        createdBy: body.userId || body.createdBy || 'anonymous',
+        createdBy: body.userId || body.createdBy || null,
       });
     } catch (error) {
       reply.status(500).send({ error: (error as Error).message });
@@ -298,8 +298,8 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
   // TODO: Add Creator or Admin role check middleware (Task 22)
   fastify.delete<{ Params: { id: string }; Querystring: { userId?: string; userRole?: string } }>('/scenarios/:id', async (request, reply) => {
     try {
-      const userId = request.query.userId || (request.body as any)?.userId || 'anonymous';
-      const userRole = request.query.userRole || (request.body as any)?.userRole || 'analyst';
+      const userId = request.query.userId || (request.body as any)?.userId || null;
+      const userRole = request.query.userRole || (request.body as any)?.userRole || 'admin';
       await warRoomScenarioService.delete(request.params.id, userId, userRole);
       return { success: true };
     } catch (error) {

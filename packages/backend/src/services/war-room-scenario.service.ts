@@ -21,8 +21,8 @@ class ScenarioService {
    * List scenarios for a user. Returns all scenarios (admin can see all).
    * Requirements: 15.65, 15.82
    */
-  async list(userId: string): Promise<ScenarioListItem[]> {
-    const results = await db
+  async list(userId: string | null): Promise<ScenarioListItem[]> {
+    const query = db
       .select({
         id: whatifScenarios.id,
         name: whatifScenarios.name,
@@ -34,9 +34,11 @@ class ScenarioService {
         createdAt: whatifScenarios.createdAt,
         updatedAt: whatifScenarios.updatedAt,
       })
-      .from(whatifScenarios)
-      .where(eq(whatifScenarios.createdBy, userId))
-      .orderBy(desc(whatifScenarios.createdAt));
+      .from(whatifScenarios);
+
+    const results = userId
+      ? await query.where(eq(whatifScenarios.createdBy, userId)).orderBy(desc(whatifScenarios.createdAt))
+      : await query.orderBy(desc(whatifScenarios.createdAt));
 
     return results.map((r) => ({
       ...r,
