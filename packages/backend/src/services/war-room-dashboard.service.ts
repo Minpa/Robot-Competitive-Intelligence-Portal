@@ -215,7 +215,7 @@ class WarRoomDashboardService {
       .where(eq(positioningData.robotId, lgRobotId));
 
     return {
-      robotName: robotResult[0].name,
+      robotName: robotResult[0]!.name,
       pocTotal,
       rfmTotal,
       combinedScore,

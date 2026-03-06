@@ -10,7 +10,7 @@ import {
   sensorSpecs,
   powerSpecs,
 } from './index.js';
-import { eq, and, ilike } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 // ============================================
 // 1. 파트너 시드 데이터 (14건)
