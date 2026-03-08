@@ -116,6 +116,13 @@ class StrategicGoalService {
   }
 
   /**
+   * Delete a strategic goal.
+   */
+  async delete(id: string): Promise<void> {
+    await db.delete(strategicGoals).where(eq(strategicGoals.id, id));
+  }
+
+  /**
    * Update current_value for all goals based on their metric_type.
    * Called by the scoring pipeline.
    * Requirements: 15.77, 17.109

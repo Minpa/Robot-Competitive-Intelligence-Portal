@@ -109,6 +109,13 @@ class CompetitiveAlertService {
   }
 
   /**
+   * Delete an alert.
+   */
+  async deleteAlert(id: string): Promise<void> {
+    await db.delete(competitiveAlerts).where(eq(competitiveAlerts.id, id));
+  }
+
+  /**
    * Compare current vs previous month scores.
    * If any factor changes by 20%+ (relative), create a 'score_spike' alert.
    * Severity: >50% = critical, >30% = warning, else info.

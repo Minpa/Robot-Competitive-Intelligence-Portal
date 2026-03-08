@@ -127,6 +127,15 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.delete<{ Params: { id: string } }>('/alerts/:id', async (request, reply) => {
+    try {
+      await warRoomAlertService.deleteAlert(request.params.id);
+      return { success: true };
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
   // ── Timeline (competitive_alerts as timeline events) ─────────────
 
   fastify.get('/timeline', async (_request, reply) => {
@@ -340,6 +349,22 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.patch<{ Params: { id: string } }>('/domain-robot-fit/:id', async (request, reply) => {
+    try {
+      const body = request.body as any;
+      const result = await warRoomDomainService.updateFitEntry(request.params.id, {
+        fitScore: body.fitScore,
+        fitDetails: body.fitDetails,
+      });
+      if (!result) {
+        return reply.status(404).send({ error: 'Fit entry not found' });
+      }
+      return result;
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
   // ── Scenarios (17.3) ─────────────────────────────────────────────
 
   fastify.get<{ Querystring: { userId?: string } }>('/scenarios', async (request, reply) => {
@@ -414,6 +439,15 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     try {
       const body = request.body as any;
       return await warRoomGoalService.update(request.params.id, body);
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
+  fastify.delete<{ Params: { id: string } }>('/goals/:id', async (request, reply) => {
+    try {
+      await warRoomGoalService.delete(request.params.id);
+      return { success: true };
     } catch (error) {
       reply.status(500).send({ error: (error as Error).message });
     }
