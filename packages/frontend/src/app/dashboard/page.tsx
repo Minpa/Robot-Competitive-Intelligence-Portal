@@ -71,7 +71,7 @@ export default function DashboardPage() {
   // NEW: LLM-generated executive insight
   const { data: executiveInsight, isLoading: insightLoading } = useQuery({
     queryKey: ['executive-insight', dateRange],
-    queryFn: () => api.getExecutiveInsight(7, 'gpt-4o'),
+    queryFn: () => api.getExecutiveInsight(30, 'gpt-4o'),
     staleTime: 1000 * 60 * 30, // 30분 캐시
   });
 
