@@ -475,4 +475,21 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
       reply.status(500).send({ error: (error as Error).message });
     }
   });
+
+  fastify.patch<{ Params: { id: string } }>('/investment-priority/:id', async (request, reply) => {
+    try {
+      const body = request.body as any;
+      const result = await warRoomDomainService.update(request.params.id, {
+        lgReadiness: body.lgReadiness != null ? String(body.lgReadiness) : undefined,
+        somBillionUsd: body.somBillionUsd != null ? String(body.somBillionUsd) : undefined,
+        cagrPercent: body.cagrPercent != null ? String(body.cagrPercent) : undefined,
+      });
+      if (!result) {
+        return reply.status(404).send({ error: 'Domain not found' });
+      }
+      return result;
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
 }
