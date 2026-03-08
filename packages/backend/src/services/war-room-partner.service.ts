@@ -363,6 +363,45 @@ class PartnerService {
   }
 
   /**
+   * Create a partner-robot adoption entry.
+   */
+  async createAdoption(data: {
+    partnerId: string;
+    robotId: string;
+    adoptionStatus?: string;
+    adoptedAt?: string | null;
+    notes?: string | null;
+  }): Promise<AdoptionMatrixEntry> {
+    const [result] = await db
+      .insert(partnerRobotAdoptions)
+      .values({
+        partnerId: data.partnerId,
+        robotId: data.robotId,
+        adoptionStatus: data.adoptionStatus ?? 'evaluating',
+        adoptedAt: data.adoptedAt ? new Date(data.adoptedAt) : null,
+        notes: data.notes ?? null,
+      })
+      .returning();
+
+    if (!result) throw new Error('Failed to create adoption');
+
+    // Fetch names
+    const partnerResult = await db.select({ name: partners.name }).from(partners).where(eq(partners.id, data.partnerId)).limit(1);
+    const robotResult = await db.select({ name: humanoidRobots.name }).from(humanoidRobots).where(eq(humanoidRobots.id, data.robotId)).limit(1);
+
+    return {
+      id: result.id,
+      partnerId: result.partnerId,
+      partnerName: partnerResult[0]?.name ?? '',
+      robotId: result.robotId,
+      robotName: robotResult[0]?.name ?? '',
+      adoptionStatus: result.adoptionStatus,
+      adoptedAt: result.adoptedAt,
+      notes: result.notes,
+    };
+  }
+
+  /**
    * Auto-match partners to a robot based on sub_category compatibility and evaluation scores.
    * Finds component-category partners whose sub_category aligns with the robot's needs,
    * ranked by their latest evaluation overall_score.

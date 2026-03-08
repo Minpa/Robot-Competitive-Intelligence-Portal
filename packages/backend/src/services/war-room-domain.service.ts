@@ -167,6 +167,42 @@ class DomainService {
   }
 
   /**
+   * Create a domain-robot fit entry.
+   */
+  async createFitEntry(data: {
+    domainId: string;
+    robotId: string;
+    fitScore?: string | null;
+    fitDetails?: unknown;
+  }): Promise<FitMatrixEntry> {
+    const [result] = await db
+      .insert(domainRobotFit)
+      .values({
+        domainId: data.domainId,
+        robotId: data.robotId,
+        fitScore: data.fitScore ?? null,
+        fitDetails: data.fitDetails ?? null,
+      })
+      .returning();
+
+    if (!result) throw new Error('Failed to create fit entry');
+
+    const domainResult = await db.select({ name: applicationDomains.name }).from(applicationDomains).where(eq(applicationDomains.id, data.domainId)).limit(1);
+    const robotResult = await db.select({ name: humanoidRobots.name }).from(humanoidRobots).where(eq(humanoidRobots.id, data.robotId)).limit(1);
+
+    return {
+      id: result.id,
+      domainId: result.domainId,
+      domainName: domainResult[0]?.name ?? '',
+      robotId: result.robotId,
+      robotName: robotResult[0]?.name ?? '',
+      fitScore: result.fitScore,
+      fitDetails: result.fitDetails,
+      calculatedAt: result.calculatedAt,
+    };
+  }
+
+  /**
    * Calculate lg_readiness for a domain.
    * Formula: (poc_factor_fulfillment × 0.4) + (lg_existing_business_bonus × 0.3) + (partner_availability × 0.3)
    * Requirements: 14.55

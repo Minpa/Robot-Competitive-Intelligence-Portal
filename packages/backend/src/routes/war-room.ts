@@ -110,6 +110,50 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.post('/alerts', async (request, reply) => {
+    try {
+      const body = request.body as any;
+      await warRoomAlertService.createAlert({
+        robotId: body.robotId,
+        type: body.type ?? 'info',
+        severity: body.severity ?? 'info',
+        title: body.title,
+        summary: body.summary ?? '',
+        triggerData: body.triggerData ?? {},
+      });
+      return { success: true };
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
+  // ── Timeline (competitive_alerts as timeline events) ─────────────
+
+  fastify.get('/timeline', async (_request, reply) => {
+    try {
+      return await warRoomAlertService.getAlerts({ limit: 50 });
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
+  fastify.post('/timeline', async (request, reply) => {
+    try {
+      const body = request.body as any;
+      await warRoomAlertService.createAlert({
+        robotId: body.robotId ?? undefined,
+        type: body.type ?? 'timeline',
+        severity: body.severity ?? 'info',
+        title: body.title,
+        summary: body.summary ?? '',
+        triggerData: body.triggerData ?? {},
+      });
+      return { success: true };
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
   // ── CLOiD Management (8.7) ───────────────────────────────────────
 
   fastify.get('/lg-robots/management', async (_request, reply) => {
@@ -227,6 +271,21 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.post('/partner-adoptions', async (request, reply) => {
+    try {
+      const body = request.body as any;
+      return await warRoomPartnerService.createAdoption({
+        partnerId: body.partnerId,
+        robotId: body.robotId,
+        adoptionStatus: body.adoptionStatus,
+        adoptedAt: body.adoptedAt,
+        notes: body.notes,
+      });
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
   // ── Domains (17.2) ───────────────────────────────────────────────
 
   fastify.get('/domains', async (_request, reply) => {
@@ -262,6 +321,20 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
   fastify.get('/domain-robot-fit', async (_request, reply) => {
     try {
       return await warRoomDomainService.getFitMatrix();
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
+  fastify.post('/domain-robot-fit', async (request, reply) => {
+    try {
+      const body = request.body as any;
+      return await warRoomDomainService.createFitEntry({
+        domainId: body.domainId,
+        robotId: body.robotId,
+        fitScore: body.fitScore,
+        fitDetails: body.fitDetails,
+      });
     } catch (error) {
       reply.status(500).send({ error: (error as Error).message });
     }
