@@ -35,9 +35,9 @@ export function OpportunityMatrix({ domains, isLoading }: Props) {
     .filter((d) => d.lgReadiness != null && d.somBillionUsd != null)
     .map((d) => ({
       name: d.name,
-      x: d.lgReadiness!,
-      y: d.somBillionUsd!,
-      z: d.cagrPercent ?? 10,
+      x: Number(d.lgReadiness!),
+      y: Number(d.somBillionUsd!),
+      z: Number(d.cagrPercent ?? 10),
     }));
 
   return (

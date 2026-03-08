@@ -27,7 +27,10 @@ export function EntryOrderList({ domains, isLoading }: Props) {
     .filter((d) => d.lgReadiness != null && d.somBillionUsd != null)
     .map((d) => ({
       ...d,
-      opportunity: (d.lgReadiness ?? 0) * (d.somBillionUsd ?? 0),
+      lgReadiness: Number(d.lgReadiness ?? 0),
+      somBillionUsd: Number(d.somBillionUsd ?? 0),
+      cagrPercent: d.cagrPercent != null ? Number(d.cagrPercent) : null,
+      opportunity: Number(d.lgReadiness ?? 0) * Number(d.somBillionUsd ?? 0),
     }))
     .sort((a, b) => b.opportunity - a.opportunity);
 
@@ -55,8 +58,8 @@ export function EntryOrderList({ domains, isLoading }: Props) {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate">{d.name}</p>
               <div className="flex gap-3 text-[10px] text-slate-400 mt-0.5">
-                <span>준비도: {((d.lgReadiness ?? 0) * 100).toFixed(0)}%</span>
-                <span>SOM: ${d.somBillionUsd?.toFixed(1)}B</span>
+                <span>준비도: {(Number(d.lgReadiness ?? 0) * 100).toFixed(0)}%</span>
+                <span>SOM: ${Number(d.somBillionUsd ?? 0).toFixed(1)}B</span>
                 {d.cagrPercent != null && <span>CAGR: {d.cagrPercent}%</span>}
               </div>
             </div>

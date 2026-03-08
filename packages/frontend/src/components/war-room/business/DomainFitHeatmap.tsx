@@ -28,7 +28,7 @@ export function DomainFitHeatmap({ data, isLoading }: Props) {
 
   const domainNames = [...new Set(data.map((d) => d.domainName))];
   const robotNames = [...new Set(data.map((d) => d.robotName))];
-  const lookup = new Map(data.map((d) => [`${d.domainName}__${d.robotName}`, d.fitScore]));
+  const lookup = new Map(data.map((d) => [`${d.domainName}__${d.robotName}`, d.fitScore != null ? Number(d.fitScore) : null]));
 
   if (domainNames.length === 0) {
     return (
