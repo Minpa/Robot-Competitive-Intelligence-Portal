@@ -13,17 +13,9 @@ import {
   products,
   productSpecs,
   articles,
-  keywords,
   humanoidRobots,
-  bodySpecs,
-  handSpecs,
-  computingSpecs,
-  sensorSpecs,
-  powerSpecs,
   workforceData,
-  talentTrends,
   users,
-  allowedEmails,
 } from './schema.js';
 
 const client = postgres(process.env.DATABASE_URL!);
@@ -198,7 +190,7 @@ class DataValidator {
 
       // 3. 상태 값 검증
       const validStatuses = ['announced', 'available', 'discontinued'];
-      if (!validStatuses.includes(product.status)) {
+      if (product.status && !validStatuses.includes(product.status)) {
         result.issues.push({
           id: product.id,
           field: 'status',
@@ -369,7 +361,7 @@ class DataValidator {
 
       // 4. 언어 값 검증
       const validLanguages = ['en', 'ko', 'ja', 'zh'];
-      if (!validLanguages.includes(article.language)) {
+      if (article.language && !validLanguages.includes(article.language)) {
         result.issues.push({
           id: article.id,
           field: 'language',
@@ -421,7 +413,7 @@ class DataValidator {
 
       // 2. 상태 값 검증
       const validStatuses = ['development', 'poc', 'commercial'];
-      if (!validStatuses.includes(robot.status)) {
+      if (robot.status && !validStatuses.includes(robot.status)) {
         result.issues.push({
           id: robot.id,
           field: 'status',
@@ -591,7 +583,7 @@ class DataValidator {
 
       // 2. 역할 값 검증
       const validRoles = ['admin', 'analyst', 'viewer'];
-      if (!validRoles.includes(user.role)) {
+      if (user.role && !validRoles.includes(user.role)) {
         result.issues.push({
           id: user.id,
           field: 'role',
@@ -679,7 +671,8 @@ class DataValidator {
     }
   }
 
-  private isValidUrl(url: string): boolean {
+  private isValidUrl(url: string | null | undefined): boolean {
+    if (!url) return false;
     try {
       new URL(url);
       return true;
@@ -688,12 +681,15 @@ class DataValidator {
     }
   }
 
-  private isValidEmail(email: string): boolean {
+  private isValidEmail(email: string | null | undefined): boolean {
+    if (!email) return false;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }
 
-  private normalizeCountry(country: string): string {
+  private normalizeCountry(country: string | null | undefined): string {
+    if (!country) return '';
+
     const countryMap: Record<string, string> = {
       'usa': 'United States',
       'us': 'United States',
