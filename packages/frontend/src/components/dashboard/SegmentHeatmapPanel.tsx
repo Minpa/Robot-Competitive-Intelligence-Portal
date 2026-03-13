@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { ChartInfoModal } from '../shared/ChartInfoModal';
 import { EmptyChartPlaceholder } from '../shared/EmptyChartPlaceholder';
 
 export interface SegmentCell {
@@ -63,6 +64,7 @@ export function SegmentHeatmapPanel({
 }: SegmentHeatmapPanelProps) {
   const [hoveredCell, setHoveredCell] = useState<{ row: string; col: string } | null>(null);
   const [localTaskType, setLocalTaskType] = useState<string>('전체');
+  const [showInfo, setShowInfo] = useState(false);
 
   const activeTaskType = taskTypeFilter ?? localTaskType;
   const availableTaskTypes = taskTypes ?? DEFAULT_TASK_TYPES;
@@ -128,34 +130,58 @@ export function SegmentHeatmapPanel({
   const displayCols = columns.length > 0 ? columns : DEFAULT_LOCOMOTIONS;
 
   return (
-    <div className="bg-slate-900 rounded-xl p-6 h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <span className="text-xl">🗺️</span>
-            세그먼트 매트릭스
-          </h3>
-          <p className="text-xs text-slate-400 mt-1">환경 × 이동 방식별 로봇 분포</p>
+    <>
+      <ChartInfoModal
+        isOpen={showInfo}
+        onClose={() => setShowInfo(false)}
+        title="세그먼트 매트릭스 설명"
+      >
+        <p className="mb-3">
+          이 매트릭스는 로봇을 “환경(산업용/가정/서비스)”과 “이동 방식(2족/휠/하이브리드)”으로 분류해 분포를 보여줍니다.
+          셀 값은 해당 조합에 속하는 로봇 수입니다.
+        </p>
+        <p className="mb-3">
+          셀을 클릭하면 해당 조합에 속한 로봇 목록과 최근 이벤트를 확인할 수 있습니다.
+        </p>
+        <p className="text-xs text-slate-400">
+          ※ 데이터가 적은 셀은 시각적으로 과소평가될 수 있으므로, 전체 분포를 함께 확인하세요.
+        </p>
+      </ChartInfoModal>
+
+      <div className="bg-slate-900 rounded-xl p-6 h-full">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <span className="text-xl">🗺️</span>
+              세그먼트 매트릭스
+            </h3>
+            <p className="text-xs text-slate-400 mt-1">환경 × 이동 방식별 로봇 분포</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Task type dropdown filter */}
+            <select
+              value={activeTaskType}
+              onChange={(e) => handleTaskTypeChange(e.target.value)}
+              className="text-sm bg-slate-800 text-slate-300 border border-slate-700 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              {availableTaskTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type === '전체' ? '작업 유형: 전체' : type}
+                </option>
+              ))}
+            </select>
+            <span className="text-sm text-slate-400 bg-slate-800 px-3 py-1 rounded-full">
+              총 {totalCount}개
+            </span>
+            <button
+              onClick={() => setShowInfo(true)}
+              className="rounded-md bg-slate-800/60 px-3 py-1 text-xs font-medium text-slate-200 hover:bg-slate-700"
+            >
+              상세 설명
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          {/* Task type dropdown filter */}
-          <select
-            value={activeTaskType}
-            onChange={(e) => handleTaskTypeChange(e.target.value)}
-            className="text-sm bg-slate-800 text-slate-300 border border-slate-700 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            {availableTaskTypes.map((type) => (
-              <option key={type} value={type}>
-                {type === '전체' ? '작업 유형: 전체' : type}
-              </option>
-            ))}
-          </select>
-          <span className="text-sm text-slate-400 bg-slate-800 px-3 py-1 rounded-full">
-            총 {totalCount}개
-          </span>
-        </div>
-      </div>
 
       {/* Matrix: rows=environment, columns=locomotion */}
       <div className="overflow-x-auto">
@@ -239,5 +265,6 @@ export function SegmentHeatmapPanel({
         <span>많음</span>
       </div>
     </div>
+    </>
   );
 }
