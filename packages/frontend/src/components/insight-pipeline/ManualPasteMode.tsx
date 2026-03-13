@@ -32,12 +32,43 @@ export function ManualPasteMode({
   setArticleTitle,
 }: ManualPasteModeProps) {
   const [rawText, setRawText] = useState('');
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [imageName, setImageName] = useState<string | null>(null);
   const [options, setOptions] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(ANALYSIS_OPTIONS.map((o) => [o.key, true]))
   );
   const [error, setError] = useState<string | null>(null);
 
-  const isTooShort = rawText.length < MIN_TEXT_LENGTH;
+  const handleImageFile = async (file: File) => {
+    setError(null);
+    setImageName(file.name);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setImageBase64(result);
+      // Optionally clear raw text so user sees image is being used
+      setRawText('');
+    };
+    reader.onerror = () => {
+      setError('이미지를 읽는 중 오류가 발생했습니다.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = Array.from(e.clipboardData.items);
+    const imageItem = items.find((item) => item.type.startsWith('image/'));
+    if (!imageItem) return;
+
+    const file = imageItem.getAsFile();
+    if (!file) return;
+
+    await handleImageFile(file);
+    e.preventDefault();
+  };
+
+  const isTooShort = rawText.length < MIN_TEXT_LENGTH && !imageBase64;
   const canAnalyze = !isTooShort && !isAnalyzing;
 
   const toggleOption = (key: string) => {
@@ -50,9 +81,19 @@ export function ManualPasteMode({
     setIsAnalyzing(true);
 
     try {
-      // Step 1: Parse article text
-      const parseResponse = await api.parseArticle(rawText, undefined, options);
+      // Step 1: Parse article text (or image via OCR)
+      const parseResponse = await api.parseArticle(
+        rawText.length >= MIN_TEXT_LENGTH ? rawText : undefined,
+        undefined,
+        options,
+        imageBase64 || undefined
+      );
       const parsed = parseResponse.result;
+
+      // If OCR was used, populate the textarea with extracted text for user review.
+      if (parseResponse.extractedText) {
+        setRawText(parseResponse.extractedText);
+      }
 
       // Step 2: Collect all entities for linking
       const allEntities = [
@@ -116,6 +157,53 @@ export function ManualPasteMode({
         />
       </div>
 
+      {/* Image upload */}
+      <div>
+        <label className="block text-sm text-slate-400 mb-1.5">이미지에서 텍스트 추출</label>
+        <div className="flex flex-col gap-2">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                handleImageFile(file);
+              }
+            }}
+            className="text-sm text-slate-300"
+          />
+
+          {imageName && (
+            <div className="flex items-center justify-between gap-2 text-xs text-slate-300">
+              <span className="truncate">{imageName}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setImageBase64(null);
+                  setImageName(null);
+                }}
+                className="text-violet-300 hover:text-violet-100"
+              >
+                이미지 삭제
+              </button>
+            </div>
+          )}
+
+          {imageBase64 && (
+            <div className="border border-slate-700 rounded-lg overflow-hidden">
+              <img
+                src={imageBase64}
+                alt="업로드된 스크린샷"
+                className="w-full h-auto max-h-60 object-contain"
+              />
+            </div>
+          )}
+        </div>
+        <p className="mt-1 text-xs text-slate-500">
+          스크린샷을 붙여넣거나 업로드하면 OCR로 텍스트를 추출하여 분석할 수 있습니다.
+        </p>
+      </div>
+
       {/* Text area */}
       <div>
         <label htmlFor="article-text" className="block text-sm text-slate-400 mb-1.5">
@@ -125,6 +213,7 @@ export function ManualPasteMode({
           id="article-text"
           value={rawText}
           onChange={(e) => setRawText(e.target.value)}
+          onPaste={handlePaste}
           placeholder="기사 원문을 붙여넣으세요 (최소 20자)"
           rows={12}
           className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors resize-y"

@@ -15,6 +15,7 @@ import { articleDBWriterService } from '../services/article-db-writer.service.js
 import { validationRulesEngine } from '../services/validation-rules.service.js';
 import { pipelineLogger } from '../services/pipeline-logger.service.js';
 import { externalAIAgent, convertToParseResult } from '../services/external-ai-agent.service.js';
+import { extractTextFromBase64 } from '../services/ocr.service.js';
 import type { ParsedEntity } from '../services/article-parser.service.js';
 import type { ArticleSaveRequest } from '../services/article-db-writer.service.js';
 import type { LinkConfirmation } from '../services/entity-linker.service.js';
@@ -25,18 +26,27 @@ export async function analysisRoutes(fastify: FastifyInstance) {
   /**
    * POST /parse - 기사 원문 파싱
    */
-  fastify.post<{ Body: { text: string; lang?: string; options?: Record<string, boolean> } }>(
+  fastify.post<{
+    Body: { text?: string; imageBase64?: string; lang?: string; options?: Record<string, boolean> };
+  }>(
     '/parse',
     async (request, reply) => {
       const runId = await pipelineLogger.startRun();
       try {
-        const { text, lang, options } = request.body;
+        const { text, imageBase64, lang, options } = request.body;
         await pipelineLogger.startStep(runId, 'parse', 1);
 
-        const result = await articleParserService.parse(text, lang, options);
+        // If an image is provided, run OCR and include the extracted text in the response.
+        let extractedText: string | undefined;
+        const textToAnalyze = text ?? '';
+        if ((!textToAnalyze || textToAnalyze.trim().length < 20) && imageBase64) {
+          extractedText = (await extractTextFromBase64(imageBase64)).trim();
+        }
+
+        const result = await articleParserService.parse(textToAnalyze, lang, options, imageBase64);
 
         await pipelineLogger.completeStep(runId, 'parse', 1, 0);
-        return { runId, result };
+        return { runId, result, extractedText };
       } catch (error) {
         await pipelineLogger.failStep(runId, 'parse', error as Error);
         return reply.status(400).send({ error: (error as Error).message, runId });

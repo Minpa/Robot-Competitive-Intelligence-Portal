@@ -1289,7 +1289,12 @@ class ApiClient {
   // 분석 파이프라인 API
   // ============================================
 
-  async parseArticle(text: string, lang?: string, options?: Record<string, boolean>) {
+  async parseArticle(
+    text: string | undefined,
+    lang?: string,
+    options?: Record<string, boolean>,
+    imageBase64?: string
+  ) {
     return this.request<{
       runId: string;
       result: {
@@ -1301,9 +1306,10 @@ class ApiClient {
         summary: string;
         detectedLanguage: string;
       };
+      extractedText?: string;
     }>('/analysis/parse', {
       method: 'POST',
-      body: JSON.stringify({ text, lang, options }),
+      body: JSON.stringify({ text, lang, options, imageBase64 }),
     });
   }
 

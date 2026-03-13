@@ -6,6 +6,7 @@
  */
 
 import OpenAI from 'openai';
+import { extractTextFromBase64 } from './ocr.service.js';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -51,24 +52,33 @@ const DEFAULT_OPTIONS: ParseOptions = {
 export class ArticleParserService {
   /**
    * 기사 원문을 파싱하여 엔티티/키워드/요약 추출
+   *
+   * @param rawText - 텍스트 입력 (이미지 입력이 있는 경우 비어있을 수 있음)
+   * @param imageBase64 - 이미지(스크린샷)에서 텍스트를 추출할 경우 base64 문자열
    */
-  async parse(rawText: string, lang?: string, options?: Partial<ParseOptions>): Promise<ParseResult> {
+  async parse(rawText?: string, lang?: string, options?: Partial<ParseOptions>, imageBase64?: string): Promise<ParseResult> {
+    // 이미지가 제공된 경우 OCR을 시도하여 텍스트로 변환
+    let text = rawText?.trim() || '';
+    if ((!text || text.length < MIN_TEXT_LENGTH) && imageBase64) {
+      text = (await extractTextFromBase64(imageBase64)).trim();
+    }
+
     // 빈 입력 / 최소 길이 검증
-    if (!rawText || rawText.trim().length < MIN_TEXT_LENGTH) {
+    if (!text || text.length < MIN_TEXT_LENGTH) {
       throw new Error(`입력 텍스트가 너무 짧습니다. 최소 ${MIN_TEXT_LENGTH}자 이상이어야 합니다.`);
     }
 
-    const detectedLanguage = lang || this.detectLanguage(rawText);
+    const detectedLanguage = lang || this.detectLanguage(text);
     const mergedOptions = { ...DEFAULT_OPTIONS, ...options };
 
     // LLM API 키가 없으면 regex 기반 폴백
     if (!process.env.OPENAI_API_KEY) {
       console.log('[ArticleParser] OpenAI API key not configured, using fallback');
-      return this.fallbackParse(rawText, detectedLanguage, mergedOptions);
+      return this.fallbackParse(text, detectedLanguage, mergedOptions);
     }
 
     try {
-      const prompt = this.buildPrompt(rawText, detectedLanguage, mergedOptions);
+      const prompt = this.buildPrompt(text, detectedLanguage, mergedOptions);
       const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
@@ -86,7 +96,7 @@ export class ArticleParserService {
       console.error('[ArticleParser] LLM API failed, retrying once...', error);
       // 재시도 1회
       try {
-        const prompt = this.buildPrompt(rawText, detectedLanguage, mergedOptions);
+        const prompt = this.buildPrompt(text, detectedLanguage, mergedOptions);
         const response = await openai.chat.completions.create({
           model: 'gpt-4o-mini',
           messages: [
@@ -101,7 +111,7 @@ export class ArticleParserService {
         return this.parseAIResponse(content, detectedLanguage);
       } catch (retryError) {
         console.error('[ArticleParser] Retry failed, using fallback', retryError);
-        return this.fallbackParse(rawText, detectedLanguage, mergedOptions);
+        return this.fallbackParse(text, detectedLanguage, mergedOptions);
       }
     }
   }
