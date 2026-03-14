@@ -5,6 +5,7 @@ import { usePocScores, useRfmScores, usePositioningData, useBarSpecs } from '@/h
 import SectionNav from '@/components/humanoid-trend/SectionNav';
 import PocRadarSection from '@/components/humanoid-trend/PocRadarSection';
 import RfmOverlayRadar from '@/components/humanoid-trend/RfmOverlayRadar';
+import RfmComparisonTable from '@/components/humanoid-trend/RfmComparisonTable';
 import RfmBubbleChart from '@/components/humanoid-trend/RfmBubbleChart';
 import PocBubbleChart from '@/components/humanoid-trend/PocBubbleChart';
 import SocBubbleChart from '@/components/humanoid-trend/SocBubbleChart';
@@ -65,7 +66,17 @@ function HumanoidTrendContent() {
         </ChartSection>
 
         <ChartSection id="rfm-radar" title="2. RFM 역량 비교" rubricType="rfm">
-          {rfmLoading ? <LoadingSkeleton /> : <RfmOverlayRadar data={rfmScores || []} />}
+          {rfmLoading ? (
+            <LoadingSkeleton />
+          ) : (
+            <>
+              <RfmOverlayRadar data={rfmScores || []} />
+              <div className="mt-6">
+                <h3 className="text-sm font-semibold text-white mb-2">RFM 비교 표 (주요 기업)</h3>
+                <RfmComparisonTable />
+              </div>
+            </>
+          )}
         </ChartSection>
 
         <ChartSection id="rfm-positioning" title="3. RFM 경쟁력 포지셔닝 맵" rubricType="positioning">
