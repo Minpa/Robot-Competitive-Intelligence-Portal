@@ -164,6 +164,7 @@ export class ArticleService {
     for (let index = 0; index < normalizedRows.length; index += 1) {
       const rowNum = index + 2; // assuming header row
       const row = normalizedRows[index];
+      if (!row) { result.skipped += 1; continue; }
       try {
         const payload = mapRow(row) as ImportRow;
         if (!payload.title || !payload.source || !payload.url || !payload.content) {
