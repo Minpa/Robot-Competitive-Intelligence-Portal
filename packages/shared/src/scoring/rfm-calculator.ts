@@ -1,5 +1,5 @@
 /**
- * RFM 6-Factor Scoring Calculator — Pure Function Module
+ * RFM 5-Factor Scoring Calculator — Pure Function Module
  *
  * Calculates RFM scores from robot spec data without any DB dependencies.
  * All functions are pure: same input always produces same output.
@@ -14,12 +14,11 @@ import type { RobotWithSpecs, ScoreResult } from './poc-calculator.js';
 // ============================================
 
 export interface RfmScoreValues {
-  generalityScore: number; // 1–5
-  realWorldDataScore: number; // 1–5
-  edgeInferenceScore: number; // 1–5
-  multiRobotCollabScore: number; // 1–5
-  openSourceScore: number; // 1–5
-  commercialMaturityScore: number; // 1–5
+  architectureScore: number; // 1–5 (모델 아키텍처 & 학습 역량)
+  dataScore: number; // 1–5 (데이터/실세계 테스트)
+  inferenceScore: number; // 1–5 (엣지 추론 & 하드웨어)
+  openSourceScore: number; // 1–5 (오픈소스·생태계)
+  maturityScore: number; // 1–5 (상용성 & 설명 가능성)
   rfmModelName: string;
   metadata: {
     source: 'auto' | 'manual';
@@ -261,21 +260,26 @@ export function calculateRfmScores(specs: RobotWithSpecs): RfmScoreValues {
     specs.robot.commercializationStage
   );
 
+  // 5개 Factor로 재매핑
+  const architectureScore = Math.round((generality.score + multiRobotCollab.score) / 2); // 모델 아키텍처 & 학습 역량
+  const dataScore = realWorldData.score; // 데이터/실세계 테스트
+  const inferenceScore = edgeInference.score; // 엣지 추론 & 하드웨어
+  const openSourceScore = openSource.score; // 오픈소스·생태계
+  const maturityScore = commercialMaturity.score; // 상용성 & 설명 가능성
+
   const estimatedFields: string[] = [];
-  if (generality.estimated) estimatedFields.push('generalityScore');
-  if (realWorldData.estimated) estimatedFields.push('realWorldDataScore');
-  if (edgeInference.estimated) estimatedFields.push('edgeInferenceScore');
-  if (multiRobotCollab.estimated) estimatedFields.push('multiRobotCollabScore');
+  if (generality.estimated || multiRobotCollab.estimated) estimatedFields.push('architectureScore');
+  if (realWorldData.estimated) estimatedFields.push('dataScore');
+  if (edgeInference.estimated) estimatedFields.push('inferenceScore');
   if (openSource.estimated) estimatedFields.push('openSourceScore');
-  if (commercialMaturity.estimated) estimatedFields.push('commercialMaturityScore');
+  if (commercialMaturity.estimated) estimatedFields.push('maturityScore');
 
   return {
-    generalityScore: generality.score,
-    realWorldDataScore: realWorldData.score,
-    edgeInferenceScore: edgeInference.score,
-    multiRobotCollabScore: multiRobotCollab.score,
-    openSourceScore: openSource.score,
-    commercialMaturityScore: commercialMaturity.score,
+    architectureScore,
+    dataScore,
+    inferenceScore,
+    openSourceScore,
+    maturityScore,
     rfmModelName: `${specs.robot.name} Auto-RFM`,
     metadata: {
       source: 'auto',

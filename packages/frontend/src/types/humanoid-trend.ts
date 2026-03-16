@@ -21,12 +21,11 @@ export interface RfmScoreWithRobot {
   robotName: string;
   companyName: string;
   rfmModelName: string;
-  generalityScore: number;
-  realWorldDataScore: number;
-  edgeInferenceScore: number;
-  multiRobotCollabScore: number;
-  openSourceScore: number;
-  commercialMaturityScore: number;
+  architectureScore: number; // 모델 아키텍처 & 학습 역량
+  dataScore: number; // 데이터/실세계 테스트
+  inferenceScore: number; // 엣지 추론 & 하드웨어
+  openSourceScore: number; // 오픈소스·생태계
+  maturityScore: number; // 상용성 & 설명 가능성
   evaluatedAt: string;
 }
 

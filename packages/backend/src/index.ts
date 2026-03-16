@@ -1,11 +1,20 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
 import { registerRoutes } from './routes/index.js';
 import { aiUsageService } from './services/ai-usage.service.js';
 import { fixSocPowerConsumption } from './db/fix-soc-startup.js';
 
 const fastify = Fastify({
   logger: true,
+});
+
+// File uploads (used for Excel import, etc.)
+fastify.register(multipart, {
+  attachFieldsToBody: true,
+  limits: {
+    fileSize: 20 * 1024 * 1024, // 20MB max
+  },
 });
 
 // Allow empty body for POST requests

@@ -385,11 +385,15 @@ export class PPTGeneratorService {
     const rfmScores = await humanoidTrendService.getRfmScores();
     const rfmSlide = this.addSectionSlide(pptx, chartTitles[1], theme);
     if (rfmScores.length > 0) {
-      const headers = ['로봇', 'RFM 모델', '범용성', '실세계', '엣지추론', '멀티로봇', '오픈소스', '상용성숙도'];
+      const headers = ['로봇', 'RFM 모델', '모델 아키텍처', '데이터', '엣지 추론', '오픈소스', '상용성'];
       const rows = rfmScores.map(s => [
-        s.robotName, s.rfmModelName,
-        String(s.generalityScore), String(s.realWorldDataScore), String(s.edgeInferenceScore),
-        String(s.multiRobotCollabScore), String(s.openSourceScore), String(s.commercialMaturityScore),
+        s.robotName,
+        s.rfmModelName,
+        String(s.architectureScore),
+        String(s.dataScore),
+        String(s.inferenceScore),
+        String(s.openSourceScore),
+        String(s.maturityScore),
       ]);
       this.addTableToSlide(rfmSlide, headers, rows, theme);
     } else {

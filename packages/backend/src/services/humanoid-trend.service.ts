@@ -93,12 +93,11 @@ export interface RfmScoreWithRobot {
   robotName: string;
   companyName: string;
   rfmModelName: string;
-  generalityScore: number;
-  realWorldDataScore: number;
-  edgeInferenceScore: number;
-  multiRobotCollabScore: number;
-  openSourceScore: number;
-  commercialMaturityScore: number;
+  architectureScore: number; // 모델 아키텍처 & 학습 역량
+  dataScore: number; // 데이터/실세계 테스트
+  inferenceScore: number; // 엣지 추론 & 하드웨어
+  openSourceScore: number; // 오픈소스·생태계
+  maturityScore: number; // 상용성 & 설명 가능성
   evaluatedAt: Date;
 }
 
@@ -304,12 +303,12 @@ export class HumanoidTrendService {
       robotName: row.robotName,
       companyName: row.companyName,
       rfmModelName: row.rfmModelName,
-      generalityScore: row.generalityScore,
-      realWorldDataScore: row.realWorldDataScore,
-      edgeInferenceScore: row.edgeInferenceScore,
-      multiRobotCollabScore: row.multiRobotCollabScore,
-      openSourceScore: row.openSourceScore,
-      commercialMaturityScore: row.commercialMaturityScore,
+      // 6개 Factor를 5개로 재매핑
+      architectureScore: Math.round((row.generalityScore + row.multiRobotCollabScore) / 2), // 모델 아키텍처 & 학습 역량
+      dataScore: row.realWorldDataScore, // 데이터/실세계 테스트
+      inferenceScore: row.edgeInferenceScore, // 엣지 추론 & 하드웨어
+      openSourceScore: row.openSourceScore, // 오픈소스·생태계
+      maturityScore: row.commercialMaturityScore, // 상용성 & 설명 가능성
       evaluatedAt: row.evaluatedAt,
     }));
   }

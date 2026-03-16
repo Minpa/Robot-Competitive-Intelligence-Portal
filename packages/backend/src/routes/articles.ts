@@ -106,4 +106,25 @@ export async function articleRoutes(fastify: FastifyInstance) {
     const isDuplicate = await articleService.checkDuplicate(hash);
     return { contentHash: hash, isDuplicate };
   });
+
+  // Import articles via Excel upload (xlsx)
+  fastify.post('/import-excel', async (request, reply) => {
+    const file = await request.file();
+    if (!file) {
+      reply.status(400).send({ error: 'No file uploaded' });
+      return;
+    }
+
+    const updateExisting = (request.body as any).updateExisting;
+    const buffer = await file.toBuffer();
+
+    try {
+      const result = await articleService.importFromExcel(buffer, {
+        updateExisting: updateExisting !== 'false',
+      });
+      return result;
+    } catch (err) {
+      reply.status(500).send({ error: (err as Error).message });
+    }
+  });
 }

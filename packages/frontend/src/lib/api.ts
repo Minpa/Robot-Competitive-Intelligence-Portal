@@ -144,6 +144,33 @@ class ApiClient {
     return this.request<any>(`/articles/${id}`);
   }
 
+  async importArticlesFromExcel(file: File, updateExisting = true) {
+    const url = `${API_BASE}/articles/import-excel`;
+    const token = this.getToken();
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('updateExisting', updateExisting ? 'true' : 'false');
+
+    const headers: HeadersInit = {};
+    if (token) {
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || `HTTP ${response.status}`);
+    }
+
+    return response.json();
+  }
+
   // Keywords
   async getKeywords(params?: Record<string, string>) {
     const query = params ? '?' + new URLSearchParams(params).toString() : '';

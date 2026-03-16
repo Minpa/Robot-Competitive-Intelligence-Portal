@@ -45,6 +45,11 @@ export default function AdminPage() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [emailSuccess, setEmailSuccess] = useState<string | null>(null);
 
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<any>(null);
+  const [importUpdateExisting, setImportUpdateExisting] = useState(true);
+
   const { data: summary } = useQuery({
     queryKey: ['dashboard-summary'],
     queryFn: () => api.getDashboardSummary(),
@@ -128,6 +133,20 @@ export default function AdminPage() {
     setEmailSuccess(null);
     if (confirm(`${email} 이메일을 삭제하시겠습니까?`)) {
       removeEmailMutation.mutate(email);
+    }
+  };
+
+  const handleImportExcel = async () => {
+    if (!importFile) return;
+    setImportResult(null);
+    setImporting(true);
+    try {
+      const result = await api.importArticlesFromExcel(importFile, importUpdateExisting);
+      setImportResult(result);
+    } catch (error) {
+      setImportResult({ error: (error as Error).message });
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -374,6 +393,63 @@ export default function AdminPage() {
               <p className="font-medium text-white">기사 데이터</p>
               <p className="text-sm text-slate-400">CSV 형식으로 다운로드</p>
             </button>
+          </div>
+
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold text-white mb-3">Excel로 기사 업로드</h3>
+            <p className="text-sm text-slate-400 mb-4">첫 번째 시트에서 데이터를 읽어서 기사 데이터를 생성/업데이트합니다.</p>
+            <div className="flex flex-col md:flex-row gap-3 items-start">
+              <div className="flex-1">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+                  className="w-full text-sm text-slate-100 file:bg-slate-800 file:border file:border-slate-700 file:px-3 file:py-2 file:rounded-lg file:text-slate-100 file:bg-slate-700"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  id="updateExisting"
+                  type="checkbox"
+                  checked={importUpdateExisting}
+                  onChange={(e) => setImportUpdateExisting(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 bg-slate-800 border-slate-600 rounded"
+                />
+                <label htmlFor="updateExisting" className="text-sm text-slate-300">
+                  기존 기사 업데이트 (중복 URL이 있는 경우)
+                </label>
+              </div>
+              <button
+                disabled={!importFile || importing}
+                onClick={handleImportExcel}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 disabled:opacity-50 transition-colors"
+              >
+                {importing ? '업로드 중...' : '업로드'}
+              </button>
+            </div>
+            {importResult && (
+              <div className="mt-4 rounded-lg bg-slate-800/50 border border-slate-700 p-4">
+                {importResult.error ? (
+                  <p className="text-sm text-red-400">에러: {importResult.error}</p>
+                ) : (
+                  <div className="text-sm text-slate-200 space-y-1">
+                    <p>생성: {importResult.created}</p>
+                    <p>업데이트: {importResult.updated}</p>
+                    <p>스킵: {importResult.skipped}</p>
+                    {importResult.errors?.length > 0 && (
+                      <details className="text-xs text-slate-400">
+                        <summary>에러 상세 ({importResult.errors.length})</summary>
+                        <ul className="list-disc ml-5 mt-2">
+                          {importResult.errors.map((err: any, idx: number) => (
+                            <li key={idx}>{`행 ${err.row}: ${err.error}`}</li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

@@ -7,13 +7,19 @@ import {
 import { getDistinctColors } from './color-utils';
 import type { RfmScoreWithRobot } from '@/types/humanoid-trend';
 
+// NOTE: 이 차트는 'RFM 비교 표'의 항목과 일치하도록 아래 5개 영역만 표시합니다.
+// - 모델 아키텍처 & 학습 역량  => architectureScore
+// - 데이터/실세계 테스트     => dataScore
+// - 엣지 추론 & 하드웨어      => inferenceScore
+// - 오픈소스·생태계          => openSourceScore
+// - 상용성 & 설명 가능성     => maturityScore
+
 const AXES = [
-  { key: 'generalityScore', label: '범용성' },
-  { key: 'realWorldDataScore', label: '실세계 데이터' },
-  { key: 'edgeInferenceScore', label: '엣지 추론' },
-  { key: 'multiRobotCollabScore', label: '멀티로봇 협업' },
-  { key: 'openSourceScore', label: '오픈소스 개방성' },
-  { key: 'commercialMaturityScore', label: '상용 성숙도' },
+  { key: 'architectureScore', label: '모델 아키텍처 & 학습 역량' },
+  { key: 'dataScore', label: '데이터 / 실세계 테스트' },
+  { key: 'inferenceScore', label: '엣지 추론 & 하드웨어' },
+  { key: 'openSourceScore', label: '오픈소스 · 생태계' },
+  { key: 'maturityScore', label: '상용성 & 설명 가능성' },
 ] as const;
 
 interface Props { data: RfmScoreWithRobot[]; }

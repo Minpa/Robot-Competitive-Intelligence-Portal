@@ -1,3 +1,4 @@
+import { read, utils } from 'xlsx';
 import { eq, and, sql, desc, asc, gte, lte } from 'drizzle-orm';
 import { db, articles, companies, products } from '../db/index.js';
 import type {
@@ -58,6 +59,163 @@ export class ArticleService {
   async getById(id: string): Promise<Article | null> {
     const [article] = await db.select().from(articles).where(eq(articles.id, id)).limit(1);
     return (article as Article) || null;
+  }
+
+  async findByUrl(url: string): Promise<Article | null> {
+    const [article] = await db.select().from(articles).where(eq(articles.url, url)).limit(1);
+    return (article as Article) || null;
+  }
+
+  /**
+   * Import articles from an Excel buffer.
+   *
+   * The first sheet is used. Column headers are case-insensitive and may use spaces.
+   * Supported columns: title, source, url, publishedAt/published_at, summary, content, language, category,
+   * productType, productId, companyId
+   */
+  async importFromExcel(
+    buffer: Buffer,
+    options: { updateExisting?: boolean } = { updateExisting: true }
+  ): Promise<{ created: number; updated: number; skipped: number; errors: Array<{ row: number; error: string }> }> {
+    const workbook = read(buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+      throw new Error('Excel sheet not found');
+    }
+
+    const sheet = workbook.Sheets[sheetName];
+    if (!sheet) {
+      throw new Error('Excel sheet not found');
+    }
+
+    const rows = utils.sheet_to_json<Record<string, unknown> | undefined>(sheet, { defval: null }) as Array<Record<string, unknown> | undefined>;
+    const normalizedRows: Record<string, unknown>[] = rows.filter(Boolean) as Record<string, unknown>[];
+
+    const normalizeKey = (key: string): string =>
+      key
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '_');
+
+    type ImportRow = CreateArticleDto & {
+      category?: string;
+      productType?: string;
+    };
+
+    const mapRow = (row: Record<string, unknown>) => {
+      const mapped: any = {};
+      for (const [rawKey, value] of Object.entries(row)) {
+        if (value === null || value === undefined) continue;
+        const key = normalizeKey(rawKey);
+        switch (key) {
+          case 'title':
+            mapped.title = String(value);
+            break;
+          case 'source':
+            mapped.source = String(value);
+            break;
+          case 'url':
+            mapped.url = String(value);
+            break;
+          case 'publishedat':
+          case 'published_at':
+            // Accept Date object or string
+            mapped.publishedAt = value instanceof Date ? value.toISOString() : String(value);
+            break;
+          case 'summary':
+            mapped.summary = String(value);
+            break;
+          case 'content':
+            mapped.content = String(value);
+            break;
+          case 'language':
+            mapped.language = String(value);
+            break;
+          case 'category':
+            mapped.category = String(value);
+            break;
+          case 'producttype':
+          case 'product_type':
+            mapped.productType = String(value);
+            break;
+          case 'productid':
+          case 'product_id':
+            mapped.productId = String(value);
+            break;
+          case 'companyid':
+          case 'company_id':
+            mapped.companyId = String(value);
+            break;
+          default:
+            break;
+        }
+      }
+      return mapped as ImportRow;
+    };
+
+    const result = {
+      created: 0,
+      updated: 0,
+      skipped: 0,
+      errors: [] as Array<{ row: number; error: string }>,
+    };
+
+    for (let index = 0; index < normalizedRows.length; index += 1) {
+      const rowNum = index + 2; // assuming header row
+      const row = normalizedRows[index];
+      try {
+        const payload = mapRow(row) as ImportRow;
+        if (!payload.title || !payload.source || !payload.url || !payload.content) {
+          result.skipped += 1;
+          continue;
+        }
+
+        // Ensure publishedAt is ISO string if present
+        if (payload.publishedAt) {
+          try {
+            const d = new Date(payload.publishedAt);
+            if (!Number.isNaN(d.getTime())) payload.publishedAt = d.toISOString();
+          } catch {
+            // ignore invalid date
+          }
+        }
+
+        const existing = await this.findByUrl(payload.url);
+        if (existing) {
+          if (options.updateExisting) {
+            // Update only fields we allow (avoid changing contentHash)
+            const updateData: any = {};
+            if (payload.title) updateData.title = payload.title;
+            if (payload.summary) updateData.summary = payload.summary;
+            if (payload.productId) updateData.productId = payload.productId;
+            if (payload.companyId) updateData.companyId = payload.companyId;
+            // optionally update publishedAt and language/category too
+            if (payload.publishedAt) updateData.publishedAt = payload.publishedAt;
+            if (payload.language) updateData.language = payload.language;
+            if (payload.category) updateData.category = payload.category;
+            if (payload.productType) updateData.productType = payload.productType;
+
+            const updated = await this.update(existing.id, updateData);
+            if (updated) {
+              result.updated += 1;
+            } else {
+              result.skipped += 1;
+            }
+          } else {
+            result.skipped += 1;
+          }
+          continue;
+        }
+
+        await this.create(payload);
+        result.created += 1;
+      } catch (err) {
+        result.errors.push({ row: rowNum, error: (err as Error).message });
+      }
+    }
+
+    return result;
   }
 
   async update(id: string, data: UpdateArticleDto): Promise<Article | null> {
