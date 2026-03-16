@@ -96,6 +96,22 @@ export class HumanoidRobotService {
    * Create a new humanoid robot
    */
   async createRobot(data: CreateHumanoidRobotDto) {
+    // Prevent duplicate: same company + same name (case-insensitive)
+    const [existing] = await db
+      .select({ id: humanoidRobots.id, name: humanoidRobots.name })
+      .from(humanoidRobots)
+      .where(
+        and(
+          eq(humanoidRobots.companyId, data.companyId),
+          sql`lower(${humanoidRobots.name}) = lower(${data.name})`
+        )
+      )
+      .limit(1);
+
+    if (existing) {
+      throw new Error(`Robot '${data.name}' already exists for this company (id: ${existing.id})`);
+    }
+
     const [robot] = await db
       .insert(humanoidRobots)
       .values({
