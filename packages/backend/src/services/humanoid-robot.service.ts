@@ -638,6 +638,45 @@ export class HumanoidRobotService {
   /**
    * Get summary statistics
    */
+  /**
+   * Find duplicate robots: same companyId + same name (case-insensitive).
+   * Also finds cross-company near-duplicates (same normalized name).
+   */
+  async findDuplicates() {
+    const all = await db
+      .select({
+        id: humanoidRobots.id,
+        name: humanoidRobots.name,
+        companyId: humanoidRobots.companyId,
+        companyName: companies.name,
+        createdAt: humanoidRobots.createdAt,
+      })
+      .from(humanoidRobots)
+      .leftJoin(companies, eq(humanoidRobots.companyId, companies.id))
+      .orderBy(humanoidRobots.companyId, humanoidRobots.name);
+
+    // Group by companyId + lowercased name
+    const groups = new Map<string, typeof all>();
+    for (const robot of all) {
+      const key = `${robot.companyId}::${robot.name.toLowerCase().trim()}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(robot);
+    }
+
+    const duplicates = Array.from(groups.values()).filter((g) => g.length > 1);
+
+    return {
+      totalRobots: all.length,
+      duplicateGroups: duplicates.length,
+      duplicates: duplicates.map((group) => ({
+        companyName: group[0]?.companyName,
+        name: group[0]?.name,
+        count: group.length,
+        robots: group.map((r) => ({ id: r.id, name: r.name, createdAt: r.createdAt })),
+      })),
+    };
+  }
+
   async getSummary() {
     const totalResult = await db
       .select({ totalRobots: sql<number>`count(*)::int` })

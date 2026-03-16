@@ -77,6 +77,16 @@ export async function humanoidRobotRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Check duplicate robots (same company, similar name)
+  fastify.get('/check-duplicates', async (_request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      return await humanoidRobotService.findDuplicates();
+    } catch (error) {
+      console.error('Error checking duplicates:', error);
+      reply.status(500).send({ error: 'Failed to check duplicates' });
+    }
+  });
+
   // Get summary
   fastify.get('/summary', async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
