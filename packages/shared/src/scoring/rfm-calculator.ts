@@ -14,11 +14,18 @@ import type { RobotWithSpecs, ScoreResult } from './poc-calculator.js';
 // ============================================
 
 export interface RfmScoreValues {
+  // 5개 파생 점수 (화면 표시용)
   architectureScore: number; // 1–5 (모델 아키텍처 & 학습 역량)
   dataScore: number; // 1–5 (데이터/실세계 테스트)
   inferenceScore: number; // 1–5 (엣지 추론 & 하드웨어)
   openSourceScore: number; // 1–5 (오픈소스·생태계)
   maturityScore: number; // 1–5 (상용성 & 설명 가능성)
+  // 6개 원본 점수 (DB 저장용)
+  generalityScore: number; // 1–5
+  realWorldDataScore: number; // 1–5
+  edgeInferenceScore: number; // 1–5
+  multiRobotCollabScore: number; // 1–5
+  commercialMaturityScore: number; // 1–5
   rfmModelName: string;
   metadata: {
     source: 'auto' | 'manual';
@@ -275,11 +282,18 @@ export function calculateRfmScores(specs: RobotWithSpecs): RfmScoreValues {
   if (commercialMaturity.estimated) estimatedFields.push('maturityScore');
 
   return {
+    // 5개 파생 점수
     architectureScore,
     dataScore,
     inferenceScore,
     openSourceScore,
     maturityScore,
+    // 6개 원본 점수 (DB 저장용)
+    generalityScore: generality.score,
+    realWorldDataScore: realWorldData.score,
+    edgeInferenceScore: edgeInference.score,
+    multiRobotCollabScore: multiRobotCollab.score,
+    commercialMaturityScore: commercialMaturity.score,
     rfmModelName: `${specs.robot.name} Auto-RFM`,
     metadata: {
       source: 'auto',
