@@ -62,11 +62,12 @@ export class InsightGeneratorService {
     // 1. 기간 내 데이터 수집
     const [
       newRobotsResult,
+      newRobotsCountResult,
       newArticlesResult,
       recentCasesResult,
       segmentDataResult,
     ] = await Promise.all([
-      // 신규 로봇
+      // 신규 로봇 목록 (LLM 컨텍스트용, 최대 10개)
       db.select({
         id: humanoidRobots.id,
         name: humanoidRobots.name,
@@ -79,6 +80,11 @@ export class InsightGeneratorService {
         .where(gte(humanoidRobots.createdAt, startDate))
         .orderBy(desc(humanoidRobots.createdAt))
         .limit(10),
+
+      // 신규 로봇 총 count (limit 없이 정확한 수치)
+      db.select({ count: sql<number>`count(*)::int` })
+        .from(humanoidRobots)
+        .where(gte(humanoidRobots.createdAt, startDate)),
 
       // 최근 기사
       db.select({
@@ -124,7 +130,7 @@ export class InsightGeneratorService {
     ).length;
 
     const keyMetrics = {
-      newRobots: newRobotsResult.length,
+      newRobots: newRobotsCountResult[0]?.count ?? newRobotsResult.length,
       newPocs,
       newInvestments: investmentArticles,
       newProductions,
