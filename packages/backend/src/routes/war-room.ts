@@ -67,16 +67,20 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
   fastify.patch<{ Params: { robotId: string } }>('/competitive-scores/:robotId', async (request, reply) => {
     try {
       const body = request.body as any;
+      if (!body.pocScores && !body.rfmScores) {
+        return reply.status(400).send({ error: 'pocScores or rfmScores is required' });
+      }
       const result = await warRoomCompetitiveService.updateCompetitiveScores(request.params.robotId, {
         pocScores: body.pocScores,
         rfmScores: body.rfmScores,
       });
-      if (!result.pocScore && !result.rfmScore) {
-        return reply.status(404).send({ error: 'Robot not found or no valid scores to update' });
-      }
       return result;
     } catch (error) {
-      reply.status(500).send({ error: (error as Error).message });
+      const msg = (error as Error).message;
+      if (msg.startsWith('Robot not found')) {
+        return reply.status(404).send({ error: msg });
+      }
+      reply.status(500).send({ error: msg });
     }
   });
 

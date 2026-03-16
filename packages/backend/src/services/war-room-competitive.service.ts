@@ -129,6 +129,17 @@ class CompetitiveAnalysisService {
     robotId: string,
     updates: UpdateScoreRequest
   ): Promise<{ pocScore?: typeof pocScores.$inferSelect; rfmScore?: typeof rfmScores.$inferSelect }> {
+    // Verify robot exists
+    const [robot] = await db
+      .select({ id: humanoidRobots.id })
+      .from(humanoidRobots)
+      .where(eq(humanoidRobots.id, robotId))
+      .limit(1);
+
+    if (!robot) {
+      throw new Error(`Robot not found: ${robotId}`);
+    }
+
     const result: any = {};
 
     if (updates.pocScores && Object.keys(updates.pocScores).length > 0) {
@@ -140,18 +151,27 @@ class CompetitiveAnalysisService {
         .then((rows) => rows[0]);
 
       if (pocRow) {
-        const updateData: any = {
-          ...updates.pocScores,
-          updatedAt: new Date(),
-        };
-
         const updated = await db
           .update(pocScores)
-          .set(updateData)
+          .set({ ...updates.pocScores, updatedAt: new Date() })
           .where(eq(pocScores.robotId, robotId))
           .returning();
-
         result.pocScore = updated[0];
+      } else {
+        // No existing record — create one with provided values (default 1 for unspecified scores)
+        const defaultPoc = {
+          payloadScore: 1,
+          operationTimeScore: 1,
+          fingerDofScore: 1,
+          formFactorScore: 1,
+          pocDeploymentScore: 1,
+          costEfficiencyScore: 1,
+        };
+        const [created] = await db
+          .insert(pocScores)
+          .values({ robotId, ...defaultPoc, ...updates.pocScores })
+          .returning();
+        result.pocScore = created;
       }
     }
 
@@ -164,18 +184,28 @@ class CompetitiveAnalysisService {
         .then((rows) => rows[0]);
 
       if (rfmRow) {
-        const updateData: any = {
-          ...updates.rfmScores,
-          updatedAt: new Date(),
-        };
-
         const updated = await db
           .update(rfmScores)
-          .set(updateData)
+          .set({ ...updates.rfmScores, updatedAt: new Date() })
           .where(eq(rfmScores.robotId, robotId))
           .returning();
-
         result.rfmScore = updated[0];
+      } else {
+        // No existing record — create one with provided values (default 1 for unspecified scores)
+        const defaultRfm = {
+          rfmModelName: 'default',
+          generalityScore: 1,
+          realWorldDataScore: 1,
+          edgeInferenceScore: 1,
+          multiRobotCollabScore: 1,
+          openSourceScore: 1,
+          commercialMaturityScore: 1,
+        };
+        const [created] = await db
+          .insert(rfmScores)
+          .values({ robotId, ...defaultRfm, ...updates.rfmScores })
+          .returning();
+        result.rfmScore = created;
       }
     }
 
