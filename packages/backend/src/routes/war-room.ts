@@ -63,6 +63,23 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // ── Competitive Scores Update (8.4) ──────────────────────────────
+  fastify.patch<{ Params: { robotId: string } }>('/competitive-scores/:robotId', async (request, reply) => {
+    try {
+      const body = request.body as any;
+      const result = await warRoomCompetitiveService.updateCompetitiveScores(request.params.robotId, {
+        pocScores: body.pocScores,
+        rfmScores: body.rfmScores,
+      });
+      if (!result.pocScore && !result.rfmScore) {
+        return reply.status(404).send({ error: 'Robot not found or no valid scores to update' });
+      }
+      return result;
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
   // ── Score History (8.5) ──────────────────────────────────────────
 
   fastify.get<{ Querystring: { robot_ids?: string; months?: string } }>('/score-history', async (request, reply) => {

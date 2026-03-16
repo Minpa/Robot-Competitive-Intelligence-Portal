@@ -116,7 +116,72 @@ function sumRfmScores(row: RobotScoreRow): number {
   );
 }
 
+interface UpdateScoreRequest {
+  pocScores?: Partial<Record<typeof POC_FACTORS[number], number>>;
+  rfmScores?: Partial<Record<typeof RFM_FACTORS[number], number>>;
+}
+
 class CompetitiveAnalysisService {
+  /**
+   * Updates competitive scores for a robot (PoC and/or RFM scores).
+   */
+  async updateCompetitiveScores(
+    robotId: string,
+    updates: UpdateScoreRequest
+  ): Promise<{ pocScore?: typeof pocScores.$inferSelect; rfmScore?: typeof rfmScores.$inferSelect }> {
+    const result: any = {};
+
+    if (updates.pocScores && Object.keys(updates.pocScores).length > 0) {
+      const pocRow = await db
+        .select()
+        .from(pocScores)
+        .where(eq(pocScores.robotId, robotId))
+        .limit(1)
+        .then((rows) => rows[0]);
+
+      if (pocRow) {
+        const updateData: any = {
+          ...updates.pocScores,
+          updatedAt: new Date(),
+        };
+
+        const updated = await db
+          .update(pocScores)
+          .set(updateData)
+          .where(eq(pocScores.robotId, robotId))
+          .returning();
+
+        result.pocScore = updated[0];
+      }
+    }
+
+    if (updates.rfmScores && Object.keys(updates.rfmScores).length > 0) {
+      const rfmRow = await db
+        .select()
+        .from(rfmScores)
+        .where(eq(rfmScores.robotId, robotId))
+        .limit(1)
+        .then((rows) => rows[0]);
+
+      if (rfmRow) {
+        const updateData: any = {
+          ...updates.rfmScores,
+          updatedAt: new Date(),
+        };
+
+        const updated = await db
+          .update(rfmScores)
+          .set(updateData)
+          .where(eq(rfmScores.robotId, robotId))
+          .returning();
+
+        result.rfmScore = updated[0];
+      }
+    }
+
+    return result;
+  }
+
   /**
    * Fetches all robots that have both PoC and RFM scores, joined with robot/company names.
    */
