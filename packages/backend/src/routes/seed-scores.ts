@@ -359,6 +359,19 @@ function toStr(v: number | null): string | null {
 }
 
 export async function seedScoresRoutes(fastify: FastifyInstance) {
+  // DELETE /api/seed-scores/robot/:id — remove a duplicate robot and its related data
+  fastify.delete<{ Params: { id: string } }>('/robot/:id', async (request) => {
+    const { id } = request.params;
+    // Delete related scores first (cascade should handle this but be explicit)
+    await db.delete(pocScores).where(eq(pocScores.robotId, id));
+    await db.delete(rfmScores).where(eq(rfmScores.robotId, id));
+    await db.delete(bodySpecs).where(eq(bodySpecs.robotId, id));
+    await db.delete(handSpecs).where(eq(handSpecs.robotId, id));
+    await db.delete(computingSpecs).where(eq(computingSpecs.robotId, id));
+    await db.delete(humanoidRobots).where(eq(humanoidRobots.id, id));
+    return { success: true, deletedRobotId: id };
+  });
+
   // POST /api/seed-scores/recalculate
   fastify.post('/recalculate', async () => {
     const results: { robot: string; status: string; pocScores?: any; rfmScores?: any }[] = [];
