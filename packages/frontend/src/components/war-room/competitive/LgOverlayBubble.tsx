@@ -12,6 +12,7 @@ import {
   Cell,
 } from 'recharts';
 import type { CompetitiveOverlayResult, OverlayRobotData } from '@/types/war-room';
+import { BubbleChartInfo } from './ScoreInfoModal';
 
 interface LgOverlayBubbleProps {
   data: CompetitiveOverlayResult | null;
@@ -83,7 +84,10 @@ export function LgOverlayBubble({ data, isLoading }: LgOverlayBubbleProps) {
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-      <h3 className="text-sm font-semibold text-white">LG vs Top 5 오버레이 버블</h3>
+      <div className="flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-white">LG vs Top 5 오버레이 버블</h3>
+        <BubbleChartInfo />
+      </div>
       <p className="mt-1 text-xs text-slate-400">X: PoC 합계 / Y: RFM 합계</p>
 
       <div className="mt-2 h-72">

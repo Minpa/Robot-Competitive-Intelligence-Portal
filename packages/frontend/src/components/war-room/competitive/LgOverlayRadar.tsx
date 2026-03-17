@@ -10,6 +10,7 @@ import {
   Tooltip,
 } from 'recharts';
 import type { CompetitiveOverlayResult } from '@/types/war-room';
+import { RadarChartInfo } from './ScoreInfoModal';
 
 interface LgOverlayRadarProps {
   data: CompetitiveOverlayResult | null;
@@ -55,7 +56,10 @@ export function LgOverlayRadar({ data, isLoading }: LgOverlayRadarProps) {
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-      <h3 className="text-sm font-semibold text-white">LG vs Top 5 오버레이 레이더</h3>
+      <div className="flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-white">LG vs Top 5 오버레이 레이더</h3>
+        <RadarChartInfo />
+      </div>
       <p className="mt-1 text-xs text-slate-400">PoC 팩터 비교</p>
 
       <div className="mt-2 h-72">

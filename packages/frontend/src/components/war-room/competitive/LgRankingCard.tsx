@@ -1,6 +1,7 @@
 'use client';
 
 import type { LgRanking } from '@/types/war-room';
+import { RankingCardInfo } from './ScoreInfoModal';
 
 interface LgRankingCardProps {
   ranking: LgRanking | null;
@@ -38,7 +39,10 @@ export function LgRankingCard({ ranking, isLoading }: LgRankingCardProps) {
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-      <h3 className="text-sm font-semibold text-white">LG 종합 순위</h3>
+      <div className="flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-white">LG 종합 순위</h3>
+        <RankingCardInfo />
+      </div>
       <p className="mt-1 text-xs text-slate-400">전체 {ranking.totalRobots}개 로봇 중</p>
 
       <div className="mt-4 space-y-3">

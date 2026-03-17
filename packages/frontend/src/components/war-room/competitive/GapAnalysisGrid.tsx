@@ -1,6 +1,7 @@
 'use client';
 
 import type { GapFactorItem } from '@/types/war-room';
+import { GapAnalysisInfo } from './ScoreInfoModal';
 
 interface GapAnalysisGridProps {
   factors: GapFactorItem[];
@@ -40,7 +41,10 @@ export function GapAnalysisGrid({ factors, isLoading }: GapAnalysisGridProps) {
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-      <h3 className="text-sm font-semibold text-white">12팩터 GAP 분석</h3>
+      <div className="flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-white">12팩터 GAP 분석</h3>
+        <GapAnalysisInfo />
+      </div>
       <p className="mt-1 text-xs text-slate-400">LG vs 최상위 경쟁사 (6 PoC + 6 RFM)</p>
 
       <div className="mt-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
