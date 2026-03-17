@@ -23,6 +23,7 @@ import { entityAliasRoutes } from './entity-aliases.js';
 import { humanoidTrendRoutes } from './humanoid-trend.js';
 import { scoringPipelineRoutes } from './scoring-pipeline.js';
 import { warRoomRoutes } from './war-room.js';
+import { seedScoresRoutes } from './seed-scores.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -59,4 +60,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // 전략 워룸 라우트
   fastify.register(warRoomRoutes, { prefix: '/api/war-room' });
+
+  // 스코어 시드 라우트 (일회성)
+  fastify.register(seedScoresRoutes, { prefix: '/api/seed-scores' });
 }
