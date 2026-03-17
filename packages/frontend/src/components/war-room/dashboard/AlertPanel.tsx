@@ -2,6 +2,7 @@
 
 import { TrendingUp, Factory, DollarSign, Users } from 'lucide-react';
 import type { CompetitiveAlertRecord } from '@/types/war-room';
+import { AlertPanelInfo } from './DashboardInfoModals';
 
 interface AlertPanelProps {
   alerts: CompetitiveAlertRecord[];
@@ -43,7 +44,10 @@ export function AlertPanel({ alerts, isLoading }: AlertPanelProps) {
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-      <h3 className="text-sm font-semibold text-white">경쟁 동향 알림</h3>
+      <div className="flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-white">경쟁 동향 알림</h3>
+        <AlertPanelInfo />
+      </div>
       <p className="mt-1 text-xs text-slate-400">최근 5건</p>
 
       {recent.length === 0 ? (

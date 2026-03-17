@@ -1,6 +1,7 @@
 'use client';
 
 import type { LgPositioning } from '@/types/war-room';
+import { PositioningCardInfo } from './DashboardInfoModals';
 
 interface LgPositioningCardProps {
   data: LgPositioning | null;
@@ -36,7 +37,10 @@ export function LgPositioningCard({ data, isLoading }: LgPositioningCardProps) {
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-      <h3 className="text-sm font-semibold text-white">LG 종합 포지셔닝</h3>
+      <div className="flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-white">LG 종합 포지셔닝</h3>
+        <PositioningCardInfo />
+      </div>
       <p className="mt-1 text-xs text-slate-400">{data.robotName}</p>
 
       <div className="mt-4 flex items-end gap-2">

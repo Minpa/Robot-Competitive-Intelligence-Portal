@@ -1,6 +1,7 @@
 'use client';
 
 import type { PartnerSummaryItem } from '@/types/war-room';
+import { PartnerSummaryInfo } from './DashboardInfoModals';
 
 interface PartnerSummaryCardProps {
   data: PartnerSummaryItem[];
@@ -34,7 +35,10 @@ export function PartnerSummaryCard({ data, isLoading }: PartnerSummaryCardProps)
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white">전략 파트너 요약</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-white">전략 파트너 요약</h3>
+          <PartnerSummaryInfo />
+        </div>
         <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-300">
           총 {total}개
         </span>

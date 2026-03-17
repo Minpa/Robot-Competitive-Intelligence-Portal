@@ -1,6 +1,7 @@
 'use client';
 
 import type { TopDomainItem } from '@/types/war-room';
+import { TopDomainsInfo } from './DashboardInfoModals';
 
 interface TopDomainsCardProps {
   data: TopDomainItem[];
@@ -25,7 +26,10 @@ export function TopDomainsCard({ data, isLoading }: TopDomainsCardProps) {
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-      <h3 className="text-sm font-semibold text-white">사업화 기회 상위 3개</h3>
+      <div className="flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-white">사업화 기회 상위 3개</h3>
+        <TopDomainsInfo />
+      </div>
       <p className="mt-1 text-xs text-slate-400">LG 준비도 × SOM 기준</p>
 
       {top3.length === 0 ? (
