@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useWarRoomContext } from '@/components/war-room/WarRoomContext';
 import { recalculateScores, type WhatIfSpecs, type WhatIfResult } from '@/lib/war-room-calculator';
+import { useCompetitiveOverlay } from '@/hooks/useWarRoom';
 import { WhatIfForm } from '@/components/war-room/simulation/WhatIfForm';
 import { PrebuiltScenarios } from '@/components/war-room/simulation/PrebuiltScenarios';
 import { BeforeAfterRadar } from '@/components/war-room/simulation/BeforeAfterRadar';
@@ -29,6 +30,7 @@ const DEFAULT_SPECS: WhatIfSpecs = {
 export default function SimulationPage() {
   const { selectedRobotId, lgRobots } = useWarRoomContext();
   const selectedRobot = lgRobots.find((r) => r.id === selectedRobotId);
+  const { data: competitorData } = useCompetitiveOverlay(selectedRobotId);
 
   const [specs, setSpecs] = useState<WhatIfSpecs>(DEFAULT_SPECS);
 
@@ -68,6 +70,7 @@ export default function SimulationPage() {
             before={baseResult}
             after={currentResult}
             robotName={selectedRobot?.name ?? 'CLOiD'}
+            competitorData={competitorData}
           />
         </div>
 
