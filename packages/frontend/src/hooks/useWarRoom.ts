@@ -43,19 +43,28 @@ export function useWarRoomLgRobots() {
 
 // ── Competitive Analysis ──
 
-export function useGapAnalysis(robotId: string | null) {
+export function useGapAnalysis(robotId: string | null, competitorIds?: string[]) {
   return useQuery<GapAnalysisResult>({
-    queryKey: ['war-room', 'gap-analysis', robotId],
-    queryFn: () => api.getWarRoomGapAnalysis(robotId!),
+    queryKey: ['war-room', 'gap-analysis', robotId, competitorIds],
+    queryFn: () => api.getWarRoomGapAnalysis(robotId!, competitorIds),
     staleTime: STALE_TIME,
     enabled: !!robotId,
   });
 }
 
-export function useCompetitiveOverlay(robotId: string | null) {
+export function useCompetitiveOverlay(robotId: string | null, competitorIds?: string[]) {
   return useQuery<CompetitiveOverlayResult>({
-    queryKey: ['war-room', 'competitive-overlay', robotId],
-    queryFn: () => api.getWarRoomCompetitiveOverlay(robotId!),
+    queryKey: ['war-room', 'competitive-overlay', robotId, competitorIds],
+    queryFn: () => api.getWarRoomCompetitiveOverlay(robotId!, competitorIds),
+    staleTime: STALE_TIME,
+    enabled: !!robotId,
+  });
+}
+
+export function useAvailableCompetitors(robotId: string | null) {
+  return useQuery<{ robotId: string; robotName: string; companyName: string; combinedScore: number }[]>({
+    queryKey: ['war-room', 'available-competitors', robotId],
+    queryFn: () => api.getWarRoomAvailableCompetitors(robotId!),
     staleTime: STALE_TIME,
     enabled: !!robotId,
   });

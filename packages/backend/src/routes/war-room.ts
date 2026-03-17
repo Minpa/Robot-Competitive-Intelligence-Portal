@@ -38,17 +38,31 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
 
   // ── Competitive Analysis (8.4) ───────────────────────────────────
 
-  fastify.get<{ Params: { robotId: string } }>('/competitive/:robotId', async (request, reply) => {
+  fastify.get<{ Params: { robotId: string }; Querystring: { competitor_ids?: string } }>('/competitive/:robotId', async (request, reply) => {
     try {
-      return await warRoomCompetitiveService.getGapAnalysis(request.params.robotId);
+      const competitorIds = request.query.competitor_ids
+        ? request.query.competitor_ids.split(',').filter(Boolean)
+        : undefined;
+      return await warRoomCompetitiveService.getGapAnalysis(request.params.robotId, competitorIds);
     } catch (error) {
       reply.status(500).send({ error: (error as Error).message });
     }
   });
 
-  fastify.get<{ Params: { robotId: string } }>('/competitive/:robotId/overlay', async (request, reply) => {
+  fastify.get<{ Params: { robotId: string }; Querystring: { competitor_ids?: string } }>('/competitive/:robotId/overlay', async (request, reply) => {
     try {
-      return await warRoomCompetitiveService.getCompetitiveOverlay(request.params.robotId);
+      const competitorIds = request.query.competitor_ids
+        ? request.query.competitor_ids.split(',').filter(Boolean)
+        : undefined;
+      return await warRoomCompetitiveService.getCompetitiveOverlay(request.params.robotId, competitorIds);
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
+  fastify.get<{ Params: { robotId: string } }>('/competitive/:robotId/available-competitors', async (request, reply) => {
+    try {
+      return await warRoomCompetitiveService.getAvailableCompetitors(request.params.robotId);
     } catch (error) {
       reply.status(500).send({ error: (error as Error).message });
     }
@@ -67,20 +81,16 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
   fastify.patch<{ Params: { robotId: string } }>('/competitive-scores/:robotId', async (request, reply) => {
     try {
       const body = request.body as any;
-      if (!body.pocScores && !body.rfmScores) {
-        return reply.status(400).send({ error: 'pocScores or rfmScores is required' });
-      }
       const result = await warRoomCompetitiveService.updateCompetitiveScores(request.params.robotId, {
         pocScores: body.pocScores,
         rfmScores: body.rfmScores,
       });
+      if (!result.pocScore && !result.rfmScore) {
+        return reply.status(404).send({ error: 'Robot not found or no valid scores to update' });
+      }
       return result;
     } catch (error) {
-      const msg = (error as Error).message;
-      if (msg.startsWith('Robot not found')) {
-        return reply.status(404).send({ error: msg });
-      }
-      reply.status(500).send({ error: msg });
+      reply.status(500).send({ error: (error as Error).message });
     }
   });
 

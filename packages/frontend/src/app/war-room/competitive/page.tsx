@@ -1,21 +1,51 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useWarRoomContext } from '@/components/war-room/WarRoomContext';
-import { useGapAnalysis, useCompetitiveOverlay } from '@/hooks/useWarRoom';
+import { useGapAnalysis, useCompetitiveOverlay, useAvailableCompetitors } from '@/hooks/useWarRoom';
 import { GapAnalysisGrid } from '@/components/war-room/competitive/GapAnalysisGrid';
 import { LgOverlayRadar } from '@/components/war-room/competitive/LgOverlayRadar';
 import { LgOverlayBubble } from '@/components/war-room/competitive/LgOverlayBubble';
 import { LgRankingCard } from '@/components/war-room/competitive/LgRankingCard';
+import { CompetitorSelector } from '@/components/war-room/competitive/CompetitorSelector';
 
 export default function CompetitiveAnalysisPage() {
   const { selectedRobotId, isLoading: ctxLoading } = useWarRoomContext();
-  const { data: gapData, isLoading: gapLoading } = useGapAnalysis(selectedRobotId);
-  const { data: overlayData, isLoading: overlayLoading } = useCompetitiveOverlay(selectedRobotId);
+  const [selectedCompetitorIds, setSelectedCompetitorIds] = useState<string[]>([]);
+  const [initialized, setInitialized] = useState(false);
+
+  const { data: availableCompetitors, isLoading: competitorsLoading } =
+    useAvailableCompetitors(selectedRobotId);
+
+  // Default to top 5 when competitors load
+  useEffect(() => {
+    if (availableCompetitors && !initialized) {
+      setSelectedCompetitorIds(availableCompetitors.slice(0, 5).map((c) => c.robotId));
+      setInitialized(true);
+    }
+  }, [availableCompetitors, initialized]);
+
+  // Reset when LG robot changes
+  useEffect(() => {
+    setInitialized(false);
+  }, [selectedRobotId]);
+
+  const competitorIdsParam = selectedCompetitorIds.length > 0 ? selectedCompetitorIds : undefined;
+  const { data: gapData, isLoading: gapLoading } = useGapAnalysis(selectedRobotId, competitorIdsParam);
+  const { data: overlayData, isLoading: overlayLoading } = useCompetitiveOverlay(selectedRobotId, competitorIdsParam);
 
   const isLoading = ctxLoading || gapLoading || overlayLoading;
 
   return (
     <div className="space-y-4">
+      {/* Competitor Selector */}
+      <CompetitorSelector
+        competitors={availableCompetitors ?? []}
+        selectedIds={selectedCompetitorIds}
+        onSelectionChange={setSelectedCompetitorIds}
+        isLoading={competitorsLoading}
+      />
+
       {/* Row 1: GAP Analysis Grid (full width) */}
       <GapAnalysisGrid
         factors={gapData?.factors ?? []}

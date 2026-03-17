@@ -129,17 +129,6 @@ class CompetitiveAnalysisService {
     robotId: string,
     updates: UpdateScoreRequest
   ): Promise<{ pocScore?: typeof pocScores.$inferSelect; rfmScore?: typeof rfmScores.$inferSelect }> {
-    // Verify robot exists
-    const [robot] = await db
-      .select({ id: humanoidRobots.id })
-      .from(humanoidRobots)
-      .where(eq(humanoidRobots.id, robotId))
-      .limit(1);
-
-    if (!robot) {
-      throw new Error(`Robot not found: ${robotId}`);
-    }
-
     const result: any = {};
 
     if (updates.pocScores && Object.keys(updates.pocScores).length > 0) {
@@ -151,27 +140,18 @@ class CompetitiveAnalysisService {
         .then((rows) => rows[0]);
 
       if (pocRow) {
+        const updateData: any = {
+          ...updates.pocScores,
+          updatedAt: new Date(),
+        };
+
         const updated = await db
           .update(pocScores)
-          .set({ ...updates.pocScores, updatedAt: new Date() })
+          .set(updateData)
           .where(eq(pocScores.robotId, robotId))
           .returning();
+
         result.pocScore = updated[0];
-      } else {
-        // No existing record — create one with provided values (default 1 for unspecified scores)
-        const defaultPoc = {
-          payloadScore: 1,
-          operationTimeScore: 1,
-          fingerDofScore: 1,
-          formFactorScore: 1,
-          pocDeploymentScore: 1,
-          costEfficiencyScore: 1,
-        };
-        const [created] = await db
-          .insert(pocScores)
-          .values({ robotId, ...defaultPoc, ...updates.pocScores })
-          .returning();
-        result.pocScore = created;
       }
     }
 
@@ -184,28 +164,18 @@ class CompetitiveAnalysisService {
         .then((rows) => rows[0]);
 
       if (rfmRow) {
+        const updateData: any = {
+          ...updates.rfmScores,
+          updatedAt: new Date(),
+        };
+
         const updated = await db
           .update(rfmScores)
-          .set({ ...updates.rfmScores, updatedAt: new Date() })
+          .set(updateData)
           .where(eq(rfmScores.robotId, robotId))
           .returning();
+
         result.rfmScore = updated[0];
-      } else {
-        // No existing record — create one with provided values (default 1 for unspecified scores)
-        const defaultRfm = {
-          rfmModelName: 'default',
-          generalityScore: 1,
-          realWorldDataScore: 1,
-          edgeInferenceScore: 1,
-          multiRobotCollabScore: 1,
-          openSourceScore: 1,
-          commercialMaturityScore: 1,
-        };
-        const [created] = await db
-          .insert(rfmScores)
-          .values({ robotId, ...defaultRfm, ...updates.rfmScores })
-          .returning();
-        result.rfmScore = created;
       }
     }
 
@@ -243,11 +213,28 @@ class CompetitiveAnalysisService {
   }
 
   /**
+   * Returns all robots that have scores, for use in competitor selection UI.
+   */
+  async getAvailableCompetitors(lgRobotId: string): Promise<{ robotId: string; robotName: string; companyName: string; combinedScore: number }[]> {
+    const allScores = await this.getAllRobotScores();
+    return allScores
+      .filter((r) => r.robotId !== lgRobotId)
+      .map((r) => ({
+        robotId: r.robotId,
+        robotName: r.robotName,
+        companyName: r.companyName,
+        combinedScore: sumPocScores(r) + sumRfmScores(r),
+      }))
+      .sort((a, b) => b.combinedScore - a.combinedScore);
+  }
+
+  /**
    * 12-factor GAP analysis: LG robot vs Top 1 competitor.
    * GAP = LG score - Top1 score for each factor.
    * Color: positive → green, negative → red, zero → gray.
+   * If competitorIds is provided, only those competitors are considered.
    */
-  async getGapAnalysis(lgRobotId: string): Promise<GapAnalysisResult> {
+  async getGapAnalysis(lgRobotId: string, competitorIds?: string[]): Promise<GapAnalysisResult> {
     const allScores = await this.getAllRobotScores();
 
     const lgRow = allScores.find((r) => r.robotId === lgRobotId);
@@ -259,7 +246,10 @@ class CompetitiveAnalysisService {
     }
 
     // Find Top 1 competitor (highest combined score excluding LG robot)
-    const competitors = allScores.filter((r) => r.robotId !== lgRobotId);
+    let competitors = allScores.filter((r) => r.robotId !== lgRobotId);
+    if (competitorIds && competitorIds.length > 0) {
+      competitors = competitors.filter((r) => competitorIds.includes(r.robotId));
+    }
     const top1 = competitors.length > 0
       ? competitors.reduce((best, curr) => {
           const bestCombined = sumPocScores(best) + sumRfmScores(best);
@@ -301,7 +291,7 @@ class CompetitiveAnalysisService {
       });
     }
 
-    // Calculate rankings
+    // Calculate rankings (always against all robots for accurate rank)
     const lgRanking = this.calculateRankings(allScores, lgRobotId);
 
     return { factors, lgRanking };
@@ -311,20 +301,23 @@ class CompetitiveAnalysisService {
    * LG vs Top 5 overlay data for radar/bubble chart.
    * Returns positioning data for LG robot and top 5 robots by combined score.
    */
-  async getCompetitiveOverlay(lgRobotId: string): Promise<CompetitiveOverlayResult> {
+  async getCompetitiveOverlay(lgRobotId: string, competitorIds?: string[]): Promise<CompetitiveOverlayResult> {
     const allScores = await this.getAllRobotScores();
 
     const lgRow = allScores.find((r) => r.robotId === lgRobotId);
 
-    // Sort competitors by combined score descending, take top 5
-    const competitors = allScores
-      .filter((r) => r.robotId !== lgRobotId)
+    // Sort competitors by combined score descending
+    let filteredCompetitors = allScores.filter((r) => r.robotId !== lgRobotId);
+    if (competitorIds && competitorIds.length > 0) {
+      filteredCompetitors = filteredCompetitors.filter((r) => competitorIds.includes(r.robotId));
+    }
+    const competitors = filteredCompetitors
       .map((r) => ({
         ...r,
         combinedScore: sumPocScores(r) + sumRfmScores(r),
       }))
       .sort((a, b) => b.combinedScore - a.combinedScore)
-      .slice(0, 5);
+      .slice(0, competitorIds ? competitorIds.length : 5);
 
     // Fetch positioning data for all relevant robot IDs
     const relevantIds = [
