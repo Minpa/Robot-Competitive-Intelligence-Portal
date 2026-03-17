@@ -211,13 +211,13 @@ const ROBOT_SPECS: RobotSpecSeed[] = [
   {
     robotName: 'NEO',
     companyPattern: '%1X%',
-    body: { heightCm: 166, weightKg: 30, payloadKg: 10, dofCount: 28, maxSpeedMps: 1.2, operationTimeHours: 4 },
-    hand: { handType: 'dexterous', fingerCount: 5, handDof: 10, gripForceN: null },
+    body: { heightCm: 168, weightKg: 30, payloadKg: 25, dofCount: 75, maxSpeedMps: 6.2, operationTimeHours: 4 },
+    hand: { handType: 'tendon-driven dexterous', fingerCount: 5, handDof: 22, gripForceN: null },
     computing: { mainSoc: 'Embedded AI', topsMax: 50 },
     locomotionType: 'bipedal',
-    commercializationStage: 'prototype',
-    estimatedPriceUsd: 30000,
-    rfmOverrides: { generalityScore: 3, realWorldDataScore: 2, multiRobotCollabScore: 1, openSourceScore: 2 },
+    commercializationStage: 'pilot',
+    estimatedPriceUsd: 20000,
+    rfmOverrides: { generalityScore: 4, realWorldDataScore: 3, multiRobotCollabScore: 2, openSourceScore: 2 },
   },
   {
     robotName: 'Phoenix',
