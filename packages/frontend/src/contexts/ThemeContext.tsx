@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 
 type Theme = 'dark' | 'light';
 
@@ -14,20 +14,31 @@ const ThemeContext = createContext<ThemeContextValue>({
   toggleTheme: () => {},
 });
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [mounted, setMounted] = useState(false);
   const [theme, setTheme] = useState<Theme>('dark');
 
   useEffect(() => {
-    const stored = localStorage.getItem('theme') as Theme | null;
-    const initial = stored || 'dark';
-    setTheme(initial);
-    document.documentElement.setAttribute('data-theme', initial);
+    try {
+      const stored = localStorage.getItem('theme') as Theme | null;
+      if (stored === 'light' || stored === 'dark') {
+        setTheme(stored);
+        document.documentElement.setAttribute('data-theme', stored);
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    } catch {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+    setMounted(true);
   }, []);
 
   const toggleTheme = useCallback(() => {
     setTheme((prev) => {
       const next = prev === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('theme', next);
+      try {
+        localStorage.setItem('theme', next);
+      } catch {}
       document.documentElement.setAttribute('data-theme', next);
       return next;
     });
@@ -40,4 +51,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export const useTheme = () => useContext(ThemeContext);
+export function useTheme() {
+  return useContext(ThemeContext);
+}
