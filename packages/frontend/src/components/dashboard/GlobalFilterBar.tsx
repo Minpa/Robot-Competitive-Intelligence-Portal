@@ -44,7 +44,7 @@ export function GlobalFilterBar({
         <div className="relative">
           <button
             onClick={() => setShowDatePicker(!showDatePicker)}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-700 rounded-lg text-sm text-white transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-700/50 hover:bg-slate-700 rounded-lg text-sm text-slate-200 transition-colors"
           >
             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -64,7 +64,7 @@ export function GlobalFilterBar({
                     type="date"
                     value={dateRange.start}
                     onChange={(e) => onDateRangeChange({ ...dateRange, start: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-sm text-white"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-sm text-slate-200"
                   />
                 </div>
                 <div>
@@ -73,7 +73,7 @@ export function GlobalFilterBar({
                     type="date"
                     value={dateRange.end}
                     onChange={(e) => onDateRangeChange({ ...dateRange, end: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-sm text-white"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-sm text-slate-200"
                   />
                 </div>
                 <button
@@ -93,7 +93,7 @@ export function GlobalFilterBar({
           <select
             value={region}
             onChange={(e) => onRegionChange(e.target.value)}
-            className="px-3 py-2 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-sm text-white transition-colors cursor-pointer"
+            className="px-3 py-2 bg-slate-700/50 hover:bg-slate-700 border border-slate-600/50 rounded-lg text-sm text-slate-200 transition-colors cursor-pointer"
           >
             {regions.map((r) => (
               <option key={r.value} value={r.value}>{r.label}</option>
@@ -112,7 +112,7 @@ export function GlobalFilterBar({
                 className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
                   segment === s.value
                     ? 'bg-blue-600 text-white'
-                    : 'text-slate-400 hover:text-white'
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 {s.label}
@@ -129,7 +129,7 @@ export function GlobalFilterBar({
           <input
             type="text"
             placeholder="검색..."
-            className="w-48 px-4 py-2 pl-10 bg-slate-700/50 border border-slate-600/50 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+            className="w-48 px-4 py-2 pl-10 bg-slate-700/50 border border-slate-600/50 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
           />
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

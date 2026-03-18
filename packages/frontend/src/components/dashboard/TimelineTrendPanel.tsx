@@ -209,7 +209,7 @@ export function TimelineTrendPanel({
     <div className="bg-slate-900 rounded-xl p-6 h-full flex flex-col relative">
       {/* Header */}
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
           <span className="text-xl">📈</span>
           월별 이벤트/신규 제품 트렌드
         </h3>

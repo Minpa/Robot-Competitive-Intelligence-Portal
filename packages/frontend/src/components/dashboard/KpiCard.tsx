@@ -59,7 +59,7 @@ export function KpiCard({
       </div>
 
       {/* Value */}
-      <div className="text-3xl font-bold text-white mb-1">
+      <div className="text-3xl font-bold text-slate-200 mb-1">
         {value.toLocaleString()}
       </div>
 

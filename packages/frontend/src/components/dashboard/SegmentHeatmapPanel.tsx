@@ -152,7 +152,7 @@ export function SegmentHeatmapPanel({
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
               <span className="text-xl">🗺️</span>
               세그먼트 매트릭스
             </h3>

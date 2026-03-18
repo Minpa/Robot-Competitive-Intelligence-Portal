@@ -23,7 +23,7 @@ export function ExecutiveInsightCard({
 
   if (isLoading) {
     return (
-      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-6 h-full animate-pulse">
+      <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-xl p-6 h-full animate-pulse">
         <div className="h-5 bg-slate-700 rounded w-1/3 mb-4" />
         <div className="space-y-2">
           <div className="h-4 bg-slate-700 rounded w-full" />
@@ -36,23 +36,23 @@ export function ExecutiveInsightCard({
 
   return (
     <div
-      className="relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-6 h-full text-white shadow-lg hover:shadow-xl transition-shadow"
+      className="relative bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-xl p-6 h-full shadow-lg hover:shadow-xl transition-shadow"
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-blue-300 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-blue-500 flex items-center gap-2">
           <span className="text-xl">💡</span>
           {title}
         </h3>
-        <span className="text-xs text-slate-400 bg-slate-700/50 px-2 py-1 rounded">
+        <span className="text-xs text-slate-400 bg-slate-800/50 px-2 py-1 rounded">
           AI 생성
         </span>
       </div>
 
       {/* Summary */}
-      <p className="text-sm text-slate-200 leading-relaxed line-clamp-3 mb-4">
+      <p className="text-sm text-slate-300 leading-relaxed line-clamp-3 mb-4">
         {summary}
       </p>
 
