@@ -16,8 +16,8 @@ export default function RootPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-gray-500">로딩 중...</div>
+    <div className="min-h-screen flex items-center justify-center bg-slate-900">
+      <div className="text-slate-400">로딩 중...</div>
     </div>
   );
 }

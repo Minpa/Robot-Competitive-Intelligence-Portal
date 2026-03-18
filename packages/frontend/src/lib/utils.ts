@@ -60,9 +60,9 @@ export function getStatusLabel(status: string): string {
 
 export function getStatusColor(status: string): string {
   const colors: Record<string, string> = {
-    announced: 'bg-yellow-100 text-yellow-800',
-    available: 'bg-green-100 text-green-800',
-    discontinued: 'bg-gray-100 text-gray-800',
+    announced: 'bg-yellow-500/15 text-yellow-400',
+    available: 'bg-green-500/15 text-green-400',
+    discontinued: 'bg-slate-700 text-slate-400',
   };
-  return colors[status] || 'bg-gray-100 text-gray-800';
+  return colors[status] || 'bg-slate-700 text-slate-400';
 }

@@ -65,14 +65,14 @@ export default function ScoreBadge({ metadata, evaluatedAt }: ScoreBadgeProps) {
         >
           <AlertTriangle className="w-3.5 h-3.5 text-amber-400 cursor-help" />
           {showTooltip && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50 w-48 px-2.5 py-2 rounded-lg bg-gray-700 text-white text-[11px] leading-relaxed shadow-lg">
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50 w-48 px-2.5 py-2 rounded-lg bg-slate-700 text-white text-[11px] leading-relaxed shadow-lg">
               <p className="font-medium mb-1">데이터 부족으로 추정된 항목:</p>
               <ul className="space-y-0.5">
                 {estimatedFields.map((field) => (
                   <li key={field}>• {FIELD_LABELS[field] ?? field}</li>
                 ))}
               </ul>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-700" />
             </div>
           )}
         </div>

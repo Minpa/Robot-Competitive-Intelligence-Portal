@@ -54,7 +54,7 @@ function HumanoidTrendContent() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-200">휴머노이드 동향</h1>
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="text-sm text-slate-400 mt-1">
               휴머노이드 로봇 산업 경쟁 인텔리전스 차트 6종
             </p>
           </div>

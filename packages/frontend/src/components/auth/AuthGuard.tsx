@@ -55,8 +55,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
   // 로딩 중
   if (isAuthenticated === null && !PUBLIC_PATHS.includes(pathname)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-gray-500">로딩 중...</div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
+        <div className="text-slate-400">로딩 중...</div>
       </div>
     );
   }

@@ -29,8 +29,8 @@ export function EnhancedEnvironmentTaskMatrix({
   const getHeatmapColor = (count: number) => {
     if (count >= 5) return 'bg-blue-600 text-white';
     if (count >= 3) return 'bg-blue-400 text-white';
-    if (count >= 1) return 'bg-blue-200 text-blue-900';
-    return 'bg-gray-50 text-gray-400';
+    if (count >= 1) return 'bg-blue-500/30 text-blue-300';
+    return 'bg-slate-700/50 text-slate-500';
   };
 
   const getCellData = (envId: string, taskId: string): MatrixCell => {
@@ -61,11 +61,11 @@ export function EnhancedEnvironmentTaskMatrix({
     : '아직 적용 사례 데이터가 없습니다.';
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-2">환경×작업 인사이트</h2>
+    <div className="bg-slate-800 rounded-lg shadow p-6">
+      <h2 className="text-lg font-semibold text-slate-100 mb-2">환경×작업 인사이트</h2>
       
       {/* 상단 한 줄 코멘트 */}
-      <p className="text-sm text-blue-600 mb-4 bg-blue-50 px-3 py-2 rounded">
+      <p className="text-sm text-blue-400 mb-4 bg-blue-500/10 px-3 py-2 rounded">
         💡 {insight || defaultInsight}
       </p>
 
@@ -73,9 +73,9 @@ export function EnhancedEnvironmentTaskMatrix({
         <table className="min-w-full text-sm">
           <thead>
             <tr>
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 w-20"></th>
+              <th className="px-2 py-2 text-left text-xs font-medium text-slate-400 w-20"></th>
               {tasks.filter(t => t.id).slice(0, 6).map(task => (
-                <th key={task.id} className="px-2 py-2 text-center text-xs font-medium text-gray-500">
+                <th key={task.id} className="px-2 py-2 text-center text-xs font-medium text-slate-400">
                   {task.label}
                 </th>
               ))}
@@ -84,7 +84,7 @@ export function EnhancedEnvironmentTaskMatrix({
           <tbody>
             {environments.filter(e => e.id).slice(0, 6).map(env => (
               <tr key={env.id}>
-                <td className="px-2 py-2 text-xs font-medium text-gray-700">{env.label}</td>
+                <td className="px-2 py-2 text-xs font-medium text-slate-300">{env.label}</td>
                 {tasks.filter(t => t.id).slice(0, 6).map(task => {
                   const cell = getCellData(env.id, task.id);
                   const isHovered = hoveredCell?.env === env.id && hoveredCell?.task === task.id;
@@ -114,7 +114,7 @@ export function EnhancedEnvironmentTaskMatrix({
 
                       {/* Hover 툴팁 */}
                       {isHovered && cell.count > 0 && (
-                        <div className="absolute z-50 left-1/2 -translate-x-1/2 top-full mt-1 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-lg min-w-[180px]">
+                        <div className="absolute z-50 left-1/2 -translate-x-1/2 top-full mt-1 bg-slate-900 text-white text-xs rounded-lg p-3 shadow-lg min-w-[180px]">
                           <div className="font-semibold mb-2">Top 3 로봇</div>
                           <ul className="space-y-1">
                             {cell.robots.slice(0, 3).map((robot, i) => (
@@ -126,7 +126,7 @@ export function EnhancedEnvironmentTaskMatrix({
                           {cell.spaceTypes && cell.spaceTypes.length > 0 && (
                             <>
                               <div className="font-semibold mt-2 mb-1">대표 공간</div>
-                              <div className="text-gray-300">{cell.spaceTypes.slice(0, 2).join(', ')}</div>
+                              <div className="text-slate-300">{cell.spaceTypes.slice(0, 2).join(', ')}</div>
                             </>
                           )}
                         </div>
