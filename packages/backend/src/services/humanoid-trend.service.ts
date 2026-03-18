@@ -314,9 +314,15 @@ export class HumanoidTrendService {
   }
 
   /**
-   * Get positioning data filtered by chart type, with optional robot info
+   * Get positioning data filtered by chart type, with optional robot info.
+   * For rfm_competitiveness, aggregates scores at the company level (avg per company).
    */
   async getPositioningData(chartType: string): Promise<PositioningDataWithRobot[]> {
+    // RFM 경쟁력은 기업 단위로 집계
+    if (chartType === 'rfm_competitiveness') {
+      return this.getRfmCompanyPositioning();
+    }
+
     const rows = await db
       .select({
         id: positioningData.id,
@@ -348,6 +354,103 @@ export class HumanoidTrendService {
       metadata: row.metadata,
       evaluatedAt: row.evaluatedAt,
     }));
+  }
+
+  /**
+   * Aggregate RFM scores at the company level.
+   * X = avg edgeInferenceScore, Y = avg generalityScore, bubble = avg commercialMaturityScore
+   */
+  private async getRfmCompanyPositioning(): Promise<PositioningDataWithRobot[]> {
+    const rows = await db
+      .select({
+        companyId: companies.id,
+        companyName: companies.name,
+        region: humanoidRobots.region,
+        edgeInferenceScore: rfmScores.edgeInferenceScore,
+        generalityScore: rfmScores.generalityScore,
+        commercialMaturityScore: rfmScores.commercialMaturityScore,
+        realWorldDataScore: rfmScores.realWorldDataScore,
+        openSourceScore: rfmScores.openSourceScore,
+        multiRobotCollabScore: rfmScores.multiRobotCollabScore,
+        evaluatedAt: rfmScores.evaluatedAt,
+      })
+      .from(rfmScores)
+      .innerJoin(humanoidRobots, eq(rfmScores.robotId, humanoidRobots.id))
+      .innerJoin(companies, eq(humanoidRobots.companyId, companies.id));
+
+    // Group by company and compute averages
+    const companyMap = new Map<string, {
+      companyName: string;
+      region: string | null;
+      edgeInference: number[];
+      generality: number[];
+      commercialMaturity: number[];
+      realWorldData: number[];
+      openSource: number[];
+      multiRobotCollab: number[];
+      latestEvaluatedAt: Date;
+    }>();
+
+    for (const row of rows) {
+      const existing = companyMap.get(row.companyId);
+      if (existing) {
+        existing.edgeInference.push(row.edgeInferenceScore);
+        existing.generality.push(row.generalityScore);
+        existing.commercialMaturity.push(row.commercialMaturityScore);
+        existing.realWorldData.push(row.realWorldDataScore);
+        existing.openSource.push(row.openSourceScore);
+        existing.multiRobotCollab.push(row.multiRobotCollabScore);
+        if (row.evaluatedAt > existing.latestEvaluatedAt) {
+          existing.latestEvaluatedAt = row.evaluatedAt;
+        }
+      } else {
+        companyMap.set(row.companyId, {
+          companyName: row.companyName,
+          region: row.region,
+          edgeInference: [row.edgeInferenceScore],
+          generality: [row.generalityScore],
+          commercialMaturity: [row.commercialMaturityScore],
+          realWorldData: [row.realWorldDataScore],
+          openSource: [row.openSourceScore],
+          multiRobotCollab: [row.multiRobotCollabScore],
+          latestEvaluatedAt: row.evaluatedAt,
+        });
+      }
+    }
+
+    const avg = (arr: number[]) => Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10;
+
+    const REGION_TO_COLOR: Record<string, string> = {
+      north_america: 'US', china: 'CN', korea: 'KR', europe: 'EU', japan: 'JP',
+    };
+
+    return Array.from(companyMap.entries()).map(([companyId, data]) => {
+      const regionKey = data.region?.toLowerCase() ?? 'other';
+      return {
+        id: companyId,
+        chartType: 'rfm_competitiveness',
+        robotId: null,
+        robotName: null,
+        label: data.companyName,
+        xValue: avg(data.edgeInference),
+        yValue: avg(data.generality),
+        bubbleSize: avg(data.commercialMaturity),
+        colorGroup: REGION_TO_COLOR[regionKey] ?? 'Other',
+        metadata: {
+          source: 'company_aggregate',
+          robotCount: data.edgeInference.length,
+          avgScores: {
+            edgeInference: avg(data.edgeInference),
+            generality: avg(data.generality),
+            commercialMaturity: avg(data.commercialMaturity),
+            realWorldData: avg(data.realWorldData),
+            openSource: avg(data.openSource),
+            multiRobotCollab: avg(data.multiRobotCollab),
+          },
+        },
+        evaluatedAt: data.latestEvaluatedAt,
+      };
+    });
   }
 
   /**

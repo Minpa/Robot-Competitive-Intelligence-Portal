@@ -4,30 +4,38 @@ import {
   ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell, Label,
 } from 'recharts';
-import { getRobotColor } from './color-utils';
 import type { PositioningDataWithRobot } from '@/types/humanoid-trend';
 
 interface Props { data: PositioningDataWithRobot[]; }
+
+// Distinct color palette for companies
+const COMPANY_COLORS = [
+  '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
+  '#EC4899', '#06B6D4', '#F97316', '#14B8A6', '#6366F1',
+  '#84CC16', '#E11D48', '#0EA5E9', '#D946EF', '#22C55E',
+  '#FBBF24', '#A855F7', '#FB7185', '#2DD4BF', '#818CF8',
+];
 
 export default function RfmBubbleChart({ data }: Props) {
   if (!data || data.length < 2) {
     return (
       <div className="flex items-center justify-center min-h-[300px] text-slate-500 text-sm">
-        포지셔닝 비교를 위해 최소 2개 이상의 데이터가 필요합니다.
+        포지셔닝 비교를 위해 최소 2개 이상의 기업 데이터가 필요합니다.
       </div>
     );
   }
 
-  const chartData = data.map((d) => ({
+  const chartData = data.map((d, i) => ({
     x: d.xValue,
     y: d.yValue,
     z: d.bubbleSize,
-    robotName: d.robotName || d.label,
-    color: d.robotId ? getRobotColor(d.robotId) : '#8B5CF6',
+    companyName: d.label,
+    robotCount: (d.metadata as Record<string, unknown>)?.robotCount as number | undefined,
+    color: COMPANY_COLORS[i % COMPANY_COLORS.length],
   }));
 
   // Sort legend alphabetically
-  const legendItems = [...chartData].sort((a, b) => a.robotName.localeCompare(b.robotName));
+  const legendItems = [...chartData].sort((a, b) => a.companyName.localeCompare(b.companyName));
 
   return (
     <div className="space-y-4">
@@ -49,10 +57,11 @@ export default function RfmBubbleChart({ data }: Props) {
                 const d = payload[0].payload;
                 return (
                   <div className="bg-slate-900 border border-slate-600 rounded-lg p-3 text-xs text-slate-300 shadow-lg">
-                    <p className="font-semibold text-slate-200 mb-1">{d.robotName}</p>
-                    <p>엣지 추론: {d.x}</p>
+                    <p className="font-semibold text-slate-200 mb-1">{d.companyName}</p>
+                    <p>엣지 추론 역량: {d.x}</p>
                     <p>범용성: {d.y}</p>
                     <p>상용 성숙도: {d.z}</p>
+                    {d.robotCount && <p className="text-slate-500 mt-1">로봇 {d.robotCount}개 평균</p>}
                   </div>
                 );
               }}
@@ -68,16 +77,15 @@ export default function RfmBubbleChart({ data }: Props) {
 
       {/* Legend */}
       <div className="border border-slate-700 rounded-lg p-3 bg-slate-800/40">
-        <p className="text-xs text-slate-400 mb-2 font-medium">범례 (버블 위에 마우스를 올리면 상세 정보가 표시됩니다)</p>
+        <p className="text-xs text-slate-400 mb-2 font-medium">범례 — 기업별 RFM 역량 비교 (버블 크기 = 상용 성숙도)</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-1.5">
           {legendItems.map((item) => (
-            <div key={item.robotName} className="flex items-center gap-1.5 min-w-0">
+            <div key={item.companyName} className="flex items-center gap-1.5 min-w-0">
               <span
                 className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
                 style={{ backgroundColor: item.color }}
               />
-              <span className="text-xs text-slate-300 truncate">{item.robotName}</span>
-              <span className="text-xs text-slate-500 flex-shrink-0">({item.z})</span>
+              <span className="text-xs text-slate-300 truncate">{item.companyName}</span>
             </div>
           ))}
         </div>
