@@ -53,28 +53,49 @@ export function TimelineTrendPanel({
 
   // Drill-down state
   const [drillDownYear, setDrillDownYear] = useState<number | null>(null);
+  const [drillDownCategory, setDrillDownCategory] = useState<string | null>(null);
   const [drillDownRobots, setDrillDownRobots] = useState<DrillDownRobot[]>([]);
   const [drillDownLoading, setDrillDownLoading] = useState(false);
 
-  const handleLineClick = useCallback(async (payload: any) => {
-    const year = payload?.payload?.year || payload?.year;
+  const categoryLabels: Record<string, string> = {
+    pocs: 'PoC',
+    newProducts: '신규 제품',
+    productions: '양산',
+    investments: '투자',
+  };
+
+  const handleDrillDown = useCallback(async (year: number, category: string) => {
     if (!year) return;
 
     setDrillDownYear(year);
+    setDrillDownCategory(category);
     setDrillDownLoading(true);
     try {
-      const robots = await api.getRobotsByYear(year);
+      const robots = await api.getRobotsByYearAndCategory(year, category);
       setDrillDownRobots(robots);
     } catch (err) {
-      console.error('Failed to fetch robots by year:', err);
+      console.error('Failed to fetch robots:', err);
       setDrillDownRobots([]);
     } finally {
       setDrillDownLoading(false);
     }
   }, []);
 
+  const handleBarClick = useCallback((data: any, dataKey: string) => {
+    const year = data?.payload?.year || data?.year;
+    if (!year || dataKey === 'investments') return;
+    handleDrillDown(year, dataKey);
+  }, [handleDrillDown]);
+
+  const handleLineClick = useCallback(async (payload: any) => {
+    const year = payload?.payload?.year || payload?.year;
+    if (!year) return;
+    handleDrillDown(year, 'newProducts');
+  }, [handleDrillDown]);
+
   const closeDrillDown = useCallback(() => {
     setDrillDownYear(null);
+    setDrillDownCategory(null);
     setDrillDownRobots([]);
   }, []);
 
@@ -177,7 +198,7 @@ export function TimelineTrendPanel({
           <span className="text-xl">📈</span>
           월별 이벤트/신규 제품 트렌드
         </h3>
-        <p className="text-xs text-slate-400 mt-1">이벤트 수(막대) vs 신규 제품(라인) · 라인 포인트 클릭 시 로봇 목록 표시</p>
+        <p className="text-xs text-slate-400 mt-1">이벤트 수(막대) vs 신규 제품(라인) · PoC/양산 막대 또는 신규제품 포인트 클릭 시 로봇 목록 표시</p>
       </div>
 
       {/* Filters */}
@@ -300,10 +321,27 @@ export function TimelineTrendPanel({
               <Bar yAxisId="left" dataKey="investments" stackId="events" fill="#22C55E" maxBarSize={40} />
             )}
             {eventTypes.pocs && (
-              <Bar yAxisId="left" dataKey="pocs" stackId="events" fill="#EAB308" maxBarSize={40} />
+              <Bar
+                yAxisId="left"
+                dataKey="pocs"
+                stackId="events"
+                fill="#EAB308"
+                maxBarSize={40}
+                cursor="pointer"
+                onClick={(data: any) => handleBarClick(data, 'pocs')}
+              />
             )}
             {eventTypes.productions && (
-              <Bar yAxisId="left" dataKey="productions" stackId="events" fill="#A855F7" radius={[4, 4, 0, 0]} maxBarSize={40} />
+              <Bar
+                yAxisId="left"
+                dataKey="productions"
+                stackId="events"
+                fill="#A855F7"
+                radius={[4, 4, 0, 0]}
+                maxBarSize={40}
+                cursor="pointer"
+                onClick={(data: any) => handleBarClick(data, 'productions')}
+              />
             )}
             <Line
               yAxisId="right"
@@ -328,7 +366,7 @@ export function TimelineTrendPanel({
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-lg font-semibold text-white flex items-center gap-2">
               <Bot className="w-5 h-5 text-orange-400" />
-              {drillDownYear}년 발표 로봇
+              {drillDownYear}년 {drillDownCategory ? categoryLabels[drillDownCategory] || '' : ''} 로봇
               <span className="text-sm text-slate-400 font-normal">({drillDownRobots.length}개)</span>
             </h4>
             <button
@@ -345,7 +383,7 @@ export function TimelineTrendPanel({
             </div>
           ) : drillDownRobots.length === 0 ? (
             <div className="flex-1 flex items-center justify-center text-slate-500">
-              {drillDownYear}년에 발표된 로봇이 없습니다.
+              {drillDownYear}년 {drillDownCategory ? categoryLabels[drillDownCategory] || '' : ''} 로봇이 없습니다.
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto space-y-2">

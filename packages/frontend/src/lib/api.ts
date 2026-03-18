@@ -736,18 +736,6 @@ class ApiClient {
     };
   }
 
-  // Get robots by announcement year (for timeline drill-down)
-  async getRobotsByYear(year: number) {
-    return this.request<Array<{
-      id: string;
-      name: string;
-      companyName?: string;
-      purpose?: string;
-      commercializationStage?: string;
-      status?: string;
-    }>>(`/humanoid-robots/by-year/${year}`);
-  }
-
   // 레이더 차트 데이터
   async getRobotRadarData(id: string) {
     return this.request<{
@@ -861,6 +849,16 @@ class ApiClient {
   // 부품별 로봇 조회
   async getRobotsByComponent(componentId: string) {
     return this.request<any[]>(`/components/${componentId}/robots`);
+  }
+
+  // 연도별 로봇 조회 (타임라인 드릴다운)
+  async getRobotsByYear(year: number) {
+    return this.request<any[]>(`/humanoid-robots/by-year/${year}`);
+  }
+
+  // 연도 + 카테고리별 로봇 조회 (타임라인 드릴다운)
+  async getRobotsByYearAndCategory(year: number, category: string) {
+    return this.request<any[]>(`/humanoid-robots/by-year/${year}/${category}`);
   }
 
   // 휴머노이드 로봇 상세 (별칭)
@@ -1546,20 +1544,12 @@ class ApiClient {
 
   // ── War Room — Competitive ──
 
-  async getWarRoomGapAnalysis(robotId: string, competitorIds?: string[]) {
-    const params = competitorIds?.length ? `?competitor_ids=${competitorIds.join(',')}` : '';
-    return this.request<any>(`/war-room/competitive/${encodeURIComponent(robotId)}${params}`);
+  async getWarRoomGapAnalysis(robotId: string) {
+    return this.request<any>(`/war-room/competitive/${encodeURIComponent(robotId)}`);
   }
 
-  async getWarRoomCompetitiveOverlay(robotId: string, competitorIds?: string[]) {
-    const params = competitorIds?.length ? `?competitor_ids=${competitorIds.join(',')}` : '';
-    return this.request<any>(`/war-room/competitive/${encodeURIComponent(robotId)}/overlay${params}`);
-  }
-
-  async getWarRoomAvailableCompetitors(robotId: string) {
-    return this.request<{ robotId: string; robotName: string; companyName: string; combinedScore: number }[]>(
-      `/war-room/competitive/${encodeURIComponent(robotId)}/available-competitors`
-    );
+  async getWarRoomCompetitiveOverlay(robotId: string) {
+    return this.request<any>(`/war-room/competitive/${encodeURIComponent(robotId)}/overlay`);
   }
 
   // ── War Room — Score History ──

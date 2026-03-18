@@ -1,5 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { humanoidRobotService } from '../services/index.js';
+import { db, humanoidRobots, applicationCases, companies } from '../db/index.js';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 
 export async function humanoidRobotRoutes(fastify: FastifyInstance) {
   // List robots with filters
@@ -122,6 +124,114 @@ export async function humanoidRobotRoutes(fastify: FastifyInstance) {
     } catch (error) {
       console.error('Error getting robots by year:', error);
       reply.status(500).send({ error: 'Failed to get robots by year' });
+    }
+  });
+
+  // Get robots by year filtered by category (for timeline drill-down)
+  fastify.get('/by-year/:year/:category', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { year, category } = request.params as { year: string; category: string };
+      const yearNum = Number(year);
+      if (isNaN(yearNum)) {
+        return reply.status(400).send({ error: 'Invalid year' });
+      }
+
+      if (category === 'newProducts') {
+        // 신규 제품: robots announced in this year
+        const result = await humanoidRobotService.listRobots(
+          { announcementYearMin: yearNum, announcementYearMax: yearNum },
+          { page: 1, limit: 100 },
+          { field: 'name', direction: 'asc' }
+        );
+        return result.data.map(r => ({
+          id: r.robot.id,
+          name: r.robot.name,
+          companyName: r.company?.name || null,
+          purpose: r.robot.purpose,
+          commercializationStage: r.robot.commercializationStage,
+          status: r.robot.status,
+        }));
+      }
+
+      if (category === 'pocs') {
+        // PoC: application_cases with status pilot/poc in this year
+        const yearStart = `${yearNum}-01-01`;
+        const yearEnd = `${yearNum}-12-31`;
+        const cases = await db
+          .select({
+            robotId: applicationCases.robotId,
+            robotName: humanoidRobots.name,
+            companyName: companies.name,
+            purpose: humanoidRobots.purpose,
+            commercializationStage: humanoidRobots.commercializationStage,
+            status: humanoidRobots.status,
+          })
+          .from(applicationCases)
+          .innerJoin(humanoidRobots, eq(applicationCases.robotId, humanoidRobots.id))
+          .leftJoin(companies, eq(humanoidRobots.companyId, companies.id))
+          .where(and(
+            sql`${applicationCases.demoDate} >= ${yearStart}`,
+            sql`${applicationCases.demoDate} <= ${yearEnd}`,
+            inArray(applicationCases.deploymentStatus, ['pilot', 'poc'])
+          ));
+
+        // Deduplicate by robot
+        const seen = new Set<string>();
+        return cases.filter(c => {
+          if (seen.has(c.robotId)) return false;
+          seen.add(c.robotId);
+          return true;
+        }).map(c => ({
+          id: c.robotId,
+          name: c.robotName,
+          companyName: c.companyName || null,
+          purpose: c.purpose,
+          commercializationStage: c.commercializationStage,
+          status: c.status,
+        }));
+      }
+
+      if (category === 'productions') {
+        // 양산: application_cases with status production in this year
+        const yearStart = `${yearNum}-01-01`;
+        const yearEnd = `${yearNum}-12-31`;
+        const cases = await db
+          .select({
+            robotId: applicationCases.robotId,
+            robotName: humanoidRobots.name,
+            companyName: companies.name,
+            purpose: humanoidRobots.purpose,
+            commercializationStage: humanoidRobots.commercializationStage,
+            status: humanoidRobots.status,
+          })
+          .from(applicationCases)
+          .innerJoin(humanoidRobots, eq(applicationCases.robotId, humanoidRobots.id))
+          .leftJoin(companies, eq(humanoidRobots.companyId, companies.id))
+          .where(and(
+            sql`${applicationCases.demoDate} >= ${yearStart}`,
+            sql`${applicationCases.demoDate} <= ${yearEnd}`,
+            eq(applicationCases.deploymentStatus, 'production')
+          ));
+
+        const seen = new Set<string>();
+        return cases.filter(c => {
+          if (seen.has(c.robotId)) return false;
+          seen.add(c.robotId);
+          return true;
+        }).map(c => ({
+          id: c.robotId,
+          name: c.robotName,
+          companyName: c.companyName || null,
+          purpose: c.purpose,
+          commercializationStage: c.commercializationStage,
+          status: c.status,
+        }));
+      }
+
+      return reply.status(400).send({ error: 'Invalid category. Use: pocs, productions, newProducts' });
+    } catch (error) {
+      console.error('Error getting robots by year/category:', error);
+      reply.status(500).send({ error: 'Failed to get robots by year/category' });
     }
   });
 
