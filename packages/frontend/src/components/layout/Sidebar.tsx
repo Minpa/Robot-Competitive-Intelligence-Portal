@@ -99,7 +99,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-white text-slate-200 min-h-screen flex flex-col border-r border-slate-700">
+    <aside className="w-64 bg-slate-900 min-h-screen flex flex-col border-r border-slate-700">
       {/* Logo */}
       <div className="p-4 border-b border-slate-700">
         <Link href="/executive" className="flex items-center gap-2">
@@ -121,7 +121,7 @@ export function Sidebar() {
         {navigationGroups.map((group) => {
           const isCollapsed = collapsedGroups.has(group.title);
           const hasActiveItem = group.items.some(
-            item => pathname === item.href || 
+            item => pathname === item.href ||
               (item.href !== '/' && item.href !== '/dashboard' && pathname.startsWith(item.href))
           );
 
@@ -147,9 +147,9 @@ export function Sidebar() {
               {!isCollapsed && (
                 <div className="mt-1 space-y-0.5">
                   {group.items.map((item) => {
-                    const isActive = pathname === item.href || 
+                    const isActive = pathname === item.href ||
                       (item.href !== '/' && item.href !== '/dashboard' && pathname.startsWith(item.href));
-                    
+
                     return (
                       <Link
                         key={item.name}
@@ -176,8 +176,8 @@ export function Sidebar() {
       {/* Footer */}
       <div className="p-4 border-t border-slate-700">
         <div className="flex items-center gap-3 px-2">
-          <div className="w-8 h-8 bg-slate-800 rounded-full flex items-center justify-center">
-            <span className="text-xs text-slate-400">👤</span>
+          <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
+            <span className="text-xs text-slate-300">👤</span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm text-slate-200 truncate">사용자</p>

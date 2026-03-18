@@ -3,56 +3,95 @@
 @tailwind utilities;
 
 /* ============================================
-   Light Theme Overrides
-   Slate palette is inverted in tailwind.config.js.
-   This file handles text-white → dark conversion
-   and preserves white text on colored backgrounds.
+   Theme System — CSS Variable Definitions
+   Default = dark theme (original design).
+   [data-theme="light"] inverts the slate palette.
    ============================================ */
 
-/* text-white → dark on light backgrounds */
-.text-white {
+:root {
+  /* Dark theme — original Tailwind slate values */
+  --color-slate-50:  248 250 252;
+  --color-slate-100: 241 245 249;
+  --color-slate-200: 226 232 240;
+  --color-slate-300: 203 213 225;
+  --color-slate-400: 148 163 184;
+  --color-slate-500: 100 116 139;
+  --color-slate-600: 71 85 105;
+  --color-slate-700: 51 65 85;
+  --color-slate-800: 30 41 59;
+  --color-slate-900: 15 23 42;
+  --color-slate-950: 2 6 23;
+}
+
+[data-theme="light"] {
+  /* Light theme — inverted slate palette */
+  --color-slate-50:  2 6 23;
+  --color-slate-100: 15 23 42;
+  --color-slate-200: 30 41 59;
+  --color-slate-300: 51 65 85;
+  --color-slate-400: 71 85 105;
+  --color-slate-500: 100 116 139;
+  --color-slate-600: 148 163 184;
+  --color-slate-700: 226 232 240;
+  --color-slate-800: 241 245 249;
+  --color-slate-900: 248 250 252;
+  --color-slate-950: 255 255 255;
+}
+
+/* ============================================
+   text-white override for light theme
+   Components use text-white as primary text on
+   dark backgrounds. In light theme, this must
+   become dark. Colored backgrounds preserve white.
+   ============================================ */
+
+[data-theme="light"] .text-white {
+  color: #1e293b;
+}
+
+[data-theme="light"] .hover\:text-white:hover {
   color: #1e293b;
 }
 
 /* Preserve white text inside accent/colored backgrounds */
-[class*="bg-blue-"] .text-white,
-[class*="bg-blue-"].text-white,
-[class*="bg-green-"] .text-white,
-[class*="bg-green-"].text-white,
-[class*="bg-red-"] .text-white,
-[class*="bg-red-"].text-white,
-[class*="bg-cyan-"] .text-white,
-[class*="bg-cyan-"].text-white,
-[class*="bg-emerald-"] .text-white,
-[class*="bg-emerald-"].text-white,
-[class*="bg-orange-"] .text-white,
-[class*="bg-orange-"].text-white,
-[class*="bg-purple-"] .text-white,
-[class*="bg-purple-"].text-white,
-[class*="bg-yellow-"] .text-white,
-[class*="bg-yellow-"].text-white,
-[class*="bg-indigo-"] .text-white,
-[class*="bg-indigo-"].text-white,
-[class*="bg-rose-"] .text-white,
-[class*="bg-rose-"].text-white,
-[class*="bg-amber-"] .text-white,
-[class*="bg-amber-"].text-white,
-[class*="bg-teal-"] .text-white,
-[class*="bg-teal-"].text-white,
-[class*="bg-gradient"] .text-white,
-[class*="bg-gradient"].text-white {
+[data-theme="light"] [class*="bg-blue-"] .text-white,
+[data-theme="light"] [class*="bg-blue-"].text-white,
+[data-theme="light"] [class*="bg-green-"] .text-white,
+[data-theme="light"] [class*="bg-green-"].text-white,
+[data-theme="light"] [class*="bg-red-"] .text-white,
+[data-theme="light"] [class*="bg-red-"].text-white,
+[data-theme="light"] [class*="bg-cyan-"] .text-white,
+[data-theme="light"] [class*="bg-cyan-"].text-white,
+[data-theme="light"] [class*="bg-emerald-"] .text-white,
+[data-theme="light"] [class*="bg-emerald-"].text-white,
+[data-theme="light"] [class*="bg-orange-"] .text-white,
+[data-theme="light"] [class*="bg-orange-"].text-white,
+[data-theme="light"] [class*="bg-purple-"] .text-white,
+[data-theme="light"] [class*="bg-purple-"].text-white,
+[data-theme="light"] [class*="bg-yellow-"] .text-white,
+[data-theme="light"] [class*="bg-yellow-"].text-white,
+[data-theme="light"] [class*="bg-indigo-"] .text-white,
+[data-theme="light"] [class*="bg-indigo-"].text-white,
+[data-theme="light"] [class*="bg-rose-"] .text-white,
+[data-theme="light"] [class*="bg-rose-"].text-white,
+[data-theme="light"] [class*="bg-amber-"] .text-white,
+[data-theme="light"] [class*="bg-amber-"].text-white,
+[data-theme="light"] [class*="bg-teal-"] .text-white,
+[data-theme="light"] [class*="bg-teal-"].text-white,
+[data-theme="light"] [class*="bg-gradient"] .text-white,
+[data-theme="light"] [class*="bg-gradient"].text-white {
   color: #ffffff;
 }
 
-/* Gray text overrides (some components use gray instead of slate) */
-.text-gray-100 {
+/* Gray text overrides for light theme (some components use gray-*) */
+[data-theme="light"] .text-gray-100 {
   color: #1f2937;
 }
-.text-gray-200 {
+[data-theme="light"] .text-gray-200 {
   color: #374151;
 }
 
-/* Placeholder text - keep readable on light inputs */
-.placeholder-slate-500::placeholder {
+/* Placeholder text — keep readable on light inputs */
+[data-theme="light"] .placeholder-slate-500::placeholder {
   color: #94a3b8;
 }
