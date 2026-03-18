@@ -71,6 +71,7 @@ async function seedHumanoid() {
       commercializationStage: 'prototype',
       region: 'north_america',
       description: 'Tesla의 2세대 휴머노이드 로봇. 개선된 손과 보행 능력.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Tesla_Optimus_%28Bot%29.jpg/440px-Tesla_Optimus_%28Bot%29.jpg',
     },
     {
       companyName: 'Boston Dynamics',
@@ -83,6 +84,7 @@ async function seedHumanoid() {
       commercializationStage: 'prototype',
       region: 'north_america',
       description: '전기 구동 방식의 새로운 Atlas. 자동차 제조 환경 최적화.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Atlas_from_boston_dynamics.jpg/440px-Atlas_from_boston_dynamics.jpg',
     },
     {
       companyName: 'Agility Robotics',
@@ -95,6 +97,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'north_america',
       description: '물류 창고용 휴머노이드. Amazon과 협력 중.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Agility_Robotics_Digit_v3.png/440px-Agility_Robotics_Digit_v3.png',
     },
     {
       companyName: 'Figure AI',
@@ -107,6 +110,7 @@ async function seedHumanoid() {
       commercializationStage: 'poc',
       region: 'north_america',
       description: 'OpenAI와 협력한 범용 휴머노이드 로봇.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Figure_01_robot.png/440px-Figure_01_robot.png',
     },
     {
       companyName: '1X Technologies',
@@ -119,6 +123,7 @@ async function seedHumanoid() {
       commercializationStage: 'prototype',
       region: 'europe',
       description: '가정용 안드로이드 로봇. OpenAI 투자.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/1X_EVE_robot.jpg/440px-1X_EVE_robot.jpg',
     },
     {
       companyName: 'Unitree Robotics',
@@ -131,6 +136,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'china',
       description: '저가형 휴머노이드. 연구/교육용.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Unitree_H1_humanoid_robot.jpg/440px-Unitree_H1_humanoid_robot.jpg',
     },
     {
       companyName: 'Unitree Robotics',
@@ -143,6 +149,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'china',
       description: '소형 휴머노이드. $16,000 가격대.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Unitree_G1_humanoid.jpg/440px-Unitree_G1_humanoid.jpg',
     },
     {
       companyName: 'UBTECH',
@@ -155,6 +162,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'china',
       description: '서비스 휴머노이드. 전시/안내용.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/UBTECH_Walker_X.jpg/440px-UBTECH_Walker_X.jpg',
     },
     {
       companyName: 'Xiaomi',
@@ -167,6 +175,7 @@ async function seedHumanoid() {
       commercializationStage: 'concept',
       region: 'china',
       description: '샤오미의 휴머노이드 로봇 컨셉.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Xiaomi_CyberOne.jpg/440px-Xiaomi_CyberOne.jpg',
     },
     {
       companyName: 'Fourier Intelligence',
@@ -179,6 +188,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'china',
       description: '범용 휴머노이드. 재활 기술 기반.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Fourier_GR1_robot.jpg/440px-Fourier_GR1_robot.jpg',
     },
     {
       companyName: 'Sanctuary AI',
@@ -191,6 +201,7 @@ async function seedHumanoid() {
       commercializationStage: 'poc',
       region: 'north_america',
       description: '범용 AI 휴머노이드. 인지 AI 탑재.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Sanctuary_AI_Phoenix.jpg/440px-Sanctuary_AI_Phoenix.jpg',
     },
     // 휠베이스 로봇
     {
@@ -204,6 +215,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'asia',
       description: 'Toyota의 가정용 서비스 로봇. 휠베이스에 단일 팔 장착.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Toyota_HSR_robot.jpg/440px-Toyota_HSR_robot.jpg',
     },
     {
       companyName: 'SoftBank Robotics',
@@ -216,6 +228,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'asia',
       description: 'SoftBank의 감정 인식 서비스 로봇. 소매/접객 분야 배치.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/SoftBank_pepper.JPG/440px-SoftBank_pepper.JPG',
     },
     {
       companyName: 'Aeolus Robotics',
@@ -228,6 +241,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'asia',
       description: 'Aeolus의 자율 서비스 로봇. 호텔/병원 배송 및 순찰.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Aeolus_Aeo_robot.jpg/440px-Aeolus_Aeo_robot.jpg',
     },
     {
       companyName: 'Diligent Robotics',
@@ -240,6 +254,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'north_america',
       description: 'Diligent Robotics의 병원용 로봇. 물품 배송 및 간호 보조.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Moxi_robot_Diligent.jpg/440px-Moxi_robot_Diligent.jpg',
     },
     {
       companyName: 'PAL Robotics',
@@ -252,6 +267,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'europe',
       description: 'PAL Robotics의 연구/서비스용 모바일 매니퓰레이터.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/TIAGo_robot_PAL.jpg/440px-TIAGo_robot_PAL.jpg',
     },
     {
       companyName: 'Savioke',
@@ -264,6 +280,126 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'north_america',
       description: 'Savioke의 호텔 배송 로봇. 자율 주행 배달.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Savioke_Relay_robot.jpg/440px-Savioke_Relay_robot.jpg',
+    },
+    // 2025 robots
+    {
+      companyName: 'Tesla',
+      name: 'Optimus Gen 3',
+      announcementYear: 2025,
+      status: 'development',
+      purpose: 'industrial',
+      locomotionType: 'bipedal',
+      handType: 'multi_finger',
+      commercializationStage: 'pilot',
+      region: 'north_america',
+      description: 'Tesla의 3세대 Optimus. 향상된 자율 작업 능력과 공장 배치 시작.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Tesla_Optimus_%28Bot%29.jpg/440px-Tesla_Optimus_%28Bot%29.jpg',
+    },
+    {
+      companyName: 'Figure AI',
+      name: 'Figure 02',
+      announcementYear: 2025,
+      status: 'development',
+      purpose: 'industrial',
+      locomotionType: 'bipedal',
+      handType: 'multi_finger',
+      commercializationStage: 'poc',
+      region: 'north_america',
+      description: 'Figure AI 2세대 모델. BMW 공장 본격 배치 준비.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Figure_01_robot.png/440px-Figure_01_robot.png',
+    },
+    {
+      companyName: '1X Technologies',
+      name: 'NEO Beta',
+      announcementYear: 2025,
+      status: 'development',
+      purpose: 'home',
+      locomotionType: 'bipedal',
+      handType: 'multi_finger',
+      commercializationStage: 'pilot',
+      region: 'europe',
+      description: 'NEO 베타 버전. 가정 환경 실증 테스트 진행.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/1X_EVE_robot.jpg/440px-1X_EVE_robot.jpg',
+    },
+    {
+      companyName: 'Unitree Robotics',
+      name: 'G1 Pro',
+      announcementYear: 2025,
+      status: 'commercial',
+      purpose: 'service',
+      locomotionType: 'bipedal',
+      handType: 'multi_finger',
+      commercializationStage: 'commercial',
+      region: 'china',
+      description: 'G1 업그레이드 모델. 향상된 손 조작 능력과 AI 추론.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Unitree_G1_humanoid.jpg/440px-Unitree_G1_humanoid.jpg',
+    },
+    // 2026 robots
+    {
+      companyName: 'Tesla',
+      name: 'Optimus Production',
+      announcementYear: 2026,
+      status: 'commercial',
+      purpose: 'industrial',
+      locomotionType: 'bipedal',
+      handType: 'multi_finger',
+      commercializationStage: 'commercial',
+      region: 'north_america',
+      description: 'Tesla Optimus 양산 모델. 외부 고객 판매 시작.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Tesla_Optimus_%28Bot%29.jpg/440px-Tesla_Optimus_%28Bot%29.jpg',
+    },
+    {
+      companyName: 'Boston Dynamics',
+      name: 'Atlas Pro',
+      announcementYear: 2026,
+      status: 'development',
+      purpose: 'industrial',
+      locomotionType: 'bipedal',
+      handType: 'multi_finger',
+      commercializationStage: 'pilot',
+      region: 'north_america',
+      description: 'Atlas 상용화 모델. Hyundai 공장 파일럿 배치.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Atlas_from_boston_dynamics.jpg/440px-Atlas_from_boston_dynamics.jpg',
+    },
+    {
+      companyName: 'Agility Robotics',
+      name: 'Digit v3',
+      announcementYear: 2026,
+      status: 'commercial',
+      purpose: 'industrial',
+      locomotionType: 'bipedal',
+      handType: 'multi_finger',
+      commercializationStage: 'commercial',
+      region: 'north_america',
+      description: 'Digit 3세대. 다관절 손과 향상된 자율 내비게이션.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Agility_Robotics_Digit_v3.png/440px-Agility_Robotics_Digit_v3.png',
+    },
+    {
+      companyName: 'Sanctuary AI',
+      name: 'Phoenix Gen 8',
+      announcementYear: 2026,
+      status: 'development',
+      purpose: 'industrial',
+      locomotionType: 'bipedal',
+      handType: 'multi_finger',
+      commercializationStage: 'poc',
+      region: 'north_america',
+      description: 'Phoenix 최신 모델. Carbon 인지 AI 엔진 통합.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Sanctuary_AI_Phoenix.jpg/440px-Sanctuary_AI_Phoenix.jpg',
+    },
+    {
+      companyName: 'Rainbow Robotics',
+      name: 'HUBO 2',
+      announcementYear: 2026,
+      status: 'development',
+      purpose: 'industrial',
+      locomotionType: 'bipedal',
+      handType: 'multi_finger',
+      commercializationStage: 'prototype',
+      region: 'asia',
+      description: 'Rainbow Robotics 차세대 HUBO. 산업 현장 최적화 설계.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/HUBO_robot_KAIST.jpg/440px-HUBO_robot_KAIST.jpg',
     },
     // 하이브리드 로봇
     {
@@ -277,6 +413,7 @@ async function seedHumanoid() {
       commercializationStage: 'prototype',
       region: 'asia',
       description: 'Honda의 원격 조종 아바타 로봇. 다리+휠 하이브리드 이동.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Honda_ASIMO.jpg/440px-Honda_ASIMO.jpg',
     },
     {
       companyName: 'Rainbow Robotics',
@@ -289,6 +426,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'asia',
       description: 'Rainbow Robotics의 HUBO. 보행+무릎 휠 하이브리드. DARPA 챌린지 우승.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/HUBO_robot_KAIST.jpg/440px-HUBO_robot_KAIST.jpg',
     },
     {
       companyName: 'PAL Robotics',
@@ -301,6 +439,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'europe',
       description: 'PAL Robotics의 전신 휴머노이드. 연구용 하이브리드 이동 플랫폼.',
+      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/TIAGo_robot_PAL.jpg/440px-TIAGo_robot_PAL.jpg',
     },
   ];
 
@@ -311,6 +450,10 @@ async function seedHumanoid() {
     const existing = await db.select().from(humanoidRobots).where(eq(humanoidRobots.name, r.name)).limit(1);
     if (existing.length > 0) {
       robotMap[r.name] = existing[0]!.id;
+      // Update imageUrl for existing robots
+      if (r.imageUrl) {
+        await db.update(humanoidRobots).set({ imageUrl: r.imageUrl }).where(eq(humanoidRobots.id, existing[0]!.id));
+      }
     } else {
       const [inserted] = await db.insert(humanoidRobots).values({
         companyId,
@@ -323,6 +466,7 @@ async function seedHumanoid() {
         commercializationStage: r.commercializationStage,
         region: r.region,
         description: r.description,
+        imageUrl: r.imageUrl,
       }).returning();
       robotMap[r.name] = inserted!.id;
     }
@@ -343,6 +487,15 @@ async function seedHumanoid() {
     'CyberOne': { heightCm: 177, weightKg: 52, payloadKg: 1.5, dofCount: 21, maxSpeedMps: 0.8, operationTimeHours: 1 },
     'GR-1': { heightCm: 165, weightKg: 55, payloadKg: 50, dofCount: 40, maxSpeedMps: 1.5, operationTimeHours: 2 },
     'Phoenix': { heightCm: 170, weightKg: 70, payloadKg: 25, dofCount: 20, maxSpeedMps: 1.4, operationTimeHours: 4 },
+    'Optimus Gen 3': { heightCm: 173, weightKg: 55, payloadKg: 25, dofCount: 32, maxSpeedMps: 3.0, operationTimeHours: 6 },
+    'Figure 02': { heightCm: 170, weightKg: 58, payloadKg: 25, dofCount: 44, maxSpeedMps: 1.5, operationTimeHours: 6 },
+    'NEO Beta': { heightCm: 165, weightKg: 29, payloadKg: 25, dofCount: 40, maxSpeedMps: 4.0, operationTimeHours: 6 },
+    'G1 Pro': { heightCm: 130, weightKg: 37, payloadKg: 5, dofCount: 30, maxSpeedMps: 2.5, operationTimeHours: 3 },
+    'Optimus Production': { heightCm: 173, weightKg: 52, payloadKg: 25, dofCount: 34, maxSpeedMps: 3.5, operationTimeHours: 8 },
+    'Atlas Pro': { heightCm: 150, weightKg: 85, payloadKg: 30, dofCount: 30, maxSpeedMps: 2.5, operationTimeHours: 3 },
+    'Digit v3': { heightCm: 175, weightKg: 62, payloadKg: 20, dofCount: 36, maxSpeedMps: 2.0, operationTimeHours: 10 },
+    'Phoenix Gen 8': { heightCm: 170, weightKg: 65, payloadKg: 25, dofCount: 24, maxSpeedMps: 1.5, operationTimeHours: 5 },
+    'HUBO 2': { heightCm: 160, weightKg: 55, payloadKg: 15, dofCount: 32, maxSpeedMps: 1.8, operationTimeHours: 4 },
   };
 
   for (const [robotName, spec] of Object.entries(bodySpecsData)) {
@@ -368,6 +521,15 @@ async function seedHumanoid() {
     'CyberOne': { handType: 'multi_finger', fingerCount: 5, handDof: 6, gripForceN: 20, isInterchangeable: false },
     'GR-1': { handType: 'multi_finger', fingerCount: 5, handDof: 12, gripForceN: 100, isInterchangeable: true },
     'Phoenix': { handType: 'multi_finger', fingerCount: 5, handDof: 20, gripForceN: 100, isInterchangeable: false },
+    'Optimus Gen 3': { handType: 'multi_finger', fingerCount: 5, handDof: 14, gripForceN: 120, isInterchangeable: false },
+    'Figure 02': { handType: 'multi_finger', fingerCount: 5, handDof: 18, gripForceN: 120, isInterchangeable: false },
+    'NEO Beta': { handType: 'multi_finger', fingerCount: 5, handDof: 14, gripForceN: 90, isInterchangeable: false },
+    'G1 Pro': { handType: 'multi_finger', fingerCount: 5, handDof: 10, gripForceN: 40, isInterchangeable: false },
+    'Optimus Production': { handType: 'multi_finger', fingerCount: 5, handDof: 16, gripForceN: 130, isInterchangeable: false },
+    'Atlas Pro': { handType: 'multi_finger', fingerCount: 5, handDof: 14, gripForceN: 160, isInterchangeable: true },
+    'Digit v3': { handType: 'multi_finger', fingerCount: 5, handDof: 12, gripForceN: 150, isInterchangeable: true },
+    'Phoenix Gen 8': { handType: 'multi_finger', fingerCount: 5, handDof: 22, gripForceN: 110, isInterchangeable: false },
+    'HUBO 2': { handType: 'multi_finger', fingerCount: 5, handDof: 14, gripForceN: 90, isInterchangeable: false },
   };
 
   for (const [robotName, spec] of Object.entries(handSpecsData)) {
@@ -394,6 +556,15 @@ async function seedHumanoid() {
     'CyberOne': { mainSoc: 'Qualcomm Snapdragon', topsMin: 15, topsMax: 26, architectureType: 'onboard' },
     'GR-1': { mainSoc: 'NVIDIA Jetson AGX', topsMin: 32, topsMax: 275, architectureType: 'onboard' },
     'Phoenix': { mainSoc: 'Custom AI Chip', topsMin: 50, topsMax: 150, architectureType: 'hybrid' },
+    'Optimus Gen 3': { mainSoc: 'Tesla AI5 Chip', topsMin: 200, topsMax: 400, architectureType: 'onboard' },
+    'Figure 02': { mainSoc: 'NVIDIA Thor', topsMin: 200, topsMax: 500, architectureType: 'hybrid' },
+    'NEO Beta': { mainSoc: 'NVIDIA Jetson Orin', topsMin: 40, topsMax: 275, architectureType: 'onboard' },
+    'G1 Pro': { mainSoc: 'NVIDIA Jetson Orin NX', topsMin: 70, topsMax: 100, architectureType: 'onboard' },
+    'Optimus Production': { mainSoc: 'Tesla AI5 Chip', topsMin: 200, topsMax: 400, architectureType: 'onboard' },
+    'Atlas Pro': { mainSoc: 'Custom NVIDIA', topsMin: 200, topsMax: 400, architectureType: 'onboard' },
+    'Digit v3': { mainSoc: 'NVIDIA Jetson Thor', topsMin: 200, topsMax: 500, architectureType: 'onboard' },
+    'Phoenix Gen 8': { mainSoc: 'Custom AI Chip v2', topsMin: 100, topsMax: 300, architectureType: 'hybrid' },
+    'HUBO 2': { mainSoc: 'NVIDIA Jetson AGX Orin', topsMin: 200, topsMax: 275, architectureType: 'onboard' },
   };
 
   for (const [robotName, spec] of Object.entries(computingSpecsData)) {
@@ -419,6 +590,15 @@ async function seedHumanoid() {
     'CyberOne': { batteryType: 'Li-ion', capacityWh: 600, operationTimeHours: 1, chargingMethod: 'fixed' },
     'GR-1': { batteryType: 'Li-ion', capacityWh: 1500, operationTimeHours: 2, chargingMethod: 'swappable' },
     'Phoenix': { batteryType: 'Li-ion', capacityWh: 2000, operationTimeHours: 4, chargingMethod: 'both' },
+    'Optimus Gen 3': { batteryType: 'Li-ion', capacityWh: 3000, operationTimeHours: 6, chargingMethod: 'fixed' },
+    'Figure 02': { batteryType: 'Li-ion', capacityWh: 3000, operationTimeHours: 6, chargingMethod: 'fixed' },
+    'NEO Beta': { batteryType: 'Li-ion', capacityWh: 2000, operationTimeHours: 6, chargingMethod: 'fixed' },
+    'G1 Pro': { batteryType: 'Li-ion', capacityWh: 1000, operationTimeHours: 3, chargingMethod: 'fixed' },
+    'Optimus Production': { batteryType: 'Li-ion', capacityWh: 4000, operationTimeHours: 8, chargingMethod: 'swappable' },
+    'Atlas Pro': { batteryType: 'Li-ion', capacityWh: 3500, operationTimeHours: 3, chargingMethod: 'swappable' },
+    'Digit v3': { batteryType: 'Li-ion', capacityWh: 5000, operationTimeHours: 10, chargingMethod: 'swappable' },
+    'Phoenix Gen 8': { batteryType: 'Li-ion', capacityWh: 2500, operationTimeHours: 5, chargingMethod: 'both' },
+    'HUBO 2': { batteryType: 'Li-ion', capacityWh: 2000, operationTimeHours: 4, chargingMethod: 'fixed' },
   };
 
   for (const [robotName, spec] of Object.entries(powerSpecsData)) {
@@ -569,6 +749,15 @@ async function seedHumanoid() {
     { robotName: 'GR-1', environmentType: 'healthcare', taskType: 'assistance', taskDescription: '재활 보조 로봇 시연', deploymentStatus: 'poc', demoEvent: 'World Robot Conference 2023', demoDate: '2023-08-16' },
     { robotName: 'Phoenix', environmentType: 'retail', taskType: 'picking', taskDescription: '소매점 재고 관리 시연', deploymentStatus: 'poc', demoEvent: 'Sanctuary AI Demo', demoDate: '2024-02-20' },
     { robotName: 'NEO', environmentType: 'home', taskType: 'assistance', taskDescription: '가정용 도우미 로봇 컨셉', deploymentStatus: 'concept', demoEvent: '1X NEO Reveal', demoDate: '2024-08-01' },
+    { robotName: 'Optimus Gen 3', environmentType: 'factory', taskType: 'assembly', taskDescription: 'Tesla 공장 파일럿 라인 배치', deploymentStatus: 'pilot', demoEvent: 'Tesla AI Day 2025', demoDate: '2025-06-15' },
+    { robotName: 'Figure 02', environmentType: 'factory', taskType: 'assembly', taskDescription: 'BMW Spartanburg 공장 PoC', deploymentStatus: 'poc', demoEvent: 'Figure BMW Demo', demoDate: '2025-03-20' },
+    { robotName: 'NEO Beta', environmentType: 'home', taskType: 'assistance', taskDescription: '노르웨이 가정 환경 실증', deploymentStatus: 'pilot', demoEvent: '1X Home Trial', demoDate: '2025-09-01' },
+    { robotName: 'G1 Pro', environmentType: 'research_lab', taskType: 'other', taskDescription: '연구소 조작 벤치마크 테스트', deploymentStatus: 'production', demoEvent: 'Unitree G1 Pro Launch', demoDate: '2025-04-10' },
+    { robotName: 'Optimus Production', environmentType: 'factory', taskType: 'assembly', taskDescription: 'Tesla Gigafactory 양산 라인 배치', deploymentStatus: 'production', demoEvent: 'Tesla Investor Day 2026', demoDate: '2026-01-20' },
+    { robotName: 'Atlas Pro', environmentType: 'factory', taskType: 'assembly', taskDescription: 'Hyundai 울산 공장 파일럿', deploymentStatus: 'pilot', demoEvent: 'Hyundai Robotics Summit', demoDate: '2026-02-15' },
+    { robotName: 'Digit v3', environmentType: 'warehouse', taskType: 'picking', taskDescription: 'Amazon 물류센터 본격 배치', deploymentStatus: 'production', demoEvent: 'Agility Scale-up Event', demoDate: '2026-01-10' },
+    { robotName: 'Phoenix Gen 8', environmentType: 'retail', taskType: 'picking', taskDescription: '대형 유통점 재고 관리 PoC', deploymentStatus: 'poc', demoEvent: 'Sanctuary AI Demo 2026', demoDate: '2026-03-01' },
+    { robotName: 'HUBO 2', environmentType: 'factory', taskType: 'assembly', taskDescription: '스마트 공장 조립 보조 테스트', deploymentStatus: 'concept', demoEvent: 'Rainbow Robotics Showcase', demoDate: '2026-02-28' },
   ];
 
   for (const ac of applicationCasesData) {

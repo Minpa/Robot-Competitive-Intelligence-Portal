@@ -21,6 +21,7 @@ interface HumanoidRobotCardProps {
     applicationCaseCount?: number;
     distinctEnvironmentsCount?: number;
     newsEventCount?: number;
+    imageUrl?: string;
   };
   isSelected?: boolean;
   onSelect?: (id: string) => void;
@@ -95,6 +96,21 @@ export function HumanoidRobotCard({ robot, isSelected, onSelect, showCheckbox }:
       )}
 
       <Link href={`/humanoid-robots/${robot.id}`}>
+        {/* 로봇 이미지 */}
+        <div className="h-40 bg-slate-800/80 border-b border-slate-700/50 flex items-center justify-center overflow-hidden">
+          {robot.imageUrl ? (
+            <img
+              src={robot.imageUrl}
+              alt={robot.name}
+              className="w-full h-full object-contain p-3"
+            />
+          ) : (
+            <div className="flex flex-col items-center gap-2 text-slate-600">
+              <Bot className="w-12 h-12" />
+            </div>
+          )}
+        </div>
+
         {/* 헤더: 제품명 + 배지들 */}
         <div className="p-4 border-b border-slate-700/50">
           <div className="flex items-start justify-between gap-2">
