@@ -1544,12 +1544,18 @@ class ApiClient {
 
   // ── War Room — Competitive ──
 
-  async getWarRoomGapAnalysis(robotId: string) {
-    return this.request<any>(`/war-room/competitive/${encodeURIComponent(robotId)}`);
+  async getWarRoomGapAnalysis(robotId: string, competitorIds?: string[]) {
+    const qs = competitorIds?.length ? `?competitor_ids=${competitorIds.join(',')}` : '';
+    return this.request<any>(`/war-room/competitive/${encodeURIComponent(robotId)}${qs}`);
   }
 
-  async getWarRoomCompetitiveOverlay(robotId: string) {
-    return this.request<any>(`/war-room/competitive/${encodeURIComponent(robotId)}/overlay`);
+  async getWarRoomCompetitiveOverlay(robotId: string, competitorIds?: string[]) {
+    const qs = competitorIds?.length ? `?competitor_ids=${competitorIds.join(',')}` : '';
+    return this.request<any>(`/war-room/competitive/${encodeURIComponent(robotId)}/overlay${qs}`);
+  }
+
+  async getWarRoomAvailableCompetitors(robotId: string) {
+    return this.request<any>(`/war-room/competitive/${encodeURIComponent(robotId)}/available-competitors`);
   }
 
   // ── War Room — Score History ──
