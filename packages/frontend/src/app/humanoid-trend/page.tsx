@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { usePocScores, useRfmScores, usePositioningData, useBarSpecs } from '@/hooks/useHumanoidTrend';
 import SectionNav from '@/components/humanoid-trend/SectionNav';
@@ -15,7 +14,6 @@ import AdminDataPanel from '@/components/humanoid-trend/AdminDataPanel';
 import PptDownloadButton from '@/components/humanoid-trend/PptDownloadButton';
 import RubricPanel from '@/components/humanoid-trend/RubricPanel';
 import ScoreBadge from '@/components/humanoid-trend/ScoreBadge';
-import RobotSelector, { type RobotOption } from '@/components/humanoid-trend/RobotSelector';
 
 function ChartSection({ id, title, rubricType, children }: { id: string; title: string; rubricType?: 'poc' | 'rfm' | 'positioning'; children: React.ReactNode }) {
   return (
@@ -48,54 +46,6 @@ function HumanoidTrendContent() {
   const { data: socPositioning, isLoading: socPosLoading } = usePositioningData('soc_ecosystem');
   const { data: barSpecs, isLoading: barLoading } = useBarSpecs();
 
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [initialized, setInitialized] = useState(false);
-
-  // Build robot options from poc scores
-  const robotOptions: RobotOption[] = useMemo(() => {
-    if (!pocScores) return [];
-    return pocScores.map((s: any) => ({
-      robotId: s.robotId,
-      robotName: s.robotName,
-      companyName: s.companyName,
-      averageScore: s.averageScore ?? 0,
-    }));
-  }, [pocScores]);
-
-  // Default to all robots when data first loads
-  useEffect(() => {
-    if (robotOptions.length > 0 && !initialized) {
-      setSelectedIds(robotOptions.map((r) => r.robotId));
-      setInitialized(true);
-    }
-  }, [robotOptions, initialized]);
-
-  // Filter data by selected robot IDs
-  const filteredPoc = useMemo(
-    () => (pocScores || []).filter((s: any) => selectedIds.includes(s.robotId)),
-    [pocScores, selectedIds]
-  );
-  const filteredRfm = useMemo(
-    () => (rfmScores || []).filter((s: any) => selectedIds.includes(s.robotId)),
-    [rfmScores, selectedIds]
-  );
-  const filteredRfmPos = useMemo(
-    () => (rfmPositioning || []).filter((s: any) => !s.robotId || selectedIds.includes(s.robotId)),
-    [rfmPositioning, selectedIds]
-  );
-  const filteredPocPos = useMemo(
-    () => (pocPositioning || []).filter((s: any) => !s.robotId || selectedIds.includes(s.robotId)),
-    [pocPositioning, selectedIds]
-  );
-  const filteredSocPos = useMemo(
-    () => (socPositioning || []).filter((s: any) => !s.robotId || selectedIds.includes(s.robotId)),
-    [socPositioning, selectedIds]
-  );
-  const filteredBar = useMemo(
-    () => (barSpecs || []).filter((s: any) => selectedIds.includes(s.robotId)),
-    [barSpecs, selectedIds]
-  );
-
   return (
     <div className="min-h-screen bg-slate-950">
       <SectionNav />
@@ -111,15 +61,8 @@ function HumanoidTrendContent() {
           <PptDownloadButton />
         </div>
 
-        {/* Robot Selector */}
-        <RobotSelector
-          robots={robotOptions}
-          selectedIds={selectedIds}
-          onSelectionChange={setSelectedIds}
-        />
-
         <ChartSection id="poc-radar" title="1. 산업용 PoC 팩터별 역량 비교" rubricType="poc">
-          {pocLoading ? <LoadingSkeleton /> : <PocRadarSection data={filteredPoc} />}
+          {pocLoading ? <LoadingSkeleton /> : <PocRadarSection data={pocScores || []} />}
         </ChartSection>
 
         <ChartSection id="rfm-radar" title="2. RFM 역량 비교" rubricType="rfm">
@@ -127,7 +70,7 @@ function HumanoidTrendContent() {
             <LoadingSkeleton />
           ) : (
             <>
-              <RfmOverlayRadar data={filteredRfm} />
+              <RfmOverlayRadar data={rfmScores || []} />
               <div className="mt-6">
                 <h3 className="text-sm font-semibold text-white mb-2">RFM 비교 표 (주요 기업)</h3>
                 <RfmComparisonTable />
@@ -137,19 +80,19 @@ function HumanoidTrendContent() {
         </ChartSection>
 
         <ChartSection id="rfm-positioning" title="3. RFM 경쟁력 포지셔닝 맵" rubricType="positioning">
-          {rfmPosLoading ? <LoadingSkeleton /> : <RfmBubbleChart data={filteredRfmPos} />}
+          {rfmPosLoading ? <LoadingSkeleton /> : <RfmBubbleChart data={rfmPositioning || []} />}
         </ChartSection>
 
         <ChartSection id="poc-positioning" title="4. 산업용 PoC 로봇 포지셔닝 맵" rubricType="positioning">
-          {pocPosLoading ? <LoadingSkeleton /> : <PocBubbleChart data={filteredPocPos} />}
+          {pocPosLoading ? <LoadingSkeleton /> : <PocBubbleChart data={pocPositioning || []} />}
         </ChartSection>
 
         <ChartSection id="soc-ecosystem" title="5. TOPS × SoC 에코시스템 포지셔닝 맵" rubricType="positioning">
-          {socPosLoading ? <LoadingSkeleton /> : <SocBubbleChart data={filteredSocPos} />}
+          {socPosLoading ? <LoadingSkeleton /> : <SocBubbleChart data={socPositioning || []} />}
         </ChartSection>
 
         <ChartSection id="spec-comparison" title="6. 산업 배치 핵심 스펙 비교">
-          {barLoading ? <LoadingSkeleton /> : <SpecBarCharts data={filteredBar} />}
+          {barLoading ? <LoadingSkeleton /> : <SpecBarCharts data={barSpecs || []} />}
         </ChartSection>
       </div>
 
