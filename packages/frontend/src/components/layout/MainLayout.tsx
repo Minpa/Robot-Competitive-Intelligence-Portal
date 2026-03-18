@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { DemoBanner } from '../shared/DemoBanner';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -72,16 +73,17 @@ export function MainLayout({ children }: MainLayoutProps) {
     <div className="flex min-h-screen">
       <Sidebar />
       <div className="flex-1 flex flex-col">
+        <DemoBanner />
         <Header />
-        <main className="flex-1 p-6 bg-gray-50">
+        <main className="flex-1 p-6 bg-slate-950">
           {children}
         </main>
-        <footer className="bg-white border-t px-6 py-4">
-          <div className="flex items-center justify-between text-sm text-gray-500">
-            <span>© 2024 RCIP - Robot Competitive Intelligence Portal</span>
+        <footer className="bg-slate-900 border-t border-slate-800 px-6 py-3">
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <span>© 2024-2026 HRIP - Humanoid Robot Intelligence Platform</span>
             <div className="flex gap-4">
-              <a href="/terms" className="hover:text-gray-700 hover:underline">이용약관</a>
-              <a href="/copyright" className="hover:text-gray-700 hover:underline">저작권 신고</a>
+              <a href="/terms" className="hover:text-slate-300 transition-colors">이용약관</a>
+              <a href="/copyright" className="hover:text-slate-300 transition-colors">저작권 신고</a>
             </div>
           </div>
         </footer>

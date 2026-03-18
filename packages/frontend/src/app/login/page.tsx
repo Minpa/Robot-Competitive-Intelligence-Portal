@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Bot } from 'lucide-react';
+import { Loader2, Bot, Sparkles } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,6 +10,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +21,7 @@ export default function LoginPage() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      
+
       const res = await fetch(`${apiUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -33,7 +36,7 @@ export default function LoginPage() {
 
       localStorage.setItem('auth_token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      
+
       await new Promise(resolve => setTimeout(resolve, 100));
       window.location.href = '/executive';
     } catch (err) {
@@ -44,14 +47,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950">
-      <div className="bg-slate-800/50 backdrop-blur p-8 rounded-xl border border-slate-700/50 w-full max-w-md">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 relative overflow-hidden">
+      {/* Animated background grid */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.03)_1px,transparent_1px)] bg-[size:60px_60px]" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-500/5 rounded-full blur-[120px]" />
+
+      {/* AWE2026 Banner */}
+      <div className={`mb-8 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
+        <div className="flex items-center gap-2 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-full px-5 py-2">
+          <Sparkles className="w-4 h-4 text-cyan-400" />
+          <span className="text-sm font-medium text-blue-300">AWE 2026 Edition</span>
+          <span className="text-xs text-slate-500 ml-1">|</span>
+          <span className="text-xs text-slate-400 ml-1">38+ Humanoid Robots Tracked</span>
+        </div>
+      </div>
+
+      <div className={`bg-slate-800/50 backdrop-blur-xl p-8 rounded-2xl border border-slate-700/50 w-full max-w-md shadow-2xl shadow-blue-500/5 relative z-10 transition-all duration-700 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/25">
             <Bot className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">HRIP</h1>
-          <p className="text-slate-400 mt-2">Humanoid Robot Intelligence Platform</p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">HRIP</h1>
+          <p className="text-slate-400 mt-1 text-sm">Humanoid Robot Intelligence Platform</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -70,7 +87,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all"
               placeholder="email@example.com"
             />
           </div>
@@ -84,7 +101,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all"
               placeholder="••••••••"
             />
           </div>
@@ -92,7 +109,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-3 rounded-lg font-medium hover:from-blue-600 hover:to-cyan-600 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+            className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-3 rounded-lg font-medium hover:from-blue-600 hover:to-cyan-600 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
           >
             {loading ? (
               <>
@@ -114,6 +131,17 @@ export default function LoginPage() {
             </a>
           </p>
         </div>
+      </div>
+
+      {/* Stats footer */}
+      <div className={`mt-8 flex items-center gap-6 text-xs text-slate-600 transition-all duration-700 delay-200 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+        <span>24 Companies</span>
+        <span className="w-1 h-1 bg-slate-700 rounded-full" />
+        <span>38+ Robots</span>
+        <span className="w-1 h-1 bg-slate-700 rounded-full" />
+        <span>6 Regions</span>
+        <span className="w-1 h-1 bg-slate-700 rounded-full" />
+        <span>Real-time CI</span>
       </div>
     </div>
   );

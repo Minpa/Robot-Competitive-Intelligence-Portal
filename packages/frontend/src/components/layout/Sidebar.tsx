@@ -103,12 +103,15 @@ export function Sidebar() {
       {/* Logo */}
       <div className="p-4 border-b border-slate-800">
         <Link href="/executive" className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
             <Bot className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white">HRIP</h1>
-            <p className="text-xs text-slate-400 leading-tight">Humanoid Robot<br/>Intelligence Platform</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-bold text-white tracking-tight">HRIP</h1>
+              <span className="text-[9px] font-semibold bg-cyan-500/15 text-cyan-400 px-1.5 py-0.5 rounded-md border border-cyan-500/20">AWE 2026</span>
+            </div>
+            <p className="text-[11px] text-slate-400 leading-tight">Humanoid Robot Intelligence</p>
           </div>
         </Link>
       </div>
