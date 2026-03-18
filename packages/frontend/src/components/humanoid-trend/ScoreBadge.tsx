@@ -80,7 +80,7 @@ export default function ScoreBadge({ metadata, evaluatedAt }: ScoreBadgeProps) {
 
       {/* 평가 시점 */}
       {evaluatedAt && (
-        <span className="text-gray-500">
+        <span className="text-slate-500">
           {formatDate(evaluatedAt)}
         </span>
       )}

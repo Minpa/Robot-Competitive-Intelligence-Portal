@@ -37,19 +37,19 @@ export default function AdminDataPanel() {
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
           <div className="relative w-full max-w-lg bg-slate-900 shadow-xl overflow-y-auto">
-            <div className="sticky top-0 bg-slate-900 border-b border-gray-700 p-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">데이터 관리</h2>
-              <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600">
+            <div className="sticky top-0 bg-slate-900 border-b border-slate-700 p-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-200">데이터 관리</h2>
+              <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-500">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex border-b border-gray-700">
+            <div className="flex border-b border-slate-700">
               {(['poc', 'rfm', 'positioning', 'pipeline'] as Tab[]).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
-                  className={`flex-1 py-2 text-sm font-medium ${tab === t ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-500'}`}
+                  className={`flex-1 py-2 text-sm font-medium ${tab === t ? 'text-violet-600 border-b-2 border-violet-600' : 'text-slate-500'}`}
                 >
                   {t === 'poc' ? 'PoC 점수' : t === 'rfm' ? 'RFM 점수' : t === 'positioning' ? '포지셔닝' : '파이프라인'}
                 </button>
@@ -87,7 +87,7 @@ function PocTab() {
           className="w-full px-3 py-2 text-sm border border-slate-600 rounded bg-slate-800 text-white" />
         <div className="grid grid-cols-3 gap-2">
           {(['payloadScore', 'operationTimeScore', 'fingerDofScore', 'formFactorScore', 'pocDeploymentScore', 'costEfficiencyScore'] as const).map((k) => (
-            <label key={k} className="text-xs text-gray-400">
+            <label key={k} className="text-xs text-slate-400">
               {k.replace('Score', '')}
               <input type="number" min={1} max={10} value={form[k]}
                 onChange={(e) => setForm({ ...form, [k]: Number(e.target.value) })}
@@ -102,7 +102,7 @@ function PocTab() {
       </div>
       <div className="space-y-1 max-h-60 overflow-y-auto">
         {scores?.map((s: any) => (
-          <div key={s.id} className="flex items-center justify-between text-xs text-gray-300 py-1 border-b border-gray-800">
+          <div key={s.id} className="flex items-center justify-between text-xs text-slate-300 py-1 border-b border-slate-800">
             <span>{s.robotName} ({s.companyName}) — 평균 {s.averageScore}</span>
             <button onClick={() => deleteMut.mutate(s.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
           </div>
@@ -132,7 +132,7 @@ function RfmTab() {
           className="w-full px-3 py-2 text-sm border border-slate-600 rounded bg-slate-800 text-white" />
         <div className="grid grid-cols-3 gap-2">
           {(['generalityScore', 'realWorldDataScore', 'edgeInferenceScore', 'multiRobotCollabScore', 'openSourceScore', 'commercialMaturityScore'] as const).map((k) => (
-            <label key={k} className="text-xs text-gray-400">
+            <label key={k} className="text-xs text-slate-400">
               {k.replace('Score', '')}
               <input type="number" min={1} max={5} value={form[k]}
                 onChange={(e) => setForm({ ...form, [k]: Number(e.target.value) })}
@@ -147,7 +147,7 @@ function RfmTab() {
       </div>
       <div className="space-y-1 max-h-60 overflow-y-auto">
         {scores?.map((s: any) => (
-          <div key={s.id} className="flex items-center justify-between text-xs text-gray-300 py-1 border-b border-gray-800">
+          <div key={s.id} className="flex items-center justify-between text-xs text-slate-300 py-1 border-b border-slate-800">
             <span>{s.robotName} — {s.rfmModelName}</span>
             <button onClick={() => deleteMut.mutate(s.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
           </div>
@@ -181,15 +181,15 @@ function PositioningTab() {
         <input placeholder="라벨" value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })}
           className="w-full px-3 py-2 text-sm border border-slate-600 rounded bg-slate-800 text-white" />
         <div className="grid grid-cols-3 gap-2">
-          <label className="text-xs text-gray-400">X
+          <label className="text-xs text-slate-400">X
             <input type="number" step="0.1" value={form.xValue} onChange={(e) => setForm({ ...form, xValue: Number(e.target.value) })}
               className="w-full px-2 py-1 text-sm border border-slate-600 rounded bg-slate-800 text-white" />
           </label>
-          <label className="text-xs text-gray-400">Y
+          <label className="text-xs text-slate-400">Y
             <input type="number" step="0.1" value={form.yValue} onChange={(e) => setForm({ ...form, yValue: Number(e.target.value) })}
               className="w-full px-2 py-1 text-sm border border-slate-600 rounded bg-slate-800 text-white" />
           </label>
-          <label className="text-xs text-gray-400">버블
+          <label className="text-xs text-slate-400">버블
             <input type="number" step="0.1" value={form.bubbleSize} onChange={(e) => setForm({ ...form, bubbleSize: Number(e.target.value) })}
               className="w-full px-2 py-1 text-sm border border-slate-600 rounded bg-slate-800 text-white" />
           </label>

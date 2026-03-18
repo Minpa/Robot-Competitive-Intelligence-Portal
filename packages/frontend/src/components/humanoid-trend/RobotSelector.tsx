@@ -60,7 +60,7 @@ export default function RobotSelector({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Users className="h-4 w-4 text-slate-400" />
-          <h3 className="text-sm font-semibold text-white">비교 대상 선택</h3>
+          <h3 className="text-sm font-semibold text-slate-200">비교 대상 선택</h3>
           <span className="text-xs text-slate-500">
             {selectedIds.length}/{robots.length}개 선택
           </span>
@@ -140,7 +140,7 @@ export default function RobotSelector({
                     {isSelected && <Check className="h-3 w-3 text-white" />}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-medium text-white">{r.robotName}</p>
+                    <p className="truncate text-xs font-medium text-slate-200">{r.robotName}</p>
                     <p className="truncate text-[10px] text-slate-400">{r.companyName} · {r.averageScore.toFixed(1)}</p>
                   </div>
                   <span className="ml-auto flex-shrink-0 text-[10px] text-slate-500">#{i + 1}</span>

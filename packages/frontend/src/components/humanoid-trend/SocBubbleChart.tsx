@@ -39,7 +39,7 @@ const AngledTick = (props: any) => {
 export default function SocBubbleChart({ data }: Props) {
   if (!data || data.length < 2) {
     return (
-      <div className="flex items-center justify-center min-h-[300px] text-gray-500 text-sm">
+      <div className="flex items-center justify-center min-h-[300px] text-slate-500 text-sm">
         포지셔닝 비교를 위해 최소 2개 이상의 데이터가 필요합니다.
       </div>
     );
@@ -85,7 +85,7 @@ export default function SocBubbleChart({ data }: Props) {
       <div className="h-[520px]">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 20, right: 30, bottom: 80, left: 60 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-slate-700))" />
             <XAxis
               type="number"
               dataKey="x"
@@ -119,8 +119,8 @@ export default function SocBubbleChart({ data }: Props) {
                 if (!payload?.[0]) return null;
                 const d = payload[0].payload;
                 return (
-                  <div className="bg-slate-900 border border-slate-600 rounded-lg p-3 text-xs text-gray-200 shadow-lg">
-                    <p className="font-semibold text-white mb-1">{d.robotName}</p>
+                  <div className="bg-slate-900 border border-slate-600 rounded-lg p-3 text-xs text-slate-300 shadow-lg">
+                    <p className="font-semibold text-slate-200 mb-1">{d.robotName}</p>
                     <p>SoC: {d.mainSoc}</p>
                     <p>TOPS: {d.yRaw.toLocaleString()}</p>
                     <p>적용 사례: {d.z}건</p>

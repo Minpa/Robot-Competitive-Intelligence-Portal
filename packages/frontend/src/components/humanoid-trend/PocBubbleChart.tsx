@@ -12,7 +12,7 @@ interface Props { data: PositioningDataWithRobot[]; }
 export default function PocBubbleChart({ data }: Props) {
   if (!data || data.length < 2) {
     return (
-      <div className="flex items-center justify-center min-h-[300px] text-gray-500 text-sm">
+      <div className="flex items-center justify-center min-h-[300px] text-slate-500 text-sm">
         포지셔닝 비교를 위해 최소 2개 이상의 데이터가 필요합니다.
       </div>
     );
@@ -35,7 +35,7 @@ export default function PocBubbleChart({ data }: Props) {
       <div className="h-[480px]">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 20, right: 30, bottom: 40, left: 50 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-slate-700))" />
             <XAxis type="number" dataKey="x" tick={{ fontSize: 11, fill: '#CBD5E1' }}>
               <Label value="폼팩터 / 인체 유사도 (Form Factor)" position="bottom" offset={20} style={{ fontSize: 12, fill: '#94A3B8' }} />
             </XAxis>
@@ -49,8 +49,8 @@ export default function PocBubbleChart({ data }: Props) {
                 if (!payload?.[0]) return null;
                 const d = payload[0].payload;
                 return (
-                  <div className="bg-slate-900 border border-slate-600 rounded-lg p-3 text-xs text-gray-200 shadow-lg">
-                    <p className="font-semibold text-white mb-1">{d.robotName}</p>
+                  <div className="bg-slate-900 border border-slate-600 rounded-lg p-3 text-xs text-slate-300 shadow-lg">
+                    <p className="font-semibold text-slate-200 mb-1">{d.robotName}</p>
                     <p>폼팩터: {d.x}</p>
                     <p>산업 적합성: {d.y.toFixed(1)}</p>
                     <p>핑거 DoF 점수: {d.z}</p>

@@ -30,19 +30,19 @@ function SingleBarChart({ data, chartKey, title, unit }: {
 
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-800 p-4">
-      <h4 className="text-sm font-semibold text-gray-200 mb-3">{title}</h4>
+      <h4 className="text-sm font-semibold text-slate-300 mb-3">{title}</h4>
       <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#9CA3AF' }} angle={-20} textAnchor="end" height={50} />
-            <YAxis tick={{ fontSize: 10, fill: '#9CA3AF' }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-slate-700))" />
+            <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'rgb(var(--color-slate-400))' }} angle={-20} textAnchor="end" height={50} />
+            <YAxis tick={{ fontSize: 10, fill: 'rgb(var(--color-slate-400))' }} />
             <Tooltip
               content={({ payload }) => {
                 if (!payload?.[0]) return null;
                 const d = payload[0].payload;
                 return (
-                  <div className="bg-slate-800 border border-slate-600 rounded-lg p-2 text-xs text-gray-200">
+                  <div className="bg-slate-800 border border-slate-600 rounded-lg p-2 text-xs text-slate-300">
                     <p className="font-semibold">{d.name}</p>
                     <p>{d.company}</p>
                     <p>{d.value}{unit}</p>
@@ -65,7 +65,7 @@ function SingleBarChart({ data, chartKey, title, unit }: {
 export default function SpecBarCharts({ data }: Props) {
   if (!data || data.length < 2) {
     return (
-      <div className="flex items-center justify-center min-h-[300px] text-gray-500 text-sm">
+      <div className="flex items-center justify-center min-h-[300px] text-slate-500 text-sm">
         비교를 위해 최소 2개 이상의 로봇 데이터가 필요합니다.
       </div>
     );

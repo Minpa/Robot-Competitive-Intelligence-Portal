@@ -16,7 +16,7 @@ export default function PptDownloadButton() {
   if (!canExport) {
     if (isViewer) {
       return (
-        <p className="text-xs text-gray-400">리포트 다운로드는 Analyst 이상 권한이 필요합니다</p>
+        <p className="text-xs text-slate-400">리포트 다운로드는 Analyst 이상 권한이 필요합니다</p>
       );
     }
     return null;

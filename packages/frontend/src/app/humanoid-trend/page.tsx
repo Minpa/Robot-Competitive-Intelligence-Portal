@@ -19,7 +19,7 @@ function ChartSection({ id, title, rubricType, children }: { id: string; title: 
   return (
     <section id={id} className="scroll-mt-16">
       <div className="flex items-center gap-3 mb-4">
-        <h2 className="text-lg font-bold text-gray-100">{title}</h2>
+        <h2 className="text-lg font-bold text-slate-200">{title}</h2>
         {rubricType && <RubricPanel type={rubricType} />}
       </div>
       <div className="rounded-xl border border-slate-700 bg-slate-800 p-4">
@@ -53,7 +53,7 @@ function HumanoidTrendContent() {
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-10">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">휴머노이드 동향</h1>
+            <h1 className="text-2xl font-bold text-slate-200">휴머노이드 동향</h1>
             <p className="text-sm text-gray-400 mt-1">
               휴머노이드 로봇 산업 경쟁 인텔리전스 차트 6종
             </p>
@@ -72,7 +72,7 @@ function HumanoidTrendContent() {
             <>
               <RfmOverlayRadar data={rfmScores || []} />
               <div className="mt-6">
-                <h3 className="text-sm font-semibold text-white mb-2">RFM 비교 표 (주요 기업)</h3>
+                <h3 className="text-sm font-semibold text-slate-200 mb-2">RFM 비교 표 (주요 기업)</h3>
                 <RfmComparisonTable />
               </div>
             </>

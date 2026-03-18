@@ -36,11 +36,11 @@ function PlaceholderCard({ robotName, companyName }: { robotName?: string; compa
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-800 p-6 flex flex-col items-center justify-center min-h-[320px]">
       {robotName && (
-        <p className="text-sm font-medium text-gray-300 mb-2">
-          {robotName} {companyName && <span className="text-gray-500">({companyName})</span>}
+        <p className="text-sm font-medium text-slate-300 mb-2">
+          {robotName} {companyName && <span className="text-slate-500">({companyName})</span>}
         </p>
       )}
-      <p className="text-gray-500 text-sm">PoC 평가 데이터 미등록</p>
+      <p className="text-slate-500 text-sm">PoC 평가 데이터 미등록</p>
     </div>
   );
 }
@@ -58,25 +58,25 @@ function RobotRadarCard({ score }: { score: PocScoreWithRobot }) {
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-800 p-4">
       <div className="text-center mb-2">
-        <p className="text-sm font-semibold text-gray-100">
+        <p className="text-sm font-semibold text-slate-200">
           {score.robotName}
         </p>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-slate-400">
           {score.companyName} · 평균 {avg}
         </p>
       </div>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-            <PolarGrid stroke="#374151" />
+            <PolarGrid stroke="rgb(var(--color-slate-700))" />
             <PolarAngleAxis
               dataKey="axis"
-              tick={{ fontSize: 11, fill: '#9CA3AF' }}
+              tick={{ fontSize: 11, fill: 'rgb(var(--color-slate-400))' }}
             />
             <PolarRadiusAxis
               angle={90}
               domain={[0, 10]}
-              tick={{ fontSize: 9, fill: '#6B7280' }}
+              tick={{ fontSize: 9, fill: 'rgb(var(--color-slate-500))' }}
               tickCount={6}
             />
             <Radar
@@ -106,7 +106,7 @@ function RobotRadarCard({ score }: { score: PocScoreWithRobot }) {
 export default function PocRadarSection({ data }: PocRadarSectionProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[200px] text-gray-500 text-sm">
+      <div className="flex items-center justify-center min-h-[200px] text-slate-500 text-sm">
         PoC 평가 데이터가 없습니다.
       </div>
     );
