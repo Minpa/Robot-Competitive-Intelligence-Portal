@@ -71,7 +71,7 @@ async function seedHumanoid() {
       commercializationStage: 'prototype',
       region: 'north_america',
       description: 'Tesla의 2세대 휴머노이드 로봇. 개선된 손과 보행 능력.',
-      imageUrl: null,
+      imageUrl: '/robots/optimus.jpg',
     },
     {
       companyName: 'Boston Dynamics',
@@ -84,7 +84,7 @@ async function seedHumanoid() {
       commercializationStage: 'prototype',
       region: 'north_america',
       description: '전기 구동 방식의 새로운 Atlas. 자동차 제조 환경 최적화.',
-      imageUrl: null,
+      imageUrl: '/robots/atlas.jpg',
     },
     {
       companyName: 'Agility Robotics',
@@ -97,7 +97,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'north_america',
       description: '물류 창고용 휴머노이드. Amazon과 협력 중.',
-      imageUrl: null,
+      imageUrl: '/robots/digit.webp',
     },
     {
       companyName: 'Figure AI',
@@ -110,7 +110,7 @@ async function seedHumanoid() {
       commercializationStage: 'poc',
       region: 'north_america',
       description: 'OpenAI와 협력한 범용 휴머노이드 로봇.',
-      imageUrl: null,
+      imageUrl: '/robots/figure01.jpg',
     },
     {
       companyName: '1X Technologies',
@@ -123,7 +123,7 @@ async function seedHumanoid() {
       commercializationStage: 'prototype',
       region: 'europe',
       description: '가정용 안드로이드 로봇. OpenAI 투자.',
-      imageUrl: null,
+      imageUrl: '/robots/neo.webp',
     },
     {
       companyName: 'Unitree Robotics',
@@ -136,7 +136,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'china',
       description: '저가형 휴머노이드. 연구/교육용.',
-      imageUrl: null,
+      imageUrl: '/robots/unitree-h1.jpg',
     },
     {
       companyName: 'Unitree Robotics',
@@ -149,7 +149,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'china',
       description: '소형 휴머노이드. $16,000 가격대.',
-      imageUrl: null,
+      imageUrl: '/robots/unitree-g1.jpg',
     },
     {
       companyName: 'UBTECH',
@@ -162,7 +162,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'china',
       description: '서비스 휴머노이드. 전시/안내용.',
-      imageUrl: null,
+      imageUrl: '/robots/walker-x.png',
     },
     {
       companyName: 'Xiaomi',
@@ -175,7 +175,7 @@ async function seedHumanoid() {
       commercializationStage: 'concept',
       region: 'china',
       description: '샤오미의 휴머노이드 로봇 컨셉.',
-      imageUrl: null,
+      imageUrl: '/robots/cyberone.jpg',
     },
     {
       companyName: 'Fourier Intelligence',
@@ -188,7 +188,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'china',
       description: '범용 휴머노이드. 재활 기술 기반.',
-      imageUrl: null,
+      imageUrl: '/robots/gr1.webp',
     },
     {
       companyName: 'Sanctuary AI',
@@ -201,7 +201,7 @@ async function seedHumanoid() {
       commercializationStage: 'poc',
       region: 'north_america',
       description: '범용 AI 휴머노이드. 인지 AI 탑재.',
-      imageUrl: null,
+      imageUrl: '/robots/phoenix.webp',
     },
     // 휠베이스 로봇
     {
@@ -228,7 +228,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'asia',
       description: 'SoftBank의 감정 인식 서비스 로봇. 소매/접객 분야 배치.',
-      imageUrl: null,
+      imageUrl: '/robots/pepper.jpg',
     },
     {
       companyName: 'Aeolus Robotics',
@@ -267,7 +267,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'europe',
       description: 'PAL Robotics의 연구/서비스용 모바일 매니퓰레이터.',
-      imageUrl: null,
+      imageUrl: '/robots/tiago.jpg',
     },
     {
       companyName: 'Savioke',
@@ -294,7 +294,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'north_america',
       description: 'Tesla의 3세대 Optimus. 향상된 자율 작업 능력과 공장 배치 시작.',
-      imageUrl: null,
+      imageUrl: '/robots/optimus.jpg',
     },
     {
       companyName: 'Figure AI',
@@ -307,7 +307,7 @@ async function seedHumanoid() {
       commercializationStage: 'poc',
       region: 'north_america',
       description: 'Figure AI 2세대 모델. BMW 공장 본격 배치 준비.',
-      imageUrl: null,
+      imageUrl: '/robots/figure02.png',
     },
     {
       companyName: '1X Technologies',
@@ -320,7 +320,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'europe',
       description: 'NEO 베타 버전. 가정 환경 실증 테스트 진행.',
-      imageUrl: null,
+      imageUrl: '/robots/neo.webp',
     },
     {
       companyName: 'Unitree Robotics',
@@ -333,7 +333,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'china',
       description: 'G1 업그레이드 모델. 향상된 손 조작 능력과 AI 추론.',
-      imageUrl: null,
+      imageUrl: '/robots/unitree-g1.jpg',
     },
     // 2026 robots
     {
@@ -347,7 +347,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'north_america',
       description: 'Tesla Optimus 양산 모델. 외부 고객 판매 시작.',
-      imageUrl: null,
+      imageUrl: '/robots/optimus.jpg',
     },
     {
       companyName: 'Boston Dynamics',
@@ -360,7 +360,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'north_america',
       description: 'Atlas 상용화 모델. Hyundai 공장 파일럿 배치.',
-      imageUrl: null,
+      imageUrl: '/robots/atlas.jpg',
     },
     {
       companyName: 'Agility Robotics',
@@ -373,7 +373,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'north_america',
       description: 'Digit 3세대. 다관절 손과 향상된 자율 내비게이션.',
-      imageUrl: null,
+      imageUrl: '/robots/digit.webp',
     },
     {
       companyName: 'Sanctuary AI',
@@ -386,7 +386,7 @@ async function seedHumanoid() {
       commercializationStage: 'poc',
       region: 'north_america',
       description: 'Phoenix 최신 모델. Carbon 인지 AI 엔진 통합.',
-      imageUrl: null,
+      imageUrl: '/robots/phoenix.webp',
     },
     {
       companyName: 'Rainbow Robotics',
@@ -399,7 +399,7 @@ async function seedHumanoid() {
       commercializationStage: 'prototype',
       region: 'asia',
       description: 'Rainbow Robotics 차세대 HUBO. 산업 현장 최적화 설계.',
-      imageUrl: null,
+      imageUrl: '/robots/hubo.jpg',
     },
     // 하이브리드 로봇
     {
@@ -413,7 +413,7 @@ async function seedHumanoid() {
       commercializationStage: 'prototype',
       region: 'asia',
       description: 'Honda의 원격 조종 아바타 로봇. 다리+휠 하이브리드 이동.',
-      imageUrl: null,
+      imageUrl: '/robots/asimo.jpg',
     },
     {
       companyName: 'Rainbow Robotics',
@@ -426,7 +426,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'asia',
       description: 'Rainbow Robotics의 HUBO. 보행+무릎 휠 하이브리드. DARPA 챌린지 우승.',
-      imageUrl: null,
+      imageUrl: '/robots/hubo.jpg',
     },
     {
       companyName: 'PAL Robotics',
@@ -439,7 +439,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'europe',
       description: 'PAL Robotics의 전신 휴머노이드. 연구용 하이브리드 이동 플랫폼.',
-      imageUrl: null,
+      imageUrl: '/robots/tiago.jpg',
     },
   ];
 
