@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, Bell, User, LogOut, Sun, Moon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useTheme } from '@/contexts/ThemeContext';
+
+type Theme = 'dark' | 'light';
 
 export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [userName, setUserName] = useState('사용자');
+  const [theme, setTheme] = useState<Theme>('dark');
   const router = useRouter();
-  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     try {
@@ -19,6 +20,25 @@ export function Header() {
         setUserName(user.email?.split('@')[0] || '사용자');
       }
     } catch {}
+
+    try {
+      const savedTheme = localStorage.getItem('theme') as Theme | null;
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        setTheme(savedTheme);
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    } catch {}
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem('theme', next); } catch {}
+      document.documentElement.setAttribute('data-theme', next);
+      return next;
+    });
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
