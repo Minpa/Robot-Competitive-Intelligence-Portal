@@ -99,16 +99,16 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-slate-900 text-white min-h-screen flex flex-col border-r border-slate-800">
+    <aside className="w-64 bg-white text-slate-200 min-h-screen flex flex-col border-r border-slate-700">
       {/* Logo */}
-      <div className="p-4 border-b border-slate-800">
+      <div className="p-4 border-b border-slate-700">
         <Link href="/executive" className="flex items-center gap-2">
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
             <Bot className="w-6 h-6 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-white tracking-tight">HRIP</h1>
+              <h1 className="text-lg font-bold text-slate-200 tracking-tight">HRIP</h1>
               <span className="text-[9px] font-semibold bg-cyan-500/15 text-cyan-400 px-1.5 py-0.5 rounded-md border border-cyan-500/20">AWE 2026</span>
             </div>
             <p className="text-[11px] text-slate-400 leading-tight">Humanoid Robot Intelligence</p>
@@ -158,7 +158,7 @@ export function Sidebar() {
                           'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all',
                           isActive
                             ? 'bg-blue-600/20 text-blue-400 border-l-2 border-blue-500'
-                            : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                            : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
                         )}
                       >
                         {item.icon && <item.icon className="w-4 h-4 shrink-0" />}
@@ -174,13 +174,13 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-slate-800">
+      <div className="p-4 border-t border-slate-700">
         <div className="flex items-center gap-3 px-2">
-          <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
-            <span className="text-xs text-slate-300">👤</span>
+          <div className="w-8 h-8 bg-slate-800 rounded-full flex items-center justify-center">
+            <span className="text-xs text-slate-400">👤</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm text-white truncate">사용자</p>
+            <p className="text-sm text-slate-200 truncate">사용자</p>
             <p className="text-xs text-slate-500">Admin</p>
           </div>
         </div>

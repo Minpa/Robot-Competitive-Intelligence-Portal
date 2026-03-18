@@ -1,3 +1,58 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ============================================
+   Light Theme Overrides
+   Slate palette is inverted in tailwind.config.js.
+   This file handles text-white → dark conversion
+   and preserves white text on colored backgrounds.
+   ============================================ */
+
+/* text-white → dark on light backgrounds */
+.text-white {
+  color: #1e293b;
+}
+
+/* Preserve white text inside accent/colored backgrounds */
+[class*="bg-blue-"] .text-white,
+[class*="bg-blue-"].text-white,
+[class*="bg-green-"] .text-white,
+[class*="bg-green-"].text-white,
+[class*="bg-red-"] .text-white,
+[class*="bg-red-"].text-white,
+[class*="bg-cyan-"] .text-white,
+[class*="bg-cyan-"].text-white,
+[class*="bg-emerald-"] .text-white,
+[class*="bg-emerald-"].text-white,
+[class*="bg-orange-"] .text-white,
+[class*="bg-orange-"].text-white,
+[class*="bg-purple-"] .text-white,
+[class*="bg-purple-"].text-white,
+[class*="bg-yellow-"] .text-white,
+[class*="bg-yellow-"].text-white,
+[class*="bg-indigo-"] .text-white,
+[class*="bg-indigo-"].text-white,
+[class*="bg-rose-"] .text-white,
+[class*="bg-rose-"].text-white,
+[class*="bg-amber-"] .text-white,
+[class*="bg-amber-"].text-white,
+[class*="bg-teal-"] .text-white,
+[class*="bg-teal-"].text-white,
+[class*="bg-gradient"] .text-white,
+[class*="bg-gradient"].text-white {
+  color: #ffffff;
+}
+
+/* Gray text overrides (some components use gray instead of slate) */
+.text-gray-100 {
+  color: #1f2937;
+}
+.text-gray-200 {
+  color: #374151;
+}
+
+/* Placeholder text - keep readable on light inputs */
+.placeholder-slate-500::placeholder {
+  color: #94a3b8;
+}

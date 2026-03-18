@@ -75,10 +75,10 @@ export function MainLayout({ children }: MainLayoutProps) {
       <div className="flex-1 flex flex-col">
         <DemoBanner />
         <Header />
-        <main className="flex-1 p-6 bg-slate-950">
+        <main className="flex-1 p-6 bg-gray-50">
           {children}
         </main>
-        <footer className="bg-slate-900 border-t border-slate-800 px-6 py-3">
+        <footer className="bg-white border-t border-slate-700 px-6 py-3">
           <div className="flex items-center justify-between text-xs text-slate-500">
             <span>© 2024-2026 HRIP - Humanoid Robot Intelligence Platform</span>
             <div className="flex gap-4">
