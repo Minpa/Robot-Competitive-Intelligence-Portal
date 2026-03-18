@@ -8,15 +8,21 @@ import { warRoomPartnerService } from '../services/war-room-partner.service.js';
 import { warRoomDomainService } from '../services/war-room-domain.service.js';
 import { warRoomScenarioService } from '../services/war-room-scenario.service.js';
 import { warRoomGoalService } from '../services/war-room-goal.service.js';
+import { authMiddleware, requireRole } from './auth.js';
+
+// Pre-built role guards
+const adminOnly = [authMiddleware, requireRole('admin')];
+const adminOrAnalyst = [authMiddleware, requireRole('admin', 'analyst')];
+const noViewer = [authMiddleware, requireRole('admin', 'analyst')];
 
 export async function warRoomRoutes(fastify: FastifyInstance) {
-  // TODO: Add role-based access control middleware (Task 22)
-  // All /api/war-room/* endpoints should block Viewer role (403)
+  // RBAC: All /api/war-room/* endpoints block Viewer role (403)
   // Admin: full CRUD, Analyst: read + scenario creation
+  // Read-only GETs use noViewer (admin + analyst), mutations use adminOnly or adminOrAnalyst
 
   // ── Dashboard (8.3) ──────────────────────────────────────────────
 
-  fastify.get<{ Querystring: { lgRobotId?: string } }>('/dashboard', async (request, reply) => {
+  fastify.get<{ Querystring: { lgRobotId?: string } }>('/dashboard', { preHandler: noViewer }, async (request, reply) => {
     try {
       const { lgRobotId } = request.query;
       if (!lgRobotId) {
@@ -28,7 +34,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/lg-robots', async (_request, reply) => {
+  fastify.get('/lg-robots', { preHandler: noViewer }, async (_request, reply) => {
     try {
       return await warRoomDashboardService.getLgRobots();
     } catch (error) {
@@ -38,7 +44,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
 
   // ── Competitive Analysis (8.4) ───────────────────────────────────
 
-  fastify.get<{ Params: { robotId: string }; Querystring: { competitor_ids?: string } }>('/competitive/:robotId', async (request, reply) => {
+  fastify.get<{ Params: { robotId: string }; Querystring: { competitor_ids?: string } }>('/competitive/:robotId', { preHandler: noViewer }, async (request, reply) => {
     try {
       const competitorIds = request.query.competitor_ids
         ? request.query.competitor_ids.split(',').filter(Boolean)
@@ -49,7 +55,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get<{ Params: { robotId: string }; Querystring: { competitor_ids?: string } }>('/competitive/:robotId/overlay', async (request, reply) => {
+  fastify.get<{ Params: { robotId: string }; Querystring: { competitor_ids?: string } }>('/competitive/:robotId/overlay', { preHandler: noViewer }, async (request, reply) => {
     try {
       const competitorIds = request.query.competitor_ids
         ? request.query.competitor_ids.split(',').filter(Boolean)
@@ -60,7 +66,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get<{ Params: { robotId: string } }>('/competitive/:robotId/available-competitors', async (request, reply) => {
+  fastify.get<{ Params: { robotId: string } }>('/competitive/:robotId/available-competitors', { preHandler: noViewer }, async (request, reply) => {
     try {
       return await warRoomCompetitiveService.getAvailableCompetitors(request.params.robotId);
     } catch (error) {
@@ -68,7 +74,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get<{ Params: { robotId: string } }>('/competitive/:robotId/ranking', async (request, reply) => {
+  fastify.get<{ Params: { robotId: string } }>('/competitive/:robotId/ranking', { preHandler: noViewer }, async (request, reply) => {
     try {
       const analysis = await warRoomCompetitiveService.getGapAnalysis(request.params.robotId);
       return analysis.lgRanking;
@@ -78,7 +84,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
   });
 
   // ── Competitive Scores Update (8.4) ──────────────────────────────
-  fastify.patch<{ Params: { robotId: string } }>('/competitive-scores/:robotId', async (request, reply) => {
+  fastify.patch<{ Params: { robotId: string } }>('/competitive-scores/:robotId', { preHandler: adminOnly }, async (request, reply) => {
     try {
       const body = request.body as any;
       const result = await warRoomCompetitiveService.updateCompetitiveScores(request.params.robotId, {
@@ -96,7 +102,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
 
   // ── Score History (8.5) ──────────────────────────────────────────
 
-  fastify.get<{ Querystring: { robot_ids?: string; months?: string } }>('/score-history', async (request, reply) => {
+  fastify.get<{ Querystring: { robot_ids?: string; months?: string } }>('/score-history', { preHandler: noViewer }, async (request, reply) => {
     try {
       const { robot_ids, months } = request.query;
       const robotIds = robot_ids ? robot_ids.split(',') : [];
@@ -112,7 +118,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
 
   // ── Alerts (8.6) ─────────────────────────────────────────────────
 
-  fastify.get<{ Querystring: { type?: string; is_read?: string } }>('/alerts', async (request, reply) => {
+  fastify.get<{ Querystring: { type?: string; is_read?: string } }>('/alerts', { preHandler: noViewer }, async (request, reply) => {
     try {
       const { type, is_read } = request.query;
       const filters: { type?: string; isRead?: boolean } = {};
@@ -128,12 +134,9 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.put<{ Params: { id: string } }>('/alerts/:id/read', async (request, reply) => {
+  fastify.put<{ Params: { id: string } }>('/alerts/:id/read', { preHandler: noViewer }, async (request, reply) => {
     try {
-      // TODO: Extract userId from auth middleware once implemented (Task 22)
-      const body = request.body as { userId?: string } | undefined;
-      const query = request.query as { userId?: string } | undefined;
-      const userId = body?.userId || query?.userId || 'anonymous';
+      const userId = request.user?.userId || 'anonymous';
       await warRoomAlertService.markAsRead(request.params.id, userId);
       return { success: true };
     } catch (error) {
@@ -141,7 +144,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.post('/alerts', async (request, reply) => {
+  fastify.post('/alerts', { preHandler: adminOnly }, async (request, reply) => {
     try {
       const body = request.body as any;
       await warRoomAlertService.createAlert({
@@ -158,7 +161,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.delete<{ Params: { id: string } }>('/alerts/:id', async (request, reply) => {
+  fastify.delete<{ Params: { id: string } }>('/alerts/:id', { preHandler: adminOnly }, async (request, reply) => {
     try {
       await warRoomAlertService.deleteAlert(request.params.id);
       return { success: true };
@@ -169,7 +172,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
 
   // ── Timeline (competitive_alerts as timeline events) ─────────────
 
-  fastify.get('/timeline', async (_request, reply) => {
+  fastify.get('/timeline', { preHandler: noViewer }, async (_request, reply) => {
     try {
       return await warRoomAlertService.getAlerts({ limit: 50 });
     } catch (error) {
@@ -177,7 +180,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.post('/timeline', async (request, reply) => {
+  fastify.post('/timeline', { preHandler: adminOnly }, async (request, reply) => {
     try {
       const body = request.body as any;
       await warRoomAlertService.createAlert({
@@ -196,7 +199,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
 
   // ── CLOiD Management (8.7) ───────────────────────────────────────
 
-  fastify.get('/lg-robots/management', async (_request, reply) => {
+  fastify.get('/lg-robots/management', { preHandler: noViewer }, async (_request, reply) => {
     try {
       return await warRoomLgRobotService.getLgRobots();
     } catch (error) {
@@ -204,24 +207,20 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // TODO: Add Admin role check middleware (Task 22)
-  fastify.post('/lg-robots', async (request, reply) => {
+  fastify.post('/lg-robots', { preHandler: adminOnly }, async (request, reply) => {
     try {
-      // TODO: Extract userId from auth middleware (Task 22)
       const body = request.body as any;
-      const userId = body.userId || 'admin';
+      const userId = request.user?.userId || 'admin';
       return await warRoomLgRobotService.createLgRobot(body, userId);
     } catch (error) {
       reply.status(500).send({ error: (error as Error).message });
     }
   });
 
-  // TODO: Add Admin role check middleware (Task 22)
-  fastify.put<{ Params: { id: string } }>('/lg-robots/:id/specs', async (request, reply) => {
+  fastify.put<{ Params: { id: string } }>('/lg-robots/:id/specs', { preHandler: adminOnly }, async (request, reply) => {
     try {
-      // TODO: Extract userId from auth middleware (Task 22)
       const body = request.body as any;
-      const userId = body.userId || 'admin';
+      const userId = request.user?.userId || 'admin';
       await warRoomLgRobotService.updateSpecs(request.params.id, body.specs || body, userId);
       return { success: true };
     } catch (error) {
@@ -229,7 +228,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get<{ Params: { id: string } }>('/lg-robots/:id/history', async (request, reply) => {
+  fastify.get<{ Params: { id: string } }>('/lg-robots/:id/history', { preHandler: noViewer }, async (request, reply) => {
     try {
       return await warRoomLgRobotService.getChangeHistory(request.params.id);
     } catch (error) {
@@ -239,7 +238,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
 
   // ── Partners (17.1) ──────────────────────────────────────────────
 
-  fastify.get<{ Querystring: { category?: string; sub_category?: string; country?: string } }>('/partners', async (request, reply) => {
+  fastify.get<{ Querystring: { category?: string; sub_category?: string; country?: string } }>('/partners', { preHandler: noViewer }, async (request, reply) => {
     try {
       const { category, sub_category, country } = request.query;
       return await warRoomPartnerService.list({
@@ -252,7 +251,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get<{ Params: { id: string } }>('/partners/:id', async (request, reply) => {
+  fastify.get<{ Params: { id: string } }>('/partners/:id', { preHandler: noViewer }, async (request, reply) => {
     try {
       const result = await warRoomPartnerService.getById(request.params.id);
       if (!result) {
@@ -264,8 +263,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // TODO: Add Admin role check middleware (Task 22)
-  fastify.post('/partners', async (request, reply) => {
+  fastify.post('/partners', { preHandler: adminOnly }, async (request, reply) => {
     try {
       const body = request.body as any;
       return await warRoomPartnerService.create(body);
@@ -274,8 +272,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // TODO: Add Admin role check middleware (Task 22)
-  fastify.put<{ Params: { id: string } }>('/partners/:id', async (request, reply) => {
+  fastify.put<{ Params: { id: string } }>('/partners/:id', { preHandler: adminOnly }, async (request, reply) => {
     try {
       const body = request.body as any;
       return await warRoomPartnerService.update(request.params.id, body);
@@ -284,8 +281,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // TODO: Add Admin + Analyst role check middleware (Task 22)
-  fastify.post('/partner-evaluations', async (request, reply) => {
+  fastify.post('/partner-evaluations', { preHandler: adminOrAnalyst }, async (request, reply) => {
     try {
       const body = request.body as any;
       return await warRoomPartnerService.submitEvaluation({
@@ -303,7 +299,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/partner-adoptions', async (_request, reply) => {
+  fastify.get('/partner-adoptions', { preHandler: noViewer }, async (_request, reply) => {
     try {
       return await warRoomPartnerService.getAdoptionMatrix();
     } catch (error) {
@@ -311,7 +307,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.post('/partner-adoptions', async (request, reply) => {
+  fastify.post('/partner-adoptions', { preHandler: adminOnly }, async (request, reply) => {
     try {
       const body = request.body as any;
       return await warRoomPartnerService.createAdoption({
@@ -328,7 +324,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
 
   // ── Domains (17.2) ───────────────────────────────────────────────
 
-  fastify.get('/domains', async (_request, reply) => {
+  fastify.get('/domains', { preHandler: noViewer }, async (_request, reply) => {
     try {
       return await warRoomDomainService.list();
     } catch (error) {
@@ -336,7 +332,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get<{ Params: { id: string } }>('/domains/:id', async (request, reply) => {
+  fastify.get<{ Params: { id: string } }>('/domains/:id', { preHandler: noViewer }, async (request, reply) => {
     try {
       const result = await warRoomDomainService.getById(request.params.id);
       if (!result) {
@@ -348,8 +344,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // TODO: Add Admin role check middleware (Task 22)
-  fastify.put<{ Params: { id: string } }>('/domains/:id', async (request, reply) => {
+  fastify.put<{ Params: { id: string } }>('/domains/:id', { preHandler: adminOnly }, async (request, reply) => {
     try {
       const body = request.body as any;
       return await warRoomDomainService.update(request.params.id, body);
@@ -358,7 +353,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.get('/domain-robot-fit', async (_request, reply) => {
+  fastify.get('/domain-robot-fit', { preHandler: noViewer }, async (_request, reply) => {
     try {
       return await warRoomDomainService.getFitMatrix();
     } catch (error) {
@@ -366,7 +361,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.post('/domain-robot-fit', async (request, reply) => {
+  fastify.post('/domain-robot-fit', { preHandler: adminOnly }, async (request, reply) => {
     try {
       const body = request.body as any;
       return await warRoomDomainService.createFitEntry({
@@ -380,7 +375,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.patch<{ Params: { id: string } }>('/domain-robot-fit/:id', async (request, reply) => {
+  fastify.patch<{ Params: { id: string } }>('/domain-robot-fit/:id', { preHandler: adminOnly }, async (request, reply) => {
     try {
       const body = request.body as any;
       const result = await warRoomDomainService.updateFitEntry(request.params.id, {
@@ -398,7 +393,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
 
   // ── Scenarios (17.3) ─────────────────────────────────────────────
 
-  fastify.get<{ Querystring: { userId?: string } }>('/scenarios', async (request, reply) => {
+  fastify.get<{ Querystring: { userId?: string } }>('/scenarios', { preHandler: noViewer }, async (request, reply) => {
     try {
       const userId = request.query.userId || null;
       return await warRoomScenarioService.list(userId);
@@ -407,8 +402,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // TODO: Add Admin + Analyst role check middleware (Task 22)
-  fastify.post('/scenarios', async (request, reply) => {
+  fastify.post('/scenarios', { preHandler: adminOrAnalyst }, async (request, reply) => {
     try {
       const body = request.body as any;
       return await warRoomScenarioService.create({
@@ -424,11 +418,10 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // TODO: Add Creator or Admin role check middleware (Task 22)
-  fastify.delete<{ Params: { id: string }; Querystring: { userId?: string; userRole?: string } }>('/scenarios/:id', async (request, reply) => {
+  fastify.delete<{ Params: { id: string }; Querystring: { userId?: string; userRole?: string } }>('/scenarios/:id', { preHandler: adminOrAnalyst }, async (request, reply) => {
     try {
-      const userId = request.query.userId || (request.body as any)?.userId || null;
-      const userRole = request.query.userRole || (request.body as any)?.userRole || 'admin';
+      const userId = request.user?.userId || 'anonymous';
+      const userRole = request.user?.role || 'admin';
       await warRoomScenarioService.delete(request.params.id, userId, userRole);
       return { success: true };
     } catch (error) {
@@ -438,7 +431,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
 
   // ── Strategic Goals (17.4) ───────────────────────────────────────
 
-  fastify.get('/goals', async (_request, reply) => {
+  fastify.get('/goals', { preHandler: noViewer }, async (_request, reply) => {
     try {
       return await warRoomGoalService.list();
     } catch (error) {
@@ -446,8 +439,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // TODO: Add Admin role check middleware (Task 22)
-  fastify.post('/goals', async (request, reply) => {
+  fastify.post('/goals', { preHandler: adminOnly }, async (request, reply) => {
     try {
       const body = request.body as any;
       return await warRoomGoalService.create({
@@ -465,8 +457,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // TODO: Add Admin role check middleware (Task 22)
-  fastify.put<{ Params: { id: string } }>('/goals/:id', async (request, reply) => {
+  fastify.put<{ Params: { id: string } }>('/goals/:id', { preHandler: adminOnly }, async (request, reply) => {
     try {
       const body = request.body as any;
       return await warRoomGoalService.update(request.params.id, body);
@@ -475,7 +466,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.delete<{ Params: { id: string } }>('/goals/:id', async (request, reply) => {
+  fastify.delete<{ Params: { id: string } }>('/goals/:id', { preHandler: adminOnly }, async (request, reply) => {
     try {
       await warRoomGoalService.delete(request.params.id);
       return { success: true };
@@ -486,7 +477,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
 
   // ── Investment Priority (17.5) ───────────────────────────────────
 
-  fastify.get('/investment-priority', async (_request, reply) => {
+  fastify.get('/investment-priority', { preHandler: noViewer }, async (_request, reply) => {
     try {
       const domains = await warRoomDomainService.list();
       const ranked = domains
@@ -507,7 +498,7 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.patch<{ Params: { id: string } }>('/investment-priority/:id', async (request, reply) => {
+  fastify.patch<{ Params: { id: string } }>('/investment-priority/:id', { preHandler: adminOnly }, async (request, reply) => {
     try {
       const body = request.body as any;
       const result = await warRoomDomainService.update(request.params.id, {
