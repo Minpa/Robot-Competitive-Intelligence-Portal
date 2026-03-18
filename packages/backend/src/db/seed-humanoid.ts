@@ -71,7 +71,7 @@ async function seedHumanoid() {
       commercializationStage: 'prototype',
       region: 'north_america',
       description: 'Tesla의 2세대 휴머노이드 로봇. 개선된 손과 보행 능력.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Tesla_Optimus_%28Bot%29.jpg/440px-Tesla_Optimus_%28Bot%29.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'Boston Dynamics',
@@ -84,7 +84,7 @@ async function seedHumanoid() {
       commercializationStage: 'prototype',
       region: 'north_america',
       description: '전기 구동 방식의 새로운 Atlas. 자동차 제조 환경 최적화.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Atlas_from_boston_dynamics.jpg/440px-Atlas_from_boston_dynamics.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'Agility Robotics',
@@ -97,7 +97,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'north_america',
       description: '물류 창고용 휴머노이드. Amazon과 협력 중.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Agility_Robotics_Digit_v3.png/440px-Agility_Robotics_Digit_v3.png',
+      imageUrl: null,
     },
     {
       companyName: 'Figure AI',
@@ -110,7 +110,7 @@ async function seedHumanoid() {
       commercializationStage: 'poc',
       region: 'north_america',
       description: 'OpenAI와 협력한 범용 휴머노이드 로봇.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Figure_01_robot.png/440px-Figure_01_robot.png',
+      imageUrl: null,
     },
     {
       companyName: '1X Technologies',
@@ -123,7 +123,7 @@ async function seedHumanoid() {
       commercializationStage: 'prototype',
       region: 'europe',
       description: '가정용 안드로이드 로봇. OpenAI 투자.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/1X_EVE_robot.jpg/440px-1X_EVE_robot.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'Unitree Robotics',
@@ -136,7 +136,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'china',
       description: '저가형 휴머노이드. 연구/교육용.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Unitree_H1_humanoid_robot.jpg/440px-Unitree_H1_humanoid_robot.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'Unitree Robotics',
@@ -149,7 +149,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'china',
       description: '소형 휴머노이드. $16,000 가격대.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Unitree_G1_humanoid.jpg/440px-Unitree_G1_humanoid.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'UBTECH',
@@ -162,7 +162,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'china',
       description: '서비스 휴머노이드. 전시/안내용.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/UBTECH_Walker_X.jpg/440px-UBTECH_Walker_X.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'Xiaomi',
@@ -175,7 +175,7 @@ async function seedHumanoid() {
       commercializationStage: 'concept',
       region: 'china',
       description: '샤오미의 휴머노이드 로봇 컨셉.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Xiaomi_CyberOne.jpg/440px-Xiaomi_CyberOne.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'Fourier Intelligence',
@@ -188,7 +188,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'china',
       description: '범용 휴머노이드. 재활 기술 기반.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Fourier_GR1_robot.jpg/440px-Fourier_GR1_robot.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'Sanctuary AI',
@@ -201,7 +201,7 @@ async function seedHumanoid() {
       commercializationStage: 'poc',
       region: 'north_america',
       description: '범용 AI 휴머노이드. 인지 AI 탑재.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Sanctuary_AI_Phoenix.jpg/440px-Sanctuary_AI_Phoenix.jpg',
+      imageUrl: null,
     },
     // 휠베이스 로봇
     {
@@ -215,7 +215,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'asia',
       description: 'Toyota의 가정용 서비스 로봇. 휠베이스에 단일 팔 장착.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Toyota_HSR_robot.jpg/440px-Toyota_HSR_robot.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'SoftBank Robotics',
@@ -228,7 +228,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'asia',
       description: 'SoftBank의 감정 인식 서비스 로봇. 소매/접객 분야 배치.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/SoftBank_pepper.JPG/440px-SoftBank_pepper.JPG',
+      imageUrl: null,
     },
     {
       companyName: 'Aeolus Robotics',
@@ -241,7 +241,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'asia',
       description: 'Aeolus의 자율 서비스 로봇. 호텔/병원 배송 및 순찰.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Aeolus_Aeo_robot.jpg/440px-Aeolus_Aeo_robot.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'Diligent Robotics',
@@ -254,7 +254,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'north_america',
       description: 'Diligent Robotics의 병원용 로봇. 물품 배송 및 간호 보조.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Moxi_robot_Diligent.jpg/440px-Moxi_robot_Diligent.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'PAL Robotics',
@@ -267,7 +267,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'europe',
       description: 'PAL Robotics의 연구/서비스용 모바일 매니퓰레이터.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/TIAGo_robot_PAL.jpg/440px-TIAGo_robot_PAL.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'Savioke',
@@ -280,7 +280,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'north_america',
       description: 'Savioke의 호텔 배송 로봇. 자율 주행 배달.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Savioke_Relay_robot.jpg/440px-Savioke_Relay_robot.jpg',
+      imageUrl: null,
     },
     // 2025 robots
     {
@@ -294,7 +294,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'north_america',
       description: 'Tesla의 3세대 Optimus. 향상된 자율 작업 능력과 공장 배치 시작.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Tesla_Optimus_%28Bot%29.jpg/440px-Tesla_Optimus_%28Bot%29.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'Figure AI',
@@ -307,7 +307,7 @@ async function seedHumanoid() {
       commercializationStage: 'poc',
       region: 'north_america',
       description: 'Figure AI 2세대 모델. BMW 공장 본격 배치 준비.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Figure_01_robot.png/440px-Figure_01_robot.png',
+      imageUrl: null,
     },
     {
       companyName: '1X Technologies',
@@ -320,7 +320,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'europe',
       description: 'NEO 베타 버전. 가정 환경 실증 테스트 진행.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/1X_EVE_robot.jpg/440px-1X_EVE_robot.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'Unitree Robotics',
@@ -333,7 +333,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'china',
       description: 'G1 업그레이드 모델. 향상된 손 조작 능력과 AI 추론.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Unitree_G1_humanoid.jpg/440px-Unitree_G1_humanoid.jpg',
+      imageUrl: null,
     },
     // 2026 robots
     {
@@ -347,7 +347,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'north_america',
       description: 'Tesla Optimus 양산 모델. 외부 고객 판매 시작.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Tesla_Optimus_%28Bot%29.jpg/440px-Tesla_Optimus_%28Bot%29.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'Boston Dynamics',
@@ -360,7 +360,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'north_america',
       description: 'Atlas 상용화 모델. Hyundai 공장 파일럿 배치.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Atlas_from_boston_dynamics.jpg/440px-Atlas_from_boston_dynamics.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'Agility Robotics',
@@ -373,7 +373,7 @@ async function seedHumanoid() {
       commercializationStage: 'commercial',
       region: 'north_america',
       description: 'Digit 3세대. 다관절 손과 향상된 자율 내비게이션.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Agility_Robotics_Digit_v3.png/440px-Agility_Robotics_Digit_v3.png',
+      imageUrl: null,
     },
     {
       companyName: 'Sanctuary AI',
@@ -386,7 +386,7 @@ async function seedHumanoid() {
       commercializationStage: 'poc',
       region: 'north_america',
       description: 'Phoenix 최신 모델. Carbon 인지 AI 엔진 통합.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Sanctuary_AI_Phoenix.jpg/440px-Sanctuary_AI_Phoenix.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'Rainbow Robotics',
@@ -399,7 +399,7 @@ async function seedHumanoid() {
       commercializationStage: 'prototype',
       region: 'asia',
       description: 'Rainbow Robotics 차세대 HUBO. 산업 현장 최적화 설계.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/HUBO_robot_KAIST.jpg/440px-HUBO_robot_KAIST.jpg',
+      imageUrl: null,
     },
     // 하이브리드 로봇
     {
@@ -413,7 +413,7 @@ async function seedHumanoid() {
       commercializationStage: 'prototype',
       region: 'asia',
       description: 'Honda의 원격 조종 아바타 로봇. 다리+휠 하이브리드 이동.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Honda_ASIMO.jpg/440px-Honda_ASIMO.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'Rainbow Robotics',
@@ -426,7 +426,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'asia',
       description: 'Rainbow Robotics의 HUBO. 보행+무릎 휠 하이브리드. DARPA 챌린지 우승.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/HUBO_robot_KAIST.jpg/440px-HUBO_robot_KAIST.jpg',
+      imageUrl: null,
     },
     {
       companyName: 'PAL Robotics',
@@ -439,7 +439,7 @@ async function seedHumanoid() {
       commercializationStage: 'pilot',
       region: 'europe',
       description: 'PAL Robotics의 전신 휴머노이드. 연구용 하이브리드 이동 플랫폼.',
-      imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/TIAGo_robot_PAL.jpg/440px-TIAGo_robot_PAL.jpg',
+      imageUrl: null,
     },
   ];
 

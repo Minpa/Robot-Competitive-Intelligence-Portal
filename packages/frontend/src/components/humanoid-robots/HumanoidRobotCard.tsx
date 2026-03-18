@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Bot, Wrench, Newspaper, MapPin, DollarSign, Calendar, Weight, Clock } from 'lucide-react';
+import { Wrench, Newspaper, MapPin, DollarSign, Calendar, Weight, Clock } from 'lucide-react';
+import { RobotImage } from './RobotImage';
 
 interface HumanoidRobotCardProps {
   robot: {
@@ -97,19 +98,13 @@ export function HumanoidRobotCard({ robot, isSelected, onSelect, showCheckbox }:
 
       <Link href={`/humanoid-robots/${robot.id}`}>
         {/* 로봇 이미지 */}
-        <div className="h-40 bg-slate-800/80 border-b border-slate-700/50 flex items-center justify-center overflow-hidden">
-          {robot.imageUrl ? (
-            <img
-              src={robot.imageUrl}
-              alt={robot.name}
-              className="w-full h-full object-contain p-3"
-            />
-          ) : (
-            <div className="flex flex-col items-center gap-2 text-slate-600">
-              <Bot className="w-12 h-12" />
-            </div>
-          )}
-        </div>
+        <RobotImage
+          imageUrl={robot.imageUrl}
+          robotName={robot.name}
+          companyName={companyName}
+          size="md"
+          className="border-b border-slate-700/50 rounded-t-xl"
+        />
 
         {/* 헤더: 제품명 + 배지들 */}
         <div className="p-4 border-b border-slate-700/50">

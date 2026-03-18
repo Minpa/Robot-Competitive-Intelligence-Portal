@@ -6,12 +6,12 @@ import { api } from '@/lib/api';
 import Link from 'next/link';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { useState } from 'react';
-import Image from 'next/image';
 import {
   ArrowLeft, GitCompare, FileDown, ExternalLink, Calendar, MapPin,
   Wrench, Newspaper, DollarSign, Package, Cpu, Hand, Battery, Eye,
-  Zap, Weight, Ruler, Clock, Target, Shield, ChevronRight, Bot
+  Zap, Weight, Ruler, Clock, Target, Shield, ChevronRight
 } from 'lucide-react';
+import { RobotImage } from '@/components/humanoid-robots/RobotImage';
 
 const TABS = [
   { id: 'overview', label: '개요', icon: Eye },
@@ -113,19 +113,13 @@ export default function HumanoidRobotDetailPage() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-5 flex-1">
                   {/* 로봇 이미지 */}
-                  <div className="shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-slate-700/50 border border-slate-600/50">
-                    {robot.imageUrl ? (
-                      <img
-                        src={robot.imageUrl}
-                        alt={robot.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-700 to-slate-800">
-                        <Bot className="w-10 h-10 text-slate-500" />
-                      </div>
-                    )}
-                  </div>
+                  <RobotImage
+                    imageUrl={robot.imageUrl}
+                    robotName={robot.name}
+                    companyName={robot.company?.name || robot.companyName || ''}
+                    size="sm"
+                    className="shrink-0 rounded-xl border border-slate-600/50"
+                  />
                   <div className="flex-1">
                     <div className="flex items-center gap-3 flex-wrap">
                       <h1 className="text-2xl font-bold text-white">{robot.name}</h1>
@@ -345,21 +339,13 @@ export default function HumanoidRobotDetailPage() {
                       )}
                     </div>
                     {/* 우측: 다이어그램 영역 */}
-                    <div className="bg-slate-800/30 rounded-lg overflow-hidden flex items-center justify-center min-h-[300px]">
-                      {robot.imageUrl ? (
-                        <img
-                          src={robot.imageUrl}
-                          alt={robot.name}
-                          className="w-full h-full object-contain max-h-[400px] p-4"
-                        />
-                      ) : (
-                        <div className="text-center text-slate-500 p-6">
-                          <Bot className="w-16 h-16 mx-auto mb-3 opacity-30" />
-                          <p className="text-sm">로봇 이미지</p>
-                          <p className="text-xs mt-1">(이미지 준비 중)</p>
-                        </div>
-                      )}
-                    </div>
+                    <RobotImage
+                      imageUrl={robot.imageUrl}
+                      robotName={robot.name}
+                      companyName={robot.company?.name || robot.companyName || ''}
+                      size="lg"
+                      className="rounded-lg"
+                    />
                   </div>
                 </div>
               )}
