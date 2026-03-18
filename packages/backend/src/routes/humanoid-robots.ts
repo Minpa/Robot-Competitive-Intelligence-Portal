@@ -98,6 +98,33 @@ export async function humanoidRobotRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Get robots grouped by announcement year (for timeline drill-down)
+  fastify.get('/by-year/:year', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { year } = request.params as { year: string };
+      const yearNum = Number(year);
+      if (isNaN(yearNum)) {
+        return reply.status(400).send({ error: 'Invalid year' });
+      }
+      const result = await humanoidRobotService.listRobots(
+        { announcementYearMin: yearNum, announcementYearMax: yearNum },
+        { page: 1, limit: 100 },
+        { field: 'name', direction: 'asc' }
+      );
+      return result.data.map(r => ({
+        id: r.robot.id,
+        name: r.robot.name,
+        companyName: r.company?.name || null,
+        purpose: r.robot.purpose,
+        commercializationStage: r.robot.commercializationStage,
+        status: r.robot.status,
+      }));
+    } catch (error) {
+      console.error('Error getting robots by year:', error);
+      reply.status(500).send({ error: 'Failed to get robots by year' });
+    }
+  });
+
   // Get robot by ID
   fastify.get('/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     try {

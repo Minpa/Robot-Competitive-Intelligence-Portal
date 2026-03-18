@@ -736,6 +736,18 @@ class ApiClient {
     };
   }
 
+  // Get robots by announcement year (for timeline drill-down)
+  async getRobotsByYear(year: number) {
+    return this.request<Array<{
+      id: string;
+      name: string;
+      companyName?: string;
+      purpose?: string;
+      commercializationStage?: string;
+      status?: string;
+    }>>(`/humanoid-robots/by-year/${year}`);
+  }
+
   // 레이더 차트 데이터
   async getRobotRadarData(id: string) {
     return this.request<{
