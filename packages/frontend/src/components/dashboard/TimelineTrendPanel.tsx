@@ -38,6 +38,20 @@ interface DrillDownRobot {
   status?: string;
 }
 
+type CategoryKey = 'pocs' | 'productions' | 'newProducts';
+
+const categoryLabels: Record<CategoryKey, string> = {
+  pocs: 'PoC',
+  productions: '양산',
+  newProducts: '신규 제품',
+};
+
+const categoryColors: Record<CategoryKey, string> = {
+  pocs: 'bg-yellow-500',
+  productions: 'bg-purple-500',
+  newProducts: 'bg-orange-500',
+};
+
 export function TimelineTrendPanel({
   data,
   isLoading = false,
@@ -46,27 +60,40 @@ export function TimelineTrendPanel({
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('36m');
   const [groupBy, setGroupBy] = useState<GroupBy>('year');
   const [eventTypes, setEventTypes] = useState({
-    investments: true,
     pocs: true,
     productions: true,
   });
 
+  // Category selection popup state
+  const [categoryPopup, setCategoryPopup] = useState<{
+    year: number;
+    pocs: number;
+    productions: number;
+    newProducts: number;
+  } | null>(null);
+
   // Drill-down state
   const [drillDownYear, setDrillDownYear] = useState<number | null>(null);
-  const [drillDownCategory, setDrillDownCategory] = useState<string | null>(null);
+  const [drillDownCategory, setDrillDownCategory] = useState<CategoryKey | null>(null);
   const [drillDownRobots, setDrillDownRobots] = useState<DrillDownRobot[]>([]);
   const [drillDownLoading, setDrillDownLoading] = useState(false);
 
-  const categoryLabels: Record<string, string> = {
-    pocs: 'PoC',
-    newProducts: '신규 제품',
-    productions: '양산',
-    investments: '투자',
-  };
-
-  const handleDrillDown = useCallback(async (year: number, category: string) => {
+  const handleChartClick = useCallback((state: any) => {
+    if (!state?.activePayload?.length) return;
+    const payload = state.activePayload[0].payload;
+    const year = payload.year;
     if (!year) return;
 
+    setCategoryPopup({
+      year,
+      pocs: payload.pocs || 0,
+      productions: payload.productions || 0,
+      newProducts: payload.newProducts || 0,
+    });
+  }, []);
+
+  const handleCategorySelect = useCallback(async (year: number, category: CategoryKey) => {
+    setCategoryPopup(null);
     setDrillDownYear(year);
     setDrillDownCategory(category);
     setDrillDownLoading(true);
@@ -80,18 +107,6 @@ export function TimelineTrendPanel({
       setDrillDownLoading(false);
     }
   }, []);
-
-  const handleBarClick = useCallback((data: any, dataKey: string) => {
-    const year = data?.payload?.year || data?.year;
-    if (!year || dataKey === 'investments') return;
-    handleDrillDown(year, dataKey);
-  }, [handleDrillDown]);
-
-  const handleLineClick = useCallback(async (payload: any) => {
-    const year = payload?.payload?.year || payload?.year;
-    if (!year) return;
-    handleDrillDown(year, 'newProducts');
-  }, [handleDrillDown]);
 
   const closeDrillDown = useCallback(() => {
     setDrillDownYear(null);
@@ -198,7 +213,7 @@ export function TimelineTrendPanel({
           <span className="text-xl">📈</span>
           월별 이벤트/신규 제품 트렌드
         </h3>
-        <p className="text-xs text-slate-400 mt-1">이벤트 수(막대) vs 신규 제품(라인) · PoC/양산 막대 또는 신규제품 포인트 클릭 시 로봇 목록 표시</p>
+        <p className="text-xs text-slate-400 mt-1">이벤트 수(막대) vs 신규 제품(라인) · 차트 클릭 시 카테고리별 로봇 목록 표시</p>
       </div>
 
       {/* Filters */}
@@ -236,16 +251,15 @@ export function TimelineTrendPanel({
         </div>
 
         <div className="flex gap-1">
-          {[
-            { key: 'investments', label: '투자', color: 'bg-green-500' },
-            { key: 'pocs', label: 'PoC', color: 'bg-yellow-500' },
-            { key: 'productions', label: '양산', color: 'bg-purple-500' },
-          ].map(({ key, label, color }) => (
+          {([
+            { key: 'pocs' as const, label: 'PoC', color: 'bg-yellow-500' },
+            { key: 'productions' as const, label: '양산', color: 'bg-purple-500' },
+          ]).map(({ key, label, color }) => (
             <button
               key={key}
-              onClick={() => setEventTypes(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))}
+              onClick={() => setEventTypes(prev => ({ ...prev, [key]: !prev[key] }))}
               className={`flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-colors ${
-                eventTypes[key as keyof typeof eventTypes] ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-500'
+                eventTypes[key] ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-500'
               }`}
             >
               <span className={`w-2 h-2 rounded-full ${color}`} />
@@ -258,7 +272,12 @@ export function TimelineTrendPanel({
       {/* Recharts ComposedChart */}
       <div className="flex-1 min-h-[280px]">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ top: 10, right: 10, bottom: 10, left: -10 }}>
+          <ComposedChart
+            data={chartData}
+            margin={{ top: 10, right: 10, bottom: 10, left: -10 }}
+            onClick={handleChartClick}
+            style={{ cursor: 'pointer' }}
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
             <XAxis
               dataKey="label"
@@ -291,13 +310,11 @@ export function TimelineTrendPanel({
               labelStyle={{ color: '#F8FAFC', fontWeight: 600, marginBottom: 4 }}
               formatter={(value: number, name: string) => {
                 const labels: Record<string, string> = {
-                  investments: '투자',
                   pocs: 'PoC',
                   productions: '양산',
                   newProducts: '신규 제품',
                 };
                 const units: Record<string, string> = {
-                  investments: '건',
                   pocs: '건',
                   productions: '건',
                   newProducts: '개',
@@ -309,7 +326,6 @@ export function TimelineTrendPanel({
               wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
               formatter={(value: string) => {
                 const labels: Record<string, string> = {
-                  investments: '투자',
                   pocs: 'PoC',
                   productions: '양산',
                   newProducts: '신규 제품',
@@ -317,31 +333,11 @@ export function TimelineTrendPanel({
                 return <span style={{ color: '#94A3B8' }}>{labels[value] || value}</span>;
               }}
             />
-            {eventTypes.investments && (
-              <Bar yAxisId="left" dataKey="investments" stackId="events" fill="#22C55E" maxBarSize={40} />
-            )}
             {eventTypes.pocs && (
-              <Bar
-                yAxisId="left"
-                dataKey="pocs"
-                stackId="events"
-                fill="#EAB308"
-                maxBarSize={40}
-                cursor="pointer"
-                onClick={(data: any) => handleBarClick(data, 'pocs')}
-              />
+              <Bar yAxisId="left" dataKey="pocs" stackId="events" fill="#EAB308" maxBarSize={40} />
             )}
             {eventTypes.productions && (
-              <Bar
-                yAxisId="left"
-                dataKey="productions"
-                stackId="events"
-                fill="#A855F7"
-                radius={[4, 4, 0, 0]}
-                maxBarSize={40}
-                cursor="pointer"
-                onClick={(data: any) => handleBarClick(data, 'productions')}
-              />
+              <Bar yAxisId="left" dataKey="productions" stackId="events" fill="#A855F7" radius={[4, 4, 0, 0]} maxBarSize={40} />
             )}
             <Line
               yAxisId="right"
@@ -349,24 +345,59 @@ export function TimelineTrendPanel({
               dataKey="newProducts"
               stroke="#F97316"
               strokeWidth={2}
-              dot={{ r: 5, fill: '#F97316', stroke: '#0F172A', strokeWidth: 2, cursor: 'pointer' }}
-              activeDot={{
-                r: 7,
-                cursor: 'pointer',
-                onClick: (_e: any, payload: any) => handleLineClick(payload),
-              }}
+              dot={{ r: 5, fill: '#F97316', stroke: '#0F172A', strokeWidth: 2 }}
+              activeDot={{ r: 7 }}
             />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Drill-down modal */}
+      {/* Category selection popup */}
+      {categoryPopup && !drillDownYear && (
+        <div className="absolute inset-0 z-10 bg-slate-900/80 rounded-xl flex items-center justify-center">
+          <div className="bg-slate-800 border border-slate-600 rounded-xl p-5 shadow-2xl min-w-[240px]">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-sm font-semibold text-white">
+                {categoryPopup.year}년 · 카테고리 선택
+              </h4>
+              <button
+                onClick={() => setCategoryPopup(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-2">
+              {(['pocs', 'productions', 'newProducts'] as CategoryKey[]).map((key) => (
+                <button
+                  key={key}
+                  onClick={() => handleCategorySelect(categoryPopup.year, key)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-slate-700/50 hover:bg-slate-600/70 transition-colors text-left group"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${categoryColors[key]}`} />
+                    <span className="text-sm text-white">{categoryLabels[key]}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400">
+                      {categoryPopup[key]}{key === 'newProducts' ? '개' : '건'}
+                    </span>
+                    <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-blue-400" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Drill-down robot list */}
       {drillDownYear !== null && (
         <div className="absolute inset-0 z-10 bg-slate-900/95 rounded-xl p-6 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-lg font-semibold text-white flex items-center gap-2">
               <Bot className="w-5 h-5 text-orange-400" />
-              {drillDownYear}년 {drillDownCategory ? categoryLabels[drillDownCategory] || '' : ''} 로봇
+              {drillDownYear}년 {drillDownCategory ? categoryLabels[drillDownCategory] : ''} 로봇
               <span className="text-sm text-slate-400 font-normal">({drillDownRobots.length}개)</span>
             </h4>
             <button
@@ -383,7 +414,7 @@ export function TimelineTrendPanel({
             </div>
           ) : drillDownRobots.length === 0 ? (
             <div className="flex-1 flex items-center justify-center text-slate-500">
-              {drillDownYear}년 {drillDownCategory ? categoryLabels[drillDownCategory] || '' : ''} 로봇이 없습니다.
+              {drillDownYear}년 {drillDownCategory ? categoryLabels[drillDownCategory] : ''} 로봇이 없습니다.
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto space-y-2">
