@@ -4,6 +4,7 @@ import multipart from '@fastify/multipart';
 import { registerRoutes } from './routes/index.js';
 import { aiUsageService } from './services/ai-usage.service.js';
 import { fixSocPowerConsumption } from './db/fix-soc-startup.js';
+import { ensureVisionCostData } from './db/ensure-vision-cost.js';
 
 const fastify = Fastify({
   logger: true,
@@ -46,6 +47,7 @@ const start = async () => {
     const port = parseInt(process.env.PORT || '3001', 10);
     await aiUsageService.ensureTable();
     await fixSocPowerConsumption();
+    await ensureVisionCostData();
     await fastify.listen({ port, host: '0.0.0.0' });
     console.log(`Backend server running on port ${port}`);
   } catch (err) {
