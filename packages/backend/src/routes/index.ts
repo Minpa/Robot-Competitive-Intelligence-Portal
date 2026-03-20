@@ -21,6 +21,7 @@ import { reviewRoutes } from './review.js';
 import { executiveRoutes } from './executive.js';
 import { entityAliasRoutes } from './entity-aliases.js';
 import { humanoidTrendRoutes } from './humanoid-trend.js';
+import { visionCostRoutes } from './vision-cost.js';
 import { scoringPipelineRoutes } from './scoring-pipeline.js';
 import { warRoomRoutes } from './war-room.js';
 import { seedScoresRoutes } from './seed-scores.js';
@@ -54,6 +55,9 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // 휴머노이드 동향 대시보드 라우트
   fastify.register(humanoidTrendRoutes, { prefix: '/api/humanoid-trend' });
+
+  // 비전 센서 원가 분석 라우트
+  fastify.register(visionCostRoutes, { prefix: '/api/vision-cost' });
 
   // 스코어링 파이프라인 라우트
   fastify.register(scoringPipelineRoutes, { prefix: '/api/scoring-pipeline' });

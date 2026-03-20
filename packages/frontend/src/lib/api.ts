@@ -1690,6 +1690,32 @@ class ApiClient {
   async getWarRoomInvestmentPriority() {
     return this.request<any>('/war-room/investment-priority');
   }
+
+  // ── Vision Cost Analysis ──
+
+  async getVisionBomParts() {
+    return this.request<any>('/vision-cost/bom-parts');
+  }
+
+  async getVisionRobotCosts() {
+    return this.request<any>('/vision-cost/robot-costs');
+  }
+
+  async getVisionBubbleChart() {
+    return this.request<any>('/vision-cost/bubble-chart');
+  }
+
+  async createVisionRobotCost(data: any) {
+    return this.request<any>('/vision-cost/robot-costs', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async updateVisionRobotCost(id: string, data: any) {
+    return this.request<any>(`/vision-cost/robot-costs/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  }
+
+  async deleteVisionRobotCost(id: string) {
+    return this.request<void>(`/vision-cost/robot-costs/${id}`, { method: 'DELETE' });
+  }
 }
 
 export const api = new ApiClient();

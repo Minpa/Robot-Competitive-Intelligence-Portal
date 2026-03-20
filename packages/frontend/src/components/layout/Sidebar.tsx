@@ -24,6 +24,7 @@ import {
   ClipboardCheck,
   LineChart,
   Swords,
+  ScanEye,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -55,6 +56,7 @@ const navigationGroups: NavGroup[] = [
       { name: '휴머노이드 카탈로그', href: '/humanoid-robots', icon: Bot },
       { name: '회사 데이터', href: '/companies', icon: Building2 },
       { name: '부품·SoC/액추에이터', href: '/components-trend', icon: Cpu },
+      { name: '비전 센서 원가 분석', href: '/sensor-cost-analysis', icon: ScanEye },
       { name: '적용 사례', href: '/application-cases', icon: Briefcase },
     ],
   },

@@ -1034,6 +1034,61 @@ export const positioningData = pgTable(
 );
 
 // ============================================
+// v1.5 비전 센서 원가 분석 테이블
+// ============================================
+
+// Vision Sensor BOM Parts — 센서/컴퓨트 부품 단가 기준표
+export const visionSensorBomParts = pgTable(
+  'vision_sensor_bom_parts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    partName: varchar('part_name', { length: 255 }).notNull(),          // 부품명
+    partType: varchar('part_type', { length: 50 }).notNull(),           // 'camera' | 'lidar' | 'depth' | 'compute'
+    unitPriceMin: integer('unit_price_min').notNull(),                   // 최소 단가 ($)
+    unitPriceMax: integer('unit_price_max').notNull(),                   // 최대 단가 ($)
+    unitPriceMid: integer('unit_price_mid').notNull(),                   // 중간 단가 ($)
+    priceUnit: varchar('price_unit', { length: 30 }).notNull().default('ea'), // 'ea' | 'pair' | 'set'
+    sourceBasis: varchar('source_basis', { length: 500 }),              // 채택 근거
+    sourceReliability: varchar('source_reliability', { length: 10 }).notNull().default('D'), // [A]~[E]
+    exampleRobot: varchar('example_robot', { length: 255 }),            // 대표 사례 로봇
+    notes: text('notes'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  }
+);
+
+// Vision Sensor Robot Costs — 로봇별 비전 시스템 원가 타임라인
+export const visionSensorRobotCosts = pgTable(
+  'vision_sensor_robot_costs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    robotId: uuid('robot_id')
+      .references(() => humanoidRobots.id, { onDelete: 'set null' }),
+    robotLabel: varchar('robot_label', { length: 255 }).notNull(),      // 표시명 (e.g. "Optimus Gen1")
+    companyName: varchar('company_name', { length: 100 }).notNull(),    // 'Tesla' | 'Boston Dynamics' | 'Figure AI'
+    releaseYear: integer('release_year').notNull(),                     // 출시/추정 연도
+    isForecast: boolean('is_forecast').notNull().default(false),        // true=전망, false=실적
+    cameraDesc: varchar('camera_desc', { length: 300 }),               // 카메라 구성 설명
+    cameraCostUsd: integer('camera_cost_usd').notNull().default(0),    // 카메라 원가 ($)
+    lidarDepthDesc: varchar('lidar_depth_desc', { length: 300 }),      // LiDAR/Depth 설명
+    lidarDepthCostUsd: integer('lidar_depth_cost_usd').notNull().default(0),
+    computeDesc: varchar('compute_desc', { length: 300 }),             // 컴퓨트 설명
+    computeCostUsd: integer('compute_cost_usd').notNull().default(0),
+    totalCostUsd: integer('total_cost_usd').notNull(),                  // 합계 ($)
+    performanceLevel: decimal('performance_level', { precision: 3, scale: 1 }).notNull(), // P1~P5 (소수 허용: 3.5)
+    performanceNote: varchar('performance_note', { length: 300 }),     // 성능 레벨 설명
+    reliabilityGrade: varchar('reliability_grade', { length: 10 }).notNull().default('D'), // [A]~[E]
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    companyIdx: index('vision_robot_costs_company_idx').on(table.companyName),
+    yearIdx: index('vision_robot_costs_year_idx').on(table.releaseYear),
+  })
+);
+
+// ============================================
 // 휴머노이드 동향 대시보드 Relations
 // ============================================
 
@@ -1054,6 +1109,13 @@ export const rfmScoresRelations = relations(rfmScores, ({ one }) => ({
 export const positioningDataRelations = relations(positioningData, ({ one }) => ({
   robot: one(humanoidRobots, {
     fields: [positioningData.robotId],
+    references: [humanoidRobots.id],
+  }),
+}));
+
+export const visionSensorRobotCostsRelations = relations(visionSensorRobotCosts, ({ one }) => ({
+  robot: one(humanoidRobots, {
+    fields: [visionSensorRobotCosts.robotId],
     references: [humanoidRobots.id],
   }),
 }));
