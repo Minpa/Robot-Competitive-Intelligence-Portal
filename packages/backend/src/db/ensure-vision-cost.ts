@@ -3,7 +3,7 @@
  * 서버 시작 시 vision sensor 테이블 생성 및 초기 데이터 시딩
  */
 
-import { sql, count } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import { db, visionSensorBomParts, visionSensorRobotCosts } from './index.js';
 
 async function ensureTables() {
@@ -58,8 +58,10 @@ async function ensureTables() {
 }
 
 async function seedIfEmpty() {
-  const [{ value: bomCount }] = await db.select({ value: count() }).from(visionSensorBomParts);
-  const [{ value: costCount }] = await db.select({ value: count() }).from(visionSensorRobotCosts);
+  const bomRes = await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM vision_sensor_bom_parts`);
+  const costRes = await db.execute(sql`SELECT COUNT(*)::int AS cnt FROM vision_sensor_robot_costs`);
+  const bomCount = (bomRes.rows[0] as any).cnt;
+  const costCount = (costRes.rows[0] as any).cnt;
 
   if (Number(bomCount) > 0 && Number(costCount) > 0) return;
 
@@ -105,10 +107,14 @@ async function seedIfEmpty() {
 }
 
 export async function ensureVisionCostData() {
-  try {
-    await ensureTables();
-    await seedIfEmpty();
-  } catch (err) {
-    console.error('ensureVisionCostData 오류:', err);
-  }
+  await ensureTables();
+  await seedIfEmpty();
+}
+
+// 강제 재시딩 (기존 데이터 삭제 후 재삽입)
+export async function forceReseedVisionCostData() {
+  await ensureTables();
+  await db.execute(sql`TRUNCATE TABLE vision_sensor_robot_costs`);
+  await db.execute(sql`TRUNCATE TABLE vision_sensor_bom_parts`);
+  await seedIfEmpty();
 }

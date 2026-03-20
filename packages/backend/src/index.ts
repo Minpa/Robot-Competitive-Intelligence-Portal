@@ -4,7 +4,7 @@ import multipart from '@fastify/multipart';
 import { registerRoutes } from './routes/index.js';
 import { aiUsageService } from './services/ai-usage.service.js';
 import { fixSocPowerConsumption } from './db/fix-soc-startup.js';
-import { ensureVisionCostData } from './db/ensure-vision-cost.js';
+import { ensureVisionCostData, forceReseedVisionCostData } from './db/ensure-vision-cost.js';
 
 const fastify = Fastify({
   logger: true,
@@ -40,6 +40,16 @@ registerRoutes(fastify);
 
 fastify.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() };
+});
+
+// 관리자 전용: vision cost 데이터 강제 재시딩
+fastify.post('/admin/reseed-vision-cost', async (_req, reply) => {
+  try {
+    await forceReseedVisionCostData();
+    return { ok: true, message: '비전 원가 데이터 재시딩 완료' };
+  } catch (err: any) {
+    reply.status(500).send({ ok: false, error: err.message });
+  }
 });
 
 const start = async () => {
