@@ -1657,6 +1657,7 @@ export const ciBenchmarkScores = pgTable('ci_benchmark_scores', {
   axisKey: varchar('axis_key', { length: 50 }).notNull(),
   currentScore: integer('current_score').notNull().default(0),
   targetScore: integer('target_score').notNull().default(0),
+  rationale: text('rationale'),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
   competitorAxisUniq: uniqueIndex('ci_benchmark_scores_competitor_axis_uniq').on(table.competitorId, table.axisKey),

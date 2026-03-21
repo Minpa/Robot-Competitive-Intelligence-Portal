@@ -404,13 +404,79 @@ const benchmarkAxesData = [
 // ============================================
 // 7. Benchmark Scores 시드 데이터 (경쟁사별)
 // ============================================
-const benchmarkScoresData: Record<string, Record<string, { current: number; target: number }>> = {
-  digit:   { physical: {current:6,target:7}, perception: {current:6,target:7}, autonomy: {current:5,target:7}, dexterity: {current:3,target:5}, interaction: {current:3,target:5}, ecosystem: {current:5,target:6}, safety: {current:8,target:9}, business: {current:9,target:10}, ip: {current:6,target:7}, scalability: {current:7,target:9} },
-  optimus: { physical: {current:5,target:7}, perception: {current:7,target:9}, autonomy: {current:3,target:8}, dexterity: {current:6,target:8}, interaction: {current:5,target:8}, ecosystem: {current:3,target:7}, safety: {current:4,target:6}, business: {current:3,target:9}, ip: {current:5,target:7}, scalability: {current:8,target:10} },
-  figure:  { physical: {current:6,target:7}, perception: {current:7,target:8}, autonomy: {current:7,target:10}, dexterity: {current:7,target:9}, interaction: {current:5,target:7}, ecosystem: {current:3,target:5}, safety: {current:5,target:6}, business: {current:4,target:7}, ip: {current:2,target:4}, scalability: {current:4,target:7} },
-  neo:     { physical: {current:5,target:6}, perception: {current:5,target:6}, autonomy: {current:3,target:8}, dexterity: {current:7,target:8}, interaction: {current:6,target:9}, ecosystem: {current:4,target:6}, safety: {current:6,target:7}, business: {current:3,target:7}, ip: {current:2,target:4}, scalability: {current:3,target:7} },
-  atlas:   { physical: {current:10,target:10}, perception: {current:9,target:10}, autonomy: {current:7,target:8}, dexterity: {current:5,target:8}, interaction: {current:3,target:5}, ecosystem: {current:7,target:8}, safety: {current:7,target:8}, business: {current:6,target:9}, ip: {current:10,target:10}, scalability: {current:6,target:7} },
-  cloid:   { physical: {current:3,target:6}, perception: {current:5,target:8}, autonomy: {current:2,target:7}, dexterity: {current:3,target:7}, interaction: {current:4,target:9}, ecosystem: {current:7,target:10}, safety: {current:5,target:9}, business: {current:2,target:7}, ip: {current:4,target:7}, scalability: {current:3,target:7} },
+const benchmarkScoresData: Record<string, Record<string, { current: number; target: number; rationale: string }>> = {
+  digit: {
+    physical:    {current:6, target:7, rationale: '44 DOF 전신, 175cm/65kg. 16kg 가반하중은 업계 중간. 5.5km/h 보행속도. 하모닉 감속기 기반 안정적 구동. 방수/방진 미확인으로 감점.'},
+    perception:  {current:6, target:7, rationale: 'RGB-D 카메라 x2 + Intel RealSense 뎁스. 물류 환경 인식에 최적화. LiDAR 미탑재, 야간/악천후 대응 제한적.'},
+    autonomy:    {current:5, target:7, rationale: 'Locomotion RL + 조작 IL. 단일 물류 작업 자율 수행 가능. ~20 연속 행동. 새 환경 적응에 수 시간 튜닝 필요. 범용 자율성은 제한적.'},
+    dexterity:   {current:3, target:5, rationale: '4 DOF 그리퍼. 단순 픽앤플레이스에 특화. 섬세한 물체 조작이나 도구 사용 불가. 촉각 센서 그리퍼 내장 수준.'},
+    interaction: {current:3, target:5, rationale: '자연어 대화 기능 없음. 산업용 로봇으로 인간 상호작용은 최소한의 안전 신호 수준. 감정인식/개인화 해당 없음.'},
+    ecosystem:   {current:5, target:6, rationale: 'Agility Arc SDK 제공. NVIDIA Isaac Sim 연동. Amazon 물류 생태계 통합. 파트너 프로그램 초기 단계.'},
+    safety:      {current:8, target:9, rationale: '산업용 안전 인증 적극 추진 (UL). 속도 제한 + 충돌 감지. 사고 이력 없음. HRI 표준화 위원회 참여. 상용 배치 실적이 안전성 입증.'},
+    business:    {current:9, target:10, rationale: '업계 최초 상용 배치 (Amazon, GXO). RoboFab 자체 공장 보유. ~100대+ 배치. $250-300K 추정. 양산 체제 가동 중.'},
+    ip:          {current:6, target:7, rationale: '50+ 특허. 이족보행 제어/안정화 핵심 특허 보유. 학술 기반 (오레곤주립대 스핀오프). IP 소송 없음.'},
+    scalability: {current:7, target:9, rationale: 'RoboFab 연 10,000대 목표 생산 시설. 물류→제조→서비스 확장 로드맵. OTA 업데이트 가능. 글로벌 확장 초기 단계.'},
+  },
+  optimus: {
+    physical:    {current:5, target:7, rationale: '28+ DOF. 173cm/57kg 경량 설계. 20kg 가반하중(목표). 8km/h 목표 속도. 커스텀 액추에이터 개발 중. 연속 동작 시간 비공개.'},
+    perception:  {current:7, target:9, rationale: 'Tesla Vision 카메라 only (FSD 기술 전용). LiDAR 없이 카메라 기반 깊이 추정. FSD 수십억 프레임 학습 데이터의 비전 AI가 강점.'},
+    autonomy:    {current:3, target:8, rationale: 'FSD 기반 E2E NN. 공장 내 다중 작업 데모 수준. ~10-30 연속 행동. 아직 파일럿 단계로 실제 자율성 검증 부족. Sim-to-Real 학습 중.'},
+    dexterity:   {current:6, target:8, rationale: '11 DOF 손 (촉각 센서 내장). AI Day에서 섬세한 물체 조작 데모. 달걀/배터리 셀 핸들링 시연. 아직 실무 환경 검증 부족.'},
+    interaction: {current:5, target:8, rationale: 'AI Day에서 간단한 대화 데모. FSD AI 기반 환경 이해. 감정인식은 미구현. 향후 자연어 인터페이스 확장 계획.'},
+    ecosystem:   {current:3, target:7, rationale: '내부 전용 도구, 외부 SDK 없음. Tesla 수직 통합 전략으로 파트너 생태계 제한. 2026 외부 판매 목표로 변화 예정.'},
+    safety:      {current:4, target:6, rationale: '국제 인증 미취득 (내부 사용). FSD 안전 시스템 일부 적용. 산업 안전 표준 준비 중. 내부 배치로 규제 우회 중.'},
+    business:    {current:3, target:9, rationale: 'Tesla 내부 사업부. 공장 내 ~50대 파일럿. $20-30K 대량생산 목표 가격(Elon 발언). 외부 매출 아직 없음. 양산 시 파괴적 가격 경쟁력.'},
+    ip:          {current:5, target:7, rationale: '200+ 로봇 관련 특허. 액추에이터/배터리/VLA 특허. FSD 자율주행 IP 공유 가능. 최근 3개월 20-30건 출원 활발.'},
+    scalability: {current:8, target:10, rationale: 'Gigafactory 대량생산 인프라 활용 가능. Dojo + H100 대규모 학습 인프라. 연 수백만 대 자동차 생산 경험. OTA FSD 기반 무선 업데이트.'},
+  },
+  figure: {
+    physical:    {current:6, target:7, rationale: '40+ DOF. 167cm/60kg. 20kg 가반하중. 4.3km/h 보행속도. 커스텀 전기 액추에이터. ~5시간 연속 동작. 속도는 느리나 안정적.'},
+    perception:  {current:7, target:8, rationale: 'RGB 스테레오 + 손목 카메라(palm cam). 비전 기반 환경 인식. Helix VLA가 비전을 행동으로 직접 매핑. LiDAR 미사용.'},
+    autonomy:    {current:7, target:10, rationale: 'Helix VLA (자체개발) 업계 선두. 50+ 연속 행동 달성. 언어 지시로 새 작업 학습. BMW 공장 실제 자율 작업 수행. AI 자율성 최고 수준.'},
+    dexterity:   {current:7, target:9, rationale: '16 DOF 5핑거 독자 개발. 손가락 촉각 센서 + 손목 F/T. 섬세한 물체 조작 데모 다수. 도구 사용 시연. 업계 최고 수준 손재주.'},
+    interaction: {current:5, target:7, rationale: 'OpenAI 협력으로 자연어 대화 기능. 음성 지시 기반 작업 수행 데모. 감정인식/개인화는 미구현. 산업용 초점.'},
+    ecosystem:   {current:3, target:5, rationale: 'Figure SDK 제한 공개. Genesis Sim 자체 개발. BMW 외 추가 파트너 확보 중. 오픈 생태계는 아직 초기.'},
+    safety:      {current:5, target:6, rationale: '안전 인증 준비 중. 속도 제한 + SW 안전 장치. BMW 공장 배치로 산업 안전 기준 충족 필요. 사고 이력 없음.'},
+    business:    {current:4, target:7, rationale: '$854M 펀딩, $2.6B 밸류에이션. BMW 공장 ~10-20대 파일럿. 아직 대규모 매출 없음. 투자 유치력은 업계 최고.'},
+    ip:          {current:2, target:4, rationale: '30+ 특허(추정). 2023년 창업 2년차로 IP 축적 부족. Helix VLA 관련 핵심 특허 출원 중. IP 방어벽 취약.'},
+    scalability: {current:4, target:7, rationale: 'Sunnyvale 자체 제조. 대량생산 인프라 미비. Genesis Sim으로 학습 확장. 멀티태스크 능력은 우수하나 양산 경험 부족.'},
+  },
+  neo: {
+    physical:    {current:5, target:6, rationale: '37 DOF. 177cm/30kg 초경량 설계. 10kg 가반하중(가정용 충분). 4km/h 보행. 소프트 액추에이터 독자 기술. 본질적으로 안전한 설계.'},
+    perception:  {current:5, target:6, rationale: '스테레오 카메라 기반. LiDAR 미사용. 가정 환경 인식에 초점. 악천후/야간 대응은 제한적. 비전 AI 발전 중.'},
+    autonomy:    {current:3, target:8, rationale: 'VLA 자체개발. 텔레오퍼레이션 중심에서 자율 전환 중. ~10-20 연속 행동. 가정용 청소/정리 작업 데모. 자율 전환이 핵심 과제.'},
+    dexterity:   {current:7, target:8, rationale: '5핑거 소프트 핸드. 소프트 액추에이터로 섬세하고 안전한 파지. 가정 물체 조작에 최적화. 촉각 센서 내장. 도구 사용은 제한적.'},
+    interaction: {current:6, target:9, rationale: '가정용 최초 진출 목표로 인간 상호작용 최우선. 일상 대화 인터페이스 개발 중. 감정인식/개인화 로드맵. OpenAI 협력.'},
+    ecosystem:   {current:4, target:6, rationale: '일부 연구용 오픈소스. EVE 플릿 운영 경험. 가정용 IoT 연동은 미구현. 파트너 생태계 초기 단계.'},
+    safety:      {current:6, target:7, rationale: '소프트 액추에이터로 본질 안전 설계(핵심 차별화). 30kg 초경량으로 충돌 시 위험 최소. 안전 인증은 미취득.'},
+    business:    {current:3, target:7, rationale: '$125M+ 펀딩. 가정용 베타 테스트 소규모. 대규모 매출/배치 없음. 가정용 시장 선점이 장기 전략.'},
+    ip:          {current:2, target:4, rationale: '20+ 특허(추정). 소프트 액추에이터/원격조종 핵심 특허. IP 축적 초기 단계. 방어 특허 제한적.'},
+    scalability: {current:3, target:7, rationale: '노르웨이 자체 제조. 대량생산 인프라 미비. 가정 시장 대량 보급 목표이나 현재 소량 생산. OTA 가능.'},
+  },
+  atlas: {
+    physical:    {current:10, target:10, rationale: '업계 최고 신체 능력. 28+ DOF 전기 모델. 파쿠르/점프/회전 등 극한 동작 시연. 25kg+ 가반하중. 5.4km/h+. 유압→전기 전환 중.'},
+    perception:  {current:9, target:10, rationale: '멀티 카메라 + 뎁스 + LiDAR. 풀스택 센서. 복잡 지형 실시간 3D 인식. 악천후 대응. Spot 센서 기술 공유.'},
+    autonomy:    {current:7, target:8, rationale: 'MPC + RL 하이브리드. 복잡 파쿠르 시퀀스 자율 수행. 다양한 지형 적응. DeepMind 협력으로 VLA 발전 중. 범용 자율성 높음.'},
+    dexterity:   {current:5, target:8, rationale: '신형 다관절 그리퍼. 유압 시절 거친 작업 중심. 전기 모델로 섬세한 조작 추가 중. 5핑거 핸드 개발 중. 도구 사용은 제한적.'},
+    interaction: {current:3, target:5, rationale: '인간 상호작용은 후순위. 산업/건설/위험 환경 중심. 대화/감정인식 기능 없음. Orbit SDK로 프로그래밍 인터페이스 제공.'},
+    ecosystem:   {current:7, target:8, rationale: 'Spot 생태계 성숙 (1,500+ 배치). Orbit SDK. Drake Sim 오픈소스. Hyundai 그룹 제조 연동. 파트너 다수 확보.'},
+    safety:      {current:7, target:8, rationale: 'Spot CE/ISO 인증 보유. 충돌 감지/회피 고급. 로봇 윤리 서약(무기 금지) 선도. 사고 이력 제로. Atlas 전기 모델 인증 진행 중.'},
+    business:    {current:6, target:9, rationale: 'Hyundai $1.1B 인수. Spot 상용 성공. Atlas 상용 전환 중. Hyundai/Kia 공장 배치 목표. 가격 미공개.'},
+    ip:          {current:10, target:10, rationale: '500+ 특허. 업계 최대 IP 포트폴리오. 동적 보행 제어/유압·전기 구동 핵심 IP. 30년 연구 축적. MIT/DARPA 학술 기반.'},
+    scalability: {current:6, target:7, rationale: 'Hyundai 대량생산 역량 연결 가능. Spot 양산 경험. Atlas 양산은 아직 미착수. OTA 가능. 글로벌 판매 네트워크(Spot 통해).'},
+  },
+  cloid: {
+    physical:    {current:3, target:6, rationale: 'R&D 초기 단계. DOF/가반하중/속도 모두 미확정. 가정용 특화 설계로 경량·소형 지향. 하드웨어 파트너 탐색 중.'},
+    perception:  {current:5, target:8, rationale: 'LG 가전 센서 기술 활용 가능(로봇청소기, 스마트TV). 비전 AI 자체 개발 초기. 실내 환경 인식에 특화 가능.'},
+    autonomy:    {current:2, target:7, rationale: 'AI 모델 개발 초기. 가정 환경 자율 수행은 장기 목표. 현재 원격조종/스크립트 기반. VLA 도입 계획.'},
+    dexterity:   {current:3, target:7, rationale: '손/그리퍼 설계 초기 단계. 가정용 물체(가전/식기/의류 등) 조작이 목표. 촉각 센서 R&D. LG 가전 조작 특화 가능.'},
+    interaction: {current:4, target:9, rationale: 'LG ThinQ AI 대화 엔진 활용 가능. 스마트홈 음성 제어 경험 보유. 감정인식/개인화가 핵심 차별화 전략. 가정 환경 최적화.'},
+    ecosystem:   {current:7, target:10, rationale: '핵심 강점. LG ThinQ 스마트홈 생태계 (TV/냉장고/세탁기/에어컨 등 전 가전 연동). webOS 플랫폼. 100+ 가전 파트너. SDK 제공 가능.'},
+    safety:      {current:5, target:9, rationale: 'LG 가전 안전 인증 경험 풍부 (UL/CE/KC). 가정 내 어린이/노인 안전 최우선. 소프트 바디 설계 검토 중. 안전 표준 선점 전략.'},
+    business:    {current:2, target:7, rationale: 'R&D 단계. 상용화/배치 아직 없음. LG전자 내부 투자. 가정용 시장 $10B+ TAM. 가전 판매 채널 활용 가능.'},
+    ip:          {current:4, target:7, rationale: 'LG전자 전체 특허 포트폴리오 활용 가능(가전/디스플레이/배터리). 로봇 전용 특허는 초기. LG 연구소 학술 기반.'},
+    scalability: {current:3, target:7, rationale: 'LG 글로벌 제조/판매 인프라 활용 가능. 연 수천만 대 가전 생산 경험. OTA 가능(webOS). 로봇 전용 생산라인 미구축.'},
+  },
 };
 
 // ============================================
@@ -557,12 +623,13 @@ export async function seedCiData() {
   for (const [slug, scores] of Object.entries(benchmarkScoresData)) {
     const competitorId = competitorMap.get(slug);
     if (!competitorId) { console.log(`  Warning: competitor '${slug}' not found`); continue; }
-    for (const [axisKey, { current, target }] of Object.entries(scores)) {
+    for (const [axisKey, { current, target, rationale }] of Object.entries(scores)) {
       await db.insert(ciBenchmarkScores).values({
         competitorId,
         axisKey,
         currentScore: current,
         targetScore: target,
+        rationale,
       });
       benchmarkCount++;
     }

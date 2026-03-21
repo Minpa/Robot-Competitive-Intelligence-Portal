@@ -19,7 +19,7 @@ class BenchmarkService {
     const scores = await db.select().from(ciBenchmarkScores);
 
     // Group scores by competitor
-    const scoresByCompetitor: Record<string, Record<string, { currentScore: number; targetScore: number }>> = {};
+    const scoresByCompetitor: Record<string, Record<string, { currentScore: number; targetScore: number; rationale: string | null }>> = {};
     for (const score of scores) {
       if (!scoresByCompetitor[score.competitorId]) {
         scoresByCompetitor[score.competitorId] = {};
@@ -27,6 +27,7 @@ class BenchmarkService {
       scoresByCompetitor[score.competitorId]![score.axisKey] = {
         currentScore: score.currentScore,
         targetScore: score.targetScore,
+        rationale: score.rationale,
       };
     }
 
@@ -89,10 +90,12 @@ class BenchmarkService {
           axis_key VARCHAR(50) NOT NULL,
           current_score INTEGER NOT NULL DEFAULT 0,
           target_score INTEGER NOT NULL DEFAULT 0,
+          rationale TEXT,
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           UNIQUE(competitor_id, axis_key)
         );
         CREATE INDEX IF NOT EXISTS ci_benchmark_scores_competitor_idx ON ci_benchmark_scores(competitor_id);
+        ALTER TABLE ci_benchmark_scores ADD COLUMN IF NOT EXISTS rationale TEXT;
       `));
     } catch (e) {
       console.log('Benchmark tables may already exist:', (e as Error).message);

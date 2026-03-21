@@ -163,7 +163,7 @@ export interface BenchmarkCompetitorData {
   manufacturer: string;
   country: string | null;
   stage: string | null;
-  scores: Record<string, { currentScore: number; targetScore: number }>;
+  scores: Record<string, { currentScore: number; targetScore: number; rationale?: string | null }>;
 }
 
 export interface BenchmarkData {

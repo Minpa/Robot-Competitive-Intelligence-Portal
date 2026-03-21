@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import type { BenchmarkAxis, BenchmarkCompetitorData } from '@/types/ci-update';
 
 const COMPANY_COLORS: Record<string, string> = {
@@ -14,6 +15,8 @@ interface BenchmarkLeaderboardProps {
 }
 
 export function BenchmarkLeaderboard({ axes, competitors, onSelect }: BenchmarkLeaderboardProps) {
+  const [expandedAxis, setExpandedAxis] = useState<string | null>(null);
+
   // Calculate totals
   const withTotals = competitors.map(c => ({
     ...c,
@@ -30,14 +33,19 @@ export function BenchmarkLeaderboard({ axes, competitors, onSelect }: BenchmarkL
     return max;
   };
 
+  const toggleAxis = (axisKey: string) => {
+    setExpandedAxis(prev => prev === axisKey ? null : axisKey);
+  };
+
   return (
     <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4">
-      <h3 className="text-sm font-semibold text-white mb-3">📊 축별 리더보드</h3>
+      <h3 className="text-sm font-semibold text-white mb-1">📊 축별 리더보드</h3>
+      <p className="text-[10px] text-slate-500 mb-3">각 행을 클릭하면 기준 설명과 점수 근거를 확인할 수 있습니다.</p>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-xs min-w-[700px]">
           <thead>
             <tr>
-              <th className="text-left text-slate-400 font-medium px-2 py-1.5 border-b border-slate-700">축</th>
+              <th className="text-left text-slate-400 font-medium px-2 py-1.5 border-b border-slate-700 min-w-[140px]">축</th>
               {competitors.map(c => (
                 <th
                   key={c.slug}
@@ -54,29 +62,102 @@ export function BenchmarkLeaderboard({ axes, competitors, onSelect }: BenchmarkL
           <tbody>
             {axes.map(axis => {
               const leader = getLeader(axis.key);
+              const isExpanded = expandedAxis === axis.key;
               return (
-                <tr key={axis.key} className="hover:bg-slate-800/30">
-                  <td className="text-slate-300 px-2 py-1.5 border-b border-slate-700/30 whitespace-nowrap">
-                    {axis.icon} {axis.label}
-                  </td>
-                  {competitors.map(c => {
-                    const score = c.scores[axis.key]?.currentScore || 0;
-                    const isLeader = score === leader && score > 0;
-                    return (
-                      <td
-                        key={c.slug}
-                        className={`text-center px-2 py-1.5 border-b border-slate-700/30 ${
-                          isLeader ? 'font-bold' : ''
-                        }`}
-                        style={{ color: isLeader ? COMPANY_COLORS[c.slug] : '#94a3b8' }}
-                      >
-                        {score}
-                        {isLeader && ' 👑'}
+                <>
+                  {/* Score row */}
+                  <tr
+                    key={axis.key}
+                    className="hover:bg-slate-800/30 cursor-pointer"
+                    onClick={() => toggleAxis(axis.key)}
+                  >
+                    <td className="text-slate-300 px-2 py-1.5 border-b border-slate-700/30 whitespace-nowrap">
+                      <span className="mr-1 text-[10px] text-slate-500">{isExpanded ? '▼' : '▶'}</span>
+                      {axis.icon} {axis.label}
+                    </td>
+                    {competitors.map(c => {
+                      const score = c.scores[axis.key]?.currentScore || 0;
+                      const isLeader = score === leader && score > 0;
+                      return (
+                        <td
+                          key={c.slug}
+                          className={`text-center px-2 py-1.5 border-b border-slate-700/30 ${
+                            isLeader ? 'font-bold' : ''
+                          }`}
+                          style={{ color: isLeader ? COMPANY_COLORS[c.slug] : '#94a3b8' }}
+                        >
+                          {score}
+                          {isLeader && ' 👑'}
+                        </td>
+                      );
+                    })}
+                    <td className="text-center text-green-400/60 px-2 py-1.5 border-b border-slate-700/30">10</td>
+                  </tr>
+
+                  {/* Expanded detail row */}
+                  {isExpanded && (
+                    <tr key={`${axis.key}-detail`}>
+                      <td colSpan={competitors.length + 2} className="px-2 py-3 border-b border-slate-700/30 bg-slate-800/40">
+                        {/* Axis definition */}
+                        <div className="mb-3 bg-slate-700/30 rounded-lg p-3">
+                          <div className="flex items-start gap-3">
+                            <span className="text-2xl">{axis.icon}</span>
+                            <div className="flex-1">
+                              <h4 className="text-sm font-semibold text-white mb-1">{axis.label}</h4>
+                              <p className="text-xs text-slate-400 mb-2">{axis.description}</p>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-green-400 bg-green-500/10 px-2 py-0.5 rounded">10점 기준</span>
+                                <span className="text-[10px] text-slate-300">{axis.perfectDef}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Per-competitor rationale */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {competitors.map(c => {
+                            const score = c.scores[axis.key];
+                            if (!score) return null;
+                            const color = COMPANY_COLORS[c.slug] || '#94a3b8';
+                            return (
+                              <div
+                                key={c.slug}
+                                className="bg-slate-700/20 rounded-lg p-2.5 border border-slate-700/50"
+                              >
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <span className="text-xs font-medium" style={{ color }}>{c.name}</span>
+                                  <div className="flex items-center gap-1.5 text-xs">
+                                    <span style={{ color }}>{score.currentScore}</span>
+                                    {score.targetScore > score.currentScore && (
+                                      <span className="text-slate-500">→ <span className="text-green-400">{score.targetScore}</span></span>
+                                    )}
+                                  </div>
+                                </div>
+                                {/* Score bar */}
+                                <div className="relative h-1.5 bg-slate-700 rounded-full overflow-hidden mb-1.5">
+                                  {score.targetScore > score.currentScore && (
+                                    <div
+                                      className="absolute h-full rounded-full opacity-30"
+                                      style={{ width: `${score.targetScore * 10}%`, backgroundColor: color }}
+                                    />
+                                  )}
+                                  <div
+                                    className="absolute h-full rounded-full"
+                                    style={{ width: `${score.currentScore * 10}%`, backgroundColor: color }}
+                                  />
+                                </div>
+                                {/* Rationale */}
+                                {score.rationale && (
+                                  <p className="text-[10px] text-slate-400 leading-relaxed">{score.rationale}</p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </td>
-                    );
-                  })}
-                  <td className="text-center text-green-400/60 px-2 py-1.5 border-b border-slate-700/30">10</td>
-                </tr>
+                    </tr>
+                  )}
+                </>
               );
             })}
             {/* Total row */}
