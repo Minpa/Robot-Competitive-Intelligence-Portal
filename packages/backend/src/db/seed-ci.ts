@@ -6,6 +6,9 @@ import {
   ciItems,
   ciValues,
   ciFreshness,
+  ciValueHistory,
+  ciMonitorAlerts,
+  ciStaging,
 } from './schema.js';
 
 // ============================================
@@ -81,6 +84,7 @@ interface SampleValue {
 
 const sampleValuesByCompetitor: Record<string, SampleValue[]> = {
   digit: [
+    // HW
     { itemName: '자유도(DOF)', value: '44 DOF (전신)', confidence: 'A', source: 'Agility Robotics 공식 스펙' },
     { itemName: '키/몸무게', value: '175cm / 65kg', confidence: 'A', source: 'Agility Robotics 공식' },
     { itemName: '가반하중', value: '16kg', confidence: 'A', source: 'Agility Robotics 공식' },
@@ -93,8 +97,51 @@ const sampleValuesByCompetitor: Record<string, SampleValue[]> = {
     { itemName: 'LiDAR/Depth', value: 'Intel RealSense', confidence: 'B', source: 'Agility Robotics 공식' },
     { itemName: '촉각 센서', value: '그리퍼 내장', confidence: 'C', source: 'Agility Robotics 공식' },
     { itemName: 'Force/Torque', value: '6축 F/T 센서', confidence: 'B', source: 'Agility Robotics 공식' },
+    // SW/AI
+    { itemName: '핵심 AI 모델', value: 'Locomotion RL + 조작 IL', confidence: 'B', source: 'Agility Robotics 블로그' },
+    { itemName: '학습 방식', value: 'Sim-to-Real RL + 원격조종 IL', confidence: 'B', source: 'Agility Robotics 블로그' },
+    { itemName: '추론 위치', value: 'Edge (온보드)', confidence: 'B', source: 'Agility Robotics 공식' },
+    { itemName: '자율 작업 범위', value: '단일 작업 자율 수행 (물류)', confidence: 'B', source: 'Amazon PoC 사례' },
+    { itemName: '연속 행동 수', value: '~20 연속 행동', confidence: 'C', source: '데모 영상 분석' },
+    { itemName: '새 환경 적응', value: '신규 환경 수 시간 튜닝', confidence: 'C', source: 'Agility Robotics 블로그' },
+    { itemName: '개발 도구', value: 'Agility Arc SDK', confidence: 'B', source: 'Agility Robotics 공식' },
+    { itemName: '시뮬레이션', value: 'Isaac Sim 연동', confidence: 'B', source: 'NVIDIA 파트너십' },
+    { itemName: '오픈소스', value: '비공개', confidence: 'A', source: 'Agility Robotics 공식' },
+    // Data
+    { itemName: '실환경 데이터량', value: 'Amazon 물류창고 수백만 프레임', confidence: 'C', source: '업계 추정' },
+    { itemName: '데이터 수집 방식', value: '실배치 + 원격조종', confidence: 'B', source: 'Agility Robotics 블로그' },
+    { itemName: '파트너 데이터', value: 'Amazon 물류 데이터', confidence: 'B', source: 'Amazon 파트너십 발표' },
+    { itemName: 'GPU 클러스터', value: '비공개', confidence: 'D', source: '정보 없음' },
+    { itemName: 'Sim-to-Real', value: 'NVIDIA Isaac 기반', confidence: 'B', source: 'NVIDIA 파트너십' },
+    { itemName: '학습 주기', value: '수 주 단위', confidence: 'D', source: '업계 추정' },
+    // Biz
+    { itemName: '총 펀딩', value: '$179M+', confidence: 'A', source: 'Crunchbase' },
+    { itemName: '최근 밸류에이션', value: '비공개 (추정 $1B+)', confidence: 'D', source: '업계 추정' },
+    { itemName: '주요 투자자', value: 'DCVC, Playground Global, Amazon', confidence: 'A', source: 'Crunchbase' },
+    { itemName: '상용화 단계', value: 'Commercial (제한 배치)', confidence: 'A', source: 'Agility Robotics 공식' },
+    { itemName: '배치 대수', value: '~100대+ (Amazon 포함)', confidence: 'C', source: '업계 추정' },
+    { itemName: '주요 고객', value: 'Amazon, GXO Logistics', confidence: 'A', source: 'Agility Robotics 공식' },
+    { itemName: '가격대', value: '$250K-$300K (추정)', confidence: 'D', source: '업계 추정' },
+    { itemName: '제조 파트너', value: 'RoboFab (자체 공장)', confidence: 'A', source: 'Agility Robotics 공식' },
+    { itemName: '기술 파트너', value: 'NVIDIA, Amazon', confidence: 'A', source: 'Agility Robotics 공식' },
+    { itemName: '생태계 확장', value: 'Agility Arc 파트너 프로그램', confidence: 'B', source: 'Agility Robotics 공식' },
+    // Safety
+    { itemName: '국제 인증', value: 'UL 인증 진행 중', confidence: 'C', source: '업계 보도' },
+    { itemName: 'ISO 표준', value: 'ISO 13482 준수 (목표)', confidence: 'C', source: '업계 보도' },
+    { itemName: '충돌 안전', value: '속도 제한 + 충돌 감지', confidence: 'B', source: 'Agility Robotics 공식' },
+    { itemName: '규제 전략', value: '산업용 우선 (규제 경량)', confidence: 'B', source: '업계 분석' },
+    { itemName: '로비/정책 참여', value: 'HRI 표준화 위원회 참여', confidence: 'C', source: '업계 보도' },
+    { itemName: '사고 이력', value: '공개 사고 없음', confidence: 'B', source: '뉴스 모니터링' },
+    // IP
+    { itemName: '총 특허 수', value: '50+ 특허', confidence: 'C', source: 'Google Patents' },
+    { itemName: '핵심 기술 특허', value: '이족보행 제어, 보행 안정화', confidence: 'B', source: 'Google Patents' },
+    { itemName: '최근 3개월 출원', value: '5-10건 (추정)', confidence: 'D', source: 'Google Patents' },
+    { itemName: '라이선스 모델', value: '비공개', confidence: 'D', source: '정보 없음' },
+    { itemName: '방어 특허', value: '보행 관련 핵심 특허', confidence: 'C', source: 'Google Patents' },
+    { itemName: 'IP 소송', value: '없음', confidence: 'B', source: '뉴스 모니터링' },
   ],
   optimus: [
+    // HW
     { itemName: '자유도(DOF)', value: '28+ DOF', confidence: 'B', source: 'Tesla AI Day 2024' },
     { itemName: '키/몸무게', value: '173cm / 57kg', confidence: 'B', source: 'Tesla IR' },
     { itemName: '가반하중', value: '20kg (목표)', confidence: 'C', source: 'Tesla 발표 추정' },
@@ -107,6 +154,219 @@ const sampleValuesByCompetitor: Record<string, SampleValue[]> = {
     { itemName: 'LiDAR/Depth', value: '없음 (카메라 기반 깊이 추정)', confidence: 'A', source: 'Tesla AI Day 2024' },
     { itemName: '촉각 센서', value: '손끝 촉각 센서 내장', confidence: 'B', source: 'Tesla AI Day 2024' },
     { itemName: 'Force/Torque', value: '비공개', confidence: 'D', source: 'Tesla IR' },
+    // SW/AI
+    { itemName: '핵심 AI 모델', value: 'FSD 기반 End-to-End NN', confidence: 'B', source: 'Tesla AI Day 2024' },
+    { itemName: '학습 방식', value: 'Sim-to-Real + 원격조종 IL', confidence: 'B', source: 'Tesla AI Day 2024' },
+    { itemName: '추론 위치', value: 'Edge (Tesla SoC)', confidence: 'A', source: 'Tesla AI Day 2024' },
+    { itemName: '자율 작업 범위', value: '다중 작업 (공장 내)', confidence: 'C', source: 'Tesla 데모 영상' },
+    { itemName: '연속 행동 수', value: '~10-30 연속 행동 (데모)', confidence: 'C', source: 'Tesla 데모 영상' },
+    { itemName: '새 환경 적응', value: '비공개', confidence: 'D', source: '정보 없음' },
+    { itemName: '개발 도구', value: '내부 전용', confidence: 'B', source: 'Tesla AI Day 2024' },
+    { itemName: '시뮬레이션', value: 'Tesla 자체 Sim 환경', confidence: 'B', source: 'Tesla AI Day 2024' },
+    { itemName: '오픈소스', value: '비공개', confidence: 'A', source: 'Tesla 공식' },
+    // Data
+    { itemName: '실환경 데이터량', value: 'Tesla 공장 수십억 프레임 (FSD 전용)', confidence: 'C', source: '업계 추정' },
+    { itemName: '데이터 수집 방식', value: 'FSD 차량 데이터 + 공장 원격조종', confidence: 'B', source: 'Tesla AI Day 2024' },
+    { itemName: '파트너 데이터', value: '자체 데이터 (FSD 공유)', confidence: 'B', source: 'Tesla 공식' },
+    { itemName: 'GPU 클러스터', value: 'Dojo + H100 대규모 클러스터', confidence: 'A', source: 'Tesla 공식' },
+    { itemName: 'Sim-to-Real', value: 'Tesla Sim (자체 개발)', confidence: 'B', source: 'Tesla AI Day 2024' },
+    { itemName: '학습 주기', value: '일 단위 (FSD 인프라 활용)', confidence: 'C', source: '업계 추정' },
+    // Biz
+    { itemName: '총 펀딩', value: 'Tesla 내부 사업부 (별도 펀딩 없음)', confidence: 'A', source: 'Tesla IR' },
+    { itemName: '최근 밸류에이션', value: 'Tesla 시가총액의 일부 (추정 $77B)', confidence: 'C', source: 'Morgan Stanley 보고서' },
+    { itemName: '주요 투자자', value: 'Tesla 자체 자금', confidence: 'A', source: 'Tesla IR' },
+    { itemName: '상용화 단계', value: 'Pilot (Tesla 공장 내부)', confidence: 'B', source: 'Tesla IR' },
+    { itemName: '배치 대수', value: '~50대 (Tesla 공장)', confidence: 'C', source: 'Tesla 실적 발표' },
+    { itemName: '주요 고객', value: 'Tesla 내부 우선', confidence: 'A', source: 'Tesla IR' },
+    { itemName: '가격대', value: '$20K-$30K (목표, 대량생산 시)', confidence: 'C', source: 'Elon Musk 발언' },
+    { itemName: '제조 파트너', value: 'Tesla Gigafactory (자체)', confidence: 'A', source: 'Tesla IR' },
+    { itemName: '기술 파트너', value: '없음 (수직 통합)', confidence: 'A', source: 'Tesla 공식' },
+    { itemName: '생태계 확장', value: '외부 판매 2026 목표', confidence: 'C', source: 'Elon Musk 발언' },
+    // Safety
+    { itemName: '국제 인증', value: '미취득 (내부 사용)', confidence: 'B', source: 'Tesla IR' },
+    { itemName: 'ISO 표준', value: '준비 중', confidence: 'D', source: '업계 추정' },
+    { itemName: '충돌 안전', value: 'FSD 안전 시스템 적용', confidence: 'C', source: 'Tesla AI Day 2024' },
+    { itemName: '규제 전략', value: '내부 배치 우선 → 규제 우회', confidence: 'B', source: '업계 분석' },
+    { itemName: '로비/정책 참여', value: 'Elon Musk 개인 영향력', confidence: 'B', source: '업계 분석' },
+    { itemName: '사고 이력', value: '공개 사고 없음', confidence: 'B', source: '뉴스 모니터링' },
+    // IP
+    { itemName: '총 특허 수', value: '200+ 특허 (로봇 관련)', confidence: 'C', source: 'Google Patents' },
+    { itemName: '핵심 기술 특허', value: '액추에이터, 배터리, VLA', confidence: 'B', source: 'Google Patents' },
+    { itemName: '최근 3개월 출원', value: '20-30건', confidence: 'C', source: 'Google Patents' },
+    { itemName: '라이선스 모델', value: '비공개', confidence: 'D', source: '정보 없음' },
+    { itemName: '방어 특허', value: 'FSD/자율주행 관련 대규모', confidence: 'B', source: 'Google Patents' },
+    { itemName: 'IP 소송', value: '없음 (로봇 관련)', confidence: 'B', source: '뉴스 모니터링' },
+  ],
+  figure: [
+    // HW
+    { itemName: '자유도(DOF)', value: '40+ DOF', confidence: 'B', source: 'Figure AI 공식' },
+    { itemName: '키/몸무게', value: '167cm / 60kg', confidence: 'B', source: 'Figure AI 공식' },
+    { itemName: '가반하중', value: '20kg', confidence: 'B', source: 'Figure AI 공식' },
+    { itemName: '최대속도', value: '4.3 km/h', confidence: 'B', source: 'Figure AI 공식' },
+    { itemName: '연속동작시간', value: '~5시간', confidence: 'C', source: 'Figure AI 데모' },
+    { itemName: '구동 방식', value: '커스텀 전기 액추에이터', confidence: 'B', source: 'Figure AI 공식' },
+    { itemName: '관절 토크', value: '비공개', confidence: 'D', source: '정보 없음' },
+    { itemName: '손 자유도', value: '16 DOF (5핑거 독자 개발)', confidence: 'A', source: 'Figure AI 공식' },
+    { itemName: '비전 시스템', value: 'RGB 스테레오 카메라 + 손목 카메라', confidence: 'B', source: 'Figure AI 공식' },
+    { itemName: 'LiDAR/Depth', value: '없음 (비전 기반)', confidence: 'B', source: 'Figure AI 데모' },
+    { itemName: '촉각 센서', value: '손가락 촉각 센서 내장', confidence: 'B', source: 'Figure AI 공식' },
+    { itemName: 'Force/Torque', value: '손목 F/T 센서', confidence: 'C', source: 'Figure AI 데모 분석' },
+    // SW/AI
+    { itemName: '핵심 AI 모델', value: 'Helix VLA (자체개발)', confidence: 'A', source: 'Figure AI 공식' },
+    { itemName: '학습 방식', value: 'VLA + Sim-to-Real + 원격조종', confidence: 'A', source: 'Figure AI 공식' },
+    { itemName: '추론 위치', value: 'Edge (온보드)', confidence: 'B', source: 'Figure AI 데모' },
+    { itemName: '자율 작업 범위', value: '다중 작업 자율 수행', confidence: 'A', source: 'Figure AI 공식 데모' },
+    { itemName: '연속 행동 수', value: '50+ 연속 행동', confidence: 'B', source: 'Figure AI 데모 영상' },
+    { itemName: '새 환경 적응', value: '언어 지시로 새 작업 학습', confidence: 'A', source: 'Figure AI Helix 데모' },
+    { itemName: '개발 도구', value: 'Figure SDK (제한 공개)', confidence: 'C', source: 'Figure AI 공식' },
+    { itemName: '시뮬레이션', value: 'Genesis Sim (자체)', confidence: 'B', source: 'Figure AI 공식' },
+    { itemName: '오픈소스', value: '비공개', confidence: 'A', source: 'Figure AI 공식' },
+    // Data
+    { itemName: '실환경 데이터량', value: 'BMW 공장 + 자체 랩 대량 수집', confidence: 'C', source: '업계 추정' },
+    { itemName: '데이터 수집 방식', value: '원격조종 + 자율 탐색', confidence: 'B', source: 'Figure AI 공식' },
+    { itemName: '파트너 데이터', value: 'BMW 제조 데이터, OpenAI 협력', confidence: 'B', source: 'Figure AI 파트너십' },
+    { itemName: 'GPU 클러스터', value: '대규모 GPU 클러스터 (비공개)', confidence: 'D', source: '업계 추정' },
+    { itemName: 'Sim-to-Real', value: 'Genesis Sim 자체 개발', confidence: 'B', source: 'Figure AI 공식' },
+    { itemName: '학습 주기', value: '수 일~수 주', confidence: 'D', source: '업계 추정' },
+    // Biz
+    { itemName: '총 펀딩', value: '$854M+ (Series B)', confidence: 'A', source: 'Crunchbase' },
+    { itemName: '최근 밸류에이션', value: '$2.6B (2024 Series B)', confidence: 'A', source: 'Crunchbase' },
+    { itemName: '주요 투자자', value: 'Microsoft, NVIDIA, OpenAI, Bezos, Intel', confidence: 'A', source: 'Crunchbase' },
+    { itemName: '상용화 단계', value: 'Pilot (BMW 공장)', confidence: 'A', source: 'Figure AI 공식' },
+    { itemName: '배치 대수', value: '~10-20대 (BMW)', confidence: 'C', source: '업계 추정' },
+    { itemName: '주요 고객', value: 'BMW', confidence: 'A', source: 'Figure AI 공식' },
+    { itemName: '가격대', value: '비공개 (추정 $150K-$200K)', confidence: 'D', source: '업계 추정' },
+    { itemName: '제조 파트너', value: '자체 제조 (Sunnyvale)', confidence: 'B', source: 'Figure AI 공식' },
+    { itemName: '기술 파트너', value: 'OpenAI, NVIDIA, Microsoft', confidence: 'A', source: 'Figure AI 공식' },
+    { itemName: '생태계 확장', value: 'BMW 외 추가 고객 확보 중', confidence: 'C', source: '업계 보도' },
+    // Safety
+    { itemName: '국제 인증', value: '준비 중', confidence: 'D', source: '업계 추정' },
+    { itemName: 'ISO 표준', value: '미확인', confidence: 'D', source: '정보 없음' },
+    { itemName: '충돌 안전', value: '속도 제한 + 소프트웨어 안전 장치', confidence: 'C', source: 'Figure AI 데모' },
+    { itemName: '규제 전략', value: '산업용 우선 배치', confidence: 'C', source: '업계 분석' },
+    { itemName: '로비/정책 참여', value: '미확인', confidence: 'D', source: '정보 없음' },
+    { itemName: '사고 이력', value: '공개 사고 없음', confidence: 'B', source: '뉴스 모니터링' },
+    // IP
+    { itemName: '총 특허 수', value: '30+ 특허 (추정)', confidence: 'D', source: 'Google Patents' },
+    { itemName: '핵심 기술 특허', value: 'VLA, 손 조작, 보행 제어', confidence: 'C', source: 'Google Patents' },
+    { itemName: '최근 3개월 출원', value: '10-15건 (추정)', confidence: 'D', source: 'Google Patents' },
+    { itemName: '라이선스 모델', value: '비공개', confidence: 'D', source: '정보 없음' },
+    { itemName: '방어 특허', value: 'Helix VLA 관련', confidence: 'C', source: 'Google Patents' },
+    { itemName: 'IP 소송', value: '없음', confidence: 'B', source: '뉴스 모니터링' },
+  ],
+  neo: [
+    // HW
+    { itemName: '자유도(DOF)', value: '37 DOF', confidence: 'B', source: '1X Technologies 공식' },
+    { itemName: '키/몸무게', value: '177cm / 30kg', confidence: 'A', source: '1X Technologies 공식' },
+    { itemName: '가반하중', value: '10kg', confidence: 'B', source: '1X Technologies 공식' },
+    { itemName: '최대속도', value: '4 km/h (보행)', confidence: 'B', source: '1X Technologies 공식' },
+    { itemName: '연속동작시간', value: '2-4시간', confidence: 'C', source: '1X Technologies 데모' },
+    { itemName: '구동 방식', value: '소프트 액추에이터 (독자 기술)', confidence: 'A', source: '1X Technologies 공식' },
+    { itemName: '관절 토크', value: '비공개', confidence: 'D', source: '정보 없음' },
+    { itemName: '손 자유도', value: '5핑거 소프트 핸드', confidence: 'B', source: '1X Technologies 공식' },
+    { itemName: '비전 시스템', value: '스테레오 카메라', confidence: 'B', source: '1X Technologies 공식' },
+    { itemName: 'LiDAR/Depth', value: '없음 (비전 기반)', confidence: 'C', source: '1X Technologies 데모' },
+    { itemName: '촉각 센서', value: '소프트 핸드 내장', confidence: 'C', source: '1X Technologies 공식' },
+    { itemName: 'Force/Torque', value: '비공개', confidence: 'D', source: '정보 없음' },
+    // SW/AI
+    { itemName: '핵심 AI 모델', value: 'VLA (자체개발)', confidence: 'B', source: '1X Technologies 블로그' },
+    { itemName: '학습 방식', value: 'IL + RL (원격조종 기반)', confidence: 'B', source: '1X Technologies 블로그' },
+    { itemName: '추론 위치', value: 'Edge (온보드)', confidence: 'B', source: '1X Technologies 공식' },
+    { itemName: '자율 작업 범위', value: '가정용 작업 (청소, 정리 등)', confidence: 'B', source: '1X Technologies 데모' },
+    { itemName: '연속 행동 수', value: '~10-20 연속 행동', confidence: 'C', source: '데모 영상 분석' },
+    { itemName: '새 환경 적응', value: '일반 가정 환경 대응', confidence: 'C', source: '1X Technologies 데모' },
+    { itemName: '개발 도구', value: '비공개', confidence: 'D', source: '정보 없음' },
+    { itemName: '시뮬레이션', value: '자체 시뮬레이션', confidence: 'C', source: '1X Technologies 블로그' },
+    { itemName: '오픈소스', value: '일부 공개 (연구용)', confidence: 'B', source: '1X Technologies GitHub' },
+    // Data
+    { itemName: '실환경 데이터량', value: 'EVE 플릿 운영 데이터', confidence: 'C', source: '1X Technologies 블로그' },
+    { itemName: '데이터 수집 방식', value: 'EVE 원격조종 + 자체 랩', confidence: 'B', source: '1X Technologies 블로그' },
+    { itemName: '파트너 데이터', value: '제한적', confidence: 'D', source: '업계 추정' },
+    { itemName: 'GPU 클러스터', value: '비공개', confidence: 'D', source: '정보 없음' },
+    { itemName: 'Sim-to-Real', value: '자체 Sim 환경', confidence: 'C', source: '1X Technologies 블로그' },
+    { itemName: '학습 주기', value: '비공개', confidence: 'D', source: '정보 없음' },
+    // Biz
+    { itemName: '총 펀딩', value: '$125M+ (Series B)', confidence: 'A', source: 'Crunchbase' },
+    { itemName: '최근 밸류에이션', value: '비공개', confidence: 'D', source: '정보 없음' },
+    { itemName: '주요 투자자', value: 'OpenAI, Tiger Global, Samsung', confidence: 'A', source: 'Crunchbase' },
+    { itemName: '상용화 단계', value: 'PoC (가정용 베타)', confidence: 'B', source: '1X Technologies 공식' },
+    { itemName: '배치 대수', value: '소규모 베타 테스트', confidence: 'D', source: '업계 추정' },
+    { itemName: '주요 고객', value: '가정용 베타 테스터', confidence: 'C', source: '1X Technologies 공식' },
+    { itemName: '가격대', value: '비공개 (가정용 목표)', confidence: 'D', source: '업계 추정' },
+    { itemName: '제조 파트너', value: '자체 (노르웨이)', confidence: 'B', source: '1X Technologies 공식' },
+    { itemName: '기술 파트너', value: 'OpenAI', confidence: 'A', source: '1X Technologies 공식' },
+    { itemName: '생태계 확장', value: '가정용 시장 집중', confidence: 'B', source: '1X Technologies 공식' },
+    // Safety
+    { itemName: '국제 인증', value: '미취득', confidence: 'C', source: '업계 추정' },
+    { itemName: 'ISO 표준', value: '미확인', confidence: 'D', source: '정보 없음' },
+    { itemName: '충돌 안전', value: '소프트 액추에이터 (본질 안전)', confidence: 'A', source: '1X Technologies 공식' },
+    { itemName: '규제 전략', value: '경량·저속 설계로 안전 확보', confidence: 'B', source: '1X Technologies 공식' },
+    { itemName: '로비/정책 참여', value: '미확인', confidence: 'D', source: '정보 없음' },
+    { itemName: '사고 이력', value: '공개 사고 없음', confidence: 'B', source: '뉴스 모니터링' },
+    // IP
+    { itemName: '총 특허 수', value: '20+ 특허 (추정)', confidence: 'D', source: 'Google Patents' },
+    { itemName: '핵심 기술 특허', value: '소프트 액추에이터, 원격조종', confidence: 'C', source: 'Google Patents' },
+    { itemName: '최근 3개월 출원', value: '3-5건 (추정)', confidence: 'D', source: 'Google Patents' },
+    { itemName: '라이선스 모델', value: '비공개', confidence: 'D', source: '정보 없음' },
+    { itemName: '방어 특허', value: '소프트 액추에이터 핵심', confidence: 'C', source: 'Google Patents' },
+    { itemName: 'IP 소송', value: '없음', confidence: 'B', source: '뉴스 모니터링' },
+  ],
+  atlas: [
+    // HW
+    { itemName: '자유도(DOF)', value: '28+ DOF (전기 모델)', confidence: 'C', source: 'Boston Dynamics 공식' },
+    { itemName: '키/몸무게', value: '150cm / 89kg (추정)', confidence: 'C', source: 'Boston Dynamics 공식 영상' },
+    { itemName: '가반하중', value: '25kg+ (유압 모델 기준)', confidence: 'C', source: 'Boston Dynamics 공식' },
+    { itemName: '최대속도', value: '5.4 km/h (유압 기준)', confidence: 'C', source: 'Boston Dynamics 공식' },
+    { itemName: '연속동작시간', value: '~1시간 (유압), 전기 비공개', confidence: 'D', source: '업계 추정' },
+    { itemName: '구동 방식', value: '전기 액추에이터 (신형)', confidence: 'B', source: 'Boston Dynamics 공식' },
+    { itemName: '관절 토크', value: '업계 최고 수준 (비공개)', confidence: 'C', source: '업계 추정' },
+    { itemName: '손 자유도', value: '다관절 그리퍼 (신형)', confidence: 'C', source: 'Boston Dynamics 데모' },
+    { itemName: '비전 시스템', value: '멀티 카메라 + 뎁스', confidence: 'B', source: 'Boston Dynamics 공식' },
+    { itemName: 'LiDAR/Depth', value: 'LiDAR 탑재', confidence: 'B', source: 'Boston Dynamics 공식' },
+    { itemName: '촉각 센서', value: '비공개', confidence: 'D', source: '정보 없음' },
+    { itemName: 'Force/Torque', value: '관절 내장 F/T 센서', confidence: 'B', source: 'Boston Dynamics 논문' },
+    // SW/AI
+    { itemName: '핵심 AI 모델', value: 'MPC + RL 하이브리드', confidence: 'B', source: 'Boston Dynamics 논문/발표' },
+    { itemName: '학습 방식', value: 'RL + MPC (전통 제어 혼합)', confidence: 'B', source: 'Boston Dynamics 논문' },
+    { itemName: '추론 위치', value: 'Edge + Cloud 하이브리드', confidence: 'C', source: '업계 추정' },
+    { itemName: '자율 작업 범위', value: '복잡 지형 이동 + 물체 조작', confidence: 'A', source: 'Boston Dynamics 데모' },
+    { itemName: '연속 행동 수', value: '복잡한 파쿠르 시퀀스', confidence: 'A', source: 'Boston Dynamics 데모' },
+    { itemName: '새 환경 적응', value: '다양한 지형 적응 우수', confidence: 'A', source: 'Boston Dynamics 데모' },
+    { itemName: '개발 도구', value: 'Orbit SDK', confidence: 'B', source: 'Boston Dynamics 공식' },
+    { itemName: '시뮬레이션', value: 'Drake Sim (자체 개발)', confidence: 'A', source: 'Boston Dynamics 공식' },
+    { itemName: '오픈소스', value: 'Drake 일부 오픈소스', confidence: 'A', source: 'GitHub' },
+    // Data
+    { itemName: '실환경 데이터량', value: 'Spot 플릿 + Atlas 연구 데이터', confidence: 'C', source: '업계 추정' },
+    { itemName: '데이터 수집 방식', value: 'Spot 상용 배치 + Atlas 연구', confidence: 'B', source: 'Boston Dynamics 공식' },
+    { itemName: '파트너 데이터', value: 'Hyundai 그룹 제조 데이터', confidence: 'C', source: 'Hyundai 인수 관련' },
+    { itemName: 'GPU 클러스터', value: '비공개 (Hyundai 지원)', confidence: 'D', source: '업계 추정' },
+    { itemName: 'Sim-to-Real', value: 'Drake (업계 최고 수준)', confidence: 'A', source: 'Boston Dynamics 공식' },
+    { itemName: '학습 주기', value: '비공개', confidence: 'D', source: '정보 없음' },
+    // Biz
+    { itemName: '총 펀딩', value: 'Hyundai 인수 ($1.1B)', confidence: 'A', source: 'Hyundai 공식' },
+    { itemName: '최근 밸류에이션', value: '~$1.1B (인수 가격)', confidence: 'A', source: 'Hyundai 공식' },
+    { itemName: '주요 투자자', value: 'Hyundai Motor Group (80%)', confidence: 'A', source: 'Hyundai 공식' },
+    { itemName: '상용화 단계', value: 'Prototype → 상용 전환 중', confidence: 'B', source: 'Boston Dynamics 공식' },
+    { itemName: '배치 대수', value: '연구용 소수', confidence: 'C', source: '업계 추정' },
+    { itemName: '주요 고객', value: 'Hyundai/Kia 공장 (목표)', confidence: 'C', source: 'Boston Dynamics 공식' },
+    { itemName: '가격대', value: '비공개 (상용 미출시)', confidence: 'D', source: '정보 없음' },
+    { itemName: '제조 파트너', value: 'Hyundai (제조 역량 지원)', confidence: 'B', source: 'Hyundai 공식' },
+    { itemName: '기술 파트너', value: 'Hyundai, NVIDIA (Spot)', confidence: 'B', source: 'Boston Dynamics 공식' },
+    { itemName: '생태계 확장', value: 'Spot 생태계 → Atlas 확장', confidence: 'B', source: 'Boston Dynamics 공식' },
+    // Safety
+    { itemName: '국제 인증', value: 'Spot CE 인증 (Atlas 미취득)', confidence: 'B', source: 'Boston Dynamics 공식' },
+    { itemName: 'ISO 표준', value: 'Spot ISO 인증 보유', confidence: 'B', source: 'Boston Dynamics 공식' },
+    { itemName: '충돌 안전', value: '고급 충돌 감지/회피', confidence: 'B', source: 'Boston Dynamics 논문' },
+    { itemName: '규제 전략', value: 'Spot 안전 실적 활용', confidence: 'B', source: '업계 분석' },
+    { itemName: '로비/정책 참여', value: '로봇 윤리 서약 (무기 금지)', confidence: 'A', source: 'Boston Dynamics 공식' },
+    { itemName: '사고 이력', value: '공개 사고 없음', confidence: 'A', source: '뉴스 모니터링' },
+    // IP
+    { itemName: '총 특허 수', value: '500+ 특허', confidence: 'B', source: 'Google Patents' },
+    { itemName: '핵심 기술 특허', value: '유압/전기 구동, 동적 보행, MPC', confidence: 'A', source: 'Google Patents' },
+    { itemName: '최근 3개월 출원', value: '15-25건', confidence: 'C', source: 'Google Patents' },
+    { itemName: '라이선스 모델', value: '비공개', confidence: 'D', source: '정보 없음' },
+    { itemName: '방어 특허', value: '동적 보행 제어 핵심 IP', confidence: 'A', source: 'Google Patents' },
+    { itemName: 'IP 소송', value: '없음', confidence: 'A', source: '뉴스 모니터링' },
   ],
 };
 
@@ -257,4 +517,23 @@ export async function seedCiData() {
   console.log(`  Inserted ${freshnessRecords.length} freshness records`);
 
   console.log('\n=== CI seed completed successfully! ===');
+}
+
+/**
+ * Force reseed: delete all CI data and re-insert
+ */
+export async function forceReseedCiData() {
+  console.log('=== Force reseed CI data ===');
+  // Delete in reverse FK order
+  await db.delete(ciValueHistory);
+  await db.delete(ciMonitorAlerts);
+  await db.delete(ciStaging);
+  await db.delete(ciFreshness);
+  await db.delete(ciValues);
+  await db.delete(ciItems);
+  await db.delete(ciCategories);
+  await db.delete(ciLayers);
+  await db.delete(ciCompetitors);
+  console.log('  Deleted all CI data.');
+  await seedCiData();
 }

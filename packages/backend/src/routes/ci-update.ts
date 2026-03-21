@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { ciUpdateService } from '../services/ci-update.service.js';
+import { forceReseedCiData } from '../db/seed-ci.js';
 
 export async function ciUpdateRoutes(fastify: FastifyInstance) {
   // === Matrix Data ===
@@ -110,5 +111,11 @@ export async function ciUpdateRoutes(fastify: FastifyInstance) {
     const { status, reviewedBy = 'admin' } = request.body as { status: string; reviewedBy?: string };
     await ciUpdateService.reviewAlert(alertId, status, reviewedBy);
     return { success: true };
+  });
+
+  // POST /force-reseed — 전체 CI 데이터 삭제 후 재시드
+  fastify.post('/force-reseed', async () => {
+    await forceReseedCiData();
+    return { success: true, message: 'CI data reseeded successfully' };
   });
 }
