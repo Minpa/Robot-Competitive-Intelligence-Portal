@@ -9,6 +9,7 @@ import {
   Users,
   Briefcase,
   FlaskConical,
+  RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LgRobotSelector } from './LgRobotSelector';
@@ -27,6 +28,7 @@ const tabs: Tab[] = [
   { name: '파트너 전략', href: '/war-room/partners', icon: Users },
   { name: '사업 전략', href: '/war-room/business', icon: Briefcase },
   { name: '시뮬레이션', href: '/war-room/simulation', icon: FlaskConical },
+  { name: 'CI 업데이트', href: '/war-room/ci-update', icon: RefreshCw },
 ];
 
 export function WarRoomLayout({ children }: { children: ReactNode }) {

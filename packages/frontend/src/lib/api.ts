@@ -1,5 +1,6 @@
 // Remove trailing /api if present (Railway may add it automatically)
 import type { AIAgentInput, AnalysisResult } from '@/types/insight-pipeline';
+import type { CiMatrixData, CiCompetitor, CiNewCompetitorRequest, CiValueUpdateRequest, CiValueHistoryEntry, CiFreshnessSummary, CiStagingEntry, CiMonitorAlert } from '@/types/ci-update';
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const API_BASE = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
 
@@ -1691,30 +1692,110 @@ class ApiClient {
     return this.request<any>('/war-room/investment-priority');
   }
 
-  // ── Vision Cost Analysis ──
+  // ── CI Update System ──
 
-  async getVisionBomParts() {
-    return this.request<any>('/vision-cost/bom-parts');
+  async getCiMatrix(): Promise<CiMatrixData> {
+    return this.request('/ci-update/matrix');
   }
 
-  async getVisionRobotCosts() {
-    return this.request<any>('/vision-cost/robot-costs');
+  async getCiCompetitors(): Promise<CiCompetitor[]> {
+    return this.request('/ci-update/competitors');
   }
 
-  async getVisionBubbleChart() {
-    return this.request<any>('/vision-cost/bubble-chart');
+  async addCiCompetitor(data: CiNewCompetitorRequest): Promise<CiCompetitor> {
+    return this.request('/ci-update/competitors', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
-  async createVisionRobotCost(data: any) {
-    return this.request<any>('/vision-cost/robot-costs', { method: 'POST', body: JSON.stringify(data) });
+  async updateCiValue(valueId: string, data: CiValueUpdateRequest): Promise<{ success: boolean }> {
+    return this.request(`/ci-update/values/${valueId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   }
 
-  async updateVisionRobotCost(id: string, data: any) {
-    return this.request<any>(`/vision-cost/robot-costs/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  async upsertCiValue(data: {
+    competitorId: string;
+    itemId: string;
+    value: string;
+    confidence: string;
+    source?: string;
+    sourceUrl?: string;
+    sourceDate?: string;
+    changedBy?: string;
+  }): Promise<{ success: boolean }> {
+    return this.request('/ci-update/values/upsert', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 
-  async deleteVisionRobotCost(id: string) {
-    return this.request<void>(`/vision-cost/robot-costs/${id}`, { method: 'DELETE' });
+  async getCiValueHistory(valueId: string): Promise<CiValueHistoryEntry[]> {
+    return this.request(`/ci-update/values/${valueId}/history`);
+  }
+
+  async getCiFreshness(): Promise<CiFreshnessSummary[]> {
+    return this.request('/ci-update/freshness');
+  }
+
+  async verifyCiFreshness(layerId: string, competitorId: string): Promise<{ success: boolean }> {
+    return this.request('/ci-update/freshness/verify', {
+      method: 'POST',
+      body: JSON.stringify({ layerId, competitorId }),
+    });
+  }
+
+  async getCiStaging(): Promise<CiStagingEntry[]> {
+    return this.request('/ci-update/staging');
+  }
+
+  async createCiStaging(data: { updateType: string; payload: unknown; sourceChannel: string }): Promise<{ success: boolean }> {
+    return this.request('/ci-update/staging', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async approveCiStaging(stagingId: string, reviewedBy?: string): Promise<{ success: boolean }> {
+    return this.request(`/ci-update/staging/${stagingId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ reviewedBy }),
+    });
+  }
+
+  async dismissCiStaging(stagingId: string, reviewedBy?: string): Promise<{ success: boolean }> {
+    return this.request(`/ci-update/staging/${stagingId}/dismiss`, {
+      method: 'POST',
+      body: JSON.stringify({ reviewedBy }),
+    });
+  }
+
+  async getCiMonitorAlerts(status?: string): Promise<CiMonitorAlert[]> {
+    const params = status ? `?status=${status}` : '';
+    return this.request(`/ci-update/monitor-alerts${params}`);
+  }
+
+  async createCiMonitorAlert(data: {
+    sourceName: string;
+    sourceUrl: string;
+    headline: string;
+    summary?: string;
+    competitorId?: string;
+    layerId?: string;
+  }): Promise<{ success: boolean }> {
+    return this.request('/ci-update/monitor-alerts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async reviewCiMonitorAlert(alertId: string, status: string, reviewedBy?: string): Promise<{ success: boolean }> {
+    return this.request(`/ci-update/monitor-alerts/${alertId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, reviewedBy }),
+    });
   }
 }
 

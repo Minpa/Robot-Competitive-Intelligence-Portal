@@ -25,6 +25,7 @@ import { visionCostRoutes } from './vision-cost.js';
 import { scoringPipelineRoutes } from './scoring-pipeline.js';
 import { warRoomRoutes } from './war-room.js';
 import { seedScoresRoutes } from './seed-scores.js';
+import { ciUpdateRoutes } from './ci-update.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -67,4 +68,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // 스코어 시드 라우트 (일회성)
   fastify.register(seedScoresRoutes, { prefix: '/api/seed-scores' });
+
+  // CI 업데이트 시스템 라우트
+  fastify.register(ciUpdateRoutes, { prefix: '/api/ci-update' });
 }

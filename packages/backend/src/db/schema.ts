@@ -1451,3 +1451,185 @@ export const specChangeLogsRelations = relations(specChangeLogs, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+// ============================================
+// v1.6 CI 업데이트 시스템 테이블
+// ============================================
+
+// CI Competitors — 경쟁 로봇
+export const ciCompetitors = pgTable('ci_competitors', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  slug: varchar('slug', { length: 50 }).notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  manufacturer: varchar('manufacturer', { length: 255 }).notNull(),
+  country: varchar('country', { length: 100 }),
+  stage: varchar('stage', { length: 50 }).default('development'), // concept | prototype | poc | pilot | commercial
+  imageUrl: varchar('image_url', { length: 500 }),
+  sortOrder: integer('sort_order').default(0),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// CI Layers — 비교 레이어 (HW, SW/AI, Data, Biz, Safety, Patent)
+export const ciLayers = pgTable('ci_layers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  slug: varchar('slug', { length: 30 }).notNull().unique(),
+  name: varchar('name', { length: 100 }).notNull(),
+  icon: varchar('icon', { length: 10 }),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// CI Categories — 레이어 내 카테고리
+export const ciCategories = pgTable('ci_categories', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  layerId: uuid('layer_id').notNull().references(() => ciLayers.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 200 }).notNull(),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  layerIdx: index('ci_categories_layer_idx').on(table.layerId),
+}));
+
+// CI Items — 카테고리 내 비교 항목
+export const ciItems = pgTable('ci_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  categoryId: uuid('category_id').notNull().references(() => ciCategories.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 200 }).notNull(),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  categoryIdx: index('ci_items_category_idx').on(table.categoryId),
+}));
+
+// CI Values — 경쟁사 × 항목별 값
+export const ciValues = pgTable('ci_values', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  competitorId: uuid('competitor_id').notNull().references(() => ciCompetitors.id, { onDelete: 'cascade' }),
+  itemId: uuid('item_id').notNull().references(() => ciItems.id, { onDelete: 'cascade' }),
+  value: text('value'),
+  confidence: varchar('confidence', { length: 1 }).default('D'), // A B C D F
+  source: text('source'),
+  sourceUrl: varchar('source_url', { length: 1000 }),
+  sourceDate: date('source_date'),
+  lastVerified: timestamp('last_verified'),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  competitorItemUniq: uniqueIndex('ci_values_competitor_item_uniq').on(table.competitorId, table.itemId),
+  competitorIdx: index('ci_values_competitor_idx').on(table.competitorId),
+  itemIdx: index('ci_values_item_idx').on(table.itemId),
+}));
+
+// CI Monitor Alerts — 자동 수집 알림
+export const ciMonitorAlerts = pgTable('ci_monitor_alerts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sourceName: varchar('source_name', { length: 200 }),
+  sourceUrl: text('source_url'),
+  headline: text('headline').notNull(),
+  summary: text('summary'),
+  competitorId: uuid('competitor_id').references(() => ciCompetitors.id, { onDelete: 'set null' }),
+  layerId: uuid('layer_id').references(() => ciLayers.id, { onDelete: 'set null' }),
+  detectedAt: timestamp('detected_at').defaultNow().notNull(),
+  status: varchar('status', { length: 20 }).default('pending').notNull(), // pending | reviewed | applied | dismissed
+  appliedTo: uuid('applied_to').references(() => ciValues.id, { onDelete: 'set null' }),
+  reviewedAt: timestamp('reviewed_at'),
+  reviewedBy: varchar('reviewed_by', { length: 100 }),
+}, (table) => ({
+  statusIdx: index('ci_monitor_alerts_status_idx').on(table.status),
+  competitorIdx: index('ci_monitor_alerts_competitor_idx').on(table.competitorId),
+  detectedAtIdx: index('ci_monitor_alerts_detected_at_idx').on(table.detectedAt),
+}));
+
+// CI Value History — 값 변경 이력
+export const ciValueHistory = pgTable('ci_value_history', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  valueId: uuid('value_id').notNull().references(() => ciValues.id, { onDelete: 'cascade' }),
+  oldValue: text('old_value'),
+  newValue: text('new_value'),
+  oldConfidence: varchar('old_confidence', { length: 1 }),
+  newConfidence: varchar('new_confidence', { length: 1 }),
+  changeSource: varchar('change_source', { length: 20 }).notNull(), // auto | ai_assist | manual
+  changeReason: text('change_reason'),
+  changedAt: timestamp('changed_at').defaultNow().notNull(),
+  changedBy: varchar('changed_by', { length: 100 }),
+}, (table) => ({
+  valueIdx: index('ci_value_history_value_idx').on(table.valueId),
+  changedAtIdx: index('ci_value_history_changed_at_idx').on(table.changedAt),
+}));
+
+// CI Freshness — 데이터 신선도 추적
+export const ciFreshness = pgTable('ci_freshness', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  layerId: uuid('layer_id').notNull().references(() => ciLayers.id, { onDelete: 'cascade' }),
+  competitorId: uuid('competitor_id').notNull().references(() => ciCompetitors.id, { onDelete: 'cascade' }),
+  lastVerified: timestamp('last_verified'),
+  nextReview: timestamp('next_review'),
+  tier: integer('tier').default(2).notNull(), // 1: weekly, 2: monthly, 3: quarterly
+}, (table) => ({
+  layerCompetitorUniq: uniqueIndex('ci_freshness_layer_competitor_uniq').on(table.layerId, table.competitorId),
+}));
+
+// CI Staging — 스테이징 (검증 대기)
+export const ciStaging = pgTable('ci_staging', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  updateType: varchar('update_type', { length: 20 }).notNull(), // value_update | new_competitor | score_adjust
+  payload: jsonb('payload').notNull(),
+  sourceChannel: varchar('source_channel', { length: 20 }).notNull(), // auto | ai_assist | manual
+  status: varchar('status', { length: 20 }).default('pending').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  reviewedAt: timestamp('reviewed_at'),
+  reviewedBy: varchar('reviewed_by', { length: 100 }),
+  appliedAt: timestamp('applied_at'),
+}, (table) => ({
+  statusIdx: index('ci_staging_status_idx').on(table.status),
+  createdAtIdx: index('ci_staging_created_at_idx').on(table.createdAt),
+}));
+
+// ============================================
+// v1.6 CI 업데이트 시스템 Relations
+// ============================================
+
+export const ciCompetitorsRelations = relations(ciCompetitors, ({ many }) => ({
+  values: many(ciValues),
+  monitorAlerts: many(ciMonitorAlerts),
+  freshness: many(ciFreshness),
+}));
+
+export const ciLayersRelations = relations(ciLayers, ({ many }) => ({
+  categories: many(ciCategories),
+  monitorAlerts: many(ciMonitorAlerts),
+  freshness: many(ciFreshness),
+}));
+
+export const ciCategoriesRelations = relations(ciCategories, ({ one, many }) => ({
+  layer: one(ciLayers, { fields: [ciCategories.layerId], references: [ciLayers.id] }),
+  items: many(ciItems),
+}));
+
+export const ciItemsRelations = relations(ciItems, ({ one, many }) => ({
+  category: one(ciCategories, { fields: [ciItems.categoryId], references: [ciCategories.id] }),
+  values: many(ciValues),
+}));
+
+export const ciValuesRelations = relations(ciValues, ({ one, many }) => ({
+  competitor: one(ciCompetitors, { fields: [ciValues.competitorId], references: [ciCompetitors.id] }),
+  item: one(ciItems, { fields: [ciValues.itemId], references: [ciItems.id] }),
+  history: many(ciValueHistory),
+}));
+
+export const ciMonitorAlertsRelations = relations(ciMonitorAlerts, ({ one }) => ({
+  competitor: one(ciCompetitors, { fields: [ciMonitorAlerts.competitorId], references: [ciCompetitors.id] }),
+  layer: one(ciLayers, { fields: [ciMonitorAlerts.layerId], references: [ciLayers.id] }),
+  appliedValue: one(ciValues, { fields: [ciMonitorAlerts.appliedTo], references: [ciValues.id] }),
+}));
+
+export const ciValueHistoryRelations = relations(ciValueHistory, ({ one }) => ({
+  value: one(ciValues, { fields: [ciValueHistory.valueId], references: [ciValues.id] }),
+}));
+
+export const ciFreshnessRelations = relations(ciFreshness, ({ one }) => ({
+  layer: one(ciLayers, { fields: [ciFreshness.layerId], references: [ciLayers.id] }),
+  competitor: one(ciCompetitors, { fields: [ciFreshness.competitorId], references: [ciCompetitors.id] }),
+}));
