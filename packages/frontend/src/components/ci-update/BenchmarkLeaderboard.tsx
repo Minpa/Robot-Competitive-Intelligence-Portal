@@ -76,18 +76,45 @@ export function BenchmarkLeaderboard({ axes, competitors, onSelect }: BenchmarkL
                       {axis.icon} {axis.label}
                     </td>
                     {competitors.map(c => {
-                      const score = c.scores[axis.key]?.currentScore || 0;
+                      const scoreData = c.scores[axis.key];
+                      const score = scoreData?.currentScore || 0;
                       const isLeader = score === leader && score > 0;
+                      const color = COMPANY_COLORS[c.slug] || '#94a3b8';
                       return (
                         <td
                           key={c.slug}
-                          className={`text-center px-2 py-1.5 border-b border-slate-700/30 ${
+                          className={`text-center px-2 py-1.5 border-b border-slate-700/30 relative group/cell ${
                             isLeader ? 'font-bold' : ''
                           }`}
-                          style={{ color: isLeader ? COMPANY_COLORS[c.slug] : '#94a3b8' }}
+                          style={{ color: isLeader ? color : '#94a3b8' }}
                         >
                           {score}
                           {isLeader && ' 👑'}
+                          {/* Hover popover */}
+                          {scoreData?.rationale && (
+                            <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 opacity-0 invisible group-hover/cell:opacity-100 group-hover/cell:visible transition-all duration-150 pointer-events-none">
+                              <div className="bg-slate-900 border border-slate-600 rounded-lg shadow-xl p-3">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <span className="text-xs font-semibold" style={{ color }}>{c.name}</span>
+                                  <span className="text-xs" style={{ color }}>
+                                    {score}/10
+                                    {scoreData.targetScore > score && (
+                                      <span className="text-green-400 ml-1">→{scoreData.targetScore}</span>
+                                    )}
+                                  </span>
+                                </div>
+                                <div className="relative h-1.5 bg-slate-700 rounded-full overflow-hidden mb-2">
+                                  {scoreData.targetScore > score && (
+                                    <div className="absolute h-full rounded-full opacity-30" style={{ width: `${scoreData.targetScore * 10}%`, backgroundColor: color }} />
+                                  )}
+                                  <div className="absolute h-full rounded-full" style={{ width: `${score * 10}%`, backgroundColor: color }} />
+                                </div>
+                                <p className="text-[10px] text-slate-300 leading-relaxed">{scoreData.rationale}</p>
+                                {/* Arrow */}
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-slate-600" />
+                              </div>
+                            </div>
+                          )}
                         </td>
                       );
                     })}
