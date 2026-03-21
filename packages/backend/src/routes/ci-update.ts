@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { ciUpdateService } from '../services/ci-update.service.js';
+import { benchmarkService } from '../services/benchmark.service.js';
 import { forceReseedCiData } from '../db/seed-ci.js';
 
 export async function ciUpdateRoutes(fastify: FastifyInstance) {
@@ -117,5 +118,20 @@ export async function ciUpdateRoutes(fastify: FastifyInstance) {
   fastify.post('/force-reseed', async () => {
     await forceReseedCiData();
     return { success: true, message: 'CI data reseeded successfully' };
+  });
+
+  // === Benchmark ===
+
+  // GET /benchmark — full benchmark data
+  fastify.get('/benchmark', async () => {
+    return benchmarkService.getBenchmarkData();
+  });
+
+  // PUT /benchmark/scores/:competitorId — update score
+  fastify.put('/benchmark/scores/:competitorId', async (request) => {
+    const { competitorId } = request.params as { competitorId: string };
+    const { axisKey, currentScore, targetScore } = request.body as { axisKey: string; currentScore: number; targetScore: number };
+    await benchmarkService.updateScore(competitorId, axisKey, currentScore, targetScore);
+    return { success: true };
   });
 }

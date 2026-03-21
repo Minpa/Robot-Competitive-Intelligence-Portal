@@ -1,6 +1,6 @@
 // Remove trailing /api if present (Railway may add it automatically)
 import type { AIAgentInput, AnalysisResult } from '@/types/insight-pipeline';
-import type { CiMatrixData, CiCompetitor, CiNewCompetitorRequest, CiValueUpdateRequest, CiValueHistoryEntry, CiFreshnessSummary, CiStagingEntry, CiMonitorAlert } from '@/types/ci-update';
+import type { CiMatrixData, CiCompetitor, CiNewCompetitorRequest, CiValueUpdateRequest, CiValueHistoryEntry, CiFreshnessSummary, CiStagingEntry, CiMonitorAlert, BenchmarkData } from '@/types/ci-update';
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const API_BASE = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
 
@@ -1829,6 +1829,19 @@ class ApiClient {
     return this.request(`/ci-update/monitor-alerts/${alertId}`, {
       method: 'PATCH',
       body: JSON.stringify({ status, reviewedBy }),
+    });
+  }
+
+  // ── Benchmark ──
+
+  async getBenchmarkData(): Promise<BenchmarkData> {
+    return this.request('/ci-update/benchmark');
+  }
+
+  async updateBenchmarkScore(competitorId: string, axisKey: string, currentScore: number, targetScore: number): Promise<{ success: boolean }> {
+    return this.request(`/ci-update/benchmark/scores/${competitorId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ axisKey, currentScore, targetScore }),
     });
   }
 }

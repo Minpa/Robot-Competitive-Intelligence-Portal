@@ -143,3 +143,30 @@ export interface CiNewCompetitorRequest {
   country?: string;
   stage?: string;
 }
+
+// === Perfect Robot Benchmark ===
+
+export interface BenchmarkAxis {
+  id: string;
+  key: string;
+  icon: string | null;
+  label: string;
+  description: string | null;
+  perfectDef: string | null;
+  sortOrder: number;
+}
+
+export interface BenchmarkCompetitorData {
+  id: string;
+  slug: string;
+  name: string;
+  manufacturer: string;
+  country: string | null;
+  stage: string | null;
+  scores: Record<string, { currentScore: number; targetScore: number }>;
+}
+
+export interface BenchmarkData {
+  axes: BenchmarkAxis[];
+  competitors: BenchmarkCompetitorData[];
+}

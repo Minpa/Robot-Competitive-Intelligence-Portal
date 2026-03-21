@@ -9,6 +9,8 @@ import {
   ciValueHistory,
   ciMonitorAlerts,
   ciStaging,
+  ciBenchmarkAxes,
+  ciBenchmarkScores,
 } from './schema.js';
 
 // ============================================
@@ -20,6 +22,7 @@ const competitorsData = [
   { slug: 'figure', name: 'Figure 02', manufacturer: 'Figure AI', country: '🇺🇸', stage: 'pilot', sortOrder: 3 },
   { slug: 'neo', name: 'NEO', manufacturer: '1X Technologies', country: '🇳🇴', stage: 'poc', sortOrder: 4 },
   { slug: 'atlas', name: 'Atlas (Electric)', manufacturer: 'Boston Dynamics', country: '🇺🇸', stage: 'prototype', sortOrder: 5 },
+  { slug: 'cloid', name: 'CLOiD', manufacturer: 'LG Electronics', country: '🇰🇷', stage: 'development', sortOrder: 6 },
 ];
 
 // ============================================
@@ -383,6 +386,34 @@ const freshnessTierByLayer: Record<string, number> = {
 };
 
 // ============================================
+// 6. Benchmark Axes 시드 데이터 (10축)
+// ============================================
+const benchmarkAxesData = [
+  { key: 'physical', icon: '💪', label: '신체 능력', description: 'DOF · 페이로드 · 속도 · 내구성 · 방수', perfectDef: 'Atlas급 56-DOF, 50kg, IP67, -20~40°C', sortOrder: 1 },
+  { key: 'perception', icon: '👁️', label: '인지/비전', description: '센서 품질 · FOV · 환경인식 · 야간/악천후', perfectDef: '풀스택 + 악천후 완벽 + 실시간 3D', sortOrder: 2 },
+  { key: 'autonomy', icon: '🧠', label: 'AI 자율성', description: 'VLA 모델 · 자율 태스크 수 · 학습 속도', perfectDef: '완전 자율, 1회 시연 학습, 100+ 연속', sortOrder: 3 },
+  { key: 'dexterity', icon: '🤲', label: '손재주/조작', description: '손 DOF · 힘 제어 · 촉각 · 도구 사용', perfectDef: '22-DOF/손 + 3g 촉각 + 도구 자유자재', sortOrder: 4 },
+  { key: 'interaction', icon: '💬', label: '인간 상호작용', description: '자연어 · 감정인식 · 제스처 · 개인화', perfectDef: '완벽 대화 + 감정/의도 + 개인화 기억', sortOrder: 5 },
+  { key: 'ecosystem', icon: '🔗', label: '생태계/연결성', description: 'IoT 연동 · 플릿관리 · 파트너 · SDK', perfectDef: '전 가전 연동 + 오픈 SDK + 100+ 파트너', sortOrder: 6 },
+  { key: 'safety', icon: '🛡️', label: '안전/신뢰', description: '인증 · 프라이버시 · 소프트바디 · 표준', perfectDef: '국제 인증 + 사고 제로 + 표준 주도', sortOrder: 7 },
+  { key: 'business', icon: '💰', label: '비즈니스 성숙도', description: '상용화 · 가격 · 생산역량 · 매출', perfectDef: '10만+대 배치 + 양의 ROI + 글로벌', sortOrder: 8 },
+  { key: 'ip', icon: '📜', label: 'IP/기술자산', description: '특허 · 학술기반 · 데이터 축적 · R&D', perfectDef: '50+ 특허 패밀리 + 전세계 + 방어벽', sortOrder: 9 },
+  { key: 'scalability', icon: '🚀', label: '확장성', description: 'OTA · 멀티태스크 · 글로벌 · 대량생산', perfectDef: '연 10만대 + OTA 무제한 + 글로벌', sortOrder: 10 },
+];
+
+// ============================================
+// 7. Benchmark Scores 시드 데이터 (경쟁사별)
+// ============================================
+const benchmarkScoresData: Record<string, Record<string, { current: number; target: number }>> = {
+  digit:   { physical: {current:6,target:7}, perception: {current:6,target:7}, autonomy: {current:5,target:7}, dexterity: {current:3,target:5}, interaction: {current:3,target:5}, ecosystem: {current:5,target:6}, safety: {current:8,target:9}, business: {current:9,target:10}, ip: {current:6,target:7}, scalability: {current:7,target:9} },
+  optimus: { physical: {current:5,target:7}, perception: {current:7,target:9}, autonomy: {current:3,target:8}, dexterity: {current:6,target:8}, interaction: {current:5,target:8}, ecosystem: {current:3,target:7}, safety: {current:4,target:6}, business: {current:3,target:9}, ip: {current:5,target:7}, scalability: {current:8,target:10} },
+  figure:  { physical: {current:6,target:7}, perception: {current:7,target:8}, autonomy: {current:7,target:10}, dexterity: {current:7,target:9}, interaction: {current:5,target:7}, ecosystem: {current:3,target:5}, safety: {current:5,target:6}, business: {current:4,target:7}, ip: {current:2,target:4}, scalability: {current:4,target:7} },
+  neo:     { physical: {current:5,target:6}, perception: {current:5,target:6}, autonomy: {current:3,target:8}, dexterity: {current:7,target:8}, interaction: {current:6,target:9}, ecosystem: {current:4,target:6}, safety: {current:6,target:7}, business: {current:3,target:7}, ip: {current:2,target:4}, scalability: {current:3,target:7} },
+  atlas:   { physical: {current:10,target:10}, perception: {current:9,target:10}, autonomy: {current:7,target:8}, dexterity: {current:5,target:8}, interaction: {current:3,target:5}, ecosystem: {current:7,target:8}, safety: {current:7,target:8}, business: {current:6,target:9}, ip: {current:10,target:10}, scalability: {current:6,target:7} },
+  cloid:   { physical: {current:3,target:6}, perception: {current:5,target:8}, autonomy: {current:2,target:7}, dexterity: {current:3,target:7}, interaction: {current:4,target:9}, ecosystem: {current:7,target:10}, safety: {current:5,target:9}, business: {current:2,target:7}, ip: {current:4,target:7}, scalability: {current:3,target:7} },
+};
+
+// ============================================
 // Main seed function
 // ============================================
 export async function seedCiData() {
@@ -516,6 +547,28 @@ export async function seedCiData() {
   await db.insert(ciFreshness).values(freshnessRecords);
   console.log(`  Inserted ${freshnessRecords.length} freshness records`);
 
+  // --- 6. Seed Benchmark Axes ---
+  console.log('Seeding benchmark axes (10 records)...');
+  await db.insert(ciBenchmarkAxes).values(benchmarkAxesData);
+
+  // --- 7. Seed Benchmark Scores ---
+  console.log('Seeding benchmark scores...');
+  let benchmarkCount = 0;
+  for (const [slug, scores] of Object.entries(benchmarkScoresData)) {
+    const competitorId = competitorMap.get(slug);
+    if (!competitorId) { console.log(`  Warning: competitor '${slug}' not found`); continue; }
+    for (const [axisKey, { current, target }] of Object.entries(scores)) {
+      await db.insert(ciBenchmarkScores).values({
+        competitorId,
+        axisKey,
+        currentScore: current,
+        targetScore: target,
+      });
+      benchmarkCount++;
+    }
+  }
+  console.log(`  Inserted ${benchmarkCount} benchmark scores`);
+
   console.log('\n=== CI seed completed successfully! ===');
 }
 
@@ -525,6 +578,8 @@ export async function seedCiData() {
 export async function forceReseedCiData() {
   console.log('=== Force reseed CI data ===');
   // Delete in reverse FK order
+  await db.delete(ciBenchmarkScores);
+  await db.delete(ciBenchmarkAxes);
   await db.delete(ciValueHistory);
   await db.delete(ciMonitorAlerts);
   await db.delete(ciStaging);

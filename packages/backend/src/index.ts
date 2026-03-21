@@ -5,6 +5,7 @@ import { registerRoutes } from './routes/index.js';
 import { aiUsageService } from './services/ai-usage.service.js';
 import { fixSocPowerConsumption } from './db/fix-soc-startup.js';
 import { ciUpdateService } from './services/ci-update.service.js';
+import { benchmarkService } from './services/benchmark.service.js';
 import { seedCiData } from './db/seed-ci.js';
 
 const fastify = Fastify({
@@ -49,6 +50,7 @@ const start = async () => {
     await aiUsageService.ensureTable();
     await fixSocPowerConsumption();
     await ciUpdateService.ensureTables();
+    await benchmarkService.ensureTables();
     await seedCiData();
     await fastify.listen({ port, host: '0.0.0.0' });
     console.log(`Backend server running on port ${port}`);

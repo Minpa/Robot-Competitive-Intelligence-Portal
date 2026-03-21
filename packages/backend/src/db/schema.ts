@@ -1633,3 +1633,37 @@ export const ciFreshnessRelations = relations(ciFreshness, ({ one }) => ({
   layer: one(ciLayers, { fields: [ciFreshness.layerId], references: [ciLayers.id] }),
   competitor: one(ciCompetitors, { fields: [ciFreshness.competitorId], references: [ciCompetitors.id] }),
 }));
+
+// ============================================
+// v1.7 Perfect Robot Benchmark 테이블
+// ============================================
+
+// Benchmark Axes — 10축 정의
+export const ciBenchmarkAxes = pgTable('ci_benchmark_axes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  key: varchar('key', { length: 50 }).notNull().unique(),
+  icon: varchar('icon', { length: 10 }),
+  label: varchar('label', { length: 100 }).notNull(),
+  description: text('description'),
+  perfectDef: text('perfect_def'),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Benchmark Scores — 경쟁사별 현재/목표 점수
+export const ciBenchmarkScores = pgTable('ci_benchmark_scores', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  competitorId: uuid('competitor_id').notNull().references(() => ciCompetitors.id, { onDelete: 'cascade' }),
+  axisKey: varchar('axis_key', { length: 50 }).notNull(),
+  currentScore: integer('current_score').notNull().default(0),
+  targetScore: integer('target_score').notNull().default(0),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  competitorAxisUniq: uniqueIndex('ci_benchmark_scores_competitor_axis_uniq').on(table.competitorId, table.axisKey),
+  competitorIdx: index('ci_benchmark_scores_competitor_idx').on(table.competitorId),
+}));
+
+// Relations
+export const ciBenchmarkScoresRelations = relations(ciBenchmarkScores, ({ one }) => ({
+  competitor: one(ciCompetitors, { fields: [ciBenchmarkScores.competitorId], references: [ciCompetitors.id] }),
+}));

@@ -7,15 +7,17 @@ import { CiFreshnessPanel } from '@/components/ci-update/CiFreshnessPanel';
 import { CiStagingPanel } from '@/components/ci-update/CiStagingPanel';
 import { CiMonitorAlertsPanel } from '@/components/ci-update/CiMonitorAlertsPanel';
 import { AddCompetitorModal } from '@/components/ci-update/AddCompetitorModal';
+import { PerfectRobotBenchmark } from '@/components/ci-update/PerfectRobotBenchmark';
 import { useQueryClient } from '@tanstack/react-query';
 
-type TabId = 'matrix' | 'freshness' | 'staging' | 'alerts';
+type TabId = 'matrix' | 'freshness' | 'staging' | 'alerts' | 'benchmark';
 
 const tabs: { id: TabId; name: string; icon: string }[] = [
   { id: 'matrix', name: 'CI 매트릭스', icon: '📊' },
   { id: 'freshness', name: '데이터 신선도', icon: '🕐' },
   { id: 'staging', name: '스테이징 큐', icon: '📋' },
   { id: 'alerts', name: '모니터링 알림', icon: '🔔' },
+  { id: 'benchmark', name: 'Perfect Robot', icon: '🏆' },
 ];
 
 export default function CiUpdatePage() {
@@ -114,6 +116,8 @@ export default function CiUpdatePage() {
       {activeTab === 'staging' && <CiStagingPanel />}
 
       {activeTab === 'alerts' && <CiMonitorAlertsPanel />}
+
+      {activeTab === 'benchmark' && <PerfectRobotBenchmark />}
 
       {/* Add Competitor Modal */}
       <AddCompetitorModal

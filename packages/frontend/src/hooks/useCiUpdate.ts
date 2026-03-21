@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import type { CiMatrixData, CiFreshnessSummary, CiStagingEntry, CiMonitorAlert, CiValueHistoryEntry } from '@/types/ci-update';
+import type { CiMatrixData, CiFreshnessSummary, CiStagingEntry, CiMonitorAlert, CiValueHistoryEntry, BenchmarkData } from '@/types/ci-update';
 
 const STALE_TIME = 120_000; // 2분
 
@@ -53,6 +53,15 @@ export function useCiValueHistory(valueId: string | null) {
     queryKey: ['ci-update', 'value-history', valueId],
     queryFn: () => api.getCiValueHistory(valueId!),
     enabled: !!valueId,
+    staleTime: STALE_TIME,
+  });
+}
+
+// Benchmark data
+export function useBenchmarkData() {
+  return useQuery<BenchmarkData>({
+    queryKey: ['ci-update', 'benchmark'],
+    queryFn: () => api.getBenchmarkData(),
     staleTime: STALE_TIME,
   });
 }
