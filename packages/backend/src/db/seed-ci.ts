@@ -1,3 +1,4 @@
+import { and, eq, isNull } from 'drizzle-orm';
 import { db } from './index.js';
 import {
   ciCompetitors,
@@ -480,6 +481,36 @@ const benchmarkScoresData: Record<string, Record<string, { current: number; targ
 };
 
 // ============================================
+// Backfill rationale for existing benchmark scores
+// ============================================
+async function backfillRationale() {
+  const competitors = await db.select().from(ciCompetitors);
+  const slugMap = new Map<string, string>();
+  for (const c of competitors) slugMap.set(c.slug, c.id);
+
+  let updated = 0;
+  for (const [slug, scores] of Object.entries(benchmarkScoresData)) {
+    const competitorId = slugMap.get(slug);
+    if (!competitorId) continue;
+    for (const [axisKey, { rationale }] of Object.entries(scores)) {
+      const result = await db.update(ciBenchmarkScores)
+        .set({ rationale })
+        .where(and(
+          eq(ciBenchmarkScores.competitorId, competitorId),
+          eq(ciBenchmarkScores.axisKey, axisKey),
+          isNull(ciBenchmarkScores.rationale),
+        ));
+      if (result.rowCount && result.rowCount > 0) updated++;
+    }
+  }
+  if (updated > 0) {
+    console.log(`  Backfilled rationale for ${updated} benchmark scores.`);
+  } else {
+    console.log('  All rationale already populated.');
+  }
+}
+
+// ============================================
 // Main seed function
 // ============================================
 export async function seedCiData() {
@@ -488,7 +519,8 @@ export async function seedCiData() {
   // Check if data already exists
   const existing = await db.select().from(ciCompetitors).limit(1);
   if (existing.length > 0) {
-    console.log('CI competitors already seeded — skipping.');
+    console.log('CI competitors already seeded — checking rationale backfill...');
+    await backfillRationale();
     return;
   }
 
