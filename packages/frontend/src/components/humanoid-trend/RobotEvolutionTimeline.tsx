@@ -5,14 +5,15 @@ import { api } from '@/lib/api';
 import { useState, useMemo, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
-// ── Color maps ──
+// ── Stage colors — aligned with site-wide badge convention ──
+// concept=slate, prototype=blue, poc=yellow, pilot=orange, commercial=green
 
 const STAGE_COLORS: Record<string, { bg: string; border: string; text: string; label: string }> = {
-  concept:    { bg: '#334155', border: '#64748b', text: '#cbd5e1', label: 'Concept' },
-  prototype:  { bg: '#1e3a5f', border: '#60a5fa', text: '#93c5fd', label: 'Prototype' },
-  poc:        { bg: '#365314', border: '#84cc16', text: '#bef264', label: 'PoC' },
-  pilot:      { bg: '#713f12', border: '#f59e0b', text: '#fcd34d', label: 'Pilot' },
-  commercial: { bg: '#581c87', border: '#a855f7', text: '#d8b4fe', label: 'Commercial' },
+  concept:    { bg: '#1e293b', border: '#64748b', text: '#94a3b8', label: 'Concept' },
+  prototype:  { bg: '#1e3a5f', border: '#3b82f6', text: '#93c5fd', label: 'Prototype' },
+  poc:        { bg: '#422006', border: '#eab308', text: '#fde047', label: 'PoC' },
+  pilot:      { bg: '#431407', border: '#f97316', text: '#fdba74', label: 'Pilot' },
+  commercial: { bg: '#052e16', border: '#22c55e', text: '#86efac', label: 'Commercial' },
 };
 
 const PURPOSE_LABELS: Record<string, string> = {
@@ -31,42 +32,41 @@ const REGION_OPTIONS = [
   { value: 'other', label: '기타' },
 ];
 
-// ── Compact layout constants ──
+// ── Layout constants ──
 const COMPANY_COL_W = 140;
 const YEAR_COL_W = 110;
 const TOP_HEADER_H = 52;
 const NODE_H = 22;
 const NODE_GAP = 4;
 const ROW_PAD_Y = 8;
+const RECENT_YEARS = 5;
 
 type Robot = { id: string; name: string; year: number | null; purpose: string | null; stage: string | null };
 
-/** Group robots by year within a company, return sorted year-groups (descending) */
-function groupByYear(robots: Robot[]): { year: number; items: Robot[] }[] {
+/** Group robots by year, sorted descending (latest first) */
+function groupByYear(robots: Robot[], minYear: number): { year: number; items: Robot[] }[] {
   const map = new Map<number, Robot[]>();
   for (const r of robots) {
-    if (r.year == null) continue;
+    if (r.year == null || r.year < minYear) continue;
     if (!map.has(r.year)) map.set(r.year, []);
     map.get(r.year)!.push(r);
   }
   return Array.from(map.entries())
-    .sort(([a], [b]) => b - a) // descending (latest first)
+    .sort(([a], [b]) => b - a)
     .map(([year, items]) => ({ year, items }));
 }
 
-/** Compute dynamic row height based on max stacked robots in a single year */
-function getRowHeight(robots: Robot[]): number {
-  const groups = groupByYear(robots);
+/** Row height based on max stacked robots in a single year */
+function getRowHeight(robots: Robot[], minYear: number): number {
+  const groups = groupByYear(robots, minYear);
   const maxStack = groups.reduce((max, g) => Math.max(max, g.items.length), 1);
   return maxStack * (NODE_H + NODE_GAP) - NODE_GAP + ROW_PAD_Y * 2;
 }
 
-/** Truncate name for node label */
 function truncName(name: string, maxLen: number = 12): string {
   return name.length > maxLen ? name.slice(0, maxLen) + '..' : name;
 }
 
-/** Node width from truncated name */
 function nodeWidth(name: string): number {
   return Math.max(68, truncName(name).length * 6.8 + 20);
 }
@@ -85,25 +85,34 @@ export default function RobotEvolutionTimeline() {
     queryFn: () => api.getEvolutionTimeline(regionFilter || undefined),
   });
 
-  // Years in reverse order (latest → oldest), row heights, total dims
   const chart = useMemo(() => {
     if (!data) return null;
-    const { companies, yearRange } = data;
+    const { companies } = data;
 
-    // Reverse: latest year first
+    // Recent 5 years only
+    const currentYear = new Date().getFullYear();
+    const minYear = currentYear - RECENT_YEARS + 1;
     const years: number[] = [];
-    for (let y = yearRange.max; y >= yearRange.min; y--) years.push(y);
+    for (let y = currentYear; y >= minYear; y--) years.push(y);
 
-    // Sort companies: most recent product first, then by robot count desc
-    const sorted = [...companies].sort((a, b) => {
-      const aMax = Math.max(...a.robots.filter(r => r.year != null).map(r => r.year!), 0);
-      const bMax = Math.max(...b.robots.filter(r => r.year != null).map(r => r.year!), 0);
+    // Filter companies: only those with at least one robot in range
+    const filtered = companies
+      .map(c => ({
+        ...c,
+        robots: c.robots.filter(r => r.year != null && r.year >= minYear),
+      }))
+      .filter(c => c.robots.length > 0);
+
+    // Sort: most recent product first, then robot count
+    const sorted = [...filtered].sort((a, b) => {
+      const aMax = Math.max(...a.robots.map(r => r.year!), 0);
+      const bMax = Math.max(...b.robots.map(r => r.year!), 0);
       if (bMax !== aMax) return bMax - aMax;
       return b.robots.length - a.robots.length;
     });
 
-    // Compute per-company row height
-    const rowHeights = sorted.map(c => getRowHeight(c.robots));
+    // Row heights
+    const rowHeights = sorted.map(c => getRowHeight(c.robots, minYear));
     const rowYOffsets: number[] = [];
     let cumY = TOP_HEADER_H;
     for (const h of rowHeights) {
@@ -114,7 +123,7 @@ export default function RobotEvolutionTimeline() {
     const svgW = COMPANY_COL_W + years.length * YEAR_COL_W + 20;
     const svgH = cumY + 8;
 
-    return { companies: sorted, years, rowHeights, rowYOffsets, svgW, svgH };
+    return { companies: sorted, years, rowHeights, rowYOffsets, svgW, svgH, minYear };
   }, [data]);
 
   const yearToX = useCallback((year: number) => {
@@ -154,20 +163,22 @@ export default function RobotEvolutionTimeline() {
     return <div className="p-6 text-center text-slate-400">데이터를 불러올 수 없습니다.</div>;
   }
 
-  const { companies, years, rowHeights, rowYOffsets, svgW, svgH } = chart;
+  const { companies, years, rowHeights, rowYOffsets, svgW, svgH, minYear } = chart;
 
   return (
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-lg font-bold text-slate-200">제품 진화 타임라인</h2>
-          <p className="text-xs text-slate-400">{companies.length}개 기업 · {data!.totalRobots}개 로봇 · 최신순</p>
+          <h2 className="text-lg font-bold text-white">제품 진화 타임라인</h2>
+          <p className="text-xs text-slate-400">
+            최근 {RECENT_YEARS}년 ({years[years.length - 1]}–{years[0]}) · {companies.length}개 기업 · 최신순
+          </p>
         </div>
         <select
           value={regionFilter}
           onChange={e => setRegionFilter(e.target.value)}
-          className="bg-slate-800 border border-slate-600 text-slate-200 text-xs rounded-lg px-2.5 py-1.5 focus:ring-violet-500 focus:border-violet-500"
+          className="bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-lg px-2.5 py-1.5 focus:ring-blue-500 focus:border-blue-500"
         >
           {REGION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
@@ -183,61 +194,55 @@ export default function RobotEvolutionTimeline() {
         ))}
       </div>
 
-      {/* Chart container with sticky company column */}
+      {/* Chart */}
       <div
         ref={containerRef}
-        className="relative overflow-x-auto rounded-xl border border-slate-700 bg-slate-900/80"
-        style={{ maxHeight: '75vh' }}
+        className="relative overflow-x-auto rounded-xl border border-slate-700 bg-slate-900"
         onMouseLeave={() => { setHoveredRobot(null); setTooltip(null); }}
       >
-        <svg
-          width={svgW}
-          height={svgH}
-          className="select-none"
-          style={{ minWidth: svgW }}
-        >
+        <svg width={svgW} height={svgH} className="select-none" style={{ minWidth: svgW }}>
           <defs>
             <marker id="arr" markerWidth={6} markerHeight={5} refX={5} refY={2.5} orient="auto">
-              <path d="M0,0 L6,2.5 L0,5 Z" fill="#475569" />
+              <path d="M0,0 L6,2.5 L0,5 Z" fill="#334155" />
             </marker>
           </defs>
 
           {/* Background */}
           <rect width={svgW} height={svgH} fill="#0f172a" />
 
-          {/* ── Year column headers ── */}
+          {/* Year columns */}
           {years.map((year, i) => {
             const x = COMPANY_COL_W + i * YEAR_COL_W;
             return (
               <g key={year}>
-                {i % 2 === 0 && <rect x={x} y={0} width={YEAR_COL_W} height={svgH} fill="#1e293b" opacity={0.25} />}
+                {i % 2 === 0 && <rect x={x} y={0} width={YEAR_COL_W} height={svgH} fill="#1e293b" opacity={0.2} />}
                 <text x={x + YEAR_COL_W / 2} y={22} textAnchor="middle" fill="#94a3b8" fontSize={12} fontWeight={600}>
                   {year}
                 </text>
-                <line x1={x} y1={TOP_HEADER_H - 6} x2={x} y2={svgH} stroke="#1e293b" strokeWidth={0.5} />
+                <line x1={x} y1={TOP_HEADER_H - 6} x2={x} y2={svgH} stroke="#334155" strokeWidth={0.5} />
               </g>
             );
           })}
 
-          {/* ── Phase bar (top) ── */}
+          {/* Phase bar */}
           {(() => {
             const phases = [
-              { label: '상업/가정용 특화', minY: Math.max(years[years.length - 1]!, 2025), maxY: years[0]!, color: '#7c3aed' },
-              { label: '산업용 HR 등장', minY: 2023, maxY: 2024, color: '#1d4ed8' },
-              { label: 'R&D / Prototype', minY: years[years.length - 1]!, maxY: Math.min(2022, years[0]!), color: '#475569' },
-            ].filter(p => p.minY <= years[0]! && p.maxY >= years[years.length - 1]!);
+              { label: '상업/가정용 특화', fromYear: 2025, toYear: years[0]!, color: '#3b82f6' },
+              { label: '산업용 HR 등장', fromYear: 2023, toYear: 2024, color: '#475569' },
+            ].filter(p => p.toYear >= minYear && p.fromYear <= years[0]!);
 
             return phases.map((p, i) => {
-              // In reversed axis, higher year = smaller index = more left
-              const idxLeft = years.indexOf(Math.min(p.maxY, years[0]!));
-              const idxRight = years.indexOf(Math.max(p.minY, years[years.length - 1]!));
+              const clampedFrom = Math.max(p.fromYear, minYear);
+              const clampedTo = Math.min(p.toYear, years[0]!);
+              const idxLeft = years.indexOf(clampedTo);
+              const idxRight = years.indexOf(clampedFrom);
               if (idxLeft === -1 || idxRight === -1) return null;
               const x1 = COMPANY_COL_W + Math.min(idxLeft, idxRight) * YEAR_COL_W;
               const x2 = COMPANY_COL_W + (Math.max(idxLeft, idxRight) + 1) * YEAR_COL_W;
               return (
                 <g key={i}>
-                  <rect x={x1} y={32} width={x2 - x1} height={16} rx={3} fill={p.color} opacity={0.5} />
-                  <text x={(x1 + x2) / 2} y={44} textAnchor="middle" fill="#e2e8f0" fontSize={9} fontWeight={600}>
+                  <rect x={x1} y={32} width={x2 - x1} height={14} rx={3} fill={p.color} opacity={0.35} />
+                  <text x={(x1 + x2) / 2} y={43} textAnchor="middle" fill="#cbd5e1" fontSize={9} fontWeight={500}>
                     {p.label}
                   </text>
                 </g>
@@ -245,18 +250,17 @@ export default function RobotEvolutionTimeline() {
             });
           })()}
 
-          {/* ── Company rows ── */}
+          {/* Company rows */}
           {companies.map((company, rowIdx) => {
             const y = rowYOffsets[rowIdx]!;
             const rowH = rowHeights[rowIdx]!;
-            const groups = groupByYear(company.robots);
+            const groups = groupByYear(company.robots, minYear);
 
             return (
               <g key={company.companyId}>
-                {/* Row separator */}
-                <line x1={0} y1={y} x2={svgW} y2={y} stroke="#1e293b" strokeWidth={0.5} />
+                <line x1={0} y1={y} x2={svgW} y2={y} stroke="#334155" strokeWidth={0.5} />
 
-                {/* Company name (fixed left) */}
+                {/* Company label */}
                 <rect x={0} y={y} width={COMPANY_COL_W} height={rowH} fill="#0f172a" />
                 <text x={COMPANY_COL_W - 8} y={y + rowH / 2 + 1} textAnchor="end" fill="#e2e8f0" fontSize={11} fontWeight={500}>
                   {truncName(company.companyName, 16)}
@@ -267,14 +271,13 @@ export default function RobotEvolutionTimeline() {
                   </text>
                 )}
 
-                {/* Evolution arrows between year-groups (connect rightmost node of newer group → leftmost of older) */}
+                {/* Arrows between year-groups */}
                 {groups.map((group, gi) => {
                   if (gi === groups.length - 1) return null;
                   const olderGroup = groups[gi + 1]!;
                   const cx1 = yearToX(group.year);
                   const cx2 = yearToX(olderGroup.year);
                   const cy = y + rowH / 2;
-                  // arrow goes left→right (newer→older in reversed timeline)
                   const x1 = cx1 + 30;
                   const x2 = cx2 - 30;
                   if (x2 <= x1 + 6) return null;
@@ -282,13 +285,13 @@ export default function RobotEvolutionTimeline() {
                     <line
                       key={`a-${gi}`}
                       x1={x1} y1={cy} x2={x2 - 4} y2={cy}
-                      stroke="#475569" strokeWidth={1} strokeDasharray="4 3"
+                      stroke="#334155" strokeWidth={1} strokeDasharray="4 3"
                       markerEnd="url(#arr)"
                     />
                   );
                 })}
 
-                {/* Robot nodes — stacked vertically within each year */}
+                {/* Robot nodes */}
                 {groups.map(group => {
                   const cx = yearToX(group.year);
                   const stackH = group.items.length * (NODE_H + NODE_GAP) - NODE_GAP;
@@ -355,7 +358,7 @@ export default function RobotEvolutionTimeline() {
                 <span className="text-slate-400">{PURPOSE_LABELS[tooltip.robot.purpose] || tooltip.robot.purpose}</span>
               )}
             </div>
-            <div className="text-violet-400 mt-0.5">클릭하여 상세 보기</div>
+            <div className="text-blue-400 mt-0.5">클릭하여 상세 보기</div>
           </div>
         )}
       </div>
