@@ -109,7 +109,7 @@ export function BenchmarkRadarChart({
             textAnchor="middle"
             dominantBaseline="middle"
             className="fill-slate-400"
-            fontSize={11}
+            fontSize={13}
           >
             {axis.icon} {axis.label}
           </text>
@@ -120,7 +120,7 @@ export function BenchmarkRadarChart({
       {levels.map(level => {
         const [x, y] = getPoint(0, level);
         return (
-          <text key={`level-${level}`} x={x + 8} y={y - 4} fontSize={9} className="fill-slate-500">
+          <text key={`level-${level}`} x={x + 8} y={y - 4} fontSize={11} className="fill-slate-500">
             {level}
           </text>
         );

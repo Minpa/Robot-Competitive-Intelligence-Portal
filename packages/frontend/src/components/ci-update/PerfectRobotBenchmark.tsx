@@ -62,15 +62,15 @@ export function PerfectRobotBenchmark() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-slate-800/80 to-slate-800/40 rounded-xl border border-slate-700 p-5">
+      <div className="bg-gradient-to-r from-slate-800/80 to-slate-800/40 rounded-xl border border-slate-700 p-6">
         <div className="flex items-center gap-3 mb-2">
-          <span className="text-2xl">🏆</span>
+          <span className="text-3xl">🏆</span>
           <div>
-            <h2 className="text-lg font-bold text-white">THE ULTIMATE BENCHMARK</h2>
-            <p className="text-sm text-slate-400">완벽한 로봇까지의 거리</p>
+            <h2 className="text-xl font-bold text-white">THE ULTIMATE BENCHMARK</h2>
+            <p className="text-base text-slate-400">완벽한 로봇까지의 거리</p>
           </div>
         </div>
-        <p className="text-xs text-slate-500 mt-2">
+        <p className="text-sm text-slate-500 mt-2">
           인간 수준의 신체 + 인지 + 자율 + 손재주 + 대화 + 연결 + 안전 + 상용 + IP + 확장성 — 10축 총 100점 기준으로 각 경쟁사의 현재 위치와 목표 방향을 시각화합니다.
         </p>
       </div>
@@ -86,7 +86,7 @@ export function PerfectRobotBenchmark() {
               key={comp.slug}
               onClick={() => toggleCompetitor(comp.slug)}
               onDoubleClick={() => setSelectedSlug(comp.slug)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
                 isActive
                   ? 'border-opacity-60'
                   : 'opacity-40 border-slate-600'
@@ -104,7 +104,7 @@ export function PerfectRobotBenchmark() {
                 style={{ backgroundColor: color, opacity: isActive ? 1 : 0.3 }}
               />
               {comp.name}
-              {comp.slug === 'cloid' && <span className="text-[10px]">(우리)</span>}
+              {comp.slug === 'cloid' && <span className="text-xs">(우리)</span>}
             </button>
           );
         })}
@@ -113,7 +113,7 @@ export function PerfectRobotBenchmark() {
 
         <button
           onClick={() => setShowTargets(prev => !prev)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
             showTargets
               ? 'bg-blue-600 text-white'
               : 'bg-slate-700 text-slate-400 hover:text-slate-200'
@@ -143,7 +143,7 @@ export function PerfectRobotBenchmark() {
             <BenchmarkDetailPanel axes={data.axes} competitor={selectedCompetitor} />
           ) : (
             <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4 flex items-center justify-center h-full">
-              <p className="text-slate-500 text-sm">회사를 선택하세요</p>
+              <p className="text-slate-500 text-base">회사를 선택하세요</p>
             </div>
           )}
         </div>

@@ -29,24 +29,24 @@ export function BenchmarkDetailPanel({ axes, competitor }: BenchmarkDetailPanelP
   const strategy = STRATEGY_DIRECTIONS[competitor.slug] || '';
 
   return (
-    <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4 space-y-4">
+    <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-5 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-white">{competitor.name}</h3>
-          <p className="text-xs text-slate-400">{competitor.manufacturer}</p>
+          <h3 className="text-xl font-bold text-white">{competitor.name}</h3>
+          <p className="text-sm text-slate-400">{competitor.manufacturer}</p>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-bold" style={{ color }}>{totalCurrent}<span className="text-sm text-slate-500">/100</span></div>
-          <div className="text-xs text-slate-400">완벽까지 <span className="text-red-400 font-medium">{gap}점</span></div>
+          <div className="text-3xl font-bold" style={{ color }}>{totalCurrent}<span className="text-base text-slate-500">/100</span></div>
+          <div className="text-sm text-slate-400">완벽까지 <span className="text-red-400 font-medium">{gap}점</span></div>
         </div>
       </div>
 
       {/* Strategy direction */}
       {strategy && (
         <div className="bg-slate-700/30 rounded-lg p-3">
-          <div className="text-[10px] text-slate-500 mb-1">🎯 전략 방향</div>
-          <p className="text-xs text-slate-300">{strategy}</p>
+          <div className="text-xs text-slate-500 mb-1">🎯 전략 방향</div>
+          <p className="text-sm text-slate-300">{strategy}</p>
         </div>
       )}
 
@@ -61,13 +61,13 @@ export function BenchmarkDetailPanel({ axes, competitor }: BenchmarkDetailPanelP
           return (
             <div key={axis.key}>
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-xs text-slate-300">{axis.icon} {axis.label}</span>
-                <span className="text-xs text-slate-400">
+                <span className="text-sm text-slate-300">{axis.icon} {axis.label}</span>
+                <span className="text-sm text-slate-400">
                   {current}
                   {improvement > 0 && <span className="text-green-400 ml-1">→{target}</span>}
                 </span>
               </div>
-              <div className="relative h-3 bg-slate-700 rounded-full overflow-hidden">
+              <div className="relative h-3.5 bg-slate-700 rounded-full overflow-hidden">
                 {/* Target bar (background) */}
                 {target > current && (
                   <div
@@ -88,7 +88,7 @@ export function BenchmarkDetailPanel({ axes, competitor }: BenchmarkDetailPanelP
 
       {/* Total bar */}
       <div className="pt-2 border-t border-slate-700">
-        <div className="flex justify-between text-xs mb-1">
+        <div className="flex justify-between text-sm mb-1">
           <span className="text-slate-400">총점</span>
           <span style={{ color }}>{totalCurrent} → {totalTarget}</span>
         </div>
