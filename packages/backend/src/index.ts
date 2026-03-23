@@ -51,6 +51,7 @@ const start = async () => {
     await fixSocPowerConsumption();
     await ciUpdateService.ensureTables();
     await benchmarkService.ensureTables();
+    await benchmarkService.stripAxisIcons();
     await seedCiData();
     await fastify.listen({ port, host: '0.0.0.0' });
     console.log(`Backend server running on port ${port}`);

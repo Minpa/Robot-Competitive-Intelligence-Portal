@@ -390,16 +390,16 @@ const freshnessTierByLayer: Record<string, number> = {
 // 6. Benchmark Axes 시드 데이터 (10축)
 // ============================================
 const benchmarkAxesData = [
-  { key: 'physical', icon: '💪', label: '신체 능력', description: 'DOF · 페이로드 · 속도 · 내구성 · 방수', perfectDef: 'Atlas급 56-DOF, 50kg, IP67, -20~40°C', sortOrder: 1 },
-  { key: 'perception', icon: '👁️', label: '인지/비전', description: '센서 품질 · FOV · 환경인식 · 야간/악천후', perfectDef: '풀스택 + 악천후 완벽 + 실시간 3D', sortOrder: 2 },
-  { key: 'autonomy', icon: '🧠', label: 'AI 자율성', description: 'VLA 모델 · 자율 태스크 수 · 학습 속도', perfectDef: '완전 자율, 1회 시연 학습, 100+ 연속', sortOrder: 3 },
-  { key: 'dexterity', icon: '🤲', label: '손재주/조작', description: '손 DOF · 힘 제어 · 촉각 · 도구 사용', perfectDef: '22-DOF/손 + 3g 촉각 + 도구 자유자재', sortOrder: 4 },
-  { key: 'interaction', icon: '💬', label: '인간 상호작용', description: '자연어 · 감정인식 · 제스처 · 개인화', perfectDef: '완벽 대화 + 감정/의도 + 개인화 기억', sortOrder: 5 },
-  { key: 'ecosystem', icon: '🔗', label: '생태계/연결성', description: 'IoT 연동 · 플릿관리 · 파트너 · SDK', perfectDef: '전 가전 연동 + 오픈 SDK + 100+ 파트너', sortOrder: 6 },
-  { key: 'safety', icon: '🛡️', label: '안전/신뢰', description: '인증 · 프라이버시 · 소프트바디 · 표준', perfectDef: '국제 인증 + 사고 제로 + 표준 주도', sortOrder: 7 },
-  { key: 'business', icon: '💰', label: '비즈니스 성숙도', description: '상용화 · 가격 · 생산역량 · 매출', perfectDef: '10만+대 배치 + 양의 ROI + 글로벌', sortOrder: 8 },
-  { key: 'ip', icon: '📜', label: 'IP/기술자산', description: '특허 · 학술기반 · 데이터 축적 · R&D', perfectDef: '50+ 특허 패밀리 + 전세계 + 방어벽', sortOrder: 9 },
-  { key: 'scalability', icon: '🚀', label: '확장성', description: 'OTA · 멀티태스크 · 글로벌 · 대량생산', perfectDef: '연 10만대 + OTA 무제한 + 글로벌', sortOrder: 10 },
+  { key: 'physical', icon: null, label: '신체 능력', description: 'DOF · 페이로드 · 속도 · 내구성 · 방수', perfectDef: 'Atlas급 56-DOF, 50kg, IP67, -20~40°C', sortOrder: 1 },
+  { key: 'perception', icon: null, label: '인지/비전', description: '센서 품질 · FOV · 환경인식 · 야간/악천후', perfectDef: '풀스택 + 악천후 완벽 + 실시간 3D', sortOrder: 2 },
+  { key: 'autonomy', icon: null, label: 'AI 자율성', description: 'VLA 모델 · 자율 태스크 수 · 학습 속도', perfectDef: '완전 자율, 1회 시연 학습, 100+ 연속', sortOrder: 3 },
+  { key: 'dexterity', icon: null, label: '손재주/조작', description: '손 DOF · 힘 제어 · 촉각 · 도구 사용', perfectDef: '22-DOF/손 + 3g 촉각 + 도구 자유자재', sortOrder: 4 },
+  { key: 'interaction', icon: null, label: '인간 상호작용', description: '자연어 · 감정인식 · 제스처 · 개인화', perfectDef: '완벽 대화 + 감정/의도 + 개인화 기억', sortOrder: 5 },
+  { key: 'ecosystem', icon: null, label: '생태계/연결성', description: 'IoT 연동 · 플릿관리 · 파트너 · SDK', perfectDef: '전 가전 연동 + 오픈 SDK + 100+ 파트너', sortOrder: 6 },
+  { key: 'safety', icon: null, label: '안전/신뢰', description: '인증 · 프라이버시 · 소프트바디 · 표준', perfectDef: '국제 인증 + 사고 제로 + 표준 주도', sortOrder: 7 },
+  { key: 'business', icon: null, label: '비즈니스 성숙도', description: '상용화 · 가격 · 생산역량 · 매출', perfectDef: '10만+대 배치 + 양의 ROI + 글로벌', sortOrder: 8 },
+  { key: 'ip', icon: null, label: 'IP/기술자산', description: '특허 · 학술기반 · 데이터 축적 · R&D', perfectDef: '50+ 특허 패밀리 + 전세계 + 방어벽', sortOrder: 9 },
+  { key: 'scalability', icon: null, label: '확장성', description: 'OTA · 멀티태스크 · 글로벌 · 대량생산', perfectDef: '연 10만대 + OTA 무제한 + 글로벌', sortOrder: 10 },
 ];
 
 // ============================================

@@ -8,7 +8,14 @@ class BenchmarkService {
    */
   async getBenchmarkData() {
     // Get all axes ordered by sortOrder
-    const axes = await db.select().from(ciBenchmarkAxes).orderBy(asc(ciBenchmarkAxes.sortOrder));
+    const rawAxes = await db.select().from(ciBenchmarkAxes).orderBy(asc(ciBenchmarkAxes.sortOrder));
+
+    // Strip icon and any leading emoji from label
+    const axes = rawAxes.map(a => ({
+      ...a,
+      icon: null,
+      label: a.label.replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}\u200d\ufe0f]+\s*/u, ''),
+    }));
 
     // Get all competitors (active)
     const competitors = await db.select().from(ciCompetitors)
@@ -65,6 +72,27 @@ class BenchmarkService {
         currentScore,
         targetScore,
       });
+    }
+  }
+
+  /**
+   * Strip emoji icons from axis labels and null out icon column
+   */
+  async stripAxisIcons() {
+    try {
+      await db.execute(sql.raw(`
+        UPDATE ci_benchmark_axes SET icon = NULL WHERE icon IS NOT NULL;
+      `));
+      // Strip leading emoji characters from labels
+      const axes = await db.select().from(ciBenchmarkAxes);
+      for (const axis of axes) {
+        const cleaned = axis.label.replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}\u200d\ufe0f]+\s*/u, '');
+        if (cleaned !== axis.label) {
+          await db.update(ciBenchmarkAxes).set({ label: cleaned }).where(eq(ciBenchmarkAxes.id, axis.id));
+        }
+      }
+    } catch (e) {
+      console.log('stripAxisIcons (non-fatal):', (e as Error).message);
     }
   }
 
