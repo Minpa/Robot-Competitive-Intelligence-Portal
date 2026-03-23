@@ -6,6 +6,7 @@ import { BenchmarkRadarChart } from './BenchmarkRadarChart';
 import { BenchmarkDetailPanel } from './BenchmarkDetailPanel';
 import { BenchmarkLeaderboard } from './BenchmarkLeaderboard';
 import { BenchmarkGapAnalysis } from './BenchmarkGapAnalysis';
+import { BenchmarkScoringGuide } from './BenchmarkScoringGuide';
 
 const ALL_SLUGS = ['digit', 'optimus', 'figure', 'neo', 'atlas', 'cloid'];
 
@@ -155,6 +156,9 @@ export function PerfectRobotBenchmark() {
         competitors={data.competitors}
         onSelect={setSelectedSlug}
       />
+
+      {/* Scoring Guide */}
+      <BenchmarkScoringGuide axes={data.axes} />
 
       {/* CLOiD Gap Analysis */}
       <BenchmarkGapAnalysis axes={data.axes} cloid={cloidCompetitor} />
