@@ -33,12 +33,12 @@ const REGION_OPTIONS = [
 ];
 
 // ── Layout constants ──
-const COMPANY_COL_W = 140;
-const YEAR_COL_W = 110;
-const TOP_HEADER_H = 52;
-const NODE_H = 22;
-const NODE_GAP = 4;
-const ROW_PAD_Y = 8;
+const COMPANY_COL_W = 160;
+const YEAR_COL_W = 180;
+const TOP_HEADER_H = 56;
+const NODE_H = 26;
+const NODE_GAP = 5;
+const ROW_PAD_Y = 10;
 const RECENT_YEARS = 5;
 
 type Robot = { id: string; name: string; year: number | null; purpose: string | null; stage: string | null };
@@ -63,12 +63,12 @@ function getRowHeight(robots: Robot[], minYear: number): number {
   return maxStack * (NODE_H + NODE_GAP) - NODE_GAP + ROW_PAD_Y * 2;
 }
 
-function truncName(name: string, maxLen: number = 12): string {
+function truncName(name: string, maxLen: number = 15): string {
   return name.length > maxLen ? name.slice(0, maxLen) + '..' : name;
 }
 
 function nodeWidth(name: string): number {
-  return Math.max(68, truncName(name).length * 6.8 + 20);
+  return Math.max(78, truncName(name).length * 7.2 + 22);
 }
 
 export default function RobotEvolutionTimeline() {
@@ -216,7 +216,7 @@ export default function RobotEvolutionTimeline() {
             return (
               <g key={year}>
                 {i % 2 === 0 && <rect x={x} y={0} width={YEAR_COL_W} height={svgH} fill="#1e293b" opacity={0.2} />}
-                <text x={x + YEAR_COL_W / 2} y={22} textAnchor="middle" fill="#94a3b8" fontSize={12} fontWeight={600}>
+                <text x={x + YEAR_COL_W / 2} y={22} textAnchor="middle" fill="#94a3b8" fontSize={14} fontWeight={600}>
                   {year}
                 </text>
                 <line x1={x} y1={TOP_HEADER_H - 6} x2={x} y2={svgH} stroke="#334155" strokeWidth={0.5} />
@@ -241,8 +241,8 @@ export default function RobotEvolutionTimeline() {
               const x2 = COMPANY_COL_W + (Math.max(idxLeft, idxRight) + 1) * YEAR_COL_W;
               return (
                 <g key={i}>
-                  <rect x={x1} y={32} width={x2 - x1} height={14} rx={3} fill={p.color} opacity={0.35} />
-                  <text x={(x1 + x2) / 2} y={43} textAnchor="middle" fill="#cbd5e1" fontSize={9} fontWeight={500}>
+                  <rect x={x1} y={30} width={x2 - x1} height={18} rx={3} fill={p.color} opacity={0.35} />
+                  <text x={(x1 + x2) / 2} y={43} textAnchor="middle" fill="#cbd5e1" fontSize={10} fontWeight={500}>
                     {p.label}
                   </text>
                 </g>
@@ -262,11 +262,11 @@ export default function RobotEvolutionTimeline() {
 
                 {/* Company label */}
                 <rect x={0} y={y} width={COMPANY_COL_W} height={rowH} fill="#0f172a" />
-                <text x={COMPANY_COL_W - 8} y={y + rowH / 2 + 1} textAnchor="end" fill="#e2e8f0" fontSize={11} fontWeight={500}>
-                  {truncName(company.companyName, 16)}
+                <text x={COMPANY_COL_W - 10} y={y + rowH / 2 + 1} textAnchor="end" fill="#e2e8f0" fontSize={12} fontWeight={500}>
+                  {truncName(company.companyName, 18)}
                 </text>
                 {company.companyCountry && (
-                  <text x={COMPANY_COL_W - 8} y={y + rowH / 2 + 13} textAnchor="end" fill="#475569" fontSize={8}>
+                  <text x={COMPANY_COL_W - 10} y={y + rowH / 2 + 14} textAnchor="end" fill="#64748b" fontSize={9}>
                     {company.companyCountry}
                   </text>
                 )}
@@ -326,7 +326,7 @@ export default function RobotEvolutionTimeline() {
                           y={ny + NODE_H / 2 + 3.5}
                           textAnchor="middle"
                           fill={isHov ? '#fff' : stage.text}
-                          fontSize={10}
+                          fontSize={11}
                           fontWeight={500}
                         >
                           {truncName(robot.name)}
