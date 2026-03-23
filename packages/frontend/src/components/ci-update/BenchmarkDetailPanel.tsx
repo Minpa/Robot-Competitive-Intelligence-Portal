@@ -59,7 +59,7 @@ export function BenchmarkDetailPanel({ axes, competitor }: BenchmarkDetailPanelP
           const improvement = target - current;
 
           return (
-            <div key={axis.key}>
+            <div key={axis.key} className="group/bar relative">
               <div className="flex items-center justify-between mb-0.5">
                 <span className="text-sm text-slate-300">{axis.icon} {axis.label}</span>
                 <span className="text-sm text-slate-400">
@@ -67,7 +67,7 @@ export function BenchmarkDetailPanel({ axes, competitor }: BenchmarkDetailPanelP
                   {improvement > 0 && <span className="text-green-400 ml-1">→{target}</span>}
                 </span>
               </div>
-              <div className="relative h-3.5 bg-slate-700 rounded-full overflow-hidden">
+              <div className="relative h-3.5 bg-slate-700 rounded-full overflow-hidden cursor-pointer">
                 {/* Target bar (background) */}
                 {target > current && (
                   <div
@@ -81,6 +81,22 @@ export function BenchmarkDetailPanel({ axes, competitor }: BenchmarkDetailPanelP
                   style={{ width: `${current * 10}%`, backgroundColor: color }}
                 />
               </div>
+              {/* Rationale tooltip */}
+              {score?.rationale && (
+                <div className="absolute z-50 left-0 right-0 bottom-full mb-2 opacity-0 invisible group-hover/bar:opacity-100 group-hover/bar:visible transition-all duration-150 pointer-events-none">
+                  <div className="bg-slate-900 border border-slate-600 rounded-lg shadow-xl p-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-semibold" style={{ color }}>{axis.icon} {axis.label}</span>
+                      <span className="text-sm font-medium" style={{ color }}>
+                        {current}/10
+                        {improvement > 0 && <span className="text-green-400 ml-1">→{target}</span>}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed">{score.rationale}</p>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-slate-600" />
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
