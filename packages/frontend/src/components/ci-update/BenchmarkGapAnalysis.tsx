@@ -26,18 +26,12 @@ export function BenchmarkGapAnalysis({ axes, cloid }: BenchmarkGapAnalysisProps)
     if (!score) continue;
     const { currentScore: current, targetScore: target } = score;
     const gapToTarget = target - current;
-    const gapToPerfect = 10 - current;
 
-    if (current >= 5 || gapToTarget >= 3) {
-      // Areas where CLOiD is strong or making big moves
-      if (current >= 5) {
-        strengths.push({ axis, current, target, gap: gapToPerfect });
-      }
-      if (gapToTarget >= 3) {
-        gaps.push({ axis, current, target, gap: gapToPerfect });
-      }
-    } else if (gapToPerfect >= 5) {
-      gaps.push({ axis, current, target, gap: gapToPerfect });
+    if (current >= 5) {
+      strengths.push({ axis, current, target, gap: gapToTarget });
+    }
+    if (gapToTarget >= 3) {
+      gaps.push({ axis, current, target, gap: gapToTarget });
     }
   }
 
