@@ -182,7 +182,7 @@ export function TimelineTrendPanel({
         <EmptyChartPlaceholder
           title="타임라인 데이터 없음"
           message="타임라인 데이터가 없습니다"
-          icon="📈"
+          icon=""
           dataType="이벤트"
           minDataCount={1}
         />
@@ -210,7 +210,6 @@ export function TimelineTrendPanel({
       {/* Header */}
       <div className="mb-4">
         <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
-          <span className="text-xl">📈</span>
           월별 이벤트/신규 제품 트렌드
         </h3>
         <p className="text-xs text-slate-400 mt-1">이벤트 수(막대) vs 신규 제품(라인) · 차트 클릭 시 카테고리별 로봇 목록 표시</p>

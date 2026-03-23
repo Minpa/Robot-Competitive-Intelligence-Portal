@@ -95,7 +95,6 @@ export default function PPTBuilderPage() {
           {/* 헤더 */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <span className="text-3xl">📊</span>
               PPT 빌더
             </h1>
             <p className="text-slate-400 mt-1">분석 데이터를 기반으로 프레젠테이션을 자동 생성합니다</p>

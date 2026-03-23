@@ -106,7 +106,7 @@ export function CaseDetailDrawer({ isOpen, onClose, caseDetail }: CaseDetailDraw
         <div className="p-6 space-y-6">
           {/* 개요 섹션 */}
           <section>
-            <h3 className="text-sm font-semibold text-slate-300 mb-3">📋 개요</h3>
+            <h3 className="text-sm font-semibold text-slate-300 mb-3">개요</h3>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="bg-slate-800 rounded p-3">
                 <div className="text-slate-400 text-xs mb-1">환경</div>
@@ -138,7 +138,7 @@ export function CaseDetailDrawer({ isOpen, onClose, caseDetail }: CaseDetailDraw
 
           {/* 사용 로봇 목록 */}
           <section>
-            <h3 className="text-sm font-semibold text-slate-300 mb-3">🤖 사용 로봇</h3>
+            <h3 className="text-sm font-semibold text-slate-300 mb-3">사용 로봇</h3>
             <div className="space-y-3">
               {caseDetail.robots.length > 0 ? (
                 caseDetail.robots.map((robot) => (
@@ -147,7 +147,7 @@ export function CaseDetailDrawer({ isOpen, onClose, caseDetail }: CaseDetailDraw
                       <img src={robot.imageUrl} alt="" className="w-16 h-16 object-cover rounded" />
                     ) : (
                       <div className="w-16 h-16 bg-slate-700 rounded flex items-center justify-center text-2xl">
-                        🤖
+
                       </div>
                     )}
                     <div className="flex-1">
@@ -167,7 +167,7 @@ export function CaseDetailDrawer({ isOpen, onClose, caseDetail }: CaseDetailDraw
           {/* Before vs After 프로세스 */}
           {(caseDetail.beforeProcess || caseDetail.afterProcess) && (
             <section>
-              <h3 className="text-sm font-semibold text-slate-300 mb-3">🔄 프로세스 변화</h3>
+              <h3 className="text-sm font-semibold text-slate-300 mb-3">프로세스 변화</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-red-500/10 rounded-lg p-3">
                   <div className="text-xs font-medium text-red-400 mb-2">Before</div>
@@ -184,7 +184,7 @@ export function CaseDetailDrawer({ isOpen, onClose, caseDetail }: CaseDetailDraw
           {/* 정량 효과 */}
           {caseDetail.effects.length > 0 && (
             <section>
-              <h3 className="text-sm font-semibold text-slate-300 mb-3">📊 정량 효과</h3>
+              <h3 className="text-sm font-semibold text-slate-300 mb-3">정량 효과</h3>
               <div className="space-y-2">
                 {caseDetail.effects.map((effect, i) => (
                   <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded">
@@ -212,7 +212,7 @@ export function CaseDetailDrawer({ isOpen, onClose, caseDetail }: CaseDetailDraw
           {/* 관련 기사·영상 링크 */}
           {caseDetail.relatedLinks.length > 0 && (
             <section>
-              <h3 className="text-sm font-semibold text-slate-300 mb-3">🔗 관련 자료</h3>
+              <h3 className="text-sm font-semibold text-slate-300 mb-3">관련 자료</h3>
               <div className="space-y-2">
                 {caseDetail.relatedLinks.map((link, i) => (
                   <a

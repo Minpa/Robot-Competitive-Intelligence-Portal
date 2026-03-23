@@ -151,7 +151,6 @@ export function SegmentDetailDrawer({
           {!isLoading && !isEmptySegment && robots && robots.length > 0 && (
             <section>
               <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
-                <span>🤖</span>
                 로봇 목록 ({robots.length})
               </h3>
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
@@ -191,7 +190,6 @@ export function SegmentDetailDrawer({
           {!isLoading && !isEmptySegment && (
             <section>
               <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
-                <span>🏢</span>
                 Top 3 회사
               </h3>
               <div className="space-y-3">
@@ -248,7 +246,6 @@ export function SegmentDetailDrawer({
           {!isLoading && !isEmptySegment && (
             <section>
               <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
-                <span>📅</span>
                 최근 이벤트
               </h3>
               <div className="relative">

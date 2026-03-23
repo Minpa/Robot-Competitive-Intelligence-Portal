@@ -70,7 +70,7 @@ export function RecentDeploymentEventsCard({
 
       {/* 임팩트 큰 사례 하이라이트 */}
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-slate-300">🔥 주요 사례</h3>
+        <h3 className="text-sm font-medium text-slate-300">주요 사례</h3>
         {highlights.length > 0 ? (
           highlights.slice(0, 2).map((highlight) => (
             <div
@@ -83,7 +83,7 @@ export function RecentDeploymentEventsCard({
                 {highlight.logoUrl ? (
                   <img src={highlight.logoUrl} alt="" className="w-8 h-8 object-contain" />
                 ) : (
-                  <span className="text-lg">🤖</span>
+                  <span className="text-lg"></span>
                 )}
               </div>
               

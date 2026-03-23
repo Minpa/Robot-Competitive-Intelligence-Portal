@@ -172,7 +172,7 @@ export default function ScoringPipelineAdmin() {
             <div className="text-green-400">{migrationResult.message}</div>
             {migrationResult.results?.map((r: any, i: number) => (
               <div key={i} className={`pl-2 border-l-2 ${r.status === 'success' ? 'border-green-300 text-slate-400' : 'border-red-300 text-red-500'}`}>
-                {r.file}: {r.status === 'success' ? '✓' : `✗ ${r.error}`}
+                {r.file}: {r.status === 'success' ? <CheckCircle2 className="w-3 h-3 text-green-400 inline" /> : <><XCircle className="w-3 h-3 text-red-400 inline" /> {r.error}</>}
               </div>
             ))}
           </div>
@@ -213,7 +213,7 @@ export default function ScoringPipelineAdmin() {
                 ? 'bg-yellow-900/20 text-yellow-400'
                 : 'bg-red-900/20 text-red-400'
           }`}>
-            {result.status === 'success' ? '✓ 완료' : result.status === 'partial_failure' ? '⚠ 부분 완료' : '✗ 실패'}
+            {result.status === 'success' ? <><CheckCircle2 className="w-3.5 h-3.5 inline mr-1" />완료</> : result.status === 'partial_failure' ? <><AlertTriangle className="w-3.5 h-3.5 inline mr-1" />부분 완료</> : <><XCircle className="w-3.5 h-3.5 inline mr-1" />실패</>}
             <span className="ml-2 font-normal">
               총 {result.totalRobots}개 | 성공 {result.successCount} | 실패 {result.failureCount} | {formatDuration(result.totalDurationMs)}
             </span>

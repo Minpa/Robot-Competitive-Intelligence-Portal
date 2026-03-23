@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import Link from 'next/link';
-import { ArrowLeft, Plus, X } from 'lucide-react';
+import { ArrowLeft, Plus, X, Check, Minus } from 'lucide-react';
 
 export default function RobotComparePage() {
   const searchParams = useSearchParams();
@@ -54,7 +54,7 @@ export default function RobotComparePage() {
     if (!spec) return '-';
     const value = spec[field];
     if (value === null || value === undefined) return '-';
-    if (typeof value === 'boolean') return value ? '✓' : '✗';
+    if (typeof value === 'boolean') return value ? <Check className="w-4 h-4 text-green-400 inline" /> : <Minus className="w-4 h-4 text-slate-500 inline" />;
     return value;
   };
 
@@ -80,7 +80,6 @@ export default function RobotComparePage() {
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-                <span className="text-3xl">⚖️</span>
                 로봇 비교
               </h1>
               <p className="text-slate-400 mt-1">최대 4개의 로봇을 선택하여 스펙을 비교하세요</p>

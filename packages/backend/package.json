@@ -23,7 +23,6 @@
     "seed:crawl": "tsx src/db/seed-crawl-targets.ts",
     "seed:rfm": "tsx src/db/seed-rfm.ts",
     "seed:components": "tsx src/db/seed-components.ts",
-    "seed:vision-cost": "tsx src/db/seed-vision-cost.ts",
     "seed:war-room": "tsx src/db/seed-war-room.ts",
     "update:categories": "tsx src/db/update-company-categories.ts",
     "clear:content": "tsx src/db/clear-article-content.ts",

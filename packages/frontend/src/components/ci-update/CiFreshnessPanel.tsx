@@ -3,13 +3,14 @@
 import { useCiFreshness } from '@/hooks/useCiUpdate';
 import { api } from '@/lib/api';
 import { useQueryClient } from '@tanstack/react-query';
+import { Check } from 'lucide-react';
 
 function getStatusBadge(status: string) {
   switch (status) {
-    case 'fresh': return { icon: '🟢', label: '최신', cls: 'bg-green-500/20 text-green-400' };
-    case 'warning': return { icon: '🟡', label: '주의', cls: 'bg-yellow-500/20 text-yellow-400' };
-    case 'stale': return { icon: '🔴', label: '갱신필요', cls: 'bg-red-500/20 text-red-400' };
-    default: return { icon: '⚫', label: '미검증', cls: 'bg-slate-500/20 text-slate-400' };
+    case 'fresh': return { dotColor: 'bg-green-500', label: '최신', cls: 'bg-green-500/20 text-green-400' };
+    case 'warning': return { dotColor: 'bg-yellow-500', label: '주의', cls: 'bg-yellow-500/20 text-yellow-400' };
+    case 'stale': return { dotColor: 'bg-red-500', label: '갱신필요', cls: 'bg-red-500/20 text-red-400' };
+    default: return { dotColor: 'bg-slate-500', label: '미검증', cls: 'bg-slate-500/20 text-slate-400' };
   }
 }
 
@@ -54,9 +55,9 @@ export function CiFreshnessPanel() {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-white">데이터 신선도</h3>
         <div className="flex gap-3 text-xs">
-          <span className="text-green-400">🟢 {freshCount}</span>
-          <span className="text-yellow-400">🟡 {warningCount}</span>
-          <span className="text-red-400">🔴 {staleCount}</span>
+          <span className="text-green-400 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" />{freshCount}</span>
+          <span className="text-yellow-400 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" />{warningCount}</span>
+          <span className="text-red-400 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" />{staleCount}</span>
           <span className="text-slate-400">전체 {total}</span>
         </div>
       </div>
@@ -77,7 +78,7 @@ export function CiFreshnessPanel() {
             <div key={layerName} className="bg-slate-700/30 rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-white">
-                  {icon} {layerName}
+                  {layerName}
                 </span>
                 <span className="text-xs text-slate-400">
                   {layerFresh}/{layerTotal} 최신
@@ -92,7 +93,7 @@ export function CiFreshnessPanel() {
                       className="flex items-center justify-between bg-slate-800/50 rounded px-2 py-1"
                     >
                       <div className="flex items-center gap-1 min-w-0">
-                        <span className="text-xs">{badge.icon}</span>
+                        <span className={`w-1.5 h-1.5 rounded-full ${badge.dotColor} shrink-0`} />
                         <span className="text-[11px] text-slate-300 truncate">{item.competitorName}</span>
                       </div>
                       <div className="flex items-center gap-1">
@@ -103,7 +104,7 @@ export function CiFreshnessPanel() {
                             className="text-[10px] text-blue-400 hover:text-blue-300"
                             title="검증 완료 표시"
                           >
-                            ✓
+                            <Check className="w-3 h-3" />
                           </button>
                         )}
                       </div>

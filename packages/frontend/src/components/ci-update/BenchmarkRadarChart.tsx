@@ -111,7 +111,7 @@ export function BenchmarkRadarChart({
             className="fill-slate-400"
             fontSize={13}
           >
-            {axis.icon} {axis.label}
+            {axis.label}
           </text>
         );
       })}

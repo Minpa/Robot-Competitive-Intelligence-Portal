@@ -153,7 +153,6 @@ export default function DashboardPage() {
           {/* Header */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-slate-200 flex items-center gap-3">
-              <span className="text-3xl">📊</span>
               HRIP 분석 대시보드
             </h1>
             <p className="text-slate-400 mt-1">휴머노이드 로봇 시장 인텔리전스 플랫폼</p>
@@ -198,7 +197,7 @@ export default function DashboardPage() {
                     title="총 휴머노이드"
                     value={summary?.totalRobots || 0}
                     previousValue={(summary?.totalRobots || 0) - (executiveInsight?.keyMetrics?.newRobots || 2)}
-                    icon="🤖"
+                    icon=""
                     color="blue"
                     isLoading={summaryLoading}
                   />
@@ -206,7 +205,7 @@ export default function DashboardPage() {
                     title="총 회사"
                     value={summary?.totalCompanies || 0}
                     previousValue={(summary?.totalCompanies || 0) - 1}
-                    icon="🏢"
+                    icon=""
                     color="green"
                     isLoading={summaryLoading}
                   />
@@ -214,7 +213,7 @@ export default function DashboardPage() {
                     title="30일 신규 제품"
                     value={executiveInsight?.keyMetrics?.newRobots || summary?.weeklyNewProducts || 3}
                     previousValue={2}
-                    icon="🆕"
+                    icon=""
                     color="purple"
                     isLoading={summaryLoading}
                   />
@@ -222,7 +221,7 @@ export default function DashboardPage() {
                     title="30일 주요 이벤트"
                     value={(executiveInsight?.keyMetrics?.newPocs || 0) + (executiveInsight?.keyMetrics?.newInvestments || 0) + (executiveInsight?.keyMetrics?.newProductions || 0) || 5}
                     previousValue={4}
-                    icon="📅"
+                    icon=""
                     color="orange"
                     isLoading={summaryLoading}
                   />

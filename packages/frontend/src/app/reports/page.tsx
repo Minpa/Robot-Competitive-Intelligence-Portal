@@ -7,10 +7,10 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 import { api } from '@/lib/api';
 
 const TEMPLATES = [
-  { id: 'market_overview', name: '시장 현황', desc: '시장 현황 및 트렌드 요약', icon: '📊' },
-  { id: 'company_deep_dive', name: '기업 심층 분석', desc: '특정 회사 심층 분석', icon: '🏢' },
-  { id: 'tech_components', name: '기술 부품 동향', desc: '기술 부품 동향 분석', icon: '⚙️' },
-  { id: 'use_case', name: '적용 사례', desc: '적용 사례 및 시연 분석', icon: '🤖' },
+  { id: 'market_overview', name: '시장 현황', desc: '시장 현황 및 트렌드 요약', icon: '' },
+  { id: 'company_deep_dive', name: '기업 심층 분석', desc: '특정 회사 심층 분석', icon: '' },
+  { id: 'tech_components', name: '기술 부품 동향', desc: '기술 부품 동향 분석', icon: '' },
+  { id: 'use_case', name: '적용 사례', desc: '적용 사례 및 시연 분석', icon: '' },
 ] as const;
 
 export default function ReportsPage() {

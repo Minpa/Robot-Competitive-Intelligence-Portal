@@ -13,7 +13,7 @@ export function KpiCard({
   title,
   value,
   previousValue,
-  icon = '📊',
+  icon = '',
   color = 'blue',
   isLoading = false,
 }: KpiCardProps) {

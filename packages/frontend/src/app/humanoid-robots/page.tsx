@@ -156,7 +156,6 @@ export default function HumanoidRobotsPage() {
           {/* 헤더 */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <span className="text-3xl">🤖</span>
               휴머노이드 로봇 카탈로그
             </h1>
             <p className="text-slate-400 mt-1">산업용/가정용, 이동 방식, Hand 타입별 휴머노이드 로봇 분석</p>

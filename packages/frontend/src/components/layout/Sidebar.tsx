@@ -25,6 +25,7 @@ import {
   LineChart,
   Swords,
   ScanEye,
+  GitBranch,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -47,6 +48,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: '분석 대시보드', href: '/dashboard', icon: BarChart3 },
       { name: '휴머노이드 동향', href: '/humanoid-trend', icon: TrendingUp },
+      { name: '제품 진화 로드맵', href: '/robot-evolution', icon: GitBranch },
       { name: '전략 워룸', href: '/war-room', icon: Swords },
     ],
   },
@@ -179,7 +181,7 @@ export function Sidebar() {
       <div className="p-4 border-t border-slate-700">
         <div className="flex items-center gap-3 px-2">
           <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
-            <span className="text-xs text-slate-300">👤</span>
+            <span className="text-xs text-slate-300"></span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm text-slate-200 truncate">사용자</p>

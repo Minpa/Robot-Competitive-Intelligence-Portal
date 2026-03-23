@@ -260,7 +260,6 @@ export default function ApplicationCasesPage() {
           {/* 헤더 */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <span className="text-3xl">🏭</span>
               적용 사례
             </h1>
             <p className="text-slate-400 mt-1">휴머노이드 로봇 실제 적용 사례 및 시연 이벤트</p>

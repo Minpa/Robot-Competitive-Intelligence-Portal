@@ -14,12 +14,12 @@ const confidenceColors: Record<string, string> = {
 };
 
 // Freshness indicator based on lastVerified date
-function getFreshnessIndicator(lastVerified: string | null): { icon: string; label: string; color: string } {
-  if (!lastVerified) return { icon: '\u26AB', label: '\uBBF8\uAC80\uC99D', color: 'text-slate-500' };
+function getFreshnessIndicator(lastVerified: string | null): { dotColor: string; label: string; color: string } {
+  if (!lastVerified) return { dotColor: 'bg-slate-500', label: '\uBBF8\uAC80\uC99D', color: 'text-slate-500' };
   const days = Math.floor((Date.now() - new Date(lastVerified).getTime()) / (1000 * 60 * 60 * 24));
-  if (days <= 30) return { icon: '\uD83D\uDFE2', label: `${days}\uC77C \uC804`, color: 'text-green-400' };
-  if (days <= 90) return { icon: '\uD83D\uDFE1', label: `${days}\uC77C \uC804`, color: 'text-yellow-400' };
-  return { icon: '\uD83D\uDD34', label: `${days}\uC77C+ \uC804`, color: 'text-red-400' };
+  if (days <= 30) return { dotColor: 'bg-green-500', label: `${days}\uC77C \uC804`, color: 'text-green-400' };
+  if (days <= 90) return { dotColor: 'bg-yellow-500', label: `${days}\uC77C \uC804`, color: 'text-yellow-400' };
+  return { dotColor: 'bg-red-500', label: `${days}\uC77C+ \uC804`, color: 'text-red-400' };
 }
 
 interface EditingCell {
@@ -254,7 +254,6 @@ export function CiMatrixTable({ data, onRefresh }: CiMatrixTableProps) {
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-sm">{expandedLayers.has(layer.id) ? '\u25BC' : '\u25B6'}</span>
-                      <span className="text-lg">{layer.icon}</span>
                       <span className="font-semibold text-white text-sm">{layer.name}</span>
                     </div>
                   </td>
@@ -300,9 +299,7 @@ export function CiMatrixTable({ data, onRefresh }: CiMatrixTableProps) {
                                   <span className={`inline-block px-1 py-0 rounded text-[10px] font-mono border ${confidenceColors[cv.confidence] || confidenceColors.D}`}>
                                     {cv.confidence}
                                   </span>
-                                  <span className={`text-[10px] ${freshness.color}`} title={`\uCD5C\uC885 \uAC80\uC99D: ${freshness.label}`}>
-                                    {freshness.icon}
-                                  </span>
+                                  <span className={`inline-block w-1.5 h-1.5 rounded-full ${freshness.dotColor}`} title={`\uCD5C\uC885 \uAC80\uC99D: ${freshness.label}`} />
                                 </div>
                               </div>
                               {/* History button (visible on hover) */}

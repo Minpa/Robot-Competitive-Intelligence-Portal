@@ -555,7 +555,7 @@ export default function AdminPage() {
                           </span>
                         </div>
                         <div className="col-span-2 text-slate-300 truncate text-xs">{log.model}</div>
-                        <div className="col-span-1">{log.webSearch ? '🌐' : '—'}</div>
+                        <div className="col-span-1">{log.webSearch ? 'Y' : '—'}</div>
                         <div className="col-span-2 text-slate-400 text-xs">{log.inputTokens}/{log.outputTokens}</div>
                         <div className="col-span-2 text-emerald-400 text-xs">${Number(log.estimatedCostUsd).toFixed(4)}</div>
                         <div className="col-span-3 text-slate-500 text-xs">

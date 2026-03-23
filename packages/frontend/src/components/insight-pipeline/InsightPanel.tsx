@@ -108,7 +108,7 @@ function EntityCard({
                   <span className="text-slate-200 truncate">{candidate.entityName}</span>
                   <span className="text-xs text-slate-400 shrink-0 ml-2">
                     {Math.round(candidate.similarityScore * 100)}%
-                    {candidate.isAutoRecommended && ' ★'}
+                    {candidate.isAutoRecommended && <span className="ml-0.5 text-amber-400">추천</span>}
                   </span>
                 </button>
               ))}

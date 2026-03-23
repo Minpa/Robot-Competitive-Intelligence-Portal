@@ -66,7 +66,7 @@ export function EnhancedEnvironmentTaskMatrix({
       
       {/* 상단 한 줄 코멘트 */}
       <p className="text-sm text-blue-400 mb-4 bg-blue-500/10 px-3 py-2 rounded">
-        💡 {insight || defaultInsight}
+        {insight || defaultInsight}
       </p>
 
       <div className="overflow-x-auto">

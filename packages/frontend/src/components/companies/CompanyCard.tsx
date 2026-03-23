@@ -48,20 +48,20 @@ const ROLE_CONFIG: Record<string, { label: string; bgColor: string; textColor: s
 };
 
 const COUNTRY_FLAGS: Record<string, string> = {
-  'USA': '🇺🇸',
-  'China': '🇨🇳',
-  'Japan': '🇯🇵',
-  'South Korea': '🇰🇷',
-  'Germany': '🇩🇪',
-  'France': '🇫🇷',
-  'UK': '🇬🇧',
-  'Switzerland': '🇨🇭',
-  'Taiwan': '🇹🇼',
-  'Israel': '🇮🇱',
-  'Denmark': '🇩🇰',
-  'Italy': '🇮🇹',
-  'Canada': '🇨🇦',
-  'Netherlands': '🇳🇱',
+  'USA': 'US',
+  'China': 'CN',
+  'Japan': 'JP',
+  'South Korea': 'KR',
+  'Germany': 'DE',
+  'France': 'FR',
+  'UK': 'GB',
+  'Switzerland': 'CH',
+  'Taiwan': 'TW',
+  'Israel': 'IL',
+  'Denmark': 'DK',
+  'Italy': 'IT',
+  'Canada': 'CA',
+  'Netherlands': 'NL',
 };
 
 // category를 role로 매핑
@@ -72,7 +72,7 @@ const categoryToRole = (category?: string): string[] => {
 
 export function CompanyCard({ company }: CompanyCardProps) {
   const roles = company.roles?.length ? company.roles : categoryToRole(company.category);
-  const flag = COUNTRY_FLAGS[company.country] || '🌐';
+  const flag = COUNTRY_FLAGS[company.country] || '';
 
   // 기본 아이콘 결정
   const primaryRole = roles[0];

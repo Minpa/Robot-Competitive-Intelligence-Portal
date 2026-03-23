@@ -47,7 +47,7 @@ export function BenchmarkDetailPanel({ axes, competitor }: BenchmarkDetailPanelP
       {/* Strategy direction */}
       {strategy && (
         <div className="bg-slate-700/30 rounded-lg p-3">
-          <div className="text-xs text-slate-500 mb-1">🎯 전략 방향</div>
+          <div className="text-xs text-slate-500 mb-1">전략 방향</div>
           <p className="text-sm text-slate-300">{strategy}</p>
         </div>
       )}
@@ -70,7 +70,7 @@ export function BenchmarkDetailPanel({ axes, competitor }: BenchmarkDetailPanelP
                 <div className="flex items-center justify-between mb-0.5">
                   <span className="text-sm text-slate-300">
                     <span className="mr-1 text-xs text-slate-500">{isExpanded ? '▼' : '▶'}</span>
-                    {axis.icon} {axis.label}
+                    {axis.label}
                   </span>
                   <span className="text-sm text-slate-400">
                     {current}

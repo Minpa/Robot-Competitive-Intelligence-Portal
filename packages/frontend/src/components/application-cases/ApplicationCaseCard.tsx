@@ -112,7 +112,7 @@ export function ApplicationCaseCard({ caseData, onClick }: ApplicationCaseCardPr
         {/* 적용 공간 */}
         {caseData.spaceType && (
           <span className="px-2 py-1 bg-purple-500/15 text-purple-400 rounded" title="적용 공간">
-            📍 {caseData.spaceType}
+            {caseData.spaceType}
           </span>
         )}
         
@@ -123,7 +123,7 @@ export function ApplicationCaseCard({ caseData, onClick }: ApplicationCaseCardPr
         
         {/* 적용 로봇 */}
         <span className="px-2 py-1 bg-green-500/15 text-green-400 rounded" title="적용 로봇">
-          🤖 {caseData.robotName}
+          {caseData.robotName}
         </span>
         
         {/* 로봇 유형 */}

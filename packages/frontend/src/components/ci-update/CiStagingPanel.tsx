@@ -46,9 +46,9 @@ export function CiStagingPanel() {
   }
 
   const channelLabels: Record<string, string> = {
-    auto: '🤖 자동 수집',
-    ai_assist: '🧠 AI 보조',
-    manual: '✍️ 수동',
+    auto: '자동 수집',
+    ai_assist: 'AI 보조',
+    manual: '수동',
   };
 
   const typeLabels: Record<string, string> = {

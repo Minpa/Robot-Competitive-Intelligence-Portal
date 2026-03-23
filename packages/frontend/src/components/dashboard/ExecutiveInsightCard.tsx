@@ -43,7 +43,6 @@ export function ExecutiveInsightCard({
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-blue-500 flex items-center gap-2">
-          <span className="text-xl">💡</span>
           {title}
         </h3>
         <span className="text-xs text-slate-400 bg-slate-800/50 px-2 py-1 rounded">

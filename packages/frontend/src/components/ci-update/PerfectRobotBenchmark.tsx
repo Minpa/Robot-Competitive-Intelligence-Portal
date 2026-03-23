@@ -64,12 +64,9 @@ export function PerfectRobotBenchmark() {
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-800/80 to-slate-800/40 rounded-xl border border-slate-700 p-6">
-        <div className="flex items-center gap-3 mb-2">
-          <span className="text-3xl">🏆</span>
-          <div>
-            <h2 className="text-xl font-bold text-white">THE ULTIMATE BENCHMARK</h2>
-            <p className="text-base text-slate-400">완벽한 로봇까지의 거리</p>
-          </div>
+        <div className="mb-2">
+          <h2 className="text-xl font-bold text-white">THE ULTIMATE BENCHMARK</h2>
+          <p className="text-base text-slate-400">완벽한 로봇까지의 거리</p>
         </div>
         <p className="text-sm text-slate-500 mt-2">
           인간 수준의 신체 + 인지 + 자율 + 손재주 + 대화 + 연결 + 안전 + 상용 + IP + 확장성 — 10축 총 100점 기준으로 각 경쟁사의 현재 위치와 목표 방향을 시각화합니다.
@@ -120,7 +117,7 @@ export function PerfectRobotBenchmark() {
               : 'bg-slate-700 text-slate-400 hover:text-slate-200'
           }`}
         >
-          🎯 {showTargets ? '목표 방향 숨기기' : '목표 방향 표시'}
+          {showTargets ? '목표 방향 숨기기' : '목표 방향 표시'}
         </button>
       </div>
 

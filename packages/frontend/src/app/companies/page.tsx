@@ -39,26 +39,26 @@ const SORT_OPTIONS = [
 // 국가 목록
 const COUNTRIES = [
   { id: '', label: '모든 국가' },
-  { id: 'USA', label: '🇺🇸 미국' },
-  { id: 'China', label: '🇨🇳 중국' },
-  { id: 'Japan', label: '🇯🇵 일본' },
-  { id: 'South Korea', label: '🇰🇷 한국' },
-  { id: 'Germany', label: '🇩🇪 독일' },
-  { id: 'France', label: '🇫🇷 프랑스' },
-  { id: 'Switzerland', label: '🇨🇭 스위스' },
-  { id: 'UK', label: '🇬🇧 영국' },
-  { id: 'Taiwan', label: '🇹🇼 대만' },
-  { id: 'Israel', label: '🇮🇱 이스라엘' },
+  { id: 'USA', label: '미국' },
+  { id: 'China', label: '중국' },
+  { id: 'Japan', label: '일본' },
+  { id: 'South Korea', label: '한국' },
+  { id: 'Germany', label: '독일' },
+  { id: 'France', label: '프랑스' },
+  { id: 'Switzerland', label: '스위스' },
+  { id: 'UK', label: '영국' },
+  { id: 'Taiwan', label: '대만' },
+  { id: 'Israel', label: '이스라엘' },
 ];
 
 const GROUP_LABELS: Record<string, { label: string; icon: string }> = {
-  robotics: { label: '로봇 완제품', icon: '🤖' },
-  automotive: { label: '자동차/로봇', icon: '🚗' },
-  electronics: { label: '전자/로봇', icon: '📱' },
-  soc: { label: 'SoC/AI 칩', icon: '💾' },
-  actuator: { label: '액추에이터/부품', icon: '⚙️' },
-  rfm: { label: 'RFM/AI', icon: '🧠' },
-  other: { label: '기타', icon: '🏢' },
+  robotics: { label: '로봇 완제품', icon: '' },
+  automotive: { label: '자동차/로봇', icon: '' },
+  electronics: { label: '전자/로봇', icon: '' },
+  soc: { label: 'SoC/AI 칩', icon: '' },
+  actuator: { label: '액추에이터/부품', icon: '' },
+  rfm: { label: 'RFM/AI', icon: '' },
+  other: { label: '기타', icon: '' },
 };
 
 export default function CompaniesPage() {
@@ -175,7 +175,6 @@ export default function CompaniesPage() {
           {/* 헤더 */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <span className="text-3xl">🏢</span>
               회사 데이터
             </h1>
             <p className="text-slate-400 mt-1">휴머노이드 로봇 관련 기업 목록 ({data?.total || 0}개)</p>
@@ -290,7 +289,7 @@ export default function CompaniesPage() {
             <div className="space-y-8">
               {Object.entries(groupedCompanies).map(([groupKey, companies]) => {
                 if (companies.length === 0) return null;
-                const groupInfo = GROUP_LABELS[groupKey] || { label: groupKey, icon: '🏢' };
+                const groupInfo = GROUP_LABELS[groupKey] || { label: groupKey, icon: '' };
                 return (
                   <div key={groupKey}>
                     <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">

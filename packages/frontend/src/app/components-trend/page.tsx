@@ -123,7 +123,6 @@ export default function ComponentsTrendPage() {
           {/* 헤더 */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <span className="text-3xl">⚙️</span>
               부품 동향 분석
             </h1>
             <p className="text-slate-400 mt-1">액추에이터, SoC, 센서, 전원 등 핵심 부품 성능 비교 및 채택 현황</p>

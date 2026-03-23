@@ -235,6 +235,91 @@ export async function humanoidRobotRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Evolution timeline: robots grouped by company with year progression
+  fastify.get('/evolution-timeline', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const query = request.query as Record<string, string>;
+      const regionFilter = query.region; // optional filter
+
+      const conditions = [];
+      if (regionFilter) {
+        conditions.push(eq(humanoidRobots.region, regionFilter));
+      }
+
+      const rows = await db
+        .select({
+          robotId: humanoidRobots.id,
+          robotName: humanoidRobots.name,
+          announcementYear: humanoidRobots.announcementYear,
+          purpose: humanoidRobots.purpose,
+          stage: humanoidRobots.commercializationStage,
+          region: humanoidRobots.region,
+          companyId: companies.id,
+          companyName: companies.name,
+          companyCountry: companies.country,
+        })
+        .from(humanoidRobots)
+        .innerJoin(companies, eq(humanoidRobots.companyId, companies.id))
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(companies.name, humanoidRobots.announcementYear);
+
+      // Group by company
+      const companyMap = new Map<string, {
+        companyId: string;
+        companyName: string;
+        companyCountry: string | null;
+        robots: {
+          id: string;
+          name: string;
+          year: number | null;
+          purpose: string | null;
+          stage: string | null;
+        }[];
+      }>();
+
+      for (const row of rows) {
+        if (!companyMap.has(row.companyId)) {
+          companyMap.set(row.companyId, {
+            companyId: row.companyId,
+            companyName: row.companyName,
+            companyCountry: row.companyCountry,
+            robots: [],
+          });
+        }
+        companyMap.get(row.companyId)!.robots.push({
+          id: row.robotId,
+          name: row.robotName,
+          year: row.announcementYear,
+          purpose: row.purpose,
+          stage: row.stage,
+        });
+      }
+
+      // Only include companies with at least one robot that has a year
+      const companies_list = Array.from(companyMap.values())
+        .filter(c => c.robots.some(r => r.year != null))
+        .sort((a, b) => {
+          const aMin = Math.min(...a.robots.filter(r => r.year != null).map(r => r.year!));
+          const bMin = Math.min(...b.robots.filter(r => r.year != null).map(r => r.year!));
+          return aMin - bMin;
+        });
+
+      // Compute year range
+      const allYears = rows.filter(r => r.announcementYear != null).map(r => r.announcementYear!);
+      const minYear = allYears.length > 0 ? Math.min(...allYears) : 2019;
+      const maxYear = allYears.length > 0 ? Math.max(...allYears) : new Date().getFullYear();
+
+      return {
+        companies: companies_list,
+        yearRange: { min: minYear, max: Math.max(maxYear, new Date().getFullYear()) },
+        totalRobots: rows.length,
+      };
+    } catch (error) {
+      console.error('Error getting evolution timeline:', error);
+      reply.status(500).send({ error: 'Failed to get evolution timeline' });
+    }
+  });
+
   // Get robot by ID
   fastify.get('/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     try {

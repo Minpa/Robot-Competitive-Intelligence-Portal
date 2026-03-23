@@ -83,7 +83,7 @@ export function ErrorFallbackWrapper({
             <EmptyChartPlaceholder
               title="데이터 로드 실패"
               message={emptyMessage || '차트 데이터를 불러올 수 없습니다'}
-              icon="⚠️"
+              icon=""
             />
             {onRetry && (
               <div className="flex justify-center">
@@ -96,7 +96,7 @@ export function ErrorFallbackWrapper({
       case 'error_message':
         return (
           <div className="flex flex-col items-center justify-center min-h-[120px] gap-3 p-4">
-            <div className="text-red-400 text-2xl">⚠️</div>
+            <div className="text-red-400 text-2xl"></div>
             <p className="text-sm text-red-300">
               {error?.message || '오류가 발생했습니다'}
             </p>

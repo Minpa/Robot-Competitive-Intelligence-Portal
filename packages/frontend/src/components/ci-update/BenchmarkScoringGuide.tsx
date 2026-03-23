@@ -131,7 +131,7 @@ export function BenchmarkScoringGuide({ axes }: BenchmarkScoringGuideProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-base font-semibold text-white">📏 스코어링 기준 가이드</h3>
+          <h3 className="text-base font-semibold text-white">스코어링 기준 가이드</h3>
           <p className="text-xs text-slate-500 mt-0.5">각 축의 1~10점이 의미하는 구체적 기준. 축을 클릭하면 레벨별 상세 기준을 확인할 수 있습니다.</p>
         </div>
         <button
@@ -142,19 +142,16 @@ export function BenchmarkScoringGuide({ axes }: BenchmarkScoringGuideProps) {
               : 'bg-slate-700 text-slate-400 hover:text-slate-200'
           }`}
         >
-          ✨ {showPerfectRobot ? '퍼펙트 로봇 숨기기' : '퍼펙트 로봇 스펙 보기'}
+          {showPerfectRobot ? '퍼펙트 로봇 숨기기' : '퍼펙트 로봇 스펙 보기'}
         </button>
       </div>
 
       {/* Perfect Robot Spec Panel */}
       {showPerfectRobot && (
-        <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/5 border border-green-500/30 rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-2xl">🤖</span>
-            <div>
-              <h4 className="text-base font-bold text-green-400">THE PERFECT ROBOT — 100점 만점 스펙</h4>
-              <p className="text-xs text-slate-400">모든 축 10점을 달성한 이상적 로봇의 구체적 사양</p>
-            </div>
+        <div className="bg-gradient-to-r from-slate-700/40 to-slate-700/20 border border-slate-600 rounded-xl p-5">
+          <div className="mb-4">
+            <h4 className="text-base font-bold text-white">THE PERFECT ROBOT — 100점 만점 스펙</h4>
+            <p className="text-xs text-slate-400">모든 축 10점을 달성한 이상적 로봇의 구체적 사양</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {axes.map(axis => {
@@ -163,9 +160,8 @@ export function BenchmarkScoringGuide({ axes }: BenchmarkScoringGuideProps) {
               return (
                 <div key={axis.key} className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/50">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-lg">{axis.icon}</span>
-                    <span className="text-sm font-semibold text-green-400">{axis.label}</span>
-                    <span className="text-xs text-green-500/60 ml-auto">10/10</span>
+                    <span className="text-sm font-semibold text-white">{axis.label}</span>
+                    <span className="text-xs text-slate-500 ml-auto">10/10</span>
                   </div>
                   <p className="text-xs text-slate-300 leading-relaxed">{rubric.perfectSpec}</p>
                 </div>
@@ -189,7 +185,6 @@ export function BenchmarkScoringGuide({ axes }: BenchmarkScoringGuideProps) {
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-700/20 transition-colors text-left"
               >
                 <span className="text-xs text-slate-500">{isExpanded ? '▼' : '▶'}</span>
-                <span className="text-lg">{axis.icon}</span>
                 <div className="flex-1 min-w-0">
                   <span className="text-sm font-medium text-slate-200">{axis.label}</span>
                   <span className="text-xs text-slate-500 ml-2">{axis.description}</span>
@@ -229,7 +224,7 @@ export function BenchmarkScoringGuide({ axes }: BenchmarkScoringGuideProps) {
                         10점
                       </span>
                       <div className="flex-1 min-w-0">
-                        <span className="text-xs text-green-400 font-medium">✨ 퍼펙트 로봇 스펙</span>
+                        <span className="text-xs text-white font-medium">퍼펙트 로봇 스펙</span>
                         <p className="text-xs text-slate-300 leading-relaxed mt-0.5">{rubric.perfectSpec}</p>
                       </div>
                     </div>

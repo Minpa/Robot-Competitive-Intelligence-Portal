@@ -39,7 +39,7 @@ export function BenchmarkLeaderboard({ axes, competitors, onSelect }: BenchmarkL
 
   return (
     <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4">
-      <h3 className="text-base font-semibold text-white mb-1">📊 축별 리더보드</h3>
+      <h3 className="text-base font-semibold text-white mb-1">축별 리더보드</h3>
       <p className="text-xs text-slate-500 mb-3">각 행을 클릭하면 기준 설명과 점수 근거를 확인할 수 있습니다.</p>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm min-w-[700px]">
@@ -73,7 +73,7 @@ export function BenchmarkLeaderboard({ axes, competitors, onSelect }: BenchmarkL
                   >
                     <td className="text-slate-300 px-3 py-2 border-b border-slate-700/30 whitespace-nowrap">
                       <span className="mr-1 text-xs text-slate-500">{isExpanded ? '▼' : '▶'}</span>
-                      {axis.icon} {axis.label}
+                      {axis.label}
                     </td>
                     {competitors.map(c => {
                       const scoreData = c.scores[axis.key];
@@ -89,7 +89,7 @@ export function BenchmarkLeaderboard({ axes, competitors, onSelect }: BenchmarkL
                           style={{ color: isLeader ? color : '#94a3b8' }}
                         >
                           {score}
-                          {isLeader && ' 👑'}
+                          {isLeader && <span className="ml-1 text-xs text-yellow-400">TOP</span>}
                         </td>
                       );
                     })}
@@ -103,7 +103,6 @@ export function BenchmarkLeaderboard({ axes, competitors, onSelect }: BenchmarkL
                         {/* Axis definition */}
                         <div className="mb-4 bg-slate-700/30 rounded-lg p-4">
                           <div className="flex items-start gap-3">
-                            <span className="text-3xl">{axis.icon}</span>
                             <div className="flex-1">
                               <h4 className="text-base font-semibold text-white mb-1">{axis.label}</h4>
                               <p className="text-sm text-slate-400 mb-2">{axis.description}</p>

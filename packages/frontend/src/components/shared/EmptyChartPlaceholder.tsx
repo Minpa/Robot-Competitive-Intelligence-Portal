@@ -11,7 +11,7 @@ interface EmptyChartPlaceholderProps {
 export function EmptyChartPlaceholder({
   title = '데이터 없음',
   message = '표시할 데이터가 없습니다',
-  icon = '📭',
+  icon = '',
   dataType,
   minDataCount,
 }: EmptyChartPlaceholderProps) {
