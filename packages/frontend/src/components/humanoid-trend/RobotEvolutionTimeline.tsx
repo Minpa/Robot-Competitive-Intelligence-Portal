@@ -35,7 +35,7 @@ const REGION_OPTIONS = [
 // ── Layout constants ──
 const COMPANY_COL_W = 160;
 const YEAR_COL_W = 180;
-const TOP_HEADER_H = 56;
+const TOP_HEADER_H = 36;
 const NODE_H = 26;
 const NODE_GAP = 5;
 const ROW_PAD_Y = 10;
@@ -216,39 +216,13 @@ export default function RobotEvolutionTimeline() {
             return (
               <g key={year}>
                 {i % 2 === 0 && <rect x={x} y={0} width={YEAR_COL_W} height={svgH} fill="#1e293b" opacity={0.2} />}
-                <text x={x + YEAR_COL_W / 2} y={22} textAnchor="middle" fill="#94a3b8" fontSize={14} fontWeight={600}>
+                <text x={x + YEAR_COL_W / 2} y={24} textAnchor="middle" fill="#94a3b8" fontSize={14} fontWeight={600}>
                   {year}
                 </text>
-                <line x1={x} y1={TOP_HEADER_H - 6} x2={x} y2={svgH} stroke="#334155" strokeWidth={0.5} />
+                <line x1={x} y1={TOP_HEADER_H} x2={x} y2={svgH} stroke="#334155" strokeWidth={0.5} />
               </g>
             );
           })}
-
-          {/* Phase bar */}
-          {(() => {
-            const phases = [
-              { label: '상업/가정용 특화', fromYear: 2025, toYear: years[0]!, color: '#3b82f6' },
-              { label: '산업용 HR 등장', fromYear: 2023, toYear: 2024, color: '#475569' },
-            ].filter(p => p.toYear >= minYear && p.fromYear <= years[0]!);
-
-            return phases.map((p, i) => {
-              const clampedFrom = Math.max(p.fromYear, minYear);
-              const clampedTo = Math.min(p.toYear, years[0]!);
-              const idxLeft = years.indexOf(clampedTo);
-              const idxRight = years.indexOf(clampedFrom);
-              if (idxLeft === -1 || idxRight === -1) return null;
-              const x1 = COMPANY_COL_W + Math.min(idxLeft, idxRight) * YEAR_COL_W;
-              const x2 = COMPANY_COL_W + (Math.max(idxLeft, idxRight) + 1) * YEAR_COL_W;
-              return (
-                <g key={i}>
-                  <rect x={x1} y={30} width={x2 - x1} height={18} rx={3} fill={p.color} opacity={0.35} />
-                  <text x={(x1 + x2) / 2} y={43} textAnchor="middle" fill="#cbd5e1" fontSize={10} fontWeight={500}>
-                    {p.label}
-                  </text>
-                </g>
-              );
-            });
-          })()}
 
           {/* Company rows */}
           {companies.map((company, rowIdx) => {
