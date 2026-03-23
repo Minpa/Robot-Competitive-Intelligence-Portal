@@ -22,7 +22,7 @@ const COMPANY_COLORS: Record<string, string> = {
 };
 
 function getColor(companyName: string) {
-  return COMPANY_COLORS[companyName] ?? '#94a3b8';
+  return COMPANY_COLORS[companyName] ?? '#a1a1aa';
 }
 
 export interface BubblePoint {
@@ -119,20 +119,20 @@ export default function VisionCostBubbleChart({ data }: Props) {
             dataKey="x"
             domain={[2021.5, 2028.5]}
             tickCount={8}
-            tick={{ fill: '#94a3b8', fontSize: 12 }}
+            tick={{ fill: '#a1a1aa', fontSize: 12 }}
             tickFormatter={(v) => String(v)}
           >
-            <Label value="연도" offset={-10} position="insideBottom" fill="#94a3b8" fontSize={12} />
+            <Label value="연도" offset={-10} position="insideBottom" fill="#a1a1aa" fontSize={12} />
           </XAxis>
           <YAxis
             type="number"
             dataKey="y"
             domain={[0, 2100]}
             tickFormatter={(v) => `$${v.toLocaleString()}`}
-            tick={{ fill: '#94a3b8', fontSize: 11 }}
+            tick={{ fill: '#a1a1aa', fontSize: 11 }}
             width={80}
           >
-            <Label value="추정 원가 ($)" angle={-90} position="insideLeft" offset={10} fill="#94a3b8" fontSize={12} />
+            <Label value="추정 원가 ($)" angle={-90} position="insideLeft" offset={10} fill="#a1a1aa" fontSize={12} />
           </YAxis>
           <ZAxis type="number" dataKey="z" range={[60, 360]} />
           <Tooltip content={<CustomTooltip />} />

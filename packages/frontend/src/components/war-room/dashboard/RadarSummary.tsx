@@ -65,10 +65,10 @@ export function RadarSummary({ data, isLoading }: RadarSummaryProps) {
       <div className="mt-2 h-52">
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
-            <PolarGrid stroke="#334155" />
+            <PolarGrid stroke="#3f3f46" />
             <PolarAngleAxis
               dataKey="factor"
-              tick={{ fill: '#94a3b8', fontSize: 11 }}
+              tick={{ fill: '#a1a1aa', fontSize: 11 }}
             />
             <Radar
               name={data.robotName}

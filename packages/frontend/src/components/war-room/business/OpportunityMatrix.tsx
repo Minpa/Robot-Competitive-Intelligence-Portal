@@ -48,25 +48,25 @@ export function OpportunityMatrix({ domains, isLoading }: Props) {
       ) : (
         <ResponsiveContainer width="100%" height={300}>
           <ScatterChart margin={{ top: 10, right: 20, bottom: 25, left: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
             <XAxis
               type="number"
               dataKey="x"
               domain={[0, 1]}
-              tick={{ fill: '#94a3b8', fontSize: 11 }}
+              tick={{ fill: '#a1a1aa', fontSize: 11 }}
             >
-              <Label value="LG 준비도" position="bottom" offset={5} fill="#94a3b8" fontSize={11} />
+              <Label value="LG 준비도" position="bottom" offset={5} fill="#a1a1aa" fontSize={11} />
             </XAxis>
             <YAxis
               type="number"
               dataKey="y"
-              tick={{ fill: '#94a3b8', fontSize: 11 }}
+              tick={{ fill: '#a1a1aa', fontSize: 11 }}
             >
-              <Label value="SOM ($B)" angle={-90} position="insideLeft" fill="#94a3b8" fontSize={11} />
+              <Label value="SOM ($B)" angle={-90} position="insideLeft" fill="#a1a1aa" fontSize={11} />
             </YAxis>
             <ZAxis type="number" dataKey="z" range={[60, 400]} />
             <Tooltip
-              contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
+              contentStyle={{ backgroundColor: '#27272a', border: '1px solid #3f3f46', borderRadius: 8 }}
               formatter={(value: any, name: any) => {
                 if (name === 'x') return [Number(value).toFixed(2), 'LG 준비도'];
                 if (name === 'y') return [`$${value}B`, 'SOM'];

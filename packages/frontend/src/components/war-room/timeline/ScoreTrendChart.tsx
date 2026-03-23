@@ -134,21 +134,21 @@ export function ScoreTrendChart({ data, selectedFactors, robotNames, isLoading }
       <h3 className="mb-4 text-sm font-semibold text-white">역량 변화 추이</h3>
       <ResponsiveContainer width="100%" height={360}>
         <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
           <XAxis
             dataKey="month"
-            tick={{ fill: '#94a3b8', fontSize: 11 }}
-            axisLine={{ stroke: '#475569' }}
-            tickLine={{ stroke: '#475569' }}
+            tick={{ fill: '#a1a1aa', fontSize: 11 }}
+            axisLine={{ stroke: '#52525b' }}
+            tickLine={{ stroke: '#52525b' }}
           />
           <YAxis
-            tick={{ fill: '#94a3b8', fontSize: 11 }}
-            axisLine={{ stroke: '#475569' }}
-            tickLine={{ stroke: '#475569' }}
+            tick={{ fill: '#a1a1aa', fontSize: 11 }}
+            axisLine={{ stroke: '#52525b' }}
+            tickLine={{ stroke: '#52525b' }}
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend
-            wrapperStyle={{ fontSize: 11, color: '#94a3b8' }}
+            wrapperStyle={{ fontSize: 11, color: '#a1a1aa' }}
             formatter={(value: string) => {
               const [robot, factor] = value.split('|');
               return selectedFactors.length === 1 ? robot : `${robot} (${factor})`;

@@ -24,7 +24,7 @@ interface BenchmarkDetailPanelProps {
 
 export function BenchmarkDetailPanel({ axes, competitor }: BenchmarkDetailPanelProps) {
   const [expandedAxis, setExpandedAxis] = useState<string | null>(null);
-  const color = COMPANY_COLORS[competitor.slug] || '#94a3b8';
+  const color = COMPANY_COLORS[competitor.slug] || '#a1a1aa';
   const totalCurrent = axes.reduce((sum, axis) => sum + (competitor.scores[axis.key]?.currentScore || 0), 0);
   const totalTarget = axes.reduce((sum, axis) => sum + (competitor.scores[axis.key]?.targetScore || 0), 0);
   const gap = 100 - totalCurrent;

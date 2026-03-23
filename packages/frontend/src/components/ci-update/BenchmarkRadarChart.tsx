@@ -128,7 +128,7 @@ export function BenchmarkRadarChart({
 
       {/* Company polygons */}
       {visibleCompetitors.map(comp => {
-        const color = COMPANY_COLORS[comp.slug] || '#94a3b8';
+        const color = COMPANY_COLORS[comp.slug] || '#a1a1aa';
         const isHighlighted = hoveredSlug === null || hoveredSlug === comp.slug;
         const isSelected = selectedSlug === comp.slug;
         const isCloid = comp.slug === 'cloid';
@@ -206,7 +206,7 @@ export function BenchmarkRadarChart({
       {/* Arrow marker definition */}
       <defs>
         <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
-          <polygon points="0 0, 6 2, 0 4" fill="#94a3b8" opacity={0.7} />
+          <polygon points="0 0, 6 2, 0 4" fill="#a1a1aa" opacity={0.7} />
         </marker>
       </defs>
     </svg>

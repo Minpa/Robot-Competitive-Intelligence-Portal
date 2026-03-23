@@ -93,23 +93,23 @@ export function LgOverlayBubble({ data, isLoading }: LgOverlayBubbleProps) {
       <div className="mt-2 h-72">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
             <XAxis
               type="number"
               dataKey="x"
               name="PoC 합계"
-              tick={{ fill: '#94a3b8', fontSize: 11 }}
-              stroke="#475569"
+              tick={{ fill: '#a1a1aa', fontSize: 11 }}
+              stroke="#52525b"
             />
             <YAxis
               type="number"
               dataKey="y"
               name="RFM 합계"
-              tick={{ fill: '#94a3b8', fontSize: 11 }}
-              stroke="#475569"
+              tick={{ fill: '#a1a1aa', fontSize: 11 }}
+              stroke="#52525b"
             />
             <Tooltip content={<CustomTooltip />} />
-            <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
+            <Legend wrapperStyle={{ fontSize: 11, color: '#a1a1aa' }} />
             {/* LG robot */}
             <Scatter name={lgPoint.name} data={[lgPoint]} fill={LG_COLOR}>
               <Cell key="lg" fill={LG_COLOR} />

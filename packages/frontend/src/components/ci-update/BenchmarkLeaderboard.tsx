@@ -50,7 +50,7 @@ export function BenchmarkLeaderboard({ axes, competitors, onSelect }: BenchmarkL
                 <th
                   key={c.slug}
                   className="text-center font-medium px-3 py-2 border-b border-slate-700 cursor-pointer hover:bg-slate-700/30"
-                  style={{ color: COMPANY_COLORS[c.slug] || '#94a3b8' }}
+                  style={{ color: COMPANY_COLORS[c.slug] || '#a1a1aa' }}
                   onClick={() => onSelect(c.slug)}
                 >
                   {c.name}
@@ -79,14 +79,14 @@ export function BenchmarkLeaderboard({ axes, competitors, onSelect }: BenchmarkL
                       const scoreData = c.scores[axis.key];
                       const score = scoreData?.currentScore || 0;
                       const isLeader = score === leader && score > 0;
-                      const color = COMPANY_COLORS[c.slug] || '#94a3b8';
+                      const color = COMPANY_COLORS[c.slug] || '#a1a1aa';
                       return (
                         <td
                           key={c.slug}
                           className={`text-center px-3 py-2 border-b border-slate-700/30 ${
                             isLeader ? 'font-bold' : ''
                           }`}
-                          style={{ color: isLeader ? color : '#94a3b8' }}
+                          style={{ color: isLeader ? color : '#a1a1aa' }}
                         >
                           {score}
                           {isLeader && <span className="ml-1 text-xs text-yellow-400">TOP</span>}
@@ -119,7 +119,7 @@ export function BenchmarkLeaderboard({ axes, competitors, onSelect }: BenchmarkL
                           {competitors.map(c => {
                             const score = c.scores[axis.key];
                             if (!score) return null;
-                            const color = COMPANY_COLORS[c.slug] || '#94a3b8';
+                            const color = COMPANY_COLORS[c.slug] || '#a1a1aa';
                             return (
                               <div
                                 key={c.slug}
@@ -168,7 +168,7 @@ export function BenchmarkLeaderboard({ axes, competitors, onSelect }: BenchmarkL
                 <td
                   key={c.slug}
                   className="text-center px-3 py-2.5 border-t border-slate-600"
-                  style={{ color: COMPANY_COLORS[c.slug] || '#94a3b8' }}
+                  style={{ color: COMPANY_COLORS[c.slug] || '#a1a1aa' }}
                 >
                   {c.total}
                 </td>

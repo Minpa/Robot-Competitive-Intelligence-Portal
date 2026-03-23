@@ -51,16 +51,16 @@ export function InvestmentPriorityMatrix() {
       ) : (
         <ResponsiveContainer width="100%" height={280}>
           <ScatterChart margin={{ top: 10, right: 10, bottom: 25, left: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-            <XAxis type="number" dataKey="x" domain={[0, 10]} tick={{ fill: '#94a3b8', fontSize: 11 }}>
-              <Label value="Impact" position="bottom" offset={5} fill="#94a3b8" fontSize={11} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+            <XAxis type="number" dataKey="x" domain={[0, 10]} tick={{ fill: '#a1a1aa', fontSize: 11 }}>
+              <Label value="Impact" position="bottom" offset={5} fill="#a1a1aa" fontSize={11} />
             </XAxis>
-            <YAxis type="number" dataKey="y" domain={[0, 10]} tick={{ fill: '#94a3b8', fontSize: 11 }}>
-              <Label value="Feasibility" angle={-90} position="insideLeft" fill="#94a3b8" fontSize={11} />
+            <YAxis type="number" dataKey="y" domain={[0, 10]} tick={{ fill: '#a1a1aa', fontSize: 11 }}>
+              <Label value="Feasibility" angle={-90} position="insideLeft" fill="#a1a1aa" fontSize={11} />
             </YAxis>
             <ZAxis type="number" dataKey="z" range={[40, 300]} />
             <Tooltip
-              contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
+              contentStyle={{ backgroundColor: '#27272a', border: '1px solid #3f3f46', borderRadius: 8 }}
               formatter={(value: any, name: any) => {
                 if (name === 'x') return [value, 'Impact'];
                 if (name === 'y') return [value, 'Feasibility'];

@@ -90,7 +90,7 @@ function RobotRadarCard({ score }: { score: PocScoreWithRobot }) {
             <Tooltip
               contentStyle={{
                 backgroundColor: '#1E293B',
-                border: '1px solid #334155',
+                border: '1px solid #3f3f46',
                 borderRadius: '8px',
                 fontSize: '12px',
                 color: '#E2E8F0',

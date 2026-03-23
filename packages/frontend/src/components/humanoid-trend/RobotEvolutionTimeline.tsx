@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 // concept=slate, prototype=blue, poc=yellow, pilot=orange, commercial=green
 
 const STAGE_COLORS: Record<string, { bg: string; border: string; text: string; label: string }> = {
-  concept:    { bg: '#1e293b', border: '#64748b', text: '#94a3b8', label: 'Concept' },
+  concept:    { bg: '#27272a', border: '#71717a', text: '#a1a1aa', label: 'Concept' },
   prototype:  { bg: '#1e3a5f', border: '#3b82f6', text: '#93c5fd', label: 'Prototype' },
   poc:        { bg: '#422006', border: '#eab308', text: '#fde047', label: 'PoC' },
   pilot:      { bg: '#431407', border: '#f97316', text: '#fdba74', label: 'Pilot' },
@@ -203,23 +203,23 @@ export default function RobotEvolutionTimeline() {
         <svg width={svgW} height={svgH} className="select-none" style={{ minWidth: svgW }}>
           <defs>
             <marker id="arr" markerWidth={6} markerHeight={5} refX={5} refY={2.5} orient="auto">
-              <path d="M0,0 L6,2.5 L0,5 Z" fill="#334155" />
+              <path d="M0,0 L6,2.5 L0,5 Z" fill="#3f3f46" />
             </marker>
           </defs>
 
           {/* Background */}
-          <rect width={svgW} height={svgH} fill="#0f172a" />
+          <rect width={svgW} height={svgH} fill="#18181b" />
 
           {/* Year columns */}
           {years.map((year, i) => {
             const x = COMPANY_COL_W + i * YEAR_COL_W;
             return (
               <g key={year}>
-                {i % 2 === 0 && <rect x={x} y={0} width={YEAR_COL_W} height={svgH} fill="#1e293b" opacity={0.2} />}
-                <text x={x + YEAR_COL_W / 2} y={24} textAnchor="middle" fill="#94a3b8" fontSize={14} fontWeight={600}>
+                {i % 2 === 0 && <rect x={x} y={0} width={YEAR_COL_W} height={svgH} fill="#27272a" opacity={0.2} />}
+                <text x={x + YEAR_COL_W / 2} y={24} textAnchor="middle" fill="#a1a1aa" fontSize={14} fontWeight={600}>
                   {year}
                 </text>
-                <line x1={x} y1={TOP_HEADER_H} x2={x} y2={svgH} stroke="#334155" strokeWidth={0.5} />
+                <line x1={x} y1={TOP_HEADER_H} x2={x} y2={svgH} stroke="#3f3f46" strokeWidth={0.5} />
               </g>
             );
           })}
@@ -232,15 +232,15 @@ export default function RobotEvolutionTimeline() {
 
             return (
               <g key={company.companyId}>
-                <line x1={0} y1={y} x2={svgW} y2={y} stroke="#334155" strokeWidth={0.5} />
+                <line x1={0} y1={y} x2={svgW} y2={y} stroke="#3f3f46" strokeWidth={0.5} />
 
                 {/* Company label */}
-                <rect x={0} y={y} width={COMPANY_COL_W} height={rowH} fill="#0f172a" />
-                <text x={COMPANY_COL_W - 10} y={y + rowH / 2 + 1} textAnchor="end" fill="#e2e8f0" fontSize={12} fontWeight={500}>
+                <rect x={0} y={y} width={COMPANY_COL_W} height={rowH} fill="#18181b" />
+                <text x={COMPANY_COL_W - 10} y={y + rowH / 2 + 1} textAnchor="end" fill="#e4e4e7" fontSize={12} fontWeight={500}>
                   {truncName(company.companyName, 18)}
                 </text>
                 {company.companyCountry && (
-                  <text x={COMPANY_COL_W - 10} y={y + rowH / 2 + 14} textAnchor="end" fill="#64748b" fontSize={9}>
+                  <text x={COMPANY_COL_W - 10} y={y + rowH / 2 + 14} textAnchor="end" fill="#71717a" fontSize={9}>
                     {company.companyCountry}
                   </text>
                 )}
@@ -259,7 +259,7 @@ export default function RobotEvolutionTimeline() {
                     <line
                       key={`a-${gi}`}
                       x1={x1} y1={cy} x2={x2 - 4} y2={cy}
-                      stroke="#334155" strokeWidth={1} strokeDasharray="4 3"
+                      stroke="#3f3f46" strokeWidth={1} strokeDasharray="4 3"
                       markerEnd="url(#arr)"
                     />
                   );

@@ -69,7 +69,8 @@
       "Bash(grep -n \"✓\\\\|✍️\\\\|→\\\\|—\\\\|📋\\\\|🇨🇳\" /workspaces/Robot-Competitive-Intelligence-Portal/packages/frontend/src/components/ci-update/*.tsx)",
       "Bash(grep -n \"\\\\\\\\u[dD]\\\\|\\\\\\\\u26\\\\|\\\\\\\\u27\\\\|\\\\\\\\u2B\\\\|\\\\\\\\u25\\\\|\\\\\\\\u20\\\\|▶\\\\|▼\\\\|⚫\" /workspaces/Robot-Competitive-Intelligence-Portal/packages/frontend/src/components/ci-update/*.tsx)",
       "Bash(grep -rn --include=*.tsx --include=*.ts -P [x{1F300}-x{1F9FF}x{2600}-x{27BF}x{FE00}-x{FE0F}x{1F600}-x{1F64F}x{1F680}-x{1F6FF}x{1F900}-x{1FAFF}x{2702}-x{27B0}x{E000}-x{F8FF}] packages/frontend/src/)",
-      "Bash(grep -r \"export class\" /workspaces/Robot-Competitive-Intelligence-Portal/packages/backend/src/services/*.ts)"
+      "Bash(grep -r \"export class\" /workspaces/Robot-Competitive-Intelligence-Portal/packages/backend/src/services/*.ts)",
+      "Bash(xargs sed:*)"
     ]
   }
 }

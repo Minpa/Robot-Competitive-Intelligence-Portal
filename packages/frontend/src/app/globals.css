@@ -9,32 +9,32 @@
    ============================================ */
 
 :root {
-  /* Dark theme — original Tailwind slate values */
-  --color-slate-50:  248 250 252;
-  --color-slate-100: 241 245 249;
-  --color-slate-200: 226 232 240;
-  --color-slate-300: 203 213 225;
-  --color-slate-400: 148 163 184;
-  --color-slate-500: 100 116 139;
-  --color-slate-600: 71 85 105;
-  --color-slate-700: 51 65 85;
-  --color-slate-800: 30 41 59;
-  --color-slate-900: 15 23 42;
-  --color-slate-950: 2 6 23;
+  /* Dark theme — Tailwind zinc (warm neutral gray, no blue tint) */
+  --color-slate-50:  250 250 250;
+  --color-slate-100: 244 244 245;
+  --color-slate-200: 228 228 231;
+  --color-slate-300: 212 212 216;
+  --color-slate-400: 161 161 170;
+  --color-slate-500: 113 113 122;
+  --color-slate-600: 82 82 91;
+  --color-slate-700: 63 63 70;
+  --color-slate-800: 39 39 42;
+  --color-slate-900: 24 24 27;
+  --color-slate-950: 9 9 11;
 }
 
 [data-theme="light"] {
-  /* Light theme — inverted slate palette */
-  --color-slate-50:  2 6 23;
-  --color-slate-100: 15 23 42;
-  --color-slate-200: 30 41 59;
-  --color-slate-300: 51 65 85;
-  --color-slate-400: 71 85 105;
-  --color-slate-500: 100 116 139;
-  --color-slate-600: 148 163 184;
-  --color-slate-700: 226 232 240;
-  --color-slate-800: 241 245 249;
-  --color-slate-900: 248 250 252;
+  /* Light theme — inverted zinc palette */
+  --color-slate-50:  9 9 11;
+  --color-slate-100: 24 24 27;
+  --color-slate-200: 39 39 42;
+  --color-slate-300: 63 63 70;
+  --color-slate-400: 82 82 91;
+  --color-slate-500: 113 113 122;
+  --color-slate-600: 161 161 170;
+  --color-slate-700: 228 228 231;
+  --color-slate-800: 244 244 245;
+  --color-slate-900: 250 250 250;
   --color-slate-950: 255 255 255;
 }
 
@@ -46,11 +46,11 @@
    ============================================ */
 
 [data-theme="light"] .text-white {
-  color: #1e293b;
+  color: #27272a;
 }
 
 [data-theme="light"] .hover\:text-white:hover {
-  color: #1e293b;
+  color: #27272a;
 }
 
 /* Preserve white text inside accent/colored backgrounds */
@@ -93,5 +93,5 @@
 
 /* Placeholder text — keep readable on light inputs */
 [data-theme="light"] .placeholder-slate-500::placeholder {
-  color: #94a3b8;
+  color: #a1a1aa;
 }

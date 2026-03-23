@@ -47,27 +47,27 @@ export function CompetitivenessMatrix({ partners, isLoading }: Props) {
       ) : (
         <ResponsiveContainer width="100%" height={280}>
           <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
             <XAxis
               type="number"
               dataKey="x"
               name="기술력"
               domain={[0, 10]}
-              tick={{ fill: '#94a3b8', fontSize: 11 }}
-              label={{ value: '기술력', position: 'bottom', fill: '#94a3b8', fontSize: 11 }}
+              tick={{ fill: '#a1a1aa', fontSize: 11 }}
+              label={{ value: '기술력', position: 'bottom', fill: '#a1a1aa', fontSize: 11 }}
             />
             <YAxis
               type="number"
               dataKey="y"
               name="LG 호환성"
               domain={[0, 10]}
-              tick={{ fill: '#94a3b8', fontSize: 11 }}
-              label={{ value: 'LG 호환성', angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 11 }}
+              tick={{ fill: '#a1a1aa', fontSize: 11 }}
+              label={{ value: 'LG 호환성', angle: -90, position: 'insideLeft', fill: '#a1a1aa', fontSize: 11 }}
             />
             <ZAxis type="number" dataKey="z" range={[40, 400]} />
             <Tooltip
-              contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
-              labelStyle={{ color: '#e2e8f0' }}
+              contentStyle={{ backgroundColor: '#27272a', border: '1px solid #3f3f46', borderRadius: 8 }}
+              labelStyle={{ color: '#e4e4e7' }}
               formatter={(value: any, name: any) => [value, name === 'x' ? '기술력' : name === 'y' ? 'LG 호환성' : '점유율']}
               labelFormatter={(_: any, payload: any) => payload?.[0]?.payload?.name ?? ''}
             />

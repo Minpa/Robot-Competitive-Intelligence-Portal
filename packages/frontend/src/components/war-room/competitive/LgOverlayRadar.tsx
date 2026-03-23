@@ -65,11 +65,11 @@ export function LgOverlayRadar({ data, isLoading }: LgOverlayRadarProps) {
       <div className="mt-2 h-72">
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="65%">
-            <PolarGrid stroke="#334155" />
-            <PolarAngleAxis dataKey="factor" tick={{ fill: '#94a3b8', fontSize: 10 }} />
+            <PolarGrid stroke="#3f3f46" />
+            <PolarAngleAxis dataKey="factor" tick={{ fill: '#a1a1aa', fontSize: 10 }} />
             <Tooltip
-              contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
-              labelStyle={{ color: '#e2e8f0' }}
+              contentStyle={{ backgroundColor: '#27272a', border: '1px solid #3f3f46', borderRadius: 8 }}
+              labelStyle={{ color: '#e4e4e7' }}
             />
             {/* LG robot — prominent */}
             <Radar
@@ -94,7 +94,7 @@ export function LgOverlayRadar({ data, isLoading }: LgOverlayRadarProps) {
               />
             ))}
             <Legend
-              wrapperStyle={{ fontSize: 11, color: '#94a3b8' }}
+              wrapperStyle={{ fontSize: 11, color: '#a1a1aa' }}
             />
           </RadarChart>
         </ResponsiveContainer>
