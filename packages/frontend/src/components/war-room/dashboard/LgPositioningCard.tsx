@@ -56,7 +56,7 @@ export function LgPositioningCard({ data, isLoading }: LgPositioningCardProps) {
             style={{ width: `${rankPercent}%` }}
           />
         </div>
-        <p className="mt-1 text-xs text-slate-500">상위 {100 - rankPercent || 1}%</p>
+        <p className="mt-1 text-xs text-slate-500">상위 {Math.max(1, 100 - rankPercent)}%</p>
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-2 text-center">

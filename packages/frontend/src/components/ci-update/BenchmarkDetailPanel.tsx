@@ -27,7 +27,7 @@ export function BenchmarkDetailPanel({ axes, competitor }: BenchmarkDetailPanelP
   const color = COMPANY_COLORS[competitor.slug] || '#a1a1aa';
   const totalCurrent = axes.reduce((sum, axis) => sum + (competitor.scores[axis.key]?.currentScore || 0), 0);
   const totalTarget = axes.reduce((sum, axis) => sum + (competitor.scores[axis.key]?.targetScore || 0), 0);
-  const gap = 100 - totalCurrent;
+  const gap = totalTarget - totalCurrent;
   const strategy = STRATEGY_DIRECTIONS[competitor.slug] || '';
 
   return (
@@ -40,7 +40,7 @@ export function BenchmarkDetailPanel({ axes, competitor }: BenchmarkDetailPanelP
         </div>
         <div className="text-right">
           <div className="text-3xl font-bold" style={{ color }}>{totalCurrent}<span className="text-base text-slate-500">/100</span></div>
-          <div className="text-sm text-slate-400">완벽까지 <span className="text-red-400 font-medium">{gap}점</span></div>
+          <div className="text-sm text-slate-400">목표까지 <span className="text-red-400 font-medium">{gap}점</span></div>
         </div>
       </div>
 

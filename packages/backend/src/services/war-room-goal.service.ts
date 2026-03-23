@@ -5,6 +5,7 @@ import {
   rfmScores,
   partners,
   domainRobotFit,
+  humanoidRobots,
 } from '../db/index.js';
 import { eq, sql, desc } from 'drizzle-orm';
 
@@ -203,21 +204,14 @@ class StrategicGoalService {
   private async fetchCurrentValueForMetric(metricType: string): Promise<number | null> {
     switch (metricType) {
       case 'poc_rank':
-      case 'combined_rank':
-      case 'overall_rank': {
-        // Count total scored robots
-        const result = await db
-          .select({ count: sql<number>`COUNT(*)` })
-          .from(pocScores);
-        return Number(result[0]?.count ?? 0);
-      }
+        return await this.getLgRobotRank('poc');
 
-      case 'rfm_rank': {
-        const result = await db
-          .select({ count: sql<number>`COUNT(*)` })
-          .from(rfmScores);
-        return Number(result[0]?.count ?? 0);
-      }
+      case 'rfm_rank':
+        return await this.getLgRobotRank('rfm');
+
+      case 'combined_rank':
+      case 'overall_rank':
+        return await this.getLgRobotRank('combined');
 
       case 'partner_count': {
         const result = await db
@@ -280,6 +274,57 @@ class StrategicGoalService {
     }
 
     return actions;
+  }
+
+  /**
+   * Get the LG robot's rank (1-based) among all scored robots.
+   */
+  private async getLgRobotRank(scoreType: 'poc' | 'rfm' | 'combined'): Promise<number> {
+    const lgRobots = await db
+      .select({ id: humanoidRobots.id })
+      .from(humanoidRobots)
+      .where(
+        sql`${humanoidRobots.companyId} IN (SELECT id FROM companies WHERE LOWER(name) LIKE '%lg%')`
+      )
+      .limit(1);
+
+    if (lgRobots.length === 0) return 0;
+    const lgRobotId = lgRobots[0]!.id;
+
+    if (scoreType === 'poc') {
+      const all = await db
+        .select({
+          robotId: pocScores.robotId,
+          total: sql<number>`${pocScores.payloadScore} + ${pocScores.operationTimeScore} + ${pocScores.fingerDofScore} + ${pocScores.formFactorScore} + ${pocScores.pocDeploymentScore} + ${pocScores.costEfficiencyScore}`,
+        })
+        .from(pocScores)
+        .orderBy(sql`${pocScores.payloadScore} + ${pocScores.operationTimeScore} + ${pocScores.fingerDofScore} + ${pocScores.formFactorScore} + ${pocScores.pocDeploymentScore} + ${pocScores.costEfficiencyScore} DESC`);
+      const rank = all.findIndex(s => s.robotId === lgRobotId) + 1;
+      return rank > 0 ? rank : all.length;
+    }
+
+    if (scoreType === 'rfm') {
+      const all = await db
+        .select({
+          robotId: rfmScores.robotId,
+          total: sql<number>`${rfmScores.generalityScore} + ${rfmScores.realWorldDataScore} + ${rfmScores.edgeInferenceScore} + ${rfmScores.multiRobotCollabScore} + ${rfmScores.openSourceScore} + ${rfmScores.commercialMaturityScore}`,
+        })
+        .from(rfmScores)
+        .orderBy(sql`${rfmScores.generalityScore} + ${rfmScores.realWorldDataScore} + ${rfmScores.edgeInferenceScore} + ${rfmScores.multiRobotCollabScore} + ${rfmScores.openSourceScore} + ${rfmScores.commercialMaturityScore} DESC`);
+      const rank = all.findIndex(s => s.robotId === lgRobotId) + 1;
+      return rank > 0 ? rank : all.length;
+    }
+
+    // combined
+    const all = await db
+      .select({
+        robotId: pocScores.robotId,
+        total: sql<number>`(${pocScores.payloadScore} + ${pocScores.operationTimeScore} + ${pocScores.fingerDofScore} + ${pocScores.formFactorScore} + ${pocScores.pocDeploymentScore} + ${pocScores.costEfficiencyScore}) + COALESCE((SELECT ${rfmScores.generalityScore} + ${rfmScores.realWorldDataScore} + ${rfmScores.edgeInferenceScore} + ${rfmScores.multiRobotCollabScore} + ${rfmScores.openSourceScore} + ${rfmScores.commercialMaturityScore} FROM rfm_scores WHERE rfm_scores.robot_id = poc_scores.robot_id LIMIT 1), 0)`,
+      })
+      .from(pocScores)
+      .orderBy(sql`(${pocScores.payloadScore} + ${pocScores.operationTimeScore} + ${pocScores.fingerDofScore} + ${pocScores.formFactorScore} + ${pocScores.pocDeploymentScore} + ${pocScores.costEfficiencyScore}) + COALESCE((SELECT ${rfmScores.generalityScore} + ${rfmScores.realWorldDataScore} + ${rfmScores.edgeInferenceScore} + ${rfmScores.multiRobotCollabScore} + ${rfmScores.openSourceScore} + ${rfmScores.commercialMaturityScore} FROM rfm_scores WHERE rfm_scores.robot_id = poc_scores.robot_id LIMIT 1), 0) DESC`);
+    const rank = all.findIndex(s => s.robotId === lgRobotId) + 1;
+    return rank > 0 ? rank : all.length;
   }
 }
 
