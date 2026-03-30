@@ -47,27 +47,27 @@ export function CompetitivenessMatrix({ partners, isLoading }: Props) {
       ) : (
         <ResponsiveContainer width="100%" height={280}>
           <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-slate-700))" />
             <XAxis
               type="number"
               dataKey="x"
               name="기술력"
               domain={[0, 10]}
-              tick={{ fill: '#a1a1aa', fontSize: 11 }}
-              label={{ value: '기술력', position: 'bottom', fill: '#a1a1aa', fontSize: 11 }}
+              tick={{ fill: 'rgb(var(--color-slate-400))', fontSize: 11 }}
+              label={{ value: '기술력', position: 'bottom', fill: 'rgb(var(--color-slate-400))', fontSize: 11 }}
             />
             <YAxis
               type="number"
               dataKey="y"
               name="LG 호환성"
               domain={[0, 10]}
-              tick={{ fill: '#a1a1aa', fontSize: 11 }}
-              label={{ value: 'LG 호환성', angle: -90, position: 'insideLeft', fill: '#a1a1aa', fontSize: 11 }}
+              tick={{ fill: 'rgb(var(--color-slate-400))', fontSize: 11 }}
+              label={{ value: 'LG 호환성', angle: -90, position: 'insideLeft', fill: 'rgb(var(--color-slate-400))', fontSize: 11 }}
             />
             <ZAxis type="number" dataKey="z" range={[40, 400]} />
             <Tooltip
-              contentStyle={{ backgroundColor: '#27272a', border: '1px solid #3f3f46', borderRadius: 8 }}
-              labelStyle={{ color: '#e4e4e7' }}
+              contentStyle={{ backgroundColor: 'rgb(var(--color-slate-800))', border: '1px solid rgb(var(--color-slate-700))', borderRadius: 8 }}
+              labelStyle={{ color: 'rgb(var(--color-slate-200))' }}
               formatter={(value: any, name: any) => [value, name === 'x' ? '기술력' : name === 'y' ? 'LG 호환성' : '점유율']}
               labelFormatter={(_: any, payload: any) => payload?.[0]?.payload?.name ?? ''}
             />

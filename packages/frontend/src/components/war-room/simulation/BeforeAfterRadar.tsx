@@ -38,15 +38,15 @@ export function BeforeAfterRadar({ before, after }: Props) {
       <h3 className="text-sm font-semibold text-white mb-3">PoC Before vs After</h3>
       <ResponsiveContainer width="100%" height={260}>
         <RadarChart data={data}>
-          <PolarGrid stroke="#3f3f46" />
-          <PolarAngleAxis dataKey="factor" tick={{ fill: '#a1a1aa', fontSize: 10 }} />
-          <PolarRadiusAxis domain={[0, 10]} tick={{ fill: '#71717a', fontSize: 9 }} />
+          <PolarGrid stroke="rgb(var(--color-slate-700))" />
+          <PolarAngleAxis dataKey="factor" tick={{ fill: 'rgb(var(--color-slate-400))', fontSize: 10 }} />
+          <PolarRadiusAxis domain={[0, 10]} tick={{ fill: 'rgb(var(--color-slate-500))', fontSize: 9 }} />
           {before && (
             <Radar
               name="Before"
               dataKey="before"
-              stroke="#71717a"
-              fill="#71717a"
+              stroke="rgb(var(--color-slate-500))"
+              fill="rgb(var(--color-slate-500))"
               fillOpacity={0.15}
               strokeDasharray="4 4"
             />
@@ -59,7 +59,7 @@ export function BeforeAfterRadar({ before, after }: Props) {
             fillOpacity={0.25}
           />
           <Legend
-            wrapperStyle={{ fontSize: 11, color: '#a1a1aa' }}
+            wrapperStyle={{ fontSize: 11, color: 'rgb(var(--color-slate-400))' }}
           />
         </RadarChart>
       </ResponsiveContainer>

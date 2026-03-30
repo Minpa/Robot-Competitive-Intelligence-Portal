@@ -358,11 +358,11 @@ export default function KeywordsPage() {
                     });
                     return point;
                   }) || []}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-slate-700))" />
                     <XAxis dataKey="month" tick={{ fill: '#94A3B8', fontSize: 11 }} />
                     <YAxis tick={{ fill: '#94A3B8', fontSize: 11 }} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #3f3f46', borderRadius: '8px' }}
+                      contentStyle={{ backgroundColor: '#1E293B', border: '1px solid rgb(var(--color-slate-700))', borderRadius: '8px' }}
                       labelStyle={{ color: '#F8FAFC' }}
                     />
                     <Legend />
@@ -413,7 +413,7 @@ export default function KeywordsPage() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-slate-700))" />
                   <XAxis
                     type="number"
                     dataKey="x"
@@ -429,8 +429,8 @@ export default function KeywordsPage() {
                     label={{ value: '규모', angle: -90, position: 'insideLeft', fill: '#64748B', fontSize: 12 }}
                   />
                   <ZAxis range={[100, 400]} />
-                  <ReferenceLine x={0} stroke="#52525b" strokeDasharray="3 3" />
-                  <ReferenceLine y={50} stroke="#52525b" strokeDasharray="3 3" />
+                  <ReferenceLine x={0} stroke="rgb(var(--color-slate-600))" strokeDasharray="3 3" />
+                  <ReferenceLine y={50} stroke="rgb(var(--color-slate-600))" strokeDasharray="3 3" />
                   <Tooltip
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {

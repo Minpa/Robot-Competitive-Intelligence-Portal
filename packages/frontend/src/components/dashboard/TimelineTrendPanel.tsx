@@ -277,11 +277,11 @@ export function TimelineTrendPanel({
             onClick={handleChartClick}
             style={{ cursor: 'pointer' }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-slate-700))" />
             <XAxis
               dataKey="label"
               tick={{ fontSize: 11, fill: '#94A3B8' }}
-              axisLine={{ stroke: '#52525b' }}
+              axisLine={{ stroke: 'rgb(var(--color-slate-600))' }}
               tickLine={false}
             />
             <YAxis
@@ -302,7 +302,7 @@ export function TimelineTrendPanel({
             <Tooltip
               contentStyle={{
                 backgroundColor: '#1E293B',
-                border: '1px solid #52525b',
+                border: '1px solid rgb(var(--color-slate-600))',
                 borderRadius: '8px',
                 fontSize: '12px',
               }}

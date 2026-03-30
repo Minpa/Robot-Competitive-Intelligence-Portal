@@ -116,33 +116,33 @@ export function BeforeAfterBubble({ before, after, robotName, competitorData }: 
       </div>
       <ResponsiveContainer width="100%" height={300}>
         <ScatterChart margin={{ top: 15, right: 15, bottom: 25, left: 15 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-slate-700))" />
           <XAxis
             type="number"
             dataKey="x"
             name="PoC Total"
             domain={[0, maxX]}
-            tick={{ fill: '#a1a1aa', fontSize: 11 }}
-            label={{ value: 'PoC Total (하드웨어)', position: 'bottom', fill: '#a1a1aa', fontSize: 10, offset: 10 }}
+            tick={{ fill: 'rgb(var(--color-slate-400))', fontSize: 11 }}
+            label={{ value: 'PoC Total (하드웨어)', position: 'bottom', fill: 'rgb(var(--color-slate-400))', fontSize: 10, offset: 10 }}
           />
           <YAxis
             type="number"
             dataKey="y"
             name="RFM Total"
             domain={[0, maxY]}
-            tick={{ fill: '#a1a1aa', fontSize: 11 }}
-            label={{ value: 'RFM Total (SW/시장)', angle: -90, position: 'insideLeft', fill: '#a1a1aa', fontSize: 10 }}
+            tick={{ fill: 'rgb(var(--color-slate-400))', fontSize: 11 }}
+            label={{ value: 'RFM Total (SW/시장)', angle: -90, position: 'insideLeft', fill: 'rgb(var(--color-slate-400))', fontSize: 10 }}
           />
           <ZAxis type="number" dataKey="z" range={[80, 350]} />
 
           {/* Quadrant reference lines */}
-          <ReferenceLine x={midX} stroke="#52525b" strokeDasharray="6 4">
-            <Label value="SW특화 ←" position="insideTopLeft" fill="#71717a" fontSize={9} />
-            <Label value="→ 리더" position="insideTopRight" fill="#71717a" fontSize={9} />
+          <ReferenceLine x={midX} stroke="rgb(var(--color-slate-600))" strokeDasharray="6 4">
+            <Label value="SW특화 ←" position="insideTopLeft" fill="rgb(var(--color-slate-500))" fontSize={9} />
+            <Label value="→ 리더" position="insideTopRight" fill="rgb(var(--color-slate-500))" fontSize={9} />
           </ReferenceLine>
-          <ReferenceLine y={midY} stroke="#52525b" strokeDasharray="6 4">
-            <Label value="초기단계" position="insideBottomLeft" fill="#71717a" fontSize={9} />
-            <Label value="HW특화" position="insideBottomRight" fill="#71717a" fontSize={9} />
+          <ReferenceLine y={midY} stroke="rgb(var(--color-slate-600))" strokeDasharray="6 4">
+            <Label value="초기단계" position="insideBottomLeft" fill="rgb(var(--color-slate-500))" fontSize={9} />
+            <Label value="HW특화" position="insideBottomRight" fill="rgb(var(--color-slate-500))" fontSize={9} />
           </ReferenceLine>
 
           <Tooltip content={<CustomTooltip />} />
@@ -163,7 +163,7 @@ export function BeforeAfterBubble({ before, after, robotName, competitorData }: 
           {/* Before */}
           {beforeData.length > 0 && (
             <Scatter name={`${robotName} (현재)`} data={beforeData}>
-              <Cell fill="#71717a" fillOpacity={0.7} />
+              <Cell fill="rgb(var(--color-slate-500))" fillOpacity={0.7} />
             </Scatter>
           )}
 
@@ -172,7 +172,7 @@ export function BeforeAfterBubble({ before, after, robotName, competitorData }: 
             <Cell fill="#3b82f6" fillOpacity={0.9} />
           </Scatter>
 
-          <Legend wrapperStyle={{ fontSize: 10, color: '#a1a1aa' }} />
+          <Legend wrapperStyle={{ fontSize: 10, color: 'rgb(var(--color-slate-400))' }} />
         </ScatterChart>
       </ResponsiveContainer>
     </div>

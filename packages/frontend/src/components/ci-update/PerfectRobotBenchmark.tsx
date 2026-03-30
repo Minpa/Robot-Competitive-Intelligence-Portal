@@ -76,7 +76,7 @@ export function PerfectRobotBenchmark() {
       {/* Toggle chips + target button */}
       <div className="flex flex-wrap items-center gap-2">
         {data.competitors.map(comp => {
-          const color = COMPANY_COLORS[comp.slug] || '#a1a1aa';
+          const color = COMPANY_COLORS[comp.slug] || 'rgb(var(--color-slate-400))';
           const isActive = activeCompetitors.has(comp.slug);
           const isSelected = selectedSlug === comp.slug;
           return (
@@ -92,7 +92,7 @@ export function PerfectRobotBenchmark() {
               style={{
                 borderColor: isActive ? color : undefined,
                 backgroundColor: isActive ? `${color}15` : undefined,
-                color: isActive ? color : '#71717a',
+                color: isActive ? color : 'rgb(var(--color-slate-500))',
                 outlineColor: isSelected ? color : undefined,
               }}
               title="클릭: 표시/숨기기, 더블클릭: 선택"

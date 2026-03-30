@@ -224,7 +224,7 @@ export default function RobotEvolutionTimeline() {
         <div>
           <h2 className="text-lg font-bold text-white">제품 진화 타임라인</h2>
           <p className="text-xs text-zinc-400">
-            최근 {RECENT_YEARS}년 ({years[years.length - 1]}–{years[0]}) · {companies.length}개 기업 · 최신순
+            최근 {RECENT_YEARS}년 ({years[0]}–{years[years.length - 1]}) · {companies.length}개 기업 · 최신순
           </p>
         </div>
         <select
@@ -259,12 +259,12 @@ export default function RobotEvolutionTimeline() {
         <svg width={svgW} height={svgH} className="select-none" style={{ minWidth: '100%' }}>
           <defs>
             <marker id="arr" markerWidth={6} markerHeight={5} refX={5} refY={2.5} orient="auto">
-              <path d="M0,0 L6,2.5 L0,5 Z" fill="#3f3f46" />
+              <path d="M0,0 L6,2.5 L0,5 Z" fill="rgb(var(--color-slate-700))" />
             </marker>
           </defs>
 
           {/* Background */}
-          <rect width={svgW} height={svgH} fill="#18181b" />
+          <rect width={svgW} height={svgH} fill="rgb(var(--color-slate-900))" />
 
           {/* Year + Quarter columns */}
           {years.map((year, yi) => {
@@ -274,21 +274,21 @@ export default function RobotEvolutionTimeline() {
               <g key={year}>
                 {/* Year background stripe (alternate) */}
                 {yi % 2 === 0 && (
-                  <rect x={yearX} y={0} width={yearWidth} height={svgH} fill="#27272a" opacity={0.15} />
+                  <rect x={yearX} y={0} width={yearWidth} height={svgH} fill="rgb(var(--color-slate-800))" opacity={0.15} />
                 )}
                 {/* Year label */}
                 <text
                   x={yearX + yearWidth / 2}
                   y={18}
                   textAnchor="middle"
-                  fill="#e4e4e7"
+                  fill="rgb(var(--color-slate-200))"
                   fontSize={14}
                   fontWeight={700}
                 >
                   {year}
                 </text>
                 {/* Year separator line */}
-                <line x1={yearX} y1={0} x2={yearX} y2={svgH} stroke="#3f3f46" strokeWidth={0.8} />
+                <line x1={yearX} y1={0} x2={yearX} y2={svgH} stroke="rgb(var(--color-slate-700))" strokeWidth={0.8} />
 
                 {/* Quarter labels + separator lines */}
                 {QUARTER_LABELS.map((ql, qi) => {
@@ -299,7 +299,7 @@ export default function RobotEvolutionTimeline() {
                         x={qx + quarterW / 2}
                         y={38}
                         textAnchor="middle"
-                        fill="#71717a"
+                        fill="rgb(var(--color-slate-500))"
                         fontSize={10}
                         fontWeight={400}
                       >
@@ -309,7 +309,7 @@ export default function RobotEvolutionTimeline() {
                         <line
                           x1={qx} y1={TOP_HEADER_H}
                           x2={qx} y2={svgH}
-                          stroke="#3f3f46" strokeWidth={0.3} strokeDasharray="2 3"
+                          stroke="rgb(var(--color-slate-700))" strokeWidth={0.3} strokeDasharray="2 3"
                         />
                       )}
                     </g>
@@ -320,7 +320,7 @@ export default function RobotEvolutionTimeline() {
           })}
 
           {/* Header separator */}
-          <line x1={0} y1={TOP_HEADER_H} x2={svgW} y2={TOP_HEADER_H} stroke="#52525b" strokeWidth={0.8} />
+          <line x1={0} y1={TOP_HEADER_H} x2={svgW} y2={TOP_HEADER_H} stroke="rgb(var(--color-slate-600))" strokeWidth={0.8} />
 
           {/* Company rows */}
           {companies.map((company: any, rowIdx: number) => {
@@ -330,15 +330,15 @@ export default function RobotEvolutionTimeline() {
 
             return (
               <g key={company.companyId}>
-                <line x1={0} y1={y} x2={svgW} y2={y} stroke="#3f3f46" strokeWidth={0.5} />
+                <line x1={0} y1={y} x2={svgW} y2={y} stroke="rgb(var(--color-slate-700))" strokeWidth={0.5} />
 
                 {/* Company label */}
-                <rect x={0} y={y} width={COMPANY_COL_W} height={rowH} fill="#18181b" />
+                <rect x={0} y={y} width={COMPANY_COL_W} height={rowH} fill="rgb(var(--color-slate-900))" />
                 <text
                   x={COMPANY_COL_W - 10}
                   y={y + rowH / 2 + 1}
                   textAnchor="end"
-                  fill="#e4e4e7"
+                  fill="rgb(var(--color-slate-200))"
                   fontSize={12}
                   fontWeight={500}
                 >
@@ -349,7 +349,7 @@ export default function RobotEvolutionTimeline() {
                     x={COMPANY_COL_W - 10}
                     y={y + rowH / 2 + 14}
                     textAnchor="end"
-                    fill="#71717a"
+                    fill="rgb(var(--color-slate-500))"
                     fontSize={9}
                   >
                     {company.companyCountry}
@@ -370,7 +370,7 @@ export default function RobotEvolutionTimeline() {
                     <line
                       key={`a-${gi}`}
                       x1={x1} y1={cy} x2={x2 - 4} y2={cy}
-                      stroke="#3f3f46" strokeWidth={1} strokeDasharray="4 3"
+                      stroke="rgb(var(--color-slate-700))" strokeWidth={1} strokeDasharray="4 3"
                       markerEnd="url(#arr)"
                     />
                   );
