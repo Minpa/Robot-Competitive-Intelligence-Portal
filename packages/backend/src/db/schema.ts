@@ -1669,3 +1669,35 @@ export const ciBenchmarkScores = pgTable('ci_benchmark_scores', {
 export const ciBenchmarkScoresRelations = relations(ciBenchmarkScores, ({ one }) => ({
   competitor: one(ciCompetitors, { fields: [ciBenchmarkScores.competitorId], references: [ciCompetitors.id] }),
 }));
+
+// ============================================
+// Strategic Intelligence Tables
+// ============================================
+
+// Data Audit Reports — 데이터 자기검열 리포트
+export const dataAuditReports = pgTable('data_audit_reports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  runId: uuid('run_id').references(() => pipelineRuns.id, { onDelete: 'set null' }),
+  reportData: jsonb('report_data').notNull(),
+  totalRobots: integer('total_robots').notNull(),
+  averageCompleteness: decimal('average_completeness', { precision: 5, scale: 2 }).notNull(),
+  criticalCount: integer('critical_count').notNull().default(0),
+  warningCount: integer('warning_count').notNull().default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  createdAtIdx: index('data_audit_reports_created_at_idx').on(table.createdAt),
+}));
+
+// Strategic Briefings — 전략 AI 브리핑 결과
+export const strategicBriefings = pgTable('strategic_briefings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  lgRobotId: uuid('lg_robot_id').notNull().references(() => humanoidRobots.id, { onDelete: 'cascade' }),
+  briefingData: jsonb('briefing_data').notNull(),
+  triggerType: varchar('trigger_type', { length: 20 }).notNull().default('manual'),
+  aiModel: varchar('ai_model', { length: 100 }),
+  aiCostUsd: decimal('ai_cost_usd', { precision: 10, scale: 6 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  robotIdx: index('strategic_briefings_robot_idx').on(table.lgRobotId),
+  createdAtIdx: index('strategic_briefings_created_at_idx').on(table.createdAt),
+}));

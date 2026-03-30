@@ -267,3 +267,77 @@ export function useWarRoomInvestmentPriority() {
     staleTime: STALE_TIME,
   });
 }
+
+// ── Strategic Intelligence ──
+
+export function useDataAudit() {
+  return useQuery<any>({
+    queryKey: ['war-room', 'data-audit'],
+    queryFn: () => api.getDataAudit(),
+    staleTime: STALE_TIME,
+  });
+}
+
+export function useRunDataAudit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.runDataAudit(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['war-room', 'data-audit'] });
+    },
+  });
+}
+
+export function useStrategicBriefing(robotId: string | null) {
+  return useQuery<any>({
+    queryKey: ['war-room', 'strategic-briefing', robotId],
+    queryFn: () => api.getStrategicBriefing(robotId!),
+    staleTime: STALE_TIME,
+    enabled: !!robotId,
+  });
+}
+
+export function useGenerateStrategicBriefing() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (robotId: string) => api.generateStrategicBriefing(robotId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['war-room', 'strategic-briefing'] });
+    },
+  });
+}
+
+export function useSchedulerStatus() {
+  return useQuery<any>({
+    queryKey: ['war-room', 'scheduler-status'],
+    queryFn: () => api.getSchedulerStatus(),
+    staleTime: STALE_TIME,
+  });
+}
+
+export function usePipelineHistory() {
+  return useQuery<any[]>({
+    queryKey: ['war-room', 'pipeline-history'],
+    queryFn: () => api.getPipelineHistory(),
+    staleTime: STALE_TIME,
+  });
+}
+
+export function useTriggerScheduledTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (taskName: string) => api.triggerScheduledTask(taskName),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['war-room', 'scheduler-status'] });
+      qc.invalidateQueries({ queryKey: ['war-room', 'pipeline-history'] });
+    },
+  });
+}
+
+export function useAiBudget() {
+  return useQuery<{ currentCostUsd: number; limitUsd: number }>({
+    queryKey: ['war-room', 'ai-budget'],
+    queryFn: () => api.getAiBudget(),
+    staleTime: STALE_TIME,
+  });
+}

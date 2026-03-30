@@ -43,6 +43,13 @@
       "when": 1774307755229,
       "tag": "0015_add_announcement_quarter",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1774307755230,
+      "tag": "0016_add_strategic_intelligence_tables",
+      "breakpoints": true
     }
   ]
 }

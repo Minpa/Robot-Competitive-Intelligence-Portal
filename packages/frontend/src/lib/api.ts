@@ -1851,6 +1851,48 @@ class ApiClient {
       body: JSON.stringify({ axisKey, currentScore, targetScore }),
     });
   }
+
+  // ── Strategic Intelligence ──
+
+  async getDataAudit(): Promise<any> {
+    return this.request('/war-room/data-audit');
+  }
+
+  async runDataAudit(): Promise<any> {
+    return this.request('/war-room/data-audit/run', { method: 'POST' });
+  }
+
+  async getDataAuditRobot(robotId: string): Promise<any> {
+    return this.request(`/war-room/data-audit/robot/${robotId}`);
+  }
+
+  async getStrategicBriefing(robotId: string): Promise<any> {
+    return this.request(`/war-room/strategic-briefing/${robotId}`);
+  }
+
+  async generateStrategicBriefing(robotId: string): Promise<any> {
+    return this.request(`/war-room/strategic-briefing/${robotId}/generate`, { method: 'POST' });
+  }
+
+  async getStrategicBriefingHistory(robotId: string): Promise<any[]> {
+    return this.request(`/war-room/strategic-briefing/${robotId}/history`);
+  }
+
+  async getSchedulerStatus(): Promise<any> {
+    return this.request('/war-room/scheduler/status');
+  }
+
+  async triggerScheduledTask(taskName: string): Promise<any> {
+    return this.request(`/war-room/scheduler/${taskName}/trigger`, { method: 'POST' });
+  }
+
+  async getPipelineHistory(): Promise<any[]> {
+    return this.request('/war-room/pipeline-history');
+  }
+
+  async getAiBudget(): Promise<{ currentCostUsd: number; limitUsd: number }> {
+    return this.request('/war-room/ai-budget');
+  }
 }
 
 export const api = new ApiClient();

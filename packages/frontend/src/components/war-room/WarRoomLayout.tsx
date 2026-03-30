@@ -10,6 +10,7 @@ import {
   Briefcase,
   FlaskConical,
   RefreshCw,
+  Brain,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import dynamic from 'next/dynamic';
@@ -32,6 +33,7 @@ const tabs: Tab[] = [
   { name: '사업 전략', href: '/war-room/business', icon: Briefcase },
   { name: '시뮬레이션', href: '/war-room/simulation', icon: FlaskConical },
   { name: 'CI 업데이트', href: '/war-room/ci-update', icon: RefreshCw },
+  { name: '전략 인텔리전스', href: '/war-room/strategic-intel', icon: Brain },
 ];
 
 export function WarRoomLayout({ children }: { children: ReactNode }) {

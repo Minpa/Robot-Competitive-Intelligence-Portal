@@ -7,6 +7,7 @@ import { fixSocPowerConsumption } from './db/fix-soc-startup.js';
 import { ciUpdateService } from './services/ci-update.service.js';
 import { benchmarkService } from './services/benchmark.service.js';
 import { seedCiData } from './db/seed-ci.js';
+import { schedulerService } from './services/scheduler.service.js';
 
 const fastify = Fastify({
   logger: true,
@@ -53,6 +54,7 @@ const start = async () => {
     await benchmarkService.ensureTables();
     await seedCiData();
     await fastify.listen({ port, host: '0.0.0.0' });
+    schedulerService.init();
     console.log(`Backend server running on port ${port}`);
   } catch (err) {
     fastify.log.error(err);

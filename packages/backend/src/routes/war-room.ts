@@ -8,6 +8,10 @@ import { warRoomPartnerService } from '../services/war-room-partner.service.js';
 import { warRoomDomainService } from '../services/war-room-domain.service.js';
 import { warRoomScenarioService } from '../services/war-room-scenario.service.js';
 import { warRoomGoalService } from '../services/war-room-goal.service.js';
+import { dataAuditService } from '../services/data-audit.service.js';
+import { strategicAIAgentService } from '../services/strategic-ai-agent.service.js';
+import { schedulerService } from '../services/scheduler.service.js';
+import { aiUsageService } from '../services/ai-usage.service.js';
 import { authMiddleware, requireRole } from './auth.js';
 
 // Pre-built role guards
@@ -510,6 +514,112 @@ export async function warRoomRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ error: 'Domain not found' });
       }
       return result;
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
+  // ── Data Audit (Strategic Intelligence) ──────────────────────────
+
+  fastify.get('/data-audit', { preHandler: noViewer }, async (_request, reply) => {
+    try {
+      const report = await dataAuditService.getLatestReport();
+      if (!report) {
+        return { message: 'No audit report found. Run an audit first.' };
+      }
+      return report;
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
+  fastify.post('/data-audit/run', { preHandler: adminOnly }, async (request, reply) => {
+    try {
+      const userId = request.user?.userId;
+      const report = await dataAuditService.runFullAudit(userId);
+      return report;
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
+  fastify.get<{ Params: { robotId: string } }>('/data-audit/robot/:robotId', { preHandler: noViewer }, async (request, reply) => {
+    try {
+      const result = await dataAuditService.auditRobot(request.params.robotId);
+      if (!result) {
+        return reply.status(404).send({ error: 'Robot not found' });
+      }
+      return result;
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
+  // ── Strategic AI Briefing ────────────────────────────────────────
+
+  fastify.get<{ Params: { robotId: string } }>('/strategic-briefing/:robotId', { preHandler: noViewer }, async (request, reply) => {
+    try {
+      const result = await strategicAIAgentService.getLatestBriefing(request.params.robotId);
+      if (!result) {
+        return { message: 'No briefing found. Generate one first.' };
+      }
+      return result;
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
+  fastify.post<{ Params: { robotId: string } }>('/strategic-briefing/:robotId/generate', { preHandler: adminOrAnalyst }, async (request, reply) => {
+    try {
+      const result = await strategicAIAgentService.generateBriefing(request.params.robotId, 'manual');
+      return result;
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
+  fastify.get<{ Params: { robotId: string } }>('/strategic-briefing/:robotId/history', { preHandler: noViewer }, async (request, reply) => {
+    try {
+      return await strategicAIAgentService.getBriefingHistory(request.params.robotId);
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
+  // ── Scheduler & Pipeline History ────────────────────────────────
+
+  fastify.get('/scheduler/status', { preHandler: noViewer }, async (_request, reply) => {
+    try {
+      return schedulerService.getStatus();
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
+  fastify.post<{ Params: { taskName: string } }>('/scheduler/:taskName/trigger', { preHandler: adminOnly }, async (request, reply) => {
+    try {
+      const result = await schedulerService.trigger(request.params.taskName);
+      if (!result.success) {
+        return reply.status(400).send(result);
+      }
+      return result;
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
+  fastify.get('/pipeline-history', { preHandler: noViewer }, async (_request, reply) => {
+    try {
+      return await schedulerService.getPipelineHistory();
+    } catch (error) {
+      reply.status(500).send({ error: (error as Error).message });
+    }
+  });
+
+  fastify.get('/ai-budget', { preHandler: noViewer }, async (_request, reply) => {
+    try {
+      const currentCost = await aiUsageService.getCurrentMonthCostUsd();
+      return { currentCostUsd: currentCost, limitUsd: 7.0 };
     } catch (error) {
       reply.status(500).send({ error: (error as Error).message });
     }
