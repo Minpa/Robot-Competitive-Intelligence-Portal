@@ -6,9 +6,16 @@ const nextConfig = {
       { protocol: 'https', hostname: '**' },
     ],
   },
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, webpack }) => {
     if (!isServer) {
-      // pptxgenjs uses node:fs and node:https — provide empty fallbacks for client builds
+      // pptxgenjs imports node:fs, node:https etc.
+      // Strip "node:" prefix so webpack can apply fallbacks
+      config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
+          resource.request = resource.request.replace(/^node:/, '');
+        })
+      );
+
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
