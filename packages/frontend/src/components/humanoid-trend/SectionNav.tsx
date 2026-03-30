@@ -2,7 +2,6 @@
 
 const SECTIONS = [
   { id: 'poc-radar', label: 'PoC 레이더' },
-  { id: 'rfm-radar', label: 'RFM 레이더' },
   { id: 'soc-ecosystem', label: 'SoC 에코시스템' },
   { id: 'spec-comparison', label: '스펙 비교' },
 ];
