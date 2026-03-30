@@ -294,7 +294,8 @@ export class HumanoidRobotService {
           company: companies,
           maxSpeedMps: bodySpecs.maxSpeedMps,
           dofCount: bodySpecs.dofCount,
-          operationTimeHours: powerSpecs.operationTimeHours,
+          payloadKg: bodySpecs.payloadKg,
+          bodyOperationTimeHours: bodySpecs.operationTimeHours,
           fingerCount: handSpecs.fingerCount,
           handDof: handSpecs.handDof,
           gripForceN: handSpecs.gripForceN,
@@ -302,6 +303,12 @@ export class HumanoidRobotService {
           depthSensor: sensorSpecs.depthSensor,
           touchSensors: sensorSpecs.touchSensors,
           forceTorque: sensorSpecs.forceTorque,
+          lidar: sensorSpecs.lidar,
+          imu: sensorSpecs.imu,
+          powerOperationTimeHours: powerSpecs.operationTimeHours,
+          capacityWh: powerSpecs.capacityWh,
+          caseCount: sql<number>`(SELECT count(*)::int FROM application_cases WHERE robot_id = ${humanoidRobots.id})`,
+          articleCount: sql<number>`(SELECT count(*)::int FROM article_robot_tags WHERE robot_id = ${humanoidRobots.id})`,
         })
         .from(humanoidRobots)
         .leftJoin(companies, eq(humanoidRobots.companyId, companies.id))
@@ -311,43 +318,128 @@ export class HumanoidRobotService {
         .leftJoin(powerSpecs, eq(powerSpecs.robotId, humanoidRobots.id))
         .where(whereClause);
 
-      // Calculate composite score per robot (same logic as getRadarChartData)
+      // Collect non-null values per metric to compute medians for null-fill
+      const vals = {
+        speed: scored.map(r => r.maxSpeedMps ? Number(r.maxSpeedMps) : null).filter((v): v is number => v !== null),
+        dof: scored.map(r => r.dofCount).filter((v): v is number => v !== null),
+        payload: scored.map(r => r.payloadKg ? Number(r.payloadKg) : null).filter((v): v is number => v !== null),
+        opTime: scored.map(r => {
+          const v = r.powerOperationTimeHours ?? r.bodyOperationTimeHours;
+          return v ? Number(v) : null;
+        }).filter((v): v is number => v !== null),
+        capWh: scored.map(r => r.capacityWh ? Number(r.capacityWh) : null).filter((v): v is number => v !== null),
+        fingerCount: scored.map(r => r.fingerCount).filter((v): v is number => v !== null),
+        handDof: scored.map(r => r.handDof).filter((v): v is number => v !== null),
+        gripForce: scored.map(r => r.gripForceN ? Number(r.gripForceN) : null).filter((v): v is number => v !== null),
+      };
+      const median = (arr: number[]) => {
+        if (arr.length === 0) return 0;
+        const s = [...arr].sort((a, b) => a - b);
+        const mid = Math.floor(s.length / 2);
+        return s.length % 2 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2;
+      };
+      const med = {
+        speed: median(vals.speed),
+        dof: median(vals.dof),
+        payload: median(vals.payload),
+        opTime: median(vals.opTime),
+        capWh: median(vals.capWh),
+        fingerCount: median(vals.fingerCount),
+        handDof: median(vals.handDof),
+        gripForce: median(vals.gripForce),
+      };
+
+      // Compute max values for normalization (percentile-like 0-100 mapping)
+      const max = {
+        speed: Math.max(...vals.speed, 1),
+        dof: Math.max(...vals.dof, 1),
+        payload: Math.max(...vals.payload, 1),
+        opTime: Math.max(...vals.opTime, 1),
+        capWh: Math.max(...vals.capWh, 1),
+        fingerCount: Math.max(...vals.fingerCount, 1),
+        handDof: Math.max(...vals.handDof, 1),
+        gripForce: Math.max(...vals.gripForce, 1),
+      };
+      const norm = (val: number, maxVal: number) => Math.min(100, Math.round((val / maxVal) * 100));
+
       const withScores = scored.map(row => {
-        let mobility = 0;
-        if (row.maxSpeedMps) mobility = Math.min(100, Number(row.maxSpeedMps) * 50);
-        if (row.robot.locomotionType === 'bipedal') mobility = Math.min(100, mobility + 20);
+        const speed = row.maxSpeedMps ? Number(row.maxSpeedMps) : med.speed;
+        const dof = row.dofCount ?? med.dof;
+        const payload = row.payloadKg ? Number(row.payloadKg) : med.payload;
+        const opTime = Number(row.powerOperationTimeHours ?? row.bodyOperationTimeHours ?? 0) || med.opTime;
+        const capWh = row.capacityWh ? Number(row.capacityWh) : med.capWh;
+        const fingerCnt = row.fingerCount ?? med.fingerCount;
+        const hDof = row.handDof ?? med.handDof;
+        const gripF = row.gripForceN ? Number(row.gripForceN) : med.gripForce;
 
-        let manipulation = 0;
-        if (row.fingerCount) manipulation += row.fingerCount * 10;
-        if (row.handDof) manipulation += row.handDof * 3;
-        if (row.gripForceN) manipulation += Math.min(30, Number(row.gripForceN) / 10);
-        manipulation = Math.min(100, manipulation);
+        // 1. Mobility (0-100): speed 50% + locomotion bonus 20% + DoF 30%
+        let mobility = norm(speed, max.speed) * 0.5
+          + (row.robot.locomotionType === 'bipedal' ? 20 : row.robot.locomotionType === 'hybrid' ? 10 : 0)
+          + norm(dof, max.dof) * 0.3;
+        mobility = Math.min(100, Math.round(mobility));
 
+        // 2. Manipulation (0-100): handDof 35% + gripForce 35% + fingerCount 15% + payload 15%
+        let manipulation = norm(hDof, max.handDof) * 0.35
+          + norm(gripF, max.gripForce) * 0.35
+          + norm(fingerCnt, max.fingerCount) * 0.15
+          + norm(payload, max.payload) * 0.15;
+        manipulation = Math.min(100, Math.round(manipulation));
+
+        // 3. Interaction (0-100): sensor presence with graduated scoring
         let interaction = 0;
-        if (row.cameras) interaction += 20;
+        if (row.cameras) {
+          // Count total cameras for graduated score
+          const camArr = row.cameras as { count: number }[];
+          const totalCams = camArr.reduce((sum, c) => sum + (c.count || 1), 0);
+          interaction += Math.min(30, totalCams * 10); // up to 30
+        }
         if (row.depthSensor) interaction += 20;
-        if (row.touchSensors) interaction += 30;
-        if (row.forceTorque) interaction += 30;
+        if (row.lidar) interaction += 15;
+        if (row.imu) interaction += 10;
+        if (row.forceTorque) interaction += 15;
+        if (row.touchSensors) {
+          const touchArr = row.touchSensors as { location: string }[];
+          interaction += Math.min(10, touchArr.length * 5);
+        }
         interaction = Math.min(100, interaction);
 
-        let safety = 30; // base
-        if (row.forceTorque) safety += 40;
-        if (row.dofCount && row.dofCount > 20) safety += 30;
-        safety = Math.min(100, safety);
+        // 4. Safety (0-100): forceTorque 35% + DoF 30% + sensors breadth 35%
+        let sensorBreadth = 0;
+        if (row.cameras) sensorBreadth++;
+        if (row.depthSensor) sensorBreadth++;
+        if (row.lidar) sensorBreadth++;
+        if (row.imu) sensorBreadth++;
+        if (row.forceTorque) sensorBreadth++;
+        if (row.touchSensors) sensorBreadth++;
+        let safety = (row.forceTorque ? 35 : 0)
+          + norm(dof, max.dof) * 0.3
+          + Math.min(35, sensorBreadth * 7);
+        safety = Math.min(100, Math.round(safety));
 
-        let efficiency = 0;
-        if (row.operationTimeHours) efficiency = Math.min(100, Number(row.operationTimeHours) * 20);
+        // 5. Efficiency (0-100): opTime 50% + battery capacity 50%
+        let efficiency = norm(opTime, max.opTime) * 0.5
+          + norm(capWh, max.capWh) * 0.5;
+        efficiency = Math.min(100, Math.round(efficiency));
 
-        // Stage bonus: commercial robots get a boost
-        let stageBonus = 0;
+        // 6. Market validation (0-100): cases + articles
+        const caseCount = row.caseCount || 0;
+        const articleCount = row.articleCount || 0;
+        // Scale: 5 cases = 50pts, 10 articles = 50pts (max 100)
+        let marketValidation = Math.min(50, caseCount * 10) + Math.min(50, articleCount * 5);
+        marketValidation = Math.min(100, marketValidation);
+
+        // Stage multiplier (concept=0.5, prototype=0.65, poc=0.8, pilot=0.9, commercial=1.0)
+        let stageMul = 0.5;
         switch (row.robot.commercializationStage) {
-          case 'commercial': stageBonus = 20; break;
-          case 'pilot': stageBonus = 15; break;
-          case 'poc': stageBonus = 10; break;
-          case 'prototype': stageBonus = 5; break;
+          case 'commercial': stageMul = 1.0; break;
+          case 'pilot': stageMul = 0.9; break;
+          case 'poc': stageMul = 0.8; break;
+          case 'prototype': stageMul = 0.65; break;
         }
 
-        const compositeScore = mobility + manipulation + interaction + safety + efficiency + stageBonus;
+        // Weighted composite: specs 70%, market 15%, stage 15%
+        const specAvg = (mobility + manipulation + interaction + safety + efficiency) / 5;
+        const compositeScore = Math.round(specAvg * 0.70 + marketValidation * 0.15 + stageMul * 100 * 0.15);
 
         return {
           robot: row.robot,
@@ -658,71 +750,108 @@ export class HumanoidRobotService {
     const robot = await this.getRobot(robotId);
     if (!robot) return null;
 
-    // Calculate scores based on specs (0-100 scale)
-    const scores = {
-      mobility: 0,
-      manipulation: 0,
-      interaction: 0,
-      safety: 0,
-      efficiency: 0,
+    // Fetch dataset-wide stats for relative normalization
+    const allSpecs = await db
+      .select({
+        maxSpeedMps: bodySpecs.maxSpeedMps,
+        dofCount: bodySpecs.dofCount,
+        payloadKg: bodySpecs.payloadKg,
+        bodyOpTime: bodySpecs.operationTimeHours,
+        fingerCount: handSpecs.fingerCount,
+        handDof: handSpecs.handDof,
+        gripForceN: handSpecs.gripForceN,
+        powerOpTime: powerSpecs.operationTimeHours,
+        capacityWh: powerSpecs.capacityWh,
+      })
+      .from(humanoidRobots)
+      .leftJoin(bodySpecs, eq(bodySpecs.robotId, humanoidRobots.id))
+      .leftJoin(handSpecs, eq(handSpecs.robotId, humanoidRobots.id))
+      .leftJoin(powerSpecs, eq(powerSpecs.robotId, humanoidRobots.id));
+
+    const collect = (arr: (number | null)[]) => arr.filter((v): v is number => v !== null);
+    const medianOf = (arr: number[]) => {
+      if (arr.length === 0) return 0;
+      const s = [...arr].sort((a, b) => a - b);
+      const mid = Math.floor(s.length / 2);
+      return s.length % 2 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2;
     };
+    const maxOf = (arr: number[]) => Math.max(...arr, 1);
+    const norm = (val: number, maxVal: number) => Math.min(100, Math.round((val / maxVal) * 100));
 
-    // Mobility score based on speed and locomotion
-    if (robot.bodySpec?.maxSpeedMps) {
-      scores.mobility = Math.min(100, Number(robot.bodySpec.maxSpeedMps) * 50);
-    }
-    if (robot.robot.locomotionType === 'bipedal') {
-      scores.mobility = Math.min(100, scores.mobility + 20);
-    }
+    const speeds = collect(allSpecs.map(r => r.maxSpeedMps ? Number(r.maxSpeedMps) : null));
+    const dofs = collect(allSpecs.map(r => r.dofCount));
+    const payloads = collect(allSpecs.map(r => r.payloadKg ? Number(r.payloadKg) : null));
+    const opTimes = collect(allSpecs.map(r => {
+      const v = r.powerOpTime ?? r.bodyOpTime;
+      return v ? Number(v) : null;
+    }));
+    const capWhs = collect(allSpecs.map(r => r.capacityWh ? Number(r.capacityWh) : null));
+    const fingers = collect(allSpecs.map(r => r.fingerCount));
+    const hDofs = collect(allSpecs.map(r => r.handDof));
+    const grips = collect(allSpecs.map(r => r.gripForceN ? Number(r.gripForceN) : null));
 
-    // Manipulation score based on hand specs
-    if (robot.handSpec) {
-      if (robot.handSpec.fingerCount) {
-        scores.manipulation += robot.handSpec.fingerCount * 10;
-      }
-      if (robot.handSpec.handDof) {
-        scores.manipulation += robot.handSpec.handDof * 3;
-      }
-      if (robot.handSpec.gripForceN) {
-        scores.manipulation += Math.min(30, Number(robot.handSpec.gripForceN) / 10);
-      }
-      scores.manipulation = Math.min(100, scores.manipulation);
-    }
+    const speed = robot.bodySpec?.maxSpeedMps ? Number(robot.bodySpec.maxSpeedMps) : medianOf(speeds);
+    const dof = robot.bodySpec?.dofCount ?? medianOf(dofs);
+    const payload = robot.bodySpec?.payloadKg ? Number(robot.bodySpec.payloadKg) : medianOf(payloads);
+    const opTime = Number(robot.powerSpec?.operationTimeHours ?? robot.bodySpec?.operationTimeHours ?? 0) || medianOf(opTimes);
+    const capWh = robot.powerSpec?.capacityWh ? Number(robot.powerSpec.capacityWh) : medianOf(capWhs);
+    const fingerCnt = robot.handSpec?.fingerCount ?? medianOf(fingers);
+    const hDof = robot.handSpec?.handDof ?? medianOf(hDofs);
+    const gripF = robot.handSpec?.gripForceN ? Number(robot.handSpec.gripForceN) : medianOf(grips);
 
-    // Interaction score based on sensors
+    // 1. Mobility: speed 50% + locomotion bonus 20% + DoF 30%
+    let mobility = norm(speed, maxOf(speeds)) * 0.5
+      + (robot.robot.locomotionType === 'bipedal' ? 20 : robot.robot.locomotionType === 'hybrid' ? 10 : 0)
+      + norm(dof, maxOf(dofs)) * 0.3;
+    mobility = Math.min(100, Math.round(mobility));
+
+    // 2. Manipulation: handDof 35% + gripForce 35% + fingerCount 15% + payload 15%
+    let manipulation = norm(hDof, maxOf(hDofs)) * 0.35
+      + norm(gripF, maxOf(grips)) * 0.35
+      + norm(fingerCnt, maxOf(fingers)) * 0.15
+      + norm(payload, maxOf(payloads)) * 0.15;
+    manipulation = Math.min(100, Math.round(manipulation));
+
+    // 3. Interaction: graduated sensor scoring
+    let interaction = 0;
     if (robot.sensorSpec) {
       if (robot.sensorSpec.cameras) {
-        scores.interaction += 20;
+        const camArr = robot.sensorSpec.cameras as { count: number }[];
+        const totalCams = camArr.reduce((sum, c) => sum + (c.count || 1), 0);
+        interaction += Math.min(30, totalCams * 10);
       }
-      if (robot.sensorSpec.depthSensor) {
-        scores.interaction += 20;
-      }
+      if (robot.sensorSpec.depthSensor) interaction += 20;
+      if (robot.sensorSpec.lidar) interaction += 15;
+      if (robot.sensorSpec.imu) interaction += 10;
+      if (robot.sensorSpec.forceTorque) interaction += 15;
       if (robot.sensorSpec.touchSensors) {
-        scores.interaction += 30;
+        const touchArr = robot.sensorSpec.touchSensors as { location: string }[];
+        interaction += Math.min(10, touchArr.length * 5);
       }
-      if (robot.sensorSpec.forceTorque) {
-        scores.interaction += 30;
-      }
-      scores.interaction = Math.min(100, scores.interaction);
     }
+    interaction = Math.min(100, interaction);
 
-    // Safety score based on sensors and DoF
-    if (robot.sensorSpec?.forceTorque) {
-      scores.safety += 40;
-    }
-    if (robot.bodySpec?.dofCount && robot.bodySpec.dofCount > 20) {
-      scores.safety += 30;
-    }
-    scores.safety = Math.min(100, scores.safety + 30); // Base safety
+    // 4. Safety: forceTorque 35% + DoF 30% + sensor breadth 35%
+    let sensorBreadth = 0;
+    if (robot.sensorSpec?.cameras) sensorBreadth++;
+    if (robot.sensorSpec?.depthSensor) sensorBreadth++;
+    if (robot.sensorSpec?.lidar) sensorBreadth++;
+    if (robot.sensorSpec?.imu) sensorBreadth++;
+    if (robot.sensorSpec?.forceTorque) sensorBreadth++;
+    if (robot.sensorSpec?.touchSensors) sensorBreadth++;
+    let safety = (robot.sensorSpec?.forceTorque ? 35 : 0)
+      + norm(dof, maxOf(dofs)) * 0.3
+      + Math.min(35, sensorBreadth * 7);
+    safety = Math.min(100, Math.round(safety));
 
-    // Efficiency score based on operation time and weight
-    if (robot.powerSpec?.operationTimeHours) {
-      scores.efficiency = Math.min(100, Number(robot.powerSpec.operationTimeHours) * 20);
-    }
+    // 5. Efficiency: opTime 50% + battery capacity 50%
+    let efficiency = norm(opTime, maxOf(opTimes)) * 0.5
+      + norm(capWh, maxOf(capWhs)) * 0.5;
+    efficiency = Math.min(100, Math.round(efficiency));
 
     return {
       labels: ['이동성', '조작성', '상호작용', '안전성', '효율성'],
-      values: [scores.mobility, scores.manipulation, scores.interaction, scores.safety, scores.efficiency],
+      values: [mobility, manipulation, interaction, safety, efficiency],
     };
   }
 
