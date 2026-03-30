@@ -690,6 +690,12 @@ class ApiClient {
     };
   }
 
+  // 진화 타임라인
+  async getEvolutionTimeline(region?: string) {
+    const qs = region ? `?region=${encodeURIComponent(region)}` : '';
+    return this.request<any>(`/humanoid-robots/evolution-timeline${qs}`);
+  }
+
   // 휴머노이드 로봇 생성
   async createHumanoidRobot(data: any) {
     return this.request<any>('/humanoid-robots', {
