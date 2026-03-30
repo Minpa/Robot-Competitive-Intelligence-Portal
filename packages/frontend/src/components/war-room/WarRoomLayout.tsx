@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LgRobotSelector } from './LgRobotSelector';
+import { ExportPptButton } from './ExportPptButton';
 import type { ReactNode } from 'react';
 
 interface Tab {
@@ -45,7 +46,10 @@ export function WarRoomLayout({ children }: { children: ReactNode }) {
               LG 휴머노이드 전략 분석 대시보드
             </p>
           </div>
-          <LgRobotSelector />
+          <div className="flex items-center gap-3">
+            <ExportPptButton />
+            <LgRobotSelector />
+          </div>
         </div>
 
         {/* Tab Navigation */}
