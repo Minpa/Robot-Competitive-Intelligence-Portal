@@ -137,7 +137,7 @@ export default function RobotEvolutionTimeline() {
     const currentYear = new Date().getFullYear();
     const minYear = currentYear - RECENT_YEARS + 1;
     const years: number[] = [];
-    for (let y = currentYear; y >= minYear; y--) years.push(y);
+    for (let y = minYear; y <= currentYear; y++) years.push(y);
 
     // Total quarter slots = years * 4
     const totalQuarters = years.length * 4;
