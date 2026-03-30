@@ -92,10 +92,10 @@ export default function HumanoidRobotsPage() {
     priceBand: '',
     salesStatus: '',
     workType: '',
-    sortBy: 'name',
-    sortOrder: 'asc' as 'asc' | 'desc',
+    sortBy: 'year',
+    sortOrder: 'desc' as 'asc' | 'desc',
     page: 1,
-    limit: 12,
+    limit: 10,
   });
 
   // 뷰 모드: card / table
@@ -156,9 +156,9 @@ export default function HumanoidRobotsPage() {
           {/* 헤더 */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              휴머노이드 로봇 카탈로그
+              로봇 리스트 — Top 10
             </h1>
-            <p className="text-slate-400 mt-1">산업용/가정용, 이동 방식, Hand 타입별 휴머노이드 로봇 분석</p>
+            <p className="text-slate-400 mt-1">주요 휴머노이드 로봇 Top 10 리스트 기반 비교</p>
           </div>
 
           {/* 작업 타입 탭 */}

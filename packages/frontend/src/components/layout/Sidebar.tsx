@@ -3,29 +3,23 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard,
-  Building2,
-  Package,
   Search,
   Settings,
   TrendingUp,
-  Download,
-  Sparkles,
   Bot,
-  Cpu,
   FileText,
   Presentation,
-  Briefcase,
-  BarChart3,
-  Database,
   ChevronDown,
   ChevronRight,
   FlaskConical,
   ClipboardCheck,
-  LineChart,
-  Swords,
-  ScanEye,
   GitBranch,
+  Radar,
+  Table2,
+  Target,
+  BookOpen,
+  Globe,
+  List,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -34,7 +28,6 @@ interface NavItem {
   name: string;
   href: string;
   icon: any;
-  children?: NavItem[];
 }
 
 interface NavGroup {
@@ -44,43 +37,37 @@ interface NavGroup {
 
 const navigationGroups: NavGroup[] = [
   {
-    title: '분석',
+    title: '로봇리스트',
     items: [
-      { name: '분석 대시보드', href: '/dashboard', icon: BarChart3 },
-      { name: '휴머노이드 동향', href: '/humanoid-trend', icon: TrendingUp },
-      { name: '제품 진화 로드맵', href: '/robot-evolution', icon: GitBranch },
-      { name: '전략 워룸', href: '/war-room', icon: Swords },
+      { name: '타임라인 기반', href: '/robot-evolution', icon: GitBranch },
+      { name: '리스트 기반', href: '/humanoid-robots', icon: List },
     ],
   },
   {
-    title: '데이터',
+    title: '경쟁비교',
     items: [
-      { name: '휴머노이드 카탈로그', href: '/humanoid-robots', icon: Bot },
-      { name: '회사 데이터', href: '/companies', icon: Building2 },
-      { name: '부품·SoC/액추에이터', href: '/components-trend', icon: Cpu },
-      { name: '비전 센서 원가 분석', href: '/sensor-cost-analysis', icon: ScanEye },
-      { name: '적용 사례', href: '/application-cases', icon: Briefcase },
+      { name: '레이더 차트', href: '/humanoid-trend', icon: Radar },
+      { name: '항목별 비교', href: '/compare/matrix', icon: Table2 },
+      { name: 'Perfect 대비 분석', href: '/compare/benchmark', icon: Target },
     ],
   },
   {
-    title: '기사·이벤트',
+    title: '정보 수집',
     items: [
-      { name: '기사 인사이트 파이프라인', href: '/insight-pipeline', icon: FlaskConical },
-      { name: '엔티티 검토', href: '/review', icon: ClipboardCheck },
+      { name: 'AI 활용 / 기사 입력', href: '/insight-pipeline', icon: FlaskConical },
+      { name: '국내 국책과제 검색', href: '/national-projects', icon: Globe },
+      { name: 'Report / AI 현황분석', href: '/reports', icon: Presentation },
     ],
   },
   {
-    title: '리포트',
+    title: '검색',
     items: [
-      { name: '경영진 대시보드', href: '/executive', icon: LineChart },
-      { name: '월간 브리프', href: '/brief', icon: FileText },
-      { name: 'PPT 리포트 빌더', href: '/reports', icon: Presentation },
+      { name: '사이트 내 검색', href: '/search', icon: Search },
     ],
   },
   {
     title: '관리',
     items: [
-      { name: '검색', href: '/search', icon: Search },
       { name: '관리자 설정', href: '/admin', icon: Settings },
     ],
   },
@@ -106,7 +93,7 @@ export function Sidebar() {
     <aside className="w-64 bg-slate-900 min-h-screen flex flex-col border-r border-slate-700">
       {/* Logo */}
       <div className="p-4 border-b border-slate-700">
-        <Link href="/executive" className="flex items-center gap-2">
+        <Link href="/robot-evolution" className="flex items-center gap-2">
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
             <Bot className="w-6 h-6 text-white" />
           </div>
@@ -126,7 +113,7 @@ export function Sidebar() {
           const isCollapsed = collapsedGroups.has(group.title);
           const hasActiveItem = group.items.some(
             item => pathname === item.href ||
-              (item.href !== '/' && item.href !== '/dashboard' && pathname.startsWith(item.href))
+              (item.href !== '/' && pathname.startsWith(item.href))
           );
 
           return (
@@ -152,7 +139,7 @@ export function Sidebar() {
                 <div className="mt-1 space-y-0.5">
                   {group.items.map((item) => {
                     const isActive = pathname === item.href ||
-                      (item.href !== '/' && item.href !== '/dashboard' && pathname.startsWith(item.href));
+                      (item.href !== '/' && pathname.startsWith(item.href));
 
                     return (
                       <Link
