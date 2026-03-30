@@ -108,7 +108,7 @@ export default function RobotEvolutionTimeline() {
     x: number; y: number; robot: Robot; companyName: string;
   } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(1200);
+  const [containerWidth, setContainerWidth] = useState(0);
   const router = useRouter();
 
   // Track container width for full-width rendering
@@ -202,9 +202,9 @@ export default function RobotEvolutionTimeline() {
     router.push(`/humanoid-robots/${robotId}`);
   };
 
-  if (isLoading) {
+  if (isLoading || containerWidth === 0) {
     return (
-      <div className="animate-pulse space-y-3 p-4">
+      <div ref={containerRef} className="animate-pulse space-y-3 p-4">
         <div className="h-6 bg-zinc-700 rounded w-1/4" />
         <div className="h-72 bg-zinc-700/50 rounded" />
       </div>
