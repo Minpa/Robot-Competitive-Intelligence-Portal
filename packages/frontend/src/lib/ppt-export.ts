@@ -1,4 +1,4 @@
-import pptxgen from 'pptxgenjs';
+import type pptxgen from 'pptxgenjs';
 import type {
   DashboardSummary,
   CompetitiveOverlayResult,
@@ -102,7 +102,8 @@ export interface PptExportData {
 }
 
 export async function generateOneSheet(data: PptExportData): Promise<void> {
-  const pres = new pptxgen();
+  const PptxGenJS = (await import('pptxgenjs')).default;
+  const pres = new PptxGenJS();
   pres.layout = 'LAYOUT_WIDE'; // 13.33 × 7.5
 
   const slide = pres.addSlide();
@@ -437,7 +438,7 @@ function addFooter(slide: pptxgen.Slide) {
   });
 
   // Footer text
-  slide.addText('LG전자 로보틱스연구기획팀 | CONFIDENTIAL | HRI Portal 자동 생성', {
+  slide.addText('LG전자 로보틱스연구기획팀 | CONFIDENTIAL | ARUGOS 자동 생성', {
     x: 0.3, y: 6.90, w: 10, h: 0.2,
     fontSize: 9, color: C.lightGray, fontFace: FONT,
   });

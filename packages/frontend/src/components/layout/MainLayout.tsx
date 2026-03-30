@@ -80,7 +80,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         </main>
         <footer className="bg-slate-900 border-t border-slate-700 px-6 py-3">
           <div className="flex items-center justify-between text-xs text-slate-500">
-            <span>© 2024-2026 HRIP - Humanoid Robot Intelligence Platform</span>
+            <span>© 2024-2026 ARUGOS - Autonomous Robot Global Observatory System</span>
             <div className="flex gap-4">
               <a href="/terms" className="hover:text-slate-300 transition-colors">이용약관</a>
               <a href="/copyright" className="hover:text-slate-300 transition-colors">저작권 신고</a>

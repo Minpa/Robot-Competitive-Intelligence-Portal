@@ -153,7 +153,7 @@ export default function DashboardPage() {
           {/* Header */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-slate-200 flex items-center gap-3">
-              HRIP 분석 대시보드
+              ARUGOS 분석 대시보드
             </h1>
             <p className="text-slate-400 mt-1">휴머노이드 로봇 시장 인텔리전스 플랫폼</p>
           </div>

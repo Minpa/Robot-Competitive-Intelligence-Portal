@@ -56,7 +56,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: 'AI 활용 / 기사 입력', href: '/insight-pipeline', icon: FlaskConical },
       { name: '국내 국책과제 검색', href: '/national-projects', icon: Globe },
-      { name: 'Report / AI 현황분석', href: '/war-room', icon: Presentation },
+      { name: 'Report / AI 현황분석', href: '/reports', icon: Presentation },
     ],
   },
   {
@@ -99,10 +99,10 @@ export function Sidebar() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-slate-200 tracking-tight">HRIP</h1>
+              <h1 className="text-lg font-bold text-slate-200 tracking-tight">ARUGOS</h1>
               <span className="text-[9px] font-semibold bg-cyan-500/15 text-cyan-400 px-1.5 py-0.5 rounded-md border border-cyan-500/20">AWE 2026</span>
             </div>
-            <p className="text-[11px] text-slate-400 leading-tight">Humanoid Robot Intelligence</p>
+            <p className="text-[11px] text-slate-400 leading-tight">Autonomous Robot Global Observatory System</p>
           </div>
         </Link>
       </div>
