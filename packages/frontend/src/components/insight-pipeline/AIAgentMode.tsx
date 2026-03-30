@@ -53,7 +53,7 @@ export function AIAgentMode({
     results: Array<{ topic: string; companiesSaved: number; productsSaved: number; articlesSaved: number; keywordsSaved: number; errors: string[] }>;
   } | null>(null);
 
-  const canSearch = searchQuery.trim().length > 0 && selectedTypes.size > 0 && !isAnalyzing;
+  const canSearch = selectedTypes.size > 0 && !isAnalyzing;
 
   const toggleType = (key: string) => {
     setSelectedTypes((prev) => {
@@ -72,9 +72,11 @@ export function AIAgentMode({
     setError(null);
     setIsAnalyzing(true);
 
+    const query = searchQuery.trim() || `${startYear}-${endYear}년 휴머노이드 로봇 시장 동향 및 경쟁 분석`;
+
     try {
       const response = await api.aiSearch({
-        query: searchQuery,
+        query,
         targetTypes: Array.from(selectedTypes),
         timeRange: { start: startYear, end: endYear },
         region,
