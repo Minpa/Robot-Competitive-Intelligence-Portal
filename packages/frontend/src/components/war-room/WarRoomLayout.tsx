@@ -12,9 +12,11 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import dynamic from 'next/dynamic';
 import { LgRobotSelector } from './LgRobotSelector';
-import { ExportPptButton } from './ExportPptButton';
 import type { ReactNode } from 'react';
+
+const ExportPptButton = dynamic(() => import('./ExportPptButton').then(m => m.ExportPptButton), { ssr: false });
 
 interface Tab {
   name: string;
