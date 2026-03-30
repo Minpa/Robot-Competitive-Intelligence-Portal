@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { FileDown, Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
-import { generateOneSheet } from '@/lib/ppt-export';
 import { useWarRoomContext } from './WarRoomContext';
 
 export function ExportPptButton() {
@@ -24,6 +23,7 @@ export function ExportPptButton() {
 
       const alerts = Array.isArray(alertsRaw) ? alertsRaw : (alertsRaw as any)?.alerts ?? [];
 
+      const { generateOneSheet } = await import('@/lib/ppt-export');
       await generateOneSheet({ dashboard, overlay, alerts });
     } catch (err) {
       console.error('PPT export failed:', err);
