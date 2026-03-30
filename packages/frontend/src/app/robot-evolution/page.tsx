@@ -5,8 +5,8 @@ import RobotEvolutionTimeline from '@/components/humanoid-trend/RobotEvolutionTi
 
 function RobotEvolutionContent() {
   return (
-    <div className="min-h-screen bg-slate-950">
-      <div className="px-4 py-6 space-y-6">
+    <div className="min-h-screen bg-slate-950 overflow-hidden">
+      <div className="px-4 py-6 space-y-6 max-w-full overflow-hidden">
         {/* Page header */}
         <div>
           <h1 className="text-2xl font-bold text-slate-200">로봇 제품 진화 로드맵</h1>

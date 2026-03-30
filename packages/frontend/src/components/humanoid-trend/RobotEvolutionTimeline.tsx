@@ -107,23 +107,28 @@ export default function RobotEvolutionTimeline() {
   const [tooltip, setTooltip] = useState<{
     x: number; y: number; robot: Robot; companyName: string;
   } | null>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const router = useRouter();
 
-  // Track wrapper width (stable, not affected by SVG content inside scroll container)
+  // Measure available width from parent on mount and window resize only.
+  // Using ResizeObserver on any child causes feedback loops because the SVG
+  // width pushes the container wider, triggering another measurement.
   useEffect(() => {
-    const el = wrapperRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width);
+    const measure = () => {
+      const el = containerRef.current;
+      if (el) {
+        // Temporarily hide content so we measure the parent's natural width
+        const prev = el.style.overflow;
+        el.style.overflow = 'hidden';
+        setContainerWidth(el.clientWidth);
+        el.style.overflow = prev;
       }
-    });
-    observer.observe(el);
-    setContainerWidth(el.clientWidth);
-    return () => observer.disconnect();
+    };
+    // Delay first measure to ensure layout is ready
+    requestAnimationFrame(measure);
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
   }, []);
 
   const { data, isLoading, error } = useQuery({
@@ -208,7 +213,7 @@ export default function RobotEvolutionTimeline() {
 
   if (isLoading || containerWidth === 0) {
     return (
-      <div ref={wrapperRef} className="animate-pulse space-y-3 p-4">
+      <div ref={containerRef} className="animate-pulse space-y-3 p-4">
         <div className="h-6 bg-zinc-700 rounded w-1/4" />
         <div className="h-72 bg-zinc-700/50 rounded" />
       </div>
@@ -255,7 +260,6 @@ export default function RobotEvolutionTimeline() {
       </div>
 
       {/* Chart */}
-      <div ref={wrapperRef} className="overflow-hidden">
       <div
         ref={containerRef}
         className="relative overflow-x-auto rounded-xl border border-zinc-700 bg-zinc-900"
@@ -471,7 +475,6 @@ export default function RobotEvolutionTimeline() {
             <div className="text-blue-400 mt-0.5">클릭하여 상세 보기</div>
           </div>
         )}
-      </div>
       </div>
 
       {companies.length === 0 && (
