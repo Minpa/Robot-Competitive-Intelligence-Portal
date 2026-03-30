@@ -71,14 +71,12 @@ const WORK_TYPE_TABS = [
 ];
 
 const SORT_OPTIONS = [
-  { value: 'name-asc', label: '이름 (A-Z)' },
-  { value: 'name-desc', label: '이름 (Z-A)' },
+  { value: 'competitiveness-desc', label: '경쟁력 점수 (높은순)' },
+  { value: 'competitiveness-asc', label: '경쟁력 점수 (낮은순)' },
   { value: 'year-desc', label: '출시 연도 (최신순)' },
   { value: 'year-asc', label: '출시 연도 (오래된순)' },
-  { value: 'cases-desc', label: '적용 사례 (많은순)' },
-  { value: 'news-desc', label: '기사/이벤트 (많은순)' },
-  { value: 'price-asc', label: '가격 (낮은순)' },
-  { value: 'price-desc', label: '가격 (높은순)' },
+  { value: 'name-asc', label: '이름 (A-Z)' },
+  { value: 'name-desc', label: '이름 (Z-A)' },
 ];
 
 export default function HumanoidRobotsPage() {
@@ -92,7 +90,7 @@ export default function HumanoidRobotsPage() {
     priceBand: '',
     salesStatus: '',
     workType: '',
-    sortBy: 'year',
+    sortBy: 'competitiveness',
     sortOrder: 'desc' as 'asc' | 'desc',
     page: 1,
     limit: 10,
@@ -158,7 +156,7 @@ export default function HumanoidRobotsPage() {
             <h1 className="text-2xl font-bold text-white flex items-center gap-3">
               로봇 리스트 — Top 10
             </h1>
-            <p className="text-slate-400 mt-1">주요 휴머노이드 로봇 Top 10 리스트 기반 비교</p>
+            <p className="text-slate-400 mt-1">스펙 기반 경쟁력 점수로 산출한 휴머노이드 로봇 Top 10</p>
           </div>
 
           {/* 작업 타입 탭 */}

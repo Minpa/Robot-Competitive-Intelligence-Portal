@@ -31,7 +31,7 @@ export interface Pagination {
 }
 
 export interface SortOptions {
-  field: 'name' | 'company' | 'announcementYear' | 'commercializationStage';
+  field: 'name' | 'company' | 'announcementYear' | 'commercializationStage' | 'competitiveness';
   direction: 'asc' | 'desc';
 }
 
@@ -284,6 +284,98 @@ export class HumanoidRobotService {
       .where(whereClause);
     const count = countResult[0]?.count ?? 0;
 
+    const offset = (pagination.page - 1) * pagination.limit;
+
+    // Competitiveness sort: join spec tables and compute composite score
+    if (sort.field === 'competitiveness') {
+      const scored = await db
+        .select({
+          robot: humanoidRobots,
+          company: companies,
+          maxSpeedMps: bodySpecs.maxSpeedMps,
+          dofCount: bodySpecs.dofCount,
+          operationTimeHours: powerSpecs.operationTimeHours,
+          fingerCount: handSpecs.fingerCount,
+          handDof: handSpecs.handDof,
+          gripForceN: handSpecs.gripForceN,
+          cameras: sensorSpecs.cameras,
+          depthSensor: sensorSpecs.depthSensor,
+          touchSensors: sensorSpecs.touchSensors,
+          forceTorque: sensorSpecs.forceTorque,
+        })
+        .from(humanoidRobots)
+        .leftJoin(companies, eq(humanoidRobots.companyId, companies.id))
+        .leftJoin(bodySpecs, eq(bodySpecs.robotId, humanoidRobots.id))
+        .leftJoin(handSpecs, eq(handSpecs.robotId, humanoidRobots.id))
+        .leftJoin(sensorSpecs, eq(sensorSpecs.robotId, humanoidRobots.id))
+        .leftJoin(powerSpecs, eq(powerSpecs.robotId, humanoidRobots.id))
+        .where(whereClause);
+
+      // Calculate composite score per robot (same logic as getRadarChartData)
+      const withScores = scored.map(row => {
+        let mobility = 0;
+        if (row.maxSpeedMps) mobility = Math.min(100, Number(row.maxSpeedMps) * 50);
+        if (row.robot.locomotionType === 'bipedal') mobility = Math.min(100, mobility + 20);
+
+        let manipulation = 0;
+        if (row.fingerCount) manipulation += row.fingerCount * 10;
+        if (row.handDof) manipulation += row.handDof * 3;
+        if (row.gripForceN) manipulation += Math.min(30, Number(row.gripForceN) / 10);
+        manipulation = Math.min(100, manipulation);
+
+        let interaction = 0;
+        if (row.cameras) interaction += 20;
+        if (row.depthSensor) interaction += 20;
+        if (row.touchSensors) interaction += 30;
+        if (row.forceTorque) interaction += 30;
+        interaction = Math.min(100, interaction);
+
+        let safety = 30; // base
+        if (row.forceTorque) safety += 40;
+        if (row.dofCount && row.dofCount > 20) safety += 30;
+        safety = Math.min(100, safety);
+
+        let efficiency = 0;
+        if (row.operationTimeHours) efficiency = Math.min(100, Number(row.operationTimeHours) * 20);
+
+        // Stage bonus: commercial robots get a boost
+        let stageBonus = 0;
+        switch (row.robot.commercializationStage) {
+          case 'commercial': stageBonus = 20; break;
+          case 'pilot': stageBonus = 15; break;
+          case 'poc': stageBonus = 10; break;
+          case 'prototype': stageBonus = 5; break;
+        }
+
+        const compositeScore = mobility + manipulation + interaction + safety + efficiency + stageBonus;
+
+        return {
+          robot: row.robot,
+          company: row.company,
+          competitivenessScore: compositeScore,
+        };
+      });
+
+      // Sort by composite score
+      withScores.sort((a, b) =>
+        sort.direction === 'desc'
+          ? b.competitivenessScore - a.competitivenessScore
+          : a.competitivenessScore - b.competitivenessScore
+      );
+
+      const paged = withScores.slice(offset, offset + pagination.limit);
+
+      return {
+        data: paged.map(r => ({ robot: r.robot, company: r.company, competitivenessScore: r.competitivenessScore })),
+        pagination: {
+          page: pagination.page,
+          limit: pagination.limit,
+          total: count,
+          totalPages: Math.ceil(count / pagination.limit),
+        },
+      };
+    }
+
     // Determine sort order
     let orderBy;
     const sortDir = sort.direction === 'desc' ? desc : asc;
@@ -299,7 +391,6 @@ export class HumanoidRobotService {
     }
 
     // Get paginated results with company info
-    const offset = (pagination.page - 1) * pagination.limit;
     const robots = await db
       .select({
         robot: humanoidRobots,

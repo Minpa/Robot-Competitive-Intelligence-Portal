@@ -26,7 +26,7 @@ export async function humanoidRobotRoutes(fastify: FastifyInstance) {
       };
 
       const sort = {
-        field: (query.sortField as 'name' | 'company' | 'announcementYear' | 'commercializationStage') || 'name',
+        field: (query.sortField as 'name' | 'company' | 'announcementYear' | 'commercializationStage' | 'competitiveness') || 'name',
         direction: (query.sortDirection as 'asc' | 'desc') || 'asc',
       };
 

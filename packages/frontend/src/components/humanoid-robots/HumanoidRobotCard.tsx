@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Wrench, Newspaper, MapPin, DollarSign, Calendar, Weight, Clock } from 'lucide-react';
+import { Wrench, Newspaper, MapPin, DollarSign, Calendar, Weight, Clock, Trophy } from 'lucide-react';
 import { RobotImage } from './RobotImage';
 
 interface HumanoidRobotCardProps {
@@ -23,6 +23,7 @@ interface HumanoidRobotCardProps {
     distinctEnvironmentsCount?: number;
     newsEventCount?: number;
     imageUrl?: string;
+    competitivenessScore?: number | null;
   };
   isSelected?: boolean;
   onSelect?: (id: string) => void;
@@ -125,8 +126,14 @@ export function HumanoidRobotCard({ robot, isSelected, onSelect, showCheckbox }:
         </div>
 
         {/* 메타 줄: 용도 · 이동방식 · Hand */}
-        <div className="px-4 py-2 border-b border-slate-700/50">
+        <div className="px-4 py-2 border-b border-slate-700/50 flex items-center justify-between">
           <p className="text-xs text-slate-400">{metaText}</p>
+          {robot.competitivenessScore != null && (
+            <span className="flex items-center gap-1 text-xs font-medium text-amber-400" title="경쟁력 점수">
+              <Trophy className="w-3 h-3" />
+              {robot.competitivenessScore}점
+            </span>
+          )}
         </div>
 
         {/* 스펙/가격 줄 */}

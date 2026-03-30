@@ -598,7 +598,7 @@ class ApiClient {
       if (params.handType) backendParams.handType = params.handType;
       if (params.stage) backendParams.commercializationStage = params.stage; // Map stage to commercializationStage
       if (params.region) backendParams.region = params.region;
-      if (params.sortBy) backendParams.sortField = params.sortBy;
+      if (params.sortBy) backendParams.sortField = params.sortBy === 'year' ? 'announcementYear' : params.sortBy;
       if (params.sortOrder) backendParams.sortDirection = params.sortOrder;
       if (params.page) backendParams.page = String(params.page);
       if (params.limit) backendParams.limit = String(params.limit);
@@ -622,6 +622,7 @@ class ApiClient {
         announcedYear: item.robot.announcementYear,
         description: item.robot.description,
         imageUrl: item.robot.imageUrl,
+        competitivenessScore: item.competitivenessScore ?? null,
       })),
       total: response.pagination.total,
       page: response.pagination.page,
