@@ -107,13 +107,14 @@ export default function RobotEvolutionTimeline() {
   const [tooltip, setTooltip] = useState<{
     x: number; y: number; robot: Robot; companyName: string;
   } | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const router = useRouter();
 
-  // Track container width for full-width rendering
+  // Track wrapper width (stable, not affected by SVG content inside scroll container)
   useEffect(() => {
-    const el = containerRef.current;
+    const el = wrapperRef.current;
     if (!el) return;
     const observer = new ResizeObserver(entries => {
       for (const entry of entries) {
@@ -204,7 +205,7 @@ export default function RobotEvolutionTimeline() {
 
   if (isLoading || containerWidth === 0) {
     return (
-      <div ref={containerRef} className="animate-pulse space-y-3 p-4">
+      <div ref={wrapperRef} className="animate-pulse space-y-3 p-4">
         <div className="h-6 bg-zinc-700 rounded w-1/4" />
         <div className="h-72 bg-zinc-700/50 rounded" />
       </div>
@@ -251,12 +252,13 @@ export default function RobotEvolutionTimeline() {
       </div>
 
       {/* Chart */}
+      <div ref={wrapperRef}>
       <div
         ref={containerRef}
         className="relative overflow-x-auto rounded-xl border border-zinc-700 bg-zinc-900"
         onMouseLeave={() => { setHoveredRobot(null); setTooltip(null); }}
       >
-        <svg width={svgW} height={svgH} className="select-none" style={{ minWidth: '100%' }}>
+        <svg width={svgW} height={svgH} className="select-none">
           <defs>
             <marker id="arr" markerWidth={6} markerHeight={5} refX={5} refY={2.5} orient="auto">
               <path d="M0,0 L6,2.5 L0,5 Z" fill="rgb(var(--color-slate-700))" />
@@ -466,6 +468,7 @@ export default function RobotEvolutionTimeline() {
             <div className="text-blue-400 mt-0.5">클릭하여 상세 보기</div>
           </div>
         )}
+      </div>
       </div>
 
       {companies.length === 0 && (
