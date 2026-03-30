@@ -6,8 +6,6 @@ import SectionNav from '@/components/humanoid-trend/SectionNav';
 import PocRadarSection from '@/components/humanoid-trend/PocRadarSection';
 import RfmOverlayRadar from '@/components/humanoid-trend/RfmOverlayRadar';
 import RfmComparisonTable from '@/components/humanoid-trend/RfmComparisonTable';
-import RfmBubbleChart from '@/components/humanoid-trend/RfmBubbleChart';
-import PocBubbleChart from '@/components/humanoid-trend/PocBubbleChart';
 import SocBubbleChart from '@/components/humanoid-trend/SocBubbleChart';
 import SpecBarCharts from '@/components/humanoid-trend/SpecBarCharts';
 import AdminDataPanel from '@/components/humanoid-trend/AdminDataPanel';
@@ -41,8 +39,6 @@ function LoadingSkeleton() {
 function HumanoidTrendContent() {
   const { data: pocScores, isLoading: pocLoading } = usePocScores();
   const { data: rfmScores, isLoading: rfmLoading } = useRfmScores();
-  const { data: rfmPositioning, isLoading: rfmPosLoading } = usePositioningData('rfm_competitiveness');
-  const { data: pocPositioning, isLoading: pocPosLoading } = usePositioningData('poc_positioning');
   const { data: socPositioning, isLoading: socPosLoading } = usePositioningData('soc_ecosystem');
   const { data: barSpecs, isLoading: barLoading } = useBarSpecs();
 
@@ -79,19 +75,11 @@ function HumanoidTrendContent() {
           )}
         </ChartSection>
 
-        <ChartSection id="rfm-positioning" title="3. RFM 경쟁력 포지셔닝 맵" rubricType="positioning">
-          {rfmPosLoading ? <LoadingSkeleton /> : <RfmBubbleChart data={rfmPositioning || []} />}
-        </ChartSection>
-
-        <ChartSection id="poc-positioning" title="4. 산업용 PoC 로봇 포지셔닝 맵" rubricType="positioning">
-          {pocPosLoading ? <LoadingSkeleton /> : <PocBubbleChart data={pocPositioning || []} />}
-        </ChartSection>
-
-        <ChartSection id="soc-ecosystem" title="5. TOPS × SoC 에코시스템 포지셔닝 맵" rubricType="positioning">
+        <ChartSection id="soc-ecosystem" title="3. TOPS × SoC 에코시스템 포지셔닝 맵" rubricType="positioning">
           {socPosLoading ? <LoadingSkeleton /> : <SocBubbleChart data={socPositioning || []} />}
         </ChartSection>
 
-        <ChartSection id="spec-comparison" title="6. 산업 배치 핵심 스펙 비교">
+        <ChartSection id="spec-comparison" title="4. 산업 배치 핵심 스펙 비교">
           {barLoading ? <LoadingSkeleton /> : <SpecBarCharts data={barSpecs || []} />}
         </ChartSection>
       </div>

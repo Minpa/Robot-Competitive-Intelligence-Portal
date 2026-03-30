@@ -3,8 +3,6 @@
 const SECTIONS = [
   { id: 'poc-radar', label: 'PoC 레이더' },
   { id: 'rfm-radar', label: 'RFM 레이더' },
-  { id: 'rfm-positioning', label: 'RFM 포지셔닝' },
-  { id: 'poc-positioning', label: 'PoC 포지셔닝' },
   { id: 'soc-ecosystem', label: 'SoC 에코시스템' },
   { id: 'spec-comparison', label: '스펙 비교' },
 ];
