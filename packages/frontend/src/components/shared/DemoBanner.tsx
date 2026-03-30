@@ -6,20 +6,19 @@ import Link from 'next/link';
 import {
   X,
   Monitor,
-  Bot,
-  BarChart3,
-  Swords,
-  TrendingUp,
-  Briefcase,
-  ChevronRight,
+  GitBranch,
+  Radar,
+  FlaskConical,
+  Search,
+  Settings,
 } from 'lucide-react';
 
 const DEMO_STOPS = [
-  { href: '/executive', label: '경영진 대시보드', icon: BarChart3, desc: 'KPI & 시장 분석' },
-  { href: '/humanoid-robots', label: '로봇 카탈로그', icon: Bot, desc: '38+ 로봇 비교' },
-  { href: '/humanoid-trend', label: '경쟁력 분석', icon: TrendingUp, desc: 'RFM/PoC 스코어링' },
-  { href: '/war-room', label: '전략 워룸', icon: Swords, desc: 'LG 포지셔닝 전략' },
-  { href: '/application-cases', label: '적용 사례', icon: Briefcase, desc: '실증 배치 현황' },
+  { href: '/robot-evolution', label: '로봇리스트', icon: GitBranch, desc: '타임라인 기반 로봇 목록' },
+  { href: '/humanoid-trend', label: '경쟁비교', icon: Radar, desc: '레이더 차트 & 항목별 비교' },
+  { href: '/insight-pipeline', label: '정보 수집', icon: FlaskConical, desc: 'AI 분석 & 국책과제' },
+  { href: '/search', label: '검색', icon: Search, desc: '사이트 내 검색' },
+  { href: '/admin', label: '관리', icon: Settings, desc: '관리자 설정' },
 ];
 
 export function DemoBanner() {

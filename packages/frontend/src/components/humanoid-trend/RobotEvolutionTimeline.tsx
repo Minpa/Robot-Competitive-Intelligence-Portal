@@ -222,7 +222,12 @@ export default function RobotEvolutionTimeline() {
   }
 
   if (error || !chart) {
-    return <div className="p-6 text-center text-zinc-400">데이터를 불러올 수 없습니다.</div>;
+    return (
+      <div className="p-6 text-center text-zinc-400">
+        <p>데이터를 불러올 수 없습니다.</p>
+        {error && <p className="text-xs text-zinc-500 mt-2">{(error as Error).message}</p>}
+      </div>
+    );
   }
 
   const { companies, years, rowHeights, rowYOffsets, svgW, svgH, minYear, quarterW } = chart;
