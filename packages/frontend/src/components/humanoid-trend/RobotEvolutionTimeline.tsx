@@ -36,7 +36,7 @@ const TOP_HEADER_H = 52; // year + quarter header
 const NODE_H = 26;
 const NODE_GAP = 5;
 const ROW_PAD_Y = 10;
-const RECENT_YEARS = 10;
+const YEAR_RANGE_OPTIONS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
 const QUARTER_LABELS = ['Q1', 'Q2', 'Q3', 'Q4'];
 
 type Robot = {
@@ -103,6 +103,7 @@ function nodeWidth(name: string, showTBD: boolean): number {
 
 export default function RobotEvolutionTimeline() {
   const [regionFilter, setRegionFilter] = useState('');
+  const [recentYears, setRecentYears] = useState(10);
   const [hoveredRobot, setHoveredRobot] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<{
     x: number; y: number; robot: Robot; companyName: string;
@@ -141,7 +142,7 @@ export default function RobotEvolutionTimeline() {
     const { companies } = data;
 
     const currentYear = new Date().getFullYear();
-    const minYear = currentYear - RECENT_YEARS + 1;
+    const minYear = currentYear - recentYears + 1;
     const years: number[] = [];
     for (let y = minYear; y <= currentYear; y++) years.push(y);
 
@@ -182,7 +183,7 @@ export default function RobotEvolutionTimeline() {
     const svgH = cumY + 8;
 
     return { companies: sorted, years, rowHeights, rowYOffsets, svgW, svgH, minYear, quarterW, totalQuarters };
-  }, [data, containerWidth]);
+  }, [data, containerWidth, recentYears]);
 
   /** Get X position for a given year + quarter */
   const yqToX = useCallback((year: number, quarter: number) => {
@@ -233,16 +234,27 @@ export default function RobotEvolutionTimeline() {
         <div>
           <h2 className="text-lg font-bold text-white">제품 진화 타임라인</h2>
           <p className="text-xs text-zinc-400">
-            최근 {RECENT_YEARS}년 ({years[0]}–{years[years.length - 1]}) · {companies.length}개 기업 · 최신순
+            최근 {recentYears}년 ({years[0]}–{years[years.length - 1]}) · {companies.length}개 기업 · 최신순
           </p>
         </div>
-        <select
-          value={regionFilter}
-          onChange={e => setRegionFilter(e.target.value)}
-          className="bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-lg px-2.5 py-1.5 focus:ring-blue-500 focus:border-blue-500"
-        >
-          {REGION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        <div className="flex items-center gap-2">
+          <select
+            value={recentYears}
+            onChange={e => setRecentYears(Number(e.target.value))}
+            className="bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-lg px-2.5 py-1.5 focus:ring-blue-500 focus:border-blue-500"
+          >
+            {YEAR_RANGE_OPTIONS.map(n => (
+              <option key={n} value={n}>최근 {n}년</option>
+            ))}
+          </select>
+          <select
+            value={regionFilter}
+            onChange={e => setRegionFilter(e.target.value)}
+            className="bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-lg px-2.5 py-1.5 focus:ring-blue-500 focus:border-blue-500"
+          >
+            {REGION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
       </div>
 
       {/* Legend */}
