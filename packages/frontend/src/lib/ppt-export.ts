@@ -1,4 +1,8 @@
-import type pptxgen from 'pptxgenjs';
+// pptxgenjs is loaded dynamically at runtime to avoid node:fs/node:https webpack errors
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Slide = any;
+type TableCell = any;
+
 import type {
   DashboardSummary,
   CompetitiveOverlayResult,
@@ -130,7 +134,7 @@ export async function generateOneSheet(data: PptExportData): Promise<void> {
 
 // ── 3.1 Title Area (y: 0 ~ 0.7") ──
 
-function addTitleArea(slide: pptxgen.Slide) {
+function addTitleArea(slide: Slide) {
   // LG Red left bar
   slide.addShape('rect' as any, {
     x: 0, y: 0.15, w: 0.08, h: 0.45,
@@ -154,7 +158,7 @@ function addTitleArea(slide: pptxgen.Slide) {
 
 // ── 3.2 KPI Bar (y: 0.75 ~ 1.25") ──
 
-function addKpiBar(slide: pptxgen.Slide, dashboard: DashboardSummary) {
+function addKpiBar(slide: Slide, dashboard: DashboardSummary) {
   const pos = dashboard.lgPositioning;
   const totalRobots = pos?.totalRobots ?? 0;
   const overallRank = pos?.overallRank ?? 0;
@@ -215,7 +219,7 @@ function addKpiBar(slide: pptxgen.Slide, dashboard: DashboardSummary) {
 
 // ── 3.3 12-Factor GAP Table (y: 1.35 ~ 4.8") ──
 
-function addGapTable(slide: pptxgen.Slide, overlay: CompetitiveOverlayResult) {
+function addGapTable(slide: Slide, overlay: CompetitiveOverlayResult) {
   // Section header
   slide.addText('12-Factor 경쟁력 GAP 분석', {
     x: 0.3, y: 1.35, w: 6, h: 0.25,
@@ -254,7 +258,7 @@ function addGapTable(slide: pptxgen.Slide, overlay: CompetitiveOverlayResult) {
     'RFM합',
   ];
 
-  const headerRow: pptxgen.TableCell[] = headerLabels.map((label, i) => ({
+  const headerRow: TableCell[] = headerLabels.map((label, i) => ({
     text: label,
     options: {
       fontSize: 8,
@@ -274,14 +278,14 @@ function addGapTable(slide: pptxgen.Slide, overlay: CompetitiveOverlayResult) {
   }));
 
   // Data rows
-  const dataRows: pptxgen.TableCell[][] = displayRobots.map((robot, rowIdx) => {
+  const dataRows: TableCell[][] = displayRobots.map((robot, rowIdx) => {
     const isCloid = lgData && robot.robotId === lgData.robotId;
     const rowBg = isCloid ? C.cloidBg : (rowIdx % 2 === 0 ? C.white : C.bgLight);
     const robotLabel = isCloid ? `${truncName(robot.robotName)}★` : truncName(robot.robotName);
     const pTotal = pocTotal(robot.pocScores);
     const rTotal = rfmTotal(robot.rfmScores);
 
-    const cells: pptxgen.TableCell[] = [];
+    const cells: TableCell[] = [];
 
     // Robot name
     cells.push({
@@ -375,7 +379,7 @@ function addGapTable(slide: pptxgen.Slide, overlay: CompetitiveOverlayResult) {
 
 // ── 3.4 Alerts (y: 4.95 ~ 6.3") ──
 
-function addAlerts(slide: pptxgen.Slide, alerts: CompetitiveAlertRecord[]) {
+function addAlerts(slide: Slide, alerts: CompetitiveAlertRecord[]) {
   const startY = 5.0;
 
   slide.addText('최근 주요 경쟁 동향', {
@@ -430,7 +434,7 @@ function addAlerts(slide: pptxgen.Slide, alerts: CompetitiveAlertRecord[]) {
 
 // ── 3.5 Footer (y: 6.8 ~ 7.2") ──
 
-function addFooter(slide: pptxgen.Slide) {
+function addFooter(slide: Slide) {
   // Separator line
   slide.addShape('rect' as any, {
     x: 0.3, y: 6.85, w: 12.73, h: 0.01,
