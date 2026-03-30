@@ -255,7 +255,7 @@ export default function RobotEvolutionTimeline() {
       </div>
 
       {/* Chart */}
-      <div ref={wrapperRef}>
+      <div ref={wrapperRef} className="overflow-hidden">
       <div
         ref={containerRef}
         className="relative overflow-x-auto rounded-xl border border-zinc-700 bg-zinc-900"
