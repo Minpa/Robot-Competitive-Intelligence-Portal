@@ -142,7 +142,9 @@ export default function RobotEvolutionTimeline() {
 
     // Total quarter slots = years * 4
     const totalQuarters = years.length * 4;
-    const availableW = Math.max(containerWidth - COMPANY_COL_W - 20, totalQuarters * 50);
+    const minContentW = totalQuarters * 50; // minimum width based on quarter count
+    const fittedW = containerWidth - COMPANY_COL_W - 20;
+    const availableW = Math.max(fittedW, minContentW);
     const quarterW = availableW / totalQuarters;
 
     // Filter companies
@@ -170,7 +172,8 @@ export default function RobotEvolutionTimeline() {
       cumY += h;
     }
 
-    const svgW = COMPANY_COL_W + totalQuarters * quarterW + 20;
+    // If content fits in container, use container width exactly to avoid overflow feedback loop
+    const svgW = availableW <= fittedW ? containerWidth : COMPANY_COL_W + availableW + 20;
     const svgH = cumY + 8;
 
     return { companies: sorted, years, rowHeights, rowYOffsets, svgW, svgH, minYear, quarterW, totalQuarters };
