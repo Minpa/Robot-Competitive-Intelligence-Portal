@@ -284,7 +284,7 @@ export function AIAgentMode({
               setIsBatchRunning(false);
             }
           }}
-          disabled={isBatchRunning || isAnalyzing}
+          disabled={isBatchRunning}
           className="w-full py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-amber-600 hover:bg-amber-500 text-white"
         >
           <Database className="w-4 h-4" />
