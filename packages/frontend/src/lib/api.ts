@@ -867,27 +867,6 @@ class ApiClient {
     return this.getHumanoidRobot(id);
   }
 
-  // 로봇 진화 타임라인 (회사별 제품 로드맵)
-  async getEvolutionTimeline(region?: string) {
-    const params = region ? `?region=${region}` : '';
-    return this.request<{
-      companies: {
-        companyId: string;
-        companyName: string;
-        companyCountry: string | null;
-        robots: {
-          id: string;
-          name: string;
-          year: number | null;
-          purpose: string | null;
-          stage: string | null;
-        }[];
-      }[];
-      yearRange: { min: number; max: number };
-      totalRobots: number;
-    }>(`/humanoid-robots/evolution-timeline${params}`);
-  }
-
   // 부품 생성
   async createComponent(data: any) {
     return this.request<any>('/components', {

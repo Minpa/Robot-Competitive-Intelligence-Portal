@@ -69,7 +69,7 @@ async function seedHumanoid() {
     {
       companyName: 'Tesla',
       name: 'Optimus Gen 2',
-      announcementYear: 2023,
+      announcementYear: 2023, announcementQuarter: 4,
       status: 'development',
       purpose: 'industrial',
       locomotionType: 'bipedal',
@@ -82,7 +82,7 @@ async function seedHumanoid() {
     {
       companyName: 'Boston Dynamics',
       name: 'Atlas (Electric)',
-      announcementYear: 2024,
+      announcementYear: 2024, announcementQuarter: 2,
       status: 'development',
       purpose: 'industrial',
       locomotionType: 'bipedal',
@@ -95,7 +95,7 @@ async function seedHumanoid() {
     {
       companyName: 'Agility Robotics',
       name: 'Digit',
-      announcementYear: 2023,
+      announcementYear: 2023, announcementQuarter: 3,
       status: 'commercial',
       purpose: 'industrial',
       locomotionType: 'bipedal',
@@ -108,7 +108,7 @@ async function seedHumanoid() {
     {
       companyName: 'Figure AI',
       name: 'Figure 01',
-      announcementYear: 2024,
+      announcementYear: 2024, announcementQuarter: 1,
       status: 'development',
       purpose: 'industrial',
       locomotionType: 'bipedal',
@@ -121,7 +121,7 @@ async function seedHumanoid() {
     {
       companyName: '1X Technologies',
       name: 'NEO',
-      announcementYear: 2024,
+      announcementYear: 2024, announcementQuarter: 2,
       status: 'development',
       purpose: 'home',
       locomotionType: 'bipedal',
@@ -134,7 +134,7 @@ async function seedHumanoid() {
     {
       companyName: 'Unitree Robotics',
       name: 'H1',
-      announcementYear: 2023,
+      announcementYear: 2023, announcementQuarter: 3,
       status: 'commercial',
       purpose: 'service',
       locomotionType: 'bipedal',
@@ -147,7 +147,7 @@ async function seedHumanoid() {
     {
       companyName: 'Unitree Robotics',
       name: 'G1',
-      announcementYear: 2024,
+      announcementYear: 2024, announcementQuarter: 2,
       status: 'commercial',
       purpose: 'service',
       locomotionType: 'bipedal',
@@ -160,7 +160,7 @@ async function seedHumanoid() {
     {
       companyName: 'UBTECH',
       name: 'Walker X',
-      announcementYear: 2021,
+      announcementYear: 2021, announcementQuarter: 1,
       status: 'commercial',
       purpose: 'service',
       locomotionType: 'bipedal',
@@ -173,7 +173,7 @@ async function seedHumanoid() {
     {
       companyName: 'Xiaomi',
       name: 'CyberOne',
-      announcementYear: 2022,
+      announcementYear: 2022, announcementQuarter: 3,
       status: 'development',
       purpose: 'home',
       locomotionType: 'bipedal',
@@ -186,7 +186,7 @@ async function seedHumanoid() {
     {
       companyName: 'Fourier Intelligence',
       name: 'GR-1',
-      announcementYear: 2023,
+      announcementYear: 2023, announcementQuarter: 3,
       status: 'commercial',
       purpose: 'service',
       locomotionType: 'bipedal',
@@ -199,7 +199,7 @@ async function seedHumanoid() {
     {
       companyName: 'Sanctuary AI',
       name: 'Phoenix',
-      announcementYear: 2023,
+      announcementYear: 2023, announcementQuarter: 2,
       status: 'development',
       purpose: 'industrial',
       locomotionType: 'bipedal',
@@ -213,7 +213,7 @@ async function seedHumanoid() {
     {
       companyName: 'Toyota',
       name: 'Toyota HSR',
-      announcementYear: 2015,
+      announcementYear: 2015, announcementQuarter: 2,
       status: 'commercial',
       purpose: 'home',
       locomotionType: 'wheeled',
@@ -226,7 +226,7 @@ async function seedHumanoid() {
     {
       companyName: 'SoftBank Robotics',
       name: 'Pepper',
-      announcementYear: 2014,
+      announcementYear: 2014, announcementQuarter: 2,
       status: 'commercial',
       purpose: 'service',
       locomotionType: 'wheeled',
@@ -239,7 +239,7 @@ async function seedHumanoid() {
     {
       companyName: 'Aeolus Robotics',
       name: 'Aeo',
-      announcementYear: 2022,
+      announcementYear: 2022, announcementQuarter: 1,
       status: 'commercial',
       purpose: 'service',
       locomotionType: 'wheeled',
@@ -252,7 +252,7 @@ async function seedHumanoid() {
     {
       companyName: 'Diligent Robotics',
       name: 'Moxi',
-      announcementYear: 2019,
+      announcementYear: 2019, announcementQuarter: 1,
       status: 'commercial',
       purpose: 'service',
       locomotionType: 'wheeled',
@@ -265,7 +265,7 @@ async function seedHumanoid() {
     {
       companyName: 'PAL Robotics',
       name: 'TIAGo',
-      announcementYear: 2015,
+      announcementYear: 2015, announcementQuarter: 1,
       status: 'commercial',
       purpose: 'service',
       locomotionType: 'wheeled',
@@ -278,7 +278,7 @@ async function seedHumanoid() {
     {
       companyName: 'Savioke',
       name: 'Relay',
-      announcementYear: 2014,
+      announcementYear: 2014, announcementQuarter: 3,
       status: 'commercial',
       purpose: 'service',
       locomotionType: 'wheeled',
@@ -292,7 +292,7 @@ async function seedHumanoid() {
     {
       companyName: 'Tesla',
       name: 'Optimus Gen 3',
-      announcementYear: 2025,
+      announcementYear: 2025, announcementQuarter: 4,
       status: 'development',
       purpose: 'industrial',
       locomotionType: 'bipedal',
@@ -305,7 +305,7 @@ async function seedHumanoid() {
     {
       companyName: 'Figure AI',
       name: 'Figure 02',
-      announcementYear: 2025,
+      announcementYear: 2025, announcementQuarter: 1,
       status: 'development',
       purpose: 'industrial',
       locomotionType: 'bipedal',
@@ -318,7 +318,7 @@ async function seedHumanoid() {
     {
       companyName: '1X Technologies',
       name: 'NEO Beta',
-      announcementYear: 2025,
+      announcementYear: 2025, announcementQuarter: 2,
       status: 'development',
       purpose: 'home',
       locomotionType: 'bipedal',
@@ -331,7 +331,7 @@ async function seedHumanoid() {
     {
       companyName: 'Unitree Robotics',
       name: 'G1 Pro',
-      announcementYear: 2025,
+      announcementYear: 2025, announcementQuarter: 1,
       status: 'commercial',
       purpose: 'service',
       locomotionType: 'bipedal',
@@ -345,7 +345,7 @@ async function seedHumanoid() {
     {
       companyName: 'Tesla',
       name: 'Optimus Production',
-      announcementYear: 2026,
+      announcementYear: 2026, announcementQuarter: 2,
       status: 'commercial',
       purpose: 'industrial',
       locomotionType: 'bipedal',
@@ -358,7 +358,7 @@ async function seedHumanoid() {
     {
       companyName: 'Boston Dynamics',
       name: 'Atlas Pro',
-      announcementYear: 2026,
+      announcementYear: 2026, announcementQuarter: 1,
       status: 'development',
       purpose: 'industrial',
       locomotionType: 'bipedal',
@@ -371,7 +371,7 @@ async function seedHumanoid() {
     {
       companyName: 'Agility Robotics',
       name: 'Digit v3',
-      announcementYear: 2026,
+      announcementYear: 2026, announcementQuarter: 1,
       status: 'commercial',
       purpose: 'industrial',
       locomotionType: 'bipedal',
@@ -384,7 +384,7 @@ async function seedHumanoid() {
     {
       companyName: 'Sanctuary AI',
       name: 'Phoenix Gen 8',
-      announcementYear: 2026,
+      announcementYear: 2026, announcementQuarter: 1,
       status: 'development',
       purpose: 'industrial',
       locomotionType: 'bipedal',
@@ -397,7 +397,7 @@ async function seedHumanoid() {
     {
       companyName: 'Rainbow Robotics',
       name: 'HUBO 2',
-      announcementYear: 2026,
+      announcementYear: 2026, announcementQuarter: 2,
       status: 'development',
       purpose: 'industrial',
       locomotionType: 'bipedal',
@@ -411,7 +411,7 @@ async function seedHumanoid() {
     {
       companyName: 'Honda',
       name: 'Honda Avatar Robot',
-      announcementYear: 2024,
+      announcementYear: 2024, announcementQuarter: 1,
       status: 'development',
       purpose: 'industrial',
       locomotionType: 'hybrid',
@@ -424,7 +424,7 @@ async function seedHumanoid() {
     {
       companyName: 'Rainbow Robotics',
       name: 'HUBO',
-      announcementYear: 2004,
+      announcementYear: 2004, announcementQuarter: 1,
       status: 'commercial',
       purpose: 'industrial',
       locomotionType: 'hybrid',
@@ -437,7 +437,7 @@ async function seedHumanoid() {
     {
       companyName: 'PAL Robotics',
       name: 'TALOS',
-      announcementYear: 2017,
+      announcementYear: 2017, announcementQuarter: 1,
       status: 'commercial',
       purpose: 'industrial',
       locomotionType: 'hybrid',
@@ -451,7 +451,7 @@ async function seedHumanoid() {
     {
       companyName: 'Apptronik',
       name: 'Apollo',
-      announcementYear: 2024,
+      announcementYear: 2024, announcementQuarter: 1,
       status: 'development',
       purpose: 'industrial',
       locomotionType: 'bipedal',
@@ -464,7 +464,7 @@ async function seedHumanoid() {
     {
       companyName: 'Apptronik',
       name: 'Apollo 2',
-      announcementYear: 2026,
+      announcementYear: 2026, announcementQuarter: 2,
       status: 'development',
       purpose: 'industrial',
       locomotionType: 'bipedal',
@@ -477,7 +477,7 @@ async function seedHumanoid() {
     {
       companyName: 'Kepler Robot',
       name: 'Kepler Forerunner K2',
-      announcementYear: 2025,
+      announcementYear: 2025, announcementQuarter: 1,
       status: 'development',
       purpose: 'industrial',
       locomotionType: 'bipedal',
@@ -490,7 +490,7 @@ async function seedHumanoid() {
     {
       companyName: 'Engineered Arts',
       name: 'Ameca',
-      announcementYear: 2021,
+      announcementYear: 2021, announcementQuarter: 4,
       status: 'commercial',
       purpose: 'service',
       locomotionType: 'bipedal',
@@ -503,7 +503,7 @@ async function seedHumanoid() {
     {
       companyName: 'Mentee Robotics',
       name: 'MenteeBot',
-      announcementYear: 2025,
+      announcementYear: 2025, announcementQuarter: 3,
       status: 'development',
       purpose: 'home',
       locomotionType: 'bipedal',
@@ -516,7 +516,7 @@ async function seedHumanoid() {
     {
       companyName: 'LimX Dynamics',
       name: 'CL-1',
-      announcementYear: 2025,
+      announcementYear: 2025, announcementQuarter: 1,
       status: 'development',
       purpose: 'industrial',
       locomotionType: 'bipedal',
@@ -529,7 +529,7 @@ async function seedHumanoid() {
     {
       companyName: 'Agibot',
       name: 'Genie G1',
-      announcementYear: 2025,
+      announcementYear: 2025, announcementQuarter: 2,
       status: 'development',
       purpose: 'industrial',
       locomotionType: 'bipedal',
@@ -542,7 +542,7 @@ async function seedHumanoid() {
     {
       companyName: 'Unitree Robotics',
       name: 'H1-2',
-      announcementYear: 2026,
+      announcementYear: 2026, announcementQuarter: 3,
       status: 'commercial',
       purpose: 'service',
       locomotionType: 'bipedal',
@@ -555,7 +555,7 @@ async function seedHumanoid() {
     {
       companyName: 'UBTECH',
       name: 'Walker S1',
-      announcementYear: 2025,
+      announcementYear: 2025, announcementQuarter: 1,
       status: 'commercial',
       purpose: 'industrial',
       locomotionType: 'bipedal',
@@ -568,7 +568,7 @@ async function seedHumanoid() {
     {
       companyName: 'Xiaomi',
       name: 'CyberOne 2',
-      announcementYear: 2026,
+      announcementYear: 2026, announcementQuarter: 3,
       status: 'development',
       purpose: 'home',
       locomotionType: 'bipedal',
@@ -581,7 +581,7 @@ async function seedHumanoid() {
     {
       companyName: 'Fourier Intelligence',
       name: 'GR-2',
-      announcementYear: 2026,
+      announcementYear: 2026, announcementQuarter: 2,
       status: 'development',
       purpose: 'service',
       locomotionType: 'bipedal',
@@ -600,15 +600,17 @@ async function seedHumanoid() {
     const existing = await db.select().from(humanoidRobots).where(eq(humanoidRobots.name, r.name)).limit(1);
     if (existing.length > 0) {
       robotMap[r.name] = existing[0]!.id;
-      // Update imageUrl for existing robots
-      if (r.imageUrl) {
-        await db.update(humanoidRobots).set({ imageUrl: r.imageUrl }).where(eq(humanoidRobots.id, existing[0]!.id));
-      }
+      // Update imageUrl and announcementQuarter for existing robots
+      await db.update(humanoidRobots).set({
+        ...(r.imageUrl ? { imageUrl: r.imageUrl } : {}),
+        announcementQuarter: r.announcementQuarter || 1,
+      }).where(eq(humanoidRobots.id, existing[0]!.id));
     } else {
       const [inserted] = await db.insert(humanoidRobots).values({
         companyId,
         name: r.name,
         announcementYear: r.announcementYear,
+        announcementQuarter: r.announcementQuarter || 1,
         status: r.status,
         purpose: r.purpose,
         locomotionType: r.locomotionType,

@@ -117,7 +117,7 @@ export function SegmentHeatmapPanel({
         <EmptyChartPlaceholder
           title="세그먼트 데이터 없음"
           message="세그먼트 데이터가 없습니다"
-          icon=""
+          icon="🗺️"
           dataType="로봇"
           minDataCount={1}
         />
@@ -153,6 +153,7 @@ export function SegmentHeatmapPanel({
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
+              <span className="text-xl">🗺️</span>
               세그먼트 매트릭스
             </h3>
             <p className="text-xs text-slate-400 mt-1">환경 × 이동 방식별 로봇 분포</p>

@@ -365,6 +365,7 @@ export const humanoidRobots = pgTable(
       .references(() => companies.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 255 }).notNull(),
     announcementYear: integer('announcement_year'),
+    announcementQuarter: integer('announcement_quarter'), // 1-4 (Q1-Q4)
     status: varchar('status', { length: 50 }).default('development'), // development, poc, commercial
     purpose: varchar('purpose', { length: 50 }), // industrial, home, service
     locomotionType: varchar('locomotion_type', { length: 50 }), // bipedal, wheeled, hybrid

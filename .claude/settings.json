@@ -22,7 +22,8 @@
       "Bash(DATABASE_URL=*)",
       "WebSearch",
       "WebFetch",
-      "Read"
+      "Read",
+      "Bash(npm install:*)"
     ]
   }
 }

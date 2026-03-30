@@ -251,6 +251,7 @@ export async function humanoidRobotRoutes(fastify: FastifyInstance) {
           robotId: humanoidRobots.id,
           robotName: humanoidRobots.name,
           announcementYear: humanoidRobots.announcementYear,
+          announcementQuarter: humanoidRobots.announcementQuarter,
           purpose: humanoidRobots.purpose,
           stage: humanoidRobots.commercializationStage,
           region: humanoidRobots.region,
@@ -272,6 +273,7 @@ export async function humanoidRobotRoutes(fastify: FastifyInstance) {
           id: string;
           name: string;
           year: number | null;
+          quarter: number | null;
           purpose: string | null;
           stage: string | null;
         }[];
@@ -290,6 +292,7 @@ export async function humanoidRobotRoutes(fastify: FastifyInstance) {
           id: row.robotId,
           name: row.robotName,
           year: row.announcementYear,
+          quarter: row.announcementQuarter ?? 1,
           purpose: row.purpose,
           stage: row.stage,
         });

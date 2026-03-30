@@ -67,7 +67,7 @@ export default function LoginPage() {
           <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/25">
             <Bot className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">ARUGOS</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">ARGOS</h1>
           <p className="text-slate-400 mt-1 text-sm">Autonomous Robot Global Observatory System</p>
         </div>
 
