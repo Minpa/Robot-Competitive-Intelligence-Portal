@@ -9,16 +9,8 @@ import { api } from '@/lib/api';
 import type { AnalysisResult } from '@/types/insight-pipeline';
 
 const PROGRESS_STEPS = [
-  { topic: '주요 기업 & 제품', detail: 'Tesla Optimus, Figure, Agility Digit, Unitree...' },
-  { topic: '중국 시장', detail: 'Unitree G1/H1, UBTECH Walker, Fourier GR-1...' },
-  { topic: '일본/한국', detail: 'Rainbow Robotics, Hyundai, Honda, Toyota...' },
-  { topic: 'SoC/프로세서', detail: 'NVIDIA Jetson, Qualcomm RB5, Hailo, Kneron...' },
-  { topic: '액추에이터/모터', detail: 'Harmonic Drive, Maxon, Faulhaber...' },
-  { topic: '적용 사례', detail: '물류(Amazon), 제조(BMW), 건설, 의료...' },
-  { topic: '투자 동향', detail: 'Figure AI, 1X Technologies, Sanctuary AI...' },
-  { topic: 'AI 모델', detail: 'RT-2, RT-X, OpenVLA, PaLM-E...' },
-  { topic: '유럽 시장', detail: 'ABB, KUKA, Universal Robots, PAL Robotics...' },
-  { topic: '센서/비전', detail: 'LiDAR, RealSense, 촉각 센서, IMU...' },
+  { topic: '글로벌 기업 & 제품', detail: 'Tesla, Figure, Unitree, UBTECH, Rainbow Robotics, ABB...' },
+  { topic: '적용 사례 & 시장', detail: '물류(Amazon), 제조(BMW), 건설, 의료, 서비스...' },
 ];
 
 export default function InsightPipelinePage() {
@@ -94,7 +86,7 @@ export default function InsightPipelinePage() {
     }, 6000);
 
     setTimeout(() => addLog('> 웹 검색 활성화 (실시간 데이터)'), 800);
-    setTimeout(() => addLog('> 10개 주제 배치 시작'), 1600);
+    setTimeout(() => addLog('> 2개 주제 배치 시작'), 1600);
 
     try {
       const result = await api.generateDataBatch('claude', true);

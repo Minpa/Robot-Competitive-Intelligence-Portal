@@ -184,56 +184,17 @@ async function saveHumanoidRobots(response: AISearchResponse): Promise<number> {
   return saved;
 }
 
-// 기본 주제 목록 - 휴머노이드 로봇 산업 전반을 커버
+// 기본 주제 목록 - 핵심 2개 주제
 const DEFAULT_TOPICS: GenerationTopic[] = [
-  // 주요 기업 & 제품
+  // 글로벌 휴머노이드 로봇 기업 & 제품 (미국+중국+일본/한국+유럽 통합)
   {
-    query: '2024-2025년 주요 휴머노이드 로봇 기업과 제품 현황. Tesla Optimus, Figure, Agility Digit, Unitree, UBTECH, Fourier, Apptronik Apollo 등 각 기업의 최신 제품, 출시일, 스펙, 가격대를 상세히 분석해줘.',
-    targetTypes: ['company', 'product', 'technology'],
-  },
-  {
-    query: '중국 휴머노이드 로봇 시장 분석. Unitree G1/H1, UBTECH Walker, Fourier GR-1/GR-2, Xiaomi CyberOne, Galbot, Agibot 등 중국 기업들의 제품, 기술력, 시장 전략을 분석해줘.',
-    targetTypes: ['company', 'product', 'market'],
-    region: 'China',
-  },
-  {
-    query: '일본/한국 로봇 기업 현황. Honda, Toyota, SoftBank Robotics, Kawasaki, Rainbow Robotics, Hyundai Robotics, Doosan Robotics 등의 최신 제품과 시장 포지션을 분석해줘.',
-    targetTypes: ['company', 'product', 'market'],
-    region: 'Asia',
-  },
-  // 부품 & SoC
-  {
-    query: '로봇용 SoC/프로세서 시장 분석. NVIDIA Jetson, Qualcomm RB5/RB3, Intel Myriad, Hailo, Kneron, Rockchip 등 로봇에 사용되는 AI 칩셋의 TOPS, 전력, 가격, 적용 사례를 분석해줘.',
-    targetTypes: ['product', 'component', 'technology'],
-  },
-  {
-    query: '로봇용 액추에이터/모터 시장 분석. Harmonic Drive, Maxon, Faulhaber, Moog, 중국 액추에이터 기업들의 제품, 토크, RPM, 가격대를 분석해줘.',
-    targetTypes: ['company', 'product', 'component'],
+    query: '2024-2025년 글로벌 휴머노이드 로봇 기업과 제품 현황을 상세히 분석해줘. 미국(Tesla Optimus, Figure, Agility Digit, Apptronik Apollo), 중국(Unitree G1/H1, UBTECH Walker, Fourier GR-1/GR-2, Xiaomi CyberOne, Galbot, Agibot), 일본/한국(Honda, Toyota, SoftBank Robotics, Rainbow Robotics, Hyundai Robotics, Doosan Robotics), 유럽(ABB, KUKA, Universal Robots, PAL Robotics) 등 각 기업의 최신 제품, 출시일, 스펙, 가격대, 시장 포지션을 분석해줘.',
+    targetTypes: ['company', 'product', 'market', 'technology'],
   },
   // 적용 사례 & 시장
   {
     query: '휴머노이드 로봇 적용 사례 분석. 물류(Amazon, Agility), 제조(BMW, Mercedes), 건설, 의료, 서비스 분야별 실제 배치 사례, PoC 결과, 투자 현황을 분석해줘.',
     targetTypes: ['application', 'company', 'market'],
-  },
-  {
-    query: '로봇 산업 투자 동향 2023-2025. Figure AI, 1X Technologies, Apptronik, Sanctuary AI 등 주요 투자 라운드, 밸류에이션, 투자자 정보를 분석해줘.',
-    targetTypes: ['company', 'market', 'workforce'],
-  },
-  // AI & 소프트웨어
-  {
-    query: '로봇 AI 파운데이션 모델 분석. RT-1, RT-2, RT-X, π₀, PaLM-E, Octo, OpenVLA 등 로봇 학습 모델의 아키텍처, 성능, 적용 사례를 분석해줘.',
-    targetTypes: ['product', 'technology', 'keyword'],
-  },
-  // 유럽 시장
-  {
-    query: '유럽 로봇 기업 현황. ABB, KUKA, Universal Robots, PAL Robotics, Franka Emika, Agile Robots 등의 제품, 시장 점유율, 기술 방향을 분석해줘.',
-    targetTypes: ['company', 'product', 'market'],
-    region: 'Europe',
-  },
-  // 센서 & 비전
-  {
-    query: '로봇용 센서/비전 시스템 분석. LiDAR(Velodyne, Ouster), 카메라(Intel RealSense, Stereolabs ZED), 촉각 센서, IMU 등 로봇 센싱 기술과 주요 제품을 분석해줘.',
-    targetTypes: ['product', 'component', 'technology'],
   },
 ];
 
