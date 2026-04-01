@@ -111,7 +111,7 @@ export default function InsightPipelinePage() {
             addLog(`    → ${e}`);
           }
         } else if (total === 0) {
-          addLog(`  - ${r.topic} (이미 존재하는 데이터)`);
+          addLog(`  ↺ ${r.topic} (중복 — 이미 DB에 존재)`);
         } else {
           addLog(`  ✓ ${r.topic} → 기업 ${r.companiesSaved} · 제품 ${r.productsSaved} · 기사 ${r.articlesSaved} · 키워드 ${r.keywordsSaved}`);
         }
@@ -119,7 +119,7 @@ export default function InsightPipelinePage() {
 
       const totalSaved = result.results.reduce((sum, r) => sum + r.companiesSaved + r.productsSaved + r.articlesSaved + r.keywordsSaved, 0);
       if (totalSaved === 0 && result.failed === 0) {
-        addLog(`[${totalElapsed}s] 완료 — 새로운 데이터 없음 (모두 이미 DB에 존재)`);
+        addLog(`[${totalElapsed}s] 완료 — 새 데이터 없음 (모두 중복)`);
       } else if (result.failed > 0) {
         addLog(`[${totalElapsed}s] 완료 — 성공 ${result.completed}, 실패 ${result.failed}`);
       } else {
@@ -233,64 +233,66 @@ export default function InsightPipelinePage() {
         {/* Console-style progress log */}
         {(progressLogs.length > 0 || aiError) && (
           <div className="bg-slate-950 border border-slate-700 rounded-xl overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-2 bg-slate-900/80 border-b border-slate-700">
+            <div className="flex items-center gap-2 px-5 py-3 bg-slate-900/80 border-b border-slate-700">
               <div className="flex gap-1.5">
                 <span className="w-3 h-3 rounded-full bg-red-500/80" />
                 <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
                 <span className="w-3 h-3 rounded-full bg-green-500/80" />
               </div>
-              <span className="text-xs text-slate-500 font-mono ml-2">AI 데이터 수집</span>
+              <span className="text-sm text-slate-400 ml-2">AI 데이터 수집</span>
               {isAICollecting && (
-                <span className="ml-auto flex items-center gap-1.5 text-xs text-violet-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                <span className="ml-auto flex items-center gap-1.5 text-sm text-violet-400">
+                  <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
                   실행 중
                 </span>
               )}
               {batchResult && !isAICollecting && (
-                <span className="ml-auto text-xs text-emerald-400">
+                <span className="ml-auto text-sm text-emerald-400">
                   완료 {batchResult.completed}/{batchResult.totalTopics}
                 </span>
               )}
             </div>
-            <div className="p-4 max-h-52 overflow-y-auto font-mono text-xs leading-relaxed scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+            <div className="px-5 py-4 max-h-64 overflow-y-auto text-sm leading-7 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
               {progressLogs.map((log, i) => (
                 <div
                   key={i}
                   className={`${
                     log.startsWith('>')
                       ? 'text-violet-400'
-                      : log.includes('완료!')
+                      : log.includes('완료')
                         ? 'text-emerald-400 font-medium'
                         : log.includes('오류')
                           ? 'text-red-400'
-                          : 'text-slate-400'
+                          : log.includes('중복')
+                            ? 'text-amber-400'
+                            : 'text-slate-400'
                   }`}
                 >
                   {log}
                 </div>
               ))}
               {isAICollecting && (
-                <span className="inline-block w-2 h-4 bg-violet-400 animate-pulse ml-0.5" />
+                <span className="inline-block w-2 h-5 bg-violet-400 animate-pulse ml-0.5" />
               )}
               <div ref={logEndRef} />
             </div>
             {batchResult && (
-              <div className="border-t border-slate-800 px-4 py-3 text-xs text-slate-400 space-y-1.5 max-h-48 overflow-y-auto">
+              <div className="border-t border-slate-800 px-5 py-4 text-sm text-slate-400 space-y-2 max-h-56 overflow-y-auto">
                 {batchResult.results.map((r, i) => {
                   const hasError = r.errors && r.errors.length > 0;
                   const total = r.companiesSaved + r.productsSaved + r.articlesSaved + r.keywordsSaved;
                   return (
                     <div key={i}>
                       <div className="flex justify-between">
-                        <span className={`truncate flex-1 mr-2 ${hasError ? 'text-red-400' : ''}`}>
-                          {hasError ? '✗' : total > 0 ? '✓' : '−'} {r.topic}
+                        <span className={`truncate flex-1 mr-2 ${hasError ? 'text-red-400' : total === 0 ? 'text-amber-400' : 'text-slate-300'}`}>
+                          {hasError ? '✗' : total > 0 ? '✓' : '↺'} {r.topic}
                         </span>
-                        <span className="text-slate-500 whitespace-nowrap">
-                          {hasError ? '오류' : total === 0 ? '이미 존재' : `기업 ${r.companiesSaved} · 제품 ${r.productsSaved} · 기사 ${r.articlesSaved} · 키워드 ${r.keywordsSaved}`}
+                        <span className={`whitespace-nowrap ${hasError ? 'text-red-400' : total === 0 ? 'text-amber-400' : 'text-slate-500'}`}>
+                          {hasError ? '오류' : total === 0 ? '중복' : `기업 ${r.companiesSaved} · 제품 ${r.productsSaved} · 기사 ${r.articlesSaved} · 키워드 ${r.keywordsSaved}`}
                         </span>
                       </div>
                       {hasError && r.errors.map((e, j) => (
-                        <div key={j} className="text-red-400/70 ml-4 truncate">→ {e}</div>
+                        <div key={j} className="text-red-400/70 ml-5 truncate">→ {e}</div>
                       ))}
                     </div>
                   );
