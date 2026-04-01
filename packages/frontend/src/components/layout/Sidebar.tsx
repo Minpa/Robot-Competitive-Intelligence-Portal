@@ -20,6 +20,7 @@ import {
   BookOpen,
   Globe,
   List,
+  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -49,6 +50,7 @@ const navigationGroups: NavGroup[] = [
       { name: '레이더 차트', href: '/humanoid-trend', icon: Radar },
       { name: '항목별 비교', href: '/compare/matrix', icon: Table2 },
       { name: 'Perfect 대비 분석', href: '/compare/benchmark', icon: Target },
+      { name: '전략 제언 / Action', href: '/action-items', icon: Zap },
     ],
   },
   {
