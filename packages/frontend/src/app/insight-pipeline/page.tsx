@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FlaskConical, Sparkles, Database } from 'lucide-react';
+import { FlaskConical, Sparkles } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { ManualPasteMode } from '@/components/insight-pipeline/ManualPasteMode';
 import { InsightPanel } from '@/components/insight-pipeline/InsightPanel';
@@ -15,8 +15,7 @@ export default function InsightPipelinePage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [articleTitle, setArticleTitle] = useState('');
-  const [isAISearching, setIsAISearching] = useState(false);
-  const [isBatchRunning, setIsBatchRunning] = useState(false);
+  const [isAICollecting, setIsAICollecting] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [batchResult, setBatchResult] = useState<{
     totalTopics: number; completed: number; failed: number;
@@ -29,59 +28,19 @@ export default function InsightPipelinePage() {
     setIsDuplicate(false);
   };
 
-  const handleAISearch = async () => {
-    if (isAISearching) return;
+  const handleAICollect = async () => {
+    if (isAICollecting) return;
     setAiError(null);
-    setIsAISearching(true);
-
-    try {
-      const response = await api.aiSearch({
-        query: '2025-2026년 휴머노이드 로봇 시장 동향 및 경쟁 분석',
-        targetTypes: ['company', 'product', 'component', 'application', 'workforce', 'market', 'technology', 'keyword'],
-        timeRange: { start: '2025', end: '2026' },
-        region: '글로벌',
-        provider: 'claude',
-        webSearch: true,
-      });
-
-      const raw = response as any;
-      const result: AnalysisResult = {
-        summary: raw.result?.summary ?? raw.summary ?? '',
-        entities: {
-          companies: raw.result?.companies ?? raw.entities?.companies ?? [],
-          products: raw.result?.products ?? raw.entities?.products ?? [],
-          components: raw.result?.components ?? raw.entities?.components ?? [],
-          applications: raw.result?.applications ?? raw.entities?.applications ?? [],
-          workforce: raw.result?.workforce ?? raw.entities?.workforce ?? [],
-          market: raw.result?.market ?? raw.entities?.market ?? [],
-          technology: raw.result?.technology ?? raw.entities?.technology ?? [],
-          keywords: raw.result?.keywords ?? raw.entities?.keywords ?? [],
-        },
-        linkCandidates: raw.linkResult?.candidates ?? raw.linkCandidates ?? {},
-        sources: raw.sources ?? [],
-      };
-
-      handleAnalysisComplete(result);
-    } catch (err: any) {
-      setAiError(err?.message ?? 'AI 검색 중 오류가 발생했습니다.');
-    } finally {
-      setIsAISearching(false);
-    }
-  };
-
-  const handleBatchGenerate = async () => {
-    if (isBatchRunning) return;
-    setAiError(null);
-    setIsBatchRunning(true);
+    setIsAICollecting(true);
     setBatchResult(null);
 
     try {
       const result = await api.generateDataBatch('claude', true);
       setBatchResult(result);
     } catch (err: any) {
-      setAiError(err?.message ?? '배치 실행 중 오류가 발생했습니다.');
+      setAiError(err?.message ?? 'AI 데이터 수집 중 오류가 발생했습니다.');
     } finally {
-      setIsBatchRunning(false);
+      setIsAICollecting(false);
     }
   };
 
@@ -170,24 +129,14 @@ export default function InsightPipelinePage() {
             <FlaskConical className="w-7 h-7 text-violet-400" />
             기사 분석
           </h1>
-          <div className="flex gap-3">
-            <button
-              onClick={handleAISearch}
-              disabled={isAISearching}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-violet-600 hover:bg-violet-500 text-white"
-            >
-              <Sparkles className="w-4 h-4" />
-              {isAISearching ? 'AI 수집 중...' : 'AI 수집'}
-            </button>
-            <button
-              onClick={handleBatchGenerate}
-              disabled={isBatchRunning}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-amber-600 hover:bg-amber-500 text-white"
-            >
-              <Database className="w-4 h-4" />
-              {isBatchRunning ? 'AI 수집 중...' : 'AI 일괄 수집'}
-            </button>
-          </div>
+          <button
+            onClick={handleAICollect}
+            disabled={isAICollecting}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-violet-600 hover:bg-violet-500 text-white"
+          >
+            <Sparkles className="w-4 h-4" />
+            {isAICollecting ? 'AI 데이터 모으는 중...' : 'AI 데이터 모으기'}
+          </button>
         </div>
 
         {/* AI action feedback */}
