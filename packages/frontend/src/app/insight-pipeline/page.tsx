@@ -1,34 +1,88 @@
 'use client';
 
 import { useState } from 'react';
-import { FlaskConical, FileText, Search } from 'lucide-react';
+import { FlaskConical, Sparkles, Database } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { ManualPasteMode } from '@/components/insight-pipeline/ManualPasteMode';
-import { AIAgentMode } from '@/components/insight-pipeline/AIAgentMode';
 import { InsightPanel } from '@/components/insight-pipeline/InsightPanel';
-import { ExecutiveQuestions } from '@/components/insight-pipeline/ExecutiveQuestions';
 import { api } from '@/lib/api';
 import type { AnalysisResult } from '@/types/insight-pipeline';
 
-const TABS = [
-  { key: 'manual' as const, label: '기사 붙여넣기', icon: FileText },
-  { key: 'ai-agent' as const, label: 'AI 기반 데이터 수집', icon: Search },
-] as const;
-
 export default function InsightPipelinePage() {
-  const [activeTab, setActiveTab] = useState<'manual' | 'ai-agent'>('manual');
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [articleTitle, setArticleTitle] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [isAISearching, setIsAISearching] = useState(false);
+  const [isBatchRunning, setIsBatchRunning] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [batchResult, setBatchResult] = useState<{
+    totalTopics: number; completed: number; failed: number;
+    results: Array<{ topic: string; companiesSaved: number; productsSaved: number; articlesSaved: number; keywordsSaved: number; errors: string[] }>;
+  } | null>(null);
 
   const handleAnalysisComplete = (result: AnalysisResult) => {
     setAnalysisResult(result);
     setSaveSuccess(false);
     setIsDuplicate(false);
+  };
+
+  const handleAISearch = async () => {
+    if (isAISearching) return;
+    setAiError(null);
+    setIsAISearching(true);
+
+    try {
+      const response = await api.aiSearch({
+        query: '2025-2026년 휴머노이드 로봇 시장 동향 및 경쟁 분석',
+        targetTypes: ['company', 'product', 'component', 'application', 'workforce', 'market', 'technology', 'keyword'],
+        timeRange: { start: '2025', end: '2026' },
+        region: '글로벌',
+        provider: 'claude',
+        webSearch: true,
+      });
+
+      const raw = response as any;
+      const result: AnalysisResult = {
+        summary: raw.result?.summary ?? raw.summary ?? '',
+        entities: {
+          companies: raw.result?.companies ?? raw.entities?.companies ?? [],
+          products: raw.result?.products ?? raw.entities?.products ?? [],
+          components: raw.result?.components ?? raw.entities?.components ?? [],
+          applications: raw.result?.applications ?? raw.entities?.applications ?? [],
+          workforce: raw.result?.workforce ?? raw.entities?.workforce ?? [],
+          market: raw.result?.market ?? raw.entities?.market ?? [],
+          technology: raw.result?.technology ?? raw.entities?.technology ?? [],
+          keywords: raw.result?.keywords ?? raw.entities?.keywords ?? [],
+        },
+        linkCandidates: raw.linkResult?.candidates ?? raw.linkCandidates ?? {},
+        sources: raw.sources ?? [],
+      };
+
+      handleAnalysisComplete(result);
+    } catch (err: any) {
+      setAiError(err?.message ?? 'AI 검색 중 오류가 발생했습니다.');
+    } finally {
+      setIsAISearching(false);
+    }
+  };
+
+  const handleBatchGenerate = async () => {
+    if (isBatchRunning) return;
+    setAiError(null);
+    setIsBatchRunning(true);
+    setBatchResult(null);
+
+    try {
+      const result = await api.generateDataBatch('claude', true);
+      setBatchResult(result);
+    } catch (err: any) {
+      setAiError(err?.message ?? '배치 실행 중 오류가 발생했습니다.');
+    } finally {
+      setIsBatchRunning(false);
+    }
   };
 
   const handleSave = async (result: AnalysisResult) => {
@@ -37,7 +91,6 @@ export default function InsightPipelinePage() {
     setIsDuplicate(false);
 
     try {
-      // Build linked entity IDs from entities that have been linked
       const linkedCompanyIds = result.entities.companies
         .filter((e) => e.linkedEntityId)
         .map((e) => e.linkedEntityId!);
@@ -51,7 +104,6 @@ export default function InsightPipelinePage() {
         .filter((e) => e.linkedEntityId)
         .map((e) => e.linkedEntityId!);
 
-      // Generate a simple content hash from the summary
       const encoder = new TextEncoder();
       const data = encoder.encode(result.summary + articleTitle);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -109,10 +161,6 @@ export default function InsightPipelinePage() {
     });
   };
 
-  const handleQuestionClick = (question: string) => {
-    setSearchQuery(question);
-  };
-
   return (
     <AuthGuard>
       <div className="min-h-screen bg-slate-950 p-6 space-y-6">
@@ -127,55 +175,60 @@ export default function InsightPipelinePage() {
           </p>
         </div>
 
-        {/* Tab buttons */}
-        <div className="flex gap-2">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                  isActive
-                    ? 'bg-violet-600 text-white'
-                    : 'bg-slate-800/50 text-slate-400 border border-slate-700 hover:border-slate-600 hover:text-slate-300'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            );
-          })}
+        {/* AI quick actions */}
+        <div className="flex gap-3">
+          <button
+            onClick={handleAISearch}
+            disabled={isAISearching}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-violet-600 hover:bg-violet-500 text-white"
+          >
+            <Sparkles className="w-4 h-4" />
+            {isAISearching ? 'AI 검색 중...' : 'AI 데이터 수집'}
+          </button>
+          <button
+            onClick={handleBatchGenerate}
+            disabled={isBatchRunning}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-amber-600 hover:bg-amber-500 text-white"
+          >
+            <Database className="w-4 h-4" />
+            {isBatchRunning ? '배치 실행 중...' : '배치 데이터 생성'}
+          </button>
         </div>
+
+        {/* AI action feedback */}
+        {aiError && (
+          <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5">
+            {aiError}
+          </p>
+        )}
+        {batchResult && (
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 space-y-2">
+            <p className="text-sm text-emerald-400">
+              완료: {batchResult.completed}/{batchResult.totalTopics} 주제 | 실패: {batchResult.failed}
+            </p>
+            <div className="text-xs text-slate-400 space-y-1 max-h-40 overflow-y-auto">
+              {batchResult.results.map((r, i) => (
+                <div key={i} className="flex justify-between">
+                  <span className="truncate flex-1 mr-2">{r.topic}</span>
+                  <span className="text-slate-500 whitespace-nowrap">
+                    기업 {r.companiesSaved} · 제품 {r.productsSaved} · 기사 {r.articlesSaved} · 키워드 {r.keywordsSaved}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 2-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left column: input mode + executive questions */}
-          <div className="space-y-6">
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-              {activeTab === 'manual' ? (
-                <ManualPasteMode
-                  onAnalysisComplete={handleAnalysisComplete}
-                  isAnalyzing={isAnalyzing}
-                  setIsAnalyzing={setIsAnalyzing}
-                  articleTitle={articleTitle}
-                  setArticleTitle={setArticleTitle}
-                />
-              ) : (
-                <AIAgentMode
-                  onAnalysisComplete={handleAnalysisComplete}
-                  isAnalyzing={isAnalyzing}
-                  setIsAnalyzing={setIsAnalyzing}
-                  searchQuery={searchQuery}
-                  setSearchQuery={setSearchQuery}
-                />
-              )}
-            </div>
-
-            <ExecutiveQuestions
-              activeTab={activeTab}
-              onQuestionClick={handleQuestionClick}
+          {/* Left column: article input */}
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+            <ManualPasteMode
+              onAnalysisComplete={handleAnalysisComplete}
+              isAnalyzing={isAnalyzing}
+              setIsAnalyzing={setIsAnalyzing}
+              articleTitle={articleTitle}
+              setArticleTitle={setArticleTitle}
             />
           </div>
 
@@ -183,7 +236,7 @@ export default function InsightPipelinePage() {
           <div>
             <InsightPanel
               result={analysisResult}
-              sourceType={activeTab}
+              sourceType="manual"
               onSave={handleSave}
               onLinkEntity={handleLinkEntity}
               isSaving={isSaving}
