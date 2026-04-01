@@ -308,8 +308,8 @@ class DataGeneratorService {
         console.log(`[DataGenerator] Saved: ${result.companiesSaved} companies, ${result.productsSaved} products, ${result.keywordsSaved} keywords`);
       }
 
-      // API rate limit 방지: 3초 대기
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // API rate limit 방지: 15초 대기 (30k input tokens/min 제한 대응)
+      await new Promise(resolve => setTimeout(resolve, 15000));
     }
 
     return {
