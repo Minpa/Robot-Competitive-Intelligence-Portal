@@ -165,34 +165,29 @@ export default function InsightPipelinePage() {
     <AuthGuard>
       <div className="min-h-screen bg-slate-950 p-6 space-y-6">
         {/* Page header */}
-        <div>
+        <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-3">
             <FlaskConical className="w-7 h-7 text-violet-400" />
-            기사 인사이트 파이프라인
+            기사 분석
           </h1>
-          <p className="text-sm text-slate-400 mt-1 ml-10">
-            기사 분석 · 엔티티 추출 · DB 저장
-          </p>
-        </div>
-
-        {/* AI quick actions */}
-        <div className="flex gap-3">
-          <button
-            onClick={handleAISearch}
-            disabled={isAISearching}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-violet-600 hover:bg-violet-500 text-white"
-          >
-            <Sparkles className="w-4 h-4" />
-            {isAISearching ? 'AI 검색 중...' : 'AI 데이터 수집'}
-          </button>
-          <button
-            onClick={handleBatchGenerate}
-            disabled={isBatchRunning}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-amber-600 hover:bg-amber-500 text-white"
-          >
-            <Database className="w-4 h-4" />
-            {isBatchRunning ? '배치 실행 중...' : '배치 데이터 생성'}
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleAISearch}
+              disabled={isAISearching}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-violet-600 hover:bg-violet-500 text-white"
+            >
+              <Sparkles className="w-4 h-4" />
+              {isAISearching ? 'AI 수집 중...' : 'AI 수집'}
+            </button>
+            <button
+              onClick={handleBatchGenerate}
+              disabled={isBatchRunning}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-amber-600 hover:bg-amber-500 text-white"
+            >
+              <Database className="w-4 h-4" />
+              {isBatchRunning ? 'AI 수집 중...' : 'AI 일괄 수집'}
+            </button>
+          </div>
         </div>
 
         {/* AI action feedback */}
