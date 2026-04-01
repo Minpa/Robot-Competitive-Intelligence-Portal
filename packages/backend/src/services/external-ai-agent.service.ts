@@ -72,13 +72,15 @@ export class ExternalAIAgentService {
       raw = await callFn();
     } catch (firstError) {
       // 1회 재시도
-      console.warn(`[ExternalAIAgent] ${request.provider} API 호출 실패, 재시도 중...`, firstError);
+      const firstMsg = (firstError as Error).message || String(firstError);
+      console.warn(`[ExternalAIAgent] ${request.provider} API 호출 실패, 재시도 중...`, firstMsg);
       try {
         raw = await callFn();
       } catch (retryError) {
-        console.error(`[ExternalAIAgent] 재시도 실패`, retryError);
+        const retryMsg = (retryError as Error).message || String(retryError);
+        console.error(`[ExternalAIAgent] 재시도 실패:`, retryMsg);
         throw new Error(
-          `AI 검색에 실패했습니다 (${request.provider}). 잠시 후 다시 시도해주세요.`
+          `AI 검색 실패 (${request.provider}): ${retryMsg}`
         );
       }
     }
@@ -307,7 +309,7 @@ confidence는 정보의 신뢰도를 나타냅니다 (0.9+: 확실, 0.7~0.9: 높
       };
     } catch (error) {
       console.error('[ExternalAIAgent] JSON 파싱 실패:', error, '\nRaw (first 500 chars):', raw.substring(0, 500));
-      throw new Error('AI 응답을 파싱할 수 없습니다. 다시 시도해주세요.');
+      throw new Error(`AI 응답 파싱 실패: ${raw.substring(0, 120)}...`);
     }
   }
 
