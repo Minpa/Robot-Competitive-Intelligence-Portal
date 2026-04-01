@@ -44,7 +44,7 @@ export interface SourceReference {
 
 export class ExternalAIAgentService {
   // 월간 비용 한도 (USD) — 약 10,000원
-  private static MONTHLY_COST_LIMIT_USD = 7.0;
+  private static MONTHLY_COST_LIMIT_USD = 14.0;
 
   /**
    * AI 기반 검색·요약 수행
