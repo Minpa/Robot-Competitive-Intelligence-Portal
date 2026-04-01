@@ -71,9 +71,10 @@ export class ExternalAIAgentService {
     try {
       raw = await callFn();
     } catch (firstError) {
-      // 1회 재시도
+      // 1회 재시도 (rate limit 대비 60초 대기)
       const firstMsg = (firstError as Error).message || String(firstError);
-      console.warn(`[ExternalAIAgent] ${request.provider} API 호출 실패, 재시도 중...`, firstMsg);
+      console.warn(`[ExternalAIAgent] ${request.provider} API 호출 실패, 60초 후 재시도...`, firstMsg);
+      await new Promise(resolve => setTimeout(resolve, 60000));
       try {
         raw = await callFn();
       } catch (retryError) {
@@ -245,7 +246,7 @@ confidence는 정보의 신뢰도를 나타냅니다 (0.9+: 확실, 0.7~0.9: 높
       tools: [{
         type: 'web_search_20250305' as any,
         name: 'web_search',
-        max_uses: 5,
+        max_uses: 3,
       } as any],
       messages: [
         { role: 'user', content: `${prompt}\n\n웹 검색을 통해 최신 정보를 수집한 후, 반드시 유효한 JSON으로만 응답하세요. 다른 텍스트는 포함하지 마세요.` },
