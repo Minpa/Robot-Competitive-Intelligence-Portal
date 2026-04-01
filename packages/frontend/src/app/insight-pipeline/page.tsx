@@ -1,12 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { FlaskConical, Sparkles } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { ManualPasteMode } from '@/components/insight-pipeline/ManualPasteMode';
 import { InsightPanel } from '@/components/insight-pipeline/InsightPanel';
 import { api } from '@/lib/api';
 import type { AnalysisResult } from '@/types/insight-pipeline';
+
+const PROGRESS_STEPS = [
+  { topic: '주요 기업 & 제품', detail: 'Tesla Optimus, Figure, Agility Digit, Unitree...' },
+  { topic: '중국 시장', detail: 'Unitree G1/H1, UBTECH Walker, Fourier GR-1...' },
+  { topic: '일본/한국', detail: 'Rainbow Robotics, Hyundai, Honda, Toyota...' },
+  { topic: 'SoC/프로세서', detail: 'NVIDIA Jetson, Qualcomm RB5, Hailo, Kneron...' },
+  { topic: '액추에이터/모터', detail: 'Harmonic Drive, Maxon, Faulhaber...' },
+  { topic: '적용 사례', detail: '물류(Amazon), 제조(BMW), 건설, 의료...' },
+  { topic: '투자 동향', detail: 'Figure AI, 1X Technologies, Sanctuary AI...' },
+  { topic: 'AI 모델', detail: 'RT-2, RT-X, OpenVLA, PaLM-E...' },
+  { topic: '유럽 시장', detail: 'ABB, KUKA, Universal Robots, PAL Robotics...' },
+  { topic: '센서/비전', detail: 'LiDAR, RealSense, 촉각 센서, IMU...' },
+];
 
 export default function InsightPipelinePage() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
@@ -17,10 +30,23 @@ export default function InsightPipelinePage() {
   const [articleTitle, setArticleTitle] = useState('');
   const [isAICollecting, setIsAICollecting] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [progressLogs, setProgressLogs] = useState<string[]>([]);
   const [batchResult, setBatchResult] = useState<{
     totalTopics: number; completed: number; failed: number;
     results: Array<{ topic: string; companiesSaved: number; productsSaved: number; articlesSaved: number; keywordsSaved: number; errors: string[] }>;
   } | null>(null);
+  const logEndRef = useRef<HTMLDivElement>(null);
+  const progressInterval = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [progressLogs]);
+
+  useEffect(() => {
+    return () => {
+      if (progressInterval.current) clearInterval(progressInterval.current);
+    };
+  }, []);
 
   const handleAnalysisComplete = (result: AnalysisResult) => {
     setAnalysisResult(result);
@@ -28,16 +54,57 @@ export default function InsightPipelinePage() {
     setIsDuplicate(false);
   };
 
+  const addLog = (msg: string) => {
+    setProgressLogs((prev) => [...prev, msg]);
+  };
+
   const handleAICollect = async () => {
     if (isAICollecting) return;
     setAiError(null);
     setIsAICollecting(true);
     setBatchResult(null);
+    setProgressLogs([]);
+
+    const startTime = Date.now();
+    addLog('> Claude Sonnet 4 연결 중...');
+
+    // Simulate progress logs while the batch API runs
+    let stepIndex = 0;
+    const subSteps = ['분석 중...', '엔티티 추출 중...', 'DB 저장 중...'];
+
+    progressInterval.current = setInterval(() => {
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+
+      if (stepIndex < PROGRESS_STEPS.length) {
+        const step = PROGRESS_STEPS[stepIndex];
+        const sub = subSteps[stepIndex % subSteps.length];
+        addLog(`[${elapsed}s] ${step.topic} ${sub} (${step.detail})`);
+        stepIndex++;
+      } else {
+        // Loop through waiting messages
+        const waitMsgs = [
+          '응답 대기 중...',
+          '데이터 정리 중...',
+          '엔티티 링킹 중...',
+          '키워드 매핑 중...',
+        ];
+        addLog(`[${elapsed}s] ${waitMsgs[(stepIndex - PROGRESS_STEPS.length) % waitMsgs.length]}`);
+        stepIndex++;
+      }
+    }, 6000);
+
+    setTimeout(() => addLog('> 웹 검색 활성화 (실시간 데이터)'), 800);
+    setTimeout(() => addLog('> 10개 주제 배치 시작'), 1600);
 
     try {
       const result = await api.generateDataBatch('claude', true);
+      if (progressInterval.current) clearInterval(progressInterval.current);
+      const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      addLog(`[${totalElapsed}s] 완료! ${result.completed}/${result.totalTopics} 주제 수집 성공`);
       setBatchResult(result);
     } catch (err: any) {
+      if (progressInterval.current) clearInterval(progressInterval.current);
+      addLog(`> 오류 발생: ${err?.message ?? '알 수 없는 오류'}`);
       setAiError(err?.message ?? 'AI 데이터 수집 중 오류가 발생했습니다.');
     } finally {
       setIsAICollecting(false);
@@ -139,27 +206,62 @@ export default function InsightPipelinePage() {
           </button>
         </div>
 
-        {/* AI action feedback */}
-        {aiError && (
-          <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5">
-            {aiError}
-          </p>
-        )}
-        {batchResult && (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4 space-y-2">
-            <p className="text-sm text-emerald-400">
-              완료: {batchResult.completed}/{batchResult.totalTopics} 주제 | 실패: {batchResult.failed}
-            </p>
-            <div className="text-xs text-slate-400 space-y-1 max-h-40 overflow-y-auto">
-              {batchResult.results.map((r, i) => (
-                <div key={i} className="flex justify-between">
-                  <span className="truncate flex-1 mr-2">{r.topic}</span>
-                  <span className="text-slate-500 whitespace-nowrap">
-                    기업 {r.companiesSaved} · 제품 {r.productsSaved} · 기사 {r.articlesSaved} · 키워드 {r.keywordsSaved}
-                  </span>
+        {/* Console-style progress log */}
+        {(progressLogs.length > 0 || aiError) && (
+          <div className="bg-slate-950 border border-slate-700 rounded-xl overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-2 bg-slate-900/80 border-b border-slate-700">
+              <div className="flex gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-red-500/80" />
+                <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                <span className="w-3 h-3 rounded-full bg-green-500/80" />
+              </div>
+              <span className="text-xs text-slate-500 font-mono ml-2">AI 데이터 수집</span>
+              {isAICollecting && (
+                <span className="ml-auto flex items-center gap-1.5 text-xs text-violet-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                  실행 중
+                </span>
+              )}
+              {batchResult && !isAICollecting && (
+                <span className="ml-auto text-xs text-emerald-400">
+                  완료 {batchResult.completed}/{batchResult.totalTopics}
+                </span>
+              )}
+            </div>
+            <div className="p-4 max-h-52 overflow-y-auto font-mono text-xs leading-relaxed scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+              {progressLogs.map((log, i) => (
+                <div
+                  key={i}
+                  className={`${
+                    log.startsWith('>')
+                      ? 'text-violet-400'
+                      : log.includes('완료!')
+                        ? 'text-emerald-400 font-medium'
+                        : log.includes('오류')
+                          ? 'text-red-400'
+                          : 'text-slate-400'
+                  }`}
+                >
+                  {log}
                 </div>
               ))}
+              {isAICollecting && (
+                <span className="inline-block w-2 h-4 bg-violet-400 animate-pulse ml-0.5" />
+              )}
+              <div ref={logEndRef} />
             </div>
+            {batchResult && (
+              <div className="border-t border-slate-800 px-4 py-3 text-xs text-slate-400 space-y-1">
+                {batchResult.results.map((r, i) => (
+                  <div key={i} className="flex justify-between">
+                    <span className="truncate flex-1 mr-2">{r.topic}</span>
+                    <span className="text-slate-500 whitespace-nowrap">
+                      기업 {r.companiesSaved} · 제품 {r.productsSaved} · 기사 {r.articlesSaved} · 키워드 {r.keywordsSaved}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
