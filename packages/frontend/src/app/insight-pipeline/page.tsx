@@ -100,11 +100,35 @@ export default function InsightPipelinePage() {
       const result = await api.generateDataBatch('claude', true);
       if (progressInterval.current) clearInterval(progressInterval.current);
       const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-      addLog(`[${totalElapsed}s] 완료! ${result.completed}/${result.totalTopics} 주제 수집 성공`);
+
+      // Show per-topic results in console
+      for (const r of result.results) {
+        const total = r.companiesSaved + r.productsSaved + r.articlesSaved + r.keywordsSaved;
+        const hasError = r.errors && r.errors.length > 0;
+        if (hasError) {
+          addLog(`  ✗ ${r.topic}`);
+          for (const e of r.errors) {
+            addLog(`    → ${e}`);
+          }
+        } else if (total === 0) {
+          addLog(`  - ${r.topic} (이미 존재하는 데이터)`);
+        } else {
+          addLog(`  ✓ ${r.topic} → 기업 ${r.companiesSaved} · 제품 ${r.productsSaved} · 기사 ${r.articlesSaved} · 키워드 ${r.keywordsSaved}`);
+        }
+      }
+
+      const totalSaved = result.results.reduce((sum, r) => sum + r.companiesSaved + r.productsSaved + r.articlesSaved + r.keywordsSaved, 0);
+      if (totalSaved === 0 && result.failed === 0) {
+        addLog(`[${totalElapsed}s] 완료 — 새로운 데이터 없음 (모두 이미 DB에 존재)`);
+      } else if (result.failed > 0) {
+        addLog(`[${totalElapsed}s] 완료 — 성공 ${result.completed}, 실패 ${result.failed}`);
+      } else {
+        addLog(`[${totalElapsed}s] 완료! ${result.completed}/${result.totalTopics} 주제 수집 성공`);
+      }
       setBatchResult(result);
     } catch (err: any) {
       if (progressInterval.current) clearInterval(progressInterval.current);
-      addLog(`> 오류 발생: ${err?.message ?? '알 수 없는 오류'}`);
+      addLog(`> 오류: ${err?.message ?? '알 수 없는 오류'}`);
       setAiError(err?.message ?? 'AI 데이터 수집 중 오류가 발생했습니다.');
     } finally {
       setIsAICollecting(false);
@@ -251,15 +275,26 @@ export default function InsightPipelinePage() {
               <div ref={logEndRef} />
             </div>
             {batchResult && (
-              <div className="border-t border-slate-800 px-4 py-3 text-xs text-slate-400 space-y-1">
-                {batchResult.results.map((r, i) => (
-                  <div key={i} className="flex justify-between">
-                    <span className="truncate flex-1 mr-2">{r.topic}</span>
-                    <span className="text-slate-500 whitespace-nowrap">
-                      기업 {r.companiesSaved} · 제품 {r.productsSaved} · 기사 {r.articlesSaved} · 키워드 {r.keywordsSaved}
-                    </span>
-                  </div>
-                ))}
+              <div className="border-t border-slate-800 px-4 py-3 text-xs text-slate-400 space-y-1.5 max-h-48 overflow-y-auto">
+                {batchResult.results.map((r, i) => {
+                  const hasError = r.errors && r.errors.length > 0;
+                  const total = r.companiesSaved + r.productsSaved + r.articlesSaved + r.keywordsSaved;
+                  return (
+                    <div key={i}>
+                      <div className="flex justify-between">
+                        <span className={`truncate flex-1 mr-2 ${hasError ? 'text-red-400' : ''}`}>
+                          {hasError ? '✗' : total > 0 ? '✓' : '−'} {r.topic}
+                        </span>
+                        <span className="text-slate-500 whitespace-nowrap">
+                          {hasError ? '오류' : total === 0 ? '이미 존재' : `기업 ${r.companiesSaved} · 제품 ${r.productsSaved} · 기사 ${r.articlesSaved} · 키워드 ${r.keywordsSaved}`}
+                        </span>
+                      </div>
+                      {hasError && r.errors.map((e, j) => (
+                        <div key={j} className="text-red-400/70 ml-4 truncate">→ {e}</div>
+                      ))}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
