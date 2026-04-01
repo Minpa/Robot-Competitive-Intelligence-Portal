@@ -29,6 +29,10 @@ export interface GenerationResult {
   articlesSaved: number;
   keywordsSaved: number;
   robotsSaved: number;
+  companyNames: string[];
+  productNames: string[];
+  articleTitles: string[];
+  keywordTerms: string[];
   errors: string[];
 }
 
@@ -237,6 +241,10 @@ class DataGeneratorService {
         articlesSaved: 0,
         keywordsSaved: 0,
         robotsSaved: 0,
+        companyNames: [],
+        productNames: [],
+        articleTitles: [],
+        keywordTerms: [],
         errors: [(error as Error).message],
       };
     }

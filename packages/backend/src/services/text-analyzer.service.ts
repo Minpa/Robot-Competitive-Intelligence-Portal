@@ -90,6 +90,10 @@ export interface SaveResult {
   productsSaved: number;
   articlesSaved: number;
   keywordsSaved: number;
+  companyNames: string[];
+  productNames: string[];
+  articleTitles: string[];
+  keywordTerms: string[];
   errors: string[];
 }
 
@@ -191,6 +195,10 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
     productsSaved: 0,
     articlesSaved: 0,
     keywordsSaved: 0,
+    companyNames: [],
+    productNames: [],
+    articleTitles: [],
+    keywordTerms: [],
     errors: [],
   };
 
@@ -220,6 +228,7 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
       if (inserted) {
         companyIdMap.set(company.name, inserted.id);
         result.companiesSaved++;
+        result.companyNames.push(company.name);
       }
     } catch (err) {
       result.errors.push(`Company "${company.name}": ${(err as Error).message}`);
@@ -308,6 +317,7 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
           }
           
           result.productsSaved++;
+          result.productNames.push(product.name);
         }
         continue;
       }
@@ -335,6 +345,7 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
       }
 
       result.productsSaved++;
+      result.productNames.push(product.name);
     } catch (err) {
       result.errors.push(`Product "${product.name}": ${(err as Error).message}`);
     }
@@ -366,6 +377,7 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
       });
 
       result.articlesSaved++;
+      result.articleTitles.push(article.title);
     } catch (err) {
       result.errors.push(`Article "${article.title}": ${(err as Error).message}`);
     }
@@ -391,6 +403,7 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
       });
 
       result.keywordsSaved++;
+      result.keywordTerms.push(keyword);
     } catch (err) {
       result.errors.push(`Keyword "${keyword}": ${(err as Error).message}`);
     }
