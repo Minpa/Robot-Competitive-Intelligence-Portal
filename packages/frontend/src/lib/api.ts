@@ -460,6 +460,29 @@ class ApiClient {
     );
   }
 
+  async getClaudeCreditInfo() {
+    return this.request<{
+      apiKeyValid: boolean;
+      apiKeyPrefix: string | null;
+      monthlyLimitUsd: number;
+      currentMonthUsageUsd: number;
+      remainingUsd: number;
+      remainingPct: number;
+      claudeStats: {
+        totalCalls: number;
+        totalInputTokens: number;
+        totalOutputTokens: number;
+        totalCostUsd: number;
+        webSearchCalls: number;
+        inputCostUsd: number;
+        outputCostUsd: number;
+        webSearchCostUsd: number;
+      };
+      dailyUsage: Array<{ date: string; calls: number; costUsd: number; inputTokens: number; outputTokens: number }>;
+      modelBreakdown: Array<{ model: string; calls: number; inputTokens: number; outputTokens: number; costUsd: number }>;
+    }>('/admin/ai-usage/claude-credit');
+  }
+
   async getAiUsageLogs(limit: number = 50) {
     return this.request<{ logs: Array<{ id: string; provider: string; model: string; webSearch: boolean; inputTokens: number; outputTokens: number; estimatedCostUsd: string; query: string | null; createdAt: string }> }>(
       `/admin/ai-usage/logs?limit=${limit}`
@@ -1893,6 +1916,62 @@ class ApiClient {
   async getAiBudget(): Promise<{ currentCostUsd: number; limitUsd: number }> {
     return this.request('/war-room/ai-budget');
   }
+
+  compliance = {
+    getDashboard: () => this.request<any>('/compliance/dashboard'),
+
+    getRegulations: (params?: { category?: string; region?: string; status?: string; lgImpact?: string; search?: string; limit?: number; offset?: number }) => {
+      const searchParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined) searchParams.set(key, String(value));
+        });
+      }
+      const qs = searchParams.toString();
+      return this.request<{ items: any[]; total: number }>(`/compliance/regulations${qs ? `?${qs}` : ''}`);
+    },
+
+    getRegulation: (id: string) => this.request<any>(`/compliance/regulations/${id}`),
+    createRegulation: (data: any) => this.request<any>('/compliance/regulations', { method: 'POST', body: JSON.stringify(data) }),
+    updateRegulation: (id: string, data: any) => this.request<any>(`/compliance/regulations/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteRegulation: (id: string) => this.request<any>(`/compliance/regulations/${id}`, { method: 'DELETE' }),
+
+    getUpdates: (params?: { category?: string; region?: string; lgImpact?: string; isRead?: string; updateType?: string; limit?: number; offset?: number }) => {
+      const searchParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined) searchParams.set(key, String(value));
+        });
+      }
+      const qs = searchParams.toString();
+      return this.request<{ items: any[]; total: number; unread: number }>(`/compliance/updates${qs ? `?${qs}` : ''}`);
+    },
+
+    createUpdate: (data: any) => this.request<any>('/compliance/updates', { method: 'POST', body: JSON.stringify(data) }),
+    markUpdatesRead: (ids: string[]) => this.request<any>('/compliance/updates/mark-read', { method: 'POST', body: JSON.stringify({ ids }) }),
+    markAllUpdatesRead: () => this.request<any>('/compliance/updates/mark-all-read', { method: 'POST' }),
+
+    getChecklist: (params?: { category?: string; region?: string; status?: string; priority?: string }) => {
+      const searchParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined) searchParams.set(key, String(value));
+        });
+      }
+      const qs = searchParams.toString();
+      return this.request<any[]>(`/compliance/checklist${qs ? `?${qs}` : ''}`);
+    },
+
+    getChecklistStats: () => this.request<any[]>('/compliance/checklist/stats'),
+    createChecklistItem: (data: any) => this.request<any>('/compliance/checklist', { method: 'POST', body: JSON.stringify(data) }),
+    updateChecklistItem: (id: string, data: any) => this.request<any>(`/compliance/checklist/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteChecklistItem: (id: string) => this.request<any>(`/compliance/checklist/${id}`, { method: 'DELETE' }),
+
+    getSources: () => this.request<any[]>('/compliance/sources'),
+    createSource: (data: any) => this.request<any>('/compliance/sources', { method: 'POST', body: JSON.stringify(data) }),
+    updateSource: (id: string, data: any) => this.request<any>(`/compliance/sources/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteSource: (id: string) => this.request<any>(`/compliance/sources/${id}`, { method: 'DELETE' }),
+  };
 }
 
 export const api = new ApiClient();

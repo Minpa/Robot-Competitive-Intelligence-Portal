@@ -1701,3 +1701,122 @@ export const strategicBriefings = pgTable('strategic_briefings', {
   robotIdx: index('strategic_briefings_robot_idx').on(table.lgRobotId),
   createdAtIdx: index('strategic_briefings_created_at_idx').on(table.createdAt),
 }));
+
+// ============================================
+// Compliance (컴플라이언스) Tables
+// ============================================
+
+// Regulations — 규제 원문/요약 DB
+export const regulations = pgTable('regulations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: varchar('title', { length: 500 }).notNull(),
+  titleKo: varchar('title_ko', { length: 500 }), // Korean translation
+  category: varchar('category', { length: 50 }).notNull(), // policy, safety, legal, privacy
+  region: varchar('region', { length: 50 }).notNull(), // korea, us, eu, china, international
+  jurisdiction: varchar('jurisdiction', { length: 100 }), // specific jurisdiction (e.g., California, MIIT)
+  status: varchar('status', { length: 30 }).notNull().default('active'), // active, proposed, draft, repealed
+  effectiveDate: date('effective_date'),
+  lastAmendedDate: date('last_amended_date'),
+  summary: text('summary'), // AI-generated summary
+  summaryKo: text('summary_ko'),
+  lgImpact: varchar('lg_impact', { length: 20 }).default('medium'), // critical, high, medium, low, none
+  lgImpactAnalysis: text('lg_impact_analysis'), // AI-generated LG impact analysis
+  sourceUrl: varchar('source_url', { length: 1000 }),
+  sourceName: varchar('source_name', { length: 255 }),
+  originalText: text('original_text'), // Full text or key excerpts
+  tags: jsonb('tags').$type<string[]>().default([]),
+  metadata: jsonb('metadata').$type<Record<string, any>>().default({}),
+  createdBy: varchar('created_by', { length: 100 }).default('system'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  categoryIdx: index('regulations_category_idx').on(table.category),
+  regionIdx: index('regulations_region_idx').on(table.region),
+  statusIdx: index('regulations_status_idx').on(table.status),
+  lgImpactIdx: index('regulations_lg_impact_idx').on(table.lgImpact),
+  effectiveDateIdx: index('regulations_effective_date_idx').on(table.effectiveDate),
+}));
+
+// Regulatory Updates — 규제 변경 이력/피드
+export const regulatoryUpdates = pgTable('regulatory_updates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  regulationId: uuid('regulation_id').references(() => regulations.id, { onDelete: 'set null' }),
+  title: varchar('title', { length: 500 }).notNull(),
+  titleKo: varchar('title_ko', { length: 500 }),
+  updateType: varchar('update_type', { length: 30 }).notNull(), // new_regulation, amendment, enforcement, proposal, repeal, guidance
+  category: varchar('category', { length: 50 }).notNull(),
+  region: varchar('region', { length: 50 }).notNull(),
+  summary: text('summary').notNull(),
+  summaryKo: text('summary_ko'),
+  lgImpact: varchar('lg_impact', { length: 20 }).default('medium'),
+  lgActionRequired: text('lg_action_required'), // What LG needs to do
+  sourceUrl: varchar('source_url', { length: 1000 }),
+  sourceName: varchar('source_name', { length: 255 }),
+  publishedAt: timestamp('published_at'),
+  detectedAt: timestamp('detected_at').defaultNow().notNull(),
+  isRead: boolean('is_read').default(false),
+  detectedBy: varchar('detected_by', { length: 50 }).default('manual'), // manual, crawler, api
+  metadata: jsonb('metadata').$type<Record<string, any>>().default({}),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  regulationIdx: index('regulatory_updates_regulation_idx').on(table.regulationId),
+  categoryIdx: index('regulatory_updates_category_idx').on(table.category),
+  regionIdx: index('regulatory_updates_region_idx').on(table.region),
+  publishedAtIdx: index('regulatory_updates_published_at_idx').on(table.publishedAt),
+  isReadIdx: index('regulatory_updates_is_read_idx').on(table.isRead),
+}));
+
+// Compliance Checklist — LG 체크리스트
+export const complianceChecklist = pgTable('compliance_checklist', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  regulationId: uuid('regulation_id').references(() => regulations.id, { onDelete: 'set null' }),
+  category: varchar('category', { length: 50 }).notNull(),
+  region: varchar('region', { length: 50 }).notNull(),
+  title: varchar('title', { length: 500 }).notNull(),
+  description: text('description'),
+  priority: varchar('priority', { length: 20 }).notNull().default('medium'), // critical, high, medium, low
+  status: varchar('status', { length: 30 }).notNull().default('not_started'), // not_started, in_progress, completed, blocked, na
+  dueDate: date('due_date'),
+  assignee: varchar('assignee', { length: 100 }),
+  notes: text('notes'),
+  evidence: jsonb('evidence').$type<{ url: string; description: string; uploadedAt: string }[]>().default([]),
+  sortOrder: integer('sort_order').default(0),
+  parentId: uuid('parent_id'), // for sub-items
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  categoryIdx: index('compliance_checklist_category_idx').on(table.category),
+  regionIdx: index('compliance_checklist_region_idx').on(table.region),
+  statusIdx: index('compliance_checklist_status_idx').on(table.status),
+  priorityIdx: index('compliance_checklist_priority_idx').on(table.priority),
+}));
+
+// Regulatory Sources — 크롤링 대상 규제 소스
+export const regulatorySources = pgTable('regulatory_sources', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: varchar('name', { length: 255 }).notNull(),
+  url: varchar('url', { length: 1000 }).notNull(),
+  type: varchar('type', { length: 30 }).notNull(), // rss, api, webpage
+  region: varchar('region', { length: 50 }).notNull(),
+  category: varchar('category', { length: 50 }),
+  schedule: varchar('schedule', { length: 50 }).default('daily'), // hourly, daily, weekly
+  isActive: boolean('is_active').default(true),
+  lastCrawledAt: timestamp('last_crawled_at'),
+  lastStatus: varchar('last_status', { length: 30 }), // success, error, no_updates
+  config: jsonb('config').$type<Record<string, any>>().default({}), // selectors, API keys, etc
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Relations
+export const regulationsRelations = relations(regulations, ({ many }) => ({
+  updates: many(regulatoryUpdates),
+  checklistItems: many(complianceChecklist),
+}));
+
+export const regulatoryUpdatesRelations = relations(regulatoryUpdates, ({ one }) => ({
+  regulation: one(regulations, { fields: [regulatoryUpdates.regulationId], references: [regulations.id] }),
+}));
+
+export const complianceChecklistRelations = relations(complianceChecklist, ({ one }) => ({
+  regulation: one(regulations, { fields: [complianceChecklist.regulationId], references: [regulations.id] }),
+}));

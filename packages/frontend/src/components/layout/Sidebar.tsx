@@ -21,6 +21,11 @@ import {
   Globe,
   List,
   Zap,
+  Shield,
+  LayoutDashboard,
+  Bell,
+  CheckSquare,
+  Database,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -59,6 +64,15 @@ const navigationGroups: NavGroup[] = [
       { name: 'AI 활용 / 기사 입력', href: '/insight-pipeline', icon: FlaskConical },
       { name: '국내 국책과제 검색', href: '/national-projects', icon: Globe },
       { name: 'Report / AI 현황분석', href: '/reports', icon: Presentation },
+    ],
+  },
+  {
+    title: '컴플라이언스',
+    items: [
+      { name: '규제 대시보드', href: '/compliance', icon: LayoutDashboard },
+      { name: '규제 업데이트 피드', href: '/compliance/updates', icon: Bell },
+      { name: 'LG 체크리스트', href: '/compliance/checklist', icon: CheckSquare },
+      { name: '규제 상세 DB', href: '/compliance/regulations', icon: Database },
     ],
   },
   {

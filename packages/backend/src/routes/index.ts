@@ -26,6 +26,7 @@ import { scoringPipelineRoutes } from './scoring-pipeline.js';
 import { warRoomRoutes } from './war-room.js';
 import { seedScoresRoutes } from './seed-scores.js';
 import { ciUpdateRoutes } from './ci-update.js';
+import { complianceRoutes } from './compliance.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -71,4 +72,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // CI 업데이트 시스템 라우트
   fastify.register(ciUpdateRoutes, { prefix: '/api/ci-update' });
+
+  // 컴플라이언스 시스템 라우트
+  fastify.register(complianceRoutes, { prefix: '/api/compliance' });
 }
