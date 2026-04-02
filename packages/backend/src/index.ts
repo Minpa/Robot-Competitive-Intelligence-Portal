@@ -8,6 +8,7 @@ import { fixTopsValues } from './db/fix-tops-startup.js';
 import { ensureComplianceProgressSchema } from './db/ensure-compliance-progress.js';
 import { seedIndustrialComparison } from './db/seed-industrial-comparison.js';
 import { ensureRegulatoryDocumentsSchema } from './db/ensure-regulatory-documents.js';
+import { fixUpdateSources } from './db/fix-update-sources.js';
 import { ciUpdateService } from './services/ci-update.service.js';
 import { benchmarkService } from './services/benchmark.service.js';
 import { seedCiData } from './db/seed-ci.js';
@@ -58,6 +59,7 @@ const start = async () => {
     await ensureComplianceProgressSchema();
     await seedIndustrialComparison();
     await ensureRegulatoryDocumentsSchema();
+    await fixUpdateSources();
     await ciUpdateService.ensureTables();
     await benchmarkService.ensureTables();
     await seedCiData();

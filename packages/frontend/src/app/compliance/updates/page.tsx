@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
-import { Bell, AlertTriangle, ChevronDown, ChevronUp, CheckCheck, Filter, Globe, Shield, Scale, Lock } from 'lucide-react';
+import { Bell, AlertTriangle, ChevronDown, ChevronUp, CheckCheck, Filter, Globe, Shield, Scale, Lock, ExternalLink } from 'lucide-react';
 
 const CATEGORY_OPTIONS = [
   { value: '', label: '전체 카테고리' },
@@ -288,12 +288,24 @@ export default function ComplianceUpdatesPage() {
                             {update.titleKo || update.title}
                           </p>
                           <div className="flex items-center gap-3 mt-1.5">
-                            {update.source && (
-                              <span className="text-xs text-slate-500">{update.source}</span>
+                            {update.sourceName && (
+                              <span className="text-xs text-slate-500">{update.sourceName}</span>
                             )}
                             <span className="text-xs text-slate-600">
                               {update.detectedAt ? new Date(update.detectedAt).toLocaleDateString('ko-KR') : ''}
                             </span>
+                            {update.sourceUrl && (
+                              <a
+                                href={update.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                원문
+                              </a>
+                            )}
                           </div>
                         </div>
 
@@ -335,9 +347,10 @@ export default function ComplianceUpdatesPage() {
                               href={update.sourceUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-blue-400 hover:text-blue-300 inline-block"
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg text-sm text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 transition"
                             >
-                              원문 보기 →
+                              <ExternalLink className="w-4 h-4" />
+                              원문 보기
                             </a>
                           )}
                         </div>
