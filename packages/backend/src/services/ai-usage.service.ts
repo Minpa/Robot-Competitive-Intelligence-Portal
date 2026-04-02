@@ -146,6 +146,133 @@ export class AIUsageService {
 
     return rows.reduce((sum, row) => sum + Number(row.estimatedCostUsd), 0);
   }
+
+  /**
+   * Claude 전용 크레딧 정보 조회
+   */
+  async getClaudeCreditInfo(): Promise<{
+    apiKeyValid: boolean;
+    apiKeyPrefix: string | null;
+    monthlyLimitUsd: number;
+    currentMonthUsageUsd: number;
+    remainingUsd: number;
+    remainingPct: number;
+    claudeStats: {
+      totalCalls: number;
+      totalInputTokens: number;
+      totalOutputTokens: number;
+      totalCostUsd: number;
+      webSearchCalls: number;
+      inputCostUsd: number;
+      outputCostUsd: number;
+      webSearchCostUsd: number;
+    };
+    dailyUsage: Array<{ date: string; calls: number; costUsd: number; inputTokens: number; outputTokens: number }>;
+    modelBreakdown: Array<{ model: string; calls: number; inputTokens: number; outputTokens: number; costUsd: number }>;
+  }> {
+    await this.ensureTable();
+
+    const MONTHLY_LIMIT_USD = 7.0;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKeyValid = !!apiKey && apiKey.length > 10;
+    const apiKeyPrefix = apiKey ? `${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 4)}` : null;
+
+    // 이번 달 Claude 사용량만 조회
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const rows = await db
+      .select()
+      .from(aiUsageLogs)
+      .where(
+        and(
+          gte(aiUsageLogs.createdAt, firstDay),
+          sql`${aiUsageLogs.provider} = 'claude'`
+        )
+      )
+      .orderBy(desc(aiUsageLogs.createdAt));
+
+    // 기본 통계
+    let totalCalls = 0;
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    let totalCostUsd = 0;
+    let webSearchCalls = 0;
+    let inputCostUsd = 0;
+    let outputCostUsd = 0;
+    let webSearchCostUsd = 0;
+
+    // 일별 집계
+    const dailyMap = new Map<string, { calls: number; costUsd: number; inputTokens: number; outputTokens: number }>();
+    // 모델별 집계
+    const modelMap = new Map<string, { model: string; calls: number; inputTokens: number; outputTokens: number; costUsd: number }>();
+
+    for (const row of rows) {
+      const cost = Number(row.estimatedCostUsd);
+      totalCalls++;
+      totalInputTokens += row.inputTokens;
+      totalOutputTokens += row.outputTokens;
+      totalCostUsd += cost;
+      if (row.webSearch) webSearchCalls++;
+
+      // 비용 분리 계산
+      const pricing = PRICING[row.model] || { input: 3.0, output: 15.0 };
+      inputCostUsd += (row.inputTokens / 1_000_000) * pricing.input;
+      outputCostUsd += (row.outputTokens / 1_000_000) * pricing.output;
+      if (row.webSearch && pricing.webSearchPerQuery) {
+        webSearchCostUsd += pricing.webSearchPerQuery;
+      }
+
+      // 일별
+      const dateKey = row.createdAt.toISOString().split('T')[0] as string;
+      const daily = dailyMap.get(dateKey) || { calls: 0, costUsd: 0, inputTokens: 0, outputTokens: 0 };
+      daily.calls++;
+      daily.costUsd += cost;
+      daily.inputTokens += row.inputTokens;
+      daily.outputTokens += row.outputTokens;
+      dailyMap.set(dateKey, daily);
+
+      // 모델별
+      const model = modelMap.get(row.model) || { model: row.model, calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 };
+      model.calls++;
+      model.inputTokens += row.inputTokens;
+      model.outputTokens += row.outputTokens;
+      model.costUsd += cost;
+      modelMap.set(row.model, model);
+    }
+
+    const remainingUsd = Math.max(0, MONTHLY_LIMIT_USD - totalCostUsd);
+    const remainingPct = Math.max(0, ((MONTHLY_LIMIT_USD - totalCostUsd) / MONTHLY_LIMIT_USD) * 100);
+
+    // 일별 데이터를 날짜 오름차순 정렬
+    const dailyUsage = Array.from(dailyMap.entries())
+      .map(([date, data]) => ({ date, ...data }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    const modelBreakdown = Array.from(modelMap.values())
+      .sort((a, b) => b.costUsd - a.costUsd);
+
+    return {
+      apiKeyValid,
+      apiKeyPrefix,
+      monthlyLimitUsd: MONTHLY_LIMIT_USD,
+      currentMonthUsageUsd: totalCostUsd,
+      remainingUsd,
+      remainingPct,
+      claudeStats: {
+        totalCalls,
+        totalInputTokens,
+        totalOutputTokens,
+        totalCostUsd,
+        webSearchCalls,
+        inputCostUsd,
+        outputCostUsd,
+        webSearchCostUsd,
+      },
+      dailyUsage,
+      modelBreakdown,
+    };
+  }
 }
 
 export const aiUsageService = new AIUsageService();

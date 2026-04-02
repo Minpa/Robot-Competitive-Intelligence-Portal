@@ -236,6 +236,11 @@ export async function adminRoutes(fastify: FastifyInstance) {
     return { summary };
   });
 
+  // GET /api/admin/ai-usage/claude-credit — Claude API 크레딧 상세 정보
+  fastify.get('/ai-usage/claude-credit', async () => {
+    return aiUsageService.getClaudeCreditInfo();
+  });
+
   // GET /api/admin/ai-usage/logs — 최근 호출 로그
   fastify.get('/ai-usage/logs', async (request) => {
     const query = request.query as Record<string, string>;

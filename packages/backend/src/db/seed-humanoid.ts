@@ -656,6 +656,8 @@ async function seedHumanoid() {
     const existing = await db.select().from(bodySpecs).where(eq(bodySpecs.robotId, robotId)).limit(1);
     if (existing.length === 0) {
       await db.insert(bodySpecs).values({ robotId, ...spec });
+    } else {
+      await db.update(bodySpecs).set(spec).where(eq(bodySpecs.robotId, robotId));
     }
   }
   console.log('Body specs seeded');
@@ -690,6 +692,8 @@ async function seedHumanoid() {
     const existing = await db.select().from(handSpecs).where(eq(handSpecs.robotId, robotId)).limit(1);
     if (existing.length === 0) {
       await db.insert(handSpecs).values({ robotId, ...spec });
+    } else {
+      await db.update(handSpecs).set(spec).where(eq(handSpecs.robotId, robotId));
     }
   }
   console.log('Hand specs seeded');
@@ -725,6 +729,8 @@ async function seedHumanoid() {
     const existing = await db.select().from(computingSpecs).where(eq(computingSpecs.robotId, robotId)).limit(1);
     if (existing.length === 0) {
       await db.insert(computingSpecs).values({ robotId, ...spec });
+    } else {
+      await db.update(computingSpecs).set(spec).where(eq(computingSpecs.robotId, robotId));
     }
   }
   console.log('Computing specs seeded');
@@ -759,6 +765,8 @@ async function seedHumanoid() {
     const existing = await db.select().from(powerSpecs).where(eq(powerSpecs.robotId, robotId)).limit(1);
     if (existing.length === 0) {
       await db.insert(powerSpecs).values({ robotId, ...spec });
+    } else {
+      await db.update(powerSpecs).set(spec).where(eq(powerSpecs.robotId, robotId));
     }
   }
   console.log('Power specs seeded');

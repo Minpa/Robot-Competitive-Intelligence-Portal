@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
-import { CheckSquare, AlertTriangle, Filter, Globe, Shield, Scale, Lock } from 'lucide-react';
+import { CheckSquare, AlertTriangle, Filter, Globe, Shield, Scale, Lock, ChevronDown, ChevronRight } from 'lucide-react';
 
 const CATEGORY_OPTIONS = [
   { value: '', label: '전체 카테고리' },
@@ -74,6 +74,8 @@ export default function ComplianceChecklistPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
   const [filters, setFilters] = useState({
     category: '',
     region: '',
@@ -112,6 +114,63 @@ export default function ComplianceChecklistPage() {
       }
     }
   }, []);
+
+  function toggleExpand(id: string) {
+    setExpandedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleExpandAll() {
+    if (expandedItems.size === items.length) {
+      setExpandedItems(new Set());
+    } else {
+      setExpandedItems(new Set(items.map(i => i.id)));
+    }
+  }
+
+  function renderDescription(text: string) {
+    if (!text) return null;
+    return text.split('\n').map((line, i) => {
+      const trimmed = line.trim();
+      if (!trimmed) return <div key={i} className="h-2" />;
+      if (trimmed.startsWith('## ')) {
+        return <h4 key={i} className="text-sm font-semibold text-slate-200 mt-3 mb-1">{trimmed.replace('## ', '')}</h4>;
+      }
+      if (/^\d+\.\s\*\*/.test(trimmed)) {
+        const match = trimmed.match(/^(\d+)\.\s\*\*([^*]+)\*\*:?\s*(.*)/);
+        if (match) {
+          return (
+            <div key={i} className="flex gap-2 ml-2 mb-1">
+              <span className="text-blue-400 font-mono text-xs mt-0.5">{match[1]}.</span>
+              <div>
+                <span className="text-sm font-medium text-slate-300">{match[2]}</span>
+                {match[3] && <span className="text-sm text-slate-400">: {match[3]}</span>}
+              </div>
+            </div>
+          );
+        }
+      }
+      if (trimmed.startsWith('- ')) {
+        return (
+          <div key={i} className="flex gap-2 ml-4 mb-0.5">
+            <span className="text-slate-500 mt-1">•</span>
+            <span className="text-sm text-slate-400">{trimmed.replace('- ', '')}</span>
+          </div>
+        );
+      }
+      // Bold text handling
+      const parts = trimmed.split(/\*\*([^*]+)\*\*/g);
+      return (
+        <p key={i} className="text-sm text-slate-400 mb-0.5">
+          {parts.map((part, j) => j % 2 === 1 ? <strong key={j} className="text-slate-300">{part}</strong> : part)}
+        </p>
+      );
+    });
+  }
 
   function handleFilterChange(key: string, value: string) {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -173,6 +232,12 @@ export default function ComplianceChecklistPage() {
               </>
             )}
           </div>
+          <button
+            onClick={toggleExpandAll}
+            className="text-xs px-3 py-1.5 rounded-lg border border-slate-600 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition bg-slate-900/50"
+          >
+            {expandedItems.size === items.length && items.length > 0 ? '전체 접기' : '전체 펼치기'}
+          </button>
         </div>
         <div className="w-full bg-slate-700 rounded-full h-3">
           <div
@@ -268,41 +333,60 @@ export default function ComplianceChecklistPage() {
                     <div className="divide-y divide-slate-700/50">
                       {(categoryItems as any[]).map((item: any) => {
                         const statusCfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.not_started;
+                        const isExpanded = expandedItems.has(item.id);
                         return (
-                          <div key={item.id} className="px-5 py-3 flex items-center gap-4 hover:bg-slate-700/20 transition">
-                            {/* Priority dot */}
-                            <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${PRIORITY_DOTS[item.priority] || PRIORITY_DOTS.medium}`} />
-
-                            {/* Title & Info */}
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-sm ${item.status === 'completed' ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
-                                {item.title}
-                              </p>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-xs text-slate-500">
-                                  {REGION_FLAGS[item.region] || ''} {item.region}
-                                </span>
-                                {item.assignee && (
-                                  <>
-                                    <span className="text-xs text-slate-600">·</span>
-                                    <span className="text-xs text-slate-500">{item.assignee}</span>
-                                  </>
-                                )}
-                                <span className="text-xs text-slate-600">·</span>
-                                <span className={`text-xs ${item.priority === 'critical' ? 'text-red-400' : item.priority === 'high' ? 'text-orange-400' : 'text-slate-500'}`}>
-                                  {item.priority}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Status Button */}
-                            <button
-                              onClick={() => handleStatusChange(item)}
-                              className={`text-xs px-3 py-1.5 rounded-lg border transition hover:opacity-80 ${statusCfg.bg} ${statusCfg.color} ${statusCfg.border}`}
-                              title="클릭하여 상태 변경"
+                          <div key={item.id}>
+                            <div
+                              className="px-5 py-3 flex items-center gap-4 hover:bg-slate-700/20 transition cursor-pointer"
+                              onClick={() => toggleExpand(item.id)}
                             >
-                              {statusCfg.label}
-                            </button>
+                              {/* Chevron */}
+                              {isExpanded
+                                ? <ChevronDown className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                                : <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                              }
+
+                              {/* Priority dot */}
+                              <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${PRIORITY_DOTS[item.priority] || PRIORITY_DOTS.medium}`} />
+
+                              {/* Title & Info */}
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm ${item.status === 'completed' ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
+                                  {item.title}
+                                </p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className="text-xs text-slate-500">
+                                    {REGION_FLAGS[item.region] || ''} {item.region}
+                                  </span>
+                                  {item.assignee && (
+                                    <>
+                                      <span className="text-xs text-slate-600">·</span>
+                                      <span className="text-xs text-slate-500">{item.assignee}</span>
+                                    </>
+                                  )}
+                                  <span className="text-xs text-slate-600">·</span>
+                                  <span className={`text-xs ${item.priority === 'critical' ? 'text-red-400' : item.priority === 'high' ? 'text-orange-400' : 'text-slate-500'}`}>
+                                    {item.priority}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Status Button */}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleStatusChange(item); }}
+                                className={`text-xs px-3 py-1.5 rounded-lg border transition hover:opacity-80 ${statusCfg.bg} ${statusCfg.color} ${statusCfg.border}`}
+                                title="클릭하여 상태 변경"
+                              >
+                                {statusCfg.label}
+                              </button>
+                            </div>
+                            {isExpanded && item.description && (
+                              <div className="px-5 pb-4 pt-1 ml-7 border-l-2 border-slate-700">
+                                <div className="bg-slate-900/50 rounded-lg p-4 max-h-[500px] overflow-y-auto">
+                                  {renderDescription(item.description)}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })}

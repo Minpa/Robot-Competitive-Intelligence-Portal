@@ -4,6 +4,7 @@ import multipart from '@fastify/multipart';
 import { registerRoutes } from './routes/index.js';
 import { aiUsageService } from './services/ai-usage.service.js';
 import { fixSocPowerConsumption } from './db/fix-soc-startup.js';
+import { fixTopsValues } from './db/fix-tops-startup.js';
 import { ciUpdateService } from './services/ci-update.service.js';
 import { benchmarkService } from './services/benchmark.service.js';
 import { seedCiData } from './db/seed-ci.js';
@@ -50,6 +51,7 @@ const start = async () => {
     const port = parseInt(process.env.PORT || '3001', 10);
     await aiUsageService.ensureTable();
     await fixSocPowerConsumption();
+    await fixTopsValues();
     await ciUpdateService.ensureTables();
     await benchmarkService.ensureTables();
     await seedCiData();
