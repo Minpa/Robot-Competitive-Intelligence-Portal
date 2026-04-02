@@ -5,6 +5,8 @@ import { registerRoutes } from './routes/index.js';
 import { aiUsageService } from './services/ai-usage.service.js';
 import { fixSocPowerConsumption } from './db/fix-soc-startup.js';
 import { fixTopsValues } from './db/fix-tops-startup.js';
+import { ensureComplianceProgressSchema } from './db/ensure-compliance-progress.js';
+import { seedIndustrialComparison } from './db/seed-industrial-comparison.js';
 import { ciUpdateService } from './services/ci-update.service.js';
 import { benchmarkService } from './services/benchmark.service.js';
 import { seedCiData } from './db/seed-ci.js';
@@ -52,6 +54,8 @@ const start = async () => {
     await aiUsageService.ensureTable();
     await fixSocPowerConsumption();
     await fixTopsValues();
+    await ensureComplianceProgressSchema();
+    await seedIndustrialComparison();
     await ciUpdateService.ensureTables();
     await benchmarkService.ensureTables();
     await seedCiData();

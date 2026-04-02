@@ -1967,6 +1967,13 @@ class ApiClient {
     updateChecklistItem: (id: string, data: any) => this.request<any>(`/compliance/checklist/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     deleteChecklistItem: (id: string) => this.request<any>(`/compliance/checklist/${id}`, { method: 'DELETE' }),
 
+    // Progress Logs
+    getProgressLogs: (checklistItemId: string) => this.request<any[]>(`/compliance/checklist/${checklistItemId}/progress-logs`),
+    addProgressLog: (checklistItemId: string, data: { content: string; progressPct?: number; status?: string; author?: string }) =>
+      this.request<any>(`/compliance/checklist/${checklistItemId}/progress-logs`, { method: 'POST', body: JSON.stringify(data) }),
+    deleteProgressLog: (logId: string) => this.request<any>(`/compliance/progress-logs/${logId}`, { method: 'DELETE' }),
+    getOverallProgress: () => this.request<any>('/compliance/checklist/overall-progress'),
+
     getSources: () => this.request<any[]>('/compliance/sources'),
     createSource: (data: any) => this.request<any>('/compliance/sources', { method: 'POST', body: JSON.stringify(data) }),
     updateSource: (id: string, data: any) => this.request<any>(`/compliance/sources/${id}`, { method: 'PUT', body: JSON.stringify(data) }),

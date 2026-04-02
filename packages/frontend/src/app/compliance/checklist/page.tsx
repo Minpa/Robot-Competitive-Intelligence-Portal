@@ -2,7 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
-import { CheckSquare, AlertTriangle, Filter, Globe, Shield, Scale, Lock, ChevronDown, ChevronRight } from 'lucide-react';
+import {
+  CheckSquare, AlertTriangle, Filter, Globe, Shield, Scale, Lock,
+  ChevronDown, ChevronRight, Factory, ArrowRightLeft, Lightbulb, HelpCircle,
+  Plus, Clock, TrendingUp, Send, Trash2, BarChart3,
+} from 'lucide-react';
 
 const CATEGORY_OPTIONS = [
   { value: '', label: '전체 카테고리' },
@@ -69,12 +73,28 @@ const STATUS_CYCLE: Record<string, string> = {
   blocked: 'not_started',
 };
 
+// Tabs for the expanded item detail
+type DetailTab = 'description' | 'comparison' | 'progress';
+
 export default function ComplianceChecklistPage() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<Record<string, DetailTab>>({});
+
+  // Progress logs per item
+  const [progressLogs, setProgressLogs] = useState<Record<string, any[]>>({});
+  const [progressLogsLoading, setProgressLogsLoading] = useState<Record<string, boolean>>({});
+
+  // New log form
+  const [newLogContent, setNewLogContent] = useState<Record<string, string>>({});
+  const [newLogProgress, setNewLogProgress] = useState<Record<string, string>>({});
+  const [submittingLog, setSubmittingLog] = useState<Record<string, boolean>>({});
+
+  // Overall progress
+  const [overallProgress, setOverallProgress] = useState<any>(null);
 
   const [filters, setFilters] = useState({
     category: '',
@@ -100,9 +120,17 @@ export default function ComplianceChecklistPage() {
     }
   }, [filters]);
 
+  const loadOverallProgress = useCallback(async () => {
+    try {
+      const data = await api.compliance.getOverallProgress();
+      setOverallProgress(data);
+    } catch (_err) { /* silent */ }
+  }, []);
+
   useEffect(() => {
     loadChecklist();
-  }, [loadChecklist]);
+    loadOverallProgress();
+  }, [loadChecklist, loadOverallProgress]);
 
   // Read initial priority filter from URL
   useEffect(() => {
@@ -130,6 +158,45 @@ export default function ComplianceChecklistPage() {
     } else {
       setExpandedItems(new Set(items.map(i => i.id)));
     }
+  }
+
+  function getActiveTab(itemId: string): DetailTab {
+    return activeTab[itemId] || 'description';
+  }
+
+  function setItemTab(itemId: string, tab: DetailTab) {
+    setActiveTab(prev => ({ ...prev, [itemId]: tab }));
+  }
+
+  async function loadProgressLogs(itemId: string) {
+    if (progressLogsLoading[itemId]) return;
+    setProgressLogsLoading(prev => ({ ...prev, [itemId]: true }));
+    try {
+      const logs = await api.compliance.getProgressLogs(itemId);
+      setProgressLogs(prev => ({ ...prev, [itemId]: logs }));
+    } catch (_err) { /* silent */ }
+    setProgressLogsLoading(prev => ({ ...prev, [itemId]: false }));
+  }
+
+  async function submitProgressLog(itemId: string) {
+    const content = newLogContent[itemId]?.trim();
+    if (!content) return;
+    setSubmittingLog(prev => ({ ...prev, [itemId]: true }));
+    try {
+      const progressPct = newLogProgress[itemId] ? parseInt(newLogProgress[itemId]) : undefined;
+      await api.compliance.addProgressLog(itemId, {
+        content,
+        progressPct: progressPct !== undefined && !isNaN(progressPct) ? Math.min(100, Math.max(0, progressPct)) : undefined,
+      });
+      setNewLogContent(prev => ({ ...prev, [itemId]: '' }));
+      setNewLogProgress(prev => ({ ...prev, [itemId]: '' }));
+      await loadProgressLogs(itemId);
+      // Refresh items and overall progress
+      await Promise.all([loadChecklist(), loadOverallProgress()]);
+    } catch (err: any) {
+      alert('진행이력 등록 실패: ' + err.message);
+    }
+    setSubmittingLog(prev => ({ ...prev, [itemId]: false }));
   }
 
   function renderDescription(text: string) {
@@ -181,6 +248,7 @@ export default function ComplianceChecklistPage() {
     try {
       await api.compliance.updateChecklistItem(item.id, { status: nextStatus });
       setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: nextStatus } : i));
+      loadOverallProgress();
     } catch (err: any) {
       alert('상태 변경 실패: ' + err.message);
     }
@@ -189,7 +257,7 @@ export default function ComplianceChecklistPage() {
   const totalItems = items.length;
   const completedItems = items.filter(i => i.status === 'completed').length;
   const criticalRemaining = items.filter(i => i.priority === 'critical' && i.status !== 'completed').length;
-  const completionRate = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+  const avgProgress = totalItems > 0 ? Math.round(items.reduce((s, i) => s + (i.progressPct ?? 0), 0) / totalItems) : 0;
 
   // Group by category
   const grouped = items.reduce((acc: Record<string, any[]>, item) => {
@@ -208,44 +276,106 @@ export default function ComplianceChecklistPage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-slate-100">LG 컴플라이언스 체크리스트</h1>
-          <p className="text-sm text-slate-400">Compliance Checklist</p>
+          <p className="text-sm text-slate-400">Compliance Checklist — 산업용 로봇 규제 비교 포함</p>
         </div>
       </div>
 
-      {/* Stats Bar */}
-      <div className="bg-slate-800 rounded-xl border border-slate-700 p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-slate-300">
-              <span className="font-bold text-slate-100">{completedItems}</span> / {totalItems} 완료
-            </span>
-            <span className="text-sm text-slate-500">|</span>
-            <span className="text-sm text-slate-300">
-              진행률 <span className="font-bold text-blue-400">{completionRate}%</span>
-            </span>
-            {criticalRemaining > 0 && (
-              <>
-                <span className="text-sm text-slate-500">|</span>
-                <span className="text-sm text-red-400">
-                  Critical 미완료 <span className="font-bold">{criticalRemaining}</span>건
-                </span>
-              </>
-            )}
+      {/* Overall Progress Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Main progress bar */}
+        <div className="bg-slate-800 rounded-xl border border-slate-700 p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-slate-300">
+                <span className="font-bold text-slate-100">{completedItems}</span> / {totalItems} 완료
+              </span>
+              <span className="text-sm text-slate-500">|</span>
+              <span className="text-sm text-slate-300">
+                평균 진척 <span className="font-bold text-blue-400">{avgProgress}%</span>
+              </span>
+              {criticalRemaining > 0 && (
+                <>
+                  <span className="text-sm text-slate-500">|</span>
+                  <span className="text-sm text-red-400">
+                    Critical 미완료 <span className="font-bold">{criticalRemaining}</span>건
+                  </span>
+                </>
+              )}
+            </div>
+            <button
+              onClick={toggleExpandAll}
+              className="text-xs px-3 py-1.5 rounded-lg border border-slate-600 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition bg-slate-900/50"
+            >
+              {expandedItems.size === items.length && items.length > 0 ? '전체 접기' : '전체 펼치기'}
+            </button>
           </div>
-          <button
-            onClick={toggleExpandAll}
-            className="text-xs px-3 py-1.5 rounded-lg border border-slate-600 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition bg-slate-900/50"
-          >
-            {expandedItems.size === items.length && items.length > 0 ? '전체 접기' : '전체 펼치기'}
-          </button>
+          <div className="w-full bg-slate-700 rounded-full h-3">
+            <div
+              className="bg-gradient-to-r from-blue-500 to-cyan-500 h-3 rounded-full transition-all duration-500"
+              style={{ width: `${avgProgress}%` }}
+            />
+          </div>
         </div>
-        <div className="w-full bg-slate-700 rounded-full h-3">
-          <div
-            className="bg-gradient-to-r from-blue-500 to-cyan-500 h-3 rounded-full transition-all duration-500"
-            style={{ width: `${completionRate}%` }}
-          />
-        </div>
+
+        {/* Category breakdown */}
+        {overallProgress?.byCategory && (
+          <div className="bg-slate-800 rounded-xl border border-slate-700 p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <BarChart3 className="w-4 h-4 text-slate-400" />
+              <span className="text-sm font-medium text-slate-300">카테고리별 진척도</span>
+            </div>
+            <div className="space-y-2">
+              {Object.entries(overallProgress.byCategory).map(([cat, data]: [string, any]) => {
+                const catConfig = CATEGORY_CONFIG[cat];
+                return (
+                  <div key={cat} className="flex items-center gap-3">
+                    <span className="text-xs text-slate-400 w-24 truncate">{catConfig?.label || cat}</span>
+                    <div className="flex-1 bg-slate-700 rounded-full h-2">
+                      <div
+                        className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all"
+                        style={{ width: `${data.avgPct}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-mono text-slate-400 w-10 text-right">{data.avgPct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Recent Progress Activity */}
+      {overallProgress?.recentLogs && overallProgress.recentLogs.length > 0 && (
+        <div className="bg-slate-800 rounded-xl border border-slate-700 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className="w-4 h-4 text-slate-400" />
+            <span className="text-sm font-medium text-slate-300">최근 진행 이력</span>
+          </div>
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {overallProgress.recentLogs.slice(0, 5).map((log: any) => (
+              <div key={log.id} className="flex items-start gap-3 text-xs">
+                <span className="text-slate-500 whitespace-nowrap mt-0.5">
+                  {new Date(log.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                </span>
+                <span className="px-1.5 py-0.5 bg-slate-700 rounded text-slate-400 whitespace-nowrap">
+                  {CATEGORY_CONFIG[log.itemCategory]?.label || log.itemCategory}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-slate-300 font-medium">{log.itemTitle}</span>
+                  <span className="text-slate-500 mx-1">—</span>
+                  <span className="text-slate-400">{log.content}</span>
+                </div>
+                {log.progressPctAfter != null && (
+                  <span className="text-blue-400 font-mono whitespace-nowrap">
+                    {log.progressPctBefore ?? 0}% → {log.progressPctAfter}%
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
@@ -314,6 +444,7 @@ export default function ComplianceChecklistPage() {
                 const catConfig = CATEGORY_CONFIG[category];
                 const CatIcon = catConfig?.icon || CheckSquare;
                 const catCompleted = (categoryItems as any[]).filter((i: any) => i.status === 'completed').length;
+                const catAvgPct = Math.round((categoryItems as any[]).reduce((s: number, i: any) => s + (i.progressPct ?? 0), 0) / (categoryItems as any[]).length);
                 return (
                   <div key={category} className="bg-slate-800 rounded-xl border border-slate-700">
                     {/* Category Header */}
@@ -326,6 +457,9 @@ export default function ComplianceChecklistPage() {
                         <span className="text-xs text-slate-500">
                           {catCompleted}/{(categoryItems as any[]).length} 완료
                         </span>
+                        <span className="text-xs text-blue-400 font-mono">
+                          평균 {catAvgPct}%
+                        </span>
                       </div>
                     </div>
 
@@ -334,6 +468,10 @@ export default function ComplianceChecklistPage() {
                       {(categoryItems as any[]).map((item: any) => {
                         const statusCfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.not_started;
                         const isExpanded = expandedItems.has(item.id);
+                        const tab = getActiveTab(item.id);
+                        const hasComparison = item.industrialRegComparison || item.industrialRegWhyDifferent || item.industrialRegApproach;
+                        const itemProgress = item.progressPct ?? 0;
+
                         return (
                           <div key={item.id}>
                             <div
@@ -351,9 +489,16 @@ export default function ComplianceChecklistPage() {
 
                               {/* Title & Info */}
                               <div className="flex-1 min-w-0">
-                                <p className={`text-sm ${item.status === 'completed' ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
-                                  {item.title}
-                                </p>
+                                <div className="flex items-center gap-2">
+                                  <p className={`text-sm ${item.status === 'completed' ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
+                                    {item.title}
+                                  </p>
+                                  {hasComparison && (
+                                    <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded">
+                                      vs 산업용
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="flex items-center gap-2 mt-0.5">
                                   <span className="text-xs text-slate-500">
                                     {REGION_FLAGS[item.region] || ''} {item.region}
@@ -371,6 +516,17 @@ export default function ComplianceChecklistPage() {
                                 </div>
                               </div>
 
+                              {/* Progress mini-bar */}
+                              <div className="flex items-center gap-2 w-24 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex-1 bg-slate-700 rounded-full h-1.5">
+                                  <div
+                                    className={`h-1.5 rounded-full transition-all ${itemProgress >= 100 ? 'bg-green-500' : itemProgress >= 50 ? 'bg-blue-500' : itemProgress > 0 ? 'bg-amber-500' : 'bg-slate-600'}`}
+                                    style={{ width: `${itemProgress}%` }}
+                                  />
+                                </div>
+                                <span className="text-[10px] font-mono text-slate-500 w-7 text-right">{itemProgress}%</span>
+                              </div>
+
                               {/* Status Button */}
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleStatusChange(item); }}
@@ -380,11 +536,191 @@ export default function ComplianceChecklistPage() {
                                 {statusCfg.label}
                               </button>
                             </div>
-                            {isExpanded && item.description && (
-                              <div className="px-5 pb-4 pt-1 ml-7 border-l-2 border-slate-700">
-                                <div className="bg-slate-900/50 rounded-lg p-4 max-h-[500px] overflow-y-auto">
-                                  {renderDescription(item.description)}
+
+                            {/* Expanded Detail */}
+                            {isExpanded && (
+                              <div className="px-5 pb-4 pt-1 ml-7">
+                                {/* Tabs */}
+                                <div className="flex gap-1 mb-3 border-b border-slate-700/50 pb-2">
+                                  <button
+                                    onClick={() => setItemTab(item.id, 'description')}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-t-lg text-xs transition ${tab === 'description' ? 'bg-slate-700 text-slate-200' : 'text-slate-500 hover:text-slate-300'}`}
+                                  >
+                                    <CheckSquare className="w-3 h-3" /> 상세 내용
+                                  </button>
+                                  {hasComparison && (
+                                    <button
+                                      onClick={() => setItemTab(item.id, 'comparison')}
+                                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-t-lg text-xs transition ${tab === 'comparison' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'text-slate-500 hover:text-amber-400'}`}
+                                    >
+                                      <Factory className="w-3 h-3" /> 산업용 규제 비교
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => {
+                                      setItemTab(item.id, 'progress');
+                                      if (!progressLogs[item.id]) loadProgressLogs(item.id);
+                                    }}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-t-lg text-xs transition ${tab === 'progress' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'text-slate-500 hover:text-blue-400'}`}
+                                  >
+                                    <TrendingUp className="w-3 h-3" /> 진행 이력
+                                  </button>
                                 </div>
+
+                                {/* Description tab */}
+                                {tab === 'description' && item.description && (
+                                  <div className="border-l-2 border-slate-700 pl-4">
+                                    <div className="bg-slate-900/50 rounded-lg p-4 max-h-[500px] overflow-y-auto">
+                                      {renderDescription(item.description)}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Comparison tab */}
+                                {tab === 'comparison' && hasComparison && (
+                                  <div className="space-y-4">
+                                    {/* 차이점 */}
+                                    {item.industrialRegComparison && (
+                                      <div className="border-l-2 border-amber-500/40 pl-4">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <ArrowRightLeft className="w-4 h-4 text-amber-400" />
+                                          <h5 className="text-sm font-semibold text-amber-400">산업용 로봇 규제와의 차이</h5>
+                                        </div>
+                                        <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-4 max-h-[300px] overflow-y-auto">
+                                          {renderDescription(item.industrialRegComparison)}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* 왜 다른지 */}
+                                    {item.industrialRegWhyDifferent && (
+                                      <div className="border-l-2 border-purple-500/40 pl-4">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <HelpCircle className="w-4 h-4 text-purple-400" />
+                                          <h5 className="text-sm font-semibold text-purple-400">왜 다른가?</h5>
+                                        </div>
+                                        <div className="bg-purple-500/5 border border-purple-500/10 rounded-lg p-4 max-h-[300px] overflow-y-auto">
+                                          {renderDescription(item.industrialRegWhyDifferent)}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* 접근 방법 */}
+                                    {item.industrialRegApproach && (
+                                      <div className="border-l-2 border-cyan-500/40 pl-4">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <Lightbulb className="w-4 h-4 text-cyan-400" />
+                                          <h5 className="text-sm font-semibold text-cyan-400">접근 방법</h5>
+                                        </div>
+                                        <div className="bg-cyan-500/5 border border-cyan-500/10 rounded-lg p-4 max-h-[300px] overflow-y-auto">
+                                          {renderDescription(item.industrialRegApproach)}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Progress tab */}
+                                {tab === 'progress' && (
+                                  <div className="space-y-4">
+                                    {/* Progress slider */}
+                                    <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <span className="text-sm text-slate-300 font-medium">현재 진행률</span>
+                                        <span className="text-lg font-bold text-blue-400">{itemProgress}%</span>
+                                      </div>
+                                      <div className="w-full bg-slate-700 rounded-full h-3">
+                                        <div
+                                          className={`h-3 rounded-full transition-all ${itemProgress >= 100 ? 'bg-green-500' : itemProgress >= 50 ? 'bg-blue-500' : itemProgress > 0 ? 'bg-amber-500' : 'bg-slate-600'}`}
+                                          style={{ width: `${itemProgress}%` }}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* New log form */}
+                                    <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                                      <h5 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+                                        <Plus className="w-4 h-4" /> 진행 이력 추가
+                                      </h5>
+                                      <textarea
+                                        placeholder="진행 내용을 입력하세요 (예: 법률자문 의뢰 완료, 1차 Gap 분석 수행 등)"
+                                        value={newLogContent[item.id] || ''}
+                                        onChange={(e) => setNewLogContent(prev => ({ ...prev, [item.id]: e.target.value }))}
+                                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500 resize-none h-20 mb-2"
+                                      />
+                                      <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-2">
+                                          <label className="text-xs text-slate-400">진행률 변경:</label>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            placeholder={String(itemProgress)}
+                                            value={newLogProgress[item.id] || ''}
+                                            onChange={(e) => setNewLogProgress(prev => ({ ...prev, [item.id]: e.target.value }))}
+                                            className="w-16 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-slate-300 focus:outline-none focus:border-blue-500 text-center"
+                                          />
+                                          <span className="text-xs text-slate-500">%</span>
+                                        </div>
+                                        <div className="flex-1" />
+                                        <button
+                                          onClick={() => submitProgressLog(item.id)}
+                                          disabled={!newLogContent[item.id]?.trim() || submittingLog[item.id]}
+                                          className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-xs rounded-lg transition"
+                                        >
+                                          <Send className="w-3 h-3" />
+                                          {submittingLog[item.id] ? '등록 중...' : '등록'}
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* Log history */}
+                                    <div>
+                                      <h5 className="text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                                        <Clock className="w-4 h-4" /> 이력
+                                      </h5>
+                                      {progressLogsLoading[item.id] ? (
+                                        <div className="text-xs text-slate-500 py-4 text-center">불러오는 중...</div>
+                                      ) : !progressLogs[item.id] || progressLogs[item.id].length === 0 ? (
+                                        <div className="text-xs text-slate-500 py-4 text-center bg-slate-900/30 rounded-lg border border-slate-700/30">
+                                          아직 등록된 진행 이력이 없습니다
+                                        </div>
+                                      ) : (
+                                        <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                                          {progressLogs[item.id].map((log: any) => (
+                                            <div key={log.id} className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/30">
+                                              <div className="flex items-start justify-between gap-2">
+                                                <div className="flex-1">
+                                                  <p className="text-sm text-slate-300">{log.content}</p>
+                                                  <div className="flex items-center gap-3 mt-1.5">
+                                                    <span className="text-[10px] text-slate-500">
+                                                      {new Date(log.createdAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                    {log.author && log.author !== 'system' && (
+                                                      <span className="text-[10px] text-slate-500">{log.author}</span>
+                                                    )}
+                                                    {log.progressPctAfter != null && (
+                                                      <span className="text-[10px] font-mono text-blue-400">
+                                                        {log.progressPctBefore ?? 0}% → {log.progressPctAfter}%
+                                                      </span>
+                                                    )}
+                                                    {log.statusBefore !== log.statusAfter && log.statusAfter && (
+                                                      <span className="text-[10px]">
+                                                        <span className="text-slate-500">{STATUS_CONFIG[log.statusBefore]?.label || log.statusBefore}</span>
+                                                        <span className="text-slate-600 mx-1">→</span>
+                                                        <span className={STATUS_CONFIG[log.statusAfter]?.color || 'text-slate-400'}>{STATUS_CONFIG[log.statusAfter]?.label || log.statusAfter}</span>
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>

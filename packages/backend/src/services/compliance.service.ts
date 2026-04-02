@@ -1,6 +1,6 @@
 import { eq, desc, asc, and, or, ilike, sql, count, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { regulations, regulatoryUpdates, complianceChecklist, regulatorySources } from '../db/schema.js';
+import { regulations, regulatoryUpdates, complianceChecklist, regulatorySources, complianceProgressLogs } from '../db/schema.js';
 
 class ComplianceService {
   // ==================== Regulations ====================
@@ -180,6 +180,118 @@ class ComplianceService {
     .groupBy(complianceChecklist.category, complianceChecklist.region, complianceChecklist.status, complianceChecklist.priority);
 
     return stats;
+  }
+
+  // ==================== Progress Logs ====================
+
+  async getProgressLogs(checklistItemId: string) {
+    return db.select().from(complianceProgressLogs)
+      .where(eq(complianceProgressLogs.checklistItemId, checklistItemId))
+      .orderBy(desc(complianceProgressLogs.createdAt));
+  }
+
+  async addProgressLog(data: {
+    checklistItemId: string;
+    content: string;
+    progressPct?: number;
+    status?: string;
+    author?: string;
+  }) {
+    // Get current state of the checklist item
+    const [item] = await db.select().from(complianceChecklist)
+      .where(eq(complianceChecklist.id, data.checklistItemId));
+    if (!item) throw new Error('Checklist item not found');
+
+    const progressPctBefore = item.progressPct ?? 0;
+    const statusBefore = item.status;
+    const progressPctAfter = data.progressPct ?? progressPctBefore;
+    const statusAfter = data.status ?? statusBefore;
+
+    // Insert log
+    const [log] = await db.insert(complianceProgressLogs).values({
+      checklistItemId: data.checklistItemId,
+      content: data.content,
+      progressPctBefore,
+      progressPctAfter,
+      statusBefore,
+      statusAfter,
+      author: data.author || 'system',
+    }).returning();
+
+    // Update checklist item
+    const updateData: any = { updatedAt: new Date() };
+    if (data.progressPct !== undefined) updateData.progressPct = data.progressPct;
+    if (data.status) updateData.status = data.status;
+
+    await db.update(complianceChecklist)
+      .set(updateData)
+      .where(eq(complianceChecklist.id, data.checklistItemId));
+
+    return log;
+  }
+
+  async deleteProgressLog(logId: string) {
+    await db.delete(complianceProgressLogs).where(eq(complianceProgressLogs.id, logId));
+  }
+
+  async getOverallProgress() {
+    const items = await db.select({
+      id: complianceChecklist.id,
+      category: complianceChecklist.category,
+      priority: complianceChecklist.priority,
+      status: complianceChecklist.status,
+      progressPct: complianceChecklist.progressPct,
+    }).from(complianceChecklist);
+
+    const total = items.length;
+    if (total === 0) return { overall: 0, byCategory: {}, byPriority: {} };
+
+    const overallPct = Math.round(items.reduce((sum, i) => sum + (i.progressPct ?? 0), 0) / total);
+
+    // By category
+    const byCategory: Record<string, { total: number; avgPct: number; completed: number }> = {};
+    for (const item of items) {
+      const cat = byCategory[item.category] ?? (byCategory[item.category] = { total: 0, avgPct: 0, completed: 0 });
+      cat.total++;
+      cat.avgPct += (item.progressPct ?? 0);
+      if (item.status === 'completed') cat.completed++;
+    }
+    for (const cat of Object.values(byCategory)) {
+      cat.avgPct = Math.round(cat.avgPct / cat.total);
+    }
+
+    // By priority
+    const byPriority: Record<string, { total: number; avgPct: number; completed: number }> = {};
+    for (const item of items) {
+      const pri = byPriority[item.priority] ?? (byPriority[item.priority] = { total: 0, avgPct: 0, completed: 0 });
+      pri.total++;
+      pri.avgPct += (item.progressPct ?? 0);
+      if (item.status === 'completed') pri.completed++;
+    }
+    for (const pri of Object.values(byPriority)) {
+      pri.avgPct = Math.round(pri.avgPct / pri.total);
+    }
+
+    // Recent logs across all items
+    const recentLogs = await db.select({
+      id: complianceProgressLogs.id,
+      checklistItemId: complianceProgressLogs.checklistItemId,
+      content: complianceProgressLogs.content,
+      progressPctBefore: complianceProgressLogs.progressPctBefore,
+      progressPctAfter: complianceProgressLogs.progressPctAfter,
+      statusBefore: complianceProgressLogs.statusBefore,
+      statusAfter: complianceProgressLogs.statusAfter,
+      author: complianceProgressLogs.author,
+      createdAt: complianceProgressLogs.createdAt,
+      itemTitle: complianceChecklist.title,
+      itemCategory: complianceChecklist.category,
+    })
+    .from(complianceProgressLogs)
+    .innerJoin(complianceChecklist, eq(complianceProgressLogs.checklistItemId, complianceChecklist.id))
+    .orderBy(desc(complianceProgressLogs.createdAt))
+    .limit(20);
+
+    return { overall: overallPct, byCategory, byPriority, recentLogs };
   }
 
   // ==================== Dashboard ====================

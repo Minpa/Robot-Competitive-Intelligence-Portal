@@ -106,6 +106,10 @@ export async function complianceRoutes(fastify: FastifyInstance) {
     return complianceService.getChecklistStats();
   });
 
+  fastify.get('/checklist/overall-progress', async () => {
+    return complianceService.getOverallProgress();
+  });
+
   fastify.post('/checklist', async (request) => {
     const body = request.body as any;
     return complianceService.createChecklistItem(body);
@@ -120,6 +124,25 @@ export async function complianceRoutes(fastify: FastifyInstance) {
   fastify.delete('/checklist/:id', async (request) => {
     const { id } = request.params as { id: string };
     await complianceService.deleteChecklistItem(id);
+    return { success: true };
+  });
+
+  // ==================== Progress Logs ====================
+
+  fastify.get('/checklist/:id/progress-logs', async (request) => {
+    const { id } = request.params as { id: string };
+    return complianceService.getProgressLogs(id);
+  });
+
+  fastify.post('/checklist/:id/progress-logs', async (request) => {
+    const { id } = request.params as { id: string };
+    const body = request.body as { content: string; progressPct?: number; status?: string; author?: string };
+    return complianceService.addProgressLog({ checklistItemId: id, ...body });
+  });
+
+  fastify.delete('/progress-logs/:logId', async (request) => {
+    const { logId } = request.params as { logId: string };
+    await complianceService.deleteProgressLog(logId);
     return { success: true };
   });
 

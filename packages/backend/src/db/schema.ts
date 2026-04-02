@@ -1780,6 +1780,11 @@ export const complianceChecklist = pgTable('compliance_checklist', {
   assignee: varchar('assignee', { length: 100 }),
   notes: text('notes'),
   evidence: jsonb('evidence').$type<{ url: string; description: string; uploadedAt: string }[]>().default([]),
+  // 산업용 규제 비교 정보
+  industrialRegComparison: text('industrial_reg_comparison'), // 기존 산업용 규제와의 차이점
+  industrialRegWhyDifferent: text('industrial_reg_why_different'), // 왜 다른지
+  industrialRegApproach: text('industrial_reg_approach'), // 어떻게 접근해야 하는지
+  progressPct: integer('progress_pct').default(0), // 0-100 진행률
   sortOrder: integer('sort_order').default(0),
   parentId: uuid('parent_id'), // for sub-items
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -1789,6 +1794,22 @@ export const complianceChecklist = pgTable('compliance_checklist', {
   regionIdx: index('compliance_checklist_region_idx').on(table.region),
   statusIdx: index('compliance_checklist_status_idx').on(table.status),
   priorityIdx: index('compliance_checklist_priority_idx').on(table.priority),
+}));
+
+// Compliance Progress Logs — 체크리스트 항목별 진행 이력
+export const complianceProgressLogs = pgTable('compliance_progress_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  checklistItemId: uuid('checklist_item_id').references(() => complianceChecklist.id, { onDelete: 'cascade' }).notNull(),
+  content: text('content').notNull(), // 진행 내용
+  progressPctBefore: integer('progress_pct_before'), // 변경 전 진행률
+  progressPctAfter: integer('progress_pct_after'), // 변경 후 진행률
+  statusBefore: varchar('status_before', { length: 30 }),
+  statusAfter: varchar('status_after', { length: 30 }),
+  author: varchar('author', { length: 100 }).default('system'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  checklistItemIdx: index('compliance_progress_logs_checklist_item_idx').on(table.checklistItemId),
+  createdAtIdx: index('compliance_progress_logs_created_at_idx').on(table.createdAt),
 }));
 
 // Regulatory Sources — 크롤링 대상 규제 소스
@@ -1817,6 +1838,11 @@ export const regulatoryUpdatesRelations = relations(regulatoryUpdates, ({ one })
   regulation: one(regulations, { fields: [regulatoryUpdates.regulationId], references: [regulations.id] }),
 }));
 
-export const complianceChecklistRelations = relations(complianceChecklist, ({ one }) => ({
+export const complianceChecklistRelations = relations(complianceChecklist, ({ one, many }) => ({
   regulation: one(regulations, { fields: [complianceChecklist.regulationId], references: [regulations.id] }),
+  progressLogs: many(complianceProgressLogs),
+}));
+
+export const complianceProgressLogsRelations = relations(complianceProgressLogs, ({ one }) => ({
+  checklistItem: one(complianceChecklist, { fields: [complianceProgressLogs.checklistItemId], references: [complianceChecklist.id] }),
 }));
