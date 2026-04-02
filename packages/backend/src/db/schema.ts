@@ -1812,6 +1812,30 @@ export const complianceProgressLogs = pgTable('compliance_progress_logs', {
   createdAtIdx: index('compliance_progress_logs_created_at_idx').on(table.createdAt),
 }));
 
+// Regulatory Documents — 규제 문서 라이브러리 (PDF 등)
+export const regulatoryDocuments = pgTable('regulatory_documents', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  regulationId: uuid('regulation_id').references(() => regulations.id, { onDelete: 'set null' }),
+  title: varchar('title', { length: 500 }).notNull(),
+  description: text('description'),
+  filename: varchar('filename', { length: 500 }).notNull(), // original filename
+  storedFilename: varchar('stored_filename', { length: 500 }).notNull(), // uuid-based stored name
+  mimeType: varchar('mime_type', { length: 100 }).notNull(),
+  fileSize: integer('file_size').notNull(), // bytes
+  pageCount: integer('page_count'), // for PDFs
+  category: varchar('category', { length: 50 }), // policy, safety, legal, privacy
+  region: varchar('region', { length: 50 }),
+  tags: jsonb('tags').$type<string[]>().default([]),
+  // Checklist item links — which checklist items reference this doc
+  linkedChecklistItems: jsonb('linked_checklist_items').$type<{ checklistItemId: string; pages?: string; note?: string }[]>().default([]),
+  uploadedBy: varchar('uploaded_by', { length: 100 }).default('system'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  regulationIdx: index('regulatory_documents_regulation_idx').on(table.regulationId),
+  categoryIdx: index('regulatory_documents_category_idx').on(table.category),
+}));
+
 // Regulatory Sources — 크롤링 대상 규제 소스
 export const regulatorySources = pgTable('regulatory_sources', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -1832,6 +1856,11 @@ export const regulatorySources = pgTable('regulatory_sources', {
 export const regulationsRelations = relations(regulations, ({ many }) => ({
   updates: many(regulatoryUpdates),
   checklistItems: many(complianceChecklist),
+  documents: many(regulatoryDocuments),
+}));
+
+export const regulatoryDocumentsRelations = relations(regulatoryDocuments, ({ one }) => ({
+  regulation: one(regulations, { fields: [regulatoryDocuments.regulationId], references: [regulations.id] }),
 }));
 
 export const regulatoryUpdatesRelations = relations(regulatoryUpdates, ({ one }) => ({

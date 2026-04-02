@@ -27,6 +27,7 @@ import { warRoomRoutes } from './war-room.js';
 import { seedScoresRoutes } from './seed-scores.js';
 import { ciUpdateRoutes } from './ci-update.js';
 import { complianceRoutes } from './compliance.js';
+import { regulatoryDocumentRoutes } from './regulatory-documents.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -75,4 +76,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // 컴플라이언스 시스템 라우트
   fastify.register(complianceRoutes, { prefix: '/api/compliance' });
+
+  // 규제 문서 라이브러리
+  fastify.register(regulatoryDocumentRoutes, { prefix: '/api/regulatory-documents' });
 }

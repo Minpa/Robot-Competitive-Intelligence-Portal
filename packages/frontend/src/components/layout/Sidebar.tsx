@@ -73,6 +73,7 @@ const navigationGroups: NavGroup[] = [
       { name: '규제 업데이트 피드', href: '/compliance/updates', icon: Bell },
       { name: 'LG 체크리스트', href: '/compliance/checklist', icon: CheckSquare },
       { name: '규제 상세 DB', href: '/compliance/regulations', icon: Database },
+      { name: '규제 문서 라이브러리', href: '/compliance/documents', icon: FileText },
     ],
   },
   {

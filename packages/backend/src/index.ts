@@ -7,6 +7,7 @@ import { fixSocPowerConsumption } from './db/fix-soc-startup.js';
 import { fixTopsValues } from './db/fix-tops-startup.js';
 import { ensureComplianceProgressSchema } from './db/ensure-compliance-progress.js';
 import { seedIndustrialComparison } from './db/seed-industrial-comparison.js';
+import { ensureRegulatoryDocumentsSchema } from './db/ensure-regulatory-documents.js';
 import { ciUpdateService } from './services/ci-update.service.js';
 import { benchmarkService } from './services/benchmark.service.js';
 import { seedCiData } from './db/seed-ci.js';
@@ -56,6 +57,7 @@ const start = async () => {
     await fixTopsValues();
     await ensureComplianceProgressSchema();
     await seedIndustrialComparison();
+    await ensureRegulatoryDocumentsSchema();
     await ciUpdateService.ensureTables();
     await benchmarkService.ensureTables();
     await seedCiData();

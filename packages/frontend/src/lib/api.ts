@@ -1979,6 +1979,40 @@ class ApiClient {
     updateSource: (id: string, data: any) => this.request<any>(`/compliance/sources/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     deleteSource: (id: string) => this.request<any>(`/compliance/sources/${id}`, { method: 'DELETE' }),
   };
+
+  // Regulatory Documents
+  regulatoryDocuments = {
+    list: (params?: { category?: string; region?: string; search?: string; regulationId?: string; limit?: number; offset?: number }) => {
+      const searchParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') searchParams.set(k, String(v)); });
+      }
+      const qs = searchParams.toString();
+      return this.request<{ items: any[]; total: number }>(`/regulatory-documents${qs ? `?${qs}` : ''}`);
+    },
+    get: (id: string) => this.request<any>(`/regulatory-documents/${id}`),
+    getFileUrl: (id: string) => `${API_BASE}/regulatory-documents/${id}/file`,
+    upload: async (file: File, metadata: { title: string; description?: string; category?: string; region?: string; regulationId?: string; tags?: string[] }) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      Object.entries(metadata).forEach(([k, v]) => {
+        if (v !== undefined) formData.append(k, typeof v === 'string' ? v : JSON.stringify(v));
+      });
+      const resp = await fetch(`${API_BASE}/regulatory-documents/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!resp.ok) throw new Error(await resp.text());
+      return resp.json();
+    },
+    update: (id: string, data: any) => this.request<any>(`/regulatory-documents/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) => this.request<any>(`/regulatory-documents/${id}`, { method: 'DELETE' }),
+    linkChecklist: (docId: string, checklistItemId: string, pages?: string, note?: string) =>
+      this.request<any>(`/regulatory-documents/${docId}/link`, { method: 'POST', body: JSON.stringify({ checklistItemId, pages, note }) }),
+    unlinkChecklist: (docId: string, checklistItemId: string) =>
+      this.request<any>(`/regulatory-documents/${docId}/unlink`, { method: 'POST', body: JSON.stringify({ checklistItemId }) }),
+    forChecklist: (checklistItemId: string) => this.request<any[]>(`/regulatory-documents/for-checklist/${checklistItemId}`),
+  };
 }
 
 export const api = new ApiClient();
