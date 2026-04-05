@@ -308,7 +308,7 @@ async function isDuplicateAlert(headline: string): Promise<boolean> {
   return rows.length > 0;
 }
 
-async function main() {
+export async function insertCiUpdate20260405() {
   console.log('=== CI 경쟁사 데이터 업데이트 (2026-04-05) ===\n');
 
   // Ensure 'agibot' and 'unitree-g1' and 'apollo' slugs exist
@@ -376,11 +376,15 @@ async function main() {
   console.log(`\n=== 완료 ===`);
   console.log(`총 ${collectedData.length}건 중 ${inserted}건 삽입, ${skipped}건 중복 건너뜀`);
   console.log(`ci_monitor_alerts: ${inserted}건, ci_staging: ${inserted}건`);
-
-  process.exit(0);
 }
 
-main().catch((err) => {
-  console.error('❌ CI 업데이트 실패:', err);
-  process.exit(1);
-});
+// 직접 실행 시 (npx tsx ...)
+const isDirectRun = process.argv[1]?.includes('insert-ci-update-2026-04-05');
+if (isDirectRun) {
+  insertCiUpdate20260405()
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error('❌ CI 업데이트 실패:', err);
+      process.exit(1);
+    });
+}
