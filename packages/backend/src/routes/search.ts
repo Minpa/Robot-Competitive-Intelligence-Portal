@@ -1,21 +1,96 @@
 import type { FastifyInstance } from 'fastify';
 import { searchService } from '../services/search.service.js';
+import { db, companies, products, articles } from '../db/index.js';
+import { ilike, or } from 'drizzle-orm';
+
+async function dbFallbackSearch(query: string, limit: number = 10) {
+  const pattern = `%${query}%`;
+
+  const [companyResults, productResults, articleResults] = await Promise.all([
+    db.select({
+      id: companies.id,
+      name: companies.name,
+      country: companies.country,
+      description: companies.description,
+    })
+      .from(companies)
+      .where(
+        or(
+          ilike(companies.name, pattern),
+          ilike(companies.description, pattern),
+          ilike(companies.mainBusiness, pattern),
+        )
+      )
+      .limit(limit),
+
+    db.select({
+      id: products.id,
+      name: products.name,
+      type: products.type,
+      series: products.series,
+      targetMarket: products.targetMarket,
+    })
+      .from(products)
+      .where(
+        or(
+          ilike(products.name, pattern),
+          ilike(products.series, pattern),
+          ilike(products.targetMarket, pattern),
+        )
+      )
+      .limit(limit),
+
+    db.select({
+      id: articles.id,
+      title: articles.title,
+      source: articles.source,
+      summary: articles.summary,
+    })
+      .from(articles)
+      .where(
+        or(
+          ilike(articles.title, pattern),
+          ilike(articles.summary, pattern),
+        )
+      )
+      .limit(limit),
+  ]);
+
+  return {
+    companies: {
+      hits: companyResults.map((c) => ({ id: c.id, score: 1, source: c })),
+      total: companyResults.length,
+    },
+    products: {
+      hits: productResults.map((p) => ({ id: p.id, score: 1, source: p })),
+      total: productResults.length,
+    },
+    articles: {
+      hits: articleResults.map((a) => ({ id: a.id, score: 1, source: a })),
+      total: articleResults.length,
+    },
+    totalHits: companyResults.length + productResults.length + articleResults.length,
+  };
+}
 
 export async function searchRoutes(fastify: FastifyInstance) {
   // Global search
   fastify.get('/', async (request) => {
     const { q, limit } = request.query as { q?: string; limit?: string };
-    
+
     if (!q) {
       return { error: 'Query parameter "q" is required' };
     }
 
+    const searchLimit = limit ? parseInt(limit) : 10;
+
     const result = await searchService.search(q, {
-      limit: limit ? parseInt(limit) : 10,
+      limit: searchLimit,
     });
 
     if (!result) {
-      return { error: 'Search service unavailable', fallback: true };
+      // Fallback to database search when Elasticsearch is unavailable
+      return await dbFallbackSearch(q, searchLimit);
     }
 
     return result;
