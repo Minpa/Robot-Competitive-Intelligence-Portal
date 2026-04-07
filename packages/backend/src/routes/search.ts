@@ -1,12 +1,12 @@
 import type { FastifyInstance } from 'fastify';
 import { searchService } from '../services/search.service.js';
-import { db, companies, products, articles } from '../db/index.js';
+import { db, companies, articles, humanoidRobots } from '../db/index.js';
 import { ilike, or } from 'drizzle-orm';
 
 async function dbFallbackSearch(query: string, limit: number = 10) {
   const pattern = `%${query}%`;
 
-  const [companyResults, productResults, articleResults] = await Promise.all([
+  const [companyResults, robotResults, articleResults] = await Promise.all([
     db.select({
       id: companies.id,
       name: companies.name,
@@ -24,18 +24,17 @@ async function dbFallbackSearch(query: string, limit: number = 10) {
       .limit(limit),
 
     db.select({
-      id: products.id,
-      name: products.name,
-      type: products.type,
-      series: products.series,
-      targetMarket: products.targetMarket,
+      id: humanoidRobots.id,
+      name: humanoidRobots.name,
+      purpose: humanoidRobots.purpose,
+      locomotionType: humanoidRobots.locomotionType,
+      description: humanoidRobots.description,
     })
-      .from(products)
+      .from(humanoidRobots)
       .where(
         or(
-          ilike(products.name, pattern),
-          ilike(products.series, pattern),
-          ilike(products.targetMarket, pattern),
+          ilike(humanoidRobots.name, pattern),
+          ilike(humanoidRobots.description, pattern),
         )
       )
       .limit(limit),
@@ -61,15 +60,15 @@ async function dbFallbackSearch(query: string, limit: number = 10) {
       hits: companyResults.map((c) => ({ id: c.id, score: 1, source: c })),
       total: companyResults.length,
     },
-    products: {
-      hits: productResults.map((p) => ({ id: p.id, score: 1, source: p })),
-      total: productResults.length,
+    robots: {
+      hits: robotResults.map((r) => ({ id: r.id, score: 1, source: r })),
+      total: robotResults.length,
     },
     articles: {
       hits: articleResults.map((a) => ({ id: a.id, score: 1, source: a })),
       total: articleResults.length,
     },
-    totalHits: companyResults.length + productResults.length + articleResults.length,
+    totalHits: companyResults.length + robotResults.length + articleResults.length,
   };
 }
 

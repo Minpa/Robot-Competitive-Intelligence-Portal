@@ -34,7 +34,7 @@ function SearchContent() {
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-white">검색</h1>
-          <p className="text-slate-400">회사, 제품, 기사 통합 검색</p>
+          <p className="text-slate-400">회사, 로봇, 기사 통합 검색</p>
         </div>
 
         <form onSubmit={handleSearch} className="max-w-2xl">
@@ -90,22 +90,22 @@ function SearchContent() {
               </div>
             )}
 
-            {/* Products */}
-            {data.products?.hits?.length > 0 && (
+            {/* Robots */}
+            {data.robots?.hits?.length > 0 && (
               <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
                 <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
                   <Package className="w-5 h-5 text-emerald-400" />
-                  제품 ({data.products.total})
+                  로봇 ({data.robots.total})
                 </h2>
                 <div className="space-y-2">
-                  {data.products.hits.map((hit: any) => (
+                  {data.robots.hits.map((hit: any) => (
                     <Link
                       key={hit.id}
                       href={`/humanoid-robots/${hit.id}`}
                       className="block p-3 hover:bg-slate-800/50 rounded-lg transition-colors"
                     >
                       <p className="font-medium text-white">{hit.source?.name}</p>
-                      <p className="text-sm text-slate-400">{hit.source?.type}</p>
+                      <p className="text-sm text-slate-400">{hit.source?.purpose}</p>
                     </Link>
                   ))}
                 </div>
