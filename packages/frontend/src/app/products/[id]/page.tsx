@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { formatDate, formatCurrency, getProductTypeLabel, getStatusLabel, getStatusColor, cn } from '@/lib/utils';
-import { ArrowLeft, Building2, FileText, Tag } from 'lucide-react';
+import { ArrowLeft, Building2, FileText, Package, Tag } from 'lucide-react';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -35,7 +35,7 @@ export default function ProductDetailPage() {
     );
   }
 
-  const { product, company, spec, articles, keywords } = data;
+  const { product, company, spec, articles, keywords, relatedProducts } = data;
 
   return (
     <div className="space-y-6">
@@ -254,6 +254,28 @@ export default function ProductDetailPage() {
               >
                 회사 상세 보기 →
               </Link>
+            </div>
+          )}
+
+          {/* Related Products */}
+          {relatedProducts && relatedProducts.length > 0 && (
+            <div className="bg-slate-800 rounded-lg shadow p-6">
+              <h3 className="font-semibold mb-3">관련 제품</h3>
+              <div className="space-y-2">
+                {relatedProducts.map((rp: any) => (
+                  <Link
+                    key={rp.id}
+                    href={`/products/${rp.id}`}
+                    className="flex items-center gap-3 p-2 hover:bg-slate-700 rounded-lg transition-colors"
+                  >
+                    <Package className="w-4 h-4 text-emerald-400" />
+                    <div>
+                      <p className="text-sm font-medium text-slate-200">{rp.name}</p>
+                      <p className="text-xs text-slate-400">{getProductTypeLabel(rp.type)}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
           )}
 

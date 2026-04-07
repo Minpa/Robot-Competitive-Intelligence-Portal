@@ -29,7 +29,7 @@ export class ProductDetailService {
     const [company, spec, productArticles, productKeywordsList, relatedProducts] = await Promise.all([
       this.getCompany(product.companyId),
       this.getSpec(productId),
-      this.getArticles(productId),
+      this.getArticles(productId, product.companyId),
       this.getKeywords(productId),
       this.getRelatedProducts(product.companyId, productId, product.type),
     ]);
@@ -62,14 +62,29 @@ export class ProductDetailService {
     return (spec as ProductSpec) || null;
   }
 
-  private async getArticles(productId: string): Promise<Article[]> {
+  private async getArticles(productId: string, companyId?: string): Promise<Article[]> {
+    // First try product-specific articles
     const result = await db
       .select()
       .from(articles)
       .where(eq(articles.productId, productId))
       .orderBy(desc(articles.publishedAt))
       .limit(20);
-    return result as Article[];
+
+    if (result.length > 0) return result as Article[];
+
+    // Fallback: show company-related articles when no product-specific ones exist
+    if (companyId) {
+      const companyArticles = await db
+        .select()
+        .from(articles)
+        .where(eq(articles.companyId, companyId))
+        .orderBy(desc(articles.publishedAt))
+        .limit(10);
+      return companyArticles as Article[];
+    }
+
+    return [];
   }
 
   private async getKeywords(productId: string): Promise<Keyword[]> {
