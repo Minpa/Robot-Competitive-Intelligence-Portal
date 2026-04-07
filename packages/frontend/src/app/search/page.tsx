@@ -101,7 +101,7 @@ function SearchContent() {
                   {data.products.hits.map((hit: any) => (
                     <Link
                       key={hit.id}
-                      href={`/products/${hit.id}`}
+                      href={`/humanoid-robots/${hit.id}`}
                       className="block p-3 hover:bg-slate-800/50 rounded-lg transition-colors"
                     >
                       <p className="font-medium text-white">{hit.source?.name}</p>
