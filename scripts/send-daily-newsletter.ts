@@ -122,9 +122,10 @@ async function getRecentCiUpdates(): Promise<CiUpdateRow[]> {
 async function getRecentAlerts(): Promise<AlertRow[]> {
   const { rows } = await pool.query(`
     SELECT ca.id, ca.type, ca.severity, ca.title, ca.summary,
-           hr.name AS robot_name, hr.manufacturer
+           hr.name AS robot_name, co.name AS manufacturer
     FROM competitive_alerts ca
     LEFT JOIN humanoid_robots hr ON ca.robot_id = hr.id
+    LEFT JOIN companies co ON hr.company_id = co.id
     WHERE ca.created_at >= $1
     ORDER BY
       CASE ca.severity WHEN 'critical' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END,
@@ -138,7 +139,7 @@ async function getWeeklyKeywords(): Promise<KeywordRow[]> {
     SELECT k.term, COUNT(*)::int AS mention_count
     FROM keyword_stats ks
     JOIN keywords k ON ks.keyword_id = k.id
-    WHERE ks.created_at >= $1
+    WHERE ks.calculated_at >= $1
     GROUP BY k.term
     ORDER BY mention_count DESC
     LIMIT 10
