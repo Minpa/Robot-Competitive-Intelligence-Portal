@@ -47,3 +47,6 @@ venv/
 # Database
 *.sqlite
 *.db
+
+# Generated newsletter previews
+scripts/newsletter-*.html
