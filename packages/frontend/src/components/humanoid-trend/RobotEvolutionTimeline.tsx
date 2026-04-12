@@ -5,13 +5,13 @@ import { api } from '@/lib/api';
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// ── Stage colors — aligned with site-wide badge convention ──
+// ── Stage colors — ARGOS light-friendly palette ──
 const STAGE_COLORS: Record<string, { bg: string; border: string; text: string; label: string }> = {
-  concept:    { bg: '#27272a', border: '#71717a', text: '#a1a1aa', label: 'Concept' },
-  prototype:  { bg: '#1e3a5f', border: '#3b82f6', text: '#93c5fd', label: 'Prototype' },
-  poc:        { bg: '#422006', border: '#eab308', text: '#fde047', label: 'PoC' },
-  pilot:      { bg: '#431407', border: '#f97316', text: '#fdba74', label: 'Pilot' },
-  commercial: { bg: '#052e16', border: '#22c55e', text: '#86efac', label: 'Commercial' },
+  concept:    { bg: '#F1F5F9', border: '#94A3B8', text: '#64748B', label: 'Concept' },
+  prototype:  { bg: '#DBEAFE', border: '#3B82F6', text: '#1D4ED8', label: 'Prototype' },
+  poc:        { bg: '#FEF3C7', border: '#EAB308', text: '#A16207', label: 'PoC' },
+  pilot:      { bg: '#FFEDD5', border: '#F97316', text: '#C2410C', label: 'Pilot' },
+  commercial: { bg: '#DCFCE7', border: '#22C55E', text: '#15803D', label: 'Commercial' },
 };
 
 const PURPOSE_LABELS: Record<string, string> = {
@@ -38,6 +38,16 @@ const NODE_GAP = 5;
 const ROW_PAD_Y = 10;
 const YEAR_RANGE_OPTIONS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
 const QUARTER_LABELS = ['Q1', 'Q2', 'Q3', 'Q4'];
+
+// ── ARGOS colors for SVG ──
+const SVG_BG = '#FFFFFF';
+const SVG_BG_ALT = '#F4F6FA';
+const SVG_BORDER = '#E5E9F0';
+const SVG_BORDER_SOFT = '#EEF1F6';
+const SVG_INK = '#1E2838';
+const SVG_INK_SOFT = '#4A5468';
+const SVG_MUTED = '#6B7585';
+const SVG_FAINT = '#98A2B3';
 
 type Robot = {
   id: string;
@@ -112,21 +122,16 @@ export default function RobotEvolutionTimeline() {
   const [containerWidth, setContainerWidth] = useState(0);
   const router = useRouter();
 
-  // Measure available width from parent on mount and window resize only.
-  // Using ResizeObserver on any child causes feedback loops because the SVG
-  // width pushes the container wider, triggering another measurement.
   useEffect(() => {
     const measure = () => {
       const el = containerRef.current;
       if (el) {
-        // Temporarily hide content so we measure the parent's natural width
         const prev = el.style.overflow;
         el.style.overflow = 'hidden';
         setContainerWidth(el.clientWidth);
         el.style.overflow = prev;
       }
     };
-    // Delay first measure to ensure layout is ready
     requestAnimationFrame(measure);
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
@@ -146,14 +151,12 @@ export default function RobotEvolutionTimeline() {
     const years: number[] = [];
     for (let y = minYear; y <= currentYear; y++) years.push(y);
 
-    // Total quarter slots = years * 4
     const totalQuarters = years.length * 4;
-    const minContentW = totalQuarters * 50; // minimum width based on quarter count
+    const minContentW = totalQuarters * 50;
     const fittedW = containerWidth - COMPANY_COL_W - 20;
     const availableW = Math.max(fittedW, minContentW);
     const quarterW = availableW / totalQuarters;
 
-    // Filter companies
     const filtered = companies
       .map((c: any) => ({
         ...c,
@@ -161,7 +164,6 @@ export default function RobotEvolutionTimeline() {
       }))
       .filter((c: any) => c.robots.length > 0);
 
-    // Sort: most recent product first, then robot count
     const sorted = [...filtered].sort((a: any, b: any) => {
       const aMax = Math.max(...a.robots.map((r: any) => yqVal(r.year, r.quarter)), 0);
       const bMax = Math.max(...b.robots.map((r: any) => yqVal(r.year, r.quarter)), 0);
@@ -169,7 +171,6 @@ export default function RobotEvolutionTimeline() {
       return b.robots.length - a.robots.length;
     });
 
-    // Row heights
     const rowHeights = sorted.map((c: any) => getRowHeight(c.robots, minYear));
     const rowYOffsets: number[] = [];
     let cumY = TOP_HEADER_H;
@@ -178,19 +179,17 @@ export default function RobotEvolutionTimeline() {
       cumY += h;
     }
 
-    // If content fits in container, use container width exactly to avoid overflow feedback loop
     const svgW = availableW <= fittedW ? containerWidth : COMPANY_COL_W + availableW + 20;
     const svgH = cumY + 8;
 
     return { companies: sorted, years, rowHeights, rowYOffsets, svgW, svgH, minYear, quarterW, totalQuarters };
   }, [data, containerWidth, recentYears]);
 
-  /** Get X position for a given year + quarter */
   const yqToX = useCallback((year: number, quarter: number) => {
     if (!chart) return 0;
     const yearIdx = chart.years.indexOf(year);
     if (yearIdx === -1) return 0;
-    const qIdx = (quarter - 1); // 0-3
+    const qIdx = (quarter - 1);
     const slotIdx = yearIdx * 4 + qIdx;
     return COMPANY_COL_W + slotIdx * chart.quarterW + chart.quarterW / 2;
   }, [chart]);
@@ -215,17 +214,17 @@ export default function RobotEvolutionTimeline() {
   if (isLoading || containerWidth === 0) {
     return (
       <div ref={containerRef} className="animate-pulse space-y-3 p-4">
-        <div className="h-6 bg-zinc-700 rounded w-1/4" />
-        <div className="h-72 bg-zinc-700/50 rounded" />
+        <div className="h-6 bg-argos-border rounded w-1/4" />
+        <div className="h-72 bg-argos-bgAlt rounded" />
       </div>
     );
   }
 
   if (error || !chart) {
     return (
-      <div className="p-6 text-center text-zinc-400">
+      <div className="p-6 text-center text-argos-muted">
         <p>데이터를 불러올 수 없습니다.</p>
-        {error && <p className="text-xs text-zinc-500 mt-2">{(error as Error).message}</p>}
+        {error && <p className="text-xs text-argos-faint mt-2">{(error as Error).message}</p>}
       </div>
     );
   }
@@ -237,8 +236,8 @@ export default function RobotEvolutionTimeline() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-lg font-bold text-white">제품 진화 타임라인</h2>
-          <p className="text-xs text-zinc-400">
+          <h2 className="text-lg font-bold text-argos-ink">제품 진화 타임라인</h2>
+          <p className="text-xs text-argos-muted">
             최근 {recentYears}년 ({years[0]}–{years[years.length - 1]}) · {companies.length}개 기업 · 최신순
           </p>
         </div>
@@ -246,7 +245,7 @@ export default function RobotEvolutionTimeline() {
           <select
             value={recentYears}
             onChange={e => setRecentYears(Number(e.target.value))}
-            className="bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-lg px-2.5 py-1.5 focus:ring-blue-500 focus:border-blue-500"
+            className="bg-argos-bgAlt border border-argos-border text-argos-inkSoft text-xs rounded-lg px-2.5 py-1.5 focus:ring-argos-blue focus:border-argos-blue"
           >
             {YEAR_RANGE_OPTIONS.map(n => (
               <option key={n} value={n}>최근 {n}년</option>
@@ -255,7 +254,7 @@ export default function RobotEvolutionTimeline() {
           <select
             value={regionFilter}
             onChange={e => setRegionFilter(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-lg px-2.5 py-1.5 focus:ring-blue-500 focus:border-blue-500"
+            className="bg-argos-bgAlt border border-argos-border text-argos-inkSoft text-xs rounded-lg px-2.5 py-1.5 focus:ring-argos-blue focus:border-argos-blue"
           >
             {REGION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
@@ -267,30 +266,30 @@ export default function RobotEvolutionTimeline() {
         {Object.entries(STAGE_COLORS).map(([key, c]) => (
           <span key={key} className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 rounded-sm" style={{ background: c.border }} />
-            <span className="text-zinc-400">{c.label}</span>
+            <span className="text-argos-muted">{c.label}</span>
           </span>
         ))}
         <span className="flex items-center gap-1 ml-2">
-          <span className="text-amber-400 text-[10px] font-medium border border-amber-500/40 rounded px-1">TBD</span>
-          <span className="text-zinc-400">출시 예정</span>
+          <span className="text-amber-500 text-[10px] font-medium border border-amber-500/40 rounded px-1">TBD</span>
+          <span className="text-argos-muted">출시 예정</span>
         </span>
       </div>
 
       {/* Chart */}
       <div
         ref={containerRef}
-        className="relative overflow-x-auto rounded-xl border border-zinc-700 bg-zinc-900"
+        className="relative overflow-x-auto rounded-xl border border-argos-border bg-argos-surface"
         onMouseLeave={() => { setHoveredRobot(null); setTooltip(null); }}
       >
         <svg width={svgW} height={svgH} className="select-none">
           <defs>
             <marker id="arr" markerWidth={6} markerHeight={5} refX={5} refY={2.5} orient="auto">
-              <path d="M0,0 L6,2.5 L0,5 Z" fill="rgb(var(--color-slate-700))" />
+              <path d="M0,0 L6,2.5 L0,5 Z" fill={SVG_BORDER} />
             </marker>
           </defs>
 
           {/* Background */}
-          <rect width={svgW} height={svgH} fill="rgb(var(--color-slate-900))" />
+          <rect width={svgW} height={svgH} fill={SVG_BG} />
 
           {/* Year + Quarter columns */}
           {years.map((year, yi) => {
@@ -300,21 +299,21 @@ export default function RobotEvolutionTimeline() {
               <g key={year}>
                 {/* Year background stripe (alternate) */}
                 {yi % 2 === 0 && (
-                  <rect x={yearX} y={0} width={yearWidth} height={svgH} fill="rgb(var(--color-slate-800))" opacity={0.15} />
+                  <rect x={yearX} y={0} width={yearWidth} height={svgH} fill={SVG_BG_ALT} opacity={0.6} />
                 )}
                 {/* Year label */}
                 <text
                   x={yearX + yearWidth / 2}
                   y={18}
                   textAnchor="middle"
-                  fill="rgb(var(--color-slate-200))"
+                  fill={SVG_INK}
                   fontSize={14}
                   fontWeight={700}
                 >
                   {year}
                 </text>
                 {/* Year separator line */}
-                <line x1={yearX} y1={0} x2={yearX} y2={svgH} stroke="rgb(var(--color-slate-700))" strokeWidth={0.8} />
+                <line x1={yearX} y1={0} x2={yearX} y2={svgH} stroke={SVG_BORDER} strokeWidth={0.8} />
 
                 {/* Quarter labels + separator lines */}
                 {QUARTER_LABELS.map((ql, qi) => {
@@ -325,7 +324,7 @@ export default function RobotEvolutionTimeline() {
                         x={qx + quarterW / 2}
                         y={38}
                         textAnchor="middle"
-                        fill="rgb(var(--color-slate-500))"
+                        fill={SVG_FAINT}
                         fontSize={10}
                         fontWeight={400}
                       >
@@ -335,7 +334,7 @@ export default function RobotEvolutionTimeline() {
                         <line
                           x1={qx} y1={TOP_HEADER_H}
                           x2={qx} y2={svgH}
-                          stroke="rgb(var(--color-slate-700))" strokeWidth={0.3} strokeDasharray="2 3"
+                          stroke={SVG_BORDER_SOFT} strokeWidth={0.3} strokeDasharray="2 3"
                         />
                       )}
                     </g>
@@ -346,7 +345,7 @@ export default function RobotEvolutionTimeline() {
           })}
 
           {/* Header separator */}
-          <line x1={0} y1={TOP_HEADER_H} x2={svgW} y2={TOP_HEADER_H} stroke="rgb(var(--color-slate-600))" strokeWidth={0.8} />
+          <line x1={0} y1={TOP_HEADER_H} x2={svgW} y2={TOP_HEADER_H} stroke={SVG_BORDER} strokeWidth={0.8} />
 
           {/* Company rows */}
           {companies.map((company: any, rowIdx: number) => {
@@ -356,15 +355,15 @@ export default function RobotEvolutionTimeline() {
 
             return (
               <g key={company.companyId}>
-                <line x1={0} y1={y} x2={svgW} y2={y} stroke="rgb(var(--color-slate-700))" strokeWidth={0.5} />
+                <line x1={0} y1={y} x2={svgW} y2={y} stroke={SVG_BORDER_SOFT} strokeWidth={0.5} />
 
                 {/* Company label */}
-                <rect x={0} y={y} width={COMPANY_COL_W} height={rowH} fill="rgb(var(--color-slate-900))" />
+                <rect x={0} y={y} width={COMPANY_COL_W} height={rowH} fill={SVG_BG} />
                 <text
                   x={COMPANY_COL_W - 10}
                   y={y + rowH / 2 + 1}
                   textAnchor="end"
-                  fill="rgb(var(--color-slate-200))"
+                  fill={SVG_INK}
                   fontSize={12}
                   fontWeight={500}
                 >
@@ -375,7 +374,7 @@ export default function RobotEvolutionTimeline() {
                     x={COMPANY_COL_W - 10}
                     y={y + rowH / 2 + 14}
                     textAnchor="end"
-                    fill="rgb(var(--color-slate-500))"
+                    fill={SVG_FAINT}
                     fontSize={9}
                   >
                     {company.companyCountry}
@@ -396,7 +395,7 @@ export default function RobotEvolutionTimeline() {
                     <line
                       key={`a-${gi}`}
                       x1={x1} y1={cy} x2={x2 - 4} y2={cy}
-                      stroke="rgb(var(--color-slate-700))" strokeWidth={1} strokeDasharray="4 3"
+                      stroke={SVG_BORDER} strokeWidth={1} strokeDasharray="4 3"
                       markerEnd="url(#arr)"
                     />
                   );
@@ -450,7 +449,7 @@ export default function RobotEvolutionTimeline() {
                             x={cx + nw / 2 - 22}
                             y={ny + NODE_H / 2 + 3}
                             textAnchor="middle"
-                            fill="#f59e0b"
+                            fill="#d97706"
                             fontSize={8}
                             fontWeight={600}
                           >
@@ -469,14 +468,14 @@ export default function RobotEvolutionTimeline() {
         {/* Tooltip */}
         {tooltip && (
           <div
-            className="absolute pointer-events-none z-50 bg-zinc-800 border border-zinc-600 rounded-lg px-3 py-2 shadow-xl text-xs whitespace-nowrap"
+            className="absolute pointer-events-none z-50 bg-argos-surface border border-argos-border rounded-lg px-3 py-2 shadow-argos-raised text-xs whitespace-nowrap"
             style={{ left: tooltip.x + 14, top: tooltip.y - 50 }}
           >
-            <div className="font-semibold text-zinc-100">{tooltip.robot.name}</div>
-            <div className="text-zinc-400">
+            <div className="font-semibold text-argos-ink">{tooltip.robot.name}</div>
+            <div className="text-argos-muted">
               {tooltip.companyName} · {tooltip.robot.year}년 Q{tooltip.robot.quarter || 1}
               {isFuture(tooltip.robot.year, tooltip.robot.quarter) && (
-                <span className="ml-1 text-amber-400 font-medium">(TBD)</span>
+                <span className="ml-1 text-amber-500 font-medium">(TBD)</span>
               )}
             </div>
             <div className="flex gap-2 mt-0.5">
@@ -486,16 +485,16 @@ export default function RobotEvolutionTimeline() {
                 </span>
               )}
               {tooltip.robot.purpose && (
-                <span className="text-zinc-400">{PURPOSE_LABELS[tooltip.robot.purpose] || tooltip.robot.purpose}</span>
+                <span className="text-argos-muted">{PURPOSE_LABELS[tooltip.robot.purpose] || tooltip.robot.purpose}</span>
               )}
             </div>
-            <div className="text-blue-400 mt-0.5">클릭하여 상세 보기</div>
+            <div className="text-argos-blue mt-0.5">클릭하여 상세 보기</div>
           </div>
         )}
       </div>
 
       {companies.length === 0 && (
-        <div className="text-center py-10 text-zinc-400">해당 지역에 등록된 로봇이 없습니다.</div>
+        <div className="text-center py-10 text-argos-muted">해당 지역에 등록된 로봇이 없습니다.</div>
       )}
     </div>
   );
