@@ -36,22 +36,22 @@ export default function CiUpdatePage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white">CI 데이터 업데이트</h2>
-          <p className="text-sm text-slate-400 mt-0.5">
+          <h2 className="text-xl font-bold text-argos-ink">CI 데이터 업데이트</h2>
+          <p className="text-sm text-argos-muted mt-0.5">
             경쟁 인텔리전스 데이터 관리 — 인라인 편집, 신선도 추적, 스테이징 검증
           </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setShowAddCompetitor(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-700 text-slate-300 text-sm hover:bg-slate-600 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-argos-bgAlt text-argos-inkSoft text-sm hover:bg-argos-border transition-colors"
           >
             <span>+</span>
             <span>경쟁사 추가</span>
           </button>
           <button
             onClick={handleRefresh}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-500 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-argos-blue !text-white text-sm hover:bg-argos-blueHover transition-colors"
           >
             <span>↻</span>
             <span>새로고침</span>
@@ -60,15 +60,15 @@ export default function CiUpdatePage() {
       </div>
 
       {/* Sub-tabs */}
-      <div className="flex gap-1 border-b border-slate-700 pb-px">
+      <div className="flex gap-1 border-b border-argos-border pb-px">
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-t-lg transition-colors ${
               activeTab === tab.id
-                ? 'bg-slate-800/50 text-blue-400 border-b-2 border-blue-500 font-medium'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'
+                ? 'bg-argos-surface text-argos-blue border-b-2 border-argos-blue font-medium'
+                : 'text-argos-muted hover:text-argos-ink hover:bg-argos-bgAlt'
             }`}
           >
             <span>{tab.icon}</span>
@@ -82,21 +82,21 @@ export default function CiUpdatePage() {
         <div>
           {isLoading && (
             <div className="flex items-center justify-center py-20">
-              <div className="text-slate-400 text-sm">CI 매트릭스 로딩 중...</div>
+              <div className="text-argos-muted text-sm">CI 매트릭스 로딩 중...</div>
             </div>
           )}
           {error && (
             <div className="flex items-center justify-center py-20">
-              <div className="text-red-400 text-sm">데이터 로드 실패. 서버 연결을 확인하세요.</div>
+              <div className="text-argos-danger text-sm">데이터 로드 실패. 서버 연결을 확인하세요.</div>
             </div>
           )}
           {matrixData && (
-            <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4">
+            <div className="bg-argos-surface rounded-xl border border-argos-border p-4 shadow-argos-card">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-xs text-slate-400">
+                <div className="text-xs text-argos-muted">
                   {matrixData.competitors.length}개 경쟁사 × {matrixData.layers.length}개 레이어
                 </div>
-                <div className="flex items-center gap-3 text-[10px] text-slate-500">
+                <div className="flex items-center gap-3 text-[10px] text-argos-faint">
                   <span>신뢰도:</span>
                   <span className="text-green-400">A 확인</span>
                   <span className="text-blue-400">B 높음</span>
