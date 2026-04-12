@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
+import { PageHeader } from '@/components/layout/PageHeader';
 import {
   ExecutiveInsightCard,
   KpiCard,
@@ -148,15 +149,15 @@ export default function DashboardPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-slate-950">
-        <div className="max-w-[1600px] mx-auto px-4 py-6">
+      <div className="min-h-screen">
+        <div className="max-w-[1600px] mx-auto space-y-6">
           {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-slate-200 flex items-center gap-3">
-              ARGOS 분석 대시보드
-            </h1>
-            <p className="text-slate-400 mt-1">휴머노이드 로봇 시장 인텔리전스 플랫폼</p>
-          </div>
+          <PageHeader
+            module="DASHBOARD V4.2"
+            titleKo="분석 대시보드"
+            titleEn="ANALYTICS"
+            description="휴머노이드 로봇 시장 인텔리전스 플랫폼"
+          />
 
           {/* Global Filter Bar */}
           <GlobalFilterBar

@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { FlaskConical, Sparkles, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sparkles, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { ManualPasteMode } from '@/components/insight-pipeline/ManualPasteMode';
 import { InsightPanel } from '@/components/insight-pipeline/InsightPanel';
 import { api } from '@/lib/api';
 import type { AnalysisResult } from '@/types/insight-pipeline';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 const PROGRESS_STEPS = [
   { topic: '글로벌 기업 & 제품', detail: 'Tesla, Figure, Unitree, UBTECH, Rainbow Robotics, ABB...' },
@@ -276,51 +277,37 @@ export default function InsightPipelinePage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-slate-950 p-6 space-y-6">
-        {/* Page header */}
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-3">
-            <FlaskConical className="w-7 h-7 text-violet-400" />
-            기사 분석
-          </h1>
-          <button
-            onClick={handleAICollect}
-            disabled={isAICollecting}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-violet-600 hover:bg-violet-500 text-white"
-          >
-            <Sparkles className="w-4 h-4" />
-            {isAICollecting ? 'AI 데이터 모으는 중...' : 'AI 데이터 모으기'}
-          </button>
-          {lastRunTime && (
-            <span className="flex items-center gap-1.5 text-sm text-slate-500">
-              <Clock className="w-4 h-4" />
-              마지막 수집: {formatTime(lastRunTime)}
-            </span>
-          )}
-          {history.length > 0 && (
-            <button
-              onClick={() => setShowHistory(!showHistory)}
-              className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-300 transition-colors cursor-pointer ml-auto"
-            >
-              히스토리 ({history.length})
-              {showHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-          )}
-        </div>
+      <div className="space-y-6">
+        <PageHeader
+          module="INTELLIGENCE FEED V4.2"
+          titleKo="기사 분석"
+          titleEn="INSIGHT PIPELINE"
+          description="AI 활용 기사 입력 및 데이터 수집"
+          actions={
+            <div className="flex items-center gap-3">
+              <button onClick={handleAICollect} disabled={isAICollecting} className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-violet-600 hover:bg-violet-500 text-white">
+                <Sparkles className="w-4 h-4" />
+                {isAICollecting ? 'AI 데이터 모으는 중...' : 'AI 데이터 모으기'}
+              </button>
+              {lastRunTime && <span className="flex items-center gap-1.5 text-sm text-argos-faint"><Clock className="w-4 h-4" />마지막 수집: {formatTime(lastRunTime)}</span>}
+              {history.length > 0 && <button onClick={() => setShowHistory(!showHistory)} className="flex items-center gap-1 text-sm text-argos-faint hover:text-argos-ink transition-colors cursor-pointer">히스토리 ({history.length}){showHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}</button>}
+            </div>
+          }
+        />
 
         {/* History dropdown */}
         {showHistory && history.length > 0 && (
-          <div className="bg-slate-900/80 border border-slate-700 rounded-xl p-4 space-y-2">
-            <p className="text-sm text-slate-400 font-medium mb-2">수집 히스토리</p>
+          <div className="bg-argos-surface border border-argos-border rounded-xl p-4 space-y-2">
+            <p className="text-sm text-argos-muted font-medium mb-2">수집 히스토리</p>
             {history.map((entry, i) => {
               const totalSaved = entry.results.reduce((s, r) => s + r.companiesSaved + r.productsSaved + r.articlesSaved + r.keywordsSaved, 0);
               return (
                 <button
                   key={i}
                   onClick={() => loadHistoryEntry(entry)}
-                  className="w-full text-left flex items-center justify-between px-4 py-2.5 rounded-lg bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 transition-colors cursor-pointer"
+                  className="w-full text-left flex items-center justify-between px-4 py-2.5 rounded-lg bg-argos-surface hover:bg-argos-bgAlt border border-argos-borderSoft transition-colors cursor-pointer"
                 >
-                  <span className="text-sm text-slate-300">
+                  <span className="text-sm text-argos-inkSoft">
                     {new Date(entry.timestamp).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </span>
                   <span className="text-sm">
@@ -340,14 +327,14 @@ export default function InsightPipelinePage() {
 
         {/* Console-style progress log — always visible if there's data */}
         {(progressLogs.length > 0 || aiError) && (
-          <div className="bg-slate-950 border border-slate-700 rounded-xl overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3 bg-slate-900/80 border-b border-slate-700">
+          <div className="bg-argos-surface border border-argos-border rounded-xl overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-3 bg-argos-bgAlt border-b border-argos-border">
               <div className="flex gap-1.5">
                 <span className="w-3 h-3 rounded-full bg-red-500/80" />
                 <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
                 <span className="w-3 h-3 rounded-full bg-green-500/80" />
               </div>
-              <span className="text-sm text-slate-400 ml-2">AI 데이터 수집</span>
+              <span className="text-sm text-argos-muted ml-2">AI 데이터 수집</span>
               {isAICollecting && (
                 <span className="ml-auto flex items-center gap-1.5 text-sm text-violet-400">
                   <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
@@ -360,7 +347,7 @@ export default function InsightPipelinePage() {
                 </span>
               )}
             </div>
-            <div className="px-5 py-4 max-h-64 overflow-y-auto text-sm leading-7 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+            <div className="px-5 py-4 max-h-64 overflow-y-auto text-sm leading-7 scrollbar-thin scrollbar-thumb-argos-border scrollbar-track-transparent">
               {progressLogs.map((log, i) => (
                 <div
                   key={i}
@@ -373,7 +360,7 @@ export default function InsightPipelinePage() {
                           ? 'text-red-400'
                           : log.includes('중복')
                             ? 'text-amber-400'
-                            : 'text-slate-400'
+                            : 'text-argos-muted'
                   }`}
                 >
                   {log}
@@ -387,7 +374,7 @@ export default function InsightPipelinePage() {
 
             {/* Detailed results with expandable entity names */}
             {batchResult && (
-              <div className="border-t border-slate-800 px-5 py-4 text-sm text-slate-400 space-y-1">
+              <div className="border-t border-argos-border px-5 py-4 text-sm text-argos-muted space-y-1">
                 {batchResult.results.map((r, i) => {
                   const hasError = r.errors && r.errors.length > 0;
                   const total = r.companiesSaved + r.productsSaved + r.articlesSaved + r.keywordsSaved;
@@ -396,16 +383,16 @@ export default function InsightPipelinePage() {
                   return (
                     <div key={i}>
                       <div
-                        className={`flex items-center justify-between py-1.5 ${hasDetails ? 'cursor-pointer hover:bg-slate-800/30 -mx-2 px-2 rounded' : ''}`}
+                        className={`flex items-center justify-between py-1.5 ${hasDetails ? 'cursor-pointer hover:bg-argos-bgAlt -mx-2 px-2 rounded' : ''}`}
                         onClick={() => hasDetails && setExpandedTopic(isExpanded ? null : i)}
                       >
-                        <span className={`flex items-center gap-2 truncate flex-1 mr-2 ${hasError ? 'text-red-400' : total === 0 ? 'text-amber-400' : 'text-slate-300'}`}>
+                        <span className={`flex items-center gap-2 truncate flex-1 mr-2 ${hasError ? 'text-red-400' : total === 0 ? 'text-amber-400' : 'text-argos-inkSoft'}`}>
                           {hasError ? '✗' : total > 0 ? '✓' : '↺'} {r.topic}
                           {hasDetails && (
-                            isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-slate-500" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                            isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-argos-faint" /> : <ChevronDown className="w-3.5 h-3.5 text-argos-faint" />
                           )}
                         </span>
-                        <span className={`whitespace-nowrap ${hasError ? 'text-red-400' : total === 0 ? 'text-amber-400' : 'text-slate-500'}`}>
+                        <span className={`whitespace-nowrap ${hasError ? 'text-red-400' : total === 0 ? 'text-amber-400' : 'text-argos-faint'}`}>
                           {hasError ? '오류' : total === 0 ? '중복' : `기업 ${r.companiesSaved} · 제품 ${r.productsSaved} · 기사 ${r.articlesSaved} · 키워드 ${r.keywordsSaved}`}
                         </span>
                       </div>
@@ -418,25 +405,25 @@ export default function InsightPipelinePage() {
                         <div className="ml-5 mt-1 mb-2 space-y-1.5 text-sm">
                           {r.companyNames && r.companyNames.length > 0 && (
                             <div>
-                              <span className="text-slate-500">기업:</span>{' '}
-                              <span className="text-slate-300">{r.companyNames.join(', ')}</span>
+                              <span className="text-argos-faint">기업:</span>{' '}
+                              <span className="text-argos-inkSoft">{r.companyNames.join(', ')}</span>
                             </div>
                           )}
                           {r.productNames && r.productNames.length > 0 && (
                             <div>
-                              <span className="text-slate-500">제품:</span>{' '}
-                              <span className="text-slate-300">{r.productNames.join(', ')}</span>
+                              <span className="text-argos-faint">제품:</span>{' '}
+                              <span className="text-argos-inkSoft">{r.productNames.join(', ')}</span>
                             </div>
                           )}
                           {r.articleTitles && r.articleTitles.length > 0 && (
                             <div>
-                              <span className="text-slate-500">기사:</span>{' '}
-                              <span className="text-slate-300">{r.articleTitles.join(', ')}</span>
+                              <span className="text-argos-faint">기사:</span>{' '}
+                              <span className="text-argos-inkSoft">{r.articleTitles.join(', ')}</span>
                             </div>
                           )}
                           {r.keywordTerms && r.keywordTerms.length > 0 && (
                             <div>
-                              <span className="text-slate-500">키워드:</span>{' '}
+                              <span className="text-argos-faint">키워드:</span>{' '}
                               <span className="text-violet-300">{r.keywordTerms.join(', ')}</span>
                             </div>
                           )}
@@ -453,7 +440,7 @@ export default function InsightPipelinePage() {
         {/* 2-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left column: article input */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+          <div className="bg-argos-surface border border-argos-border rounded-xl p-6">
             <ManualPasteMode
               onAnalysisComplete={handleAnalysisComplete}
               isAnalyzing={isAnalyzing}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { Bell, AlertTriangle, ChevronDown, ChevronUp, CheckCheck, Filter, Globe, Shield, Scale, Lock, ExternalLink } from 'lucide-react';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 const CATEGORY_OPTIONS = [
   { value: '', label: '전체 카테고리' },
@@ -155,35 +156,32 @@ export default function ComplianceUpdatesPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
-            <Bell className="w-6 h-6 text-white" />
+      <PageHeader
+        module="COMPLIANCE MODULE V4.2"
+        titleKo="규제 업데이트 피드"
+        titleEn="REGULATION UPDATES"
+        description="Regulatory Update Feed"
+        actions={
+          <div className="flex items-center gap-3">
+            {unread > 0 && (
+              <span className="text-sm text-blue-400 bg-blue-400/10 px-3 py-1 rounded-full border border-blue-400/30">
+                미확인 {unread}건
+              </span>
+            )}
+            <button
+              onClick={handleMarkAllRead}
+              className="flex items-center gap-2 px-4 py-2 bg-argos-chip/50 text-argos-inkSoft rounded-lg hover:bg-argos-bgAlt transition text-sm"
+            >
+              <CheckCheck className="w-4 h-4" />
+              전체 읽음 처리
+            </button>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-100">규제 업데이트 피드</h1>
-            <p className="text-sm text-slate-400">Regulatory Update Feed</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          {unread > 0 && (
-            <span className="text-sm text-blue-400 bg-blue-400/10 px-3 py-1 rounded-full border border-blue-400/30">
-              미확인 {unread}건
-            </span>
-          )}
-          <button
-            onClick={handleMarkAllRead}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition text-sm"
-          >
-            <CheckCheck className="w-4 h-4" />
-            전체 읽음 처리
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Filters */}
-      <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
-        <div className="flex items-center gap-2 text-slate-400 text-sm mb-3">
+      <div className="bg-argos-surface rounded-xl border border-argos-border p-4">
+        <div className="flex items-center gap-2 text-argos-muted text-sm mb-3">
           <Filter className="w-4 h-4" />
           <span>필터</span>
         </div>
@@ -199,7 +197,7 @@ export default function ComplianceUpdatesPage() {
               key={key}
               value={filters[key as keyof typeof filters]}
               onChange={(e) => handleFilterChange(key, e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500"
+              className="bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-blue-500"
             >
               {options.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -224,9 +222,9 @@ export default function ComplianceUpdatesPage() {
       {loading && (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="bg-slate-800 rounded-xl p-5 border border-slate-700 animate-pulse">
-              <div className="h-4 bg-slate-700 rounded w-3/4 mb-3" />
-              <div className="h-3 bg-slate-700 rounded w-1/2" />
+            <div key={i} className="bg-argos-surface rounded-xl p-5 border border-argos-border animate-pulse">
+              <div className="h-4 bg-argos-chip/50 rounded w-3/4 mb-3" />
+              <div className="h-3 bg-argos-chip/50 rounded w-1/2" />
             </div>
           ))}
         </div>
@@ -236,9 +234,9 @@ export default function ComplianceUpdatesPage() {
       {!loading && !error && (
         <>
           {updates.length === 0 ? (
-            <div className="bg-slate-800 rounded-xl border border-slate-700 p-12 text-center">
-              <Bell className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-400">해당 조건의 업데이트가 없습니다</p>
+            <div className="bg-argos-surface rounded-xl border border-argos-border p-12 text-center">
+              <Bell className="w-12 h-12 text-argos-faint mx-auto mb-3" />
+              <p className="text-argos-muted">해당 조건의 업데이트가 없습니다</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -248,8 +246,8 @@ export default function ComplianceUpdatesPage() {
                 return (
                   <div
                     key={update.id}
-                    className={`bg-slate-800 rounded-xl border transition ${
-                      update.isRead ? 'border-slate-700' : 'border-blue-500/30 bg-slate-800/80'
+                    className={`bg-argos-surface rounded-xl border transition ${
+                      update.isRead ? 'border-argos-border' : 'border-blue-500/30'
                     }`}
                   >
                     <button
@@ -263,12 +261,12 @@ export default function ComplianceUpdatesPage() {
                         {/* Unread dot */}
                         <div className="pt-1">
                           {!update.isRead && <div className="w-2 h-2 rounded-full bg-blue-400" />}
-                          {update.isRead && <div className="w-2 h-2 rounded-full bg-slate-700" />}
+                          {update.isRead && <div className="w-2 h-2 rounded-full bg-argos-borderSoft" />}
                         </div>
 
                         {/* Icon */}
                         <div className="flex-shrink-0">
-                          <CatIcon className="w-5 h-5 text-slate-500" />
+                          <CatIcon className="w-5 h-5 text-argos-faint" />
                         </div>
 
                         {/* Content */}
@@ -280,18 +278,18 @@ export default function ComplianceUpdatesPage() {
                             <span className={`text-xs px-1.5 py-0.5 rounded border ${IMPACT_COLORS[update.lgImpact] || IMPACT_COLORS.medium}`}>
                               {update.lgImpact}
                             </span>
-                            <span className="text-xs text-slate-500">
+                            <span className="text-xs text-argos-faint">
                               {REGION_FLAGS[update.region] || ''} {update.region}
                             </span>
                           </div>
-                          <p className={`text-sm ${update.isRead ? 'text-slate-400' : 'text-slate-200 font-medium'}`}>
+                          <p className={`text-sm ${update.isRead ? 'text-argos-muted' : 'text-argos-inkSoft font-medium'}`}>
                             {update.titleKo || update.title}
                           </p>
                           <div className="flex items-center gap-3 mt-1.5">
                             {update.sourceName && (
-                              <span className="text-xs text-slate-500">{update.sourceName}</span>
+                              <span className="text-xs text-argos-faint">{update.sourceName}</span>
                             )}
-                            <span className="text-xs text-slate-600">
+                            <span className="text-xs text-argos-faint">
                               {update.detectedAt ? new Date(update.detectedAt).toLocaleDateString('ko-KR') : ''}
                             </span>
                             {update.sourceUrl && (
@@ -312,9 +310,9 @@ export default function ComplianceUpdatesPage() {
                         {/* Expand */}
                         <div className="flex-shrink-0">
                           {isExpanded ? (
-                            <ChevronUp className="w-4 h-4 text-slate-500" />
+                            <ChevronUp className="w-4 h-4 text-argos-faint" />
                           ) : (
-                            <ChevronDown className="w-4 h-4 text-slate-500" />
+                            <ChevronDown className="w-4 h-4 text-argos-faint" />
                           )}
                         </div>
                       </div>
@@ -322,24 +320,24 @@ export default function ComplianceUpdatesPage() {
 
                     {/* Expanded Content */}
                     {isExpanded && (
-                      <div className="px-5 pb-5 pt-0 border-t border-slate-700 mt-0">
+                      <div className="px-5 pb-5 pt-0 border-t border-argos-border mt-0">
                         <div className="pt-4 space-y-3">
                           {update.summaryKo && (
                             <div>
-                              <h4 className="text-xs font-medium text-slate-500 mb-1">요약</h4>
-                              <p className="text-sm text-slate-300 leading-relaxed">{update.summaryKo}</p>
+                              <h4 className="text-xs font-medium text-argos-faint mb-1">요약</h4>
+                              <p className="text-sm text-argos-inkSoft leading-relaxed">{update.summaryKo}</p>
                             </div>
                           )}
                           {update.summary && !update.summaryKo && (
                             <div>
-                              <h4 className="text-xs font-medium text-slate-500 mb-1">Summary</h4>
-                              <p className="text-sm text-slate-300 leading-relaxed">{update.summary}</p>
+                              <h4 className="text-xs font-medium text-argos-faint mb-1">Summary</h4>
+                              <p className="text-sm text-argos-inkSoft leading-relaxed">{update.summary}</p>
                             </div>
                           )}
                           {update.lgActionRequired && (
                             <div className="bg-orange-400/5 border border-orange-400/20 rounded-lg p-3">
                               <h4 className="text-xs font-medium text-orange-400 mb-1">LG 필요 대응</h4>
-                              <p className="text-sm text-slate-300">{update.lgActionRequired}</p>
+                              <p className="text-sm text-argos-inkSoft">{update.lgActionRequired}</p>
                             </div>
                           )}
                           {update.sourceUrl && (
@@ -368,17 +366,17 @@ export default function ComplianceUpdatesPage() {
               <button
                 onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
                 disabled={offset === 0}
-                className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-400 hover:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 bg-argos-surface border border-argos-border rounded-lg text-sm text-argos-muted hover:text-argos-ink disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 이전
               </button>
-              <span className="text-sm text-slate-500">
+              <span className="text-sm text-argos-faint">
                 {currentPage} / {totalPages} 페이지 (총 {total}건)
               </span>
               <button
                 onClick={() => setOffset(offset + PAGE_SIZE)}
                 disabled={currentPage >= totalPages}
-                className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-400 hover:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 bg-argos-surface border border-argos-border rounded-lg text-sm text-argos-muted hover:text-argos-ink disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 다음
               </button>

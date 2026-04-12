@@ -2,23 +2,22 @@
 
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import RobotEvolutionTimeline from '@/components/humanoid-trend/RobotEvolutionTimeline';
+import { PageHeader, ArgosCard } from '@/components/layout/PageHeader';
 
 function RobotEvolutionContent() {
   return (
-    <div className="min-h-screen bg-slate-950 overflow-hidden">
-      <div className="px-4 py-6 space-y-6 max-w-full overflow-hidden">
-        {/* Page header */}
-        <div>
-          <h1 className="text-2xl font-bold text-slate-200">로봇 제품 진화 로드맵</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            기업별 휴머노이드 로봇 제품 출시 이력과 발전 경로를 한 눈에 파악합니다
-          </p>
-        </div>
+    <div className="min-h-screen">
+      <div className="max-w-[1600px] mx-auto space-y-6">
+        <PageHeader
+          module="FLEET MODULE V4.2"
+          titleKo="로봇 제품 진화 로드맵"
+          titleEn="EVOLUTION TIMELINE"
+          description="기업별 휴머노이드 로봇 제품 출시 이력과 발전 경로를 한눈에 파악합니다."
+        />
 
-        {/* Timeline chart — full width, no max-w constraint */}
-        <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-4">
+        <ArgosCard className="p-4 overflow-hidden">
           <RobotEvolutionTimeline />
-        </div>
+        </ArgosCard>
       </div>
     </div>
   );

@@ -8,7 +8,6 @@ import {
   companies,
   bodySpecs,
   handSpecs,
-  computingSpecs,
 } from '../db/index.js';
 
 // ============================================
@@ -276,8 +275,7 @@ export class HumanoidTrendService {
   }
 
   /**
-   * Get all RFM scores with robot and company names.
-   * Enhanced: joins spec tables for continuous 0.0–5.0 scoring with better differentiation.
+   * Get all RFM scores with robot and company names
    */
   async getRfmScores(): Promise<RfmScoreWithRobot[]> {
     const rows = await db
@@ -294,70 +292,25 @@ export class HumanoidTrendService {
         openSourceScore: rfmScores.openSourceScore,
         commercialMaturityScore: rfmScores.commercialMaturityScore,
         evaluatedAt: rfmScores.evaluatedAt,
-        // Spec data for continuous scoring
-        dofCount: bodySpecs.dofCount,
-        handDof: handSpecs.handDof,
-        topsMax: computingSpecs.topsMax,
-        commercializationStage: humanoidRobots.commercializationStage,
       })
       .from(rfmScores)
       .innerJoin(humanoidRobots, eq(rfmScores.robotId, humanoidRobots.id))
-      .innerJoin(companies, eq(humanoidRobots.companyId, companies.id))
-      .leftJoin(bodySpecs, eq(rfmScores.robotId, bodySpecs.robotId))
-      .leftJoin(handSpecs, eq(rfmScores.robotId, handSpecs.robotId))
-      .leftJoin(computingSpecs, eq(rfmScores.robotId, computingSpecs.robotId));
+      .innerJoin(companies, eq(humanoidRobots.companyId, companies.id));
 
-    return rows.map((row) => {
-      // ── architectureScore: generality + multiRobot base, enhanced by DOF complexity ──
-      const archBase = (row.generalityScore + row.multiRobotCollabScore) / 2;
-      const dofBonus = row.dofCount ? Math.min(row.dofCount / 60, 1) * 0.8 : 0;    // up to +0.8
-      const handBonus = row.handDof ? Math.min(row.handDof / 24, 1) * 0.5 : 0;     // up to +0.5
-      const architectureScore = Math.min(5, archBase + dofBonus + handBonus);
-
-      // ── dataScore: base + modifier from maturity stage ──
-      const stageDataBoost: Record<string, number> = {
-        commercial: 0.8, pilot: 0.5, poc: 0.2, prototype: 0, concept: -0.3,
-      };
-      const dataBase = row.realWorldDataScore;
-      const dataBoost = stageDataBoost[row.commercializationStage ?? ''] ?? 0;
-      const dataScore = Math.min(5, Math.max(0.5, dataBase + dataBoost));
-
-      // ── inferenceScore: continuous log scale from TOPS ──
-      let inferenceScore: number;
-      const topsNum = row.topsMax ? Number(row.topsMax) : 0;
-      if (topsNum > 0) {
-        // log10(1)=0 → 0.5, log10(10)=1 → 1.5, log10(100)=2 → 2.5, log10(1000)=3 → 3.5+
-        inferenceScore = Math.min(5, 0.5 + Math.log10(topsNum) * 1.4);
-      } else {
-        inferenceScore = row.edgeInferenceScore * 0.8; // fallback from integer
-      }
-
-      // ── openSourceScore: base + small boost by collaboration score (ecosystem proxy) ──
-      const collabBoost = row.multiRobotCollabScore >= 3 ? 0.4 : row.multiRobotCollabScore >= 2 ? 0.2 : 0;
-      const openSourceScoreVal = Math.min(5, row.openSourceScore + collabBoost);
-
-      // ── maturityScore: continuous stage mapping + DOF maturity modifier ──
-      const stageMap: Record<string, number> = {
-        concept: 0.5, prototype: 1.5, poc: 2.5, pilot: 3.5, commercial: 4.5,
-      };
-      const matBase = stageMap[row.commercializationStage ?? ''] ?? row.commercialMaturityScore;
-      const dofMaturity = row.dofCount ? Math.min(row.dofCount / 50, 1) * 0.5 : 0;
-      const maturityScore = Math.min(5, Math.max(0.5, matBase + dofMaturity));
-
-      return {
-        id: row.id,
-        robotId: row.robotId,
-        robotName: row.robotName,
-        companyName: row.companyName,
-        rfmModelName: row.rfmModelName,
-        architectureScore: Math.round(architectureScore * 10) / 10,
-        dataScore: Math.round(dataScore * 10) / 10,
-        inferenceScore: Math.round(inferenceScore * 10) / 10,
-        openSourceScore: Math.round(openSourceScoreVal * 10) / 10,
-        maturityScore: Math.round(maturityScore * 10) / 10,
-        evaluatedAt: row.evaluatedAt,
-      };
-    });
+    return rows.map((row) => ({
+      id: row.id,
+      robotId: row.robotId,
+      robotName: row.robotName,
+      companyName: row.companyName,
+      rfmModelName: row.rfmModelName,
+      // 6개 Factor를 5개로 재매핑
+      architectureScore: Math.round((row.generalityScore + row.multiRobotCollabScore) / 2), // 모델 아키텍처 & 학습 역량
+      dataScore: row.realWorldDataScore, // 데이터/실세계 테스트
+      inferenceScore: row.edgeInferenceScore, // 엣지 추론 & 하드웨어
+      openSourceScore: row.openSourceScore, // 오픈소스·생태계
+      maturityScore: row.commercialMaturityScore, // 상용성 & 설명 가능성
+      evaluatedAt: row.evaluatedAt,
+    }));
   }
 
   /**

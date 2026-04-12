@@ -1,6 +1,7 @@
 'use client';
 
 import { AuthGuard } from '@/components/auth/AuthGuard';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { useVisionBomParts, useVisionRobotCosts, useVisionBubbleChart } from '@/hooks/useVisionCost';
 import VisionCostBubbleChart from '@/components/sensor-cost/VisionCostBubbleChart';
 import BomPartsTable from '@/components/sensor-cost/BomPartsTable';
@@ -37,8 +38,8 @@ const KEY_INSIGHTS = [
 function LoadingSkeleton() {
   return (
     <div className="animate-pulse space-y-4">
-      <div className="h-8 bg-slate-700 rounded w-1/3" />
-      <div className="h-80 bg-slate-700 rounded" />
+      <div className="h-8 bg-argos-chip/50 rounded w-1/3" />
+      <div className="h-80 bg-argos-chip/50 rounded" />
     </div>
   );
 }
@@ -57,10 +58,10 @@ function ChartSection({
   return (
     <section id={id} className="scroll-mt-16">
       <div className="mb-4">
-        <h2 className="text-lg font-bold text-slate-200">{title}</h2>
-        {subtitle && <p className="text-sm text-slate-400 mt-0.5">{subtitle}</p>}
+        <h2 className="text-lg font-bold text-argos-ink">{title}</h2>
+        {subtitle && <p className="text-sm text-argos-muted mt-0.5">{subtitle}</p>}
       </div>
-      <div className="rounded-xl border border-slate-700 bg-slate-800 p-4 md:p-6">
+      <div className="rounded-xl border border-argos-border bg-argos-surface p-4 md:p-6">
         {children}
       </div>
     </section>
@@ -73,9 +74,9 @@ function SensorCostContent() {
   const { data: bubbleData, isLoading: bubbleLoading } = useVisionBubbleChart();
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div>
       {/* 섹션 탭 */}
-      <nav className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur border-b border-slate-800">
+      <nav className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-argos-border">
         <div className="max-w-7xl mx-auto px-4 flex items-center gap-1 overflow-x-auto">
           {[
             { id: 'bubble-chart', label: '시계열 버블 차트' },
@@ -85,7 +86,7 @@ function SensorCostContent() {
             <a
               key={item.id}
               href={`#${item.id}`}
-              className="px-4 py-3 text-sm text-slate-400 hover:text-slate-200 whitespace-nowrap border-b-2 border-transparent hover:border-blue-500 transition-colors"
+              className="px-4 py-3 text-sm text-argos-muted hover:text-argos-ink whitespace-nowrap border-b-2 border-transparent hover:border-blue-500 transition-colors"
             >
               {item.label}
             </a>
@@ -94,13 +95,11 @@ function SensorCostContent() {
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-10">
-        {/* 헤더 */}
-        <div>
-          <h1 className="text-2xl font-bold text-slate-200">비전 센서 원가 분석</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Atlas / Figure / Optimus 비전 센서+컴퓨트 BOM 추정 원가 × 성능 레벨 시계열 분석
-          </p>
-        </div>
+        <PageHeader
+          titleKo="비전 센서 원가 분석"
+          titleEn="SENSOR COST ANALYSIS"
+          description="Atlas / Figure / Optimus 비전 센서+컴퓨트 BOM 추정 원가 × 성능 레벨 시계열 분석"
+        />
 
         {/* KEY INSIGHT 카드 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -111,7 +110,7 @@ function SensorCostContent() {
             >
               <div className={`text-sm font-bold ${ins.color} mb-1`}>{ins.company}</div>
               <div className={`text-xs font-semibold ${ins.color} mb-2`}>→ {ins.summary}</div>
-              <div className="text-xs text-slate-300 leading-relaxed">{ins.desc}</div>
+              <div className="text-xs text-argos-inkSoft leading-relaxed">{ins.desc}</div>
             </div>
           ))}
         </div>
@@ -127,19 +126,19 @@ function SensorCostContent() {
           ) : bubbleData?.length ? (
             <VisionCostBubbleChart data={bubbleData} />
           ) : (
-            <div className="text-slate-400 text-sm py-8 text-center">데이터 없음</div>
+            <div className="text-argos-muted text-sm py-8 text-center">데이터 없음</div>
           )}
         </ChartSection>
 
         {/* 2028 KEY INSIGHT 요약 배너 */}
-        <div className="rounded-lg bg-slate-800/60 border border-slate-700 p-4 text-sm">
-          <span className="font-bold text-slate-200">KEY INSIGHT &nbsp;</span>
-          <span className="text-slate-300">
+        <div className="rounded-lg bg-argos-surface border border-argos-border p-4 text-sm">
+          <span className="font-bold text-argos-ink">KEY INSIGHT &nbsp;</span>
+          <span className="text-argos-inkSoft">
             Tesla는 $340→$800으로 원가 최소화하면서 P1→P4 달성 (원가 효율 최고).
             Atlas는 $1,800→$1,200으로 원가를 내리면서 P5 도달 (하드웨어 우위).
             Figure는 $880→$1,100으로 소폭 상승하면서 P2.5→P5 달성 — 가성비 최적 경로.
           </span>
-          <span className="text-slate-400"> 2028년 3사 모두 P4~P5 수렴하지만 원가 구조는 </span>
+          <span className="text-argos-muted"> 2028년 3사 모두 P4~P5 수렴하지만 원가 구조는 </span>
           <span className="font-bold text-yellow-400">2배 이상 차이.</span>
         </div>
 
@@ -154,7 +153,7 @@ function SensorCostContent() {
           ) : bomParts?.length ? (
             <BomPartsTable data={bomParts} />
           ) : (
-            <div className="text-slate-400 text-sm py-8 text-center">데이터 없음</div>
+            <div className="text-argos-muted text-sm py-8 text-center">데이터 없음</div>
           )}
         </ChartSection>
 
@@ -169,7 +168,7 @@ function SensorCostContent() {
           ) : robotCosts?.length ? (
             <RobotCostTable data={robotCosts} />
           ) : (
-            <div className="text-slate-400 text-sm py-8 text-center">데이터 없음</div>
+            <div className="text-argos-muted text-sm py-8 text-center">데이터 없음</div>
           )}
         </ChartSection>
       </div>

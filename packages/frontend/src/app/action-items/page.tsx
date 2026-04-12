@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Target, ChevronDown, ChevronUp, AlertTriangle, Zap, Shield, Brain, Cpu, Users, Globe, Scale, Lightbulb } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { api } from '@/lib/api';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 interface ActionItem {
   id: string;
@@ -282,47 +283,43 @@ export default function ActionItemsPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-slate-950 p-6 space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-3">
-            <Target className="w-7 h-7 text-violet-400" />
-            LG CLOiD 전략적 제언 & Action Items
-          </h1>
-          <p className="text-sm text-slate-400 mt-1 ml-10">
-            경쟁 분석 기반 개발/전략 캐치업 로드맵
-          </p>
-        </div>
+      <div className="space-y-6">
+        <PageHeader
+          module="STRATEGY MODULE V4.2"
+          titleKo="전략 제언 & Action Items"
+          titleEn="STRATEGIC ACTIONS"
+          description="경쟁 분석 기반 개발/전략 캐치업 로드맵"
+        />
 
         {/* Summary cards */}
         <div className="grid grid-cols-4 gap-4">
           <button
             onClick={() => setFilterPriority(null)}
-            className={`p-4 rounded-xl border transition-colors cursor-pointer ${!filterPriority ? 'bg-slate-800 border-violet-500/50' : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'}`}
+            className={`p-4 rounded-xl border transition-colors cursor-pointer ${!filterPriority ? 'bg-argos-surface border-violet-500/50 shadow-argos-card' : 'bg-argos-surface border-argos-border hover:border-argos-blue/30'}`}
           >
-            <p className="text-2xl font-bold text-slate-100">{totalItems}</p>
-            <p className="text-sm text-slate-400">전체 Action Items</p>
+            <p className="text-2xl font-bold text-argos-ink">{totalItems}</p>
+            <p className="text-sm text-argos-muted">전체 Action Items</p>
           </button>
           <button
             onClick={() => setFilterPriority(filterPriority === 'critical' ? null : 'critical')}
-            className={`p-4 rounded-xl border transition-colors cursor-pointer ${filterPriority === 'critical' ? 'bg-red-500/10 border-red-500/50' : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'}`}
+            className={`p-4 rounded-xl border transition-colors cursor-pointer ${filterPriority === 'critical' ? 'bg-red-500/10 border-red-500/50' : 'bg-argos-surface border-argos-border hover:border-argos-blue/30'}`}
           >
             <p className="text-2xl font-bold text-red-400">{criticalCount}</p>
-            <p className="text-sm text-slate-400">긴급 (Critical)</p>
+            <p className="text-sm text-argos-muted">긴급 (Critical)</p>
           </button>
           <button
             onClick={() => setFilterPriority(filterPriority === 'high' ? null : 'high')}
-            className={`p-4 rounded-xl border transition-colors cursor-pointer ${filterPriority === 'high' ? 'bg-amber-500/10 border-amber-500/50' : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'}`}
+            className={`p-4 rounded-xl border transition-colors cursor-pointer ${filterPriority === 'high' ? 'bg-amber-500/10 border-amber-500/50' : 'bg-argos-surface border-argos-border hover:border-argos-blue/30'}`}
           >
             <p className="text-2xl font-bold text-amber-400">{highCount}</p>
-            <p className="text-sm text-slate-400">높음 (High)</p>
+            <p className="text-sm text-argos-muted">높음 (High)</p>
           </button>
           <button
             onClick={() => setFilterPriority(filterPriority === 'medium' ? null : 'medium')}
-            className={`p-4 rounded-xl border transition-colors cursor-pointer ${filterPriority === 'medium' ? 'bg-blue-500/10 border-blue-500/50' : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'}`}
+            className={`p-4 rounded-xl border transition-colors cursor-pointer ${filterPriority === 'medium' ? 'bg-blue-500/10 border-blue-500/50' : 'bg-argos-surface border-argos-border hover:border-argos-blue/30'}`}
           >
             <p className="text-2xl font-bold text-blue-400">{totalItems - criticalCount - highCount}</p>
-            <p className="text-sm text-slate-400">보통 (Medium)</p>
+            <p className="text-sm text-argos-muted">보통 (Medium)</p>
           </button>
         </div>
 
@@ -333,42 +330,42 @@ export default function ActionItemsPage() {
             const isExpanded = expandedCategories.has(cat.id);
 
             return (
-              <div key={cat.id} className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
+              <div key={cat.id} className="bg-argos-surface border border-argos-border rounded-xl overflow-hidden shadow-argos-card">
                 {/* Category header */}
                 <button
                   onClick={() => toggleCategory(cat.id)}
-                  className="w-full flex items-center gap-4 px-6 py-4 hover:bg-slate-800/30 transition-colors cursor-pointer"
+                  className="w-full flex items-center gap-4 px-6 py-4 hover:bg-argos-bgAlt transition-colors cursor-pointer"
                 >
                   <div className={`w-10 h-10 rounded-lg ${cat.bgColor} flex items-center justify-center`}>
                     <Icon className={`w-5 h-5 ${cat.color}`} />
                   </div>
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-3">
-                      <h2 className="text-base font-semibold text-slate-200">{cat.name}</h2>
-                      <span className="text-sm text-slate-500">{cat.items.length}건</span>
+                      <h2 className="text-base font-semibold text-argos-ink">{cat.name}</h2>
+                      <span className="text-sm text-argos-faint">{cat.items.length}건</span>
                     </div>
-                    <p className="text-sm text-slate-400 mt-0.5">{cat.description}</p>
+                    <p className="text-sm text-argos-muted mt-0.5">{cat.description}</p>
                   </div>
-                  {isExpanded ? <ChevronUp className="w-5 h-5 text-slate-500" /> : <ChevronDown className="w-5 h-5 text-slate-500" />}
+                  {isExpanded ? <ChevronUp className="w-5 h-5 text-argos-faint" /> : <ChevronDown className="w-5 h-5 text-argos-faint" />}
                 </button>
 
                 {/* Action items */}
                 {isExpanded && (
-                  <div className="border-t border-slate-800">
+                  <div className="border-t border-argos-border">
                     {cat.items.map((item, idx) => {
                       const ps = PRIORITY_STYLES[item.priority];
                       return (
-                        <div key={item.id} className={`px-6 py-5 ${idx > 0 ? 'border-t border-slate-800/50' : ''}`}>
+                        <div key={item.id} className={`px-6 py-5 ${idx > 0 ? 'border-t border-argos-borderSoft' : ''}`}>
                           {/* Title row */}
                           <div className="flex items-start gap-3">
                             <span className={`shrink-0 mt-0.5 px-2.5 py-0.5 text-xs font-medium rounded-full border ${ps.bg} ${ps.text} ${ps.border}`}>
                               {ps.label}
                             </span>
                             <div className="flex-1">
-                              <h3 className="text-sm font-semibold text-slate-100 leading-relaxed">{item.title}</h3>
+                              <h3 className="text-sm font-semibold text-argos-ink leading-relaxed">{item.title}</h3>
                               <div className="flex items-center gap-4 mt-2 text-sm">
-                                <span className="text-slate-500">목표 기간: <span className="text-slate-300">{item.timeframe}</span></span>
-                                <span className="text-slate-500">
+                                <span className="text-argos-faint">목표 기간: <span className="text-argos-inkSoft">{item.timeframe}</span></span>
+                                <span className="text-argos-faint">
                                   LG <span className="text-red-400 font-medium">{item.lgCurrent}점</span> vs {item.competitorBest.name} <span className="text-emerald-400 font-medium">{item.competitorBest.score}점</span>
                                   {item.gap > 0 && <span className="text-red-400 ml-1">(−{item.gap})</span>}
                                 </span>
@@ -379,15 +376,15 @@ export default function ActionItemsPage() {
                           {/* Gap bar */}
                           <div className="mt-3 ml-14">
                             <div className="flex items-center gap-3">
-                              <span className="text-xs text-slate-500 w-8">LG</span>
-                              <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+                              <span className="text-xs text-argos-faint w-8">LG</span>
+                              <div className="flex-1 h-2 bg-argos-bgAlt rounded-full overflow-hidden">
                                 <div
                                   className="h-full bg-red-400 rounded-full transition-all"
                                   style={{ width: `${item.lgCurrent * 10}%` }}
                                 />
                               </div>
-                              <span className="text-xs text-slate-500 w-16">{item.competitorBest.name.split(' ')[0]}</span>
-                              <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+                              <span className="text-xs text-argos-faint w-16">{item.competitorBest.name.split(' ')[0]}</span>
+                              <div className="flex-1 h-2 bg-argos-bgAlt rounded-full overflow-hidden">
                                 <div
                                   className="h-full bg-emerald-400 rounded-full transition-all"
                                   style={{ width: `${item.competitorBest.score * 10}%` }}
@@ -397,9 +394,9 @@ export default function ActionItemsPage() {
                           </div>
 
                           {/* Reason */}
-                          <div className="mt-3 ml-14 p-4 bg-slate-800/30 border border-slate-700/50 rounded-lg">
-                            <p className="text-sm text-slate-300 leading-relaxed">
-                              <span className="text-slate-500 font-medium">이유: </span>
+                          <div className="mt-3 ml-14 p-4 bg-argos-bgAlt border border-argos-borderSoft rounded-lg">
+                            <p className="text-sm text-argos-inkSoft leading-relaxed">
+                              <span className="text-argos-faint font-medium">이유: </span>
                               {item.reason}
                             </p>
                           </div>

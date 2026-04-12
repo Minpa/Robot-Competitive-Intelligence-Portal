@@ -56,7 +56,7 @@ export default function ComponentDetailPage() {
   if (isLoading) {
     return (
       <AuthGuard>
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="flex items-center justify-center min-h-[400px]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       </AuthGuard>
@@ -66,7 +66,7 @@ export default function ComponentDetailPage() {
   if (error || !component) {
     return (
       <AuthGuard>
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <p className="text-red-400 mb-4">부품을 찾을 수 없습니다.</p>
             <Link href="/components-trend" className="text-blue-400 hover:text-blue-300 transition-colors">
@@ -84,108 +84,106 @@ export default function ComponentDetailPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-slate-950">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          {/* 헤더 */}
-          <div className="mb-6">
-            <Link href="/components-trend" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm">
-              <ArrowLeft className="w-4 h-4" />
-              부품 목록으로
-            </Link>
-          </div>
+      <div className="max-w-4xl mx-auto px-4 py-6">
+        {/* 헤더 */}
+        <div className="mb-6">
+          <Link href="/components-trend" className="flex items-center gap-2 text-argos-muted hover:text-argos-ink transition-colors text-sm">
+            <ArrowLeft className="w-4 h-4" />
+            부품 목록으로
+          </Link>
+        </div>
 
-          {/* 기본 정보 카드 */}
-          <div className="bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 p-6 mb-6">
-            <div className="flex items-start gap-4">
-              <div className={`p-4 rounded-xl ${typeConfig.bg}`}>
-                <TypeIcon className={`w-8 h-8 ${typeConfig.text}`} />
-              </div>
-              <div>
-                <span className={`inline-block px-3 py-1 text-sm rounded-full mb-2 ${typeConfig.bg} ${typeConfig.text}`}>
-                  {typeConfig.label}
-                </span>
-                <h1 className="text-2xl font-bold text-white">{component.name}</h1>
-                {component.vendor && (
-                  <p className="text-lg text-slate-400 mt-1">{component.vendor}</p>
-                )}
-              </div>
+        {/* 기본 정보 카드 */}
+        <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-6 mb-6">
+          <div className="flex items-start gap-4">
+            <div className={`p-4 rounded-xl ${typeConfig.bg}`}>
+              <TypeIcon className={`w-8 h-8 ${typeConfig.text}`} />
+            </div>
+            <div>
+              <span className={`inline-block px-3 py-1 text-sm rounded-full mb-2 ${typeConfig.bg} ${typeConfig.text}`}>
+                {typeConfig.label}
+              </span>
+              <h1 className="text-2xl font-bold text-argos-ink">{component.name}</h1>
+              {component.vendor && (
+                <p className="text-lg text-argos-muted mt-1">{component.vendor}</p>
+              )}
             </div>
           </div>
+        </div>
 
-          {/* 스펙 정보 */}
-          <div className="bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 p-6 mb-6">
-            <h2 className="text-lg font-semibold text-white mb-4">상세 스펙</h2>
-            {Object.keys(specs).length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {Object.entries(specs).map(([key, value]) => {
-                  if (value === null || value === undefined) return null;
-                  const label = SPEC_LABELS[key] || key;
-                  let displayValue: string;
-                  
-                  if (Array.isArray(value)) {
-                    displayValue = value.join(', ');
-                  } else if (typeof value === 'boolean') {
-                    displayValue = value ? '예' : '아니오';
-                  } else {
-                    displayValue = String(value);
-                  }
+        {/* 스펙 정보 */}
+        <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-6 mb-6">
+          <h2 className="text-lg font-semibold text-argos-ink mb-4">상세 스펙</h2>
+          {Object.keys(specs).length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {Object.entries(specs).map(([key, value]) => {
+                if (value === null || value === undefined) return null;
+                const label = SPEC_LABELS[key] || key;
+                let displayValue: string;
 
-                  return (
-                    <div key={key} className="flex justify-between py-2 px-3 bg-slate-900/50 rounded-lg">
-                      <span className="text-slate-400">{label}</span>
-                      <span className="font-medium text-white">{displayValue}</span>
+                if (Array.isArray(value)) {
+                  displayValue = value.join(', ');
+                } else if (typeof value === 'boolean') {
+                  displayValue = value ? '예' : '아니오';
+                } else {
+                  displayValue = String(value);
+                }
+
+                return (
+                  <div key={key} className="flex justify-between py-2 px-3 bg-white rounded-lg border border-argos-borderSoft">
+                    <span className="text-argos-muted">{label}</span>
+                    <span className="font-medium text-argos-ink">{displayValue}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-argos-faint">스펙 정보가 없습니다.</p>
+          )}
+        </div>
+
+        {/* 적용 로봇 목록 */}
+        <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-6">
+          <h2 className="text-lg font-semibold text-argos-ink mb-4">적용 로봇</h2>
+          {robotsUsingComponent && robotsUsingComponent.length > 0 ? (
+            <div className="space-y-3">
+              {robotsUsingComponent.map((item: any) => (
+                <Link
+                  key={item.robot?.id || item.robotId}
+                  href={`/humanoid-robots/${item.robot?.id || item.robotId}`}
+                  className="flex items-center justify-between p-4 bg-white rounded-lg border border-argos-borderSoft hover:border-argos-blue/30 hover:bg-argos-bgAlt transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                      <Bot className="w-5 h-5 text-blue-400" />
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-slate-500">스펙 정보가 없습니다.</p>
-            )}
-          </div>
-
-          {/* 적용 로봇 목록 */}
-          <div className="bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">적용 로봇</h2>
-            {robotsUsingComponent && robotsUsingComponent.length > 0 ? (
-              <div className="space-y-3">
-                {robotsUsingComponent.map((item: any) => (
-                  <Link
-                    key={item.robot?.id || item.robotId}
-                    href={`/humanoid-robots/${item.robot?.id || item.robotId}`}
-                    className="flex items-center justify-between p-4 bg-slate-900/50 rounded-lg hover:bg-slate-900 transition-colors group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                        <Bot className="w-5 h-5 text-blue-400" />
+                    <div>
+                      <div className="font-medium text-argos-ink group-hover:text-blue-400 transition-colors">
+                        {item.robot?.name || '알 수 없는 로봇'}
                       </div>
-                      <div>
-                        <div className="font-medium text-white group-hover:text-blue-400 transition-colors">
-                          {item.robot?.name || '알 수 없는 로봇'}
-                        </div>
-                        <div className="text-sm text-slate-500">
-                          {item.robot?.company?.name || ''}
-                        </div>
+                      <div className="text-sm text-argos-faint">
+                        {item.robot?.company?.name || ''}
                       </div>
                     </div>
-                    <div className="text-right">
-                      {item.usageLocation && (
-                        <span className="text-sm text-slate-500">
-                          위치: {item.usageLocation}
-                        </span>
-                      )}
-                      {item.quantity && item.quantity > 1 && (
-                        <span className="ml-2 text-sm text-blue-400">
-                          x{item.quantity}
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <p className="text-slate-500">이 부품을 사용하는 로봇이 없습니다.</p>
-            )}
-          </div>
+                  </div>
+                  <div className="text-right">
+                    {item.usageLocation && (
+                      <span className="text-sm text-argos-faint">
+                        위치: {item.usageLocation}
+                      </span>
+                    )}
+                    {item.quantity && item.quantity > 1 && (
+                      <span className="ml-2 text-sm text-blue-400">
+                        x{item.quantity}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="text-argos-faint">이 부품을 사용하는 로봇이 없습니다.</p>
+          )}
         </div>
       </div>
     </AuthGuard>

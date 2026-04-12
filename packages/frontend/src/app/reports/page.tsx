@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { FileDown, Sparkles, Sun, Moon, Cpu } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { api } from '@/lib/api';
 
 const TEMPLATES = [
@@ -62,21 +63,13 @@ export default function ReportsPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-slate-950 p-6">
+      <div className="p-6">
         <div className="max-w-4xl mx-auto space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <FileDown className="w-7 h-7 text-violet-400" />
-              PPT 리포트 생성
-            </h1>
-            <p className="text-sm text-slate-400 mt-1 ml-10">
-              템플릿 선택 → AI 코멘터리 포함 → .pptx 다운로드
-            </p>
-          </div>
+          <PageHeader module="REPORT GENERATOR V4.2" titleKo="PPT 리포트 생성" titleEn="REPORT GENERATOR" description="템플릿 선택 → AI 코멘터리 포함 → .pptx 다운로드" />
 
           {/* 템플릿 선택 */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-            <p className="text-sm text-slate-400 mb-3">리포트 템플릿</p>
+          <div className="bg-argos-surface border border-argos-border rounded-xl p-6">
+            <p className="text-sm text-argos-muted mb-3">리포트 템플릿</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {TEMPLATES.map(t => (
                 <button
@@ -85,46 +78,46 @@ export default function ReportsPage() {
                   className={`p-4 rounded-xl border text-left transition-colors cursor-pointer ${
                     selectedTemplate === t.id
                       ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
-                      : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-600'
+                      : 'bg-argos-surface border-argos-border text-argos-muted hover:border-argos-blue/30'
                   }`}
                 >
                   <span className="text-2xl">{t.icon}</span>
                   <p className="text-sm font-medium mt-2">{t.name}</p>
-                  <p className="text-xs text-slate-500 mt-1">{t.desc}</p>
+                  <p className="text-xs text-argos-faint mt-1">{t.desc}</p>
                 </button>
               ))}
             </div>
           </div>
 
           {/* 제목 + 테마 */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 space-y-4">
+          <div className="bg-argos-surface border border-argos-border rounded-xl p-6 space-y-4">
             <div>
-              <label className="block text-sm text-slate-400 mb-1.5">리포트 제목</label>
+              <label className="block text-sm text-argos-muted mb-1.5">리포트 제목</label>
               <input
                 type="text"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                className="w-full px-4 py-2.5 bg-argos-surface border border-argos-border rounded-lg text-argos-ink focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
               />
             </div>
             <div>
-              <label className="block text-sm text-slate-400 mb-1.5">부제목 (선택)</label>
+              <label className="block text-sm text-argos-muted mb-1.5">부제목 (선택)</label>
               <input
                 type="text"
                 value={subtitle}
                 onChange={e => setSubtitle(e.target.value)}
                 placeholder={new Date().toLocaleDateString('ko-KR')}
-                className="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                className="w-full px-4 py-2.5 bg-argos-surface border border-argos-border rounded-lg text-argos-ink placeholder-argos-faint focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
               />
             </div>
 
             <div className="flex items-center gap-4">
-              <p className="text-sm text-slate-400">테마</p>
+              <p className="text-sm text-argos-muted">테마</p>
               <div className="flex gap-2">
                 <button
                   onClick={() => setTheme('dark')}
                   className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg border cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-700 text-white border-slate-600' : 'bg-slate-800/50 text-slate-500 border-slate-700'
+                    theme === 'dark' ? 'bg-slate-700 text-white border-slate-600' : 'bg-argos-surface text-argos-faint border-argos-border'
                   }`}
                 >
                   <Moon className="w-4 h-4" /> 다크
@@ -132,7 +125,7 @@ export default function ReportsPage() {
                 <button
                   onClick={() => setTheme('light')}
                   className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg border cursor-pointer ${
-                    theme === 'light' ? 'bg-white text-slate-800 border-slate-300' : 'bg-slate-800/50 text-slate-500 border-slate-700'
+                    theme === 'light' ? 'bg-white text-slate-800 border-slate-300' : 'bg-argos-surface text-argos-faint border-argos-border'
                   }`}
                 >
                   <Sun className="w-4 h-4" /> 라이트
@@ -143,8 +136,8 @@ export default function ReportsPage() {
 
           {/* 기업 선택 (company_deep_dive일 때만) */}
           {selectedTemplate === 'company_deep_dive' && (
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-              <p className="text-sm text-slate-400 mb-3">분석 대상 기업 (최대 5개)</p>
+            <div className="bg-argos-surface border border-argos-border rounded-xl p-6">
+              <p className="text-sm text-argos-muted mb-3">분석 대상 기업 (최대 5개)</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
                 {(companies?.items || []).map(c => (
                   <button
@@ -154,7 +147,7 @@ export default function ReportsPage() {
                     className={`px-3 py-2 text-sm rounded-lg border text-left transition-colors cursor-pointer disabled:opacity-30 ${
                       selectedCompanyIds.has(c.id)
                         ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
-                        : 'bg-slate-800/50 text-slate-400 border-slate-700 hover:border-slate-600'
+                        : 'bg-argos-surface text-argos-muted border-argos-border hover:border-argos-blue/30'
                     }`}
                   >
                     {c.name}
@@ -162,18 +155,18 @@ export default function ReportsPage() {
                 ))}
               </div>
               {selectedCompanyIds.size === 0 && (
-                <p className="text-xs text-slate-500 mt-2">선택하지 않으면 상위 5개 기업이 자동 선택됩니다.</p>
+                <p className="text-xs text-argos-faint mt-2">선택하지 않으면 상위 5개 기업이 자동 선택됩니다.</p>
               )}
             </div>
           )}
 
           {/* AI 코멘터리 토글 */}
-          <div className="flex items-center justify-between px-6 py-4 bg-slate-900/50 border border-slate-800 rounded-xl">
+          <div className="flex items-center justify-between px-6 py-4 bg-argos-surface border border-argos-border rounded-xl">
             <div className="flex items-center gap-3">
               <Cpu className="w-5 h-5 text-violet-400" />
               <div>
-                <p className="text-sm text-slate-300">Claude AI 코멘터리</p>
-                <p className="text-xs text-slate-500">AI가 데이터 기반 인사이트를 자동 생성합니다</p>
+                <p className="text-sm text-argos-inkSoft">Claude AI 코멘터리</p>
+                <p className="text-xs text-argos-faint">AI가 데이터 기반 인사이트를 자동 생성합니다</p>
               </div>
             </div>
             <button

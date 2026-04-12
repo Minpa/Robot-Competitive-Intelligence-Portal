@@ -4,16 +4,9 @@ import multipart from '@fastify/multipart';
 import { registerRoutes } from './routes/index.js';
 import { aiUsageService } from './services/ai-usage.service.js';
 import { fixSocPowerConsumption } from './db/fix-soc-startup.js';
-import { fixTopsValues } from './db/fix-tops-startup.js';
-import { ensureComplianceProgressSchema } from './db/ensure-compliance-progress.js';
-import { seedIndustrialComparison } from './db/seed-industrial-comparison.js';
-import { ensureRegulatoryDocumentsSchema } from './db/ensure-regulatory-documents.js';
-import { fixUpdateSources } from './db/fix-update-sources.js';
 import { ciUpdateService } from './services/ci-update.service.js';
 import { benchmarkService } from './services/benchmark.service.js';
 import { seedCiData } from './db/seed-ci.js';
-import { schedulerService } from './services/scheduler.service.js';
-import { insertCiUpdate20260405 } from './db/insert-ci-update-2026-04-05.js';
 
 const fastify = Fastify({
   logger: true,
@@ -56,17 +49,10 @@ const start = async () => {
     const port = parseInt(process.env.PORT || '3001', 10);
     await aiUsageService.ensureTable();
     await fixSocPowerConsumption();
-    await fixTopsValues();
-    await ensureComplianceProgressSchema();
-    await seedIndustrialComparison();
-    await ensureRegulatoryDocumentsSchema();
-    await fixUpdateSources();
     await ciUpdateService.ensureTables();
     await benchmarkService.ensureTables();
     await seedCiData();
-    await insertCiUpdate20260405();
     await fastify.listen({ port, host: '0.0.0.0' });
-    schedulerService.init();
     console.log(`Backend server running on port ${port}`);
   } catch (err) {
     fastify.log.error(err);

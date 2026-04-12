@@ -23,13 +23,8 @@ import {
   UserPlus,
   DollarSign,
   Cpu,
-  Key,
-  TrendingDown,
-  Zap,
-  BarChart3,
-  Calendar,
-  Globe,
 } from 'lucide-react';
+import { PageHeader, ArgosCard, SectionTitle, PrimaryButton } from '@/components/layout/PageHeader';
 
 interface CollectionResult {
   source: string;
@@ -88,12 +83,6 @@ export default function AdminPage() {
   const { data: aiUsageLogs } = useQuery({
     queryKey: ['ai-usage-logs'],
     queryFn: () => api.getAiUsageLogs(20),
-    enabled: isSuperAdmin,
-  });
-
-  const { data: claudeCredit, refetch: refetchClaudeCredit } = useQuery({
-    queryKey: ['claude-credit'],
-    queryFn: () => api.getClaudeCreditInfo(),
     enabled: isSuperAdmin,
   });
 
@@ -208,58 +197,58 @@ export default function AdminPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white">관리</h1>
-          <p className="text-slate-400">공개 데이터 수집 및 시스템 관리</p>
-        </div>
+    <div className="min-h-screen">
+      <div className="max-w-[1400px] mx-auto space-y-8">
+        <PageHeader
+          module="ADMINISTRATION MODULE V4.2"
+          titleKo="관리"
+          titleEn="ACCESS CONTROL"
+          description="Manage organizational hierarchy, data collection, and individual access keys."
+        />
 
         {/* System Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-            <p className="text-sm text-slate-400">회사</p>
-            <p className="text-2xl font-bold text-white">{summary?.totalCompanies || 0}</p>
-          </div>
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-            <p className="text-sm text-slate-400">제품</p>
-            <p className="text-2xl font-bold text-white">{summary?.totalProducts || 0}</p>
-          </div>
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-            <p className="text-sm text-slate-400">키워드</p>
-            <p className="text-2xl font-bold text-white">{summary?.totalKeywords || 0}</p>
-          </div>
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-            <p className="text-sm text-slate-400">수집 데이터</p>
-            <p className="text-2xl font-bold text-white">{results.reduce((sum, r) => sum + r.count, 0)}</p>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+          {[
+            { label: '회사',       labelEn: 'Companies', value: summary?.totalCompanies || 0 },
+            { label: '제품',       labelEn: 'Products',  value: summary?.totalProducts  || 0 },
+            { label: '키워드',     labelEn: 'Keywords',  value: summary?.totalKeywords  || 0 },
+            { label: '수집 데이터', labelEn: 'Collected', value: results.reduce((sum, r) => sum + r.count, 0) },
+          ].map((stat) => (
+            <ArgosCard key={stat.labelEn} className="p-5">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-argos-faint">{stat.labelEn}</div>
+              <div className="text-[12px] font-semibold text-argos-muted mt-1">{stat.label}</div>
+              <div className="text-[28px] font-extrabold text-argos-ink mt-2 leading-none">{stat.value}</div>
+            </ArgosCard>
+          ))}
         </div>
 
         {/* Public Data Collection */}
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl">
-          <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+        <ArgosCard>
+          <div className="p-6 border-b border-argos-border flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Database className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-lg font-semibold text-white">공개 데이터 수집</h2>
+              <div className="w-8 h-8 bg-argos-chip rounded-md flex items-center justify-center">
+                <Database className="w-4 h-4 text-argos-blue" />
+              </div>
+              <h2 className="text-[15px] font-bold text-argos-ink">공개 데이터 수집 <span className="text-argos-faint font-semibold">/ Public Data Collection</span></h2>
             </div>
             <div className="flex items-center gap-3">
               {lastCollected && (
-                <span className="text-sm text-slate-400">
+                <span className="text-[11px] text-argos-muted">
                   마지막: {lastCollected.toLocaleTimeString('ko-KR')}
                 </span>
               )}
               <button
                 onClick={collectAll}
                 disabled={isCollecting}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 disabled:opacity-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-argos-navy hover:bg-argos-navyDark text-argos-ink text-[12px] font-semibold rounded-lg disabled:opacity-50 transition-colors"
               >
-                <RefreshCw className={`w-4 h-4 ${collectingSource === 'all' ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-3.5 h-3.5 ${collectingSource === 'all' ? 'animate-spin' : ''}`} />
                 {collectingSource === 'all' ? '수집 중...' : '전체 수집'}
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-800">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-argos-border">
             {sources.map(({ key, name, icon: Icon, desc }) => {
               const result = getSourceResult(key);
               const isLoading = collectingSource === key || collectingSource === 'all';
@@ -268,26 +257,26 @@ export default function AdminPage() {
                 <div key={key} className="p-6">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Icon className="w-5 h-5 text-slate-400" />
-                      <span className="font-medium text-white">{name}</span>
+                      <Icon className="w-4 h-4 text-argos-muted" />
+                      <span className="text-[13px] font-semibold text-argos-ink">{name}</span>
                     </div>
                     <button
                       onClick={() => collectSingle(key)}
                       disabled={isLoading}
-                      className="px-2 py-1 text-xs bg-slate-800 border border-slate-700 rounded hover:bg-slate-700 disabled:opacity-50 text-slate-300 transition-colors"
+                      className="px-2.5 py-1 text-[11px] font-semibold bg-argos-bg border border-argos-border rounded hover:bg-argos-chipAlt hover:border-argos-blue hover:text-argos-blue disabled:opacity-50 text-argos-inkSoft transition-colors"
                     >
                       {isLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : '수집'}
                     </button>
                   </div>
-                  <p className="text-xs text-slate-500 mb-3">{desc}</p>
+                  <p className="text-[11px] text-argos-muted mb-3">{desc}</p>
                   {result && (
                     <div className="flex items-center gap-2">
                       {result.success ? (
-                        <CheckCircle className="w-4 h-4 text-emerald-400" />
+                        <CheckCircle className="w-3.5 h-3.5 text-argos-success" />
                       ) : (
-                        <XCircle className="w-4 h-4 text-red-400" />
+                        <XCircle className="w-3.5 h-3.5 text-argos-danger" />
                       )}
-                      <span className={`text-sm ${result.success ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <span className={`text-[12px] font-semibold ${result.success ? 'text-argos-successInk' : 'text-argos-dangerInk'}`}>
                         {result.success ? `${result.count}건` : '실패'}
                       </span>
                     </div>
@@ -296,67 +285,37 @@ export default function AdminPage() {
               );
             })}
           </div>
-        </div>
+        </ArgosCard>
 
         {/* Quick Links */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Link href="/admin/robots" className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 hover:border-slate-700 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-blue-500/20">
-                <Settings className="w-6 h-6 text-blue-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white">로봇 관리</h3>
-                <p className="text-sm text-slate-400">추가/수정/삭제</p>
-              </div>
-              <ExternalLink className="w-4 h-4 text-slate-500 ml-auto" />
-            </div>
-          </Link>
-
-          <Link href="/companies" className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 hover:border-slate-700 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-emerald-500/20">
-                <Users className="w-6 h-6 text-emerald-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white">회사 관리</h3>
-                <p className="text-sm text-slate-400">{summary?.totalCompanies || 0}개 등록</p>
-              </div>
-              <ExternalLink className="w-4 h-4 text-slate-500 ml-auto" />
-            </div>
-          </Link>
-
-          <Link href="/admin/components" className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 hover:border-slate-700 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-purple-500/20">
-                <Database className="w-6 h-6 text-purple-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white">부품 관리</h3>
-                <p className="text-sm text-slate-400">추가/수정/삭제</p>
-              </div>
-              <ExternalLink className="w-4 h-4 text-slate-500 ml-auto" />
-            </div>
-          </Link>
-
-          <Link href="/terms" className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 hover:border-slate-700 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-amber-500/20">
-                <Shield className="w-6 h-6 text-amber-400" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white">이용약관</h3>
-                <p className="text-sm text-slate-400">데이터 정책 확인</p>
-              </div>
-              <ExternalLink className="w-4 h-4 text-slate-500 ml-auto" />
-            </div>
-          </Link>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+          {[
+            { href: '/admin/robots',     title: '로봇 관리',  subtitle: '추가/수정/삭제',                        icon: Settings },
+            { href: '/companies',        title: '회사 관리',  subtitle: `${summary?.totalCompanies || 0}개 등록`, icon: Users },
+            { href: '/admin/components', title: '부품 관리',  subtitle: '추가/수정/삭제',                        icon: Database },
+            { href: '/terms',            title: '이용약관',   subtitle: '데이터 정책 확인',                      icon: Shield },
+          ].map(({ href, title, subtitle, icon: Icon }) => (
+            <Link key={href} href={href} className="group">
+              <ArgosCard className="p-5 hover:border-argos-blue transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-argos-chip flex items-center justify-center shrink-0">
+                    <Icon className="w-4 h-4 text-argos-blue" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-[13px] font-bold text-argos-ink">{title}</h3>
+                    <p className="text-[11px] text-argos-muted">{subtitle}</p>
+                  </div>
+                  <ExternalLink className="w-3.5 h-3.5 text-argos-faint group-hover:text-argos-blue transition" />
+                </div>
+              </ArgosCard>
+            </Link>
+          ))}
         </div>
 
         {/* Export Section */}
-        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
-            <Database className="w-5 h-5 text-slate-400" />
+        <div className="bg-argos-surface border border-argos-border rounded-xl shadow-argos-card p-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-argos-ink">
+            <Database className="w-5 h-5 text-argos-muted" />
             데이터 내보내기
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -370,10 +329,10 @@ export default function AdminPage() {
                 a.download = 'companies.csv';
                 a.click();
               }}
-              className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg hover:bg-slate-800 hover:border-slate-600 text-left transition-colors"
+              className="p-4 bg-argos-bg border border-argos-border rounded-lg hover:bg-argos-chipAlt hover:border-argos-blue text-left transition-colors"
             >
-              <p className="font-medium text-white">회사 데이터</p>
-              <p className="text-sm text-slate-400">CSV 형식으로 다운로드</p>
+              <p className="font-medium text-argos-ink">회사 데이터</p>
+              <p className="text-sm text-argos-muted">CSV 형식으로 다운로드</p>
             </button>
             <button
               onClick={async () => {
@@ -385,10 +344,10 @@ export default function AdminPage() {
                 a.download = 'products.csv';
                 a.click();
               }}
-              className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg hover:bg-slate-800 hover:border-slate-600 text-left transition-colors"
+              className="p-4 bg-argos-bg border border-argos-border rounded-lg hover:bg-argos-chipAlt hover:border-argos-blue text-left transition-colors"
             >
-              <p className="font-medium text-white">제품 데이터</p>
-              <p className="text-sm text-slate-400">스펙 포함 CSV 다운로드</p>
+              <p className="font-medium text-argos-ink">제품 데이터</p>
+              <p className="text-sm text-argos-muted">스펙 포함 CSV 다운로드</p>
             </button>
             <button
               onClick={async () => {
@@ -400,23 +359,23 @@ export default function AdminPage() {
                 a.download = 'articles.csv';
                 a.click();
               }}
-              className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg hover:bg-slate-800 hover:border-slate-600 text-left transition-colors"
+              className="p-4 bg-argos-bg border border-argos-border rounded-lg hover:bg-argos-chipAlt hover:border-argos-blue text-left transition-colors"
             >
-              <p className="font-medium text-white">기사 데이터</p>
-              <p className="text-sm text-slate-400">CSV 형식으로 다운로드</p>
+              <p className="font-medium text-argos-ink">기사 데이터</p>
+              <p className="text-sm text-argos-muted">CSV 형식으로 다운로드</p>
             </button>
           </div>
 
           <div className="mt-8">
-            <h3 className="text-lg font-semibold text-white mb-3">Excel로 기사 업로드</h3>
-            <p className="text-sm text-slate-400 mb-4">첫 번째 시트에서 데이터를 읽어서 기사 데이터를 생성/업데이트합니다.</p>
+            <h3 className="text-[15px] font-bold text-argos-ink mb-3">Excel로 기사 업로드</h3>
+            <p className="text-sm text-argos-muted mb-4">첫 번째 시트에서 데이터를 읽어서 기사 데이터를 생성/업데이트합니다.</p>
             <div className="flex flex-col md:flex-row gap-3 items-start">
               <div className="flex-1">
                 <input
                   type="file"
                   accept=".xlsx,.xls"
                   onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
-                  className="w-full text-sm text-slate-100 file:bg-slate-800 file:border file:border-slate-700 file:px-3 file:py-2 file:rounded-lg file:text-slate-100 file:bg-slate-700"
+                  className="w-full text-sm text-argos-ink file:bg-argos-bg file:border file:border-argos-border file:px-3 file:py-2 file:rounded-lg file:text-argos-ink file:bg-argos-bgAlt"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -425,31 +384,31 @@ export default function AdminPage() {
                   type="checkbox"
                   checked={importUpdateExisting}
                   onChange={(e) => setImportUpdateExisting(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 bg-slate-800 border-slate-600 rounded"
+                  className="h-4 w-4 text-blue-600 bg-argos-bg border-argos-border rounded"
                 />
-                <label htmlFor="updateExisting" className="text-sm text-slate-300">
+                <label htmlFor="updateExisting" className="text-sm text-argos-inkSoft">
                   기존 기사 업데이트 (중복 URL이 있는 경우)
                 </label>
               </div>
               <button
                 disabled={!importFile || importing}
                 onClick={handleImportExcel}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 disabled:opacity-50 transition-colors"
+                className="px-4 py-2 bg-emerald-600 text-argos-ink rounded-lg hover:bg-emerald-500 disabled:opacity-50 transition-colors"
               >
                 {importing ? '업로드 중...' : '업로드'}
               </button>
             </div>
             {importResult && (
-              <div className="mt-4 rounded-lg bg-slate-800/50 border border-slate-700 p-4">
+              <div className="mt-4 rounded-lg bg-argos-bg border border-argos-border p-4">
                 {importResult.error ? (
                   <p className="text-sm text-red-400">에러: {importResult.error}</p>
                 ) : (
-                  <div className="text-sm text-slate-200 space-y-1">
+                  <div className="text-sm text-argos-ink space-y-1">
                     <p>생성: {importResult.created}</p>
                     <p>업데이트: {importResult.updated}</p>
                     <p>스킵: {importResult.skipped}</p>
                     {importResult.errors?.length > 0 && (
-                      <details className="text-xs text-slate-400">
+                      <details className="text-xs text-argos-muted">
                         <summary>에러 상세 ({importResult.errors.length})</summary>
                         <ul className="list-disc ml-5 mt-2">
                           {importResult.errors.map((err: any, idx: number) => (
@@ -465,294 +424,129 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Claude API 크레딧 & 토큰 사용량 (슈퍼 관리자만) */}
+        {/* AI API 사용량 (슈퍼 관리자만) */}
         {isSuperAdmin && (
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl">
-            <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Zap className="w-5 h-5 text-orange-400" />
-                <h2 className="text-lg font-semibold text-white">Claude API 크레딧 & 토큰</h2>
-              </div>
-              <button
-                onClick={() => refetchClaudeCredit()}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-800 border border-slate-700 rounded-lg hover:bg-slate-700 text-slate-300 transition-colors"
-              >
-                <RefreshCw className="w-3 h-3" />
-                새로고침
-              </button>
+          <div className="bg-argos-surface border border-argos-border rounded-xl shadow-argos-card">
+            <div className="p-6 border-b border-argos-border flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-emerald-400" />
+              <h2 className="text-[15px] font-bold text-argos-ink">AI API 사용량</h2>
             </div>
-
+            
             <div className="p-6 space-y-6">
-              {claudeCredit ? (
-                <>
-                  {/* API 키 상태 + 남은 크레딧 */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* API 키 상태 */}
-                    <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Key className="w-4 h-4 text-slate-400" />
-                        <span className="text-xs text-slate-400">API 키 상태</span>
+              {/* 월간 비용 한도 */}
+              {(() => {
+                const totalCost = (aiUsageSummary?.summary || []).reduce((sum, s) => sum + s.totalCostUsd, 0);
+                const limitUsd = 7.0;
+                const pct = Math.min(100, (totalCost / limitUsd) * 100);
+                const isNearLimit = pct >= 80;
+                const isOverLimit = pct >= 100;
+                return (
+                  <div className={`p-4 rounded-xl border ${isOverLimit ? 'bg-red-500/10 border-red-500/30' : isNearLimit ? 'bg-amber-500/10 border-amber-500/30' : 'bg-argos-bg border-argos-border'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-argos-inkSoft">이번 달 사용량</span>
+                      <span className={`text-sm font-medium ${isOverLimit ? 'text-red-400' : isNearLimit ? 'text-amber-400' : 'text-emerald-400'}`}>
+                        ${totalCost.toFixed(4)} / ${limitUsd.toFixed(2)} (≈₩10,000)
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-argos-bgAlt rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${isOverLimit ? 'bg-red-500' : isNearLimit ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    {isOverLimit && (
+                      <p className="text-xs text-red-400 mt-2">한도 초과 — AI 검색이 차단됩니다. 다음 달에 자동 초기화됩니다.</p>
+                    )}
+                  </div>
+                );
+              })()}
+              {/* Provider별 요약 카드 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(aiUsageSummary?.summary || []).map((s) => (
+                  <div key={s.provider} className="bg-argos-bg border border-argos-border rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Cpu className="w-5 h-5 text-violet-400" />
+                      <h3 className="font-semibold text-argos-ink">
+                        {s.provider === 'chatgpt' ? 'OpenAI (ChatGPT)' : 'Anthropic (Claude)'}
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-argos-muted">총 호출</p>
+                        <p className="text-lg font-bold text-argos-ink">{s.totalCalls}회</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {claudeCredit.apiKeyValid ? (
-                          <CheckCircle className="w-5 h-5 text-emerald-400" />
-                        ) : (
-                          <XCircle className="w-5 h-5 text-red-400" />
-                        )}
-                        <span className={`font-semibold ${claudeCredit.apiKeyValid ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {claudeCredit.apiKeyValid ? '활성' : '미설정'}
-                        </span>
+                      <div>
+                        <p className="text-xs text-argos-muted">예상 비용</p>
+                        <p className="text-lg font-bold text-emerald-400">${s.totalCostUsd.toFixed(4)}</p>
                       </div>
-                      {claudeCredit.apiKeyPrefix && (
-                        <p className="text-xs text-slate-500 mt-1 font-mono">{claudeCredit.apiKeyPrefix}</p>
+                      <div>
+                        <p className="text-xs text-argos-muted">입력 토큰</p>
+                        <p className="text-sm text-argos-inkSoft">{s.totalInputTokens.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-argos-muted">출력 토큰</p>
+                        <p className="text-sm text-argos-inkSoft">{s.totalOutputTokens.toLocaleString()}</p>
+                      </div>
+                      {s.webSearchCalls > 0 && (
+                        <div className="col-span-2">
+                          <p className="text-xs text-argos-muted">웹 검색 호출</p>
+                          <p className="text-sm text-blue-400">{s.webSearchCalls}회</p>
+                        </div>
                       )}
                     </div>
-
-                    {/* 남은 크레딧 */}
-                    <div className={`border rounded-xl p-4 ${
-                      claudeCredit.remainingPct <= 0 ? 'bg-red-500/10 border-red-500/30' :
-                      claudeCredit.remainingPct <= 20 ? 'bg-amber-500/10 border-amber-500/30' :
-                      'bg-emerald-500/10 border-emerald-500/30'
-                    }`}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <DollarSign className="w-4 h-4 text-slate-400" />
-                        <span className="text-xs text-slate-400">남은 크레딧</span>
-                      </div>
-                      <p className={`text-2xl font-bold ${
-                        claudeCredit.remainingPct <= 0 ? 'text-red-400' :
-                        claudeCredit.remainingPct <= 20 ? 'text-amber-400' :
-                        'text-emerald-400'
-                      }`}>
-                        ${claudeCredit.remainingUsd.toFixed(4)}
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        월 한도 ${claudeCredit.monthlyLimitUsd.toFixed(2)} 중 {claudeCredit.remainingPct.toFixed(1)}% 남음
-                      </p>
-                    </div>
-
-                    {/* 이번 달 사용량 */}
-                    <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <TrendingDown className="w-4 h-4 text-slate-400" />
-                        <span className="text-xs text-slate-400">이번 달 사용</span>
-                      </div>
-                      <p className="text-2xl font-bold text-white">
-                        ${claudeCredit.currentMonthUsageUsd.toFixed(4)}
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        {claudeCredit.claudeStats.totalCalls}회 호출
-                      </p>
-                    </div>
                   </div>
+                ))}
+                {(!aiUsageSummary?.summary || aiUsageSummary.summary.length === 0) && (
+                  <div className="col-span-2 text-center py-8 text-argos-faint">
+                    아직 AI API 호출 기록이 없습니다.
+                  </div>
+                )}
+              </div>
 
-                  {/* 사용량 프로그레스 바 */}
-                  {(() => {
-                    const usedPct = Math.min(100, 100 - claudeCredit.remainingPct);
-                    const isNearLimit = usedPct >= 80;
-                    const isOverLimit = usedPct >= 100;
-                    return (
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-xs text-slate-400">월간 사용량 진행률</span>
-                          <span className={`text-xs font-medium ${isOverLimit ? 'text-red-400' : isNearLimit ? 'text-amber-400' : 'text-slate-300'}`}>
-                            ${claudeCredit.currentMonthUsageUsd.toFixed(4)} / ${claudeCredit.monthlyLimitUsd.toFixed(2)} (≈₩10,000)
+              {/* 최근 호출 로그 */}
+              {aiUsageLogs?.logs && aiUsageLogs.logs.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-argos-muted mb-3">최근 호출 로그</h3>
+                  <div className="border border-argos-border rounded-lg overflow-hidden">
+                    <div className="px-4 py-2 bg-argos-bg text-xs font-medium text-argos-muted grid grid-cols-12 gap-2">
+                      <div className="col-span-2">Provider</div>
+                      <div className="col-span-2">모델</div>
+                      <div className="col-span-1">웹검색</div>
+                      <div className="col-span-2">토큰 (In/Out)</div>
+                      <div className="col-span-2">비용</div>
+                      <div className="col-span-3">시간</div>
+                    </div>
+                    {aiUsageLogs.logs.map((log) => (
+                      <div key={log.id} className="px-4 py-2 grid grid-cols-12 gap-2 text-sm border-t border-argos-border hover:bg-argos-bg">
+                        <div className="col-span-2">
+                          <span className={`px-2 py-0.5 rounded text-xs ${
+                            log.provider === 'chatgpt' ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'
+                          }`}>
+                            {log.provider === 'chatgpt' ? 'OpenAI' : 'Claude'}
                           </span>
                         </div>
-                        <div className="w-full h-3 bg-slate-700 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${isOverLimit ? 'bg-red-500' : isNearLimit ? 'bg-amber-500' : 'bg-orange-500'}`}
-                            style={{ width: `${usedPct}%` }}
-                          />
+                        <div className="col-span-2 text-argos-inkSoft truncate text-xs">{log.model}</div>
+                        <div className="col-span-1">{log.webSearch ? '🌐' : '—'}</div>
+                        <div className="col-span-2 text-argos-muted text-xs">{log.inputTokens}/{log.outputTokens}</div>
+                        <div className="col-span-2 text-emerald-400 text-xs">${Number(log.estimatedCostUsd).toFixed(4)}</div>
+                        <div className="col-span-3 text-argos-faint text-xs">
+                          {new Date(log.createdAt).toLocaleString('ko-KR')}
                         </div>
-                        {isOverLimit && (
-                          <p className="text-xs text-red-400 mt-1.5">한도 초과 — AI 검색이 차단됩니다. 다음 달에 자동 초기화됩니다.</p>
-                        )}
                       </div>
-                    );
-                  })()}
-
-                  {/* 토큰 & 비용 상세 */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-slate-800/30 border border-slate-700/30 rounded-lg p-3">
-                      <p className="text-xs text-slate-500">입력 토큰</p>
-                      <p className="text-lg font-bold text-blue-400">{claudeCredit.claudeStats.totalInputTokens.toLocaleString()}</p>
-                      <p className="text-xs text-slate-500">${claudeCredit.claudeStats.inputCostUsd.toFixed(4)}</p>
-                    </div>
-                    <div className="bg-slate-800/30 border border-slate-700/30 rounded-lg p-3">
-                      <p className="text-xs text-slate-500">출력 토큰</p>
-                      <p className="text-lg font-bold text-purple-400">{claudeCredit.claudeStats.totalOutputTokens.toLocaleString()}</p>
-                      <p className="text-xs text-slate-500">${claudeCredit.claudeStats.outputCostUsd.toFixed(4)}</p>
-                    </div>
-                    <div className="bg-slate-800/30 border border-slate-700/30 rounded-lg p-3">
-                      <p className="text-xs text-slate-500">총 토큰</p>
-                      <p className="text-lg font-bold text-white">
-                        {(claudeCredit.claudeStats.totalInputTokens + claudeCredit.claudeStats.totalOutputTokens).toLocaleString()}
-                      </p>
-                      <p className="text-xs text-slate-500">${claudeCredit.claudeStats.totalCostUsd.toFixed(4)}</p>
-                    </div>
-                    <div className="bg-slate-800/30 border border-slate-700/30 rounded-lg p-3">
-                      <div className="flex items-center gap-1">
-                        <Globe className="w-3 h-3 text-slate-500" />
-                        <p className="text-xs text-slate-500">웹 검색</p>
-                      </div>
-                      <p className="text-lg font-bold text-cyan-400">{claudeCredit.claudeStats.webSearchCalls}회</p>
-                      <p className="text-xs text-slate-500">${claudeCredit.claudeStats.webSearchCostUsd.toFixed(4)}</p>
-                    </div>
+                    ))}
                   </div>
-
-                  {/* 모델별 사용량 */}
-                  {claudeCredit.modelBreakdown.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-semibold text-slate-400 mb-3 flex items-center gap-2">
-                        <Cpu className="w-4 h-4" />
-                        모델별 사용량
-                      </h3>
-                      <div className="border border-slate-700 rounded-lg overflow-hidden">
-                        <div className="px-4 py-2 bg-slate-800/50 text-xs font-medium text-slate-400 grid grid-cols-12 gap-2">
-                          <div className="col-span-4">모델</div>
-                          <div className="col-span-2">호출</div>
-                          <div className="col-span-2">입력 토큰</div>
-                          <div className="col-span-2">출력 토큰</div>
-                          <div className="col-span-2">비용</div>
-                        </div>
-                        {claudeCredit.modelBreakdown.map((m) => (
-                          <div key={m.model} className="px-4 py-2 grid grid-cols-12 gap-2 text-sm border-t border-slate-700/50 hover:bg-slate-800/30">
-                            <div className="col-span-4 text-orange-400 text-xs font-mono truncate">{m.model}</div>
-                            <div className="col-span-2 text-white">{m.calls}회</div>
-                            <div className="col-span-2 text-blue-400 text-xs">{m.inputTokens.toLocaleString()}</div>
-                            <div className="col-span-2 text-purple-400 text-xs">{m.outputTokens.toLocaleString()}</div>
-                            <div className="col-span-2 text-emerald-400 text-xs">${m.costUsd.toFixed(4)}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 일별 사용량 */}
-                  {claudeCredit.dailyUsage.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-semibold text-slate-400 mb-3 flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        일별 사용량
-                      </h3>
-                      <div className="border border-slate-700 rounded-lg overflow-hidden">
-                        <div className="px-4 py-2 bg-slate-800/50 text-xs font-medium text-slate-400 grid grid-cols-12 gap-2">
-                          <div className="col-span-3">날짜</div>
-                          <div className="col-span-2">호출</div>
-                          <div className="col-span-2">입력 토큰</div>
-                          <div className="col-span-2">출력 토큰</div>
-                          <div className="col-span-3">비용</div>
-                        </div>
-                        {claudeCredit.dailyUsage.map((d) => {
-                          const barWidth = claudeCredit.monthlyLimitUsd > 0
-                            ? Math.min(100, (d.costUsd / claudeCredit.monthlyLimitUsd) * 100 * 10)
-                            : 0;
-                          return (
-                            <div key={d.date} className="px-4 py-2 grid grid-cols-12 gap-2 text-sm border-t border-slate-700/50 hover:bg-slate-800/30">
-                              <div className="col-span-3 text-slate-300 text-xs">{d.date}</div>
-                              <div className="col-span-2 text-white text-xs">{d.calls}회</div>
-                              <div className="col-span-2 text-blue-400 text-xs">{d.inputTokens.toLocaleString()}</div>
-                              <div className="col-span-2 text-purple-400 text-xs">{d.outputTokens.toLocaleString()}</div>
-                              <div className="col-span-3 flex items-center gap-2">
-                                <span className="text-emerald-400 text-xs">${d.costUsd.toFixed(4)}</span>
-                                <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                                  <div className="h-full bg-orange-500/60 rounded-full" style={{ width: `${barWidth}%` }} />
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="text-center py-8 text-slate-500">
-                  Claude API 크레딧 정보를 불러오는 중...
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* OpenAI 포함 전체 AI API 사용량 (슈퍼 관리자만) */}
-        {isSuperAdmin && aiUsageSummary?.summary && aiUsageSummary.summary.some(s => s.provider === 'chatgpt') && (
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl">
-            <div className="p-6 border-b border-slate-800 flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-green-400" />
-              <h2 className="text-lg font-semibold text-white">OpenAI (ChatGPT) 사용량</h2>
-            </div>
-            <div className="p-6">
-              {aiUsageSummary.summary.filter(s => s.provider === 'chatgpt').map((s) => (
-                <div key={s.provider} className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-slate-800/30 border border-slate-700/30 rounded-lg p-3">
-                    <p className="text-xs text-slate-500">총 호출</p>
-                    <p className="text-lg font-bold text-white">{s.totalCalls}회</p>
-                  </div>
-                  <div className="bg-slate-800/30 border border-slate-700/30 rounded-lg p-3">
-                    <p className="text-xs text-slate-500">예상 비용</p>
-                    <p className="text-lg font-bold text-emerald-400">${s.totalCostUsd.toFixed(4)}</p>
-                  </div>
-                  <div className="bg-slate-800/30 border border-slate-700/30 rounded-lg p-3">
-                    <p className="text-xs text-slate-500">입력 토큰</p>
-                    <p className="text-lg font-bold text-blue-400">{s.totalInputTokens.toLocaleString()}</p>
-                  </div>
-                  <div className="bg-slate-800/30 border border-slate-700/30 rounded-lg p-3">
-                    <p className="text-xs text-slate-500">출력 토큰</p>
-                    <p className="text-lg font-bold text-purple-400">{s.totalOutputTokens.toLocaleString()}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 최근 API 호출 로그 (슈퍼 관리자만) */}
-        {isSuperAdmin && aiUsageLogs?.logs && aiUsageLogs.logs.length > 0 && (
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl">
-            <div className="p-6 border-b border-slate-800 flex items-center gap-2">
-              <Database className="w-5 h-5 text-slate-400" />
-              <h2 className="text-lg font-semibold text-white">최근 API 호출 로그</h2>
-            </div>
-            <div className="p-6">
-              <div className="border border-slate-700 rounded-lg overflow-hidden">
-                <div className="px-4 py-2 bg-slate-800/50 text-xs font-medium text-slate-400 grid grid-cols-12 gap-2">
-                  <div className="col-span-2">Provider</div>
-                  <div className="col-span-2">모델</div>
-                  <div className="col-span-1">웹검색</div>
-                  <div className="col-span-2">토큰 (In/Out)</div>
-                  <div className="col-span-2">비용</div>
-                  <div className="col-span-3">시간</div>
-                </div>
-                {aiUsageLogs.logs.map((log) => (
-                  <div key={log.id} className="px-4 py-2 grid grid-cols-12 gap-2 text-sm border-t border-slate-700/50 hover:bg-slate-800/30">
-                    <div className="col-span-2">
-                      <span className={`px-2 py-0.5 rounded text-xs ${
-                        log.provider === 'chatgpt' ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'
-                      }`}>
-                        {log.provider === 'chatgpt' ? 'OpenAI' : 'Claude'}
-                      </span>
-                    </div>
-                    <div className="col-span-2 text-slate-300 truncate text-xs">{log.model}</div>
-                    <div className="col-span-1">{log.webSearch ? '🌐' : '—'}</div>
-                    <div className="col-span-2 text-slate-400 text-xs">{log.inputTokens}/{log.outputTokens}</div>
-                    <div className="col-span-2 text-emerald-400 text-xs">${Number(log.estimatedCostUsd).toFixed(4)}</div>
-                    <div className="col-span-3 text-slate-500 text-xs">
-                      {new Date(log.createdAt).toLocaleString('ko-KR')}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* 허용 이메일 관리 (슈퍼 관리자만) */}
         {isSuperAdmin && (
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl">
-            <div className="p-6 border-b border-slate-800 flex items-center gap-2">
+          <div className="bg-argos-surface border border-argos-border rounded-xl shadow-argos-card">
+            <div className="p-6 border-b border-argos-border flex items-center gap-2">
               <UserPlus className="w-5 h-5 text-indigo-400" />
-              <h2 className="text-lg font-semibold text-white">회원가입 허용 이메일 관리</h2>
+              <h2 className="text-[15px] font-bold text-argos-ink">회원가입 허용 이메일 관리</h2>
             </div>
             
             <div className="p-6">
@@ -775,19 +569,19 @@ export default function AdminPage() {
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   placeholder="이메일 주소"
-                  className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-white placeholder-slate-500"
+                  className="flex-1 px-3 py-2 bg-argos-bg border border-argos-border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-argos-ink placeholder:text-argos-faint"
                 />
                 <input
                   type="text"
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
                   placeholder="메모 (선택)"
-                  className="w-48 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-white placeholder-slate-500"
+                  className="w-48 px-3 py-2 bg-argos-bg border border-argos-border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-argos-ink placeholder:text-argos-faint"
                 />
                 <button
                   onClick={handleAddEmail}
                   disabled={addEmailMutation.isPending}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-argos-ink rounded-lg hover:bg-indigo-500 disabled:opacity-50 transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                   추가
@@ -795,8 +589,8 @@ export default function AdminPage() {
               </div>
 
               {/* 허용된 이메일 목록 */}
-              <div className="border border-slate-700 rounded-lg divide-y divide-slate-700">
-                <div className="px-4 py-2 bg-slate-800/50 text-sm font-medium text-slate-400 grid grid-cols-12 gap-4">
+              <div className="border border-argos-border rounded-lg divide-y divide-argos-border">
+                <div className="px-4 py-2 bg-argos-bg text-sm font-medium text-argos-muted grid grid-cols-12 gap-4">
                   <div className="col-span-5">이메일</div>
                   <div className="col-span-4">메모</div>
                   <div className="col-span-2">등록일</div>
@@ -807,11 +601,11 @@ export default function AdminPage() {
                 <div className="px-4 py-3 grid grid-cols-12 gap-4 items-center bg-indigo-500/10">
                   <div className="col-span-5 flex items-center gap-2">
                     <Mail className="w-4 h-4 text-indigo-400" />
-                    <span className="font-medium text-white">somewhere010@gmail.com</span>
-                    <span className="px-2 py-0.5 text-xs bg-indigo-600 text-white rounded">슈퍼 관리자</span>
+                    <span className="font-medium text-argos-ink">somewhere010@gmail.com</span>
+                    <span className="px-2 py-0.5 text-xs bg-indigo-600 text-argos-ink rounded">슈퍼 관리자</span>
                   </div>
-                  <div className="col-span-4 text-slate-500 text-sm">-</div>
-                  <div className="col-span-2 text-slate-500 text-sm">-</div>
+                  <div className="col-span-4 text-argos-faint text-sm">-</div>
+                  <div className="col-span-2 text-argos-faint text-sm">-</div>
                   <div className="col-span-1"></div>
                 </div>
 
@@ -819,13 +613,13 @@ export default function AdminPage() {
                 {allowedEmailsData?.emails
                   ?.filter(e => e.email !== 'somewhere010@gmail.com')
                   .map((item) => (
-                    <div key={item.id} className="px-4 py-3 grid grid-cols-12 gap-4 items-center hover:bg-slate-800/50 transition-colors">
+                    <div key={item.id} className="px-4 py-3 grid grid-cols-12 gap-4 items-center hover:bg-argos-bg transition-colors">
                       <div className="col-span-5 flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-slate-500" />
-                        <span className="text-white">{item.email}</span>
+                        <Mail className="w-4 h-4 text-argos-faint" />
+                        <span className="text-argos-ink">{item.email}</span>
                       </div>
-                      <div className="col-span-4 text-slate-400 text-sm">{item.note || '-'}</div>
-                      <div className="col-span-2 text-slate-400 text-sm">
+                      <div className="col-span-4 text-argos-muted text-sm">{item.note || '-'}</div>
+                      <div className="col-span-2 text-argos-muted text-sm">
                         {new Date(item.createdAt).toLocaleDateString('ko-KR')}
                       </div>
                       <div className="col-span-1 flex justify-end">
@@ -842,13 +636,13 @@ export default function AdminPage() {
                   ))}
 
                 {(!allowedEmailsData?.emails || allowedEmailsData.emails.filter(e => e.email !== 'somewhere010@gmail.com').length === 0) && (
-                  <div className="px-4 py-6 text-center text-slate-500 text-sm">
+                  <div className="px-4 py-6 text-center text-argos-faint text-sm">
                     추가된 이메일이 없습니다.
                   </div>
                 )}
               </div>
 
-              <p className="mt-4 text-sm text-slate-500">
+              <p className="mt-4 text-sm text-argos-faint">
                 * 위 목록에 등록된 이메일만 회원가입이 가능합니다.
               </p>
             </div>

@@ -7,6 +7,7 @@ import {
   ChevronDown, ChevronRight, Eye, X, Filter, Tag, Globe, Shield,
   Scale, Lock, AlertTriangle, File, Maximize2, Minimize2,
 } from 'lucide-react';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 const CATEGORY_OPTIONS = [
   { value: '', label: '전체' },
@@ -157,35 +158,32 @@ export default function RegulatoryDocumentsPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-500 rounded-lg flex items-center justify-center">
-            <FileText className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-100">규제 문서 라이브러리</h1>
-            <p className="text-sm text-slate-400">ISO, EU AI Act, 지능형로봇법 등 규제 원문을 업로드하고 체크리스트와 연계하세요</p>
-          </div>
-        </div>
-        <button
-          onClick={() => setShowUpload(!showUpload)}
-          className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm transition"
-        >
-          <Upload className="w-4 h-4" />
-          문서 업로드
-        </button>
-      </div>
+      <PageHeader
+        module="COMPLIANCE MODULE V4.2"
+        titleKo="규제 문서 라이브러리"
+        titleEn="DOCUMENT LIBRARY"
+        description="ISO, EU AI Act, 지능형로봇법 등 규제 원문을 업로드하고 체크리스트와 연계하세요"
+        actions={
+          <button
+            onClick={() => setShowUpload(!showUpload)}
+            className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm transition"
+          >
+            <Upload className="w-4 h-4" />
+            문서 업로드
+          </button>
+        }
+      />
 
       {/* Upload Panel */}
       {showUpload && (
-        <div className="bg-slate-800 rounded-xl border border-violet-500/30 p-6 space-y-4">
+        <div className="bg-argos-surface rounded-xl border border-violet-500/30 p-6 space-y-4">
           <h3 className="text-sm font-semibold text-violet-400 flex items-center gap-2">
             <Upload className="w-4 h-4" /> 새 문서 업로드
           </h3>
 
           {/* Drop zone / file input */}
           <div
-            className="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center cursor-pointer hover:border-violet-500/50 transition"
+            className="border-2 border-dashed border-argos-borderSoft rounded-xl p-8 text-center cursor-pointer hover:border-violet-500/50 transition"
             onClick={() => fileInputRef.current?.click()}
           >
             <input
@@ -205,18 +203,18 @@ export default function RegulatoryDocumentsPage() {
               <div className="flex items-center justify-center gap-3">
                 <File className="w-8 h-8 text-violet-400" />
                 <div className="text-left">
-                  <p className="text-sm text-slate-200">{uploadFile.name}</p>
-                  <p className="text-xs text-slate-400">{formatFileSize(uploadFile.size)}</p>
+                  <p className="text-sm text-argos-inkSoft">{uploadFile.name}</p>
+                  <p className="text-xs text-argos-muted">{formatFileSize(uploadFile.size)}</p>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); setUploadFile(null); }} className="text-slate-500 hover:text-slate-300">
+                <button onClick={(e) => { e.stopPropagation(); setUploadFile(null); }} className="text-argos-faint hover:text-argos-inkSoft">
                   <X className="w-4 h-4" />
                 </button>
               </div>
             ) : (
               <div>
-                <Upload className="w-8 h-8 text-slate-500 mx-auto mb-2" />
-                <p className="text-sm text-slate-400">클릭하여 파일 선택</p>
-                <p className="text-xs text-slate-500 mt-1">PDF, Word, Excel, PowerPoint (최대 20MB)</p>
+                <Upload className="w-8 h-8 text-argos-faint mx-auto mb-2" />
+                <p className="text-sm text-argos-muted">클릭하여 파일 선택</p>
+                <p className="text-xs text-argos-faint mt-1">PDF, Word, Excel, PowerPoint (최대 20MB)</p>
               </div>
             )}
           </div>
@@ -224,32 +222,32 @@ export default function RegulatoryDocumentsPage() {
           {/* Metadata */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs text-slate-400 mb-1 block">문서 제목</label>
+              <label className="text-xs text-argos-muted mb-1 block">문서 제목</label>
               <input
                 type="text"
                 value={uploadTitle}
                 onChange={(e) => setUploadTitle(e.target.value)}
                 placeholder="예: ISO 10218:2025 전문"
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-violet-500"
+                className="w-full bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-violet-500"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-slate-400 mb-1 block">카테고리</label>
+                <label className="text-xs text-argos-muted mb-1 block">카테고리</label>
                 <select
                   value={uploadCategory}
                   onChange={(e) => setUploadCategory(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-violet-500"
+                  className="w-full bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-violet-500"
                 >
                   {CATEGORY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs text-slate-400 mb-1 block">지역</label>
+                <label className="text-xs text-argos-muted mb-1 block">지역</label>
                 <select
                   value={uploadRegion}
                   onChange={(e) => setUploadRegion(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-violet-500"
+                  className="w-full bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-violet-500"
                 >
                   {REGION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
@@ -257,20 +255,20 @@ export default function RegulatoryDocumentsPage() {
             </div>
           </div>
           <div>
-            <label className="text-xs text-slate-400 mb-1 block">설명 (선택)</label>
+            <label className="text-xs text-argos-muted mb-1 block">설명 (선택)</label>
             <textarea
               value={uploadDescription}
               onChange={(e) => setUploadDescription(e.target.value)}
               placeholder="예: 2025년 개정판 전문. 374페이지. 기능안전 및 사이버보안 조항 신설."
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-violet-500 resize-none h-16"
+              className="w-full bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-violet-500 resize-none h-16"
             />
           </div>
           <div className="flex justify-end gap-3">
-            <button onClick={() => setShowUpload(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition">취소</button>
+            <button onClick={() => setShowUpload(false)} className="px-4 py-2 text-sm text-argos-muted hover:text-argos-ink transition">취소</button>
             <button
               onClick={handleUpload}
               disabled={!uploadFile || uploading}
-              className="px-6 py-2 bg-violet-600 hover:bg-violet-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg text-sm transition"
+              className="px-6 py-2 bg-violet-600 hover:bg-violet-500 disabled:bg-argos-chip/50 disabled:text-argos-faint text-white rounded-lg text-sm transition"
             >
               {uploading ? '업로드 중...' : '업로드'}
             </button>
@@ -281,26 +279,26 @@ export default function RegulatoryDocumentsPage() {
       {/* Search & Filters */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-argos-faint absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="문서 검색..."
-            className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-violet-500"
+            className="w-full bg-argos-surface border border-argos-border rounded-lg pl-10 pr-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-violet-500"
           />
         </div>
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-violet-500"
+          className="bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-violet-500"
         >
           {CATEGORY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
         <select
           value={filterRegion}
           onChange={(e) => setFilterRegion(e.target.value)}
-          className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-violet-500"
+          className="bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-violet-500"
         >
           {REGION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
@@ -313,21 +311,21 @@ export default function RegulatoryDocumentsPage() {
           {loading ? (
             <div className="space-y-3">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="bg-slate-800 rounded-xl p-4 border border-slate-700 animate-pulse">
-                  <div className="h-4 bg-slate-700 rounded w-3/4 mb-3" />
-                  <div className="h-3 bg-slate-700 rounded w-1/2" />
+                <div key={i} className="bg-argos-surface rounded-xl p-4 border border-argos-border animate-pulse">
+                  <div className="h-4 bg-argos-chip/50 rounded w-3/4 mb-3" />
+                  <div className="h-3 bg-argos-chip/50 rounded w-1/2" />
                 </div>
               ))}
             </div>
           ) : documents.length === 0 ? (
-            <div className="bg-slate-800 rounded-xl border border-slate-700 p-12 text-center">
-              <FileText className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-400">업로드된 문서가 없습니다</p>
-              <p className="text-xs text-slate-500 mt-1">ISO 10218, EU AI Act 등의 원문 PDF를 업로드하세요</p>
+            <div className="bg-argos-surface rounded-xl border border-argos-border p-12 text-center">
+              <FileText className="w-12 h-12 text-argos-faint mx-auto mb-3" />
+              <p className="text-argos-muted">업로드된 문서가 없습니다</p>
+              <p className="text-xs text-argos-faint mt-1">ISO 10218, EU AI Act 등의 원문 PDF를 업로드하세요</p>
             </div>
           ) : (
             <>
-              <p className="text-xs text-slate-500">{total}건의 문서</p>
+              <p className="text-xs text-argos-faint">{total}건의 문서</p>
               {documents.map((doc) => {
                 const CatIcon = CATEGORY_ICONS[doc.category] || FileText;
                 const isActive = viewingDoc?.id === doc.id;
@@ -337,25 +335,25 @@ export default function RegulatoryDocumentsPage() {
                 return (
                   <div
                     key={doc.id}
-                    className={`bg-slate-800 rounded-xl border p-4 transition cursor-pointer hover:border-slate-600 ${isActive ? 'border-violet-500/50 bg-violet-500/5' : 'border-slate-700'}`}
+                    className={`bg-argos-surface rounded-xl border p-4 transition cursor-pointer hover:border-argos-blue/30 ${isActive ? 'border-violet-500/50 bg-violet-500/5' : 'border-argos-border'}`}
                     onClick={() => isPdf ? openViewer(doc) : undefined}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isPdf ? 'bg-red-500/10' : 'bg-slate-700'}`}>
-                        {isPdf ? <FileText className="w-4 h-4 text-red-400" /> : <File className="w-4 h-4 text-slate-400" />}
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isPdf ? 'bg-red-500/10' : 'bg-argos-chip/50'}`}>
+                        {isPdf ? <FileText className="w-4 h-4 text-red-400" /> : <File className="w-4 h-4 text-argos-muted" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-200 truncate">{doc.title}</p>
+                        <p className="text-sm font-medium text-argos-inkSoft truncate">{doc.title}</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <CatIcon className="w-3 h-3 text-slate-500" />
-                          <span className="text-[10px] text-slate-500">{formatFileSize(doc.fileSize)}</span>
-                          <span className="text-[10px] text-slate-600">·</span>
-                          <span className="text-[10px] text-slate-500">
+                          <CatIcon className="w-3 h-3 text-argos-faint" />
+                          <span className="text-[10px] text-argos-faint">{formatFileSize(doc.fileSize)}</span>
+                          <span className="text-[10px] text-argos-faint">·</span>
+                          <span className="text-[10px] text-argos-faint">
                             {new Date(doc.createdAt).toLocaleDateString('ko-KR')}
                           </span>
                         </div>
                         {doc.description && (
-                          <p className="text-xs text-slate-500 mt-1 line-clamp-2">{doc.description}</p>
+                          <p className="text-xs text-argos-faint mt-1 line-clamp-2">{doc.description}</p>
                         )}
                         {/* Linked checklist items */}
                         {links.length > 0 && (
@@ -380,7 +378,7 @@ export default function RegulatoryDocumentsPage() {
                         {isPdf && (
                           <button
                             onClick={(e) => { e.stopPropagation(); openViewer(doc); }}
-                            className="p-1.5 text-slate-500 hover:text-violet-400 transition rounded-lg hover:bg-slate-700"
+                            className="p-1.5 text-argos-faint hover:text-violet-400 transition rounded-lg hover:bg-argos-bgAlt"
                             title="미리보기"
                           >
                             <Eye className="w-4 h-4" />
@@ -388,14 +386,14 @@ export default function RegulatoryDocumentsPage() {
                         )}
                         <button
                           onClick={(e) => { e.stopPropagation(); openLinkDialog(doc); }}
-                          className="p-1.5 text-slate-500 hover:text-blue-400 transition rounded-lg hover:bg-slate-700"
+                          className="p-1.5 text-argos-faint hover:text-blue-400 transition rounded-lg hover:bg-argos-bgAlt"
                           title="체크리스트 연결"
                         >
                           <Link2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); handleDelete(doc); }}
-                          className="p-1.5 text-slate-500 hover:text-red-400 transition rounded-lg hover:bg-slate-700"
+                          className="p-1.5 text-argos-faint hover:text-red-400 transition rounded-lg hover:bg-argos-bgAlt"
                           title="삭제"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -411,33 +409,33 @@ export default function RegulatoryDocumentsPage() {
 
         {/* PDF Viewer */}
         {viewingDoc && (
-          <div className={`bg-slate-900 rounded-xl border border-slate-700 overflow-hidden flex flex-col ${viewerFullscreen ? 'fixed inset-4 z-50' : 'h-[calc(100vh-200px)]'}`}>
+          <div className={`bg-argos-surface rounded-xl border border-argos-border overflow-hidden flex flex-col ${viewerFullscreen ? 'fixed inset-4 z-50' : 'h-[calc(100vh-200px)]'}`}>
             {/* Viewer header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 bg-slate-800 flex-shrink-0">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-argos-border bg-argos-surface flex-shrink-0">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-200 truncate">{viewingDoc.title}</p>
-                <p className="text-xs text-slate-500">{viewingDoc.filename}</p>
+                <p className="text-sm font-medium text-argos-inkSoft truncate">{viewingDoc.title}</p>
+                <p className="text-xs text-argos-faint">{viewingDoc.filename}</p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                 <a
                   href={api.regulatoryDocuments.getFileUrl(viewingDoc.id)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-1.5 text-slate-400 hover:text-slate-200 transition rounded-lg hover:bg-slate-700"
+                  className="p-1.5 text-argos-muted hover:text-argos-ink transition rounded-lg hover:bg-argos-bgAlt"
                   title="새 탭에서 열기"
                 >
                   <ExternalLink className="w-4 h-4" />
                 </a>
                 <button
                   onClick={() => setViewerFullscreen(!viewerFullscreen)}
-                  className="p-1.5 text-slate-400 hover:text-slate-200 transition rounded-lg hover:bg-slate-700"
+                  className="p-1.5 text-argos-muted hover:text-argos-ink transition rounded-lg hover:bg-argos-bgAlt"
                   title={viewerFullscreen ? '축소' : '전체 화면'}
                 >
                   {viewerFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                 </button>
                 <button
                   onClick={() => { setViewingDoc(null); setViewerFullscreen(false); }}
-                  className="p-1.5 text-slate-400 hover:text-slate-200 transition rounded-lg hover:bg-slate-700"
+                  className="p-1.5 text-argos-muted hover:text-argos-ink transition rounded-lg hover:bg-argos-bgAlt"
                   title="닫기"
                 >
                   <X className="w-4 h-4" />
@@ -453,14 +451,14 @@ export default function RegulatoryDocumentsPage() {
                   title={viewingDoc.title}
                 />
               ) : (
-                <div className="flex items-center justify-center h-full text-slate-500">
+                <div className="flex items-center justify-center h-full text-argos-faint">
                   <div className="text-center">
-                    <File className="w-12 h-12 mx-auto mb-3 text-slate-600" />
+                    <File className="w-12 h-12 mx-auto mb-3 text-argos-faint" />
                     <p>이 파일 형식은 미리보기를 지원하지 않습니다</p>
                     <a
                       href={api.regulatoryDocuments.getFileUrl(viewingDoc.id)}
                       download
-                      className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-slate-700 rounded-lg text-sm text-slate-300 hover:bg-slate-600 transition"
+                      className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-argos-chip/50 rounded-lg text-sm text-argos-inkSoft hover:bg-argos-bgAlt transition"
                     >
                       <ExternalLink className="w-4 h-4" /> 다운로드
                     </a>
@@ -475,26 +473,26 @@ export default function RegulatoryDocumentsPage() {
       {/* Link to Checklist Modal */}
       {linkingDoc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-lg mx-4 p-6 space-y-4">
+          <div className="bg-argos-surface rounded-xl border border-argos-border w-full max-w-lg mx-4 p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-argos-inkSoft flex items-center gap-2">
                 <Link2 className="w-4 h-4 text-blue-400" />
                 체크리스트 항목과 연결
               </h3>
-              <button onClick={() => setLinkingDoc(null)} className="text-slate-500 hover:text-slate-300">
+              <button onClick={() => setLinkingDoc(null)} className="text-argos-faint hover:text-argos-inkSoft">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-xs text-slate-400">
-              <span className="font-medium text-slate-300">{linkingDoc.title}</span> 문서를 체크리스트 항목과 연결합니다.
+            <p className="text-xs text-argos-muted">
+              <span className="font-medium text-argos-inkSoft">{linkingDoc.title}</span> 문서를 체크리스트 항목과 연결합니다.
             </p>
 
             <div>
-              <label className="text-xs text-slate-400 mb-1 block">체크리스트 항목 선택</label>
+              <label className="text-xs text-argos-muted mb-1 block">체크리스트 항목 선택</label>
               <select
                 value={selectedChecklistId}
                 onChange={(e) => setSelectedChecklistId(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500"
+                className="w-full bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-blue-500"
               >
                 <option value="">선택하세요...</option>
                 {checklistItems.map(item => (
@@ -507,33 +505,33 @@ export default function RegulatoryDocumentsPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-slate-400 mb-1 block">관련 페이지 (선택)</label>
+                <label className="text-xs text-argos-muted mb-1 block">관련 페이지 (선택)</label>
                 <input
                   type="text"
                   value={linkPages}
                   onChange={(e) => setLinkPages(e.target.value)}
                   placeholder="예: 45-52, 120"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-blue-500"
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-400 mb-1 block">메모 (선택)</label>
+                <label className="text-xs text-argos-muted mb-1 block">메모 (선택)</label>
                 <input
                   type="text"
                   value={linkNote}
                   onChange={(e) => setLinkNote(e.target.value)}
                   placeholder="예: 사이버보안 조항"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-blue-500"
                 />
               </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
-              <button onClick={() => setLinkingDoc(null)} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition">취소</button>
+              <button onClick={() => setLinkingDoc(null)} className="px-4 py-2 text-sm text-argos-muted hover:text-argos-ink transition">취소</button>
               <button
                 onClick={handleLink}
                 disabled={!selectedChecklistId}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg text-sm transition"
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-argos-chip/50 disabled:text-argos-faint text-white rounded-lg text-sm transition"
               >
                 연결
               </button>

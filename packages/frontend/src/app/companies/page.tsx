@@ -5,7 +5,8 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { CompanyCard } from '@/components/companies';
-import { 
+import { PageHeader } from '@/components/layout/PageHeader';
+import {
   Building2, Bot, Brain, Cpu, Cog, GraduationCap,
   ChevronRight, ChevronLeft, Search, Filter, Star, Package
 } from 'lucide-react';
@@ -87,10 +88,10 @@ export default function CompaniesPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['companies', filters, page, searchTerm],
-    queryFn: () => api.getCompanies({ 
+    queryFn: () => api.getCompanies({
       ...(categoryFromRole(filters.role) ? { category: categoryFromRole(filters.role) } : {}),
       ...(filters.country ? { country: filters.country } : {}),
-      page: String(page), 
+      page: String(page),
       pageSize: String(pageSize),
       ...(searchTerm ? { searchTerm } : {}),
     }),
@@ -170,184 +171,180 @@ export default function CompaniesPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-slate-950">
-        <div className="max-w-[1600px] mx-auto px-4 py-6">
-          {/* 헤더 */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              회사 데이터
-            </h1>
-            <p className="text-slate-400 mt-1">휴머노이드 로봇 관련 기업 목록 ({data?.total || 0}개)</p>
+      <div className="max-w-[1600px] mx-auto px-4 py-6">
+        <PageHeader
+          titleKo="회사 데이터"
+          titleEn="COMPANIES"
+          description={`휴머노이드 로봇 관련 기업 목록 (${data?.total || 0}개)`}
+        />
+
+        {/* 역할 기준 필터 탭 */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {ROLE_FILTERS.map((role) => {
+            const Icon = role.icon;
+            const isSelected = filters.role === role.id;
+            return (
+              <button
+                key={role.id}
+                onClick={() => handleFilterChange('role', role.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
+                  isSelected
+                    ? 'bg-blue-500/20 text-blue-400 border-blue-500/50'
+                    : 'bg-argos-surface border-argos-borderSoft text-argos-muted hover:border-argos-blue/30'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span className="font-medium text-sm">{role.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 검색 및 추가 필터 */}
+        <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-4 mb-6">
+          <div className="flex flex-wrap gap-3 items-center">
+            {/* 검색 */}
+            <div className="relative flex-1 min-w-[200px] max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-argos-faint" />
+              <input
+                type="text"
+                placeholder="회사명 검색..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full pl-10 pr-4 py-2 bg-white border border-argos-border rounded-lg text-argos-ink placeholder-argos-faint focus:ring-2 focus:ring-argos-blue focus:border-argos-blue text-sm"
+              />
+            </div>
+
+            {/* 세그먼트 필터 */}
+            <select
+              value={filters.segment}
+              onChange={(e) => handleFilterChange('segment', e.target.value)}
+              className="px-3 py-2 bg-white border border-argos-border rounded-lg text-argos-inkSoft focus:ring-2 focus:ring-argos-blue text-sm"
+            >
+              {SEGMENT_FILTERS.map(seg => (
+                <option key={seg.id} value={seg.id}>{seg.label}</option>
+              ))}
+            </select>
+
+            {/* 국가 필터 */}
+            <select
+              value={filters.country}
+              onChange={(e) => handleFilterChange('country', e.target.value)}
+              className="px-3 py-2 bg-white border border-argos-border rounded-lg text-argos-inkSoft focus:ring-2 focus:ring-argos-blue text-sm"
+            >
+              {COUNTRIES.map(c => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
+            </select>
+
+            {/* 정렬 */}
+            <select
+              value={filters.sortBy}
+              onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+              className="px-3 py-2 bg-white border border-argos-border rounded-lg text-argos-inkSoft focus:ring-2 focus:ring-argos-blue text-sm"
+            >
+              {SORT_OPTIONS.map(opt => (
+                <option key={opt.id} value={opt.id}>{opt.label}</option>
+              ))}
+            </select>
           </div>
 
-          {/* 역할 기준 필터 탭 */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            {ROLE_FILTERS.map((role) => {
-              const Icon = role.icon;
-              const isSelected = filters.role === role.id;
+          {/* 토글 옵션 */}
+          <div className="flex gap-4 mt-3 pt-3 border-t border-argos-borderSoft">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showKeyPlayersOnly}
+                onChange={(e) => setShowKeyPlayersOnly(e.target.checked)}
+                className="rounded border-argos-border bg-white text-blue-500 focus:ring-argos-blue"
+              />
+              <Star className="w-4 h-4 text-yellow-500" />
+              <span className="text-sm text-argos-muted">핵심 플레이어만</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={groupByRole}
+                onChange={(e) => setGroupByRole(e.target.checked)}
+                className="rounded border-argos-border bg-white text-blue-500 focus:ring-argos-blue"
+              />
+              <Filter className="w-4 h-4 text-argos-faint" />
+              <span className="text-sm text-argos-muted">역할별 그룹핑</span>
+            </label>
+          </div>
+        </div>
+
+        {/* 로딩 */}
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+          </div>
+        ) : groupByRole && groupedCompanies ? (
+          // 그룹핑된 뷰
+          <div className="space-y-8">
+            {Object.entries(groupedCompanies).map(([groupKey, companies]) => {
+              if (companies.length === 0) return null;
+              const groupInfo = GROUP_LABELS[groupKey] || { label: groupKey, icon: '' };
               return (
-                <button
-                  key={role.id}
-                  onClick={() => handleFilterChange('role', role.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
-                    isSelected 
-                      ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' 
-                      : 'bg-slate-800/50 border-slate-700/50 text-slate-400 hover:border-slate-600'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="font-medium text-sm">{role.label}</span>
-                </button>
+                <div key={groupKey}>
+                  <h2 className="text-lg font-semibold text-argos-ink mb-4 flex items-center gap-2">
+                    <span>{groupInfo.icon}</span>
+                    {groupInfo.label}
+                    <span className="text-sm font-normal text-argos-faint">({companies.length})</span>
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {companies.map((company: any) => (
+                      <CompanyCard key={company.id} company={company} />
+                    ))}
+                  </div>
+                </div>
               );
             })}
           </div>
-
-          {/* 검색 및 추가 필터 */}
-          <div className="bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 p-4 mb-6">
-            <div className="flex flex-wrap gap-3 items-center">
-              {/* 검색 */}
-              <div className="relative flex-1 min-w-[200px] max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input
-                  type="text"
-                  placeholder="회사명 검색..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setPage(1);
-                  }}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                />
-              </div>
-
-              {/* 세그먼트 필터 */}
-              <select
-                value={filters.segment}
-                onChange={(e) => handleFilterChange('segment', e.target.value)}
-                className="px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-300 focus:ring-2 focus:ring-blue-500 text-sm"
-              >
-                {SEGMENT_FILTERS.map(seg => (
-                  <option key={seg.id} value={seg.id}>{seg.label}</option>
-                ))}
-              </select>
-
-              {/* 국가 필터 */}
-              <select
-                value={filters.country}
-                onChange={(e) => handleFilterChange('country', e.target.value)}
-                className="px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-300 focus:ring-2 focus:ring-blue-500 text-sm"
-              >
-                {COUNTRIES.map(c => (
-                  <option key={c.id} value={c.id}>{c.label}</option>
-                ))}
-              </select>
-
-              {/* 정렬 */}
-              <select
-                value={filters.sortBy}
-                onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-                className="px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-300 focus:ring-2 focus:ring-blue-500 text-sm"
-              >
-                {SORT_OPTIONS.map(opt => (
-                  <option key={opt.id} value={opt.id}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* 토글 옵션 */}
-            <div className="flex gap-4 mt-3 pt-3 border-t border-slate-700/50">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showKeyPlayersOnly}
-                  onChange={(e) => setShowKeyPlayersOnly(e.target.checked)}
-                  className="rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500"
-                />
-                <Star className="w-4 h-4 text-yellow-500" />
-                <span className="text-sm text-slate-400">핵심 플레이어만</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={groupByRole}
-                  onChange={(e) => setGroupByRole(e.target.checked)}
-                  className="rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500"
-                />
-                <Filter className="w-4 h-4 text-slate-500" />
-                <span className="text-sm text-slate-400">역할별 그룹핑</span>
-              </label>
-            </div>
+        ) : (
+          // 일반 그리드 뷰
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {enrichedCompanies.map((company: any) => (
+              <CompanyCard key={company.id} company={company} />
+            ))}
           </div>
+        )}
 
-          {/* 로딩 */}
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-            </div>
-          ) : groupByRole && groupedCompanies ? (
-            // 그룹핑된 뷰
-            <div className="space-y-8">
-              {Object.entries(groupedCompanies).map(([groupKey, companies]) => {
-                if (companies.length === 0) return null;
-                const groupInfo = GROUP_LABELS[groupKey] || { label: groupKey, icon: '' };
-                return (
-                  <div key={groupKey}>
-                    <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                      <span>{groupInfo.icon}</span>
-                      {groupInfo.label}
-                      <span className="text-sm font-normal text-slate-500">({companies.length})</span>
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {companies.map((company: any) => (
-                        <CompanyCard key={company.id} company={company} />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            // 일반 그리드 뷰
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {enrichedCompanies.map((company: any) => (
-                <CompanyCard key={company.id} company={company} />
-              ))}
-            </div>
-          )}
+        {enrichedCompanies.length === 0 && !isLoading && (
+          <div className="text-center py-12 text-argos-faint">
+            {searchTerm
+              ? `"${searchTerm}" 검색 결과가 없습니다.`
+              : filters.role
+                ? '해당 역할에 등록된 회사가 없습니다.'
+                : '등록된 회사가 없습니다.'}
+          </div>
+        )}
 
-          {enrichedCompanies.length === 0 && !isLoading && (
-            <div className="text-center py-12 text-slate-500">
-              {searchTerm 
-                ? `"${searchTerm}" 검색 결과가 없습니다.` 
-                : filters.role 
-                  ? '해당 역할에 등록된 회사가 없습니다.' 
-                  : '등록된 회사가 없습니다.'}
-            </div>
-          )}
-
-          {/* 페이지네이션 */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-8">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="p-2 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700/50 transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <span className="px-4 py-2 text-sm text-slate-400">
-                {page} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="p-2 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700/50 transition-colors"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
-          )}
-        </div>
+        {/* 페이지네이션 */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-8">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="p-2 rounded-lg bg-argos-surface border border-argos-borderSoft text-argos-muted disabled:opacity-50 disabled:cursor-not-allowed hover:bg-argos-bgAlt transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <span className="px-4 py-2 text-sm text-argos-muted">
+              {page} / {totalPages}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="p-2 rounded-lg bg-argos-surface border border-argos-borderSoft text-argos-muted disabled:opacity-50 disabled:cursor-not-allowed hover:bg-argos-bgAlt transition-colors"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        )}
       </div>
     </AuthGuard>
   );

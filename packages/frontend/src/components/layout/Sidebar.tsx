@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import {
   Search,
   Settings,
-  TrendingUp,
   Bot,
   FileText,
   Presentation,
@@ -17,11 +16,9 @@ import {
   Radar,
   Table2,
   Target,
-  BookOpen,
   Globe,
   List,
   Zap,
-  Shield,
   LayoutDashboard,
   Bell,
   CheckSquare,
@@ -38,12 +35,14 @@ interface NavItem {
 
 interface NavGroup {
   title: string;
+  subtitle?: string;
   items: NavItem[];
 }
 
 const navigationGroups: NavGroup[] = [
   {
     title: '로봇리스트',
+    subtitle: 'Robot Registry',
     items: [
       { name: '타임라인 기반', href: '/robot-evolution', icon: GitBranch },
       { name: '리스트 기반', href: '/humanoid-robots', icon: List },
@@ -51,6 +50,7 @@ const navigationGroups: NavGroup[] = [
   },
   {
     title: '경쟁비교',
+    subtitle: 'Competitive Compare',
     items: [
       { name: '레이더 차트', href: '/humanoid-trend', icon: Radar },
       { name: '항목별 비교', href: '/compare/matrix', icon: Table2 },
@@ -60,6 +60,7 @@ const navigationGroups: NavGroup[] = [
   },
   {
     title: '정보 수집',
+    subtitle: 'Intelligence Feed',
     items: [
       { name: 'AI 활용 / 기사 입력', href: '/insight-pipeline', icon: FlaskConical },
       { name: '국내 국책과제 검색', href: '/national-projects', icon: Globe },
@@ -68,6 +69,7 @@ const navigationGroups: NavGroup[] = [
   },
   {
     title: '컴플라이언스',
+    subtitle: 'Compliance',
     items: [
       { name: '규제 대시보드', href: '/compliance', icon: LayoutDashboard },
       { name: '규제 업데이트 피드', href: '/compliance/updates', icon: Bell },
@@ -78,12 +80,14 @@ const navigationGroups: NavGroup[] = [
   },
   {
     title: '검색',
+    subtitle: 'Search',
     items: [
       { name: '사이트 내 검색', href: '/search', icon: Search },
     ],
   },
   {
     title: '관리',
+    subtitle: 'Administration',
     items: [
       { name: '관리자 설정', href: '/admin', icon: Settings },
     ],
@@ -97,35 +101,39 @@ export function Sidebar() {
   const toggleGroup = (title: string) => {
     setCollapsedGroups(prev => {
       const next = new Set(prev);
-      if (next.has(title)) {
-        next.delete(title);
-      } else {
-        next.add(title);
-      }
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
       return next;
     });
   };
 
   return (
-    <aside className="w-64 bg-slate-900 min-h-screen flex flex-col border-r border-slate-700">
-      {/* Logo */}
-      <div className="p-4 border-b border-slate-700">
-        <Link href="/robot-evolution" className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Bot className="w-6 h-6 text-white" />
+    <aside className="w-64 bg-argos-surface min-h-screen flex flex-col border-r border-argos-border">
+      {/* Logo Block */}
+      <div className="px-5 pt-5 pb-6 border-b border-argos-border">
+        <Link href="/robot-evolution" className="flex items-start gap-3">
+          <div className="w-11 h-11 bg-argos-navy rounded-lg flex items-center justify-center shrink-0">
+            <Bot className="w-5 h-5 text-white" strokeWidth={2.25} />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-slate-200 tracking-tight">ARGOS</h1>
-              <span className="text-[9px] font-semibold bg-cyan-500/15 text-cyan-400 px-1.5 py-0.5 rounded-md border border-cyan-500/20">AWE 2026</span>
+          <div className="flex-1 min-w-0 pt-0.5">
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-[17px] font-extrabold text-argos-ink tracking-tight leading-none">ARGOS</h1>
+              <span className="text-[9px] font-bold bg-argos-chip text-argos-chipInk px-1.5 py-0.5 rounded tracking-wider">
+                AWE 2026
+              </span>
             </div>
-            <p className="text-[11px] text-slate-400 leading-tight">Autonomous Robot Global Observatory System</p>
+            <p className="text-[10px] font-semibold text-argos-muted uppercase tracking-[0.14em] mt-1 leading-tight">
+              Robot Intelligence
+            </p>
+            <p className="text-[9px] text-argos-faint leading-tight mt-0.5">
+              MODE v4.2
+            </p>
           </div>
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-3 space-y-4">
+      <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-5">
         {navigationGroups.map((group) => {
           const isCollapsed = collapsedGroups.has(group.title);
           const hasActiveItem = group.items.some(
@@ -138,22 +146,32 @@ export function Sidebar() {
               {/* Group Header */}
               <button
                 onClick={() => toggleGroup(group.title)}
-                className={cn(
-                  'w-full flex items-center justify-between px-2 py-1.5 text-xs font-medium uppercase tracking-wider rounded transition-colors',
-                  hasActiveItem ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'
-                )}
+                className="w-full flex items-center justify-between px-2 py-1 group"
               >
-                <span>{group.title}</span>
+                <div className="flex flex-col items-start">
+                  <span className={cn(
+                    'text-[10px] font-bold uppercase tracking-[0.16em]',
+                    hasActiveItem ? 'text-argos-blue' : 'text-argos-faint'
+                  )}>
+                    {group.subtitle}
+                  </span>
+                  <span className={cn(
+                    'text-[11px] font-semibold mt-0.5',
+                    hasActiveItem ? 'text-argos-ink' : 'text-argos-inkSoft group-hover:text-argos-ink'
+                  )}>
+                    {group.title}
+                  </span>
+                </div>
                 {isCollapsed ? (
-                  <ChevronRight className="w-3 h-3" />
+                  <ChevronRight className="w-3.5 h-3.5 text-argos-faint" />
                 ) : (
-                  <ChevronDown className="w-3 h-3" />
+                  <ChevronDown className="w-3.5 h-3.5 text-argos-faint" />
                 )}
               </button>
 
               {/* Group Items */}
               {!isCollapsed && (
-                <div className="mt-1 space-y-0.5">
+                <div className="mt-2 space-y-0.5">
                   {group.items.map((item) => {
                     const isActive = pathname === item.href ||
                       (item.href !== '/' && pathname.startsWith(item.href));
@@ -163,13 +181,24 @@ export function Sidebar() {
                         key={item.name}
                         href={item.href}
                         className={cn(
-                          'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all',
+                          'relative flex items-center gap-2.5 pl-4 pr-3 py-2 rounded-lg text-[13px] font-medium transition-all',
                           isActive
-                            ? 'bg-blue-600/20 text-blue-400 border-l-2 border-blue-500'
-                            : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                            ? 'bg-argos-chip text-argos-blue'
+                            : 'text-argos-inkSoft hover:bg-argos-bgAlt hover:text-argos-ink'
                         )}
                       >
-                        {item.icon && <item.icon className="w-4 h-4 shrink-0" />}
+                        {isActive && (
+                          <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r bg-argos-blue" />
+                        )}
+                        {item.icon && (
+                          <item.icon
+                            className={cn(
+                              'w-[15px] h-[15px] shrink-0',
+                              isActive ? 'text-argos-blue' : 'text-argos-muted'
+                            )}
+                            strokeWidth={isActive ? 2.25 : 2}
+                          />
+                        )}
                         <span className="truncate">{item.name}</span>
                       </Link>
                     );
@@ -181,17 +210,12 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-slate-700">
-        <div className="flex items-center gap-3 px-2">
-          <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
-            <span className="text-xs text-slate-300"></span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-slate-200 truncate">사용자</p>
-            <p className="text-xs text-slate-500">Admin</p>
-          </div>
-        </div>
+      {/* Footer — Generate Report CTA */}
+      <div className="p-4 border-t border-argos-border">
+        <button className="w-full flex items-center justify-center gap-2 bg-argos-navy hover:bg-argos-navyDark text-white text-[12px] font-semibold py-2.5 rounded-lg transition-colors tracking-wide">
+          <FileText className="w-3.5 h-3.5" />
+          Generate Report
+        </button>
       </div>
     </aside>
   );

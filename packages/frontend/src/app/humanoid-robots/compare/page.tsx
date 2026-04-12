@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import Link from 'next/link';
 import { ArrowLeft, Plus, X, Check, Minus } from 'lucide-react';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 export default function RobotComparePage() {
   const searchParams = useSearchParams();
@@ -54,17 +55,17 @@ export default function RobotComparePage() {
     if (!spec) return '-';
     const value = spec[field];
     if (value === null || value === undefined) return '-';
-    if (typeof value === 'boolean') return value ? <Check className="w-4 h-4 text-green-400 inline" /> : <Minus className="w-4 h-4 text-slate-500 inline" />;
+    if (typeof value === 'boolean') return value ? <Check className="w-4 h-4 text-green-400 inline" /> : <Minus className="w-4 h-4 text-argos-faint inline" />;
     return value;
   };
 
   const renderComparisonRow = (label: string, getValue: (robot: any) => any) => {
     if (!robotDetails || robotDetails.length === 0) return null;
     return (
-      <tr className="border-b border-slate-700/50">
-        <td className="py-3 px-4 font-medium text-slate-300 bg-slate-800/50">{label}</td>
+      <tr className="border-b border-argos-borderSoft">
+        <td className="py-3 px-4 font-medium text-argos-inkSoft bg-argos-surface">{label}</td>
         {robotDetails.map((robot: any) => (
-          <td key={robot.id} className="py-3 px-4 text-center text-slate-200">
+          <td key={robot.id} className="py-3 px-4 text-center text-argos-ink">
             {getValue(robot) ?? '-'}
           </td>
         ))}
@@ -74,38 +75,37 @@ export default function RobotComparePage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-slate-950">
+      <div className="min-h-screen">
         <div className="max-w-[1600px] mx-auto px-4 py-6">
-          {/* 헤더 */}
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-                로봇 비교
-              </h1>
-              <p className="text-slate-400 mt-1">최대 4개의 로봇을 선택하여 스펙을 비교하세요</p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowSelector(!showSelector)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                {showSelector ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                {showSelector ? '선택 완료' : '로봇 선택'}
-              </button>
-              <Link
-                href="/humanoid-robots"
-                className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-slate-200 rounded-lg hover:bg-slate-600 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                카탈로그
-              </Link>
-            </div>
-          </div>
+          <PageHeader
+            module="TELEMETRY MODULE V4.2"
+            titleKo="로봇 비교"
+            titleEn="COMPARE"
+            description="선택한 로봇 간 스펙 비교"
+            actions={
+              <>
+                <button
+                  onClick={() => setShowSelector(!showSelector)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  {showSelector ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                  {showSelector ? '선택 완료' : '로봇 선택'}
+                </button>
+                <Link
+                  href="/humanoid-robots"
+                  className="flex items-center gap-2 px-4 py-2 bg-argos-chip/50 text-argos-ink rounded-lg hover:bg-argos-bgAlt transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  카탈로그
+                </Link>
+              </>
+            }
+          />
 
           {/* 로봇 선택 패널 */}
           {showSelector && (
-            <div className="bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 p-5 mb-6">
-              <h2 className="text-lg font-semibold text-white mb-4">비교할 로봇 선택 (최대 4개)</h2>
+            <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-5 mb-6">
+              <h2 className="text-lg font-semibold text-argos-ink mb-4">비교할 로봇 선택 (최대 4개)</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 {allRobots?.items?.map((robot: any) => (
                   <button
@@ -114,12 +114,12 @@ export default function RobotComparePage() {
                     className={`p-3 rounded-lg border text-left transition-all ${
                       selectedIds.includes(robot.id)
                         ? 'border-blue-500 bg-blue-500/20'
-                        : 'border-slate-700 hover:border-slate-600 bg-slate-900/50'
+                        : 'border-argos-border hover:border-argos-blue/30 bg-argos-surface'
                     } ${selectedIds.length >= 4 && !selectedIds.includes(robot.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
                     disabled={selectedIds.length >= 4 && !selectedIds.includes(robot.id)}
                   >
-                    <div className="font-medium text-sm text-white truncate">{robot.name}</div>
-                    <div className="text-xs text-slate-500 truncate">{robot.companyName}</div>
+                    <div className="font-medium text-sm text-argos-ink truncate">{robot.name}</div>
+                    <div className="text-xs text-argos-faint truncate">{robot.companyName}</div>
                   </button>
                 ))}
               </div>
@@ -128,25 +128,25 @@ export default function RobotComparePage() {
 
           {/* 비교 테이블 */}
           {selectedIds.length === 0 ? (
-            <div className="bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 p-12 text-center">
-              <p className="text-slate-500">비교할 로봇을 선택해주세요</p>
+            <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-12 text-center">
+              <p className="text-argos-faint">비교할 로봇을 선택해주세요</p>
             </div>
           ) : isLoading ? (
-            <div className="bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 p-12 text-center">
+            <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-12 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
             </div>
           ) : (
-            <div className="bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 overflow-hidden">
+            <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-slate-800">
-                      <th className="py-4 px-4 text-left font-medium text-slate-400 w-48">항목</th>
+                    <tr className="bg-argos-surface">
+                      <th className="py-4 px-4 text-left font-medium text-argos-muted w-48">항목</th>
                       {robotDetails?.map((robot: any) => (
                         <th key={robot.id} className="py-4 px-4 text-center min-w-[200px]">
                           <Link href={`/humanoid-robots/${robot.id}`} className="hover:text-blue-400 transition-colors">
-                            <div className="font-bold text-white">{robot.name}</div>
-                            <div className="text-sm text-slate-500 font-normal">{robot.company?.name}</div>
+                            <div className="font-bold text-argos-ink">{robot.name}</div>
+                            <div className="text-sm text-argos-faint font-normal">{robot.company?.name}</div>
                           </Link>
                         </th>
                       ))}

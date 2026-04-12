@@ -23,7 +23,12 @@
       "WebSearch",
       "WebFetch",
       "Read",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(env)",
+      "Bash(cat ../../.env)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(kill %1)",
+      "Read(//workspacesp/Robot-Competitive-Intelligence-Portal/packages/backend/src/db/**)"
     ]
   }
 }
