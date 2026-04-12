@@ -5,29 +5,29 @@ import { Bot } from 'lucide-react';
 
 // Company-specific gradient colors for visually distinctive fallbacks
 const COMPANY_GRADIENTS: Record<string, { from: string; to: string; accent: string }> = {
-  'Tesla':              { from: 'from-red-900/60',    to: 'to-red-950/80',    accent: 'text-red-400' },
-  'Boston Dynamics':    { from: 'from-yellow-900/60', to: 'to-yellow-950/80', accent: 'text-yellow-400' },
-  'Agility Robotics':  { from: 'from-teal-900/60',   to: 'to-teal-950/80',   accent: 'text-teal-400' },
-  'Figure AI':         { from: 'from-blue-900/60',    to: 'to-blue-950/80',   accent: 'text-blue-400' },
-  '1X Technologies':   { from: 'from-violet-900/60',  to: 'to-violet-950/80', accent: 'text-violet-400' },
-  'Unitree Robotics':  { from: 'from-emerald-900/60', to: 'to-emerald-950/80',accent: 'text-emerald-400' },
-  'UBTECH':            { from: 'from-sky-900/60',     to: 'to-sky-950/80',    accent: 'text-sky-400' },
-  'Xiaomi':            { from: 'from-orange-900/60',  to: 'to-orange-950/80', accent: 'text-orange-400' },
-  'Fourier Intelligence':{ from: 'from-cyan-900/60',  to: 'to-cyan-950/80',   accent: 'text-cyan-400' },
-  'Sanctuary AI':      { from: 'from-purple-900/60',  to: 'to-purple-950/80', accent: 'text-purple-400' },
-  'Toyota':            { from: 'from-rose-900/60',    to: 'to-rose-950/80',   accent: 'text-rose-400' },
-  'Honda':             { from: 'from-red-900/60',     to: 'to-slate-950/80',  accent: 'text-red-300' },
-  'SoftBank Robotics': { from: 'from-pink-900/60',    to: 'to-pink-950/80',   accent: 'text-pink-400' },
-  'Aeolus Robotics':   { from: 'from-indigo-900/60',  to: 'to-indigo-950/80', accent: 'text-indigo-400' },
-  'Diligent Robotics':{ from: 'from-lime-900/60',    to: 'to-lime-950/80',   accent: 'text-lime-400' },
-  'PAL Robotics':      { from: 'from-amber-900/60',   to: 'to-amber-950/80',  accent: 'text-amber-400' },
-  'Savioke':           { from: 'from-fuchsia-900/60', to: 'to-fuchsia-950/80',accent: 'text-fuchsia-400' },
-  'Rainbow Robotics':  { from: 'from-blue-900/60',    to: 'to-purple-950/80', accent: 'text-blue-300' },
-  'Agibot':            { from: 'from-green-900/60',   to: 'to-green-950/80',  accent: 'text-green-400' },
-  'Apptronik':         { from: 'from-slate-800/60',   to: 'to-blue-950/80',   accent: 'text-blue-300' },
+  'Tesla':              { from: 'from-red-50',    to: 'to-red-100',    accent: 'text-red-500' },
+  'Boston Dynamics':    { from: 'from-yellow-50', to: 'to-yellow-100', accent: 'text-yellow-600' },
+  'Agility Robotics':  { from: 'from-teal-50',   to: 'to-teal-100',   accent: 'text-teal-600' },
+  'Figure AI':         { from: 'from-blue-50',    to: 'to-blue-100',   accent: 'text-blue-600' },
+  '1X Technologies':   { from: 'from-violet-50',  to: 'to-violet-100', accent: 'text-violet-600' },
+  'Unitree Robotics':  { from: 'from-emerald-50', to: 'to-emerald-100',accent: 'text-emerald-600' },
+  'UBTECH':            { from: 'from-sky-50',     to: 'to-sky-100',    accent: 'text-sky-600' },
+  'Xiaomi':            { from: 'from-orange-50',  to: 'to-orange-100', accent: 'text-orange-600' },
+  'Fourier Intelligence':{ from: 'from-cyan-50',  to: 'to-cyan-100',   accent: 'text-cyan-600' },
+  'Sanctuary AI':      { from: 'from-purple-50',  to: 'to-purple-100', accent: 'text-purple-600' },
+  'Toyota':            { from: 'from-rose-50',    to: 'to-rose-100',   accent: 'text-rose-500' },
+  'Honda':             { from: 'from-red-50',     to: 'to-slate-100',  accent: 'text-red-500' },
+  'SoftBank Robotics': { from: 'from-pink-50',    to: 'to-pink-100',   accent: 'text-pink-500' },
+  'Aeolus Robotics':   { from: 'from-indigo-50',  to: 'to-indigo-100', accent: 'text-indigo-600' },
+  'Diligent Robotics':{ from: 'from-lime-50',    to: 'to-lime-100',   accent: 'text-lime-600' },
+  'PAL Robotics':      { from: 'from-amber-50',   to: 'to-amber-100',  accent: 'text-amber-600' },
+  'Savioke':           { from: 'from-fuchsia-50', to: 'to-fuchsia-100',accent: 'text-fuchsia-500' },
+  'Rainbow Robotics':  { from: 'from-blue-50',    to: 'to-purple-100', accent: 'text-blue-500' },
+  'Agibot':            { from: 'from-green-50',   to: 'to-green-100',  accent: 'text-green-600' },
+  'Apptronik':         { from: 'from-slate-50',   to: 'to-blue-100',   accent: 'text-blue-500' },
 };
 
-const DEFAULT_GRADIENT = { from: 'from-slate-800/60', to: 'to-slate-900/80', accent: 'text-slate-400' };
+const DEFAULT_GRADIENT = { from: 'from-slate-50', to: 'to-slate-100', accent: 'text-argos-muted' };
 
 function getCompanyGradient(companyName: string) {
   return COMPANY_GRADIENTS[companyName] || DEFAULT_GRADIENT;
@@ -72,7 +72,7 @@ export function RobotImage({ imageUrl, robotName, companyName, size = 'md', clas
 
   if (imageUrl && !imgError) {
     return (
-      <div className={`${sizeClasses[size]} overflow-hidden flex items-center justify-center bg-slate-800/80 ${className}`}>
+      <div className={`${sizeClasses[size]} overflow-hidden flex items-center justify-center bg-argos-bgAlt ${className}`}>
         <img
           src={imageUrl}
           alt={robotName}

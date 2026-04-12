@@ -29,11 +29,11 @@ interface RobotTableViewProps {
 }
 
 const STAGE_CONFIG: Record<string, { label: string; bgColor: string; textColor: string }> = {
-  concept: { label: '개념', bgColor: 'bg-slate-500/20', textColor: 'text-slate-400' },
-  prototype: { label: '프로토타입', bgColor: 'bg-blue-500/20', textColor: 'text-blue-400' },
-  poc: { label: 'PoC', bgColor: 'bg-yellow-500/20', textColor: 'text-yellow-400' },
-  pilot: { label: '파일럿', bgColor: 'bg-orange-500/20', textColor: 'text-orange-400' },
-  commercial: { label: '상용화', bgColor: 'bg-green-500/20', textColor: 'text-green-400' },
+  concept: { label: '개념', bgColor: 'bg-slate-500/10', textColor: 'text-argos-muted' },
+  prototype: { label: '프로토타입', bgColor: 'bg-blue-500/10', textColor: 'text-argos-blue' },
+  poc: { label: 'PoC', bgColor: 'bg-yellow-500/10', textColor: 'text-yellow-600' },
+  pilot: { label: '파일럿', bgColor: 'bg-orange-500/10', textColor: 'text-orange-600' },
+  commercial: { label: '상용화', bgColor: 'bg-green-500/10', textColor: 'text-green-600' },
 };
 
 const PURPOSE_LABELS: Record<string, string> = {
@@ -50,37 +50,37 @@ const LOCOMOTION_LABELS: Record<string, string> = {
 
 export function RobotTableView({ robots, selectedIds, onSelect, showCheckbox }: RobotTableViewProps) {
   return (
-    <div className="bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 overflow-hidden">
+    <div className="bg-argos-surface rounded-xl border border-argos-border shadow-argos-card overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-slate-800">
+          <thead className="bg-argos-bgAlt">
             <tr>
               {showCheckbox && (
                 <th className="p-3 text-left w-10">
                   <span className="sr-only">선택</span>
                 </th>
               )}
-              <th className="p-3 text-left text-xs font-medium text-slate-400">제품명</th>
-              <th className="p-3 text-left text-xs font-medium text-slate-400">제조사</th>
-              <th className="p-3 text-left text-xs font-medium text-slate-400">단계</th>
-              <th className="p-3 text-left text-xs font-medium text-slate-400">용도</th>
-              <th className="p-3 text-left text-xs font-medium text-slate-400">이동</th>
-              <th className="p-3 text-right text-xs font-medium text-slate-400">적재(kg)</th>
-              <th className="p-3 text-right text-xs font-medium text-slate-400">가격(USD)</th>
-              <th className="p-3 text-right text-xs font-medium text-slate-400">발표</th>
-              <th className="p-3 text-right text-xs font-medium text-slate-400">사례</th>
+              <th className="p-3 text-left text-xs font-medium text-argos-muted">제품명</th>
+              <th className="p-3 text-left text-xs font-medium text-argos-muted">제조사</th>
+              <th className="p-3 text-left text-xs font-medium text-argos-muted">단계</th>
+              <th className="p-3 text-left text-xs font-medium text-argos-muted">용도</th>
+              <th className="p-3 text-left text-xs font-medium text-argos-muted">이동</th>
+              <th className="p-3 text-right text-xs font-medium text-argos-muted">적재(kg)</th>
+              <th className="p-3 text-right text-xs font-medium text-argos-muted">가격(USD)</th>
+              <th className="p-3 text-right text-xs font-medium text-argos-muted">발표</th>
+              <th className="p-3 text-right text-xs font-medium text-argos-muted">사례</th>
             </tr>
           </thead>
           <tbody>
             {robots.map((robot, idx) => {
               const stageConfig = STAGE_CONFIG[robot.stage] || STAGE_CONFIG.concept;
               const isSelected = selectedIds.includes(robot.id);
-              
+
               return (
                 <tr
                   key={robot.id}
-                  className={`border-t border-slate-700/50 hover:bg-slate-700/30 transition-colors ${
-                    idx % 2 === 0 ? 'bg-slate-800/20' : ''
+                  className={`border-t border-argos-borderSoft hover:bg-argos-bgAlt/50 transition-colors ${
+                    idx % 2 === 0 ? 'bg-argos-surface' : 'bg-argos-bg/30'
                   }`}
                 >
                   {showCheckbox && (
@@ -89,19 +89,19 @@ export function RobotTableView({ robots, selectedIds, onSelect, showCheckbox }: 
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => onSelect(robot.id)}
-                        className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+                        className="w-4 h-4 rounded border-argos-border bg-argos-surface text-argos-blue focus:ring-argos-blue"
                       />
                     </td>
                   )}
                   <td className="p-3">
                     <Link
                       href={`/humanoid-robots/${robot.id}`}
-                      className="text-sm font-medium text-white hover:text-blue-400 transition-colors"
+                      className="text-sm font-medium text-argos-ink hover:text-argos-blue transition-colors"
                     >
                       {robot.name}
                     </Link>
                   </td>
-                  <td className="p-3 text-sm text-slate-400">
+                  <td className="p-3 text-sm text-argos-muted">
                     {robot.companyName || robot.company?.name || '-'}
                   </td>
                   <td className="p-3">
@@ -109,22 +109,22 @@ export function RobotTableView({ robots, selectedIds, onSelect, showCheckbox }: 
                       {stageConfig.label}
                     </span>
                   </td>
-                  <td className="p-3 text-sm text-slate-400">
+                  <td className="p-3 text-sm text-argos-muted">
                     {PURPOSE_LABELS[robot.purpose] || robot.purpose}
                   </td>
-                  <td className="p-3 text-sm text-slate-400">
+                  <td className="p-3 text-sm text-argos-muted">
                     {LOCOMOTION_LABELS[robot.locomotionType] || robot.locomotionType}
                   </td>
-                  <td className="p-3 text-sm text-slate-300 text-right">
+                  <td className="p-3 text-sm text-argos-inkSoft text-right">
                     {robot.payload ?? '-'}
                   </td>
-                  <td className="p-3 text-sm text-slate-300 text-right">
+                  <td className="p-3 text-sm text-argos-inkSoft text-right">
                     {robot.listPrice ? `~${(robot.listPrice / 1000).toFixed(0)}K` : '-'}
                   </td>
-                  <td className="p-3 text-sm text-slate-400 text-right">
+                  <td className="p-3 text-sm text-argos-muted text-right">
                     {robot.announcedYear ?? '-'}
                   </td>
-                  <td className="p-3 text-sm text-slate-400 text-right">
+                  <td className="p-3 text-sm text-argos-muted text-right">
                     {robot.applicationCaseCount ?? 0}
                   </td>
                 </tr>

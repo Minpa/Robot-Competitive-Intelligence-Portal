@@ -31,18 +31,18 @@ interface HumanoidRobotCardProps {
 }
 
 const STAGE_CONFIG: Record<string, { label: string; bgColor: string; textColor: string }> = {
-  concept: { label: '개념', bgColor: 'bg-slate-500/20', textColor: 'text-slate-400' },
-  prototype: { label: '프로토타입', bgColor: 'bg-blue-500/20', textColor: 'text-blue-400' },
-  poc: { label: 'PoC', bgColor: 'bg-yellow-500/20', textColor: 'text-yellow-400' },
-  pilot: { label: '파일럿', bgColor: 'bg-orange-500/20', textColor: 'text-orange-400' },
-  commercial: { label: '상용화', bgColor: 'bg-green-500/20', textColor: 'text-green-400' },
+  concept: { label: '개념', bgColor: 'bg-slate-500/10', textColor: 'text-argos-muted' },
+  prototype: { label: '프로토타입', bgColor: 'bg-blue-500/10', textColor: 'text-argos-blue' },
+  poc: { label: 'PoC', bgColor: 'bg-yellow-500/10', textColor: 'text-yellow-600' },
+  pilot: { label: '파일럿', bgColor: 'bg-orange-500/10', textColor: 'text-orange-600' },
+  commercial: { label: '상용화', bgColor: 'bg-green-500/10', textColor: 'text-green-600' },
 };
 
 const SALES_STATUS_CONFIG: Record<string, { label: string; bgColor: string; textColor: string }> = {
-  on_sale: { label: '판매 중', bgColor: 'bg-emerald-500/20', textColor: 'text-emerald-400' },
-  coming_soon: { label: '출시 예정', bgColor: 'bg-cyan-500/20', textColor: 'text-cyan-400' },
-  poc_only: { label: 'PoC만', bgColor: 'bg-amber-500/20', textColor: 'text-amber-400' },
-  not_for_sale: { label: '비매품', bgColor: 'bg-slate-500/20', textColor: 'text-slate-400' },
+  on_sale: { label: '판매 중', bgColor: 'bg-emerald-500/10', textColor: 'text-emerald-600' },
+  coming_soon: { label: '출시 예정', bgColor: 'bg-cyan-500/10', textColor: 'text-cyan-600' },
+  poc_only: { label: 'PoC만', bgColor: 'bg-amber-500/10', textColor: 'text-amber-600' },
+  not_for_sale: { label: '비매품', bgColor: 'bg-slate-500/10', textColor: 'text-argos-muted' },
 };
 
 const PURPOSE_LABELS: Record<string, string> = {
@@ -84,7 +84,7 @@ export function HumanoidRobotCard({ robot, isSelected, onSelect, showCheckbox }:
   if (robot.announcedYear) specParts.push(`발매: ${robot.announcedYear}년`);
 
   return (
-    <div className="bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 hover:border-slate-600 transition-all hover:shadow-lg hover:shadow-slate-900/50 relative">
+    <div className="bg-argos-surface rounded-xl border border-argos-border hover:border-argos-blue/30 transition-all hover:shadow-argos-raised relative">
       {/* 체크박스 (비교 모드) */}
       {showCheckbox && (
         <div className="absolute top-3 left-3 z-10">
@@ -92,7 +92,7 @@ export function HumanoidRobotCard({ robot, isSelected, onSelect, showCheckbox }:
             type="checkbox"
             checked={isSelected}
             onChange={() => onSelect?.(robot.id)}
-            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+            className="w-4 h-4 rounded border-argos-border bg-argos-surface text-argos-blue focus:ring-argos-blue"
           />
         </div>
       )}
@@ -104,15 +104,15 @@ export function HumanoidRobotCard({ robot, isSelected, onSelect, showCheckbox }:
           robotName={robot.name}
           companyName={companyName}
           size="md"
-          className="border-b border-slate-700/50 rounded-t-xl"
+          className="border-b border-argos-borderSoft rounded-t-xl"
         />
 
         {/* 헤더: 제품명 + 배지들 */}
-        <div className="p-4 border-b border-slate-700/50">
+        <div className="p-4 border-b border-argos-borderSoft">
           <div className="flex items-start justify-between gap-2">
             <div className={showCheckbox ? 'pl-6' : ''}>
-              <h3 className="font-semibold text-white">{robot.name}</h3>
-              <p className="text-sm text-slate-400">{companyName}</p>
+              <h3 className="font-semibold text-argos-ink">{robot.name}</h3>
+              <p className="text-sm text-argos-muted">{companyName}</p>
             </div>
             <div className="flex flex-col gap-1 items-end shrink-0">
               <span className={`px-2 py-0.5 text-[10px] font-medium rounded ${stageConfig.bgColor} ${stageConfig.textColor}`}>
@@ -126,10 +126,10 @@ export function HumanoidRobotCard({ robot, isSelected, onSelect, showCheckbox }:
         </div>
 
         {/* 메타 줄: 용도 · 이동방식 · Hand */}
-        <div className="px-4 py-2 border-b border-slate-700/50 flex items-center justify-between">
-          <p className="text-xs text-slate-400">{metaText}</p>
+        <div className="px-4 py-2 border-b border-argos-borderSoft flex items-center justify-between">
+          <p className="text-xs text-argos-muted">{metaText}</p>
           {robot.competitivenessScore != null && (
-            <span className="flex items-center gap-1 text-xs font-medium text-amber-400" title="경쟁력 점수">
+            <span className="flex items-center gap-1 text-xs font-medium text-amber-500" title="경쟁력 점수">
               <Trophy className="w-3 h-3" />
               {robot.competitivenessScore}점
             </span>
@@ -138,29 +138,29 @@ export function HumanoidRobotCard({ robot, isSelected, onSelect, showCheckbox }:
 
         {/* 스펙/가격 줄 */}
         {specParts.length > 0 && (
-          <div className="px-4 py-2 border-b border-slate-700/50">
-            <div className="flex flex-wrap gap-2 text-xs text-slate-300">
+          <div className="px-4 py-2 border-b border-argos-borderSoft">
+            <div className="flex flex-wrap gap-2 text-xs text-argos-inkSoft">
               {robot.payload && (
                 <span className="flex items-center gap-1">
-                  <Weight className="w-3 h-3 text-blue-400" />
+                  <Weight className="w-3 h-3 text-argos-blue" />
                   적재 {robot.payload}kg
                 </span>
               )}
               {robot.operatingHours && (
                 <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-green-400" />
+                  <Clock className="w-3 h-3 text-green-500" />
                   연속 {robot.operatingHours}h
                 </span>
               )}
               {robot.listPrice && (
                 <span className="flex items-center gap-1">
-                  <DollarSign className="w-3 h-3 text-yellow-400" />
+                  <DollarSign className="w-3 h-3 text-amber-500" />
                   ~{(robot.listPrice / 1000).toFixed(0)}K USD
                 </span>
               )}
               {robot.announcedYear && (
                 <span className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3 text-purple-400" />
+                  <Calendar className="w-3 h-3 text-purple-500" />
                   {robot.announcedYear}년
                 </span>
               )}
@@ -169,17 +169,17 @@ export function HumanoidRobotCard({ robot, isSelected, onSelect, showCheckbox }:
         )}
 
         {/* 인사이트 줄: 적용 사례, 환경, 기사/이벤트 */}
-        <div className="px-4 py-3 flex flex-wrap gap-4 text-xs text-slate-400">
+        <div className="px-4 py-3 flex flex-wrap gap-4 text-xs text-argos-muted">
           <span className="flex items-center gap-1" title="적용 사례">
-            <Wrench className="w-3.5 h-3.5 text-green-400" />
+            <Wrench className="w-3.5 h-3.5 text-green-500" />
             사례 {robot.applicationCaseCount ?? 0}건
           </span>
           <span className="flex items-center gap-1" title="적용 환경">
-            <MapPin className="w-3.5 h-3.5 text-blue-400" />
+            <MapPin className="w-3.5 h-3.5 text-argos-blue" />
             환경 {robot.distinctEnvironmentsCount ?? 0}개
           </span>
           <span className="flex items-center gap-1" title="기사/이벤트">
-            <Newspaper className="w-3.5 h-3.5 text-orange-400" />
+            <Newspaper className="w-3.5 h-3.5 text-orange-500" />
             기사 {robot.newsEventCount ?? 0}건
           </span>
         </div>
