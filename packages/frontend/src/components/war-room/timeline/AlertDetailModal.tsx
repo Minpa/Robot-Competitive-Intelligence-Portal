@@ -35,22 +35,22 @@ export function AlertDetailModal({ alert, isOpen, onClose, onMarkRead }: AlertDe
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="relative mx-4 w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 shadow-2xl">
+      <div className="relative mx-4 w-full max-w-lg rounded-xl border border-argos-border bg-argos-bg shadow-2xl">
         {/* Header */}
-        <div className="flex items-start justify-between border-b border-slate-800 p-4">
+        <div className="flex items-start justify-between border-b border-argos-border p-4">
           <div className="flex items-center gap-3">
             <span className={`flex h-9 w-9 items-center justify-center rounded-lg border ${cfg.color}`}>
               <Icon className="h-4 w-4" />
             </span>
             <div>
-              <span className="text-xs text-slate-400">{cfg.label}</span>
-              <h2 className="text-sm font-semibold text-white">{alert.title}</h2>
+              <span className="text-xs text-argos-muted">{cfg.label}</span>
+              <h2 className="text-sm font-semibold text-argos-ink">{alert.title}</h2>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
+            className="rounded-lg p-1 text-argos-muted hover:bg-argos-bgAlt hover:text-argos-ink"
           >
             <X className="h-5 w-5" />
           </button>
@@ -60,33 +60,33 @@ export function AlertDetailModal({ alert, isOpen, onClose, onMarkRead }: AlertDe
         <div className="space-y-4 p-4">
           {alert.summary && (
             <div>
-              <p className="mb-1 text-xs font-medium text-slate-400">요약</p>
-              <p className="text-sm text-slate-200">{alert.summary}</p>
+              <p className="mb-1 text-xs font-medium text-argos-muted">요약</p>
+              <p className="text-sm text-argos-ink">{alert.summary}</p>
             </div>
           )}
 
           {alert.triggerData && Object.keys(alert.triggerData).length > 0 && (
             <div>
-              <p className="mb-1 text-xs font-medium text-slate-400">트리거 데이터</p>
-              <div className="rounded-lg bg-slate-800/50 p-3">
+              <p className="mb-1 text-xs font-medium text-argos-muted">트리거 데이터</p>
+              <div className="rounded-lg bg-argos-surface p-3">
                 {Object.entries(alert.triggerData).map(([key, value]) => (
                   <div key={key} className="flex justify-between py-1 text-xs">
-                    <span className="text-slate-400">{key}</span>
-                    <span className="text-white">{String(value)}</span>
+                    <span className="text-argos-muted">{key}</span>
+                    <span className="text-argos-ink">{String(value)}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          <div className="flex items-center justify-between text-xs text-slate-500">
+          <div className="flex items-center justify-between text-xs text-argos-muted">
             <span>{formatDate(alert.createdAt)}</span>
             <span>{alert.isRead ? '읽음' : '읽지 않음'}</span>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-2 border-t border-slate-800 p-4">
+        <div className="flex justify-end gap-2 border-t border-argos-border p-4">
           {!alert.isRead && (
             <button
               type="button"
@@ -99,7 +99,7 @@ export function AlertDetailModal({ alert, isOpen, onClose, onMarkRead }: AlertDe
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800"
+            className="rounded-lg border border-argos-border px-3 py-1.5 text-xs font-medium text-argos-inkSoft hover:bg-argos-bgAlt"
           >
             닫기
           </button>

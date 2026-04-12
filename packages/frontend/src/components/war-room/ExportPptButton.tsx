@@ -37,7 +37,7 @@ export function ExportPptButton() {
     <button
       onClick={handleExport}
       disabled={loading || !selectedRobotId}
-      className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-argos-border text-argos-inkSoft text-sm hover:bg-argos-bgAlt transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {loading ? (
         <>

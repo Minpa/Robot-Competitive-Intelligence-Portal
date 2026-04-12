@@ -55,11 +55,11 @@ export function AlertList({ alerts, isLoading, onAlertClick, onMarkRead }: Alert
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <div className="mb-3 h-5 w-32 animate-pulse rounded bg-slate-800" />
+      <div className="rounded-xl border border-argos-border bg-argos-bg p-4">
+        <div className="mb-3 h-5 w-32 animate-pulse rounded bg-argos-bgAlt" />
         <div className="space-y-2">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-14 w-full animate-pulse rounded bg-slate-800" />
+            <div key={i} className="h-14 w-full animate-pulse rounded bg-argos-bgAlt" />
           ))}
         </div>
       </div>
@@ -67,11 +67,11 @@ export function AlertList({ alerts, isLoading, onAlertClick, onMarkRead }: Alert
   }
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+    <div className="rounded-xl border border-argos-border bg-argos-bg p-4">
       <div className="mb-3 flex items-center gap-2">
-        <Bell className="h-4 w-4 text-slate-400" />
-        <h3 className="text-sm font-semibold text-white">경쟁 알림</h3>
-        <span className="ml-auto text-xs text-slate-500">{filtered.length}건</span>
+        <Bell className="h-4 w-4 text-argos-muted" />
+        <h3 className="text-sm font-semibold text-argos-ink">경쟁 알림</h3>
+        <span className="ml-auto text-xs text-argos-muted">{filtered.length}건</span>
       </div>
 
       {/* Type filter */}
@@ -84,7 +84,7 @@ export function AlertList({ alerts, isLoading, onAlertClick, onMarkRead }: Alert
             className={`rounded-md px-2 py-0.5 text-xs transition-colors ${
               typeFilter === f.key
                 ? 'bg-blue-600 text-white'
-                : 'bg-slate-800 text-slate-400 hover:text-white'
+                : 'bg-argos-bgAlt text-argos-muted hover:text-argos-ink'
             }`}
           >
             {f.label}
@@ -101,8 +101,8 @@ export function AlertList({ alerts, isLoading, onAlertClick, onMarkRead }: Alert
             onClick={() => setReadFilter(f.key)}
             className={`rounded-md px-2 py-0.5 text-xs transition-colors ${
               readFilter === f.key
-                ? 'bg-slate-600 text-white'
-                : 'bg-slate-800 text-slate-400 hover:text-white'
+                ? 'bg-argos-bgAlt text-argos-ink'
+                : 'bg-argos-bgAlt text-argos-muted hover:text-argos-ink'
             }`}
           >
             {f.label}
@@ -112,7 +112,7 @@ export function AlertList({ alerts, isLoading, onAlertClick, onMarkRead }: Alert
 
       {/* Alert list */}
       {filtered.length === 0 ? (
-        <p className="py-6 text-center text-sm text-slate-500">알림이 없습니다</p>
+        <p className="py-6 text-center text-sm text-argos-muted">알림이 없습니다</p>
       ) : (
         <ul className="max-h-[500px] space-y-2 overflow-y-auto">
           {filtered.map((alert) => {
@@ -121,10 +121,10 @@ export function AlertList({ alerts, isLoading, onAlertClick, onMarkRead }: Alert
             return (
               <li
                 key={alert.id}
-                className={`group cursor-pointer rounded-lg border p-2.5 transition-colors hover:bg-slate-800/60 ${
+                className={`group cursor-pointer rounded-lg border p-2.5 transition-colors hover:bg-argos-bgAlt ${
                   alert.isRead
-                    ? 'border-slate-800 bg-slate-800/20'
-                    : 'border-slate-700 bg-slate-800/40'
+                    ? 'border-argos-border bg-argos-surface'
+                    : 'border-argos-border bg-argos-surface'
                 }`}
                 onClick={() => onAlertClick(alert)}
               >
@@ -133,15 +133,15 @@ export function AlertList({ alerts, isLoading, onAlertClick, onMarkRead }: Alert
                     <Icon className="h-3.5 w-3.5" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className={`truncate text-sm font-medium ${alert.isRead ? 'text-slate-400' : 'text-white'}`}>
+                    <p className={`truncate text-sm font-medium ${alert.isRead ? 'text-argos-muted' : 'text-argos-ink'}`}>
                       {alert.title}
                     </p>
                     {alert.summary && (
-                      <p className="mt-0.5 truncate text-xs text-slate-500">{alert.summary}</p>
+                      <p className="mt-0.5 truncate text-xs text-argos-muted">{alert.summary}</p>
                     )}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
-                    <span className="text-xs text-slate-500">{formatRelativeTime(alert.createdAt)}</span>
+                    <span className="text-xs text-argos-muted">{formatRelativeTime(alert.createdAt)}</span>
                     {!alert.isRead && (
                       <button
                         type="button"

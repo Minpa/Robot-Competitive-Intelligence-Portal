@@ -10,7 +10,7 @@ function getStatusBadge(status: string) {
     case 'fresh': return { dotColor: 'bg-green-500', label: '최신', cls: 'bg-green-500/20 text-green-400' };
     case 'warning': return { dotColor: 'bg-yellow-500', label: '주의', cls: 'bg-yellow-500/20 text-yellow-400' };
     case 'stale': return { dotColor: 'bg-red-500', label: '갱신필요', cls: 'bg-red-500/20 text-red-400' };
-    default: return { dotColor: 'bg-slate-500', label: '미검증', cls: 'bg-slate-500/20 text-slate-400' };
+    default: return { dotColor: 'bg-argos-muted', label: '미검증', cls: 'bg-argos-bgAlt text-argos-muted' };
   }
 }
 
@@ -33,9 +33,9 @@ export function CiFreshnessPanel() {
     }
   };
 
-  if (isLoading) return <div className="text-slate-400 text-sm p-4">로딩 중...</div>;
+  if (isLoading) return <div className="text-argos-muted text-sm p-4">로딩 중...</div>;
   if (error) return <div className="text-red-400 text-sm p-4">에러 발생</div>;
-  if (!data || data.length === 0) return <div className="text-slate-400 text-sm p-4">데이터 없음</div>;
+  if (!data || data.length === 0) return <div className="text-argos-muted text-sm p-4">데이터 없음</div>;
 
   // Group by layer
   const byLayer = data.reduce((acc, item) => {
@@ -51,19 +51,19 @@ export function CiFreshnessPanel() {
   const total = data.length;
 
   return (
-    <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4">
+    <div className="bg-argos-surface rounded-xl border border-argos-border p-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-white">데이터 신선도</h3>
+        <h3 className="text-sm font-semibold text-argos-ink">데이터 신선도</h3>
         <div className="flex gap-3 text-xs">
           <span className="text-green-400 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" />{freshCount}</span>
           <span className="text-yellow-400 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" />{warningCount}</span>
           <span className="text-red-400 flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" />{staleCount}</span>
-          <span className="text-slate-400">전체 {total}</span>
+          <span className="text-argos-muted">전체 {total}</span>
         </div>
       </div>
 
       {/* Freshness bar */}
-      <div className="w-full h-2 bg-slate-700 rounded-full mb-4 overflow-hidden flex">
+      <div className="w-full h-2 bg-argos-bgAlt rounded-full mb-4 overflow-hidden flex">
         <div className="bg-green-500 h-full" style={{ width: `${(freshCount / total) * 100}%` }} />
         <div className="bg-yellow-500 h-full" style={{ width: `${(warningCount / total) * 100}%` }} />
         <div className="bg-red-500 h-full" style={{ width: `${(staleCount / total) * 100}%` }} />
@@ -75,12 +75,12 @@ export function CiFreshnessPanel() {
           const layerFresh = items.filter(i => i.status === 'fresh').length;
           const layerTotal = items.length;
           return (
-            <div key={layerName} className="bg-slate-700/30 rounded-lg p-3">
+            <div key={layerName} className="bg-argos-bgAlt rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-white">
+                <span className="text-sm text-argos-ink">
                   {layerName}
                 </span>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-argos-muted">
                   {layerFresh}/{layerTotal} 최신
                 </span>
               </div>
@@ -90,14 +90,14 @@ export function CiFreshnessPanel() {
                   return (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between bg-slate-800/50 rounded px-2 py-1"
+                      className="flex items-center justify-between bg-argos-surface rounded px-2 py-1"
                     >
                       <div className="flex items-center gap-1 min-w-0">
                         <span className={`w-1.5 h-1.5 rounded-full ${badge.dotColor} shrink-0`} />
-                        <span className="text-[11px] text-slate-300 truncate">{item.competitorName}</span>
+                        <span className="text-[11px] text-argos-inkSoft truncate">{item.competitorName}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-slate-500">{tierLabels[item.tier]}</span>
+                        <span className="text-[10px] text-argos-muted">{tierLabels[item.tier]}</span>
                         {item.status !== 'fresh' && (
                           <button
                             onClick={() => handleVerify(item.layerId, item.competitorId)}

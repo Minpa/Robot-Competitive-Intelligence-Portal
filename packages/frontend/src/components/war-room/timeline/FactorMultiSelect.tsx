@@ -72,21 +72,21 @@ export function FactorMultiSelect({ selected, onChange }: FactorMultiSelectProps
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white hover:border-slate-600"
+        className="flex w-full items-center justify-between rounded-lg border border-argos-border bg-argos-surface px-3 py-2 text-sm text-argos-ink hover:border-argos-border"
       >
         <span className="truncate">
           {selected.length === 0
             ? '팩터 선택'
             : `${selectedLabels.slice(0, 2).join(', ')}${selected.length > 2 ? ` 외 ${selected.length - 2}개` : ''}`}
         </span>
-        <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-slate-400" />
+        <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-argos-muted" />
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-slate-700 bg-slate-800 shadow-xl">
+        <div className="absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-lg border border-argos-border bg-argos-surface shadow-xl">
           {FACTOR_GROUPS.map((group) => (
             <div key={group.label}>
-              <p className="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <p className="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wider text-argos-muted">
                 {group.label}
               </p>
               {group.factors.map((factor) => {
@@ -94,15 +94,15 @@ export function FactorMultiSelect({ selected, onChange }: FactorMultiSelectProps
                 return (
                   <label
                     key={factor.key}
-                    className="flex cursor-pointer items-center gap-2 px-3 py-1.5 hover:bg-slate-700/50"
+                    className="flex cursor-pointer items-center gap-2 px-3 py-1.5 hover:bg-argos-bgAlt"
                   >
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggle(factor.key)}
-                      className="h-3.5 w-3.5 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500/30"
+                      className="h-3.5 w-3.5 rounded border-argos-border bg-argos-bgAlt text-blue-500 focus:ring-blue-500/30"
                     />
-                    <span className="text-sm text-white">{factor.label}</span>
+                    <span className="text-sm text-argos-ink">{factor.label}</span>
                   </label>
                 );
               })}

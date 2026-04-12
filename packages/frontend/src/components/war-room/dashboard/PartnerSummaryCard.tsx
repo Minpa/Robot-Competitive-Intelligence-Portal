@@ -19,11 +19,11 @@ const categoryLabels: Record<string, string> = {
 export function PartnerSummaryCard({ data, isLoading }: PartnerSummaryCardProps) {
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <div className="mb-3 h-5 w-40 animate-pulse rounded bg-slate-800" />
+      <div className="rounded-xl border border-argos-border bg-argos-surface p-4">
+        <div className="mb-3 h-5 w-40 animate-pulse rounded bg-argos-bgAlt" />
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-6 w-full animate-pulse rounded bg-slate-800" />
+            <div key={i} className="h-6 w-full animate-pulse rounded bg-argos-bgAlt" />
           ))}
         </div>
       </div>
@@ -33,19 +33,19 @@ export function PartnerSummaryCard({ data, isLoading }: PartnerSummaryCardProps)
   const total = data.reduce((sum, d) => sum + d.count, 0);
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+    <div className="rounded-xl border border-argos-border bg-argos-surface p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-white">전략 파트너 요약</h3>
+          <h3 className="text-sm font-semibold text-argos-ink">전략 파트너 요약</h3>
           <PartnerSummaryInfo />
         </div>
-        <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-300">
+        <span className="rounded-full bg-argos-bgAlt px-2 py-0.5 text-xs text-argos-inkSoft">
           총 {total}개
         </span>
       </div>
 
       {data.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-500">파트너 데이터가 없습니다</p>
+        <p className="mt-4 text-sm text-argos-muted">파트너 데이터가 없습니다</p>
       ) : (
         <ul className="mt-3 space-y-2">
           {data.map((item) => {
@@ -53,11 +53,11 @@ export function PartnerSummaryCard({ data, isLoading }: PartnerSummaryCardProps)
             const barWidth = Math.round((item.count / maxCount) * 100);
             return (
               <li key={item.category} className="flex items-center gap-3">
-                <span className="w-16 shrink-0 text-xs text-slate-400">
+                <span className="w-16 shrink-0 text-xs text-argos-muted">
                   {categoryLabels[item.category] ?? item.category}
                 </span>
                 <div className="flex-1">
-                  <div className="h-4 w-full rounded bg-slate-800">
+                  <div className="h-4 w-full rounded bg-argos-bgAlt">
                     <div
                       className="flex h-4 items-center rounded bg-blue-500/30 px-1.5 text-xs text-blue-300"
                       style={{ width: `${Math.max(barWidth, 15)}%` }}

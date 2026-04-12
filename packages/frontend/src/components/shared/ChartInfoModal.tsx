@@ -28,18 +28,18 @@ export function ChartInfoModal({ isOpen, title, children, onClose }: ChartInfoMo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-xl max-h-[90vh] w-full max-w-3xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
-          <h2 className="text-lg font-semibold text-white">{title}</h2>
+      <div className="bg-argos-surface border border-argos-border rounded-xl shadow-xl max-h-[90vh] w-full max-w-3xl overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-argos-border">
+          <h2 className="text-lg font-semibold text-argos-ink">{title}</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-slate-300 hover:bg-slate-800"
+            className="rounded-lg p-2 text-argos-inkSoft hover:bg-argos-bgAlt"
             aria-label="닫기"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="px-5 py-4 overflow-auto text-sm leading-relaxed text-slate-200">
+        <div className="px-5 py-4 overflow-auto text-sm leading-relaxed text-argos-ink">
           {children}
         </div>
       </div>

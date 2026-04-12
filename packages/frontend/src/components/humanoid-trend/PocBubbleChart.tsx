@@ -12,7 +12,7 @@ interface Props { data: PositioningDataWithRobot[]; }
 export default function PocBubbleChart({ data }: Props) {
   if (!data || data.length < 2) {
     return (
-      <div className="flex items-center justify-center min-h-[300px] text-slate-500 text-sm">
+      <div className="flex items-center justify-center min-h-[300px] text-argos-muted text-sm">
         포지셔닝 비교를 위해 최소 2개 이상의 데이터가 필요합니다.
       </div>
     );
@@ -35,12 +35,12 @@ export default function PocBubbleChart({ data }: Props) {
       <div className="h-[480px]">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 20, right: 30, bottom: 40, left: 50 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-slate-700))" />
-            <XAxis type="number" dataKey="x" tick={{ fontSize: 11, fill: '#CBD5E1' }}>
-              <Label value="폼팩터 / 인체 유사도 (Form Factor)" position="bottom" offset={20} style={{ fontSize: 12, fill: '#94A3B8' }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#E5E9F0" />
+            <XAxis type="number" dataKey="x" tick={{ fontSize: 11, fill: '#1E2838' }}>
+              <Label value="폼팩터 / 인체 유사도 (Form Factor)" position="bottom" offset={20} style={{ fontSize: 12, fill: '#6B7A90' }} />
             </XAxis>
-            <YAxis type="number" dataKey="y" tick={{ fontSize: 11, fill: '#CBD5E1' }} width={40}>
-              <Label value="산업 적합성 (Industry Fit)" angle={-90} position="insideLeft" offset={10} style={{ fontSize: 12, fill: '#94A3B8' }} />
+            <YAxis type="number" dataKey="y" tick={{ fontSize: 11, fill: '#1E2838' }} width={40}>
+              <Label value="산업 적합성 (Industry Fit)" angle={-90} position="insideLeft" offset={10} style={{ fontSize: 12, fill: '#6B7A90' }} />
             </YAxis>
             <ZAxis type="number" dataKey="z" range={[60, 400]} />
             <Tooltip
@@ -49,8 +49,8 @@ export default function PocBubbleChart({ data }: Props) {
                 if (!payload?.[0]) return null;
                 const d = payload[0].payload;
                 return (
-                  <div className="bg-slate-900 border border-slate-600 rounded-lg p-3 text-xs text-slate-300 shadow-lg">
-                    <p className="font-semibold text-slate-200 mb-1">{d.robotName}</p>
+                  <div className="bg-argos-surface border border-argos-border rounded-lg p-3 text-xs text-argos-inkSoft shadow-lg">
+                    <p className="font-semibold text-argos-ink mb-1">{d.robotName}</p>
                     <p>폼팩터: {d.x}</p>
                     <p>산업 적합성: {d.y.toFixed(1)}</p>
                     <p>핑거 DoF 점수: {d.z}</p>
@@ -68,8 +68,8 @@ export default function PocBubbleChart({ data }: Props) {
       </div>
 
       {/* Legend */}
-      <div className="border border-slate-700 rounded-lg p-3 bg-slate-800/40">
-        <p className="text-xs text-slate-400 mb-2 font-medium">범례 (버블 위에 마우스를 올리면 상세 정보가 표시됩니다)</p>
+      <div className="border border-argos-border rounded-lg p-3 bg-argos-bgAlt">
+        <p className="text-xs text-argos-muted mb-2 font-medium">범례 (버블 위에 마우스를 올리면 상세 정보가 표시됩니다)</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-1.5">
           {legendItems.map((item) => (
             <div key={item.robotName} className="flex items-center gap-1.5 min-w-0">
@@ -77,8 +77,8 @@ export default function PocBubbleChart({ data }: Props) {
                 className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
                 style={{ backgroundColor: item.color }}
               />
-              <span className="text-xs text-slate-300 truncate">{item.robotName}</span>
-              <span className="text-xs text-slate-500 flex-shrink-0">(DoF:{item.z})</span>
+              <span className="text-xs text-argos-inkSoft truncate">{item.robotName}</span>
+              <span className="text-xs text-argos-muted flex-shrink-0">(DoF:{item.z})</span>
             </div>
           ))}
         </div>

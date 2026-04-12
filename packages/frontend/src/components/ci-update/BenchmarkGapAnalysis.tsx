@@ -10,9 +10,9 @@ interface BenchmarkGapAnalysisProps {
 export function BenchmarkGapAnalysis({ axes, cloid }: BenchmarkGapAnalysisProps) {
   if (!cloid) {
     return (
-      <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4">
-        <h3 className="text-base font-semibold text-white">CLOiD 갭 분석</h3>
-        <p className="text-slate-500 text-sm mt-2">CLOiD 데이터가 없습니다.</p>
+      <div className="bg-argos-surface rounded-xl border border-argos-border p-4">
+        <h3 className="text-base font-semibold text-argos-ink">CLOiD 갭 분석</h3>
+        <p className="text-argos-muted text-sm mt-2">CLOiD 데이터가 없습니다.</p>
       </div>
     );
   }
@@ -46,10 +46,10 @@ export function BenchmarkGapAnalysis({ axes, cloid }: BenchmarkGapAnalysisProps)
   const totalTarget = axes.reduce((sum, axis) => sum + (cloid.scores[axis.key]?.targetScore || 0), 0);
 
   return (
-    <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4">
+    <div className="bg-argos-surface rounded-xl border border-argos-border p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-semibold text-white">CLOiD 갭 분석</h3>
-        <div className="text-sm text-slate-400">
+        <h3 className="text-base font-semibold text-argos-ink">CLOiD 갭 분석</h3>
+        <div className="text-sm text-argos-muted">
           현재 <span className="text-pink-400 font-medium">{totalCurrent}</span> → 목표 <span className="text-pink-300 font-medium">{totalTarget}</span>
         </div>
       </div>
@@ -59,12 +59,12 @@ export function BenchmarkGapAnalysis({ axes, cloid }: BenchmarkGapAnalysisProps)
         <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
           <h4 className="text-sm font-medium text-green-400 mb-2">강점 / 차별화 포인트</h4>
           <div className="space-y-2">
-            {strengths.length === 0 && <p className="text-sm text-slate-500">해당 없음</p>}
+            {strengths.length === 0 && <p className="text-sm text-argos-muted">해당 없음</p>}
             {strengths.map(({ axis, current, target }) => (
               <div key={axis.key} className="flex items-center justify-between text-sm">
-                <span className="text-slate-300">{axis.label}</span>
+                <span className="text-argos-inkSoft">{axis.label}</span>
                 <span className="text-green-400">
-                  {current}{target > current ? ` → ${target}` : ''} <span className="text-slate-500">/ 10</span>
+                  {current}{target > current ? ` → ${target}` : ''} <span className="text-argos-muted">/ 10</span>
                 </span>
               </div>
             ))}
@@ -75,12 +75,12 @@ export function BenchmarkGapAnalysis({ axes, cloid }: BenchmarkGapAnalysisProps)
         <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-3">
           <h4 className="text-sm font-medium text-red-400 mb-2">갭 / 보강 필요</h4>
           <div className="space-y-2">
-            {gaps.length === 0 && <p className="text-sm text-slate-500">해당 없음</p>}
+            {gaps.length === 0 && <p className="text-sm text-argos-muted">해당 없음</p>}
             {gaps.filter(g => !strengthKeys.has(g.axis.key) || g.gap >= 5).map(({ axis, current, target, gap }) => (
               <div key={axis.key} className="flex items-center justify-between text-sm">
-                <span className="text-slate-300">{axis.label}</span>
+                <span className="text-argos-inkSoft">{axis.label}</span>
                 <span className="text-red-400">
-                  {current} → {target} <span className="text-slate-500">(갭 {gap})</span>
+                  {current} → {target} <span className="text-argos-muted">(갭 {gap})</span>
                 </span>
               </div>
             ))}

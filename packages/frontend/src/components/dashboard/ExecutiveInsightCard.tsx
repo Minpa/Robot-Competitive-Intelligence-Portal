@@ -24,11 +24,11 @@ export function ExecutiveInsightCard({
   if (isLoading) {
     return (
       <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-xl p-6 h-full animate-pulse">
-        <div className="h-5 bg-slate-700 rounded w-1/3 mb-4" />
+        <div className="h-5 bg-argos-bgAlt rounded w-1/3 mb-4" />
         <div className="space-y-2">
-          <div className="h-4 bg-slate-700 rounded w-full" />
-          <div className="h-4 bg-slate-700 rounded w-5/6" />
-          <div className="h-4 bg-slate-700 rounded w-4/6" />
+          <div className="h-4 bg-argos-bgAlt rounded w-full" />
+          <div className="h-4 bg-argos-bgAlt rounded w-5/6" />
+          <div className="h-4 bg-argos-bgAlt rounded w-4/6" />
         </div>
       </div>
     );
@@ -45,18 +45,18 @@ export function ExecutiveInsightCard({
         <h3 className="text-lg font-semibold text-blue-500 flex items-center gap-2">
           {title}
         </h3>
-        <span className="text-xs text-slate-400 bg-slate-800/50 px-2 py-1 rounded">
+        <span className="text-xs text-argos-muted bg-argos-bgAlt px-2 py-1 rounded">
           AI 생성
         </span>
       </div>
 
       {/* Summary */}
-      <p className="text-sm text-slate-300 leading-relaxed line-clamp-3 mb-4">
+      <p className="text-sm text-argos-inkSoft leading-relaxed line-clamp-3 mb-4">
         {summary}
       </p>
 
       {/* Period */}
-      <div className="flex items-center gap-2 text-xs text-slate-400">
+      <div className="flex items-center gap-2 text-xs text-argos-muted">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
@@ -65,8 +65,8 @@ export function ExecutiveInsightCard({
 
       {/* Tooltip with full details */}
       {showTooltip && details && (
-        <div className="absolute z-50 left-0 right-0 top-full mt-2 bg-slate-900 border border-slate-700 rounded-lg p-4 shadow-xl">
-          <p className="text-sm text-slate-200 leading-relaxed">{details}</p>
+        <div className="absolute z-50 left-0 right-0 top-full mt-2 bg-argos-surface border border-argos-border rounded-lg p-4 shadow-xl">
+          <p className="text-sm text-argos-ink leading-relaxed">{details}</p>
         </div>
       )}
     </div>

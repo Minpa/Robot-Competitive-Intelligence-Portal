@@ -22,11 +22,11 @@ const statusStyle: Record<string, { bg: string; dot: string; label: string }> = 
 export function RoadmapTimeline({ data, isLoading }: Props) {
   if (isLoading) {
     return (
-      <div className="rounded-lg bg-slate-800/40 border border-slate-700/50 p-4">
-        <div className="h-5 w-40 bg-slate-700 rounded animate-pulse mb-4" />
+      <div className="rounded-lg bg-argos-surface border border-argos-borderSoft p-4">
+        <div className="h-5 w-40 bg-argos-bgAlt rounded animate-pulse mb-4" />
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-12 bg-slate-800/50 rounded animate-pulse" />
+            <div key={i} className="h-12 bg-argos-bgAlt rounded animate-pulse" />
           ))}
         </div>
       </div>
@@ -43,39 +43,39 @@ export function RoadmapTimeline({ data, isLoading }: Props) {
 
   if (sorted.length === 0) {
     return (
-      <div className="rounded-lg bg-slate-800/40 border border-slate-700/50 p-4">
-        <h3 className="text-sm font-semibold text-white mb-4">부품 로드맵 타임라인</h3>
-        <p className="text-xs text-slate-500 text-center py-4">데이터 없음</p>
+      <div className="rounded-lg bg-argos-surface border border-argos-borderSoft p-4">
+        <h3 className="text-sm font-semibold text-argos-ink mb-4">부품 로드맵 타임라인</h3>
+        <p className="text-xs text-argos-muted text-center py-4">데이터 없음</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg bg-slate-800/40 border border-slate-700/50 p-4">
-      <h3 className="text-sm font-semibold text-white mb-4">부품 로드맵 타임라인</h3>
+    <div className="rounded-lg bg-argos-surface border border-argos-borderSoft p-4">
+      <h3 className="text-sm font-semibold text-argos-ink mb-4">부품 로드맵 타임라인</h3>
       <div className="relative pl-4 space-y-3">
         {/* Vertical line */}
-        <div className="absolute left-[7px] top-2 bottom-2 w-px bg-slate-700" />
+        <div className="absolute left-[7px] top-2 bottom-2 w-px bg-argos-border" />
 
         {sorted.slice(0, 15).map((entry) => {
           const style = statusStyle[entry.adoptionStatus] ?? statusStyle.evaluating;
           return (
             <div key={entry.id} className="relative flex items-start gap-3">
               <div className={`mt-1.5 w-2.5 h-2.5 rounded-full shrink-0 ${style.dot}`} />
-              <div className={`flex-1 rounded-md border p-2 ${style.bg} bg-slate-800/30`}>
+              <div className={`flex-1 rounded-md border p-2 ${style.bg} bg-argos-bgAlt`}>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-200">
+                  <span className="text-xs font-medium text-argos-ink">
                     {entry.partnerName} → {entry.robotName}
                   </span>
-                  <span className="text-[10px] text-slate-500">
+                  <span className="text-[10px] text-argos-muted">
                     {entry.adoptedAt
                       ? new Date(entry.adoptedAt).toLocaleDateString('ko-KR')
                       : '진행 중'}
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-400">{style.label}</span>
+                <span className="text-[10px] text-argos-muted">{style.label}</span>
                 {entry.notes && (
-                  <p className="text-[10px] text-slate-500 mt-0.5">{entry.notes}</p>
+                  <p className="text-[10px] text-argos-muted mt-0.5">{entry.notes}</p>
                 )}
               </div>
             </div>

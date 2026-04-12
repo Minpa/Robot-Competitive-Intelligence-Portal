@@ -24,9 +24,9 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 export function OpportunityMatrix({ domains, isLoading }: Props) {
   if (isLoading) {
     return (
-      <div className="rounded-lg bg-slate-800/40 border border-slate-700/50 p-4">
-        <div className="h-5 w-40 bg-slate-700 rounded animate-pulse mb-4" />
-        <div className="h-72 bg-slate-800/50 rounded animate-pulse" />
+      <div className="rounded-lg bg-argos-surface border border-argos-borderSoft p-4">
+        <div className="h-5 w-40 bg-argos-bgAlt rounded animate-pulse mb-4" />
+        <div className="h-72 bg-argos-bgAlt rounded animate-pulse" />
       </div>
     );
   }
@@ -41,10 +41,10 @@ export function OpportunityMatrix({ domains, isLoading }: Props) {
     }));
 
   return (
-    <div className="rounded-lg bg-slate-800/40 border border-slate-700/50 p-4">
-      <h3 className="text-sm font-semibold text-white mb-4">사업화 기회 매트릭스</h3>
+    <div className="rounded-lg bg-argos-surface border border-argos-borderSoft p-4">
+      <h3 className="text-sm font-semibold text-argos-ink mb-4">사업화 기회 매트릭스</h3>
       {data.length === 0 ? (
-        <p className="text-xs text-slate-500 text-center py-8">데이터 없음</p>
+        <p className="text-xs text-argos-muted text-center py-8">데이터 없음</p>
       ) : (
         <ResponsiveContainer width="100%" height={300}>
           <ScatterChart margin={{ top: 10, right: 20, bottom: 25, left: 10 }}>

@@ -47,38 +47,38 @@ export function CompetitorSelector({
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <div className="h-5 w-48 animate-pulse rounded bg-slate-800" />
+      <div className="rounded-xl border border-argos-border bg-argos-surface p-4">
+        <div className="h-5 w-48 animate-pulse rounded bg-argos-bgAlt" />
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+    <div className="rounded-xl border border-argos-border bg-argos-surface p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-slate-400" />
-          <h3 className="text-sm font-semibold text-white">비교 대상 선택</h3>
-          <span className="text-xs text-slate-500">
+          <Users className="h-4 w-4 text-argos-muted" />
+          <h3 className="text-sm font-semibold text-argos-ink">비교 대상 선택</h3>
+          <span className="text-xs text-argos-muted">
             {selectedIds.length}/{competitors.length}개 선택
           </span>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleSelectTop5}
-            className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800 transition-colors"
+            className="rounded-md border border-argos-border px-2 py-1 text-xs text-argos-inkSoft hover:bg-argos-bgAlt transition-colors"
           >
             Top 5
           </button>
           <button
             onClick={handleSelectAll}
-            className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-800 transition-colors"
+            className="rounded-md border border-argos-border px-2 py-1 text-xs text-argos-inkSoft hover:bg-argos-bgAlt transition-colors"
           >
             {selectedIds.length === competitors.length ? '전체 해제' : '전체 선택'}
           </button>
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="rounded-md p-1 text-slate-400 hover:bg-slate-800 transition-colors"
+            className="rounded-md p-1 text-argos-muted hover:bg-argos-bgAlt transition-colors"
           >
             {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
@@ -119,23 +119,23 @@ export function CompetitorSelector({
                 className={`flex items-center gap-2 rounded-lg border p-2 text-left transition-colors ${
                   isSelected
                     ? 'border-blue-500/50 bg-blue-500/10'
-                    : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                    : 'border-argos-border bg-argos-surface hover:border-argos-border'
                 }`}
               >
                 <div
                   className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${
                     isSelected
                       ? 'border-blue-500 bg-blue-500'
-                      : 'border-slate-600'
+                      : 'border-argos-border'
                   }`}
                 >
                   {isSelected && <Check className="h-3 w-3 text-white" />}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-xs font-medium text-white">{c.robotName}</p>
-                  <p className="truncate text-[10px] text-slate-500">{c.companyName}</p>
+                  <p className="truncate text-xs font-medium text-argos-ink">{c.robotName}</p>
+                  <p className="truncate text-[10px] text-argos-muted">{c.companyName}</p>
                 </div>
-                <span className="ml-auto flex-shrink-0 text-[10px] text-slate-600">#{i + 1}</span>
+                <span className="ml-auto flex-shrink-0 text-[10px] text-argos-faint">#{i + 1}</span>
               </button>
             );
           })}

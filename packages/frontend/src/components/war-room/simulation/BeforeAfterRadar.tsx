@@ -34,8 +34,8 @@ export function BeforeAfterRadar({ before, after }: Props) {
   }));
 
   return (
-    <div className="rounded-lg bg-slate-800/40 border border-slate-700/50 p-4">
-      <h3 className="text-sm font-semibold text-white mb-3">PoC Before vs After</h3>
+    <div className="rounded-lg bg-argos-surface border border-argos-borderSoft p-4">
+      <h3 className="text-sm font-semibold text-argos-ink mb-3">PoC Before vs After</h3>
       <ResponsiveContainer width="100%" height={260}>
         <RadarChart data={data}>
           <PolarGrid stroke="rgb(var(--color-slate-700))" />

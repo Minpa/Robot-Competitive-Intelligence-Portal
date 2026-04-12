@@ -16,9 +16,9 @@ const statusColor: Record<string, string> = {
 export function AdoptionHeatmap({ data, isLoading }: Props) {
   if (isLoading) {
     return (
-      <div className="rounded-lg bg-slate-800/40 border border-slate-700/50 p-4">
-        <div className="h-5 w-32 bg-slate-700 rounded animate-pulse mb-4" />
-        <div className="h-48 bg-slate-800/50 rounded animate-pulse" />
+      <div className="rounded-lg bg-argos-surface border border-argos-borderSoft p-4">
+        <div className="h-5 w-32 bg-argos-bgAlt rounded animate-pulse mb-4" />
+        <div className="h-48 bg-argos-bgAlt rounded animate-pulse" />
       </div>
     );
   }
@@ -30,23 +30,23 @@ export function AdoptionHeatmap({ data, isLoading }: Props) {
 
   if (partnerNames.length === 0) {
     return (
-      <div className="rounded-lg bg-slate-800/40 border border-slate-700/50 p-4">
-        <h3 className="text-sm font-semibold text-white mb-4">채택 히트맵</h3>
-        <p className="text-xs text-slate-500 text-center py-8">데이터 없음</p>
+      <div className="rounded-lg bg-argos-surface border border-argos-borderSoft p-4">
+        <h3 className="text-sm font-semibold text-argos-ink mb-4">채택 히트맵</h3>
+        <p className="text-xs text-argos-muted text-center py-8">데이터 없음</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg bg-slate-800/40 border border-slate-700/50 p-4">
-      <h3 className="text-sm font-semibold text-white mb-4">채택 히트맵</h3>
+    <div className="rounded-lg bg-argos-surface border border-argos-borderSoft p-4">
+      <h3 className="text-sm font-semibold text-argos-ink mb-4">채택 히트맵</h3>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
             <tr>
-              <th className="text-left text-slate-400 pb-2 pr-2 font-medium">파트너</th>
+              <th className="text-left text-argos-muted pb-2 pr-2 font-medium">파트너</th>
               {robotNames.map((r) => (
-                <th key={r} className="text-center text-slate-400 pb-2 px-1 font-medium whitespace-nowrap">
+                <th key={r} className="text-center text-argos-muted pb-2 px-1 font-medium whitespace-nowrap">
                   {r}
                 </th>
               ))}
@@ -55,17 +55,17 @@ export function AdoptionHeatmap({ data, isLoading }: Props) {
           <tbody>
             {partnerNames.map((pn) => (
               <tr key={pn}>
-                <td className="text-slate-300 py-1 pr-2 whitespace-nowrap">{pn}</td>
+                <td className="text-argos-inkSoft py-1 pr-2 whitespace-nowrap">{pn}</td>
                 {robotNames.map((rn) => {
                   const entry = lookup.get(`${pn}__${rn}`);
                   return (
                     <td key={rn} className="text-center py-1 px-1">
                       {entry ? (
-                        <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${statusColor[entry.adoptionStatus] ?? 'bg-slate-700 text-slate-400'}`}>
+                        <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${statusColor[entry.adoptionStatus] ?? 'bg-argos-bgAlt text-argos-muted'}`}>
                           {entry.adoptionStatus}
                         </span>
                       ) : (
-                        <span className="text-slate-600">—</span>
+                        <span className="text-argos-faint">—</span>
                       )}
                     </td>
                   );

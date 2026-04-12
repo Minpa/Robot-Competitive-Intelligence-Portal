@@ -69,7 +69,7 @@ export function ErrorFallbackWrapper({
         // No cached data available — fall through to error message
         return (
           <div className="flex flex-col items-center justify-center min-h-[120px] gap-3">
-            <p className="text-sm text-slate-400">데이터를 불러올 수 없습니다</p>
+            <p className="text-sm text-argos-muted">데이터를 불러올 수 없습니다</p>
             {onRetry && <RetryButton onRetry={onRetry} />}
           </div>
         );

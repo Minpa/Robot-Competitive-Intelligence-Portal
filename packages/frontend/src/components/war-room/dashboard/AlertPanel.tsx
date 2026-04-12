@@ -29,11 +29,11 @@ function formatRelativeTime(dateStr: string): string {
 export function AlertPanel({ alerts, isLoading }: AlertPanelProps) {
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <div className="mb-3 h-5 w-44 animate-pulse rounded bg-slate-800" />
+      <div className="rounded-xl border border-argos-border bg-argos-surface p-4">
+        <div className="mb-3 h-5 w-44 animate-pulse rounded bg-argos-bgAlt" />
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-12 w-full animate-pulse rounded bg-slate-800" />
+            <div key={i} className="h-12 w-full animate-pulse rounded bg-argos-bgAlt" />
           ))}
         </div>
       </div>
@@ -43,15 +43,15 @@ export function AlertPanel({ alerts, isLoading }: AlertPanelProps) {
   const recent = alerts.slice(0, 5);
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+    <div className="rounded-xl border border-argos-border bg-argos-surface p-4">
       <div className="flex items-center gap-2">
-        <h3 className="text-sm font-semibold text-white">경쟁 동향 알림</h3>
+        <h3 className="text-sm font-semibold text-argos-ink">경쟁 동향 알림</h3>
         <AlertPanelInfo />
       </div>
-      <p className="mt-1 text-xs text-slate-400">최근 5건</p>
+      <p className="mt-1 text-xs text-argos-muted">최근 5건</p>
 
       {recent.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-500">알림이 없습니다</p>
+        <p className="mt-4 text-sm text-argos-muted">알림이 없습니다</p>
       ) : (
         <ul className="mt-3 space-y-2">
           {recent.map((alert) => {
@@ -60,18 +60,18 @@ export function AlertPanel({ alerts, isLoading }: AlertPanelProps) {
             return (
               <li
                 key={alert.id}
-                className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-800/30 p-2.5"
+                className="flex items-start gap-3 rounded-lg border border-argos-border bg-argos-bgAlt p-2.5"
               >
                 <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${cfg.color}`}>
                   <Icon className="h-3.5 w-3.5" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-white">{alert.title}</p>
+                  <p className="truncate text-sm font-medium text-argos-ink">{alert.title}</p>
                   {alert.summary && (
-                    <p className="mt-0.5 truncate text-xs text-slate-400">{alert.summary}</p>
+                    <p className="mt-0.5 truncate text-xs text-argos-muted">{alert.summary}</p>
                   )}
                 </div>
-                <span className="shrink-0 text-xs text-slate-500">
+                <span className="shrink-0 text-xs text-argos-muted">
                   {formatRelativeTime(alert.createdAt)}
                 </span>
               </li>

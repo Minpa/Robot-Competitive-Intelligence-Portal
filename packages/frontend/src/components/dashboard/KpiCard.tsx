@@ -39,9 +39,9 @@ export function KpiCard({
   if (isLoading) {
     return (
       <div className={`bg-gradient-to-br ${colorClasses[color]} border rounded-xl p-4 animate-pulse`}>
-        <div className="h-4 bg-slate-700 rounded w-2/3 mb-3" />
-        <div className="h-8 bg-slate-700 rounded w-1/2 mb-2" />
-        <div className="h-3 bg-slate-700 rounded w-1/3" />
+        <div className="h-4 bg-argos-bgAlt rounded w-2/3 mb-3" />
+        <div className="h-8 bg-argos-bgAlt rounded w-1/2 mb-2" />
+        <div className="h-3 bg-argos-bgAlt rounded w-1/3" />
       </div>
     );
   }
@@ -50,7 +50,7 @@ export function KpiCard({
     <div className={`bg-gradient-to-br ${colorClasses[color]} border rounded-xl p-4 hover:shadow-lg transition-shadow`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium text-slate-400 uppercase tracking-wide">
+        <span className="text-xs font-medium text-argos-muted uppercase tracking-wide">
           {title}
         </span>
         <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg ${iconBgClasses[color]}`}>
@@ -59,7 +59,7 @@ export function KpiCard({
       </div>
 
       {/* Value */}
-      <div className="text-3xl font-bold text-slate-200 mb-1">
+      <div className="text-3xl font-bold text-argos-ink mb-1">
         {value.toLocaleString()}
       </div>
 
@@ -74,7 +74,7 @@ export function KpiCard({
                 </svg>
                 +{delta}
               </span>
-              <span className="text-slate-500">전주 대비</span>
+              <span className="text-argos-muted">전주 대비</span>
               {deltaPercent && <span className="text-green-400">(+{deltaPercent}%)</span>}
             </>
           ) : delta < 0 ? (
@@ -85,12 +85,12 @@ export function KpiCard({
                 </svg>
                 {delta}
               </span>
-              <span className="text-slate-500">전주 대비</span>
+              <span className="text-argos-muted">전주 대비</span>
               {deltaPercent && <span className="text-red-400">({deltaPercent}%)</span>}
             </>
           ) : (
             <>
-              <span className="text-slate-400 flex items-center">
+              <span className="text-argos-muted flex items-center">
                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
                 </svg>

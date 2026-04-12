@@ -43,7 +43,7 @@ export function DemoBanner() {
   const currentIdx = DEMO_STOPS.findIndex(s => pathname.startsWith(s.href));
 
   return (
-    <div className="bg-gradient-to-r from-blue-900/40 via-slate-900/60 to-cyan-900/40 border-b border-blue-500/20">
+    <div className="bg-gradient-to-r from-blue-900/40 via-argos-bg/60 to-cyan-900/40 border-b border-blue-500/20">
       <div className="max-w-7xl mx-auto px-4 py-2">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -51,8 +51,8 @@ export function DemoBanner() {
               <Monitor className="w-3.5 h-3.5 text-cyan-400" />
               <span className="text-xs font-semibold text-cyan-300">DEMO MODE</span>
             </div>
-            <span className="text-xs text-slate-500 hidden md:inline">|</span>
-            <span className="text-xs text-slate-400 hidden md:inline">AWE 2026 Presentation Tour</span>
+            <span className="text-xs text-argos-muted hidden md:inline">|</span>
+            <span className="text-xs text-argos-muted hidden md:inline">AWE 2026 Presentation Tour</span>
           </div>
 
           <div className="flex items-center gap-1 overflow-x-auto">
@@ -66,7 +66,7 @@ export function DemoBanner() {
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-all ${
                     isCurrent
                       ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                      : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
+                      : 'text-argos-muted hover:text-argos-inkSoft hover:bg-argos-bgAlt'
                   }`}
                   title={stop.desc}
                 >
@@ -80,7 +80,7 @@ export function DemoBanner() {
 
           <button
             onClick={handleDismiss}
-            className="p-1 rounded text-slate-500 hover:text-slate-300 hover:bg-slate-800/50 transition-colors flex-shrink-0"
+            className="p-1 rounded text-argos-muted hover:text-argos-inkSoft hover:bg-argos-bgAlt transition-colors flex-shrink-0"
             title="데모 모드 닫기"
           >
             <X className="w-3.5 h-3.5" />

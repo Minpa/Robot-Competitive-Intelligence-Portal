@@ -27,7 +27,7 @@ export function CategoryTabs({ selected, onChange }: Props) {
             'whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
             (c.key === 'all' && !selected) || selected === c.key
               ? 'bg-blue-600 text-white'
-              : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+              : 'bg-argos-bgAlt text-argos-muted hover:bg-argos-bgAlt hover:text-argos-inkSoft'
           )}
         >
           {c.label}

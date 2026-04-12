@@ -46,10 +46,10 @@ function CustomTooltip({ active, payload }: any) {
   const d = payload[0]?.payload as BubblePoint;
   if (!d) return null;
   return (
-    <div className="bg-slate-900 border border-slate-600 rounded-lg p-3 text-xs shadow-xl max-w-[220px]">
-      <div className="font-bold text-slate-100 mb-1">{d.label}</div>
-      <div className="text-slate-400 mb-2">{d.companyName}</div>
-      <div className="space-y-1 text-slate-300">
+    <div className="bg-argos-bg border border-argos-border rounded-lg p-3 text-xs shadow-xl max-w-[220px]">
+      <div className="font-bold text-argos-ink mb-1">{d.label}</div>
+      <div className="text-argos-muted mb-2">{d.companyName}</div>
+      <div className="space-y-1 text-argos-inkSoft">
         <div className="flex justify-between gap-3">
           <span>연도</span><span className="font-semibold">{d.year}{d.isForecast ? ' (전망)' : ''}</span>
         </div>
@@ -60,9 +60,9 @@ function CustomTooltip({ active, payload }: any) {
           <span>성능 레벨</span><span className="font-semibold text-blue-400">P{d.performanceLevel}</span>
         </div>
         {d.performanceNote && (
-          <div className="text-slate-400 pt-1 border-t border-slate-700">{d.performanceNote}</div>
+          <div className="text-argos-muted pt-1 border-t border-argos-border">{d.performanceNote}</div>
         )}
-        <div className="text-slate-500 text-[10px]">신뢰도: [{d.reliabilityGrade}]</div>
+        <div className="text-argos-muted text-[10px]">신뢰도: [{d.reliabilityGrade}]</div>
       </div>
     </div>
   );
@@ -99,12 +99,12 @@ export default function VisionCostBubbleChart({ data }: Props) {
         {companies.map((c) => (
           <div key={c} className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getColor(c) }} />
-            <span className="text-sm text-slate-300">{c}</span>
+            <span className="text-sm text-argos-inkSoft">{c}</span>
           </div>
         ))}
-        <div className="ml-auto flex items-center gap-3 text-xs text-slate-400">
+        <div className="ml-auto flex items-center gap-3 text-xs text-argos-muted">
           <div className="flex items-center gap-1">
-            <div className="w-4 h-4 rounded-full border-2 border-slate-400 border-dashed bg-transparent" />
+            <div className="w-4 h-4 rounded-full border-2 border-argos-border border-dashed bg-transparent" />
             <span>전망</span>
           </div>
           <span>원 크기 = 성능 레벨 (P1~P5)</span>
@@ -166,9 +166,9 @@ export default function VisionCostBubbleChart({ data }: Props) {
       {/* 성능 레벨 설명 */}
       <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
         {Object.entries(PERF_LABELS).map(([level, desc]) => (
-          <div key={level} className="flex items-start gap-2 bg-slate-800/50 rounded px-2 py-1.5">
+          <div key={level} className="flex items-start gap-2 bg-argos-bgAlt rounded px-2 py-1.5">
             <span className="text-blue-400 font-bold shrink-0">P{level}</span>
-            <span className="text-slate-400">{desc.split(': ')[1]}</span>
+            <span className="text-argos-muted">{desc.split(': ')[1]}</span>
           </div>
         ))}
       </div>

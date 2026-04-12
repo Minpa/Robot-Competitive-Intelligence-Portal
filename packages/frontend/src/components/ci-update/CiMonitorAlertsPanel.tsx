@@ -28,22 +28,22 @@ export function CiMonitorAlertsPanel() {
       case 'pending': return 'bg-yellow-500/20 text-yellow-400';
       case 'reviewed': return 'bg-blue-500/20 text-blue-400';
       case 'applied': return 'bg-green-500/20 text-green-400';
-      case 'dismissed': return 'bg-slate-500/20 text-slate-400';
-      default: return 'bg-slate-500/20 text-slate-400';
+      case 'dismissed': return 'bg-argos-bgAlt text-argos-muted';
+      default: return 'bg-argos-bgAlt text-argos-muted';
     }
   };
 
   return (
-    <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4">
+    <div className="bg-argos-surface rounded-xl border border-argos-border p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-white">모니터링 알림</h3>
+        <h3 className="text-sm font-semibold text-argos-ink">모니터링 알림</h3>
         <div className="flex gap-1">
           {[undefined, 'pending', 'reviewed', 'applied', 'dismissed'].map(s => (
             <button
               key={s || 'all'}
               onClick={() => setStatusFilter(s)}
               className={`text-[11px] px-2 py-0.5 rounded ${
-                statusFilter === s ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400 hover:text-slate-200'
+                statusFilter === s ? 'bg-blue-600 text-white' : 'bg-argos-bgAlt text-argos-muted hover:text-argos-inkSoft'
               }`}
             >
               {s || '전체'}
@@ -52,21 +52,21 @@ export function CiMonitorAlertsPanel() {
         </div>
       </div>
 
-      {isLoading && <div className="text-slate-400 text-sm">로딩 중...</div>}
+      {isLoading && <div className="text-argos-muted text-sm">로딩 중...</div>}
       {error && <div className="text-red-400 text-sm">에러 발생</div>}
 
       {data && data.length === 0 && (
-        <p className="text-slate-500 text-xs">알림이 없습니다.</p>
+        <p className="text-argos-muted text-xs">알림이 없습니다.</p>
       )}
 
       <div className="space-y-2 max-h-[400px] overflow-auto">
         {data?.map(alert => (
-          <div key={alert.id} className="bg-slate-700/30 rounded-lg p-3">
+          <div key={alert.id} className="bg-argos-bgAlt rounded-lg p-3">
             <div className="flex items-start justify-between mb-1">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-white font-medium truncate">{alert.headline}</p>
+                <p className="text-sm text-argos-ink font-medium truncate">{alert.headline}</p>
                 {alert.summary && (
-                  <p className="text-xs text-slate-400 mt-0.5 line-clamp-2">{alert.summary}</p>
+                  <p className="text-xs text-argos-muted mt-0.5 line-clamp-2">{alert.summary}</p>
                 )}
               </div>
               <span className={`text-[10px] px-1.5 py-0.5 rounded ml-2 whitespace-nowrap ${statusBadge(alert.status)}`}>
@@ -74,7 +74,7 @@ export function CiMonitorAlertsPanel() {
               </span>
             </div>
             <div className="flex items-center justify-between mt-2">
-              <div className="flex items-center gap-2 text-[10px] text-slate-500">
+              <div className="flex items-center gap-2 text-[10px] text-argos-muted">
                 {alert.sourceName && <span>{alert.sourceName}</span>}
                 <span>{new Date(alert.detectedAt).toLocaleDateString('ko-KR')}</span>
               </div>
@@ -83,7 +83,7 @@ export function CiMonitorAlertsPanel() {
                   <button
                     onClick={() => handleReview(alert.id, 'dismissed')}
                     disabled={processing === alert.id}
-                    className="text-[10px] px-2 py-0.5 rounded bg-slate-600 text-slate-300 hover:bg-slate-500"
+                    className="text-[10px] px-2 py-0.5 rounded bg-argos-bgAlt text-argos-inkSoft hover:bg-argos-bgAlt"
                   >
                     무시
                   </button>

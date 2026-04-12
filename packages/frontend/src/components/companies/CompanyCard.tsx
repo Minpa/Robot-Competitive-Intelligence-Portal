@@ -80,17 +80,17 @@ export function CompanyCard({ company }: CompanyCardProps) {
   const PrimaryIcon = config?.icon || Building2;
 
   return (
-    <div className="bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 hover:border-slate-600 transition-all hover:shadow-lg hover:shadow-slate-900/50">
+    <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft hover:border-argos-border transition-all hover:shadow-lg">
       {/* 헤더: 로고 + 회사명 + 국가 + 역할 배지 */}
-      <div className="p-4 border-b border-slate-700/50">
+      <div className="p-4 border-b border-argos-borderSoft">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-lg ${config?.bgColor || 'bg-slate-700'}`}>
-              <PrimaryIcon className={`w-6 h-6 ${config?.textColor || 'text-slate-400'}`} />
+            <div className={`p-2.5 rounded-lg ${config?.bgColor || 'bg-argos-bgAlt'}`}>
+              <PrimaryIcon className={`w-6 h-6 ${config?.textColor || 'text-argos-muted'}`} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-white">{company.name}</h3>
+                <h3 className="font-semibold text-argos-ink">{company.name}</h3>
                 <span className="text-lg" title={company.country}>{flag}</span>
               </div>
               {/* 역할 배지 */}
@@ -111,35 +111,35 @@ export function CompanyCard({ company }: CompanyCardProps) {
             </div>
           </div>
           <Link href={`/companies/${company.id}`}>
-            <ChevronRight className="w-5 h-5 text-slate-500 hover:text-slate-300 transition-colors" />
+            <ChevronRight className="w-5 h-5 text-argos-muted hover:text-argos-inkSoft transition-colors" />
           </Link>
         </div>
       </div>
 
       {/* 설명 줄 */}
       {company.description && (
-        <div className="px-4 py-3 border-b border-slate-700/50">
-          <p className="text-sm text-slate-400 line-clamp-2">{company.description}</p>
+        <div className="px-4 py-3 border-b border-argos-borderSoft">
+          <p className="text-sm text-argos-muted line-clamp-2">{company.description}</p>
         </div>
       )}
 
       {/* 제품 목록 */}
       {company.products && company.products.length > 0 && (
-        <div className="px-4 py-3 border-b border-slate-700/50">
-          <div className="text-xs text-slate-500 mb-2">주요 제품</div>
+        <div className="px-4 py-3 border-b border-argos-borderSoft">
+          <div className="text-xs text-argos-muted mb-2">주요 제품</div>
           <div className="flex flex-wrap gap-2">
             {company.products.slice(0, 4).map((product) => (
               <Link
                 key={product.id}
                 href={`/humanoid-robots/${product.id}`}
-                className="px-2 py-1 text-xs bg-slate-700/50 text-slate-300 rounded hover:bg-slate-600/50 transition-colors flex items-center gap-1"
+                className="px-2 py-1 text-xs bg-argos-bgAlt text-argos-inkSoft rounded hover:bg-argos-border transition-colors flex items-center gap-1"
               >
                 <Bot className="w-3 h-3" />
                 {product.name}
               </Link>
             ))}
             {company.products.length > 4 && (
-              <span className="px-2 py-1 text-xs text-slate-500">
+              <span className="px-2 py-1 text-xs text-argos-muted">
                 +{company.products.length - 4}개
               </span>
             )}
@@ -148,13 +148,13 @@ export function CompanyCard({ company }: CompanyCardProps) {
       )}
 
       {/* 인사이트 줄: 제품 수, 적용 사례, 인력 */}
-      <div className="px-4 py-3 flex flex-wrap gap-4 text-xs text-slate-400">
+      <div className="px-4 py-3 flex flex-wrap gap-4 text-xs text-argos-muted">
         <div className="flex items-center gap-1.5" title="제품 수">
           <Package className="w-3.5 h-3.5 text-blue-400" />
           <span>
             제품 {company.productCount ?? company.products?.length ?? 0}개
             {(company.componentCount ?? 0) > 0 && (
-              <span className="text-slate-500"> (부품 {company.componentCount})</span>
+              <span className="text-argos-muted"> (부품 {company.componentCount})</span>
             )}
           </span>
         </div>
@@ -163,7 +163,7 @@ export function CompanyCard({ company }: CompanyCardProps) {
           <span>
             사례 {company.applicationCaseCount ?? 0}건
             {((company.pocCount ?? 0) > 0 || (company.productionCount ?? 0) > 0) && (
-              <span className="text-slate-500">
+              <span className="text-argos-muted">
                 {' '}(PoC {company.pocCount ?? 0} / 상용 {company.productionCount ?? 0})
               </span>
             )}
@@ -178,7 +178,7 @@ export function CompanyCard({ company }: CompanyCardProps) {
       </div>
 
       {/* 하단 액션 */}
-      <div className="px-4 py-3 bg-slate-800/30 rounded-b-xl flex items-center justify-between">
+      <div className="px-4 py-3 bg-argos-bgAlt rounded-b-xl flex items-center justify-between">
         <div className="flex items-center gap-3">
           {company.homepageUrl && (
             <a

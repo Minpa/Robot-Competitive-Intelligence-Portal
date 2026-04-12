@@ -66,8 +66,8 @@ export function AddCompetitorModal({ isOpen, onClose, onSuccess }: AddCompetitor
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-slate-800 rounded-xl border border-slate-700 max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
-        <h3 className="text-lg font-semibold text-white mb-4">새 경쟁사 추가</h3>
+      <div className="bg-argos-surface rounded-xl border border-argos-border max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
+        <h3 className="text-lg font-semibold text-argos-ink mb-4">새 경쟁사 추가</h3>
 
         {error && (
           <div className="mb-3 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded px-3 py-2">
@@ -77,48 +77,48 @@ export function AddCompetitorModal({ isOpen, onClose, onSuccess }: AddCompetitor
 
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-slate-400 mb-1 block">이름 *</label>
+            <label className="text-xs text-argos-muted mb-1 block">이름 *</label>
             <input
               value={form.name}
               onChange={e => setForm({ ...form, name: e.target.value })}
               onBlur={handleSlugify}
               placeholder="Unitree H1"
-              className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+              className="w-full bg-argos-bgAlt border border-argos-border rounded px-3 py-2 text-argos-ink text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
           <div>
-            <label className="text-xs text-slate-400 mb-1 block">Slug *</label>
+            <label className="text-xs text-argos-muted mb-1 block">Slug *</label>
             <input
               value={form.slug}
               onChange={e => setForm({ ...form, slug: e.target.value })}
               placeholder="unitree-h1"
-              className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-blue-500"
+              className="w-full bg-argos-bgAlt border border-argos-border rounded px-3 py-2 text-argos-ink text-sm font-mono focus:outline-none focus:border-blue-500"
             />
           </div>
           <div>
-            <label className="text-xs text-slate-400 mb-1 block">제조사 *</label>
+            <label className="text-xs text-argos-muted mb-1 block">제조사 *</label>
             <input
               value={form.manufacturer}
               onChange={e => setForm({ ...form, manufacturer: e.target.value })}
               placeholder="Unitree Robotics"
-              className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+              className="w-full bg-argos-bgAlt border border-argos-border rounded px-3 py-2 text-argos-ink text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
           <div>
-            <label className="text-xs text-slate-400 mb-1 block">국가</label>
+            <label className="text-xs text-argos-muted mb-1 block">국가</label>
             <input
               value={form.country}
               onChange={e => setForm({ ...form, country: e.target.value })}
               placeholder="🇨🇳"
-              className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+              className="w-full bg-argos-bgAlt border border-argos-border rounded px-3 py-2 text-argos-ink text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
           <div>
-            <label className="text-xs text-slate-400 mb-1 block">단계</label>
+            <label className="text-xs text-argos-muted mb-1 block">단계</label>
             <select
               value={form.stage}
               onChange={e => setForm({ ...form, stage: e.target.value })}
-              className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+              className="w-full bg-argos-bgAlt border border-argos-border rounded px-3 py-2 text-argos-ink text-sm focus:outline-none focus:border-blue-500"
             >
               {stageOptions.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -127,12 +127,12 @@ export function AddCompetitorModal({ isOpen, onClose, onSuccess }: AddCompetitor
           </div>
         </div>
 
-        <p className="text-[10px] text-slate-500 mt-3">
+        <p className="text-[10px] text-argos-muted mt-3">
           추가 시 모든 비교 항목에 빈 셀이 자동 생성됩니다.
         </p>
 
         <div className="flex gap-2 mt-4 justify-end">
-          <button onClick={onClose} className="px-4 py-2 rounded bg-slate-700 text-slate-300 text-sm hover:bg-slate-600">
+          <button onClick={onClose} className="px-4 py-2 rounded bg-argos-bgAlt text-argos-inkSoft text-sm hover:bg-argos-bgAlt">
             취소
           </button>
           <button

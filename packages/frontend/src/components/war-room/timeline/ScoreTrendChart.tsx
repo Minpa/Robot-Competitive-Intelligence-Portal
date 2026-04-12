@@ -27,13 +27,13 @@ const ROBOT_COLORS = [
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-slate-700 bg-slate-800 p-3 shadow-xl">
-      <p className="mb-1.5 text-xs font-semibold text-slate-300">{label}</p>
+    <div className="rounded-lg border border-argos-border bg-argos-surface p-3 shadow-xl">
+      <p className="mb-1.5 text-xs font-semibold text-argos-inkSoft">{label}</p>
       {payload.map((entry: any) => (
         <div key={entry.dataKey} className="flex items-center gap-2 text-xs">
           <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
-          <span className="text-slate-400">{entry.name}:</span>
-          <span className="font-medium text-white">{Number(entry.value).toFixed(2)}</span>
+          <span className="text-argos-muted">{entry.name}:</span>
+          <span className="font-medium text-argos-ink">{Number(entry.value).toFixed(2)}</span>
         </div>
       ))}
     </div>
@@ -98,18 +98,18 @@ function getLineKeys(
 export function ScoreTrendChart({ data, selectedFactors, robotNames, isLoading }: ScoreTrendChartProps) {
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <div className="mb-3 h-5 w-40 animate-pulse rounded bg-slate-800" />
-        <div className="h-80 w-full animate-pulse rounded bg-slate-800" />
+      <div className="rounded-xl border border-argos-border bg-argos-bg p-4">
+        <div className="mb-3 h-5 w-40 animate-pulse rounded bg-argos-bgAlt" />
+        <div className="h-80 w-full animate-pulse rounded bg-argos-bgAlt" />
       </div>
     );
   }
 
   if (data.length === 0 || selectedFactors.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <h3 className="text-sm font-semibold text-white">역량 변화 추이</h3>
-        <p className="mt-8 text-center text-sm text-slate-500">
+      <div className="rounded-xl border border-argos-border bg-argos-bg p-4">
+        <h3 className="text-sm font-semibold text-argos-ink">역량 변화 추이</h3>
+        <p className="mt-8 text-center text-sm text-argos-muted">
           로봇과 팩터를 선택하면 차트가 표시됩니다
         </p>
       </div>
@@ -130,8 +130,8 @@ export function ScoreTrendChart({ data, selectedFactors, robotNames, isLoading }
   });
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-      <h3 className="mb-4 text-sm font-semibold text-white">역량 변화 추이</h3>
+    <div className="rounded-xl border border-argos-border bg-argos-bg p-4">
+      <h3 className="mb-4 text-sm font-semibold text-argos-ink">역량 변화 추이</h3>
       <ResponsiveContainer width="100%" height={360}>
         <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--color-slate-700))" />

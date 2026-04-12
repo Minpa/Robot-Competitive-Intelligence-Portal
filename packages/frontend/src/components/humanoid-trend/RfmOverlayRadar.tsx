@@ -27,7 +27,7 @@ interface Props { data: RfmScoreWithRobot[]; }
 export default function RfmOverlayRadar({ data }: Props) {
   if (!data || data.length < 2) {
     return (
-      <div className="flex items-center justify-center min-h-[300px] text-slate-500 text-sm">
+      <div className="flex items-center justify-center min-h-[300px] text-argos-muted text-sm">
         비교를 위해 최소 2개 이상의 RFM 데이터가 필요합니다.
       </div>
     );
@@ -48,9 +48,9 @@ export default function RfmOverlayRadar({ data }: Props) {
       <div className="h-[480px]">
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart cx="50%" cy="50%" outerRadius="65%" data={chartData}>
-            <PolarGrid stroke="rgb(var(--color-slate-700))" />
-            <PolarAngleAxis dataKey="axis" tick={{ fontSize: 11, fill: 'rgb(var(--color-slate-400))' }} />
-            <PolarRadiusAxis angle={90} domain={[0, 5]} tick={{ fontSize: 9, fill: 'rgb(var(--color-slate-500))' }} tickCount={6} />
+            <PolarGrid stroke="#E5E9F0" />
+            <PolarAngleAxis dataKey="axis" tick={{ fontSize: 11, fill: '#6B7A90' }} />
+            <PolarRadiusAxis angle={90} domain={[0, 5]} tick={{ fontSize: 9, fill: '#6B7A90' }} tickCount={6} />
             {limited.map((s, i) => (
               <Radar
                 key={s.id}
@@ -63,10 +63,10 @@ export default function RfmOverlayRadar({ data }: Props) {
               />
             ))}
             <Tooltip
-              contentStyle={{ backgroundColor: '#1E293B', border: '1px solid rgb(var(--color-slate-700))', borderRadius: '8px', fontSize: '12px', color: 'rgb(var(--color-slate-200))' }}
+              contentStyle={{ backgroundColor: '#FFFFFF', border: '1px solid #E5E9F0', borderRadius: '8px', fontSize: '12px', color: '#1E2838' }}
             />
             <Legend
-              wrapperStyle={{ fontSize: '12px', color: 'rgb(var(--color-slate-400))' }}
+              wrapperStyle={{ fontSize: '12px', color: '#6B7A90' }}
             />
           </RadarChart>
         </ResponsiveContainer>

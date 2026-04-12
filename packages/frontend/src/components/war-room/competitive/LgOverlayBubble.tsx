@@ -48,12 +48,12 @@ function CustomTooltip({ active, payload }: any) {
   if (!active || !payload?.[0]) return null;
   const d = payload[0].payload as BubblePoint;
   return (
-    <div className="rounded-lg border border-slate-700 bg-slate-800 p-2 text-xs shadow-lg">
-      <p className="font-medium text-white">{d.name}</p>
-      <p className="text-slate-400">{d.company}</p>
-      <p className="mt-1 text-slate-300">PoC 합계: {d.x.toFixed(1)}</p>
-      <p className="text-slate-300">RFM 합계: {d.y.toFixed(1)}</p>
-      <p className="text-slate-300">종합: {d.z.toFixed(1)}</p>
+    <div className="rounded-lg border border-argos-border bg-argos-surface p-2 text-xs shadow-lg">
+      <p className="font-medium text-argos-ink">{d.name}</p>
+      <p className="text-argos-muted">{d.company}</p>
+      <p className="mt-1 text-argos-inkSoft">PoC 합계: {d.x.toFixed(1)}</p>
+      <p className="text-argos-inkSoft">RFM 합계: {d.y.toFixed(1)}</p>
+      <p className="text-argos-inkSoft">종합: {d.z.toFixed(1)}</p>
     </div>
   );
 }
@@ -61,19 +61,19 @@ function CustomTooltip({ active, payload }: any) {
 export function LgOverlayBubble({ data, isLoading }: LgOverlayBubbleProps) {
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <div className="mb-3 h-5 w-48 animate-pulse rounded bg-slate-800" />
-        <div className="h-64 animate-pulse rounded bg-slate-800" />
+      <div className="rounded-xl border border-argos-border bg-argos-surface p-4">
+        <div className="mb-3 h-5 w-48 animate-pulse rounded bg-argos-bgAlt" />
+        <div className="h-64 animate-pulse rounded bg-argos-bgAlt" />
       </div>
     );
   }
 
   if (!data || !data.lgData) {
     return (
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <h3 className="text-sm font-semibold text-white">LG vs Top 5 오버레이 버블</h3>
+      <div className="rounded-xl border border-argos-border bg-argos-surface p-4">
+        <h3 className="text-sm font-semibold text-argos-ink">LG vs Top 5 오버레이 버블</h3>
         <div className="flex h-64 items-center justify-center">
-          <p className="text-sm text-slate-500">오버레이 데이터가 없습니다</p>
+          <p className="text-sm text-argos-muted">오버레이 데이터가 없습니다</p>
         </div>
       </div>
     );
@@ -83,12 +83,12 @@ export function LgOverlayBubble({ data, isLoading }: LgOverlayBubbleProps) {
   const compPoints = data.top5Data.map(toBubblePoint);
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+    <div className="rounded-xl border border-argos-border bg-argos-surface p-4">
       <div className="flex items-center gap-2">
-        <h3 className="text-sm font-semibold text-white">LG vs Top 5 오버레이 버블</h3>
+        <h3 className="text-sm font-semibold text-argos-ink">LG vs Top 5 오버레이 버블</h3>
         <BubbleChartInfo />
       </div>
-      <p className="mt-1 text-xs text-slate-400">X: PoC 합계 / Y: RFM 합계</p>
+      <p className="mt-1 text-xs text-argos-muted">X: PoC 합계 / Y: RFM 합계</p>
 
       <div className="mt-2 h-72">
         <ResponsiveContainer width="100%" height="100%">

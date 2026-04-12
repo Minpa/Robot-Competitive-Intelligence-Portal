@@ -72,10 +72,10 @@ export default function RfmComparisonTable() {
     <div className="overflow-x-auto">
       <table className="w-full min-w-[900px] border-collapse text-sm">
         <thead>
-          <tr className="bg-slate-800 text-left text-xs uppercase tracking-wide text-slate-300">
-            <th className="border border-slate-700 px-3 py-2">비교 항목</th>
+          <tr className="bg-argos-bgAlt text-left text-xs uppercase tracking-wide text-argos-inkSoft">
+            <th className="border border-argos-border px-3 py-2">비교 항목</th>
             {companies.map((company) => (
-              <th key={company.key} className="border border-slate-700 px-3 py-2">
+              <th key={company.key} className="border border-argos-border px-3 py-2">
                 {company.name}
               </th>
             ))}
@@ -83,12 +83,12 @@ export default function RfmComparisonTable() {
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.label} className="border-b border-slate-700">
-              <td className="border border-slate-700 px-3 py-2 font-medium text-slate-200">
+            <tr key={row.label} className="border-b border-argos-border">
+              <td className="border border-argos-border px-3 py-2 font-medium text-argos-ink">
                 {row.label}
               </td>
               {companies.map((company) => (
-                <td key={company.key} className="border border-slate-700 px-3 py-2 text-slate-300">
+                <td key={company.key} className="border border-argos-border px-3 py-2 text-argos-inkSoft">
                   {row.values[company.key as keyof typeof row.values]}
                 </td>
               ))}

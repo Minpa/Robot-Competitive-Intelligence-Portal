@@ -40,13 +40,13 @@ export function WarRoomLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-argos-bg">
       <div className="max-w-[1600px] mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white">전략 워룸</h1>
-            <p className="text-sm text-slate-400 mt-1">
+            <h1 className="text-2xl font-bold text-argos-ink">전략 워룸</h1>
+            <p className="text-sm text-argos-muted mt-1">
               LG 휴머노이드 전략 분석 대시보드
             </p>
           </div>
@@ -57,7 +57,7 @@ export function WarRoomLayout({ children }: { children: ReactNode }) {
         </div>
 
         {/* Tab Navigation */}
-        <nav className="mb-6 flex gap-1 overflow-x-auto border-b border-slate-800 pb-px" aria-label="전략 워룸 탭">
+        <nav className="mb-6 flex gap-1 overflow-x-auto border-b border-argos-border pb-px" aria-label="전략 워룸 탭">
           {tabs.map((tab) => {
             const isActive =
               tab.href === '/war-room'
@@ -71,8 +71,8 @@ export function WarRoomLayout({ children }: { children: ReactNode }) {
                 className={cn(
                   'flex items-center gap-2 whitespace-nowrap rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors',
                   isActive
-                    ? 'border-b-2 border-blue-500 bg-slate-800/50 text-blue-400'
-                    : 'text-slate-400 hover:bg-slate-800/30 hover:text-slate-200'
+                    ? 'border-b-2 border-blue-500 bg-argos-surface text-blue-400'
+                    : 'text-argos-muted hover:bg-argos-bgAlt hover:text-argos-ink'
                 )}
               >
                 <tab.icon className="h-4 w-4" />

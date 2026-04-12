@@ -125,11 +125,11 @@ export function SpecEditorForm({ robot, onSave, isSaving }: SpecEditorFormProps)
   const currentData = formData[activeTab];
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+    <div className="rounded-xl border border-argos-border bg-argos-surface p-4">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-white">스펙 편집</h3>
-          <p className="mt-0.5 text-xs text-slate-400">{robot.name}</p>
+          <h3 className="text-sm font-semibold text-argos-ink">스펙 편집</h3>
+          <p className="mt-0.5 text-xs text-argos-muted">{robot.name}</p>
         </div>
         <button
           onClick={handleSave}
@@ -142,15 +142,15 @@ export function SpecEditorForm({ robot, onSave, isSaving }: SpecEditorFormProps)
       </div>
 
       {/* Tabs */}
-      <div className="mb-4 flex gap-1 rounded-lg bg-slate-800/50 p-1">
+      <div className="mb-4 flex gap-1 rounded-lg bg-argos-bgAlt p-1">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
               activeTab === tab.key
-                ? 'bg-slate-700 text-white'
-                : 'text-slate-400 hover:text-slate-300'
+                ? 'bg-argos-surface text-argos-ink'
+                : 'text-argos-muted hover:text-argos-inkSoft'
             }`}
           >
             {tab.label}
@@ -162,23 +162,23 @@ export function SpecEditorForm({ robot, onSave, isSaving }: SpecEditorFormProps)
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {currentFields.map((field) => (
           <div key={field.key}>
-            <label className="mb-1 block text-xs text-slate-400">{field.label}</label>
+            <label className="mb-1 block text-xs text-argos-muted">{field.label}</label>
             {field.type === 'checkbox' ? (
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={!!currentData[field.key]}
                   onChange={(e) => handleFieldChange(activeTab, field.key, e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-700 bg-slate-800 text-blue-600"
+                  className="h-4 w-4 rounded border-argos-border bg-argos-bgAlt text-blue-600"
                 />
-                <span className="text-sm text-slate-300">{currentData[field.key] ? '예' : '아니오'}</span>
+                <span className="text-sm text-argos-inkSoft">{currentData[field.key] ? '예' : '아니오'}</span>
               </label>
             ) : (
               <input
                 type={field.type}
                 value={currentData[field.key] ?? ''}
                 onChange={(e) => handleFieldChange(activeTab, field.key, e.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-lg border border-argos-border bg-argos-bgAlt px-3 py-2 text-sm text-argos-ink placeholder-argos-muted focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 placeholder={field.label}
               />
             )}

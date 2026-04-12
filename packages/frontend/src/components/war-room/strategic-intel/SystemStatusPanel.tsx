@@ -35,7 +35,7 @@ function StatusBadge({ status }: { status: string }) {
     error: { bg: 'bg-red-500/20', text: 'text-red-400', icon: XCircle },
     failure: { bg: 'bg-red-500/20', text: 'text-red-400', icon: XCircle },
     partial_failure: { bg: 'bg-amber-500/20', text: 'text-amber-400', icon: XCircle },
-  }[status] || { bg: 'bg-slate-500/20', text: 'text-slate-400', icon: Clock };
+  }[status] || { bg: 'bg-argos-bgAlt', text: 'text-argos-muted', icon: Clock };
 
   const Icon = cfg.icon;
   return (
@@ -53,7 +53,7 @@ export function SystemStatusPanel() {
   const trigger = useTriggerScheduledTask();
 
   if (schedulerLoading) {
-    return <div className="animate-pulse bg-slate-800/50 rounded-xl h-48" />;
+    return <div className="animate-pulse bg-argos-surface rounded-xl h-48" />;
   }
 
   const tasks = scheduler?.tasks || [];
@@ -62,9 +62,9 @@ export function SystemStatusPanel() {
   const budgetColor = budgetPct >= 80 ? 'bg-red-500' : budgetPct >= 50 ? 'bg-amber-500' : 'bg-emerald-500';
 
   return (
-    <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
+    <div className="bg-argos-surface rounded-xl border border-argos-borderSoft p-6">
       {/* Header */}
-      <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-6">
+      <h3 className="text-lg font-semibold text-argos-ink flex items-center gap-2 mb-6">
         <Server className="w-5 h-5 text-cyan-400" />
         시스템 상태
       </h3>
@@ -74,16 +74,16 @@ export function SystemStatusPanel() {
         <div className="space-y-4">
           {/* Schedule table */}
           <div>
-            <h4 className="text-sm font-medium text-slate-300 flex items-center gap-2 mb-3">
+            <h4 className="text-sm font-medium text-argos-inkSoft flex items-center gap-2 mb-3">
               <Clock className="w-4 h-4 text-blue-400" />
               자동 실행 스케줄
             </h4>
             <div className="space-y-2">
               {tasks.map((t: any) => (
-                <div key={t.name} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
+                <div key={t.name} className="flex items-center justify-between p-3 bg-argos-bgAlt rounded-lg">
                   <div>
-                    <div className="text-sm text-white">{t.label}</div>
-                    <div className="text-[11px] text-slate-500">
+                    <div className="text-sm text-argos-ink">{t.label}</div>
+                    <div className="text-[11px] text-argos-muted">
                       {CRON_LABELS[t.cron] || t.cron}
                       {t.lastRun && (
                         <> &middot; 마지막: {new Date(t.lastRun).toLocaleString('ko-KR')}</>
@@ -105,30 +105,30 @@ export function SystemStatusPanel() {
                 </div>
               ))}
               {tasks.length === 0 && (
-                <p className="text-xs text-slate-500">스케줄러가 초기화되지 않았습니다.</p>
+                <p className="text-xs text-argos-muted">스케줄러가 초기화되지 않았습니다.</p>
               )}
             </div>
           </div>
 
           {/* AI Budget */}
-          <div className="p-4 bg-slate-900/50 rounded-lg">
-            <h4 className="text-sm font-medium text-slate-300 flex items-center gap-2 mb-3">
+          <div className="p-4 bg-argos-bgAlt rounded-lg">
+            <h4 className="text-sm font-medium text-argos-inkSoft flex items-center gap-2 mb-3">
               <DollarSign className="w-4 h-4 text-green-400" />
               AI 예산 (이번 달)
             </h4>
             <div className="flex items-end gap-2 mb-2">
-              <span className="text-2xl font-bold text-white">
+              <span className="text-2xl font-bold text-argos-ink">
                 ${budget?.currentCostUsd?.toFixed(2) ?? '0.00'}
               </span>
-              <span className="text-sm text-slate-500 mb-0.5">/ ${budget?.limitUsd?.toFixed(2) ?? '7.00'}</span>
+              <span className="text-sm text-argos-muted mb-0.5">/ ${budget?.limitUsd?.toFixed(2) ?? '7.00'}</span>
             </div>
-            <div className="w-full h-3 rounded-full bg-slate-700 overflow-hidden">
+            <div className="w-full h-3 rounded-full bg-argos-bgAlt overflow-hidden">
               <div
                 className={`h-3 rounded-full ${budgetColor} transition-all`}
                 style={{ width: `${budgetPct}%` }}
               />
             </div>
-            <p className="text-[11px] text-slate-500 mt-1">
+            <p className="text-[11px] text-argos-muted mt-1">
               {budgetPct >= 80 ? '예산 소진 임박 — 초과 시 rule-based fallback 사용' : `${budgetPct.toFixed(0)}% 사용`}
             </p>
           </div>
@@ -136,22 +136,22 @@ export function SystemStatusPanel() {
 
         {/* Right: Pipeline History */}
         <div>
-          <h4 className="text-sm font-medium text-slate-300 mb-3">파이프라인 실행 이력</h4>
+          <h4 className="text-sm font-medium text-argos-inkSoft mb-3">파이프라인 실행 이력</h4>
           {historyLoading ? (
-            <div className="animate-pulse bg-slate-900/50 rounded-lg h-40" />
+            <div className="animate-pulse bg-argos-bgAlt rounded-lg h-40" />
           ) : runs.length === 0 ? (
-            <p className="text-xs text-slate-500">실행 이력이 없습니다.</p>
+            <p className="text-xs text-argos-muted">실행 이력이 없습니다.</p>
           ) : (
             <div className="space-y-2 max-h-[400px] overflow-y-auto">
               {runs.map((run: any) => (
-                <div key={run.id} className="p-3 bg-slate-900/50 rounded-lg">
+                <div key={run.id} className="p-3 bg-argos-bgAlt rounded-lg">
                   <div className="flex items-center justify-between mb-1">
                     <StatusBadge status={run.status} />
-                    <span className="text-[11px] text-slate-500">
+                    <span className="text-[11px] text-argos-muted">
                       {formatDuration(run.totalDurationMs)}
                     </span>
                   </div>
-                  <div className="text-[11px] text-slate-500">
+                  <div className="text-[11px] text-argos-muted">
                     {new Date(run.startedAt).toLocaleString('ko-KR')}
                   </div>
                   {run.steps?.length > 0 && (
