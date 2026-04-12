@@ -137,14 +137,14 @@ export function ManualPasteMode({
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center gap-2 text-slate-300">
-        <FileText className="w-5 h-5 text-violet-400" />
+      <div className="flex items-center gap-2 text-argos-inkSoft">
+        <FileText className="w-5 h-5 text-violet-500" />
         <h2 className="text-lg font-medium">기사 붙여넣기</h2>
       </div>
 
       {/* Title input */}
       <div>
-        <label htmlFor="article-title" className="block text-sm text-slate-400 mb-1.5">
+        <label htmlFor="article-title" className="block text-sm text-argos-muted mb-1.5">
           기사 제목
         </label>
         <input
@@ -153,13 +153,13 @@ export function ManualPasteMode({
           value={articleTitle}
           onChange={(e) => setArticleTitle(e.target.value)}
           placeholder="기사 제목을 입력하세요"
-          className="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
+          className="w-full px-4 py-2.5 bg-argos-bgAlt border border-argos-border rounded-lg text-argos-inkSoft placeholder-argos-faint focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
         />
       </div>
 
       {/* Image upload */}
       <div>
-        <label className="block text-sm text-slate-400 mb-1.5">이미지에서 텍스트 추출</label>
+        <label className="block text-sm text-argos-muted mb-1.5">이미지에서 텍스트 추출</label>
         <div className="flex flex-col gap-2">
           <input
             type="file"
@@ -170,11 +170,11 @@ export function ManualPasteMode({
                 handleImageFile(file);
               }
             }}
-            className="text-sm text-slate-300"
+            className="text-sm text-argos-inkSoft"
           />
 
           {imageName && (
-            <div className="flex items-center justify-between gap-2 text-xs text-slate-300">
+            <div className="flex items-center justify-between gap-2 text-xs text-argos-inkSoft">
               <span className="truncate">{imageName}</span>
               <button
                 type="button"
@@ -182,7 +182,7 @@ export function ManualPasteMode({
                   setImageBase64(null);
                   setImageName(null);
                 }}
-                className="text-violet-300 hover:text-violet-100"
+                className="text-violet-600 hover:text-violet-800"
               >
                 이미지 삭제
               </button>
@@ -190,7 +190,7 @@ export function ManualPasteMode({
           )}
 
           {imageBase64 && (
-            <div className="border border-slate-700 rounded-lg overflow-hidden">
+            <div className="border border-argos-border rounded-lg overflow-hidden">
               <img
                 src={imageBase64}
                 alt="업로드된 스크린샷"
@@ -199,15 +199,15 @@ export function ManualPasteMode({
             </div>
           )}
         </div>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-argos-faint">
           스크린샷을 붙여넣거나 업로드하면 OCR로 텍스트를 추출하여 분석할 수 있습니다.
         </p>
       </div>
 
       {/* Text area */}
       <div>
-        <label htmlFor="article-text" className="block text-sm text-slate-400 mb-1.5">
-          기사 본문 <span className="text-slate-500">(한국어·영어·일본어 등 다국어 지원)</span>
+        <label htmlFor="article-text" className="block text-sm text-argos-muted mb-1.5">
+          기사 본문 <span className="text-argos-faint">(한국어·영어·일본어 등 다국어 지원)</span>
         </label>
         <textarea
           id="article-text"
@@ -216,10 +216,10 @@ export function ManualPasteMode({
           onPaste={handlePaste}
           placeholder="기사 원문을 붙여넣으세요 (최소 20자)"
           rows={12}
-          className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors resize-y"
+          className="w-full px-4 py-3 bg-argos-bgAlt border border-argos-border rounded-lg text-argos-inkSoft placeholder-argos-faint focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors resize-y"
         />
         {rawText.length > 0 && isTooShort && (
-          <p className="mt-1.5 text-xs text-amber-400">
+          <p className="mt-1.5 text-xs text-amber-500">
             최소 20자 이상 입력해야 분석할 수 있습니다. (현재 {rawText.length}자)
           </p>
         )}
@@ -227,7 +227,7 @@ export function ManualPasteMode({
 
       {/* Analysis options */}
       <div>
-        <p className="text-sm text-slate-400 mb-2">분석 옵션</p>
+        <p className="text-sm text-argos-muted mb-2">분석 옵션</p>
         <div className="flex flex-wrap gap-2">
           {ANALYSIS_OPTIONS.map((opt) => (
             <button
@@ -235,8 +235,8 @@ export function ManualPasteMode({
               onClick={() => toggleOption(opt.key)}
               className={`px-3 py-1.5 text-sm rounded-lg border transition-colors cursor-pointer ${
                 options[opt.key]
-                  ? 'bg-violet-500/20 text-violet-300 border-violet-500/40'
-                  : 'bg-slate-800/50 text-slate-500 border-slate-700 hover:border-slate-600'
+                  ? 'bg-violet-500/10 text-violet-600 border-violet-500/30'
+                  : 'bg-argos-bgAlt text-argos-faint border-argos-border hover:border-argos-border'
               }`}
             >
               {opt.label}
@@ -247,7 +247,7 @@ export function ManualPasteMode({
 
       {/* Error message */}
       {error && (
-        <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5">
+        <p className="text-sm text-argos-danger bg-argos-dangerBg border border-red-500/20 rounded-lg px-4 py-2.5">
           {error}
         </p>
       )}
@@ -256,7 +256,7 @@ export function ManualPasteMode({
       <button
         onClick={handleAnalyze}
         disabled={!canAnalyze}
-        className="w-full py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-violet-600 hover:bg-violet-500 text-white"
+        className="w-full py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-violet-600 hover:bg-violet-500 !text-white"
       >
         <Sparkles className="w-4 h-4" />
         {isAnalyzing ? 'AI 분석 중...' : 'AI 분석 시작'}

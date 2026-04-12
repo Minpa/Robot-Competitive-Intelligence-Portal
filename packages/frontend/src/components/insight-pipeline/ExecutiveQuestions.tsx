@@ -23,8 +23,8 @@ const EXECUTIVE_QUESTIONS = [
 export function ExecutiveQuestions({ activeTab, onQuestionClick }: ExecutiveQuestionsProps) {
   if (activeTab === 'manual') {
     return (
-      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-        <div className="flex items-center gap-2 text-slate-400 text-sm">
+      <div className="bg-argos-surface border border-argos-border rounded-xl p-4">
+        <div className="flex items-center gap-2 text-argos-muted text-sm">
           <Info className="w-4 h-4 shrink-0" />
           <span>이 기사에서 어떤 회사/제품/부품 정보를 추출할 수 있을까?</span>
         </div>
@@ -33,17 +33,17 @@ export function ExecutiveQuestions({ activeTab, onQuestionClick }: ExecutiveQues
   }
 
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-      <h3 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
-        <Lightbulb className="w-4 h-4 text-amber-400" />
+    <div className="bg-argos-surface border border-argos-border rounded-xl p-4">
+      <h3 className="text-sm font-medium text-argos-inkSoft mb-3 flex items-center gap-2">
+        <Lightbulb className="w-4 h-4 text-amber-500" />
         경영진 핵심 질문
       </h3>
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent">
         {EXECUTIVE_QUESTIONS.map((item) => (
           <button
             key={item.id}
             onClick={() => onQuestionClick(item.question)}
-            className="shrink-0 px-3 py-1.5 text-sm rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 hover:border-violet-500/50 transition-colors cursor-pointer whitespace-nowrap"
+            className="shrink-0 px-3 py-1.5 text-sm rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-600 hover:bg-violet-500/20 hover:border-violet-500/50 transition-colors cursor-pointer whitespace-nowrap"
             title={item.question}
           >
             {item.label}
