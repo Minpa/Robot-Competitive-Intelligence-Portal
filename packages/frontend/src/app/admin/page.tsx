@@ -312,6 +312,212 @@ export default function AdminPage() {
           ))}
         </div>
 
+        {/* 평가 기준 */}
+        <div className="bg-argos-surface border border-argos-border rounded-xl shadow-argos-card">
+          <div className="p-6 border-b border-argos-border flex items-center gap-2">
+            <Scale className="w-5 h-5 text-argos-blue" />
+            <h2 className="text-[15px] font-bold text-argos-ink">로봇 평가 기준</h2>
+            <span className="text-xs text-argos-muted ml-2">
+              사이트에 등록된 모든 휴머노이드 로봇에 적용되는 점수 산정 항목
+            </span>
+          </div>
+
+          {/* PoC 점수 (하드웨어 경쟁력, 1-10) */}
+          <div className="p-6 border-b border-argos-border">
+            <h3 className="text-[14px] font-bold text-argos-ink mb-1">
+              PoC 점수 — 하드웨어 경쟁력 (1~10점)
+            </h3>
+            <p className="text-xs text-argos-muted mb-4">
+              실물 스펙과 PoC/배치 현황을 기반으로 각 로봇의 물리적 경쟁력을 평가합니다.
+            </p>
+            <div className="border border-argos-border rounded-lg overflow-hidden">
+              <div className="grid grid-cols-12 gap-3 px-4 py-2 bg-argos-bg text-[11px] font-bold text-argos-muted uppercase tracking-wider">
+                <div className="col-span-2">항목</div>
+                <div className="col-span-1 text-center">범위</div>
+                <div className="col-span-5">계산식</div>
+                <div className="col-span-4">설명</div>
+              </div>
+              {[
+                {
+                  name: '가반하중 점수',
+                  key: 'payloadScore',
+                  range: '1-10',
+                  formula: '(payload_kg / 20) × 9 + 1',
+                  desc: '로봇이 운반 가능한 최대 중량. 20kg을 만점 기준으로 선형 스케일링.',
+                },
+                {
+                  name: '작동 시간 점수',
+                  key: 'operationTimeScore',
+                  range: '1-10',
+                  formula: '(operation_hours / 8) × 9 + 1',
+                  desc: '1회 충전/가동 기준 연속 작동 시간. 8시간(1근무)을 만점 기준으로 선형 스케일링.',
+                },
+                {
+                  name: '손가락 DOF 점수',
+                  key: 'fingerDofScore',
+                  range: '1-10',
+                  formula: '(hand_dof / 24) × 9 + 1',
+                  desc: '양손 손가락 자유도 합계. 사람 손 수준(24 DOF)을 만점 기준으로 선형 스케일링.',
+                },
+                {
+                  name: '폼팩터 점수',
+                  key: 'formFactorScore',
+                  range: '1-10',
+                  formula: 'height×0.3 + dof×0.3 + finger×0.2 + bipedal×0.2',
+                  desc: '인간 유사성 종합 지표. 170cm 기준 높이 유사도, 전체 DOF(40 기준), 손가락 수(5 기준), 2족 보행 보너스를 합산.',
+                },
+                {
+                  name: 'PoC 배치 점수',
+                  key: 'pocDeploymentScore',
+                  range: '1-10',
+                  formula: 'Σ(concept=1, pilot=3, production=5)',
+                  desc: '등록된 적용 사례의 배치 단계별 가중 합. 실제 상용 배치가 많을수록 높음.',
+                },
+                {
+                  name: '비용 효율 점수',
+                  key: 'costEfficiencyScore',
+                  range: '1-10',
+                  formula: '(payload × op_time) / price_usd, 정규화',
+                  desc: '단위 가격당 작업 생산성. 가격 정보가 없으면 기본값 5점으로 추정 처리.',
+                },
+              ].map((row) => (
+                <div
+                  key={row.key}
+                  className="grid grid-cols-12 gap-3 px-4 py-3 text-[12px] border-t border-argos-border hover:bg-argos-bgAlt transition-colors"
+                >
+                  <div className="col-span-2 font-bold text-argos-ink">{row.name}</div>
+                  <div className="col-span-1 text-center text-argos-blue font-mono">{row.range}</div>
+                  <div className="col-span-5 font-mono text-[11px] text-argos-inkSoft">{row.formula}</div>
+                  <div className="col-span-4 text-argos-muted leading-relaxed">{row.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* RFM 점수 (파운데이션 모델 경쟁력, 1-5) */}
+          <div className="p-6 border-b border-argos-border">
+            <h3 className="text-[14px] font-bold text-argos-ink mb-1">
+              RFM 점수 — 로봇 파운데이션 모델 경쟁력 (1~5점)
+            </h3>
+            <p className="text-xs text-argos-muted mb-4">
+              로봇이 탑재·활용하는 AI/파운데이션 모델의 범용성과 성숙도를 평가합니다.
+            </p>
+            <div className="border border-argos-border rounded-lg overflow-hidden">
+              <div className="grid grid-cols-12 gap-3 px-4 py-2 bg-argos-bg text-[11px] font-bold text-argos-muted uppercase tracking-wider">
+                <div className="col-span-2">항목</div>
+                <div className="col-span-1 text-center">범위</div>
+                <div className="col-span-5">계산식</div>
+                <div className="col-span-4">설명</div>
+              </div>
+              {[
+                {
+                  name: '범용성 점수',
+                  key: 'generalityScore',
+                  range: '1-5',
+                  formula: 'distinct(application_cases.taskType)',
+                  desc: '등록된 적용 사례의 서로 다른 작업 유형 수. 여러 태스크를 수행할수록 높음. 최대 5.',
+                },
+                {
+                  name: '실제 환경 데이터',
+                  key: 'realWorldDataScore',
+                  range: '1-5',
+                  formula: 'keywordTier(real-world, deployment, …)',
+                  desc: '실제 필드 데이터·배치 사례 관련 키워드 매칭 수를 티어로 환산. 시뮬레이션이 아닌 실환경 학습 수준.',
+                },
+                {
+                  name: '엣지 추론 점수',
+                  key: 'edgeInferenceScore',
+                  range: '1-5',
+                  formula: 'TOPS 티어: ≤10/≤50/≤200/≤500/>500 → 1~5',
+                  desc: '온보드 AI 가속기의 연산 성능(TOPS). 클라우드 의존 없이 로컬 추론 가능한 능력.',
+                },
+                {
+                  name: '멀티로봇 협업',
+                  key: 'multiRobotCollabScore',
+                  range: '1-5',
+                  formula: 'keywordTier(multi-robot, fleet, swarm, …)',
+                  desc: '여러 로봇이 함께 작업하는 기능(플릿 관리, 분산 제어)의 언급 수준.',
+                },
+                {
+                  name: '오픈소스 생태계',
+                  key: 'openSourceScore',
+                  range: '1-5',
+                  formula: '키워드 수: 0→1, 1→2, 2→3, 3→4, ≥4→5',
+                  desc: 'SDK·GitHub·ROS 등 개발자 친화 요소의 개수. 생태계 확장 가능성.',
+                },
+                {
+                  name: '상용화 성숙도',
+                  key: 'commercialMaturityScore',
+                  range: '1-5',
+                  formula: 'concept=1 / prototype=2 / poc=3 / pilot=4 / commercial=5',
+                  desc: '제품 수명주기 단계. 상용 출시에 가까울수록 높음.',
+                },
+              ].map((row) => (
+                <div
+                  key={row.key}
+                  className="grid grid-cols-12 gap-3 px-4 py-3 text-[12px] border-t border-argos-border hover:bg-argos-bgAlt transition-colors"
+                >
+                  <div className="col-span-2 font-bold text-argos-ink">{row.name}</div>
+                  <div className="col-span-1 text-center text-argos-blue font-mono">{row.range}</div>
+                  <div className="col-span-5 font-mono text-[11px] text-argos-inkSoft">{row.formula}</div>
+                  <div className="col-span-4 text-argos-muted leading-relaxed">{row.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 포지셔닝 차트 축 */}
+          <div className="p-6">
+            <h3 className="text-[14px] font-bold text-argos-ink mb-1">포지셔닝 차트 축 구성</h3>
+            <p className="text-xs text-argos-muted mb-4">
+              경쟁 지형 시각화에 사용되는 차트별 X/Y/버블 크기 축 매핑.
+            </p>
+            <div className="border border-argos-border rounded-lg overflow-hidden">
+              <div className="grid grid-cols-12 gap-3 px-4 py-2 bg-argos-bg text-[11px] font-bold text-argos-muted uppercase tracking-wider">
+                <div className="col-span-3">차트</div>
+                <div className="col-span-3">X 축</div>
+                <div className="col-span-3">Y 축</div>
+                <div className="col-span-3">버블 크기</div>
+              </div>
+              {[
+                {
+                  chart: 'RFM 경쟁력',
+                  x: '엣지 추론 점수',
+                  y: '범용성 점수',
+                  size: '상용화 성숙도',
+                },
+                {
+                  chart: 'PoC 포지셔닝',
+                  x: '폼팩터 점수',
+                  y: '가반하중 × 작동시간 / 10',
+                  size: '손가락 DOF 점수',
+                },
+                {
+                  chart: 'SoC 생태계',
+                  x: '메인 SoC (카테고리)',
+                  y: 'TOPS 최대값',
+                  size: '적용 사례 수',
+                },
+              ].map((row) => (
+                <div
+                  key={row.chart}
+                  className="grid grid-cols-12 gap-3 px-4 py-3 text-[12px] border-t border-argos-border hover:bg-argos-bgAlt transition-colors"
+                >
+                  <div className="col-span-3 font-bold text-argos-ink">{row.chart}</div>
+                  <div className="col-span-3 text-argos-inkSoft">{row.x}</div>
+                  <div className="col-span-3 text-argos-inkSoft">{row.y}</div>
+                  <div className="col-span-3 text-argos-inkSoft">{row.size}</div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-argos-faint mt-3 leading-relaxed">
+              * 스펙 데이터 누락 시 해당 항목은 추정값(estimated=true)으로 표시되며 최저값 또는 기본값이 부여됩니다.
+              계산 로직은 <span className="font-mono">packages/backend/src/services/scoring/</span> 의
+              poc-calculator.ts / rfm-calculator.ts 에 정의되어 있습니다.
+            </p>
+          </div>
+        </div>
+
         {/* Export Section */}
         <div className="bg-argos-surface border border-argos-border rounded-xl shadow-argos-card p-6">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-argos-ink">
