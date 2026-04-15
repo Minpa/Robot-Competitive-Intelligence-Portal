@@ -63,14 +63,6 @@ const SALES_STATUS_OPTIONS = [
   { value: 'not_for_sale', label: '비매품/컨셉' },
 ];
 
-const WORK_TYPE_TABS = [
-  { value: '', label: '전체' },
-  { value: 'assembly', label: '조립형' },
-  { value: 'logistics', label: '물류·픽킹' },
-  { value: 'multipurpose', label: '멀티퍼포즈' },
-  { value: 'service_home', label: '서비스·가정용' },
-];
-
 const SORT_OPTIONS = [
   { value: 'competitiveness-desc', label: '경쟁력 점수 (높은순)' },
   { value: 'competitiveness-asc', label: '경쟁력 점수 (낮은순)' },
@@ -90,7 +82,6 @@ export default function HumanoidRobotsPage() {
     region: '',
     priceBand: '',
     salesStatus: '',
-    workType: '',
     sortBy: 'competitiveness',
     sortOrder: 'desc' as 'asc' | 'desc',
     page: 1,
@@ -158,23 +149,6 @@ export default function HumanoidRobotsPage() {
             titleEn="ROBOT REGISTRY"
             description="등록된 휴머노이드 로봇 제품 목록"
           />
-
-          {/* 작업 타입 탭 */}
-          <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-            {WORK_TYPE_TABS.map(tab => (
-              <button
-                key={tab.value}
-                onClick={() => handleFilterChange('workType', tab.value)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                  filters.workType === tab.value
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-argos-surface text-argos-muted hover:bg-argos-bgAlt'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
 
           {/* 필터 패널 */}
           <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-4 mb-6">
