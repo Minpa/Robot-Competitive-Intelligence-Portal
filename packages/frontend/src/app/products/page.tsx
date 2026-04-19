@@ -46,7 +46,7 @@ function ProductsContent() {
         />
         <div className="flex gap-2 shrink-0 mb-8">
           <select
-            className="px-3 py-2 bg-argos-surface border border-argos-border rounded-lg text-argos-ink focus:border-argos-blue focus:ring-1 focus:ring-argos-blue outline-none"
+            className="px-3 py-2 bg-white border border-ink-200 rounded-lg text-ink-900 focus:border-info focus:ring-1 focus:ring-info outline-none"
             value={filters.type || ''}
             onChange={(e) => setFilters({ ...filters, type: e.target.value })}
           >
@@ -61,7 +61,7 @@ function ProductsContent() {
             <option value="soc">SoC</option>
           </select>
           <select
-            className="px-3 py-2 bg-argos-surface border border-argos-border rounded-lg text-argos-ink focus:border-argos-blue focus:ring-1 focus:ring-argos-blue outline-none"
+            className="px-3 py-2 bg-white border border-ink-200 rounded-lg text-ink-900 focus:border-info focus:ring-1 focus:ring-info outline-none"
             value={filters.status || ''}
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
           >
@@ -73,38 +73,38 @@ function ProductsContent() {
         </div>
       </div>
 
-      <div className="bg-argos-surface border border-argos-border rounded-xl overflow-hidden">
+      <div className="bg-white border border-ink-200 rounded-xl overflow-hidden">
         <table className="min-w-full">
-          <thead className="bg-argos-surface">
+          <thead className="bg-white">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-argos-muted uppercase">제품명</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-argos-muted uppercase">유형</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-argos-muted uppercase">출시일</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-argos-muted uppercase">상태</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-argos-muted uppercase">타겟 시장</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-ink-500 uppercase">제품명</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-ink-500 uppercase">유형</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-ink-500 uppercase">출시일</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-ink-500 uppercase">상태</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-ink-500 uppercase">타겟 시장</th>
               <th className="px-6 py-3"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-argos-border">
+          <tbody className="divide-y divide-ink-200">
             {data?.items.map((product: any) => (
-              <tr key={product.id} className="hover:bg-argos-bgAlt transition-colors">
+              <tr key={product.id} className="hover:bg-ink-100 transition-colors">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-emerald-500/20 rounded-lg">
                       <Package className="w-5 h-5 text-emerald-400" />
                     </div>
                     <div>
-                      <p className="font-medium text-argos-ink">{product.name}</p>
+                      <p className="font-medium text-ink-900">{product.name}</p>
                       {product.series && (
-                        <p className="text-sm text-argos-muted">{product.series}</p>
+                        <p className="text-sm text-ink-500">{product.series}</p>
                       )}
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm text-argos-inkSoft">
+                <td className="px-6 py-4 text-sm text-ink-700">
                   {getProductTypeLabel(product.type)}
                 </td>
-                <td className="px-6 py-4 text-sm text-argos-muted">
+                <td className="px-6 py-4 text-sm text-ink-500">
                   {formatDate(product.releaseDate)}
                 </td>
                 <td className="px-6 py-4">
@@ -117,7 +117,7 @@ function ProductsContent() {
                     {getStatusLabel(product.status)}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-sm text-argos-muted">
+                <td className="px-6 py-4 text-sm text-ink-500">
                   {product.targetMarket || '-'}
                 </td>
                 <td className="px-6 py-4">
@@ -135,7 +135,7 @@ function ProductsContent() {
       </div>
 
       {data?.items.length === 0 && (
-        <div className="text-center py-12 text-argos-muted">
+        <div className="text-center py-12 text-ink-500">
           {filters.type ? `"${getProductTypeLabel(filters.type)}" 유형의 제품이 없습니다.` : '등록된 제품이 없습니다.'}
         </div>
       )}

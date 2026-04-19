@@ -16,8 +16,8 @@ export default function RootPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-argos-bg">
-      <div className="text-argos-muted">로딩 중...</div>
+    <div className="min-h-screen flex items-center justify-center bg-paper">
+      <div className="text-ink-500">로딩 중...</div>
     </div>
   );
 }

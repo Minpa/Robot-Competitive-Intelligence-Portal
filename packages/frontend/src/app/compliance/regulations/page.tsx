@@ -192,16 +192,16 @@ export default function ComplianceRegulationsPage() {
         actions={
           <div className="flex items-center gap-2">
             {/* View Toggle */}
-            <div className="flex bg-argos-surface rounded-lg border border-argos-border overflow-hidden">
+            <div className="flex bg-white rounded-lg border border-ink-200 overflow-hidden">
               <button
                 onClick={() => setViewMode('card')}
-                className={`p-2 transition ${viewMode === 'card' ? 'bg-blue-500/20 text-blue-400' : 'text-argos-faint hover:text-argos-inkSoft'}`}
+                className={`p-2 transition ${viewMode === 'card' ? 'bg-blue-500/20 text-blue-400' : 'text-ink-400 hover:text-ink-700'}`}
               >
                 <LayoutGrid className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode('table')}
-                className={`p-2 transition ${viewMode === 'table' ? 'bg-blue-500/20 text-blue-400' : 'text-argos-faint hover:text-argos-inkSoft'}`}
+                className={`p-2 transition ${viewMode === 'table' ? 'bg-blue-500/20 text-blue-400' : 'text-ink-400 hover:text-ink-700'}`}
               >
                 <List className="w-4 h-4" />
               </button>
@@ -219,19 +219,19 @@ export default function ComplianceRegulationsPage() {
 
       {/* Search Bar */}
       <form onSubmit={handleSearch} className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-argos-faint" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-400" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="규제명, 키워드로 검색..."
-          className="w-full bg-argos-surface border border-argos-border rounded-xl pl-12 pr-4 py-3 text-sm text-argos-ink placeholder-argos-faint focus:outline-none focus:border-blue-500"
+          className="w-full bg-white border border-ink-200 rounded-xl pl-12 pr-4 py-3 text-sm text-ink-900 placeholder-ink-400 focus:outline-none focus:border-blue-500"
         />
       </form>
 
       {/* Filters */}
-      <div className="bg-argos-surface rounded-xl border border-argos-border p-4">
-        <div className="flex items-center gap-2 text-argos-muted text-sm mb-3">
+      <div className="bg-white rounded-xl border border-ink-200 p-4">
+        <div className="flex items-center gap-2 text-ink-500 text-sm mb-3">
           <Filter className="w-4 h-4" />
           <span>필터</span>
         </div>
@@ -246,7 +246,7 @@ export default function ComplianceRegulationsPage() {
               key={key}
               value={filters[key as keyof typeof filters]}
               onChange={(e) => handleFilterChange(key, e.target.value)}
-              className="bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-blue-500"
+              className="bg-white border border-ink-200 rounded-lg px-3 py-2 text-sm text-ink-700 focus:outline-none focus:border-blue-500"
             >
               {options.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -271,10 +271,10 @@ export default function ComplianceRegulationsPage() {
       {loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-argos-surface rounded-xl p-5 border border-argos-border animate-pulse">
-              <div className="h-4 bg-argos-chip/50 rounded w-3/4 mb-3" />
-              <div className="h-3 bg-argos-chip/50 rounded w-1/2 mb-2" />
-              <div className="h-3 bg-argos-chip/50 rounded w-full" />
+            <div key={i} className="bg-white rounded-xl p-5 border border-ink-200 animate-pulse">
+              <div className="h-4 bg-info-soft/50 rounded w-3/4 mb-3" />
+              <div className="h-3 bg-info-soft/50 rounded w-1/2 mb-2" />
+              <div className="h-3 bg-info-soft/50 rounded w-full" />
             </div>
           ))}
         </div>
@@ -284,17 +284,17 @@ export default function ComplianceRegulationsPage() {
       {!loading && !error && (
         <>
           {regulations.length === 0 ? (
-            <div className="bg-argos-surface rounded-xl border border-argos-border p-12 text-center">
-              <Database className="w-12 h-12 text-argos-faint mx-auto mb-3" />
-              <p className="text-argos-muted">해당 조건의 규제가 없습니다</p>
+            <div className="bg-white rounded-xl border border-ink-200 p-12 text-center">
+              <Database className="w-12 h-12 text-ink-400 mx-auto mb-3" />
+              <p className="text-ink-500">해당 조건의 규제가 없습니다</p>
             </div>
           ) : viewMode === 'table' ? (
             /* Table View */
-            <div className="bg-argos-surface rounded-xl border border-argos-border overflow-hidden">
+            <div className="bg-white rounded-xl border border-ink-200 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-argos-border text-argos-muted">
+                    <tr className="border-b border-ink-200 text-ink-500">
                       <th className="px-4 py-3 text-left font-medium">규제명</th>
                       <th className="px-4 py-3 text-left font-medium">카테고리</th>
                       <th className="px-4 py-3 text-left font-medium">지역</th>
@@ -303,20 +303,20 @@ export default function ComplianceRegulationsPage() {
                       <th className="px-4 py-3 text-left font-medium">시행일</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-argos-border">
+                  <tbody className="divide-y divide-ink-200">
                     {regulations.map((reg) => (
                       <tr
                         key={reg.id}
-                        className="hover:bg-argos-bgAlt cursor-pointer transition"
+                        className="hover:bg-ink-100 cursor-pointer transition"
                         onClick={() => setExpandedId(expandedId === reg.id ? null : reg.id)}
                       >
-                        <td className="px-4 py-3 text-argos-inkSoft">{reg.titleKo || reg.title}</td>
+                        <td className="px-4 py-3 text-ink-700">{reg.titleKo || reg.title}</td>
                         <td className="px-4 py-3">
                           <span className={`text-xs px-1.5 py-0.5 rounded border ${CATEGORY_BADGES[reg.category] || ''}`}>
                             {CATEGORY_LABELS[reg.category] || reg.category}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-argos-muted">
+                        <td className="px-4 py-3 text-ink-500">
                           {REGION_FLAGS[reg.region] || ''} {reg.region}
                         </td>
                         <td className="px-4 py-3">
@@ -329,7 +329,7 @@ export default function ComplianceRegulationsPage() {
                             {reg.lgImpact}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-argos-faint text-xs">
+                        <td className="px-4 py-3 text-ink-400 text-xs">
                           {reg.effectiveDate ? new Date(reg.effectiveDate).toLocaleDateString('ko-KR') : '-'}
                         </td>
                       </tr>
@@ -344,7 +344,7 @@ export default function ComplianceRegulationsPage() {
               {regulations.map((reg) => {
                 const isExpanded = expandedId === reg.id;
                 return (
-                  <div key={reg.id} className="bg-argos-surface rounded-xl border border-argos-border overflow-hidden">
+                  <div key={reg.id} className="bg-white rounded-xl border border-ink-200 overflow-hidden">
                     <button
                       onClick={() => setExpandedId(isExpanded ? null : reg.id)}
                       className="w-full text-left p-5"
@@ -359,37 +359,37 @@ export default function ComplianceRegulationsPage() {
                         <span className={`text-xs px-1.5 py-0.5 rounded border ${IMPACT_COLORS[reg.lgImpact] || IMPACT_COLORS.medium}`}>
                           {reg.lgImpact}
                         </span>
-                        <span className="text-xs text-argos-faint">
+                        <span className="text-xs text-ink-400">
                           {REGION_FLAGS[reg.region] || ''} {reg.region}
                         </span>
                       </div>
-                      <p className="text-sm font-medium text-argos-inkSoft mb-1">{reg.titleKo || reg.title}</p>
-                      <p className="text-xs text-argos-muted line-clamp-2">{reg.summaryKo || reg.summary || ''}</p>
+                      <p className="text-sm font-medium text-ink-700 mb-1">{reg.titleKo || reg.title}</p>
+                      <p className="text-xs text-ink-500 line-clamp-2">{reg.summaryKo || reg.summary || ''}</p>
                       <div className="flex items-center justify-between mt-3">
-                        <span className="text-xs text-argos-faint">
+                        <span className="text-xs text-ink-400">
                           {reg.effectiveDate ? new Date(reg.effectiveDate).toLocaleDateString('ko-KR') : ''}
                         </span>
                         {isExpanded ? (
-                          <ChevronUp className="w-4 h-4 text-argos-faint" />
+                          <ChevronUp className="w-4 h-4 text-ink-400" />
                         ) : (
-                          <ChevronDown className="w-4 h-4 text-argos-faint" />
+                          <ChevronDown className="w-4 h-4 text-ink-400" />
                         )}
                       </div>
                     </button>
 
                     {isExpanded && (
-                      <div className="px-5 pb-5 border-t border-argos-border">
+                      <div className="px-5 pb-5 border-t border-ink-200">
                         <div className="pt-4 space-y-3">
                           {(reg.summaryKo || reg.summary) && (
                             <div>
-                              <h4 className="text-xs font-medium text-argos-faint mb-1">전체 요약</h4>
-                              <p className="text-sm text-argos-inkSoft leading-relaxed">{reg.summaryKo || reg.summary}</p>
+                              <h4 className="text-xs font-medium text-ink-400 mb-1">전체 요약</h4>
+                              <p className="text-sm text-ink-700 leading-relaxed">{reg.summaryKo || reg.summary}</p>
                             </div>
                           )}
                           {reg.lgImpactAnalysis && (
                             <div className="bg-orange-400/5 border border-orange-400/20 rounded-lg p-3">
                               <h4 className="text-xs font-medium text-orange-400 mb-1">LG 영향 분석</h4>
-                              <p className="text-sm text-argos-inkSoft">{reg.lgImpactAnalysis}</p>
+                              <p className="text-sm text-ink-700">{reg.lgImpactAnalysis}</p>
                             </div>
                           )}
                           {reg.sourceUrl && (
@@ -418,17 +418,17 @@ export default function ComplianceRegulationsPage() {
               <button
                 onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
                 disabled={offset === 0}
-                className="px-3 py-1.5 bg-argos-surface border border-argos-border rounded-lg text-sm text-argos-muted hover:text-argos-ink disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 bg-white border border-ink-200 rounded-lg text-sm text-ink-500 hover:text-ink-900 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 이전
               </button>
-              <span className="text-sm text-argos-faint">
+              <span className="text-sm text-ink-400">
                 {currentPage} / {totalPages} 페이지 (총 {total}건)
               </span>
               <button
                 onClick={() => setOffset(offset + PAGE_SIZE)}
                 disabled={currentPage >= totalPages}
-                className="px-3 py-1.5 bg-argos-surface border border-argos-border rounded-lg text-sm text-argos-muted hover:text-argos-ink disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 bg-white border border-ink-200 rounded-lg text-sm text-ink-500 hover:text-ink-900 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 다음
               </button>
@@ -440,43 +440,43 @@ export default function ComplianceRegulationsPage() {
       {/* Add Regulation Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-argos-surface rounded-xl border border-argos-border w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b border-argos-border">
-              <h2 className="text-lg font-semibold text-argos-inkSoft">새 규제 등록</h2>
-              <button onClick={() => setShowModal(false)} className="text-argos-faint hover:text-argos-inkSoft">
+          <div className="bg-white rounded-xl border border-ink-200 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-5 border-b border-ink-200">
+              <h2 className="text-lg font-semibold text-ink-700">새 규제 등록</h2>
+              <button onClick={() => setShowModal(false)} className="text-ink-400 hover:text-ink-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleCreateRegulation} className="p-5 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs text-argos-muted mb-1">규제명 (한국어)</label>
+                  <label className="block text-xs text-ink-500 mb-1">규제명 (한국어)</label>
                   <input
                     type="text"
                     value={form.titleKo}
                     onChange={(e) => setForm(prev => ({ ...prev, titleKo: e.target.value }))}
                     required
-                    className="w-full bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-ink-200 rounded-lg px-3 py-2 text-sm text-ink-700 focus:outline-none focus:border-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-argos-muted mb-1">규제명 (영문)</label>
+                  <label className="block text-xs text-ink-500 mb-1">규제명 (영문)</label>
                   <input
                     type="text"
                     value={form.title}
                     onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-ink-200 rounded-lg px-3 py-2 text-sm text-ink-700 focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-xs text-argos-muted mb-1">카테고리</label>
+                  <label className="block text-xs text-ink-500 mb-1">카테고리</label>
                   <select
                     value={form.category}
                     onChange={(e) => setForm(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-ink-200 rounded-lg px-3 py-2 text-sm text-ink-700 focus:outline-none focus:border-blue-500"
                   >
                     <option value="policy">정책·산업규제</option>
                     <option value="safety">물리적·기능적 안전</option>
@@ -485,11 +485,11 @@ export default function ComplianceRegulationsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-argos-muted mb-1">지역</label>
+                  <label className="block text-xs text-ink-500 mb-1">지역</label>
                   <select
                     value={form.region}
                     onChange={(e) => setForm(prev => ({ ...prev, region: e.target.value }))}
-                    className="w-full bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-ink-200 rounded-lg px-3 py-2 text-sm text-ink-700 focus:outline-none focus:border-blue-500"
                   >
                     <option value="korea">한국</option>
                     <option value="us">미국</option>
@@ -499,11 +499,11 @@ export default function ComplianceRegulationsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-argos-muted mb-1">상태</label>
+                  <label className="block text-xs text-ink-500 mb-1">상태</label>
                   <select
                     value={form.status}
                     onChange={(e) => setForm(prev => ({ ...prev, status: e.target.value }))}
-                    className="w-full bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-ink-200 rounded-lg px-3 py-2 text-sm text-ink-700 focus:outline-none focus:border-blue-500"
                   >
                     <option value="active">시행 중</option>
                     <option value="pending">시행 예정</option>
@@ -512,11 +512,11 @@ export default function ComplianceRegulationsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-argos-muted mb-1">LG 영향도</label>
+                  <label className="block text-xs text-ink-500 mb-1">LG 영향도</label>
                   <select
                     value={form.lgImpact}
                     onChange={(e) => setForm(prev => ({ ...prev, lgImpact: e.target.value }))}
-                    className="w-full bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-ink-200 rounded-lg px-3 py-2 text-sm text-ink-700 focus:outline-none focus:border-blue-500"
                   >
                     <option value="critical">Critical</option>
                     <option value="high">High</option>
@@ -527,42 +527,42 @@ export default function ComplianceRegulationsPage() {
               </div>
 
               <div>
-                <label className="block text-xs text-argos-muted mb-1">시행일</label>
+                <label className="block text-xs text-ink-500 mb-1">시행일</label>
                 <input
                   type="date"
                   value={form.effectiveDate}
                   onChange={(e) => setForm(prev => ({ ...prev, effectiveDate: e.target.value }))}
-                  className="w-full bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-blue-500"
+                  className="w-full bg-white border border-ink-200 rounded-lg px-3 py-2 text-sm text-ink-700 focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-argos-muted mb-1">요약 (한국어)</label>
+                <label className="block text-xs text-ink-500 mb-1">요약 (한국어)</label>
                 <textarea
                   value={form.summaryKo}
                   onChange={(e) => setForm(prev => ({ ...prev, summaryKo: e.target.value }))}
                   rows={3}
-                  className="w-full bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-blue-500 resize-none"
+                  className="w-full bg-white border border-ink-200 rounded-lg px-3 py-2 text-sm text-ink-700 focus:outline-none focus:border-blue-500 resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-argos-muted mb-1">LG 영향 분석</label>
+                <label className="block text-xs text-ink-500 mb-1">LG 영향 분석</label>
                 <textarea
                   value={form.lgImpactAnalysis}
                   onChange={(e) => setForm(prev => ({ ...prev, lgImpactAnalysis: e.target.value }))}
                   rows={3}
-                  className="w-full bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-blue-500 resize-none"
+                  className="w-full bg-white border border-ink-200 rounded-lg px-3 py-2 text-sm text-ink-700 focus:outline-none focus:border-blue-500 resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-argos-muted mb-1">원문 URL</label>
+                <label className="block text-xs text-ink-500 mb-1">원문 URL</label>
                 <input
                   type="url"
                   value={form.sourceUrl}
                   onChange={(e) => setForm(prev => ({ ...prev, sourceUrl: e.target.value }))}
-                  className="w-full bg-argos-surface border border-argos-border rounded-lg px-3 py-2 text-sm text-argos-inkSoft focus:outline-none focus:border-blue-500"
+                  className="w-full bg-white border border-ink-200 rounded-lg px-3 py-2 text-sm text-ink-700 focus:outline-none focus:border-blue-500"
                 />
               </div>
 
@@ -570,7 +570,7 @@ export default function ComplianceRegulationsPage() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 bg-argos-chip/50 text-argos-inkSoft rounded-lg hover:bg-argos-bgAlt transition text-sm"
+                  className="px-4 py-2 bg-info-soft/50 text-ink-700 rounded-lg hover:bg-ink-100 transition text-sm"
                 >
                   취소
                 </button>

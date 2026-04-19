@@ -11,11 +11,11 @@ interface Props {
 export function EntryOrderList({ domains, isLoading }: Props) {
   if (isLoading) {
     return (
-      <div className="rounded-lg bg-argos-surface border border-argos-borderSoft p-4">
-        <div className="h-5 w-44 bg-argos-bgAlt rounded animate-pulse mb-4" />
+      <div className="rounded-lg bg-white border border-ink-100 p-4">
+        <div className="h-5 w-44 bg-ink-100 rounded animate-pulse mb-4" />
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-10 bg-argos-bgAlt rounded animate-pulse" />
+            <div key={i} className="h-10 bg-ink-100 rounded animate-pulse" />
           ))}
         </div>
       </div>
@@ -36,28 +36,28 @@ export function EntryOrderList({ domains, isLoading }: Props) {
 
   if (sorted.length === 0) {
     return (
-      <div className="rounded-lg bg-argos-surface border border-argos-borderSoft p-4">
-        <h3 className="text-sm font-semibold text-argos-ink mb-4">CLOiD 최적 진입 순서</h3>
-        <p className="text-xs text-argos-muted text-center py-4">데이터 없음</p>
+      <div className="rounded-lg bg-white border border-ink-100 p-4">
+        <h3 className="text-sm font-semibold text-ink-900 mb-4">CLOiD 최적 진입 순서</h3>
+        <p className="text-xs text-ink-500 text-center py-4">데이터 없음</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg bg-argos-surface border border-argos-borderSoft p-4">
-      <h3 className="text-sm font-semibold text-argos-ink mb-4">CLOiD 최적 진입 순서</h3>
+    <div className="rounded-lg bg-white border border-ink-100 p-4">
+      <h3 className="text-sm font-semibold text-ink-900 mb-4">CLOiD 최적 진입 순서</h3>
       <div className="space-y-2">
         {sorted.map((d, i) => (
           <div
             key={d.id}
-            className="flex items-center gap-3 rounded-md bg-argos-bgAlt border border-argos-borderSoft p-3"
+            className="flex items-center gap-3 rounded-md bg-ink-100 border border-ink-100 p-3"
           >
             <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600/20 text-blue-400 text-xs font-bold shrink-0">
               {i + 1}
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-argos-ink truncate">{d.name}</p>
-              <div className="flex gap-3 text-[10px] text-argos-muted mt-0.5">
+              <p className="text-sm font-medium text-ink-900 truncate">{d.name}</p>
+              <div className="flex gap-3 text-[10px] text-ink-500 mt-0.5">
                 <span>준비도: {(Number(d.lgReadiness ?? 0) * 100).toFixed(0)}%</span>
                 <span>SOM: ${Number(d.somBillionUsd ?? 0).toFixed(1)}B</span>
                 {d.cagrPercent != null && <span>CAGR: {d.cagrPercent}%</span>}
@@ -65,10 +65,10 @@ export function EntryOrderList({ domains, isLoading }: Props) {
             </div>
             <div className="text-right shrink-0">
               <p className="text-xs font-mono text-green-400">{d.opportunity.toFixed(2)}</p>
-              <p className="text-[10px] text-argos-muted">기회 점수</p>
+              <p className="text-[10px] text-ink-500">기회 점수</p>
             </div>
             {i < sorted.length - 1 && (
-              <ArrowRight className="h-3 w-3 text-argos-faint shrink-0 hidden sm:block" />
+              <ArrowRight className="h-3 w-3 text-ink-400 shrink-0 hidden sm:block" />
             )}
           </div>
         ))}

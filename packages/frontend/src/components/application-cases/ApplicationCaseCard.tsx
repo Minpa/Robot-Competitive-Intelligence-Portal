@@ -78,9 +78,9 @@ export function ApplicationCaseCard({ caseData, onClick }: ApplicationCaseCardPr
       case 'expanding':
         return { label: '확대 중', color: 'bg-blue-500/15 text-blue-400 border-blue-500/30' };
       case 'ended':
-        return { label: '종료', color: 'bg-argos-bgAlt text-argos-muted border-argos-border' };
+        return { label: '종료', color: 'bg-ink-100 text-ink-500 border-ink-200' };
       default:
-        return { label: status, color: 'bg-argos-bgAlt text-argos-muted border-argos-border' };
+        return { label: status, color: 'bg-ink-100 text-ink-500 border-ink-200' };
     }
   };
 
@@ -88,12 +88,12 @@ export function ApplicationCaseCard({ caseData, onClick }: ApplicationCaseCardPr
 
   return (
     <div
-      className="bg-argos-surface rounded-lg border border-argos-border p-4 hover:shadow-md hover:border-blue-300 transition-all cursor-pointer"
+      className="bg-white rounded-lg border border-ink-200 p-4 hover:shadow-md hover:border-blue-300 transition-all cursor-pointer"
       onClick={onClick}
     >
       {/* 헤더: 제목 + 상태 배지 */}
       <div className="flex items-start justify-between gap-3 mb-3">
-        <h3 className="font-semibold text-argos-ink line-clamp-2 flex-1">
+        <h3 className="font-semibold text-ink-900 line-clamp-2 flex-1">
           {caseData.title}
         </h3>
         <span className={`px-2 py-1 text-xs font-medium rounded border flex-shrink-0 ${statusConfig.color}`}>
@@ -104,7 +104,7 @@ export function ApplicationCaseCard({ caseData, onClick }: ApplicationCaseCardPr
       {/* 메타 정보 줄 */}
       <div className="flex flex-wrap gap-2 mb-3 text-xs">
         {/* 환경 */}
-        <span className="inline-flex items-center gap-1 px-2 py-1 bg-argos-bgAlt rounded text-argos-inkSoft" title="환경">
+        <span className="inline-flex items-center gap-1 px-2 py-1 bg-ink-100 rounded text-ink-700" title="환경">
           {ENVIRONMENT_ICONS[caseData.environment] || ENVIRONMENT_ICONS.other}
           {ENVIRONMENT_LABELS[caseData.environment] || caseData.environment}
         </span>
@@ -137,7 +137,7 @@ export function ApplicationCaseCard({ caseData, onClick }: ApplicationCaseCardPr
       {/* 설명·효과 요약 줄 */}
       <div className="flex items-start justify-between gap-4">
         {/* 설명 텍스트 */}
-        <p className="text-sm text-argos-muted line-clamp-2 flex-1">
+        <p className="text-sm text-ink-500 line-clamp-2 flex-1">
           {caseData.description || '상세 설명이 없습니다.'}
         </p>
 
@@ -163,11 +163,11 @@ export function ApplicationCaseCard({ caseData, onClick }: ApplicationCaseCardPr
 
       {/* 로봇 썸네일 */}
       {caseData.robotImages && caseData.robotImages.length > 0 && (
-        <div className="flex gap-2 mt-3 pt-3 border-t border-argos-border">
+        <div className="flex gap-2 mt-3 pt-3 border-t border-ink-200">
           {caseData.robotImages.slice(0, 3).map((img, i) => (
             <div
               key={i}
-              className="w-12 h-12 bg-argos-bgAlt rounded overflow-hidden group relative"
+              className="w-12 h-12 bg-ink-100 rounded overflow-hidden group relative"
             >
               <img
                 src={img}

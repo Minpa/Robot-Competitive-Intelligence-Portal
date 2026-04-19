@@ -102,8 +102,8 @@ export default function PPTBuilderPage() {
           {/* 설정 패널 */}
           <div className="lg:col-span-2 space-y-4">
             {/* 템플릿 선택 */}
-            <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-5">
-              <h2 className="text-lg font-semibold text-argos-ink mb-4">템플릿 선택</h2>
+            <div className="bg-white backdrop-blur rounded-xl border border-ink-100 p-5">
+              <h2 className="text-lg font-semibold text-ink-900 mb-4">템플릿 선택</h2>
               <div className="grid grid-cols-2 gap-3">
                 {TEMPLATES.map(template => (
                   <button
@@ -112,19 +112,19 @@ export default function PPTBuilderPage() {
                     className={`p-4 rounded-lg border-2 text-left transition-all ${
                       selectedTemplate === template.id
                         ? 'border-blue-500 bg-blue-500/20'
-                        : 'border-argos-border hover:border-argos-blue/30 bg-white'
+                        : 'border-ink-200 hover:border-info/30 bg-white'
                     }`}
                   >
-                    <p className="font-medium text-argos-ink">{template.name}</p>
-                    <p className="text-sm text-argos-muted mt-1">{template.description}</p>
+                    <p className="font-medium text-ink-900">{template.name}</p>
+                    <p className="text-sm text-ink-500 mt-1">{template.description}</p>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* 테마 선택 */}
-            <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-5">
-              <h2 className="text-lg font-semibold text-argos-ink mb-4">테마 선택</h2>
+            <div className="bg-white backdrop-blur rounded-xl border border-ink-100 p-5">
+              <h2 className="text-lg font-semibold text-ink-900 mb-4">테마 선택</h2>
               <div className="flex gap-4">
                 {THEMES.map(theme => (
                   <button
@@ -133,19 +133,19 @@ export default function PPTBuilderPage() {
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-all ${
                       selectedTheme === theme.id
                         ? 'border-blue-500 bg-blue-500/20'
-                        : 'border-argos-border hover:border-argos-blue/30'
+                        : 'border-ink-200 hover:border-info/30'
                     }`}
                   >
-                    <div className={`w-8 h-8 rounded ${theme.color} border border-argos-border`} />
-                    <span className="font-medium text-argos-ink">{theme.name}</span>
+                    <div className={`w-8 h-8 rounded ${theme.color} border border-ink-200`} />
+                    <span className="font-medium text-ink-900">{theme.name}</span>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* 포함할 차트 */}
-            <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-5">
-              <h2 className="text-lg font-semibold text-argos-ink mb-4">포함할 차트</h2>
+            <div className="bg-white backdrop-blur rounded-xl border border-ink-100 p-5">
+              <h2 className="text-lg font-semibold text-ink-900 mb-4">포함할 차트</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {Object.entries(includeCharts).map(([key, value]) => (
                   <label key={key} className="flex items-center gap-2 cursor-pointer group">
@@ -153,9 +153,9 @@ export default function PPTBuilderPage() {
                       type="checkbox"
                       checked={value}
                       onChange={(e) => setIncludeCharts(prev => ({ ...prev, [key]: e.target.checked }))}
-                      className="w-4 h-4 rounded border-argos-border bg-white text-blue-500 focus:ring-argos-blue"
+                      className="w-4 h-4 rounded border-ink-200 bg-white text-blue-500 focus:ring-info"
                     />
-                    <span className="text-sm text-argos-inkSoft group-hover:text-argos-ink transition-colors">
+                    <span className="text-sm text-ink-700 group-hover:text-ink-900 transition-colors">
                       {key === 'segmentMatrix' && '세그먼트 매트릭스'}
                       {key === 'handDistribution' && 'Hand 타입 분포'}
                       {key === 'workforceComparison' && '인력 비교'}
@@ -169,9 +169,9 @@ export default function PPTBuilderPage() {
             </div>
 
             {/* 로봇 선택 */}
-            <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-5">
-              <h2 className="text-lg font-semibold text-argos-ink mb-4">
-                포함할 로봇 <span className="text-sm font-normal text-argos-muted">({selectedRobots.length}개 선택)</span>
+            <div className="bg-white backdrop-blur rounded-xl border border-ink-100 p-5">
+              <h2 className="text-lg font-semibold text-ink-900 mb-4">
+                포함할 로봇 <span className="text-sm font-normal text-ink-500">({selectedRobots.length}개 선택)</span>
               </h2>
               <div className="max-h-48 overflow-y-auto">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -179,16 +179,16 @@ export default function PPTBuilderPage() {
                     <label
                       key={robot.id}
                       className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
-                        selectedRobots.includes(robot.id) ? 'bg-blue-500/20' : 'hover:bg-argos-bgAlt'
+                        selectedRobots.includes(robot.id) ? 'bg-blue-500/20' : 'hover:bg-ink-100'
                       }`}
                     >
                       <input
                         type="checkbox"
                         checked={selectedRobots.includes(robot.id)}
                         onChange={() => toggleRobot(robot.id)}
-                        className="w-4 h-4 rounded border-argos-border bg-white text-blue-500 focus:ring-argos-blue"
+                        className="w-4 h-4 rounded border-ink-200 bg-white text-blue-500 focus:ring-info"
                       />
-                      <span className="text-sm text-argos-inkSoft truncate">{robot.name}</span>
+                      <span className="text-sm text-ink-700 truncate">{robot.name}</span>
                     </label>
                   ))}
                 </div>
@@ -196,9 +196,9 @@ export default function PPTBuilderPage() {
             </div>
 
             {/* 회사 선택 */}
-            <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-5">
-              <h2 className="text-lg font-semibold text-argos-ink mb-4">
-                포함할 회사 <span className="text-sm font-normal text-argos-muted">({selectedCompanies.length}개 선택)</span>
+            <div className="bg-white backdrop-blur rounded-xl border border-ink-100 p-5">
+              <h2 className="text-lg font-semibold text-ink-900 mb-4">
+                포함할 회사 <span className="text-sm font-normal text-ink-500">({selectedCompanies.length}개 선택)</span>
               </h2>
               <div className="max-h-48 overflow-y-auto">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -206,16 +206,16 @@ export default function PPTBuilderPage() {
                     <label
                       key={company.id}
                       className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
-                        selectedCompanies.includes(company.id) ? 'bg-green-500/20' : 'hover:bg-argos-bgAlt'
+                        selectedCompanies.includes(company.id) ? 'bg-green-500/20' : 'hover:bg-ink-100'
                       }`}
                     >
                       <input
                         type="checkbox"
                         checked={selectedCompanies.includes(company.id)}
                         onChange={() => toggleCompany(company.id)}
-                        className="w-4 h-4 rounded border-argos-border bg-white text-green-500 focus:ring-green-500"
+                        className="w-4 h-4 rounded border-ink-200 bg-white text-green-500 focus:ring-green-500"
                       />
-                      <span className="text-sm text-argos-inkSoft truncate">{company.name}</span>
+                      <span className="text-sm text-ink-700 truncate">{company.name}</span>
                     </label>
                   ))}
                 </div>
@@ -225,12 +225,12 @@ export default function PPTBuilderPage() {
 
           {/* 미리보기 및 생성 */}
           <div className="space-y-4">
-            <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-5 sticky top-8">
-              <h2 className="text-lg font-semibold text-argos-ink mb-4">미리보기</h2>
+            <div className="bg-white backdrop-blur rounded-xl border border-ink-100 p-5 sticky top-8">
+              <h2 className="text-lg font-semibold text-ink-900 mb-4">미리보기</h2>
 
               <div className={`aspect-video rounded-lg ${
                 selectedTheme === 'dark' ? 'bg-slate-800' : 'bg-white'
-              } p-4 mb-4 border border-argos-border`}>
+              } p-4 mb-4 border border-ink-200`}>
                 <div className={`text-center ${
                   selectedTheme === 'light' ? 'text-slate-900' : 'text-white'
                 }`}>
@@ -243,7 +243,7 @@ export default function PPTBuilderPage() {
                 </div>
               </div>
 
-              <div className="space-y-2 text-sm text-argos-muted mb-6">
+              <div className="space-y-2 text-sm text-ink-500 mb-6">
                 <p>• 템플릿: {TEMPLATES.find(t => t.id === selectedTemplate)?.name}</p>
                 <p>• 테마: {THEMES.find(t => t.id === selectedTheme)?.name}</p>
                 <p>• 선택된 로봇: {selectedRobots.length}개</p>
@@ -282,18 +282,18 @@ export default function PPTBuilderPage() {
 
             {/* 생성된 슬라이드 미리보기 */}
             {generatedSlides && (
-              <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-5">
-                <h2 className="text-lg font-semibold text-argos-ink mb-4">생성된 슬라이드</h2>
+              <div className="bg-white backdrop-blur rounded-xl border border-ink-100 p-5">
+                <h2 className="text-lg font-semibold text-ink-900 mb-4">생성된 슬라이드</h2>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {generatedSlides.slides?.map((slide: any, idx: number) => (
-                    <div key={slide.id} className="bg-white rounded-lg p-3 border border-argos-border">
-                      <p className="text-sm font-medium text-argos-ink">
+                    <div key={slide.id} className="bg-white rounded-lg p-3 border border-ink-200">
+                      <p className="text-sm font-medium text-ink-900">
                         {idx + 1}. {slide.title}
                       </p>
                       {slide.subtitle && (
-                        <p className="text-xs text-argos-faint">{slide.subtitle}</p>
+                        <p className="text-xs text-ink-400">{slide.subtitle}</p>
                       )}
-                      <p className="text-xs text-argos-faint mt-1">
+                      <p className="text-xs text-ink-400 mt-1">
                         {slide.contents?.length || 0}개 콘텐츠
                       </p>
                     </div>

@@ -38,8 +38,8 @@ const KEY_INSIGHTS = [
 function LoadingSkeleton() {
   return (
     <div className="animate-pulse space-y-4">
-      <div className="h-8 bg-argos-chip/50 rounded w-1/3" />
-      <div className="h-80 bg-argos-chip/50 rounded" />
+      <div className="h-8 bg-info-soft/50 rounded w-1/3" />
+      <div className="h-80 bg-info-soft/50 rounded" />
     </div>
   );
 }
@@ -58,10 +58,10 @@ function ChartSection({
   return (
     <section id={id} className="scroll-mt-16">
       <div className="mb-4">
-        <h2 className="text-lg font-bold text-argos-ink">{title}</h2>
-        {subtitle && <p className="text-sm text-argos-muted mt-0.5">{subtitle}</p>}
+        <h2 className="text-lg font-bold text-ink-900">{title}</h2>
+        {subtitle && <p className="text-sm text-ink-500 mt-0.5">{subtitle}</p>}
       </div>
-      <div className="rounded-xl border border-argos-border bg-argos-surface p-4 md:p-6">
+      <div className="rounded-xl border border-ink-200 bg-white p-4 md:p-6">
         {children}
       </div>
     </section>
@@ -76,7 +76,7 @@ function SensorCostContent() {
   return (
     <div>
       {/* 섹션 탭 */}
-      <nav className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-argos-border">
+      <nav className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-ink-200">
         <div className="max-w-7xl mx-auto px-4 flex items-center gap-1 overflow-x-auto">
           {[
             { id: 'bubble-chart', label: '시계열 버블 차트' },
@@ -86,7 +86,7 @@ function SensorCostContent() {
             <a
               key={item.id}
               href={`#${item.id}`}
-              className="px-4 py-3 text-sm text-argos-muted hover:text-argos-ink whitespace-nowrap border-b-2 border-transparent hover:border-blue-500 transition-colors"
+              className="px-4 py-3 text-sm text-ink-500 hover:text-ink-900 whitespace-nowrap border-b-2 border-transparent hover:border-blue-500 transition-colors"
             >
               {item.label}
             </a>
@@ -110,7 +110,7 @@ function SensorCostContent() {
             >
               <div className={`text-sm font-bold ${ins.color} mb-1`}>{ins.company}</div>
               <div className={`text-xs font-semibold ${ins.color} mb-2`}>→ {ins.summary}</div>
-              <div className="text-xs text-argos-inkSoft leading-relaxed">{ins.desc}</div>
+              <div className="text-xs text-ink-700 leading-relaxed">{ins.desc}</div>
             </div>
           ))}
         </div>
@@ -126,19 +126,19 @@ function SensorCostContent() {
           ) : bubbleData?.length ? (
             <VisionCostBubbleChart data={bubbleData} />
           ) : (
-            <div className="text-argos-muted text-sm py-8 text-center">데이터 없음</div>
+            <div className="text-ink-500 text-sm py-8 text-center">데이터 없음</div>
           )}
         </ChartSection>
 
         {/* 2028 KEY INSIGHT 요약 배너 */}
-        <div className="rounded-lg bg-argos-surface border border-argos-border p-4 text-sm">
-          <span className="font-bold text-argos-ink">KEY INSIGHT &nbsp;</span>
-          <span className="text-argos-inkSoft">
+        <div className="rounded-lg bg-white border border-ink-200 p-4 text-sm">
+          <span className="font-bold text-ink-900">KEY INSIGHT &nbsp;</span>
+          <span className="text-ink-700">
             Tesla는 $340→$800으로 원가 최소화하면서 P1→P4 달성 (원가 효율 최고).
             Atlas는 $1,800→$1,200으로 원가를 내리면서 P5 도달 (하드웨어 우위).
             Figure는 $880→$1,100으로 소폭 상승하면서 P2.5→P5 달성 — 가성비 최적 경로.
           </span>
-          <span className="text-argos-muted"> 2028년 3사 모두 P4~P5 수렴하지만 원가 구조는 </span>
+          <span className="text-ink-500"> 2028년 3사 모두 P4~P5 수렴하지만 원가 구조는 </span>
           <span className="font-bold text-yellow-400">2배 이상 차이.</span>
         </div>
 
@@ -153,7 +153,7 @@ function SensorCostContent() {
           ) : bomParts?.length ? (
             <BomPartsTable data={bomParts} />
           ) : (
-            <div className="text-argos-muted text-sm py-8 text-center">데이터 없음</div>
+            <div className="text-ink-500 text-sm py-8 text-center">데이터 없음</div>
           )}
         </ChartSection>
 
@@ -168,7 +168,7 @@ function SensorCostContent() {
           ) : robotCosts?.length ? (
             <RobotCostTable data={robotCosts} />
           ) : (
-            <div className="text-argos-muted text-sm py-8 text-center">데이터 없음</div>
+            <div className="text-ink-500 text-sm py-8 text-center">데이터 없음</div>
           )}
         </ChartSection>
       </div>

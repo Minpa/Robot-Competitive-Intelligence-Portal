@@ -3,15 +3,14 @@
 @tailwind utilities;
 
 /* ============================================
-   ARGOS Design System — Theme Variables
-   Default = LIGHT theme (ARGOS reference design).
-   [data-theme="dark"] swaps the slate palette back
-   to the legacy dark values.
+   ARGOS v2 — consulting report theme.
+   Default = light (paper background, ink-900 text).
+   [data-theme="dark"] retained for legacy toggle; inverts slate-* only.
    ============================================ */
 
 :root {
-  /* Light theme — inverted zinc palette so existing `slate-xxx`
-     utility classes render correctly on a light background. */
+  /* Slate palette CSS vars — kept for theme toggle parity.
+     Default values invert so `slate-xxx` utilities render on light bg. */
   --color-slate-50:  9 9 11;
   --color-slate-100: 24 24 27;
   --color-slate-200: 39 39 42;
@@ -26,7 +25,6 @@
 }
 
 [data-theme="dark"] {
-  /* Dark theme — Tailwind zinc (warm neutral gray) */
   --color-slate-50:  250 250 250;
   --color-slate-100: 244 244 245;
   --color-slate-200: 228 228 231;
@@ -45,8 +43,8 @@
    ============================================ */
 
 html, body {
-  background-color: #F4F6FA;
-  color: #1E2838;
+  background-color: #F8F7F3; /* paper */
+  color: #0B1E3A;            /* ink-900 */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: 'cv11', 'ss01';
@@ -59,23 +57,20 @@ html, body {
 }
 
 /* ============================================
-   text-white override — in light theme the
-   literal class `text-white` still means white;
-   components that need dark ink should use the
-   argos.ink token directly. But some legacy
-   components call text-white on light cards, so
-   remap to argos ink unless on a colored bg.
+   text-white override — legacy components call
+   text-white on light cards; remap to ink-900
+   unless on a colored/dark background.
    ============================================ */
 
 .text-white {
-  color: #1E2838;
+  color: #0B1E3A;
 }
 
 [data-theme="dark"] .text-white {
   color: #ffffff;
 }
 
-/* Preserve white text inside accent/colored backgrounds */
+/* Preserve white text on colored/dark backgrounds */
 [class*="bg-blue-"] .text-white,
 [class*="bg-blue-"].text-white,
 [class*="bg-green-"] .text-white,
@@ -100,16 +95,24 @@ html, body {
 [class*="bg-amber-"].text-white,
 [class*="bg-teal-"] .text-white,
 [class*="bg-teal-"].text-white,
-[class*="bg-argos-navy"] .text-white,
-[class*="bg-argos-navy"].text-white,
-[class*="bg-argos-blue"] .text-white,
-[class*="bg-argos-blue"].text-white,
+[class*="bg-brand"] .text-white,
+[class*="bg-brand"].text-white,
+[class*="bg-info"] .text-white,
+[class*="bg-info"].text-white,
+[class*="bg-pos"] .text-white,
+[class*="bg-pos"].text-white,
+[class*="bg-neg"] .text-white,
+[class*="bg-neg"].text-white,
+[class*="bg-warn"] .text-white,
+[class*="bg-warn"].text-white,
+[class*="bg-gold"] .text-white,
+[class*="bg-gold"].text-white,
 [class*="bg-gradient"] .text-white,
 [class*="bg-gradient"].text-white {
   color: #ffffff;
 }
 
-/* Gray text overrides — some components use gray-* on light cards */
+/* Gray text overrides — legacy use on light cards */
 .text-gray-100 { color: #1f2937; }
 .text-gray-200 { color: #374151; }
 
@@ -118,60 +121,13 @@ html, body {
 
 /* Placeholder text */
 .placeholder-slate-500::placeholder {
-  color: #98A2B3;
+  color: #818A9B; /* ink-400 */
 }
 
 /* ============================================
-   ARGOS utility classes
+   Custom scrollbar (light)
    ============================================ */
 
-.argos-card {
-  background: #FFFFFF;
-  border: 1px solid #E5E9F0;
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
-}
-
-.argos-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: #DBE8FA;
-  color: #2563EB;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  padding: 3px 10px;
-  border-radius: 999px;
-}
-
-.argos-module-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  color: #2563EB;
-  text-transform: uppercase;
-}
-
-.argos-title {
-  font-size: 32px;
-  font-weight: 800;
-  color: #1E2838;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-}
-
-.argos-title-en {
-  color: #1E2838;
-  text-transform: uppercase;
-}
-
-.argos-divider {
-  height: 1px;
-  background: #E5E9F0;
-}
-
-/* Custom scrollbar for light theme */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -180,12 +136,12 @@ html, body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D6DCE5;
+  background: #D9DDE4; /* ink-200 */
   border-radius: 8px;
-  border: 2px solid #F4F6FA;
+  border: 2px solid #F8F7F3; /* paper */
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #B8C1CF;
+  background: #B4BBC7; /* ink-300 */
 }
 
 [data-theme="dark"] ::-webkit-scrollbar-thumb {

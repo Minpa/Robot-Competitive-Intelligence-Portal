@@ -34,26 +34,26 @@ export function StrategicBriefingPanel() {
 
   if (!selectedRobotId) {
     return (
-      <div className="bg-argos-surface rounded-xl border border-argos-borderSoft p-6">
-        <h3 className="text-lg font-semibold text-argos-ink flex items-center gap-2">
+      <div className="bg-white rounded-xl border border-ink-100 p-6">
+        <h3 className="text-lg font-semibold text-ink-900 flex items-center gap-2">
           <Brain className="w-5 h-5 text-purple-400" />
           전략 AI 브리핑
         </h3>
-        <p className="text-sm text-argos-muted mt-2">로봇을 선택해주세요.</p>
+        <p className="text-sm text-ink-500 mt-2">로봇을 선택해주세요.</p>
       </div>
     );
   }
 
   if (isLoading) {
-    return <div className="animate-pulse bg-argos-surface rounded-xl h-64" />;
+    return <div className="animate-pulse bg-white rounded-xl h-64" />;
   }
 
   // No briefing yet
   if (!briefing || briefing.message) {
     return (
-      <div className="bg-argos-surface rounded-xl border border-argos-borderSoft p-6">
+      <div className="bg-white rounded-xl border border-ink-100 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-argos-ink flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-ink-900 flex items-center gap-2">
             <Brain className="w-5 h-5 text-purple-400" />
             전략 AI 브리핑
           </h3>
@@ -66,7 +66,7 @@ export function StrategicBriefingPanel() {
             {generate.isPending ? '분석 중...' : '브리핑 생성'}
           </button>
         </div>
-        <p className="text-argos-muted text-sm">
+        <p className="text-ink-500 text-sm">
           아직 전략 브리핑이 없습니다. 갭 분석 및 경쟁 데이터를 기반으로 AI 전략 제언을 생성합니다.
         </p>
       </div>
@@ -78,15 +78,15 @@ export function StrategicBriefingPanel() {
   const watchlist = data.competitorWatchlist || [];
 
   return (
-    <div className="bg-argos-surface rounded-xl border border-argos-borderSoft p-6">
+    <div className="bg-white rounded-xl border border-ink-100 p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-argos-ink flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-ink-900 flex items-center gap-2">
             <Brain className="w-5 h-5 text-purple-400" />
             전략 AI 브리핑
           </h3>
-          <p className="text-xs text-argos-muted mt-1">
+          <p className="text-xs text-ink-500 mt-1">
             생성: {new Date(data.generatedAt).toLocaleString('ko-KR')}
           </p>
         </div>
@@ -111,7 +111,7 @@ export function StrategicBriefingPanel() {
       {/* Priority Gaps */}
       {gaps.length > 0 && (
         <div className="mb-6">
-          <h4 className="text-sm font-medium text-argos-inkSoft flex items-center gap-2 mb-3">
+          <h4 className="text-sm font-medium text-ink-700 flex items-center gap-2 mb-3">
             <Target className="w-4 h-4 text-red-400" />
             우선 개선 영역
           </h4>
@@ -119,14 +119,14 @@ export function StrategicBriefingPanel() {
             {gaps.map((gap: any, i: number) => {
               const conf = CONFIDENCE_CONFIG[gap.confidenceLevel as keyof typeof CONFIDENCE_CONFIG] || CONFIDENCE_CONFIG.low;
               return (
-                <div key={i} className="bg-argos-bgAlt rounded-lg p-4 border border-argos-borderSoft">
+                <div key={i} className="bg-ink-100 rounded-lg p-4 border border-ink-100">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="flex items-center justify-center w-6 h-6 rounded-full bg-red-500/20 text-red-400 text-xs font-bold">
                         {gap.rank}
                       </span>
-                      <span className="text-sm font-medium text-argos-ink">{gap.factorName}</span>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-argos-bgAlt text-argos-muted uppercase">
+                      <span className="text-sm font-medium text-ink-900">{gap.factorName}</span>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-ink-100 text-ink-500 uppercase">
                         {gap.factorType}
                       </span>
                     </div>
@@ -141,16 +141,16 @@ export function StrategicBriefingPanel() {
                     </div>
                   </div>
 
-                  <p className="text-sm text-argos-inkSoft mb-3">{gap.recommendation}</p>
+                  <p className="text-sm text-ink-700 mb-3">{gap.recommendation}</p>
 
                   {/* Actions */}
                   {gap.specificActions?.length > 0 && (
                     <div className="mb-2">
-                      <p className="text-xs text-argos-muted mb-1">실행 항목:</p>
+                      <p className="text-xs text-ink-500 mb-1">실행 항목:</p>
                       <ul className="space-y-1">
                         {gap.specificActions.map((action: string, j: number) => (
-                          <li key={j} className="flex items-start gap-2 text-xs text-argos-muted">
-                            <span className="mt-1 w-1 h-1 rounded-full bg-argos-muted shrink-0" />
+                          <li key={j} className="flex items-start gap-2 text-xs text-ink-500">
+                            <span className="mt-1 w-1 h-1 rounded-full bg-ink-500 shrink-0" />
                             {action}
                           </li>
                         ))}
@@ -158,7 +158,7 @@ export function StrategicBriefingPanel() {
                     </div>
                   )}
 
-                  <div className="flex flex-wrap gap-3 mt-3 text-[11px] text-argos-muted">
+                  <div className="flex flex-wrap gap-3 mt-3 text-[11px] text-ink-500">
                     {gap.suggestedTimeline && (
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
@@ -182,7 +182,7 @@ export function StrategicBriefingPanel() {
       {/* Competitor Watchlist */}
       {watchlist.length > 0 && (
         <div className="mb-6">
-          <h4 className="text-sm font-medium text-argos-inkSoft flex items-center gap-2 mb-3">
+          <h4 className="text-sm font-medium text-ink-700 flex items-center gap-2 mb-3">
             <Eye className="w-4 h-4 text-blue-400" />
             경쟁사 워치리스트
           </h4>
@@ -190,17 +190,17 @@ export function StrategicBriefingPanel() {
             {watchlist.map((w: any, i: number) => {
               const threat = THREAT_CONFIG[w.threatLevel as keyof typeof THREAT_CONFIG] || THREAT_CONFIG.medium;
               return (
-                <div key={i} className="flex items-start gap-3 p-3 bg-argos-bgAlt rounded-lg">
+                <div key={i} className="flex items-start gap-3 p-3 bg-ink-100 rounded-lg">
                   <Shield className={`w-4 h-4 mt-0.5 shrink-0 ${threat.text}`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-argos-ink">{w.competitorName}</span>
+                      <span className="text-sm font-medium text-ink-900">{w.competitorName}</span>
                       <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${threat.bg} ${threat.text}`}>
                         위협 {threat.label}
                       </span>
                     </div>
-                    <p className="text-xs text-argos-muted mb-1">{w.recentMove}</p>
-                    <p className="text-xs text-argos-muted">
+                    <p className="text-xs text-ink-500 mb-1">{w.recentMove}</p>
+                    <p className="text-xs text-ink-500">
                       <AlertTriangle className="w-3 h-3 inline mr-1" />
                       대응: {w.suggestedResponse}
                     </p>
@@ -214,9 +214,9 @@ export function StrategicBriefingPanel() {
 
       {/* Overall Assessment */}
       {data.overallAssessment && (
-        <div className="p-4 bg-argos-bgAlt rounded-lg border border-argos-borderSoft">
-          <h4 className="text-sm font-medium text-argos-inkSoft mb-2">종합 평가</h4>
-          <p className="text-sm text-argos-muted leading-relaxed">{data.overallAssessment}</p>
+        <div className="p-4 bg-ink-100 rounded-lg border border-ink-100">
+          <h4 className="text-sm font-medium text-ink-700 mb-2">종합 평가</h4>
+          <p className="text-sm text-ink-500 leading-relaxed">{data.overallAssessment}</p>
         </div>
       )}
     </div>

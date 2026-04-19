@@ -27,7 +27,7 @@ const COMPANY_GRADIENTS: Record<string, { from: string; to: string; accent: stri
   'Apptronik':         { from: 'from-slate-50',   to: 'to-blue-100',   accent: 'text-blue-500' },
 };
 
-const DEFAULT_GRADIENT = { from: 'from-slate-50', to: 'to-slate-100', accent: 'text-argos-muted' };
+const DEFAULT_GRADIENT = { from: 'from-slate-50', to: 'to-slate-100', accent: 'text-ink-500' };
 
 function getCompanyGradient(companyName: string) {
   return COMPANY_GRADIENTS[companyName] || DEFAULT_GRADIENT;
@@ -72,7 +72,7 @@ export function RobotImage({ imageUrl, robotName, companyName, size = 'md', clas
 
   if (imageUrl && !imgError) {
     return (
-      <div className={`${sizeClasses[size]} overflow-hidden flex items-center justify-center bg-argos-bgAlt ${className}`}>
+      <div className={`${sizeClasses[size]} overflow-hidden flex items-center justify-center bg-ink-100 ${className}`}>
         <img
           src={imageUrl}
           alt={robotName}

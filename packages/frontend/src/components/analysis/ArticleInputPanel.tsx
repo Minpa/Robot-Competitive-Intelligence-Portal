@@ -50,8 +50,8 @@ export function ArticleInputPanel({ onAnalyze, isLoading }: ArticleInputPanelPro
   };
 
   return (
-    <div className="bg-argos-surface border border-argos-border rounded-xl p-6 space-y-5">
-      <h2 className="text-lg font-semibold text-argos-ink flex items-center gap-2">
+    <div className="bg-white border border-ink-200 rounded-xl p-6 space-y-5">
+      <h2 className="text-lg font-semibold text-ink-900 flex items-center gap-2">
         <FileText className="w-5 h-5 text-violet-400" />
         기사 원문 입력
       </h2>
@@ -61,12 +61,12 @@ export function ArticleInputPanel({ onAnalyze, isLoading }: ArticleInputPanelPro
         onChange={(e) => setText(e.target.value)}
         placeholder="기사 원문을 여기에 붙여넣으세요..."
         rows={16}
-        className="w-full px-4 py-3 bg-argos-bgAlt border border-argos-border rounded-lg text-argos-ink placeholder-argos-muted focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none resize-none"
+        className="w-full px-4 py-3 bg-ink-100 border border-ink-200 rounded-lg text-ink-900 placeholder-ink-500 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none resize-none"
       />
-      <p className="text-xs text-argos-muted text-right">{text.length.toLocaleString()} 자</p>
+      <p className="text-xs text-ink-500 text-right">{text.length.toLocaleString()} 자</p>
 
       <div>
-        <p className="text-sm font-medium text-argos-inkSoft mb-2">분석 옵션</p>
+        <p className="text-sm font-medium text-ink-700 mb-2">분석 옵션</p>
         <div className="flex flex-wrap gap-2">
           {(Object.keys(OPTION_LABELS) as (keyof ParseOptions)[]).map(key => (
             <button
@@ -75,7 +75,7 @@ export function ArticleInputPanel({ onAnalyze, isLoading }: ArticleInputPanelPro
               className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
                 options[key]
                   ? 'bg-violet-600 text-white'
-                  : 'bg-argos-bgAlt text-argos-muted border border-argos-border hover:bg-argos-bgAlt'
+                  : 'bg-ink-100 text-ink-500 border border-ink-200 hover:bg-ink-100'
               }`}
             >
               {OPTION_LABELS[key]}

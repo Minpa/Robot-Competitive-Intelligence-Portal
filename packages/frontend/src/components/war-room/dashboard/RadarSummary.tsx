@@ -28,10 +28,10 @@ const defaultFactors = [
 export function RadarSummary({ data, isLoading }: RadarSummaryProps) {
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-argos-border bg-argos-surface p-4">
-        <div className="mb-3 h-5 w-48 animate-pulse rounded bg-argos-bgAlt" />
+      <div className="rounded-xl border border-ink-200 bg-white p-4">
+        <div className="mb-3 h-5 w-48 animate-pulse rounded bg-ink-100" />
         <div className="flex h-52 items-center justify-center">
-          <div className="h-40 w-40 animate-pulse rounded-full bg-argos-bgAlt" />
+          <div className="h-40 w-40 animate-pulse rounded-full bg-ink-100" />
         </div>
       </div>
     );
@@ -39,10 +39,10 @@ export function RadarSummary({ data, isLoading }: RadarSummaryProps) {
 
   if (!data || !data.positioningData || data.positioningData.length === 0) {
     return (
-      <div className="rounded-xl border border-argos-border bg-argos-surface p-4">
-        <h3 className="text-sm font-semibold text-argos-ink">LG vs Top 5 레이더</h3>
+      <div className="rounded-xl border border-ink-200 bg-white p-4">
+        <h3 className="text-sm font-semibold text-ink-900">LG vs Top 5 레이더</h3>
         <div className="flex h-52 items-center justify-center">
-          <p className="text-sm text-argos-muted">포지셔닝 데이터가 없습니다</p>
+          <p className="text-sm text-ink-500">포지셔닝 데이터가 없습니다</p>
         </div>
       </div>
     );
@@ -55,12 +55,12 @@ export function RadarSummary({ data, isLoading }: RadarSummaryProps) {
   }));
 
   return (
-    <div className="rounded-xl border border-argos-border bg-argos-surface p-4">
+    <div className="rounded-xl border border-ink-200 bg-white p-4">
       <div className="flex items-center gap-2">
-        <h3 className="text-sm font-semibold text-argos-ink">LG vs Top 5 레이더</h3>
+        <h3 className="text-sm font-semibold text-ink-900">LG vs Top 5 레이더</h3>
         <RadarSummaryInfo />
       </div>
-      <p className="mt-1 text-xs text-argos-muted">{data.robotName} PoC 요약</p>
+      <p className="mt-1 text-xs text-ink-500">{data.robotName} PoC 요약</p>
 
       <div className="mt-2 h-52">
         <ResponsiveContainer width="100%" height="100%">

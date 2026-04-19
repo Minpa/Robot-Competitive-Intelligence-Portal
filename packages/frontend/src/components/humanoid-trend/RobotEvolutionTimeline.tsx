@@ -214,17 +214,17 @@ export default function RobotEvolutionTimeline() {
   if (isLoading || containerWidth === 0) {
     return (
       <div ref={containerRef} className="animate-pulse space-y-3 p-4">
-        <div className="h-6 bg-argos-border rounded w-1/4" />
-        <div className="h-72 bg-argos-bgAlt rounded" />
+        <div className="h-6 bg-ink-200 rounded w-1/4" />
+        <div className="h-72 bg-ink-100 rounded" />
       </div>
     );
   }
 
   if (error || !chart) {
     return (
-      <div className="p-6 text-center text-argos-muted">
+      <div className="p-6 text-center text-ink-500">
         <p>데이터를 불러올 수 없습니다.</p>
-        {error && <p className="text-xs text-argos-faint mt-2">{(error as Error).message}</p>}
+        {error && <p className="text-xs text-ink-400 mt-2">{(error as Error).message}</p>}
       </div>
     );
   }
@@ -236,8 +236,8 @@ export default function RobotEvolutionTimeline() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-lg font-bold text-argos-ink">제품 진화 타임라인</h2>
-          <p className="text-xs text-argos-muted">
+          <h2 className="text-lg font-bold text-ink-900">제품 진화 타임라인</h2>
+          <p className="text-xs text-ink-500">
             최근 {recentYears}년 ({years[0]}–{years[years.length - 1]}) · {companies.length}개 기업 · 최신순
           </p>
         </div>
@@ -245,7 +245,7 @@ export default function RobotEvolutionTimeline() {
           <select
             value={recentYears}
             onChange={e => setRecentYears(Number(e.target.value))}
-            className="bg-argos-bgAlt border border-argos-border text-argos-inkSoft text-xs rounded-lg px-2.5 py-1.5 focus:ring-argos-blue focus:border-argos-blue"
+            className="bg-ink-100 border border-ink-200 text-ink-700 text-xs rounded-lg px-2.5 py-1.5 focus:ring-info focus:border-info"
           >
             {YEAR_RANGE_OPTIONS.map(n => (
               <option key={n} value={n}>최근 {n}년</option>
@@ -254,7 +254,7 @@ export default function RobotEvolutionTimeline() {
           <select
             value={regionFilter}
             onChange={e => setRegionFilter(e.target.value)}
-            className="bg-argos-bgAlt border border-argos-border text-argos-inkSoft text-xs rounded-lg px-2.5 py-1.5 focus:ring-argos-blue focus:border-argos-blue"
+            className="bg-ink-100 border border-ink-200 text-ink-700 text-xs rounded-lg px-2.5 py-1.5 focus:ring-info focus:border-info"
           >
             {REGION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
@@ -266,19 +266,19 @@ export default function RobotEvolutionTimeline() {
         {Object.entries(STAGE_COLORS).map(([key, c]) => (
           <span key={key} className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 rounded-sm" style={{ background: c.border }} />
-            <span className="text-argos-muted">{c.label}</span>
+            <span className="text-ink-500">{c.label}</span>
           </span>
         ))}
         <span className="flex items-center gap-1 ml-2">
           <span className="text-amber-500 text-[10px] font-medium border border-amber-500/40 rounded px-1">TBD</span>
-          <span className="text-argos-muted">출시 예정</span>
+          <span className="text-ink-500">출시 예정</span>
         </span>
       </div>
 
       {/* Chart */}
       <div
         ref={containerRef}
-        className="relative overflow-x-auto rounded-xl border border-argos-border bg-argos-surface"
+        className="relative overflow-x-auto rounded-xl border border-ink-200 bg-white"
         onMouseLeave={() => { setHoveredRobot(null); setTooltip(null); }}
       >
         <svg width={svgW} height={svgH} className="select-none">
@@ -468,11 +468,11 @@ export default function RobotEvolutionTimeline() {
         {/* Tooltip */}
         {tooltip && (
           <div
-            className="absolute pointer-events-none z-50 bg-argos-surface border border-argos-border rounded-lg px-3 py-2 shadow-argos-raised text-xs whitespace-nowrap"
+            className="absolute pointer-events-none z-50 bg-white border border-ink-200 rounded-lg px-3 py-2 shadow-report-lg text-xs whitespace-nowrap"
             style={{ left: tooltip.x + 14, top: tooltip.y - 50 }}
           >
-            <div className="font-semibold text-argos-ink">{tooltip.robot.name}</div>
-            <div className="text-argos-muted">
+            <div className="font-semibold text-ink-900">{tooltip.robot.name}</div>
+            <div className="text-ink-500">
               {tooltip.companyName} · {tooltip.robot.year}년 Q{tooltip.robot.quarter || 1}
               {isFuture(tooltip.robot.year, tooltip.robot.quarter) && (
                 <span className="ml-1 text-amber-500 font-medium">(TBD)</span>
@@ -485,16 +485,16 @@ export default function RobotEvolutionTimeline() {
                 </span>
               )}
               {tooltip.robot.purpose && (
-                <span className="text-argos-muted">{PURPOSE_LABELS[tooltip.robot.purpose] || tooltip.robot.purpose}</span>
+                <span className="text-ink-500">{PURPOSE_LABELS[tooltip.robot.purpose] || tooltip.robot.purpose}</span>
               )}
             </div>
-            <div className="text-argos-blue mt-0.5">클릭하여 상세 보기</div>
+            <div className="text-info mt-0.5">클릭하여 상세 보기</div>
           </div>
         )}
       </div>
 
       {companies.length === 0 && (
-        <div className="text-center py-10 text-argos-muted">해당 지역에 등록된 로봇이 없습니다.</div>
+        <div className="text-center py-10 text-ink-500">해당 지역에 등록된 로봇이 없습니다.</div>
       )}
     </div>
   );

@@ -36,12 +36,12 @@ export function CreateRobotModal({ isOpen, onClose, onCreate, isCreating }: Crea
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-xl border border-argos-border bg-argos-surface p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-xl border border-ink-200 bg-white p-6 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-argos-ink">새 LG 로봇 추가</h3>
+          <h3 className="text-sm font-semibold text-ink-900">새 LG 로봇 추가</h3>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-argos-muted hover:bg-argos-bgAlt hover:text-argos-ink transition-colors"
+            className="rounded-lg p-1 text-ink-500 hover:bg-ink-100 hover:text-ink-900 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -49,23 +49,23 @@ export function CreateRobotModal({ isOpen, onClose, onCreate, isCreating }: Crea
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs text-argos-muted">로봇 이름 *</label>
+            <label className="mb-1 block text-xs text-ink-500">로봇 이름 *</label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => handleChange('name', e.target.value)}
-              className="w-full rounded-lg border border-argos-border bg-argos-bgAlt px-3 py-2 text-sm text-argos-ink placeholder-argos-muted focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-ink-200 bg-ink-100 px-3 py-2 text-sm text-ink-900 placeholder-ink-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               placeholder="예: CLOiD v2"
               required
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-argos-muted">이동 방식</label>
+            <label className="mb-1 block text-xs text-ink-500">이동 방식</label>
             <select
               value={form.locomotionType}
               onChange={(e) => handleChange('locomotionType', e.target.value)}
-              className="w-full rounded-lg border border-argos-border bg-argos-bgAlt px-3 py-2 text-sm text-argos-ink focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-ink-200 bg-ink-100 px-3 py-2 text-sm text-ink-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="wheeled">Wheeled</option>
               <option value="bipedal">Bipedal</option>
@@ -76,33 +76,33 @@ export function CreateRobotModal({ isOpen, onClose, onCreate, isCreating }: Crea
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-argos-muted">핸드 타입</label>
+            <label className="mb-1 block text-xs text-ink-500">핸드 타입</label>
             <input
               type="text"
               value={form.handType}
               onChange={(e) => handleChange('handType', e.target.value)}
-              className="w-full rounded-lg border border-argos-border bg-argos-bgAlt px-3 py-2 text-sm text-argos-ink placeholder-argos-muted focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-ink-200 bg-ink-100 px-3 py-2 text-sm text-ink-900 placeholder-ink-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               placeholder="예: gripper, dexterous"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-argos-muted">용도</label>
+            <label className="mb-1 block text-xs text-ink-500">용도</label>
             <input
               type="text"
               value={form.purpose}
               onChange={(e) => handleChange('purpose', e.target.value)}
-              className="w-full rounded-lg border border-argos-border bg-argos-bgAlt px-3 py-2 text-sm text-argos-ink placeholder-argos-muted focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-ink-200 bg-ink-100 px-3 py-2 text-sm text-ink-900 placeholder-ink-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               placeholder="예: Home, Industrial"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-argos-muted">상태</label>
+            <label className="mb-1 block text-xs text-ink-500">상태</label>
             <select
               value={form.status}
               onChange={(e) => handleChange('status', e.target.value)}
-              className="w-full rounded-lg border border-argos-border bg-argos-bgAlt px-3 py-2 text-sm text-argos-ink focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-ink-200 bg-ink-100 px-3 py-2 text-sm text-ink-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="concept">Concept</option>
               <option value="prototype">Prototype</option>
@@ -115,7 +115,7 @@ export function CreateRobotModal({ isOpen, onClose, onCreate, isCreating }: Crea
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-argos-border px-4 py-2 text-sm text-argos-inkSoft hover:bg-argos-bgAlt transition-colors"
+              className="rounded-lg border border-ink-200 px-4 py-2 text-sm text-ink-700 hover:bg-ink-100 transition-colors"
             >
               취소
             </button>

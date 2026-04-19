@@ -58,20 +58,20 @@ function FactorTable({ factors }: { factors: RubricFactor[] }) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-argos-border">
-            <th className="text-left py-2 px-3 font-semibold text-argos-inkSoft">팩터명</th>
-            <th className="text-left py-2 px-3 font-semibold text-argos-inkSoft">데이터 소스</th>
-            <th className="text-left py-2 px-3 font-semibold text-argos-inkSoft">점수 구간</th>
-            <th className="text-left py-2 px-3 font-semibold text-argos-inkSoft">계산 공식</th>
+          <tr className="border-b border-ink-200">
+            <th className="text-left py-2 px-3 font-semibold text-ink-700">팩터명</th>
+            <th className="text-left py-2 px-3 font-semibold text-ink-700">데이터 소스</th>
+            <th className="text-left py-2 px-3 font-semibold text-ink-700">점수 구간</th>
+            <th className="text-left py-2 px-3 font-semibold text-ink-700">계산 공식</th>
           </tr>
         </thead>
         <tbody>
           {factors.map((f) => (
-            <tr key={f.factorKey} className="border-b border-argos-border hover:bg-argos-bgAlt">
-              <td className="py-2.5 px-3 font-medium text-argos-inkSoft whitespace-nowrap">{f.factorName}</td>
-              <td className="py-2.5 px-3 text-argos-muted font-mono text-xs">{f.dataSource}</td>
-              <td className="py-2.5 px-3 text-argos-muted">{f.scoreRange}</td>
-              <td className="py-2.5 px-3 text-argos-muted">{f.formula}</td>
+            <tr key={f.factorKey} className="border-b border-ink-200 hover:bg-ink-100">
+              <td className="py-2.5 px-3 font-medium text-ink-700 whitespace-nowrap">{f.factorName}</td>
+              <td className="py-2.5 px-3 text-ink-500 font-mono text-xs">{f.dataSource}</td>
+              <td className="py-2.5 px-3 text-ink-500">{f.scoreRange}</td>
+              <td className="py-2.5 px-3 text-ink-500">{f.formula}</td>
             </tr>
           ))}
         </tbody>
@@ -84,29 +84,29 @@ function PositioningTable({ charts }: { charts: PositioningRubric[] }) {
   return (
     <div className="space-y-4">
       {charts.map((chart) => (
-        <div key={chart.chartType} className="rounded-lg border border-argos-border p-4">
-          <h4 className="font-semibold text-argos-inkSoft mb-3">{chart.chartName}</h4>
+        <div key={chart.chartType} className="rounded-lg border border-ink-200 p-4">
+          <h4 className="font-semibold text-ink-700 mb-3">{chart.chartName}</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div>
-              <span className="text-argos-muted">X축:</span>{' '}
-              <span className="font-medium text-argos-inkSoft">{chart.xAxis.label}</span>
-              <p className="text-xs text-argos-muted font-mono mt-0.5">{chart.xAxis.source}</p>
+              <span className="text-ink-500">X축:</span>{' '}
+              <span className="font-medium text-ink-700">{chart.xAxis.label}</span>
+              <p className="text-xs text-ink-500 font-mono mt-0.5">{chart.xAxis.source}</p>
             </div>
             <div>
-              <span className="text-argos-muted">Y축:</span>{' '}
-              <span className="font-medium text-argos-inkSoft">{chart.yAxis.label}</span>
-              <p className="text-xs text-argos-muted font-mono mt-0.5">{chart.yAxis.source}</p>
+              <span className="text-ink-500">Y축:</span>{' '}
+              <span className="font-medium text-ink-700">{chart.yAxis.label}</span>
+              <p className="text-xs text-ink-500 font-mono mt-0.5">{chart.yAxis.source}</p>
             </div>
             <div>
-              <span className="text-argos-muted">버블 크기:</span>{' '}
-              <span className="font-medium text-argos-inkSoft">{chart.bubbleSize.label}</span>
-              <p className="text-xs text-argos-muted font-mono mt-0.5">{chart.bubbleSize.source}</p>
+              <span className="text-ink-500">버블 크기:</span>{' '}
+              <span className="font-medium text-ink-700">{chart.bubbleSize.label}</span>
+              <p className="text-xs text-ink-500 font-mono mt-0.5">{chart.bubbleSize.source}</p>
             </div>
             {chart.colorGroup && (
               <div>
-                <span className="text-argos-muted">색상 그룹:</span>{' '}
-                <span className="font-medium text-argos-inkSoft">{chart.colorGroup.label}</span>
-                <p className="text-xs text-argos-muted font-mono mt-0.5">{chart.colorGroup.source}</p>
+                <span className="text-ink-500">색상 그룹:</span>{' '}
+                <span className="font-medium text-ink-700">{chart.colorGroup.label}</span>
+                <p className="text-xs text-ink-500 font-mono mt-0.5">{chart.colorGroup.source}</p>
               </div>
             )}
           </div>
@@ -138,15 +138,15 @@ export default function RubricPanel({ type }: RubricPanelProps) {
           <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
 
           {/* Modal */}
-          <div className="relative w-full max-w-3xl max-h-[80vh] mx-4 rounded-xl bg-argos-surface border border-argos-border shadow-2xl overflow-hidden">
+          <div className="relative w-full max-w-3xl max-h-[80vh] mx-4 rounded-xl bg-white border border-ink-200 shadow-2xl overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-argos-border">
-              <h3 className="text-base font-bold text-argos-ink">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-ink-200">
+              <h3 className="text-base font-bold text-ink-900">
                 {TITLES[type]}
               </h3>
               <button
                 onClick={() => setOpen(false)}
-                className="p-1 rounded-lg hover:bg-argos-bgAlt text-argos-muted transition-colors"
+                className="p-1 rounded-lg hover:bg-ink-100 text-ink-500 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -155,7 +155,7 @@ export default function RubricPanel({ type }: RubricPanelProps) {
             {/* Body */}
             <div className="p-5 overflow-y-auto max-h-[calc(80vh-64px)]">
               {isLoading && (
-                <div className="flex items-center justify-center py-12 text-argos-muted">
+                <div className="flex items-center justify-center py-12 text-ink-500">
                   <Loader2 className="w-5 h-5 animate-spin mr-2" />
                   로딩 중...
                 </div>

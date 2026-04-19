@@ -33,11 +33,11 @@ const ENTITY_CONFIG = {
 export function AnalysisResultPanel({ result }: AnalysisResultPanelProps) {
   if (!result) {
     return (
-      <div className="bg-argos-surface border border-argos-border rounded-xl p-8 text-center">
-        <div className="w-16 h-16 mx-auto mb-4 bg-argos-bgAlt rounded-full flex items-center justify-center">
-          <Lightbulb className="w-8 h-8 text-argos-faint" />
+      <div className="bg-white border border-ink-200 rounded-xl p-8 text-center">
+        <div className="w-16 h-16 mx-auto mb-4 bg-ink-100 rounded-full flex items-center justify-center">
+          <Lightbulb className="w-8 h-8 text-ink-400" />
         </div>
-        <p className="text-argos-muted">기사를 입력하고 분석 버튼을 클릭하세요.</p>
+        <p className="text-ink-500">기사를 입력하고 분석 버튼을 클릭하세요.</p>
       </div>
     );
   }
@@ -45,19 +45,19 @@ export function AnalysisResultPanel({ result }: AnalysisResultPanelProps) {
   return (
     <div className="space-y-4">
       {/* 감지 언어 */}
-      <div className="flex items-center gap-2 text-sm text-argos-muted">
+      <div className="flex items-center gap-2 text-sm text-ink-500">
         <Globe className="w-4 h-4" />
         감지 언어: {result.detectedLanguage === 'ko' ? '한국어' : '영어'}
       </div>
 
       {/* 요약 */}
       {result.summary && (
-        <div className="bg-argos-surface border border-argos-border rounded-xl p-5">
-          <h3 className="text-sm font-medium text-argos-inkSoft mb-2 flex items-center gap-2">
+        <div className="bg-white border border-ink-200 rounded-xl p-5">
+          <h3 className="text-sm font-medium text-ink-700 mb-2 flex items-center gap-2">
             <Lightbulb className="w-4 h-4 text-amber-400" />
             요약
           </h3>
-          <p className="text-argos-inkSoft text-sm leading-relaxed whitespace-pre-wrap">{result.summary}</p>
+          <p className="text-ink-700 text-sm leading-relaxed whitespace-pre-wrap">{result.summary}</p>
         </div>
       )}
 
@@ -69,8 +69,8 @@ export function AnalysisResultPanel({ result }: AnalysisResultPanelProps) {
         const Icon = config.icon;
 
         return (
-          <div key={key} className="bg-argos-surface border border-argos-border rounded-xl p-5">
-            <h3 className="text-sm font-medium text-argos-inkSoft mb-3 flex items-center gap-2">
+          <div key={key} className="bg-white border border-ink-200 rounded-xl p-5">
+            <h3 className="text-sm font-medium text-ink-700 mb-3 flex items-center gap-2">
               <Icon className="w-4 h-4" />
               {config.label} ({entities.length})
             </h3>
@@ -92,8 +92,8 @@ export function AnalysisResultPanel({ result }: AnalysisResultPanelProps) {
 
       {/* 키워드 */}
       {result.keywords.length > 0 && (
-        <div className="bg-argos-surface border border-argos-border rounded-xl p-5">
-          <h3 className="text-sm font-medium text-argos-inkSoft mb-3 flex items-center gap-2">
+        <div className="bg-white border border-ink-200 rounded-xl p-5">
+          <h3 className="text-sm font-medium text-ink-700 mb-3 flex items-center gap-2">
             <Tag className="w-4 h-4" />
             키워드 ({result.keywords.length})
           </h3>

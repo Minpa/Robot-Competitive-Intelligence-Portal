@@ -68,7 +68,7 @@ export default function CompanyDetailPage() {
   if (!company) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <p className="text-argos-muted">회사를 찾을 수 없습니다.</p>
+        <p className="text-ink-500">회사를 찾을 수 없습니다.</p>
         <Link href="/companies" className="text-blue-400 hover:text-blue-300 mt-2 inline-block">
           회사 목록으로 돌아가기
         </Link>
@@ -84,21 +84,21 @@ export default function CompanyDetailPage() {
       {/* Back button */}
       <Link
         href="/companies"
-        className="inline-flex items-center gap-2 text-argos-muted hover:text-argos-ink transition-colors"
+        className="inline-flex items-center gap-2 text-ink-500 hover:text-ink-900 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         회사 목록
       </Link>
 
       {/* Company Header */}
-      <div className="bg-argos-surface border border-argos-border rounded-xl p-6">
+      <div className="bg-white border border-ink-200 rounded-xl p-6">
         <div className="flex items-start gap-4">
           <div className={`p-4 rounded-xl ${style.bg} border ${style.border}`}>
             <Icon className={`w-12 h-12 ${style.text}`} />
           </div>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-argos-ink">{company.name}</h1>
-            <div className="flex items-center gap-4 mt-2 text-argos-muted">
+            <h1 className="text-2xl font-bold text-ink-900">{company.name}</h1>
+            <div className="flex items-center gap-4 mt-2 text-ink-500">
               <span className="flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
                 {company.country}
@@ -108,7 +108,7 @@ export default function CompanyDetailPage() {
               </span>
             </div>
             {company.description && (
-              <p className="mt-4 text-argos-inkSoft">{company.description}</p>
+              <p className="mt-4 text-ink-700">{company.description}</p>
             )}
             {company.homepageUrl && (
               <a
@@ -128,22 +128,22 @@ export default function CompanyDetailPage() {
 
       {/* Workforce Info */}
       {workforce && (
-        <div className="bg-argos-surface border border-argos-border rounded-xl p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-argos-ink">
+        <div className="bg-white border border-ink-200 rounded-xl p-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-ink-900">
             <Users className="w-5 h-5 text-blue-400" />
             인력 현황
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-argos-surface border border-argos-border rounded-lg p-4">
-              <p className="text-sm text-argos-muted">총 인원</p>
-              <p className="text-2xl font-bold text-argos-ink">
+            <div className="bg-white border border-ink-200 rounded-lg p-4">
+              <p className="text-sm text-ink-500">총 인원</p>
+              <p className="text-2xl font-bold text-ink-900">
                 {workforce.totalHeadcountMin && workforce.totalHeadcountMax
                   ? `${workforce.totalHeadcountMin.toLocaleString()} - ${workforce.totalHeadcountMax.toLocaleString()}`
                   : '-'}
               </p>
             </div>
-            <div className="bg-argos-surface border border-argos-border rounded-lg p-4">
-              <p className="text-sm text-argos-muted">휴머노이드 팀</p>
+            <div className="bg-white border border-ink-200 rounded-lg p-4">
+              <p className="text-sm text-ink-500">휴머노이드 팀</p>
               <p className="text-2xl font-bold text-blue-400">
                 {workforce.humanoidTeamSize?.toLocaleString() || '-'}
               </p>
@@ -153,12 +153,12 @@ export default function CompanyDetailPage() {
           {/* Job Distribution */}
           {workforce.jobDistribution && (
             <div className="mt-6">
-              <h3 className="text-sm font-medium text-argos-inkSoft mb-3">직무 분포</h3>
+              <h3 className="text-sm font-medium text-ink-700 mb-3">직무 분포</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                 {Object.entries(workforce.jobDistribution as Record<string, number>).map(([key, value]) => (
-                  <div key={key} className="bg-argos-surface border border-argos-border rounded-lg p-3 text-center">
-                    <p className="text-xs text-argos-faint uppercase">{key}</p>
-                    <p className="text-lg font-semibold text-argos-ink">{value || 0}%</p>
+                  <div key={key} className="bg-white border border-ink-200 rounded-lg p-3 text-center">
+                    <p className="text-xs text-ink-400 uppercase">{key}</p>
+                    <p className="text-lg font-semibold text-ink-900">{value || 0}%</p>
                   </div>
                 ))}
               </div>
@@ -169,28 +169,28 @@ export default function CompanyDetailPage() {
 
       {/* Talent Trend */}
       {talentTrend && talentTrend.length > 0 && (
-        <div className="bg-argos-surface border border-argos-border rounded-xl p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-argos-ink">
+        <div className="bg-white border border-ink-200 rounded-xl p-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-ink-900">
             <TrendingUp className="w-5 h-5 text-emerald-400" />
             인력 추이
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-argos-border">
-                  <th className="text-left py-3 px-3 text-argos-muted font-medium">연도</th>
-                  <th className="text-right py-3 px-3 text-argos-muted font-medium">총 인원</th>
-                  <th className="text-right py-3 px-3 text-argos-muted font-medium">휴머노이드 팀</th>
-                  <th className="text-right py-3 px-3 text-argos-muted font-medium">채용 공고</th>
+                <tr className="border-b border-ink-200">
+                  <th className="text-left py-3 px-3 text-ink-500 font-medium">연도</th>
+                  <th className="text-right py-3 px-3 text-ink-500 font-medium">총 인원</th>
+                  <th className="text-right py-3 px-3 text-ink-500 font-medium">휴머노이드 팀</th>
+                  <th className="text-right py-3 px-3 text-ink-500 font-medium">채용 공고</th>
                 </tr>
               </thead>
               <tbody>
                 {talentTrend.map((trend: any) => (
-                  <tr key={trend.year} className="border-b border-argos-border hover:bg-argos-bgAlt transition-colors">
-                    <td className="py-3 px-3 font-medium text-argos-ink">{trend.year}</td>
-                    <td className="text-right py-3 px-3 text-argos-inkSoft">{trend.totalHeadcount?.toLocaleString() || '-'}</td>
-                    <td className="text-right py-3 px-3 text-argos-inkSoft">{trend.humanoidTeamSize?.toLocaleString() || '-'}</td>
-                    <td className="text-right py-3 px-3 text-argos-inkSoft">{trend.jobPostingCount?.toLocaleString() || '-'}</td>
+                  <tr key={trend.year} className="border-b border-ink-200 hover:bg-ink-100 transition-colors">
+                    <td className="py-3 px-3 font-medium text-ink-900">{trend.year}</td>
+                    <td className="text-right py-3 px-3 text-ink-700">{trend.totalHeadcount?.toLocaleString() || '-'}</td>
+                    <td className="text-right py-3 px-3 text-ink-700">{trend.humanoidTeamSize?.toLocaleString() || '-'}</td>
+                    <td className="text-right py-3 px-3 text-ink-700">{trend.jobPostingCount?.toLocaleString() || '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -201,8 +201,8 @@ export default function CompanyDetailPage() {
 
       {/* Products */}
       {products && products.items.length > 0 && (
-        <div className="bg-argos-surface border border-argos-border rounded-xl p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-argos-ink">
+        <div className="bg-white border border-ink-200 rounded-xl p-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-ink-900">
             <Briefcase className="w-5 h-5 text-purple-400" />
             제품 목록 ({products.total}개)
           </h2>
@@ -211,11 +211,11 @@ export default function CompanyDetailPage() {
               <Link
                 key={product.id}
                 href={`/products/${product.id}`}
-                className="bg-argos-surface border border-argos-border rounded-lg p-4 hover:border-argos-blue/30 hover:bg-argos-bgAlt transition-all"
+                className="bg-white border border-ink-200 rounded-lg p-4 hover:border-info/30 hover:bg-ink-100 transition-all"
               >
-                <h3 className="font-medium text-argos-ink">{product.name}</h3>
-                <div className="mt-2 flex items-center gap-2 text-sm text-argos-muted">
-                  <span className="px-2 py-0.5 bg-argos-chip/50 rounded">{product.type}</span>
+                <h3 className="font-medium text-ink-900">{product.name}</h3>
+                <div className="mt-2 flex items-center gap-2 text-sm text-ink-500">
+                  <span className="px-2 py-0.5 bg-info-soft/50 rounded">{product.type}</span>
                   {product.releaseDate && <span>{product.releaseDate}</span>}
                 </div>
                 <span className={`mt-2 inline-block px-2 py-0.5 text-xs rounded ${

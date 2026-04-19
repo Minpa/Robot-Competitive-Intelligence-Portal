@@ -36,20 +36,20 @@ export default function AdminDataPanel() {
       {open && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
-          <div className="relative w-full max-w-lg bg-argos-surface shadow-xl overflow-y-auto">
-            <div className="sticky top-0 bg-argos-surface border-b border-argos-border p-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-argos-ink">데이터 관리</h2>
-              <button onClick={() => setOpen(false)} className="text-argos-muted hover:text-argos-faint">
+          <div className="relative w-full max-w-lg bg-white shadow-xl overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-ink-200 p-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-ink-900">데이터 관리</h2>
+              <button onClick={() => setOpen(false)} className="text-ink-500 hover:text-ink-400">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex border-b border-argos-border">
+            <div className="flex border-b border-ink-200">
               {(['poc', 'rfm', 'positioning', 'pipeline'] as Tab[]).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
-                  className={`flex-1 py-2 text-sm font-medium ${tab === t ? 'text-violet-600 border-b-2 border-violet-600' : 'text-argos-muted'}`}
+                  className={`flex-1 py-2 text-sm font-medium ${tab === t ? 'text-violet-600 border-b-2 border-violet-600' : 'text-ink-500'}`}
                 >
                   {t === 'poc' ? 'PoC 점수' : t === 'rfm' ? 'RFM 점수' : t === 'positioning' ? '포지셔닝' : '파이프라인'}
                 </button>
@@ -84,14 +84,14 @@ function PocTab() {
     <div className="space-y-4">
       <div className="space-y-2">
         <input placeholder="Robot ID" value={form.robotId} onChange={(e) => setForm({ ...form, robotId: e.target.value })}
-          className="w-full px-3 py-2 text-sm border border-argos-border rounded bg-argos-surface text-argos-ink" />
+          className="w-full px-3 py-2 text-sm border border-ink-200 rounded bg-white text-ink-900" />
         <div className="grid grid-cols-3 gap-2">
           {(['payloadScore', 'operationTimeScore', 'fingerDofScore', 'formFactorScore', 'pocDeploymentScore', 'costEfficiencyScore'] as const).map((k) => (
-            <label key={k} className="text-xs text-argos-muted">
+            <label key={k} className="text-xs text-ink-500">
               {k.replace('Score', '')}
               <input type="number" min={1} max={10} value={form[k]}
                 onChange={(e) => setForm({ ...form, [k]: Number(e.target.value) })}
-                className="w-full px-2 py-1 text-sm border border-argos-border rounded bg-argos-surface text-argos-ink" />
+                className="w-full px-2 py-1 text-sm border border-ink-200 rounded bg-white text-ink-900" />
             </label>
           ))}
         </div>
@@ -102,7 +102,7 @@ function PocTab() {
       </div>
       <div className="space-y-1 max-h-60 overflow-y-auto">
         {scores?.map((s: any) => (
-          <div key={s.id} className="flex items-center justify-between text-xs text-argos-inkSoft py-1 border-b border-argos-border">
+          <div key={s.id} className="flex items-center justify-between text-xs text-ink-700 py-1 border-b border-ink-200">
             <span>{s.robotName} ({s.companyName}) — 평균 {s.averageScore}</span>
             <button onClick={() => deleteMut.mutate(s.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
           </div>
@@ -127,16 +127,16 @@ function RfmTab() {
     <div className="space-y-4">
       <div className="space-y-2">
         <input placeholder="Robot ID" value={form.robotId} onChange={(e) => setForm({ ...form, robotId: e.target.value })}
-          className="w-full px-3 py-2 text-sm border border-argos-border rounded bg-argos-surface text-argos-ink" />
+          className="w-full px-3 py-2 text-sm border border-ink-200 rounded bg-white text-ink-900" />
         <input placeholder="RFM 모델명" value={form.rfmModelName} onChange={(e) => setForm({ ...form, rfmModelName: e.target.value })}
-          className="w-full px-3 py-2 text-sm border border-argos-border rounded bg-argos-surface text-argos-ink" />
+          className="w-full px-3 py-2 text-sm border border-ink-200 rounded bg-white text-ink-900" />
         <div className="grid grid-cols-3 gap-2">
           {(['generalityScore', 'realWorldDataScore', 'edgeInferenceScore', 'multiRobotCollabScore', 'openSourceScore', 'commercialMaturityScore'] as const).map((k) => (
-            <label key={k} className="text-xs text-argos-muted">
+            <label key={k} className="text-xs text-ink-500">
               {k.replace('Score', '')}
               <input type="number" min={1} max={5} value={form[k]}
                 onChange={(e) => setForm({ ...form, [k]: Number(e.target.value) })}
-                className="w-full px-2 py-1 text-sm border border-argos-border rounded bg-argos-surface text-argos-ink" />
+                className="w-full px-2 py-1 text-sm border border-ink-200 rounded bg-white text-ink-900" />
             </label>
           ))}
         </div>
@@ -147,7 +147,7 @@ function RfmTab() {
       </div>
       <div className="space-y-1 max-h-60 overflow-y-auto">
         {scores?.map((s: any) => (
-          <div key={s.id} className="flex items-center justify-between text-xs text-argos-inkSoft py-1 border-b border-argos-border">
+          <div key={s.id} className="flex items-center justify-between text-xs text-ink-700 py-1 border-b border-ink-200">
             <span>{s.robotName} — {s.rfmModelName}</span>
             <button onClick={() => deleteMut.mutate(s.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
           </div>
@@ -171,31 +171,31 @@ function PositioningTab() {
     <div className="space-y-4">
       <div className="space-y-2">
         <select value={form.chartType} onChange={(e) => setForm({ ...form, chartType: e.target.value })}
-          className="w-full px-3 py-2 text-sm border border-argos-border rounded bg-argos-surface text-argos-ink">
+          className="w-full px-3 py-2 text-sm border border-ink-200 rounded bg-white text-ink-900">
           <option value="rfm_competitiveness">RFM 경쟁력</option>
           <option value="poc_positioning">PoC 포지셔닝</option>
           <option value="soc_ecosystem">SoC 에코시스템</option>
         </select>
         <input placeholder="Robot ID (선택)" value={form.robotId} onChange={(e) => setForm({ ...form, robotId: e.target.value })}
-          className="w-full px-3 py-2 text-sm border border-argos-border rounded bg-argos-surface text-argos-ink" />
+          className="w-full px-3 py-2 text-sm border border-ink-200 rounded bg-white text-ink-900" />
         <input placeholder="라벨" value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })}
-          className="w-full px-3 py-2 text-sm border border-argos-border rounded bg-argos-surface text-argos-ink" />
+          className="w-full px-3 py-2 text-sm border border-ink-200 rounded bg-white text-ink-900" />
         <div className="grid grid-cols-3 gap-2">
-          <label className="text-xs text-argos-muted">X
+          <label className="text-xs text-ink-500">X
             <input type="number" step="0.1" value={form.xValue} onChange={(e) => setForm({ ...form, xValue: Number(e.target.value) })}
-              className="w-full px-2 py-1 text-sm border border-argos-border rounded bg-argos-surface text-argos-ink" />
+              className="w-full px-2 py-1 text-sm border border-ink-200 rounded bg-white text-ink-900" />
           </label>
-          <label className="text-xs text-argos-muted">Y
+          <label className="text-xs text-ink-500">Y
             <input type="number" step="0.1" value={form.yValue} onChange={(e) => setForm({ ...form, yValue: Number(e.target.value) })}
-              className="w-full px-2 py-1 text-sm border border-argos-border rounded bg-argos-surface text-argos-ink" />
+              className="w-full px-2 py-1 text-sm border border-ink-200 rounded bg-white text-ink-900" />
           </label>
-          <label className="text-xs text-argos-muted">버블
+          <label className="text-xs text-ink-500">버블
             <input type="number" step="0.1" value={form.bubbleSize} onChange={(e) => setForm({ ...form, bubbleSize: Number(e.target.value) })}
-              className="w-full px-2 py-1 text-sm border border-argos-border rounded bg-argos-surface text-argos-ink" />
+              className="w-full px-2 py-1 text-sm border border-ink-200 rounded bg-white text-ink-900" />
           </label>
         </div>
         <input placeholder="색상 그룹 (US/CN/KR)" value={form.colorGroup} onChange={(e) => setForm({ ...form, colorGroup: e.target.value })}
-          className="w-full px-3 py-2 text-sm border border-argos-border rounded bg-argos-surface text-argos-ink" />
+          className="w-full px-3 py-2 text-sm border border-ink-200 rounded bg-white text-ink-900" />
         <button onClick={handleCreate} disabled={createMut.isPending}
           className="flex items-center gap-1 px-3 py-1.5 text-sm bg-violet-600 text-white rounded hover:bg-violet-700 disabled:opacity-50">
           <Plus className="w-4 h-4" /> 추가

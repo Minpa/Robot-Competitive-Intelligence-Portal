@@ -31,24 +31,24 @@ export function BenchmarkDetailPanel({ axes, competitor }: BenchmarkDetailPanelP
   const strategy = STRATEGY_DIRECTIONS[competitor.slug] || '';
 
   return (
-    <div className="bg-argos-surface rounded-xl border border-argos-border p-5 space-y-4">
+    <div className="bg-white rounded-xl border border-ink-200 p-5 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-xl font-bold text-argos-ink">{competitor.name}</h3>
-          <p className="text-sm text-argos-muted">{competitor.manufacturer}</p>
+          <h3 className="text-xl font-bold text-ink-900">{competitor.name}</h3>
+          <p className="text-sm text-ink-500">{competitor.manufacturer}</p>
         </div>
         <div className="text-right">
-          <div className="text-3xl font-bold" style={{ color }}>{totalCurrent}<span className="text-base text-argos-muted">/100</span></div>
-          <div className="text-sm text-argos-muted">목표까지 <span className="text-red-400 font-medium">{gap}점</span></div>
+          <div className="text-3xl font-bold" style={{ color }}>{totalCurrent}<span className="text-base text-ink-500">/100</span></div>
+          <div className="text-sm text-ink-500">목표까지 <span className="text-red-400 font-medium">{gap}점</span></div>
         </div>
       </div>
 
       {/* Strategy direction */}
       {strategy && (
-        <div className="bg-argos-bgAlt rounded-lg p-3">
-          <div className="text-xs text-argos-muted mb-1">전략 방향</div>
-          <p className="text-sm text-argos-inkSoft">{strategy}</p>
+        <div className="bg-ink-100 rounded-lg p-3">
+          <div className="text-xs text-ink-500 mb-1">전략 방향</div>
+          <p className="text-sm text-ink-700">{strategy}</p>
         </div>
       )}
 
@@ -64,20 +64,20 @@ export function BenchmarkDetailPanel({ axes, competitor }: BenchmarkDetailPanelP
           return (
             <div key={axis.key}>
               <div
-                className="cursor-pointer hover:bg-argos-bgAlt rounded-lg px-2 py-1 -mx-2 transition-colors"
+                className="cursor-pointer hover:bg-ink-100 rounded-lg px-2 py-1 -mx-2 transition-colors"
                 onClick={() => setExpandedAxis(prev => prev === axis.key ? null : axis.key)}
               >
                 <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-sm text-argos-inkSoft">
-                    <span className="mr-1 text-xs text-argos-muted">{isExpanded ? '▼' : '▶'}</span>
+                  <span className="text-sm text-ink-700">
+                    <span className="mr-1 text-xs text-ink-500">{isExpanded ? '▼' : '▶'}</span>
                     {axis.label}
                   </span>
-                  <span className="text-sm text-argos-muted">
+                  <span className="text-sm text-ink-500">
                     {current}
                     {improvement > 0 && <span className="text-green-400 ml-1">→{target}</span>}
                   </span>
                 </div>
-                <div className="relative h-3.5 bg-argos-bgAlt rounded-full overflow-hidden">
+                <div className="relative h-3.5 bg-ink-100 rounded-full overflow-hidden">
                   {/* Target bar (background) */}
                   {target > current && (
                     <div
@@ -94,8 +94,8 @@ export function BenchmarkDetailPanel({ axes, competitor }: BenchmarkDetailPanelP
               </div>
               {/* Expanded rationale */}
               {isExpanded && score?.rationale && (
-                <div className="mt-1.5 ml-5 bg-argos-bgAlt border border-argos-borderSoft rounded-lg p-3">
-                  <p className="text-xs text-argos-inkSoft leading-relaxed">{score.rationale}</p>
+                <div className="mt-1.5 ml-5 bg-ink-100 border border-ink-100 rounded-lg p-3">
+                  <p className="text-xs text-ink-700 leading-relaxed">{score.rationale}</p>
                 </div>
               )}
             </div>
@@ -104,12 +104,12 @@ export function BenchmarkDetailPanel({ axes, competitor }: BenchmarkDetailPanelP
       </div>
 
       {/* Total bar */}
-      <div className="pt-2 border-t border-argos-border">
+      <div className="pt-2 border-t border-ink-200">
         <div className="flex justify-between text-sm mb-1">
-          <span className="text-argos-muted">총점</span>
+          <span className="text-ink-500">총점</span>
           <span style={{ color }}>{totalCurrent} → {totalTarget}</span>
         </div>
-        <div className="relative h-4 bg-argos-bgAlt rounded-full overflow-hidden">
+        <div className="relative h-4 bg-ink-100 rounded-full overflow-hidden">
           <div className="absolute h-full rounded-full opacity-30" style={{ width: `${totalTarget}%`, backgroundColor: color }} />
           <div className="absolute h-full rounded-full" style={{ width: `${totalCurrent}%`, backgroundColor: color }} />
         </div>

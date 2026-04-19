@@ -85,24 +85,24 @@ export default function ExportPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {exportOptions.map((option) => (
-          <div key={option.type} className="bg-argos-surface border border-argos-border rounded-xl p-6">
+          <div key={option.type} className="bg-white border border-ink-200 rounded-xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className={`p-3 rounded-lg ${option.color}`}>
                 <option.icon className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-semibold text-argos-ink">{option.title}</h3>
-                <p className="text-sm text-argos-muted">{option.description}</p>
+                <h3 className="font-semibold text-ink-900">{option.title}</h3>
+                <p className="text-sm text-ink-500">{option.description}</p>
               </div>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => handleExport(option.type, 'csv')}
                 disabled={loading !== null}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-argos-surface hover:bg-argos-bgAlt border border-argos-border rounded-lg disabled:opacity-50 text-argos-inkSoft transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-ink-100 border border-ink-200 rounded-lg disabled:opacity-50 text-ink-700 transition-colors"
               >
                 {loading === `${option.type}-csv` ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-argos-border border-t-argos-inkSoft" />
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-ink-200 border-t-ink-700" />
                 ) : (
                   <Download className="w-4 h-4" />
                 )}
@@ -111,10 +111,10 @@ export default function ExportPage() {
               <button
                 onClick={() => handleExport(option.type, 'json')}
                 disabled={loading !== null}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-argos-surface hover:bg-argos-bgAlt border border-argos-border rounded-lg disabled:opacity-50 text-argos-inkSoft transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-ink-100 border border-ink-200 rounded-lg disabled:opacity-50 text-ink-700 transition-colors"
               >
                 {loading === `${option.type}-json` ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-argos-border border-t-argos-inkSoft" />
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-ink-200 border-t-ink-700" />
                 ) : (
                   <Download className="w-4 h-4" />
                 )}

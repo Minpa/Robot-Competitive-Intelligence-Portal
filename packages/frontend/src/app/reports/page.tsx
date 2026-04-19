@@ -68,8 +68,8 @@ export default function ReportsPage() {
           <PageHeader module="REPORT GENERATOR V4.2" titleKo="PPT 리포트 생성" titleEn="REPORT GENERATOR" description="템플릿 선택 → AI 코멘터리 포함 → .pptx 다운로드" />
 
           {/* 템플릿 선택 */}
-          <div className="bg-argos-surface border border-argos-border rounded-xl p-6">
-            <p className="text-sm text-argos-muted mb-3">리포트 템플릿</p>
+          <div className="bg-white border border-ink-200 rounded-xl p-6">
+            <p className="text-sm text-ink-500 mb-3">리포트 템플릿</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {TEMPLATES.map(t => (
                 <button
@@ -78,46 +78,46 @@ export default function ReportsPage() {
                   className={`p-4 rounded-xl border text-left transition-colors cursor-pointer ${
                     selectedTemplate === t.id
                       ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
-                      : 'bg-argos-surface border-argos-border text-argos-muted hover:border-argos-blue/30'
+                      : 'bg-white border-ink-200 text-ink-500 hover:border-info/30'
                   }`}
                 >
                   <span className="text-2xl">{t.icon}</span>
                   <p className="text-sm font-medium mt-2">{t.name}</p>
-                  <p className="text-xs text-argos-faint mt-1">{t.desc}</p>
+                  <p className="text-xs text-ink-400 mt-1">{t.desc}</p>
                 </button>
               ))}
             </div>
           </div>
 
           {/* 제목 + 테마 */}
-          <div className="bg-argos-surface border border-argos-border rounded-xl p-6 space-y-4">
+          <div className="bg-white border border-ink-200 rounded-xl p-6 space-y-4">
             <div>
-              <label className="block text-sm text-argos-muted mb-1.5">리포트 제목</label>
+              <label className="block text-sm text-ink-500 mb-1.5">리포트 제목</label>
               <input
                 type="text"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
-                className="w-full px-4 py-2.5 bg-argos-surface border border-argos-border rounded-lg text-argos-ink focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                className="w-full px-4 py-2.5 bg-white border border-ink-200 rounded-lg text-ink-900 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
               />
             </div>
             <div>
-              <label className="block text-sm text-argos-muted mb-1.5">부제목 (선택)</label>
+              <label className="block text-sm text-ink-500 mb-1.5">부제목 (선택)</label>
               <input
                 type="text"
                 value={subtitle}
                 onChange={e => setSubtitle(e.target.value)}
                 placeholder={new Date().toLocaleDateString('ko-KR')}
-                className="w-full px-4 py-2.5 bg-argos-surface border border-argos-border rounded-lg text-argos-ink placeholder-argos-faint focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                className="w-full px-4 py-2.5 bg-white border border-ink-200 rounded-lg text-ink-900 placeholder-ink-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
               />
             </div>
 
             <div className="flex items-center gap-4">
-              <p className="text-sm text-argos-muted">테마</p>
+              <p className="text-sm text-ink-500">테마</p>
               <div className="flex gap-2">
                 <button
                   onClick={() => setTheme('dark')}
                   className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg border cursor-pointer ${
-                    theme === 'dark' ? 'bg-slate-700 text-white border-slate-600' : 'bg-argos-surface text-argos-faint border-argos-border'
+                    theme === 'dark' ? 'bg-slate-700 text-white border-slate-600' : 'bg-white text-ink-400 border-ink-200'
                   }`}
                 >
                   <Moon className="w-4 h-4" /> 다크
@@ -125,7 +125,7 @@ export default function ReportsPage() {
                 <button
                   onClick={() => setTheme('light')}
                   className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg border cursor-pointer ${
-                    theme === 'light' ? 'bg-white text-slate-800 border-slate-300' : 'bg-argos-surface text-argos-faint border-argos-border'
+                    theme === 'light' ? 'bg-white text-slate-800 border-slate-300' : 'bg-white text-ink-400 border-ink-200'
                   }`}
                 >
                   <Sun className="w-4 h-4" /> 라이트
@@ -136,8 +136,8 @@ export default function ReportsPage() {
 
           {/* 기업 선택 (company_deep_dive일 때만) */}
           {selectedTemplate === 'company_deep_dive' && (
-            <div className="bg-argos-surface border border-argos-border rounded-xl p-6">
-              <p className="text-sm text-argos-muted mb-3">분석 대상 기업 (최대 5개)</p>
+            <div className="bg-white border border-ink-200 rounded-xl p-6">
+              <p className="text-sm text-ink-500 mb-3">분석 대상 기업 (최대 5개)</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
                 {(companies?.items || []).map(c => (
                   <button
@@ -147,7 +147,7 @@ export default function ReportsPage() {
                     className={`px-3 py-2 text-sm rounded-lg border text-left transition-colors cursor-pointer disabled:opacity-30 ${
                       selectedCompanyIds.has(c.id)
                         ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
-                        : 'bg-argos-surface text-argos-muted border-argos-border hover:border-argos-blue/30'
+                        : 'bg-white text-ink-500 border-ink-200 hover:border-info/30'
                     }`}
                   >
                     {c.name}
@@ -155,18 +155,18 @@ export default function ReportsPage() {
                 ))}
               </div>
               {selectedCompanyIds.size === 0 && (
-                <p className="text-xs text-argos-faint mt-2">선택하지 않으면 상위 5개 기업이 자동 선택됩니다.</p>
+                <p className="text-xs text-ink-400 mt-2">선택하지 않으면 상위 5개 기업이 자동 선택됩니다.</p>
               )}
             </div>
           )}
 
           {/* AI 코멘터리 토글 */}
-          <div className="flex items-center justify-between px-6 py-4 bg-argos-surface border border-argos-border rounded-xl">
+          <div className="flex items-center justify-between px-6 py-4 bg-white border border-ink-200 rounded-xl">
             <div className="flex items-center gap-3">
               <Cpu className="w-5 h-5 text-violet-400" />
               <div>
-                <p className="text-sm text-argos-inkSoft">Claude AI 코멘터리</p>
-                <p className="text-xs text-argos-faint">AI가 데이터 기반 인사이트를 자동 생성합니다</p>
+                <p className="text-sm text-ink-700">Claude AI 코멘터리</p>
+                <p className="text-xs text-ink-400">AI가 데이터 기반 인사이트를 자동 생성합니다</p>
               </div>
             </div>
             <button

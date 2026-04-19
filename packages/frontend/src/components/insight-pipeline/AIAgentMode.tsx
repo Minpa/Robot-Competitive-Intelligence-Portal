@@ -113,14 +113,14 @@ export function AIAgentMode({
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center gap-2 text-argos-inkSoft">
+      <div className="flex items-center gap-2 text-ink-700">
         <Search className="w-5 h-5 text-violet-500" />
         <h2 className="text-lg font-medium">AI 기반 데이터 수집</h2>
       </div>
 
       {/* Search input */}
       <div>
-        <label htmlFor="ai-search-query" className="block text-sm text-argos-muted mb-1.5">
+        <label htmlFor="ai-search-query" className="block text-sm text-ink-500 mb-1.5">
           검색 질문
         </label>
         <input
@@ -129,7 +129,7 @@ export function AIAgentMode({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="예: 2025년 휴머노이드 로봇 시장 동향은?"
-          className="w-full px-4 py-2.5 bg-argos-bgAlt border border-argos-border rounded-lg text-argos-inkSoft placeholder-argos-faint focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
+          className="w-full px-4 py-2.5 bg-ink-100 border border-ink-200 rounded-lg text-ink-700 placeholder-ink-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
           onKeyDown={(e) => {
             if (e.key === 'Enter') handleSearch();
           }}
@@ -138,7 +138,7 @@ export function AIAgentMode({
 
       {/* Target type multi-select */}
       <div>
-        <p className="text-sm text-argos-muted mb-2">대상 유형</p>
+        <p className="text-sm text-ink-500 mb-2">대상 유형</p>
         <div className="flex flex-wrap gap-2">
           {TARGET_TYPES.map((t) => (
             <button
@@ -147,7 +147,7 @@ export function AIAgentMode({
               className={`px-3 py-1.5 text-sm rounded-lg border transition-colors cursor-pointer ${
                 selectedTypes.has(t.key)
                   ? 'bg-violet-500/10 text-violet-600 border-violet-500/30'
-                  : 'bg-argos-bgAlt text-argos-faint border-argos-border hover:border-argos-border'
+                  : 'bg-ink-100 text-ink-400 border-ink-200 hover:border-ink-200'
               }`}
             >
               {t.label}
@@ -160,33 +160,33 @@ export function AIAgentMode({
       <div className="grid grid-cols-2 gap-4">
         {/* Time range */}
         <div>
-          <p className="text-sm text-argos-muted mb-1.5">시간 범위</p>
+          <p className="text-sm text-ink-500 mb-1.5">시간 범위</p>
           <div className="flex items-center gap-2">
             <input
               type="text"
               value={startYear}
               onChange={(e) => setStartYear(e.target.value)}
               placeholder="시작"
-              className="w-full px-3 py-2 bg-argos-bgAlt border border-argos-border rounded-lg text-argos-inkSoft text-sm focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
+              className="w-full px-3 py-2 bg-ink-100 border border-ink-200 rounded-lg text-ink-700 text-sm focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
             />
-            <span className="text-argos-faint text-sm">~</span>
+            <span className="text-ink-400 text-sm">~</span>
             <input
               type="text"
               value={endYear}
               onChange={(e) => setEndYear(e.target.value)}
               placeholder="종료"
-              className="w-full px-3 py-2 bg-argos-bgAlt border border-argos-border rounded-lg text-argos-inkSoft text-sm focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
+              className="w-full px-3 py-2 bg-ink-100 border border-ink-200 rounded-lg text-ink-700 text-sm focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
             />
           </div>
         </div>
 
         {/* Region */}
         <div>
-          <p className="text-sm text-argos-muted mb-1.5">지역</p>
+          <p className="text-sm text-ink-500 mb-1.5">지역</p>
           <select
             value={region}
             onChange={(e) => setRegion(e.target.value)}
-            className="w-full px-3 py-2 bg-argos-bgAlt border border-argos-border rounded-lg text-argos-inkSoft text-sm focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
+            className="w-full px-3 py-2 bg-ink-100 border border-ink-200 rounded-lg text-ink-700 text-sm focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
           >
             {REGIONS.map((r) => (
               <option key={r} value={r}>
@@ -201,7 +201,7 @@ export function AIAgentMode({
       <div>
         <div className="flex items-center gap-2 mb-2">
           <Brain className="w-4 h-4 text-blue-600" />
-          <p className="text-sm text-argos-muted">AI 모델</p>
+          <p className="text-sm text-ink-500">AI 모델</p>
         </div>
         <div className="flex gap-2">
           {PROVIDERS.map((p) => (
@@ -211,7 +211,7 @@ export function AIAgentMode({
               className={`flex-1 px-4 py-2 text-sm rounded-lg border transition-colors cursor-pointer ${
                 provider === p.key
                   ? 'bg-blue-500/10 text-blue-600 border-blue-500/30'
-                  : 'bg-argos-bgAlt text-argos-faint border-argos-border hover:border-argos-border'
+                  : 'bg-ink-100 text-ink-400 border-ink-200 hover:border-ink-200'
               }`}
             >
               {p.label}
@@ -221,12 +221,12 @@ export function AIAgentMode({
       </div>
 
       {/* Web search toggle */}
-      <div className="flex items-center justify-between px-4 py-3 bg-argos-bgAlt border border-argos-borderSoft rounded-lg">
+      <div className="flex items-center justify-between px-4 py-3 bg-ink-100 border border-ink-100 rounded-lg">
         <div className="flex items-center gap-2">
           <Globe className="w-4 h-4 text-emerald-600" />
           <div>
-            <p className="text-sm text-argos-inkSoft">웹 검색 (실시간 최신 정보)</p>
-            <p className="text-xs text-argos-faint">활성화 시 최신 뉴스·발표 기반으로 응답합니다</p>
+            <p className="text-sm text-ink-700">웹 검색 (실시간 최신 정보)</p>
+            <p className="text-xs text-ink-400">활성화 시 최신 뉴스·발표 기반으로 응답합니다</p>
           </div>
         </div>
         <button
@@ -248,7 +248,7 @@ export function AIAgentMode({
 
       {/* Error message */}
       {error && (
-        <p className="text-sm text-argos-danger bg-argos-dangerBg border border-red-500/20 rounded-lg px-4 py-2.5">
+        <p className="text-sm text-neg bg-neg-soft border border-red-500/20 rounded-lg px-4 py-2.5">
           {error}
         </p>
       )}
@@ -264,12 +264,12 @@ export function AIAgentMode({
       </button>
 
       {/* Batch data generation */}
-      <div className="border-t border-argos-borderSoft pt-5 mt-2 space-y-3">
-        <div className="flex items-center gap-2 text-argos-inkSoft">
+      <div className="border-t border-ink-100 pt-5 mt-2 space-y-3">
+        <div className="flex items-center gap-2 text-ink-700">
           <Database className="w-4 h-4 text-amber-500" />
           <p className="text-sm font-medium">배치 데이터 생성</p>
         </div>
-        <p className="text-xs text-argos-faint">
+        <p className="text-xs text-ink-400">
           10개 주제(기업, 중국시장, 일한, SoC, 액추에이터, 적용사례, 투자, AI모델, 유럽, 센서)를 한 번에 실행하여 DB에 저장합니다.
         </p>
         <button
@@ -294,15 +294,15 @@ export function AIAgentMode({
         </button>
 
         {batchResult && (
-          <div className="bg-argos-bgAlt border border-argos-border rounded-lg p-4 space-y-2">
+          <div className="bg-ink-100 border border-ink-200 rounded-lg p-4 space-y-2">
             <p className="text-sm text-emerald-600">
               완료: {batchResult.completed}/{batchResult.totalTopics} 주제 | 실패: {batchResult.failed}
             </p>
-            <div className="text-xs text-argos-muted space-y-1 max-h-40 overflow-y-auto">
+            <div className="text-xs text-ink-500 space-y-1 max-h-40 overflow-y-auto">
               {batchResult.results.map((r, i) => (
                 <div key={i} className="flex justify-between">
                   <span className="truncate flex-1 mr-2">{r.topic}</span>
-                  <span className="text-argos-faint whitespace-nowrap">
+                  <span className="text-ink-400 whitespace-nowrap">
                     기업 {r.companiesSaved} · 제품 {r.productsSaved} · 기사 {r.articlesSaved} · 키워드 {r.keywordsSaved}
                   </span>
                 </div>

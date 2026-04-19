@@ -157,16 +157,16 @@ export default function KeywordsPage() {
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 text-purple-400" />
             <h3 className="text-lg font-semibold text-white">이번 달 키워드 브리프</h3>
-            <span className="ml-auto text-xs text-argos-faint">{brief?.period}</span>
+            <span className="ml-auto text-xs text-ink-400">{brief?.period}</span>
           </div>
           {briefLoading ? (
             <div className="animate-pulse space-y-2">
-              <div className="h-4 bg-argos-chip/50 rounded w-full" />
-              <div className="h-4 bg-argos-chip/50 rounded w-3/4" />
+              <div className="h-4 bg-info-soft/50 rounded w-full" />
+              <div className="h-4 bg-info-soft/50 rounded w-3/4" />
             </div>
           ) : (
             <>
-              <p className="text-argos-inkSoft text-sm leading-relaxed mb-4">
+              <p className="text-ink-700 text-sm leading-relaxed mb-4">
                 {brief?.summary || '키워드 분석 데이터를 불러오는 중입니다...'}
               </p>
               <button className="flex items-center gap-2 px-3 py-1.5 bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 rounded-lg text-sm transition-colors">
@@ -180,21 +180,21 @@ export default function KeywordsPage() {
         {/* Insight Cards */}
         <div className="col-span-12 lg:col-span-7 grid grid-cols-3 gap-4">
           {/* Rising Keywords Card */}
-          <div className="bg-argos-surface border border-argos-border rounded-xl p-4">
+          <div className="bg-white border border-ink-200 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-3">
               <div className="p-1.5 bg-emerald-500/20 rounded-lg">
                 <TrendingUp className="w-4 h-4 text-emerald-400" />
               </div>
-              <span className="text-sm font-medium text-argos-inkSoft">급상승 키워드</span>
+              <span className="text-sm font-medium text-ink-700">급상승 키워드</span>
             </div>
             <div className="space-y-2">
               {risingKeywords.slice(0, 3).map((kw, idx) => (
                 <div
                   key={kw.id}
-                  className="flex items-center justify-between cursor-pointer hover:bg-argos-bgAlt rounded px-2 py-1 -mx-2"
+                  className="flex items-center justify-between cursor-pointer hover:bg-ink-100 rounded px-2 py-1 -mx-2"
                   onClick={() => handleKeywordClick(kw.id)}
                 >
-                  <span className="text-argos-ink text-sm truncate">{kw.term}</span>
+                  <span className="text-ink-900 text-sm truncate">{kw.term}</span>
                   <span className="text-emerald-400 text-xs flex items-center gap-0.5">
                     <ArrowUpRight className="w-3 h-3" />
                     {kw.growthRate3m}%
@@ -205,21 +205,21 @@ export default function KeywordsPage() {
           </div>
 
           {/* Broadest Keywords Card */}
-          <div className="bg-argos-surface border border-argos-border rounded-xl p-4">
+          <div className="bg-white border border-ink-200 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-3">
               <div className="p-1.5 bg-blue-500/20 rounded-lg">
                 <Target className="w-4 h-4 text-blue-400" />
               </div>
-              <span className="text-sm font-medium text-argos-inkSoft">넓은 커버리지</span>
+              <span className="text-sm font-medium text-ink-700">넓은 커버리지</span>
             </div>
             <div className="space-y-2">
               {broadestKeywords.slice(0, 3).map((kw, idx) => (
                 <div
                   key={kw.id}
-                  className="flex items-center justify-between cursor-pointer hover:bg-argos-bgAlt rounded px-2 py-1 -mx-2"
+                  className="flex items-center justify-between cursor-pointer hover:bg-ink-100 rounded px-2 py-1 -mx-2"
                   onClick={() => handleKeywordClick(kw.id)}
                 >
-                  <span className="text-argos-ink text-sm truncate">{kw.term}</span>
+                  <span className="text-ink-900 text-sm truncate">{kw.term}</span>
                   <span className="text-blue-400 text-xs">
                     {kw.relatedCompanies + kw.relatedProducts}개 연결
                   </span>
@@ -229,21 +229,21 @@ export default function KeywordsPage() {
           </div>
 
           {/* Declining Keywords Card */}
-          <div className="bg-argos-surface border border-argos-border rounded-xl p-4">
+          <div className="bg-white border border-ink-200 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-3">
               <div className="p-1.5 bg-red-500/20 rounded-lg">
                 <TrendingDown className="w-4 h-4 text-red-400" />
               </div>
-              <span className="text-sm font-medium text-argos-inkSoft">관심 하락</span>
+              <span className="text-sm font-medium text-ink-700">관심 하락</span>
             </div>
             <div className="space-y-2">
               {decliningKeywords.slice(0, 3).map((kw, idx) => (
                 <div
                   key={kw.id}
-                  className="flex items-center justify-between cursor-pointer hover:bg-argos-bgAlt rounded px-2 py-1 -mx-2"
+                  className="flex items-center justify-between cursor-pointer hover:bg-ink-100 rounded px-2 py-1 -mx-2"
                   onClick={() => handleKeywordClick(kw.id)}
                 >
-                  <span className="text-argos-ink text-sm truncate">{kw.term}</span>
+                  <span className="text-ink-900 text-sm truncate">{kw.term}</span>
                   <span className="text-red-400 text-xs flex items-center gap-0.5">
                     <ArrowDownRight className="w-3 h-3" />
                     {Math.abs(kw.growthRate3m)}%
@@ -258,18 +258,18 @@ export default function KeywordsPage() {
       {/* Row 2: Top Keywords Table + Trend Line Chart */}
       <div className="grid grid-cols-12 gap-4 mb-6">
         {/* Top Keywords Table */}
-        <div className="col-span-12 lg:col-span-5 bg-argos-surface border border-argos-border rounded-xl p-6">
+        <div className="col-span-12 lg:col-span-5 bg-white border border-ink-200 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-argos-ink flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-ink-900 flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-blue-400" />
               Top 키워드
             </h3>
-            <span className="text-xs text-argos-faint">클릭하여 트렌드 비교</span>
+            <span className="text-xs text-ink-400">클릭하여 트렌드 비교</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-argos-muted border-b border-argos-border">
+                <tr className="text-ink-500 border-b border-ink-200">
                   <th className="text-left py-2 font-medium">키워드</th>
                   <th className="text-right py-2 font-medium">3개월</th>
                   <th className="text-right py-2 font-medium">증감</th>
@@ -280,10 +280,10 @@ export default function KeywordsPage() {
                 {topKeywords.map((kw) => (
                   <tr
                     key={kw.id}
-                    className={`border-b border-argos-borderSoft cursor-pointer transition-colors ${
+                    className={`border-b border-ink-100 cursor-pointer transition-colors ${
                       selectedTrendKeywords.includes(kw.id)
                         ? 'bg-blue-500/10'
-                        : 'hover:bg-argos-bgAlt'
+                        : 'hover:bg-ink-100'
                     }`}
                     onClick={() => toggleTrendKeyword(kw.id)}
                   >
@@ -293,23 +293,23 @@ export default function KeywordsPage() {
                           type="checkbox"
                           checked={selectedTrendKeywords.includes(kw.id)}
                           onChange={() => {}}
-                          className="w-3 h-3 rounded border-argos-border bg-white text-blue-500"
+                          className="w-3 h-3 rounded border-ink-200 bg-white text-blue-500"
                         />
-                        <span className="text-argos-ink">{kw.term}</span>
+                        <span className="text-ink-900">{kw.term}</span>
                       </div>
                     </td>
-                    <td className="text-right text-argos-inkSoft">{kw.recentCount3m}</td>
+                    <td className="text-right text-ink-700">{kw.recentCount3m}</td>
                     <td className="text-right">
                       <span className={`flex items-center justify-end gap-0.5 ${
                         kw.growthRate3m > 0 ? 'text-emerald-400' :
-                        kw.growthRate3m < 0 ? 'text-red-400' : 'text-argos-faint'
+                        kw.growthRate3m < 0 ? 'text-red-400' : 'text-ink-400'
                       }`}>
                         {kw.growthRate3m > 0 ? <ArrowUpRight className="w-3 h-3" /> :
                          kw.growthRate3m < 0 ? <ArrowDownRight className="w-3 h-3" /> : null}
                         {kw.growthRate3m}%
                       </span>
                     </td>
-                    <td className="text-right text-argos-muted">
+                    <td className="text-right text-ink-500">
                       {kw.relatedCompanies + kw.relatedProducts}
                     </td>
                   </tr>
@@ -320,23 +320,23 @@ export default function KeywordsPage() {
         </div>
 
         {/* Trend Line Chart */}
-        <div className="col-span-12 lg:col-span-7 bg-argos-surface border border-argos-border rounded-xl p-6">
+        <div className="col-span-12 lg:col-span-7 bg-white border border-ink-200 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-argos-ink flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-ink-900 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-emerald-400" />
               키워드 트렌드 비교
             </h3>
             {selectedTrendKeywords.length > 0 && (
               <button
                 onClick={() => setSelectedTrendKeywords([])}
-                className="text-xs text-argos-muted hover:text-argos-ink"
+                className="text-xs text-ink-500 hover:text-ink-900"
               >
                 초기화
               </button>
             )}
           </div>
           {selectedTrendKeywords.length === 0 ? (
-            <div className="h-64 flex items-center justify-center text-argos-faint">
+            <div className="h-64 flex items-center justify-center text-ink-400">
               <p>왼쪽 테이블에서 키워드를 선택하세요 (최대 5개)</p>
             </div>
           ) : trendLoading ? (
@@ -379,14 +379,14 @@ export default function KeywordsPage() {
       </div>
 
       {/* Row 3: Position Map */}
-      <div className="bg-argos-surface border border-argos-border rounded-xl p-6 mb-6">
+      <div className="bg-white border border-ink-200 rounded-xl p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-argos-ink flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-ink-900 flex items-center gap-2">
               <Zap className="w-5 h-5 text-yellow-400" />
               키워드 포지션 맵
             </h3>
-            <p className="text-xs text-argos-muted mt-1">X축: 최근 3개월 성장률 | Y축: 전체 규모</p>
+            <p className="text-xs text-ink-500 mt-1">X축: 최근 3개월 성장률 | Y축: 전체 규모</p>
           </div>
           <div className="flex items-center gap-4">
             {Object.entries(QUADRANT_LABELS).map(([key, label]) => (
@@ -395,7 +395,7 @@ export default function KeywordsPage() {
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: QUADRANT_COLORS[key as keyof typeof QUADRANT_COLORS] }}
                 />
-                <span className="text-xs text-argos-muted">{label}</span>
+                <span className="text-xs text-ink-500">{label}</span>
               </div>
             ))}
           </div>
@@ -431,12 +431,12 @@ export default function KeywordsPage() {
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
                       return (
-                        <div className="bg-argos-surface border border-argos-border rounded-lg p-3 shadow-xl">
-                          <p className="font-semibold text-argos-ink">{data.term}</p>
-                          <p className="text-xs text-argos-muted mt-1">
+                        <div className="bg-white border border-ink-200 rounded-lg p-3 shadow-xl">
+                          <p className="font-semibold text-ink-900">{data.term}</p>
+                          <p className="text-xs text-ink-500 mt-1">
                             성장률: <span className={data.x > 0 ? 'text-emerald-400' : 'text-red-400'}>{data.x}%</span>
                           </p>
-                          <p className="text-xs text-argos-muted">규모: {data.y}</p>
+                          <p className="text-xs text-ink-500">규모: {data.y}</p>
                           <p className="text-xs mt-1" style={{ color: QUADRANT_COLORS[data.quadrant as keyof typeof QUADRANT_COLORS] }}>
                             {QUADRANT_LABELS[data.quadrant as keyof typeof QUADRANT_LABELS]}
                           </p>
@@ -466,26 +466,26 @@ export default function KeywordsPage() {
         <div className="grid grid-cols-4 gap-4 mt-4 text-center text-xs">
           <div className="p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
             <p className="text-emerald-400 font-medium">Rising Star</p>
-            <p className="text-argos-faint">높은 성장 + 큰 규모</p>
+            <p className="text-ink-400">높은 성장 + 큰 규모</p>
           </div>
           <div className="p-2 bg-blue-500/10 rounded-lg border border-blue-500/20">
             <p className="text-blue-400 font-medium">Big & Stable</p>
-            <p className="text-argos-faint">안정적 + 큰 규모</p>
+            <p className="text-ink-400">안정적 + 큰 규모</p>
           </div>
           <div className="p-2 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
             <p className="text-yellow-400 font-medium">Niche</p>
-            <p className="text-argos-faint">특정 분야 집중</p>
+            <p className="text-ink-400">특정 분야 집중</p>
           </div>
           <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20">
             <p className="text-red-400 font-medium">Declining</p>
-            <p className="text-argos-faint">관심 감소 추세</p>
+            <p className="text-ink-400">관심 감소 추세</p>
           </div>
         </div>
       </div>
 
       {/* Row 4: All Keywords Grid */}
-      <div className="bg-argos-surface border border-argos-border rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-argos-ink mb-4">전체 키워드</h3>
+      <div className="bg-white border border-ink-200 rounded-xl p-6">
+        <h3 className="text-lg font-semibold text-ink-900 mb-4">전체 키워드</h3>
         <div className="flex flex-wrap gap-2">
           {keywordAnalytics?.map((kw) => (
             <button
@@ -498,7 +498,7 @@ export default function KeywordsPage() {
                   ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
                   : kw.trendStatus === 'declining'
                   ? 'bg-red-500/20 text-red-300 border-red-500/30'
-                  : 'bg-argos-surface text-argos-inkSoft border-argos-border'
+                  : 'bg-white text-ink-700 border-ink-200'
               }`}
             >
               {kw.term}
@@ -521,17 +521,17 @@ export default function KeywordsPage() {
             className="absolute inset-0 bg-black/50"
             onClick={() => setDrawerOpen(false)}
           />
-          <div className="relative w-full max-w-md bg-argos-surface border-l border-argos-border h-full overflow-y-auto">
-            <div className="sticky top-0 bg-argos-surface border-b border-argos-border p-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-argos-ink flex items-center gap-2">
+          <div className="relative w-full max-w-md bg-white border-l border-ink-200 h-full overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-ink-200 p-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-ink-900 flex items-center gap-2">
                 <Lightbulb className="w-5 h-5 text-yellow-400" />
                 키워드 인사이트
               </h3>
               <button
                 onClick={() => setDrawerOpen(false)}
-                className="p-1 hover:bg-argos-bgAlt rounded-lg"
+                className="p-1 hover:bg-ink-100 rounded-lg"
               >
-                <X className="w-5 h-5 text-argos-muted" />
+                <X className="w-5 h-5 text-ink-500" />
               </button>
             </div>
 
@@ -543,21 +543,21 @@ export default function KeywordsPage() {
               <div className="p-6 space-y-6">
                 {/* Keyword Header */}
                 <div>
-                  <h4 className="text-2xl font-bold text-argos-ink">{keywordInsight.keyword.term}</h4>
-                  <p className="text-argos-muted text-sm mt-1">{keywordInsight.description}</p>
+                  <h4 className="text-2xl font-bold text-ink-900">{keywordInsight.keyword.term}</h4>
+                  <p className="text-ink-500 text-sm mt-1">{keywordInsight.description}</p>
                 </div>
 
                 {/* Stats */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-argos-surface rounded-lg p-3 border border-argos-border">
-                    <p className="text-xs text-argos-faint">총 등장</p>
-                    <p className="text-xl font-semibold text-argos-ink">{keywordInsight.keyword.totalCount}</p>
+                  <div className="bg-white rounded-lg p-3 border border-ink-200">
+                    <p className="text-xs text-ink-400">총 등장</p>
+                    <p className="text-xl font-semibold text-ink-900">{keywordInsight.keyword.totalCount}</p>
                   </div>
-                  <div className="bg-argos-surface rounded-lg p-3 border border-argos-border">
-                    <p className="text-xs text-argos-faint">3개월 성장률</p>
+                  <div className="bg-white rounded-lg p-3 border border-ink-200">
+                    <p className="text-xs text-ink-400">3개월 성장률</p>
                     <p className={`text-xl font-semibold ${
                       keywordInsight.keyword.growthRate3m > 0 ? 'text-emerald-400' :
-                      keywordInsight.keyword.growthRate3m < 0 ? 'text-red-400' : 'text-argos-inkSoft'
+                      keywordInsight.keyword.growthRate3m < 0 ? 'text-red-400' : 'text-ink-700'
                     }`}>
                       {keywordInsight.keyword.growthRate3m > 0 ? '+' : ''}{keywordInsight.keyword.growthRate3m}%
                     </p>
@@ -566,8 +566,8 @@ export default function KeywordsPage() {
 
                 {/* Mini Trend Chart */}
                 <div>
-                  <h5 className="text-sm font-medium text-argos-inkSoft mb-2">최근 1년 트렌드</h5>
-                  <div className="h-32 bg-argos-bgAlt/50 rounded-lg p-2 border border-argos-borderSoft">
+                  <h5 className="text-sm font-medium text-ink-700 mb-2">최근 1년 트렌드</h5>
+                  <div className="h-32 bg-ink-100/50 rounded-lg p-2 border border-ink-100">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={keywordInsight.trendData}>
                         <XAxis dataKey="month" tick={{ fill: '#64748B', fontSize: 9 }} />
@@ -587,15 +587,15 @@ export default function KeywordsPage() {
                 {/* Top Companies */}
                 {keywordInsight.topCompanies.length > 0 && (
                   <div>
-                    <h5 className="text-sm font-medium text-argos-inkSoft mb-2">관련 주요 회사</h5>
+                    <h5 className="text-sm font-medium text-ink-700 mb-2">관련 주요 회사</h5>
                     <div className="space-y-2">
                       {keywordInsight.topCompanies.map((company) => (
                         <div
                           key={company.id}
-                          className="flex items-center justify-between bg-argos-bgAlt/50 rounded-lg px-3 py-2"
+                          className="flex items-center justify-between bg-ink-100/50 rounded-lg px-3 py-2"
                         >
-                          <span className="text-argos-ink text-sm">{company.name}</span>
-                          <span className="text-argos-faint text-xs">{company.articleCount}건</span>
+                          <span className="text-ink-900 text-sm">{company.name}</span>
+                          <span className="text-ink-400 text-xs">{company.articleCount}건</span>
                         </div>
                       ))}
                     </div>
@@ -605,15 +605,15 @@ export default function KeywordsPage() {
                 {/* Top Products */}
                 {keywordInsight.topProducts.length > 0 && (
                   <div>
-                    <h5 className="text-sm font-medium text-argos-inkSoft mb-2">관련 제품</h5>
+                    <h5 className="text-sm font-medium text-ink-700 mb-2">관련 제품</h5>
                     <div className="space-y-2">
                       {keywordInsight.topProducts.map((product) => (
                         <div
                           key={product.id}
-                          className="flex items-center justify-between bg-argos-bgAlt/50 rounded-lg px-3 py-2"
+                          className="flex items-center justify-between bg-ink-100/50 rounded-lg px-3 py-2"
                         >
-                          <span className="text-argos-ink text-sm">{product.name}</span>
-                          <span className="text-argos-faint text-xs">{product.articleCount}건</span>
+                          <span className="text-ink-900 text-sm">{product.name}</span>
+                          <span className="text-ink-400 text-xs">{product.articleCount}건</span>
                         </div>
                       ))}
                     </div>
@@ -626,13 +626,13 @@ export default function KeywordsPage() {
                     <Sparkles className="w-4 h-4 text-purple-400" />
                     <span className="text-sm font-medium text-purple-300">AI 분석</span>
                   </div>
-                  <p className="text-argos-inkSoft text-sm leading-relaxed">
+                  <p className="text-ink-700 text-sm leading-relaxed">
                     {keywordInsight.aiComment}
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="p-6 text-center text-argos-faint">
+              <div className="p-6 text-center text-ink-400">
                 키워드를 선택해주세요
               </div>
             )}

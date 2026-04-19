@@ -63,27 +63,27 @@ export function MainLayout({ children }: MainLayoutProps) {
   // 로딩 중
   if (isAuthenticated === null && !PUBLIC_PATHS.includes(pathname)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-argos-bg">
-        <div className="text-argos-muted text-sm">로딩 중...</div>
+      <div className="min-h-screen flex items-center justify-center bg-paper">
+        <div className="text-ink-500 text-sm">로딩 중...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-argos-bg">
+    <div className="flex min-h-screen bg-paper">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <DemoBanner />
         <Header />
-        <main className="flex-1 p-8 bg-argos-bg">
+        <main className="flex-1 p-8 bg-paper">
           {children}
         </main>
-        <footer className="bg-argos-surface border-t border-argos-border px-8 py-4">
-          <div className="flex items-center justify-between text-[11px] text-argos-muted">
+        <footer className="bg-white border-t border-ink-200 px-8 py-4">
+          <div className="flex items-center justify-between text-[11px] text-ink-500">
             <span className="tracking-wide">© 2024–2026 ARGOS · Autonomous Robot Global Observatory System</span>
             <div className="flex gap-5">
-              <a href="/terms" className="hover:text-argos-ink transition-colors">이용약관</a>
-              <a href="/copyright" className="hover:text-argos-ink transition-colors">저작권 신고</a>
+              <a href="/terms" className="hover:text-ink-900 transition-colors">이용약관</a>
+              <a href="/copyright" className="hover:text-ink-900 transition-colors">저작권 신고</a>
             </div>
           </div>
         </footer>

@@ -215,32 +215,32 @@ export default function AdminPage() {
             { label: '수집 데이터', labelEn: 'Collected', value: results.reduce((sum, r) => sum + r.count, 0) },
           ].map((stat) => (
             <ArgosCard key={stat.labelEn} className="p-5">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-argos-faint">{stat.labelEn}</div>
-              <div className="text-[12px] font-semibold text-argos-muted mt-1">{stat.label}</div>
-              <div className="text-[28px] font-extrabold text-argos-ink mt-2 leading-none">{stat.value}</div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-ink-400">{stat.labelEn}</div>
+              <div className="text-[12px] font-semibold text-ink-500 mt-1">{stat.label}</div>
+              <div className="text-[28px] font-extrabold text-ink-900 mt-2 leading-none">{stat.value}</div>
             </ArgosCard>
           ))}
         </div>
 
         {/* Public Data Collection */}
         <ArgosCard>
-          <div className="p-6 border-b border-argos-border flex items-center justify-between">
+          <div className="p-6 border-b border-ink-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-argos-chip rounded-md flex items-center justify-center">
-                <Database className="w-4 h-4 text-argos-blue" />
+              <div className="w-8 h-8 bg-info-soft rounded-md flex items-center justify-center">
+                <Database className="w-4 h-4 text-info" />
               </div>
-              <h2 className="text-[15px] font-bold text-argos-ink">공개 데이터 수집 <span className="text-argos-faint font-semibold">/ Public Data Collection</span></h2>
+              <h2 className="text-[15px] font-bold text-ink-900">공개 데이터 수집 <span className="text-ink-400 font-semibold">/ Public Data Collection</span></h2>
             </div>
             <div className="flex items-center gap-3">
               {lastCollected && (
-                <span className="text-[11px] text-argos-muted">
+                <span className="text-[11px] text-ink-500">
                   마지막: {lastCollected.toLocaleTimeString('ko-KR')}
                 </span>
               )}
               <button
                 onClick={collectAll}
                 disabled={isCollecting}
-                className="flex items-center gap-2 px-4 py-2 bg-argos-navy hover:bg-argos-navyDark text-argos-ink text-[12px] font-semibold rounded-lg disabled:opacity-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-brand hover:bg-brand-soft text-ink-900 text-[12px] font-semibold rounded-lg disabled:opacity-50 transition-colors"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${collectingSource === 'all' ? 'animate-spin' : ''}`} />
                 {collectingSource === 'all' ? '수집 중...' : '전체 수집'}
@@ -248,7 +248,7 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-argos-border">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-ink-200">
             {sources.map(({ key, name, icon: Icon, desc }) => {
               const result = getSourceResult(key);
               const isLoading = collectingSource === key || collectingSource === 'all';
@@ -257,26 +257,26 @@ export default function AdminPage() {
                 <div key={key} className="p-6">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Icon className="w-4 h-4 text-argos-muted" />
-                      <span className="text-[13px] font-semibold text-argos-ink">{name}</span>
+                      <Icon className="w-4 h-4 text-ink-500" />
+                      <span className="text-[13px] font-semibold text-ink-900">{name}</span>
                     </div>
                     <button
                       onClick={() => collectSingle(key)}
                       disabled={isLoading}
-                      className="px-2.5 py-1 text-[11px] font-semibold bg-argos-bg border border-argos-border rounded hover:bg-argos-chipAlt hover:border-argos-blue hover:text-argos-blue disabled:opacity-50 text-argos-inkSoft transition-colors"
+                      className="px-2.5 py-1 text-[11px] font-semibold bg-paper border border-ink-200 rounded hover:bg-info-soft hover:border-info hover:text-info disabled:opacity-50 text-ink-700 transition-colors"
                     >
                       {isLoading ? <RefreshCw className="w-3 h-3 animate-spin" /> : '수집'}
                     </button>
                   </div>
-                  <p className="text-[11px] text-argos-muted mb-3">{desc}</p>
+                  <p className="text-[11px] text-ink-500 mb-3">{desc}</p>
                   {result && (
                     <div className="flex items-center gap-2">
                       {result.success ? (
-                        <CheckCircle className="w-3.5 h-3.5 text-argos-success" />
+                        <CheckCircle className="w-3.5 h-3.5 text-pos" />
                       ) : (
-                        <XCircle className="w-3.5 h-3.5 text-argos-danger" />
+                        <XCircle className="w-3.5 h-3.5 text-neg" />
                       )}
-                      <span className={`text-[12px] font-semibold ${result.success ? 'text-argos-successInk' : 'text-argos-dangerInk'}`}>
+                      <span className={`text-[12px] font-semibold ${result.success ? 'text-pos' : 'text-neg'}`}>
                         {result.success ? `${result.count}건` : '실패'}
                       </span>
                     </div>
@@ -296,16 +296,16 @@ export default function AdminPage() {
             { href: '/terms',            title: '이용약관',   subtitle: '데이터 정책 확인',                      icon: Shield },
           ].map(({ href, title, subtitle, icon: Icon }) => (
             <Link key={href} href={href} className="group">
-              <ArgosCard className="p-5 hover:border-argos-blue transition-colors">
+              <ArgosCard className="p-5 hover:border-info transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-argos-chip flex items-center justify-center shrink-0">
-                    <Icon className="w-4 h-4 text-argos-blue" />
+                  <div className="w-10 h-10 rounded-lg bg-info-soft flex items-center justify-center shrink-0">
+                    <Icon className="w-4 h-4 text-info" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-[13px] font-bold text-argos-ink">{title}</h3>
-                    <p className="text-[11px] text-argos-muted">{subtitle}</p>
+                    <h3 className="text-[13px] font-bold text-ink-900">{title}</h3>
+                    <p className="text-[11px] text-ink-500">{subtitle}</p>
                   </div>
-                  <ExternalLink className="w-3.5 h-3.5 text-argos-faint group-hover:text-argos-blue transition" />
+                  <ExternalLink className="w-3.5 h-3.5 text-ink-400 group-hover:text-info transition" />
                 </div>
               </ArgosCard>
             </Link>
@@ -313,25 +313,25 @@ export default function AdminPage() {
         </div>
 
         {/* 평가 기준 */}
-        <div className="bg-argos-surface border border-argos-border rounded-xl shadow-argos-card">
-          <div className="p-6 border-b border-argos-border flex items-center gap-2">
-            <Scale className="w-5 h-5 text-argos-blue" />
-            <h2 className="text-[15px] font-bold text-argos-ink">로봇 평가 기준</h2>
-            <span className="text-xs text-argos-muted ml-2">
+        <div className="bg-white border border-ink-200 rounded-xl shadow-report">
+          <div className="p-6 border-b border-ink-200 flex items-center gap-2">
+            <Scale className="w-5 h-5 text-info" />
+            <h2 className="text-[15px] font-bold text-ink-900">로봇 평가 기준</h2>
+            <span className="text-xs text-ink-500 ml-2">
               사이트에 등록된 모든 휴머노이드 로봇에 적용되는 점수 산정 항목
             </span>
           </div>
 
           {/* PoC 점수 (하드웨어 경쟁력, 1-10) */}
-          <div className="p-6 border-b border-argos-border">
-            <h3 className="text-[14px] font-bold text-argos-ink mb-1">
+          <div className="p-6 border-b border-ink-200">
+            <h3 className="text-[14px] font-bold text-ink-900 mb-1">
               PoC 점수 — 하드웨어 경쟁력 (1~10점)
             </h3>
-            <p className="text-xs text-argos-muted mb-4">
+            <p className="text-xs text-ink-500 mb-4">
               실물 스펙과 PoC/배치 현황을 기반으로 각 로봇의 물리적 경쟁력을 평가합니다.
             </p>
-            <div className="border border-argos-border rounded-lg overflow-hidden">
-              <div className="grid grid-cols-12 gap-3 px-4 py-2 bg-argos-bg text-[11px] font-bold text-argos-muted uppercase tracking-wider">
+            <div className="border border-ink-200 rounded-lg overflow-hidden">
+              <div className="grid grid-cols-12 gap-3 px-4 py-2 bg-paper text-[11px] font-bold text-ink-500 uppercase tracking-wider">
                 <div className="col-span-2">항목</div>
                 <div className="col-span-1 text-center">범위</div>
                 <div className="col-span-5">계산식</div>
@@ -383,27 +383,27 @@ export default function AdminPage() {
               ].map((row) => (
                 <div
                   key={row.key}
-                  className="grid grid-cols-12 gap-3 px-4 py-3 text-[12px] border-t border-argos-border hover:bg-argos-bgAlt transition-colors"
+                  className="grid grid-cols-12 gap-3 px-4 py-3 text-[12px] border-t border-ink-200 hover:bg-ink-100 transition-colors"
                 >
-                  <div className="col-span-2 font-bold text-argos-ink">{row.name}</div>
-                  <div className="col-span-1 text-center text-argos-blue font-mono">{row.range}</div>
-                  <div className="col-span-5 font-mono text-[11px] text-argos-inkSoft">{row.formula}</div>
-                  <div className="col-span-4 text-argos-muted leading-relaxed">{row.desc}</div>
+                  <div className="col-span-2 font-bold text-ink-900">{row.name}</div>
+                  <div className="col-span-1 text-center text-info font-mono">{row.range}</div>
+                  <div className="col-span-5 font-mono text-[11px] text-ink-700">{row.formula}</div>
+                  <div className="col-span-4 text-ink-500 leading-relaxed">{row.desc}</div>
                 </div>
               ))}
             </div>
           </div>
 
           {/* RFM 점수 (파운데이션 모델 경쟁력, 1-5) */}
-          <div className="p-6 border-b border-argos-border">
-            <h3 className="text-[14px] font-bold text-argos-ink mb-1">
+          <div className="p-6 border-b border-ink-200">
+            <h3 className="text-[14px] font-bold text-ink-900 mb-1">
               RFM 점수 — 로봇 파운데이션 모델 경쟁력 (1~5점)
             </h3>
-            <p className="text-xs text-argos-muted mb-4">
+            <p className="text-xs text-ink-500 mb-4">
               로봇이 탑재·활용하는 AI/파운데이션 모델의 범용성과 성숙도를 평가합니다.
             </p>
-            <div className="border border-argos-border rounded-lg overflow-hidden">
-              <div className="grid grid-cols-12 gap-3 px-4 py-2 bg-argos-bg text-[11px] font-bold text-argos-muted uppercase tracking-wider">
+            <div className="border border-ink-200 rounded-lg overflow-hidden">
+              <div className="grid grid-cols-12 gap-3 px-4 py-2 bg-paper text-[11px] font-bold text-ink-500 uppercase tracking-wider">
                 <div className="col-span-2">항목</div>
                 <div className="col-span-1 text-center">범위</div>
                 <div className="col-span-5">계산식</div>
@@ -455,12 +455,12 @@ export default function AdminPage() {
               ].map((row) => (
                 <div
                   key={row.key}
-                  className="grid grid-cols-12 gap-3 px-4 py-3 text-[12px] border-t border-argos-border hover:bg-argos-bgAlt transition-colors"
+                  className="grid grid-cols-12 gap-3 px-4 py-3 text-[12px] border-t border-ink-200 hover:bg-ink-100 transition-colors"
                 >
-                  <div className="col-span-2 font-bold text-argos-ink">{row.name}</div>
-                  <div className="col-span-1 text-center text-argos-blue font-mono">{row.range}</div>
-                  <div className="col-span-5 font-mono text-[11px] text-argos-inkSoft">{row.formula}</div>
-                  <div className="col-span-4 text-argos-muted leading-relaxed">{row.desc}</div>
+                  <div className="col-span-2 font-bold text-ink-900">{row.name}</div>
+                  <div className="col-span-1 text-center text-info font-mono">{row.range}</div>
+                  <div className="col-span-5 font-mono text-[11px] text-ink-700">{row.formula}</div>
+                  <div className="col-span-4 text-ink-500 leading-relaxed">{row.desc}</div>
                 </div>
               ))}
             </div>
@@ -468,12 +468,12 @@ export default function AdminPage() {
 
           {/* 포지셔닝 차트 축 */}
           <div className="p-6">
-            <h3 className="text-[14px] font-bold text-argos-ink mb-1">포지셔닝 차트 축 구성</h3>
-            <p className="text-xs text-argos-muted mb-4">
+            <h3 className="text-[14px] font-bold text-ink-900 mb-1">포지셔닝 차트 축 구성</h3>
+            <p className="text-xs text-ink-500 mb-4">
               경쟁 지형 시각화에 사용되는 차트별 X/Y/버블 크기 축 매핑.
             </p>
-            <div className="border border-argos-border rounded-lg overflow-hidden">
-              <div className="grid grid-cols-12 gap-3 px-4 py-2 bg-argos-bg text-[11px] font-bold text-argos-muted uppercase tracking-wider">
+            <div className="border border-ink-200 rounded-lg overflow-hidden">
+              <div className="grid grid-cols-12 gap-3 px-4 py-2 bg-paper text-[11px] font-bold text-ink-500 uppercase tracking-wider">
                 <div className="col-span-3">차트</div>
                 <div className="col-span-3">X 축</div>
                 <div className="col-span-3">Y 축</div>
@@ -501,16 +501,16 @@ export default function AdminPage() {
               ].map((row) => (
                 <div
                   key={row.chart}
-                  className="grid grid-cols-12 gap-3 px-4 py-3 text-[12px] border-t border-argos-border hover:bg-argos-bgAlt transition-colors"
+                  className="grid grid-cols-12 gap-3 px-4 py-3 text-[12px] border-t border-ink-200 hover:bg-ink-100 transition-colors"
                 >
-                  <div className="col-span-3 font-bold text-argos-ink">{row.chart}</div>
-                  <div className="col-span-3 text-argos-inkSoft">{row.x}</div>
-                  <div className="col-span-3 text-argos-inkSoft">{row.y}</div>
-                  <div className="col-span-3 text-argos-inkSoft">{row.size}</div>
+                  <div className="col-span-3 font-bold text-ink-900">{row.chart}</div>
+                  <div className="col-span-3 text-ink-700">{row.x}</div>
+                  <div className="col-span-3 text-ink-700">{row.y}</div>
+                  <div className="col-span-3 text-ink-700">{row.size}</div>
                 </div>
               ))}
             </div>
-            <p className="text-[11px] text-argos-faint mt-3 leading-relaxed">
+            <p className="text-[11px] text-ink-400 mt-3 leading-relaxed">
               * 스펙 데이터 누락 시 해당 항목은 추정값(estimated=true)으로 표시되며 최저값 또는 기본값이 부여됩니다.
               계산 로직은 <span className="font-mono">packages/backend/src/services/scoring/</span> 의
               poc-calculator.ts / rfm-calculator.ts 에 정의되어 있습니다.
@@ -519,9 +519,9 @@ export default function AdminPage() {
         </div>
 
         {/* Export Section */}
-        <div className="bg-argos-surface border border-argos-border rounded-xl shadow-argos-card p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-argos-ink">
-            <Database className="w-5 h-5 text-argos-muted" />
+        <div className="bg-white border border-ink-200 rounded-xl shadow-report p-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-ink-900">
+            <Database className="w-5 h-5 text-ink-500" />
             데이터 내보내기
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -535,10 +535,10 @@ export default function AdminPage() {
                 a.download = 'companies.csv';
                 a.click();
               }}
-              className="p-4 bg-argos-bg border border-argos-border rounded-lg hover:bg-argos-chipAlt hover:border-argos-blue text-left transition-colors"
+              className="p-4 bg-paper border border-ink-200 rounded-lg hover:bg-info-soft hover:border-info text-left transition-colors"
             >
-              <p className="font-medium text-argos-ink">회사 데이터</p>
-              <p className="text-sm text-argos-muted">CSV 형식으로 다운로드</p>
+              <p className="font-medium text-ink-900">회사 데이터</p>
+              <p className="text-sm text-ink-500">CSV 형식으로 다운로드</p>
             </button>
             <button
               onClick={async () => {
@@ -550,10 +550,10 @@ export default function AdminPage() {
                 a.download = 'products.csv';
                 a.click();
               }}
-              className="p-4 bg-argos-bg border border-argos-border rounded-lg hover:bg-argos-chipAlt hover:border-argos-blue text-left transition-colors"
+              className="p-4 bg-paper border border-ink-200 rounded-lg hover:bg-info-soft hover:border-info text-left transition-colors"
             >
-              <p className="font-medium text-argos-ink">제품 데이터</p>
-              <p className="text-sm text-argos-muted">스펙 포함 CSV 다운로드</p>
+              <p className="font-medium text-ink-900">제품 데이터</p>
+              <p className="text-sm text-ink-500">스펙 포함 CSV 다운로드</p>
             </button>
             <button
               onClick={async () => {
@@ -565,23 +565,23 @@ export default function AdminPage() {
                 a.download = 'articles.csv';
                 a.click();
               }}
-              className="p-4 bg-argos-bg border border-argos-border rounded-lg hover:bg-argos-chipAlt hover:border-argos-blue text-left transition-colors"
+              className="p-4 bg-paper border border-ink-200 rounded-lg hover:bg-info-soft hover:border-info text-left transition-colors"
             >
-              <p className="font-medium text-argos-ink">기사 데이터</p>
-              <p className="text-sm text-argos-muted">CSV 형식으로 다운로드</p>
+              <p className="font-medium text-ink-900">기사 데이터</p>
+              <p className="text-sm text-ink-500">CSV 형식으로 다운로드</p>
             </button>
           </div>
 
           <div className="mt-8">
-            <h3 className="text-[15px] font-bold text-argos-ink mb-3">Excel로 기사 업로드</h3>
-            <p className="text-sm text-argos-muted mb-4">첫 번째 시트에서 데이터를 읽어서 기사 데이터를 생성/업데이트합니다.</p>
+            <h3 className="text-[15px] font-bold text-ink-900 mb-3">Excel로 기사 업로드</h3>
+            <p className="text-sm text-ink-500 mb-4">첫 번째 시트에서 데이터를 읽어서 기사 데이터를 생성/업데이트합니다.</p>
             <div className="flex flex-col md:flex-row gap-3 items-start">
               <div className="flex-1">
                 <input
                   type="file"
                   accept=".xlsx,.xls"
                   onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
-                  className="w-full text-sm text-argos-ink file:bg-argos-bg file:border file:border-argos-border file:px-3 file:py-2 file:rounded-lg file:text-argos-ink file:bg-argos-bgAlt"
+                  className="w-full text-sm text-ink-900 file:bg-paper file:border file:border-ink-200 file:px-3 file:py-2 file:rounded-lg file:text-ink-900 file:bg-ink-100"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -590,31 +590,31 @@ export default function AdminPage() {
                   type="checkbox"
                   checked={importUpdateExisting}
                   onChange={(e) => setImportUpdateExisting(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 bg-argos-bg border-argos-border rounded"
+                  className="h-4 w-4 text-blue-600 bg-paper border-ink-200 rounded"
                 />
-                <label htmlFor="updateExisting" className="text-sm text-argos-inkSoft">
+                <label htmlFor="updateExisting" className="text-sm text-ink-700">
                   기존 기사 업데이트 (중복 URL이 있는 경우)
                 </label>
               </div>
               <button
                 disabled={!importFile || importing}
                 onClick={handleImportExcel}
-                className="px-4 py-2 bg-emerald-600 text-argos-ink rounded-lg hover:bg-emerald-500 disabled:opacity-50 transition-colors"
+                className="px-4 py-2 bg-emerald-600 text-ink-900 rounded-lg hover:bg-emerald-500 disabled:opacity-50 transition-colors"
               >
                 {importing ? '업로드 중...' : '업로드'}
               </button>
             </div>
             {importResult && (
-              <div className="mt-4 rounded-lg bg-argos-bg border border-argos-border p-4">
+              <div className="mt-4 rounded-lg bg-paper border border-ink-200 p-4">
                 {importResult.error ? (
                   <p className="text-sm text-red-400">에러: {importResult.error}</p>
                 ) : (
-                  <div className="text-sm text-argos-ink space-y-1">
+                  <div className="text-sm text-ink-900 space-y-1">
                     <p>생성: {importResult.created}</p>
                     <p>업데이트: {importResult.updated}</p>
                     <p>스킵: {importResult.skipped}</p>
                     {importResult.errors?.length > 0 && (
-                      <details className="text-xs text-argos-muted">
+                      <details className="text-xs text-ink-500">
                         <summary>에러 상세 ({importResult.errors.length})</summary>
                         <ul className="list-disc ml-5 mt-2">
                           {importResult.errors.map((err: any, idx: number) => (
@@ -632,10 +632,10 @@ export default function AdminPage() {
 
         {/* AI API 사용량 (슈퍼 관리자만) */}
         {isSuperAdmin && (
-          <div className="bg-argos-surface border border-argos-border rounded-xl shadow-argos-card">
-            <div className="p-6 border-b border-argos-border flex items-center gap-2">
+          <div className="bg-white border border-ink-200 rounded-xl shadow-report">
+            <div className="p-6 border-b border-ink-200 flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-emerald-400" />
-              <h2 className="text-[15px] font-bold text-argos-ink">AI API 사용량</h2>
+              <h2 className="text-[15px] font-bold text-ink-900">AI API 사용량</h2>
             </div>
             
             <div className="p-6 space-y-6">
@@ -647,14 +647,14 @@ export default function AdminPage() {
                 const isNearLimit = pct >= 80;
                 const isOverLimit = pct >= 100;
                 return (
-                  <div className={`p-4 rounded-xl border ${isOverLimit ? 'bg-red-500/10 border-red-500/30' : isNearLimit ? 'bg-amber-500/10 border-amber-500/30' : 'bg-argos-bg border-argos-border'}`}>
+                  <div className={`p-4 rounded-xl border ${isOverLimit ? 'bg-red-500/10 border-red-500/30' : isNearLimit ? 'bg-amber-500/10 border-amber-500/30' : 'bg-paper border-ink-200'}`}>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-argos-inkSoft">이번 달 사용량</span>
+                      <span className="text-sm text-ink-700">이번 달 사용량</span>
                       <span className={`text-sm font-medium ${isOverLimit ? 'text-red-400' : isNearLimit ? 'text-amber-400' : 'text-emerald-400'}`}>
                         ${totalCost.toFixed(4)} / ${limitUsd.toFixed(2)} (≈₩10,000)
                       </span>
                     </div>
-                    <div className="w-full h-2 bg-argos-bgAlt rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-ink-100 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${isOverLimit ? 'bg-red-500' : isNearLimit ? 'bg-amber-500' : 'bg-emerald-500'}`}
                         style={{ width: `${pct}%` }}
@@ -669,33 +669,33 @@ export default function AdminPage() {
               {/* Provider별 요약 카드 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {(aiUsageSummary?.summary || []).map((s) => (
-                  <div key={s.provider} className="bg-argos-bg border border-argos-border rounded-xl p-5">
+                  <div key={s.provider} className="bg-paper border border-ink-200 rounded-xl p-5">
                     <div className="flex items-center gap-2 mb-3">
                       <Cpu className="w-5 h-5 text-violet-400" />
-                      <h3 className="font-semibold text-argos-ink">
+                      <h3 className="font-semibold text-ink-900">
                         {s.provider === 'chatgpt' ? 'OpenAI (ChatGPT)' : 'Anthropic (Claude)'}
                       </h3>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <p className="text-xs text-argos-muted">총 호출</p>
-                        <p className="text-lg font-bold text-argos-ink">{s.totalCalls}회</p>
+                        <p className="text-xs text-ink-500">총 호출</p>
+                        <p className="text-lg font-bold text-ink-900">{s.totalCalls}회</p>
                       </div>
                       <div>
-                        <p className="text-xs text-argos-muted">예상 비용</p>
+                        <p className="text-xs text-ink-500">예상 비용</p>
                         <p className="text-lg font-bold text-emerald-400">${s.totalCostUsd.toFixed(4)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-argos-muted">입력 토큰</p>
-                        <p className="text-sm text-argos-inkSoft">{s.totalInputTokens.toLocaleString()}</p>
+                        <p className="text-xs text-ink-500">입력 토큰</p>
+                        <p className="text-sm text-ink-700">{s.totalInputTokens.toLocaleString()}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-argos-muted">출력 토큰</p>
-                        <p className="text-sm text-argos-inkSoft">{s.totalOutputTokens.toLocaleString()}</p>
+                        <p className="text-xs text-ink-500">출력 토큰</p>
+                        <p className="text-sm text-ink-700">{s.totalOutputTokens.toLocaleString()}</p>
                       </div>
                       {s.webSearchCalls > 0 && (
                         <div className="col-span-2">
-                          <p className="text-xs text-argos-muted">웹 검색 호출</p>
+                          <p className="text-xs text-ink-500">웹 검색 호출</p>
                           <p className="text-sm text-blue-400">{s.webSearchCalls}회</p>
                         </div>
                       )}
@@ -703,7 +703,7 @@ export default function AdminPage() {
                   </div>
                 ))}
                 {(!aiUsageSummary?.summary || aiUsageSummary.summary.length === 0) && (
-                  <div className="col-span-2 text-center py-8 text-argos-faint">
+                  <div className="col-span-2 text-center py-8 text-ink-400">
                     아직 AI API 호출 기록이 없습니다.
                   </div>
                 )}
@@ -712,9 +712,9 @@ export default function AdminPage() {
               {/* 최근 호출 로그 */}
               {aiUsageLogs?.logs && aiUsageLogs.logs.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-argos-muted mb-3">최근 호출 로그</h3>
-                  <div className="border border-argos-border rounded-lg overflow-hidden">
-                    <div className="px-4 py-2 bg-argos-bg text-xs font-medium text-argos-muted grid grid-cols-12 gap-2">
+                  <h3 className="text-sm font-semibold text-ink-500 mb-3">최근 호출 로그</h3>
+                  <div className="border border-ink-200 rounded-lg overflow-hidden">
+                    <div className="px-4 py-2 bg-paper text-xs font-medium text-ink-500 grid grid-cols-12 gap-2">
                       <div className="col-span-2">Provider</div>
                       <div className="col-span-2">모델</div>
                       <div className="col-span-1">웹검색</div>
@@ -723,7 +723,7 @@ export default function AdminPage() {
                       <div className="col-span-3">시간</div>
                     </div>
                     {aiUsageLogs.logs.map((log) => (
-                      <div key={log.id} className="px-4 py-2 grid grid-cols-12 gap-2 text-sm border-t border-argos-border hover:bg-argos-bg">
+                      <div key={log.id} className="px-4 py-2 grid grid-cols-12 gap-2 text-sm border-t border-ink-200 hover:bg-paper">
                         <div className="col-span-2">
                           <span className={`px-2 py-0.5 rounded text-xs ${
                             log.provider === 'chatgpt' ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'
@@ -731,11 +731,11 @@ export default function AdminPage() {
                             {log.provider === 'chatgpt' ? 'OpenAI' : 'Claude'}
                           </span>
                         </div>
-                        <div className="col-span-2 text-argos-inkSoft truncate text-xs">{log.model}</div>
+                        <div className="col-span-2 text-ink-700 truncate text-xs">{log.model}</div>
                         <div className="col-span-1">{log.webSearch ? '🌐' : '—'}</div>
-                        <div className="col-span-2 text-argos-muted text-xs">{log.inputTokens}/{log.outputTokens}</div>
+                        <div className="col-span-2 text-ink-500 text-xs">{log.inputTokens}/{log.outputTokens}</div>
                         <div className="col-span-2 text-emerald-400 text-xs">${Number(log.estimatedCostUsd).toFixed(4)}</div>
-                        <div className="col-span-3 text-argos-faint text-xs">
+                        <div className="col-span-3 text-ink-400 text-xs">
                           {new Date(log.createdAt).toLocaleString('ko-KR')}
                         </div>
                       </div>
@@ -749,10 +749,10 @@ export default function AdminPage() {
 
         {/* 허용 이메일 관리 (슈퍼 관리자만) */}
         {isSuperAdmin && (
-          <div className="bg-argos-surface border border-argos-border rounded-xl shadow-argos-card">
-            <div className="p-6 border-b border-argos-border flex items-center gap-2">
+          <div className="bg-white border border-ink-200 rounded-xl shadow-report">
+            <div className="p-6 border-b border-ink-200 flex items-center gap-2">
               <UserPlus className="w-5 h-5 text-indigo-400" />
-              <h2 className="text-[15px] font-bold text-argos-ink">회원가입 허용 이메일 관리</h2>
+              <h2 className="text-[15px] font-bold text-ink-900">회원가입 허용 이메일 관리</h2>
             </div>
             
             <div className="p-6">
@@ -775,19 +775,19 @@ export default function AdminPage() {
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   placeholder="이메일 주소"
-                  className="flex-1 px-3 py-2 bg-argos-bg border border-argos-border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-argos-ink placeholder:text-argos-faint"
+                  className="flex-1 px-3 py-2 bg-paper border border-ink-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-ink-900 placeholder:text-ink-400"
                 />
                 <input
                   type="text"
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
                   placeholder="메모 (선택)"
-                  className="w-48 px-3 py-2 bg-argos-bg border border-argos-border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-argos-ink placeholder:text-argos-faint"
+                  className="w-48 px-3 py-2 bg-paper border border-ink-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-ink-900 placeholder:text-ink-400"
                 />
                 <button
                   onClick={handleAddEmail}
                   disabled={addEmailMutation.isPending}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-argos-ink rounded-lg hover:bg-indigo-500 disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-ink-900 rounded-lg hover:bg-indigo-500 disabled:opacity-50 transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                   추가
@@ -795,8 +795,8 @@ export default function AdminPage() {
               </div>
 
               {/* 허용된 이메일 목록 */}
-              <div className="border border-argos-border rounded-lg divide-y divide-argos-border">
-                <div className="px-4 py-2 bg-argos-bg text-sm font-medium text-argos-muted grid grid-cols-12 gap-4">
+              <div className="border border-ink-200 rounded-lg divide-y divide-ink-200">
+                <div className="px-4 py-2 bg-paper text-sm font-medium text-ink-500 grid grid-cols-12 gap-4">
                   <div className="col-span-5">이메일</div>
                   <div className="col-span-4">메모</div>
                   <div className="col-span-2">등록일</div>
@@ -807,11 +807,11 @@ export default function AdminPage() {
                 <div className="px-4 py-3 grid grid-cols-12 gap-4 items-center bg-indigo-500/10">
                   <div className="col-span-5 flex items-center gap-2">
                     <Mail className="w-4 h-4 text-indigo-400" />
-                    <span className="font-medium text-argos-ink">somewhere010@gmail.com</span>
-                    <span className="px-2 py-0.5 text-xs bg-indigo-600 text-argos-ink rounded">슈퍼 관리자</span>
+                    <span className="font-medium text-ink-900">somewhere010@gmail.com</span>
+                    <span className="px-2 py-0.5 text-xs bg-indigo-600 text-ink-900 rounded">슈퍼 관리자</span>
                   </div>
-                  <div className="col-span-4 text-argos-faint text-sm">-</div>
-                  <div className="col-span-2 text-argos-faint text-sm">-</div>
+                  <div className="col-span-4 text-ink-400 text-sm">-</div>
+                  <div className="col-span-2 text-ink-400 text-sm">-</div>
                   <div className="col-span-1"></div>
                 </div>
 
@@ -819,13 +819,13 @@ export default function AdminPage() {
                 {allowedEmailsData?.emails
                   ?.filter(e => e.email !== 'somewhere010@gmail.com')
                   .map((item) => (
-                    <div key={item.id} className="px-4 py-3 grid grid-cols-12 gap-4 items-center hover:bg-argos-bg transition-colors">
+                    <div key={item.id} className="px-4 py-3 grid grid-cols-12 gap-4 items-center hover:bg-paper transition-colors">
                       <div className="col-span-5 flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-argos-faint" />
-                        <span className="text-argos-ink">{item.email}</span>
+                        <Mail className="w-4 h-4 text-ink-400" />
+                        <span className="text-ink-900">{item.email}</span>
                       </div>
-                      <div className="col-span-4 text-argos-muted text-sm">{item.note || '-'}</div>
-                      <div className="col-span-2 text-argos-muted text-sm">
+                      <div className="col-span-4 text-ink-500 text-sm">{item.note || '-'}</div>
+                      <div className="col-span-2 text-ink-500 text-sm">
                         {new Date(item.createdAt).toLocaleDateString('ko-KR')}
                       </div>
                       <div className="col-span-1 flex justify-end">
@@ -842,13 +842,13 @@ export default function AdminPage() {
                   ))}
 
                 {(!allowedEmailsData?.emails || allowedEmailsData.emails.filter(e => e.email !== 'somewhere010@gmail.com').length === 0) && (
-                  <div className="px-4 py-6 text-center text-argos-faint text-sm">
+                  <div className="px-4 py-6 text-center text-ink-400 text-sm">
                     추가된 이메일이 없습니다.
                   </div>
                 )}
               </div>
 
-              <p className="mt-4 text-sm text-argos-faint">
+              <p className="mt-4 text-sm text-ink-400">
                 * 위 목록에 등록된 이메일만 회원가입이 가능합니다.
               </p>
             </div>

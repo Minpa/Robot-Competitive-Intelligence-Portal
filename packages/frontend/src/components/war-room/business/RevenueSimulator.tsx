@@ -59,8 +59,8 @@ export function RevenueSimulator() {
   }
 
   return (
-    <div className="rounded-lg bg-argos-surface border border-argos-borderSoft p-4">
-      <h3 className="text-sm font-semibold text-argos-ink mb-4">수익 모델 시뮬레이터</h3>
+    <div className="rounded-lg bg-white border border-ink-100 p-4">
+      <h3 className="text-sm font-semibold text-ink-900 mb-4">수익 모델 시뮬레이터</h3>
 
       {/* Model selector */}
       <div className="flex gap-1 mb-4">
@@ -71,7 +71,7 @@ export function RevenueSimulator() {
             className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
               modelType === key
                 ? 'bg-blue-600 text-white'
-                : 'bg-argos-bgAlt text-argos-muted hover:bg-argos-bgAlt hover:text-argos-ink'
+                : 'bg-ink-100 text-ink-500 hover:bg-ink-100 hover:text-ink-900'
             }`}
           >
             {m.label}
@@ -83,22 +83,22 @@ export function RevenueSimulator() {
       <div className="space-y-3 mb-4">
         {model.fields.map((f) => (
           <div key={f.key}>
-            <label className="text-xs text-argos-muted mb-1 block">{f.label}</label>
+            <label className="text-xs text-ink-500 mb-1 block">{f.label}</label>
             <input
               type="number"
               value={values[f.key] ?? 0}
               onChange={(e) =>
                 setValues((prev) => ({ ...prev, [f.key]: Number(e.target.value) || 0 }))
               }
-              className="w-full rounded-md bg-argos-bg border border-argos-border px-3 py-1.5 text-sm text-argos-ink focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-md bg-paper border border-ink-200 px-3 py-1.5 text-sm text-ink-900 focus:border-blue-500 focus:outline-none"
             />
           </div>
         ))}
       </div>
 
       {/* Result */}
-      <div className="rounded-md bg-argos-bg border border-argos-borderSoft p-3 text-center">
-        <p className="text-xs text-argos-muted mb-1">예상 매출</p>
+      <div className="rounded-md bg-paper border border-ink-100 p-3 text-center">
+        <p className="text-xs text-ink-500 mb-1">예상 매출</p>
         <p className="text-xl font-bold text-green-400">
           {revenue >= 10000
             ? `${(revenue / 10000).toFixed(1)}억원`

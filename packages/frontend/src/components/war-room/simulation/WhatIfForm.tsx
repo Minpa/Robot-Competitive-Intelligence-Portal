@@ -27,14 +27,14 @@ export function WhatIfForm({ specs, onChange }: Props) {
   }
 
   return (
-    <div className="rounded-lg bg-argos-surface border border-argos-borderSoft p-4">
-      <h3 className="text-sm font-semibold text-argos-ink mb-4">스펙 파라미터</h3>
+    <div className="rounded-lg bg-white border border-ink-100 p-4">
+      <h3 className="text-sm font-semibold text-ink-900 mb-4">스펙 파라미터</h3>
       <div className="space-y-3">
         {FIELDS.map((f) => (
           <div key={f.key}>
             <div className="flex justify-between text-xs mb-1">
-              <span className="text-argos-muted">{f.label}</span>
-              <span className="text-argos-inkSoft font-mono">
+              <span className="text-ink-500">{f.label}</span>
+              <span className="text-ink-700 font-mono">
                 {specs[f.key]}{f.unit && ` ${f.unit}`}
               </span>
             </div>
@@ -45,18 +45,18 @@ export function WhatIfForm({ specs, onChange }: Props) {
               step={f.step}
               value={Number(specs[f.key])}
               onChange={(e) => update(f.key, Number(e.target.value))}
-              className="w-full h-1.5 bg-argos-bgAlt rounded-lg appearance-none cursor-pointer accent-blue-500"
+              className="w-full h-1.5 bg-ink-100 rounded-lg appearance-none cursor-pointer accent-blue-500"
             />
           </div>
         ))}
 
         {/* Locomotion type */}
         <div>
-          <label className="text-xs text-argos-muted mb-1 block">이동 방식</label>
+          <label className="text-xs text-ink-500 mb-1 block">이동 방식</label>
           <select
             value={specs.locomotionType}
             onChange={(e) => update('locomotionType', e.target.value)}
-            className="w-full rounded-md bg-argos-bg border border-argos-border px-2 py-1.5 text-xs text-argos-ink"
+            className="w-full rounded-md bg-paper border border-ink-200 px-2 py-1.5 text-xs text-ink-900"
           >
             {LOCOMOTION_OPTIONS.map((o) => (
               <option key={o} value={o}>{o}</option>
@@ -66,11 +66,11 @@ export function WhatIfForm({ specs, onChange }: Props) {
 
         {/* Commercialization stage */}
         <div>
-          <label className="text-xs text-argos-muted mb-1 block">상용화 단계</label>
+          <label className="text-xs text-ink-500 mb-1 block">상용화 단계</label>
           <select
             value={specs.commercializationStage}
             onChange={(e) => update('commercializationStage', e.target.value)}
-            className="w-full rounded-md bg-argos-bg border border-argos-border px-2 py-1.5 text-xs text-argos-ink"
+            className="w-full rounded-md bg-paper border border-ink-200 px-2 py-1.5 text-xs text-ink-900"
           >
             {STAGE_OPTIONS.map((o) => (
               <option key={o} value={o}>{o}</option>

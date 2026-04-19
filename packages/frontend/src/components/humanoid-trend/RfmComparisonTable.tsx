@@ -72,10 +72,10 @@ export default function RfmComparisonTable() {
     <div className="overflow-x-auto">
       <table className="w-full min-w-[900px] border-collapse text-sm">
         <thead>
-          <tr className="bg-argos-bgAlt text-left text-xs uppercase tracking-wide text-argos-inkSoft">
-            <th className="border border-argos-border px-3 py-2">비교 항목</th>
+          <tr className="bg-ink-100 text-left text-xs uppercase tracking-wide text-ink-700">
+            <th className="border border-ink-200 px-3 py-2">비교 항목</th>
             {companies.map((company) => (
-              <th key={company.key} className="border border-argos-border px-3 py-2">
+              <th key={company.key} className="border border-ink-200 px-3 py-2">
                 {company.name}
               </th>
             ))}
@@ -83,12 +83,12 @@ export default function RfmComparisonTable() {
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.label} className="border-b border-argos-border">
-              <td className="border border-argos-border px-3 py-2 font-medium text-argos-ink">
+            <tr key={row.label} className="border-b border-ink-200">
+              <td className="border border-ink-200 px-3 py-2 font-medium text-ink-900">
                 {row.label}
               </td>
               {companies.map((company) => (
-                <td key={company.key} className="border border-argos-border px-3 py-2 text-argos-inkSoft">
+                <td key={company.key} className="border border-ink-200 px-3 py-2 text-ink-700">
                   {row.values[company.key as keyof typeof row.values]}
                 </td>
               ))}

@@ -55,17 +55,17 @@ export default function RobotComparePage() {
     if (!spec) return '-';
     const value = spec[field];
     if (value === null || value === undefined) return '-';
-    if (typeof value === 'boolean') return value ? <Check className="w-4 h-4 text-green-400 inline" /> : <Minus className="w-4 h-4 text-argos-faint inline" />;
+    if (typeof value === 'boolean') return value ? <Check className="w-4 h-4 text-green-400 inline" /> : <Minus className="w-4 h-4 text-ink-400 inline" />;
     return value;
   };
 
   const renderComparisonRow = (label: string, getValue: (robot: any) => any) => {
     if (!robotDetails || robotDetails.length === 0) return null;
     return (
-      <tr className="border-b border-argos-borderSoft">
-        <td className="py-3 px-4 font-medium text-argos-inkSoft bg-argos-surface">{label}</td>
+      <tr className="border-b border-ink-100">
+        <td className="py-3 px-4 font-medium text-ink-700 bg-white">{label}</td>
         {robotDetails.map((robot: any) => (
-          <td key={robot.id} className="py-3 px-4 text-center text-argos-ink">
+          <td key={robot.id} className="py-3 px-4 text-center text-ink-900">
             {getValue(robot) ?? '-'}
           </td>
         ))}
@@ -93,7 +93,7 @@ export default function RobotComparePage() {
                 </button>
                 <Link
                   href="/humanoid-robots"
-                  className="flex items-center gap-2 px-4 py-2 bg-argos-chip/50 text-argos-ink rounded-lg hover:bg-argos-bgAlt transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-info-soft/50 text-ink-900 rounded-lg hover:bg-ink-100 transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   카탈로그
@@ -104,8 +104,8 @@ export default function RobotComparePage() {
 
           {/* 로봇 선택 패널 */}
           {showSelector && (
-            <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-5 mb-6">
-              <h2 className="text-lg font-semibold text-argos-ink mb-4">비교할 로봇 선택 (최대 4개)</h2>
+            <div className="bg-white backdrop-blur rounded-xl border border-ink-100 p-5 mb-6">
+              <h2 className="text-lg font-semibold text-ink-900 mb-4">비교할 로봇 선택 (최대 4개)</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 {allRobots?.items?.map((robot: any) => (
                   <button
@@ -114,12 +114,12 @@ export default function RobotComparePage() {
                     className={`p-3 rounded-lg border text-left transition-all ${
                       selectedIds.includes(robot.id)
                         ? 'border-blue-500 bg-blue-500/20'
-                        : 'border-argos-border hover:border-argos-blue/30 bg-argos-surface'
+                        : 'border-ink-200 hover:border-info/30 bg-white'
                     } ${selectedIds.length >= 4 && !selectedIds.includes(robot.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
                     disabled={selectedIds.length >= 4 && !selectedIds.includes(robot.id)}
                   >
-                    <div className="font-medium text-sm text-argos-ink truncate">{robot.name}</div>
-                    <div className="text-xs text-argos-faint truncate">{robot.companyName}</div>
+                    <div className="font-medium text-sm text-ink-900 truncate">{robot.name}</div>
+                    <div className="text-xs text-ink-400 truncate">{robot.companyName}</div>
                   </button>
                 ))}
               </div>
@@ -128,25 +128,25 @@ export default function RobotComparePage() {
 
           {/* 비교 테이블 */}
           {selectedIds.length === 0 ? (
-            <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-12 text-center">
-              <p className="text-argos-faint">비교할 로봇을 선택해주세요</p>
+            <div className="bg-white backdrop-blur rounded-xl border border-ink-100 p-12 text-center">
+              <p className="text-ink-400">비교할 로봇을 선택해주세요</p>
             </div>
           ) : isLoading ? (
-            <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-12 text-center">
+            <div className="bg-white backdrop-blur rounded-xl border border-ink-100 p-12 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
             </div>
           ) : (
-            <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft overflow-hidden">
+            <div className="bg-white backdrop-blur rounded-xl border border-ink-100 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-argos-surface">
-                      <th className="py-4 px-4 text-left font-medium text-argos-muted w-48">항목</th>
+                    <tr className="bg-white">
+                      <th className="py-4 px-4 text-left font-medium text-ink-500 w-48">항목</th>
                       {robotDetails?.map((robot: any) => (
                         <th key={robot.id} className="py-4 px-4 text-center min-w-[200px]">
                           <Link href={`/humanoid-robots/${robot.id}`} className="hover:text-blue-400 transition-colors">
-                            <div className="font-bold text-argos-ink">{robot.name}</div>
-                            <div className="text-sm text-argos-faint font-normal">{robot.company?.name}</div>
+                            <div className="font-bold text-ink-900">{robot.name}</div>
+                            <div className="text-sm text-ink-400 font-normal">{robot.company?.name}</div>
                           </Link>
                         </th>
                       ))}

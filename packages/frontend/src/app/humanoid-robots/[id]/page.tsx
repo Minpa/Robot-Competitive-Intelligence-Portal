@@ -25,18 +25,18 @@ const TABS = [
 ];
 
 const STAGE_CONFIG: Record<string, { label: string; bgColor: string; textColor: string }> = {
-  concept: { label: '개념', bgColor: 'bg-slate-500/20', textColor: 'text-argos-muted' },
-  prototype: { label: '프로토타입', bgColor: 'bg-blue-500/10', textColor: 'text-argos-blue' },
-  poc: { label: 'PoC', bgColor: 'bg-yellow-500/10', textColor: 'text-argos-warning' },
+  concept: { label: '개념', bgColor: 'bg-slate-500/20', textColor: 'text-ink-500' },
+  prototype: { label: '프로토타입', bgColor: 'bg-blue-500/10', textColor: 'text-info' },
+  poc: { label: 'PoC', bgColor: 'bg-yellow-500/10', textColor: 'text-warn' },
   pilot: { label: '파일럿', bgColor: 'bg-orange-500/10', textColor: 'text-orange-600' },
-  commercial: { label: '상용화', bgColor: 'bg-green-500/10', textColor: 'text-argos-successInk' },
+  commercial: { label: '상용화', bgColor: 'bg-green-500/10', textColor: 'text-pos' },
 };
 
 const SALES_CONFIG: Record<string, { label: string; bgColor: string; textColor: string }> = {
   on_sale: { label: '판매 중', bgColor: 'bg-emerald-500/10', textColor: 'text-emerald-600' },
   coming_soon: { label: '출시 예정', bgColor: 'bg-cyan-500/10', textColor: 'text-cyan-600' },
   poc_only: { label: 'PoC만', bgColor: 'bg-amber-500/10', textColor: 'text-amber-600' },
-  not_for_sale: { label: '비매품', bgColor: 'bg-slate-500/10', textColor: 'text-argos-muted' },
+  not_for_sale: { label: '비매품', bgColor: 'bg-slate-500/10', textColor: 'text-ink-500' },
 };
 
 const PURPOSE_LABELS: Record<string, string> = { industrial: '산업용', home: '가정용', service: '서비스용' };
@@ -71,8 +71,8 @@ export default function HumanoidRobotDetailPage() {
   if (isLoading) {
     return (
       <AuthGuard>
-        <div className="min-h-screen bg-argos-bg flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-argos-blue"></div>
+        <div className="min-h-screen bg-paper flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-info"></div>
         </div>
       </AuthGuard>
     );
@@ -81,10 +81,10 @@ export default function HumanoidRobotDetailPage() {
   if (error || !robot) {
     return (
       <AuthGuard>
-        <div className="min-h-screen bg-argos-bg flex items-center justify-center">
+        <div className="min-h-screen bg-paper flex items-center justify-center">
           <div className="text-center">
-            <p className="text-argos-danger mb-4">로봇 정보를 불러올 수 없습니다.</p>
-            <Link href="/humanoid-robots" className="text-argos-blue hover:underline">
+            <p className="text-neg mb-4">로봇 정보를 불러올 수 없습니다.</p>
+            <Link href="/humanoid-robots" className="text-info hover:underline">
               목록으로 돌아가기
             </Link>
           </div>
@@ -98,18 +98,18 @@ export default function HumanoidRobotDetailPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-argos-bg">
+      <div className="min-h-screen bg-paper">
         <div className="max-w-[1400px] mx-auto px-4 py-6">
           {/* 뒤로가기 */}
-          <Link href="/humanoid-robots" className="inline-flex items-center gap-2 text-argos-muted hover:text-argos-ink text-sm mb-6 transition-colors">
+          <Link href="/humanoid-robots" className="inline-flex items-center gap-2 text-ink-500 hover:text-ink-900 text-sm mb-6 transition-colors">
             <ArrowLeft className="w-4 h-4" />
             카탈로그로 돌아가기
           </Link>
 
           {/* 상단 헤더 영역 */}
-          <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-border shadow-argos-card mb-6">
+          <div className="bg-white backdrop-blur rounded-xl border border-ink-200 shadow-report mb-6">
             {/* 1줄: 로봇 이미지 + 제품명, 회사명, 배지들, 액션 버튼 */}
-            <div className="p-6 border-b border-argos-borderSoft">
+            <div className="p-6 border-b border-ink-100">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-5 flex-1">
                   {/* 로봇 이미지 */}
@@ -118,11 +118,11 @@ export default function HumanoidRobotDetailPage() {
                     robotName={robot.name}
                     companyName={robot.company?.name || robot.companyName || ''}
                     size="sm"
-                    className="shrink-0 rounded-xl border border-argos-border"
+                    className="shrink-0 rounded-xl border border-ink-200"
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-3 flex-wrap">
-                      <h1 className="text-2xl font-bold text-argos-ink">{robot.name}</h1>
+                      <h1 className="text-2xl font-bold text-ink-900">{robot.name}</h1>
                       <span className={`px-2.5 py-1 text-xs font-medium rounded ${stageConfig.bgColor} ${stageConfig.textColor}`}>
                         {stageConfig.label}
                       </span>
@@ -130,22 +130,22 @@ export default function HumanoidRobotDetailPage() {
                         {salesConfig.label}
                       </span>
                       {robot.announcedYear && (
-                        <span className="flex items-center gap-1 text-sm text-argos-muted">
+                        <span className="flex items-center gap-1 text-sm text-ink-500">
                           <Calendar className="w-4 h-4" />
                           {robot.announcedYear}년
                         </span>
                       )}
                     </div>
-                    <p className="text-argos-muted mt-1">{robot.company?.name || robot.companyName}</p>
+                    <p className="text-ink-500 mt-1">{robot.company?.name || robot.companyName}</p>
                   </div>
                 </div>
                 {/* 액션 버튼 */}
                 <div className="flex items-center gap-2 shrink-0">
-                  <button className="flex items-center gap-2 px-4 py-2 bg-argos-chip text-argos-blue rounded-lg hover:bg-argos-chipAlt transition-colors text-sm">
+                  <button className="flex items-center gap-2 px-4 py-2 bg-info-soft text-info rounded-lg hover:bg-info-soft transition-colors text-sm">
                     <GitCompare className="w-4 h-4" />
                     비교에 추가
                   </button>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-argos-bgAlt text-argos-inkSoft rounded-lg hover:bg-argos-border transition-colors text-sm">
+                  <button className="flex items-center gap-2 px-4 py-2 bg-ink-100 text-ink-700 rounded-lg hover:bg-ink-200 transition-colors text-sm">
                     <FileDown className="w-4 h-4" />
                     PPT 내보내기
                   </button>
@@ -168,8 +168,8 @@ export default function HumanoidRobotDetailPage() {
           </div>
 
           {/* 탭 네비게이션 */}
-          <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-border shadow-argos-card">
-            <div className="border-b border-argos-borderSoft">
+          <div className="bg-white backdrop-blur rounded-xl border border-ink-200 shadow-report">
+            <div className="border-b border-ink-100">
               <nav className="flex -mb-px overflow-x-auto">
                 {TABS.map(tab => {
                   const Icon = tab.icon;
@@ -179,8 +179,8 @@ export default function HumanoidRobotDetailPage() {
                       onClick={() => setActiveTab(tab.id)}
                       className={`flex items-center gap-2 px-5 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                         activeTab === tab.id
-                          ? 'border-argos-blue text-argos-blue'
-                          : 'border-transparent text-argos-muted hover:text-argos-ink hover:border-argos-border'
+                          ? 'border-info text-info'
+                          : 'border-transparent text-ink-500 hover:text-ink-900 hover:border-ink-200'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -196,16 +196,16 @@ export default function HumanoidRobotDetailPage() {
               {activeTab === 'overview' && (
                 <div className="space-y-6">
                   {/* 설명 블록 */}
-                  <div className="bg-argos-bgAlt rounded-lg p-5">
-                    <h3 className="text-lg font-semibold text-argos-ink mb-3">설명</h3>
-                    <p className="text-argos-inkSoft leading-relaxed">
+                  <div className="bg-ink-100 rounded-lg p-5">
+                    <h3 className="text-lg font-semibold text-ink-900 mb-3">설명</h3>
+                    <p className="text-ink-700 leading-relaxed">
                       {robot.description || '설명이 없습니다.'}
                     </p>
                     {/* 주요 특징 태그 */}
                     {(robot as any).features && (robot as any).features.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-4">
                         {(robot as any).features.map((feature: string, idx: number) => (
-                          <span key={idx} className="px-3 py-1 text-xs bg-argos-chip text-argos-blue rounded-full">
+                          <span key={idx} className="px-3 py-1 text-xs bg-info-soft text-info rounded-full">
                             {feature}
                           </span>
                         ))}
@@ -215,7 +215,7 @@ export default function HumanoidRobotDetailPage() {
 
                   {/* 핵심 성능 지표 카드 */}
                   <div>
-                    <h3 className="text-lg font-semibold text-argos-ink mb-4">핵심 성능 지표</h3>
+                    <h3 className="text-lg font-semibold text-ink-900 mb-4">핵심 성능 지표</h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                       <KpiCard icon={Weight} label="최대 Payload" value={robot.bodySpec?.payload} unit="kg" color="blue" />
                       <KpiCard icon={Ruler} label="자유도 (DoF)" value={robot.bodySpec?.dof} color="purple" />
@@ -227,56 +227,56 @@ export default function HumanoidRobotDetailPage() {
                   </div>
 
                   {/* 가격·판매 정보 */}
-                  <div className="bg-argos-bgAlt rounded-lg p-5">
-                    <h3 className="text-lg font-semibold text-argos-ink mb-4">가격·판매 정보</h3>
+                  <div className="bg-ink-100 rounded-lg p-5">
+                    <h3 className="text-lg font-semibold text-ink-900 mb-4">가격·판매 정보</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
-                        <p className="text-xs text-argos-faint mb-1">기준 가격</p>
-                        <p className="text-argos-inkSoft font-medium">
+                        <p className="text-xs text-ink-400 mb-1">기준 가격</p>
+                        <p className="text-ink-700 font-medium">
                           {(robot as any).listPrice ? `~${((robot as any).listPrice / 1000).toFixed(0)}K USD` : '미공개'}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-argos-faint mb-1">판매 지역</p>
-                        <p className="text-argos-inkSoft font-medium">{(robot as any).salesRegions || '글로벌'}</p>
+                        <p className="text-xs text-ink-400 mb-1">판매 지역</p>
+                        <p className="text-ink-700 font-medium">{(robot as any).salesRegions || '글로벌'}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-argos-faint mb-1">판매 채널</p>
-                        <p className="text-argos-inkSoft font-medium">{(robot as any).salesChannel || '직판/파트너'}</p>
+                        <p className="text-xs text-ink-400 mb-1">판매 채널</p>
+                        <p className="text-ink-700 font-medium">{(robot as any).salesChannel || '직판/파트너'}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-argos-faint mb-1">예상 리드타임</p>
-                        <p className="text-argos-inkSoft font-medium">{(robot as any).leadTime || '3-6개월'}</p>
+                        <p className="text-xs text-ink-400 mb-1">예상 리드타임</p>
+                        <p className="text-ink-700 font-medium">{(robot as any).leadTime || '3-6개월'}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* 적용·기사 요약 */}
-                  <div className="bg-argos-bgAlt rounded-lg p-5">
-                    <h3 className="text-lg font-semibold text-argos-ink mb-4">적용·기사 요약</h3>
+                  <div className="bg-ink-100 rounded-lg p-5">
+                    <h3 className="text-lg font-semibold text-ink-900 mb-4">적용·기사 요약</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-green-500/10 rounded-lg">
                           <Wrench className="w-5 h-5 text-green-600" />
                         </div>
                         <div>
-                          <p className="text-argos-inkSoft font-medium">
+                          <p className="text-ink-700 font-medium">
                             적용 사례 {(robot as any).applicationCaseCount ?? robot.applicationCases?.length ?? 0}건
                           </p>
-                          <p className="text-xs text-argos-faint">
+                          <p className="text-xs text-ink-400">
                             상용 {(robot as any).productionCount ?? 0} / PoC {(robot as any).pocCount ?? 0}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-blue-500/10 rounded-lg">
-                          <MapPin className="w-5 h-5 text-argos-blue" />
+                          <MapPin className="w-5 h-5 text-info" />
                         </div>
                         <div>
-                          <p className="text-argos-inkSoft font-medium">
+                          <p className="text-ink-700 font-medium">
                             적용 환경 {(robot as any).distinctEnvironmentsCount ?? 0}개
                           </p>
-                          <p className="text-xs text-argos-faint">공장, 물류센터 등</p>
+                          <p className="text-xs text-ink-400">공장, 물류센터 등</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -284,25 +284,25 @@ export default function HumanoidRobotDetailPage() {
                           <Newspaper className="w-5 h-5 text-orange-600" />
                         </div>
                         <div>
-                          <p className="text-argos-inkSoft font-medium">
+                          <p className="text-ink-700 font-medium">
                             기사/이벤트 {(robot as any).newsEventCount ?? 0}건
                           </p>
-                          <p className="text-xs text-argos-faint">최근 업데이트: {(robot as any).lastNewsDate || '-'}</p>
+                          <p className="text-xs text-ink-400">최근 업데이트: {(robot as any).lastNewsDate || '-'}</p>
                         </div>
                       </div>
                     </div>
                     {/* 대표 적용 사례 */}
                     {robot.applicationCases && robot.applicationCases.length > 0 && (
-                      <div className="border-t border-argos-borderSoft pt-4 mt-4">
-                        <p className="text-xs text-argos-faint mb-2">대표 적용 사례</p>
+                      <div className="border-t border-ink-100 pt-4 mt-4">
+                        <p className="text-xs text-ink-400 mb-2">대표 적용 사례</p>
                         {robot.applicationCases.slice(0, 2).map((c: any) => (
                           <Link
                             key={c.id}
                             href={`/application-cases?robot=${robot.id}`}
-                            className="flex items-center justify-between py-2 text-sm text-argos-inkSoft hover:text-argos-ink transition-colors"
+                            className="flex items-center justify-between py-2 text-sm text-ink-700 hover:text-ink-900 transition-colors"
                           >
                             <span>{c.title}</span>
-                            <ChevronRight className="w-4 h-4 text-argos-faint" />
+                            <ChevronRight className="w-4 h-4 text-ink-400" />
                           </Link>
                         ))}
                       </div>
@@ -314,12 +314,12 @@ export default function HumanoidRobotDetailPage() {
               {/* Body 스펙 탭 */}
               {activeTab === 'body' && (
                 <div>
-                  <p className="text-argos-muted mb-6">이 로봇의 물리적 구조와 동작 성능을 정의하는 핵심 스펙입니다.</p>
+                  <p className="text-ink-500 mb-6">이 로봇의 물리적 구조와 동작 성능을 정의하는 핵심 스펙입니다.</p>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* 좌측: 스펙 테이블 */}
                     <div className="lg:col-span-2">
                       {robot.bodySpec ? (
-                        <div className="bg-argos-bgAlt rounded-lg overflow-hidden">
+                        <div className="bg-ink-100 rounded-lg overflow-hidden">
                           <table className="w-full">
                             <tbody>
                               <SpecRow label="신장" value={robot.bodySpec.height} unit="cm" />
@@ -335,7 +335,7 @@ export default function HumanoidRobotDetailPage() {
                           </table>
                         </div>
                       ) : (
-                        <p className="text-argos-faint">Body 스펙 정보가 없습니다.</p>
+                        <p className="text-ink-400">Body 스펙 정보가 없습니다.</p>
                       )}
                     </div>
                     {/* 우측: 다이어그램 영역 */}
@@ -353,11 +353,11 @@ export default function HumanoidRobotDetailPage() {
               {/* Hand 스펙 탭 */}
               {activeTab === 'hand' && (
                 <div>
-                  <p className="text-argos-muted mb-6">로봇의 손(End Effector) 구조와 그립 성능 스펙입니다.</p>
+                  <p className="text-ink-500 mb-6">로봇의 손(End Effector) 구조와 그립 성능 스펙입니다.</p>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2">
                       {robot.handSpec ? (
-                        <div className="bg-argos-bgAlt rounded-lg overflow-hidden">
+                        <div className="bg-ink-100 rounded-lg overflow-hidden">
                           <table className="w-full">
                             <tbody>
                               <SpecRow label="타입" value={HAND_LABELS[(robot.handSpec as any).type] || (robot.handSpec as any).type} />
@@ -371,11 +371,11 @@ export default function HumanoidRobotDetailPage() {
                           </table>
                         </div>
                       ) : (
-                        <p className="text-argos-faint">Hand 스펙 정보가 없습니다.</p>
+                        <p className="text-ink-400">Hand 스펙 정보가 없습니다.</p>
                       )}
                     </div>
-                    <div className="bg-argos-bgAlt rounded-lg p-6 flex items-center justify-center min-h-[250px]">
-                      <div className="text-center text-argos-faint">
+                    <div className="bg-ink-100 rounded-lg p-6 flex items-center justify-center min-h-[250px]">
+                      <div className="text-center text-ink-400">
                         <Hand className="w-16 h-16 mx-auto mb-3 opacity-30" />
                         <p className="text-sm">Hand 구조 다이어그램</p>
                       </div>
@@ -387,11 +387,11 @@ export default function HumanoidRobotDetailPage() {
               {/* Computing 탭 */}
               {activeTab === 'computing' && (
                 <div>
-                  <p className="text-argos-muted mb-6">로봇의 연산 처리 및 AI 추론을 담당하는 컴퓨팅 모듈 스펙입니다.</p>
+                  <p className="text-ink-500 mb-6">로봇의 연산 처리 및 AI 추론을 담당하는 컴퓨팅 모듈 스펙입니다.</p>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2">
                       {robot.computingSpec ? (
-                        <div className="bg-argos-bgAlt rounded-lg overflow-hidden">
+                        <div className="bg-ink-100 rounded-lg overflow-hidden">
                           <table className="w-full">
                             <tbody>
                               <SpecRow label="메인 SoC" value={(robot.computingSpec as any).mainSoc} />
@@ -404,14 +404,14 @@ export default function HumanoidRobotDetailPage() {
                           </table>
                         </div>
                       ) : (
-                        <p className="text-argos-faint">Computing 스펙 정보가 없습니다.</p>
+                        <p className="text-ink-400">Computing 스펙 정보가 없습니다.</p>
                       )}
                       {/* 관련 SoC 링크 */}
                       {(robot.computingSpec as any)?.socId && (
                         <div className="mt-4">
                           <Link
                             href={`/components?type=soc&id=${(robot.computingSpec as any).socId}`}
-                            className="inline-flex items-center gap-2 text-sm text-argos-blue hover:text-argos-blueHover"
+                            className="inline-flex items-center gap-2 text-sm text-info hover:text-info"
                           >
                             <ExternalLink className="w-4 h-4" />
                             SoC 상세 페이지 보기
@@ -419,8 +419,8 @@ export default function HumanoidRobotDetailPage() {
                         </div>
                       )}
                     </div>
-                    <div className="bg-argos-bgAlt rounded-lg p-6 flex items-center justify-center min-h-[250px]">
-                      <div className="text-center text-argos-faint">
+                    <div className="bg-ink-100 rounded-lg p-6 flex items-center justify-center min-h-[250px]">
+                      <div className="text-center text-ink-400">
                         <Cpu className="w-16 h-16 mx-auto mb-3 opacity-30" />
                         <p className="text-sm">컴퓨팅 아키텍처</p>
                       </div>
@@ -432,32 +432,32 @@ export default function HumanoidRobotDetailPage() {
               {/* Sensors 탭 */}
               {activeTab === 'sensor' && (
                 <div>
-                  <p className="text-argos-muted mb-6">로봇에 탑재된 센서 구성과 위치 정보입니다.</p>
+                  <p className="text-ink-500 mb-6">로봇에 탑재된 센서 구성과 위치 정보입니다.</p>
                   {robot.sensorSpecs && robot.sensorSpecs.length > 0 ? (
-                    <div className="bg-argos-bgAlt rounded-lg overflow-hidden">
+                    <div className="bg-ink-100 rounded-lg overflow-hidden">
                       <table className="w-full">
-                        <thead className="bg-argos-border/50">
+                        <thead className="bg-ink-200/50">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-argos-muted uppercase">타입</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-argos-muted uppercase">제조사</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-argos-muted uppercase">위치</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-argos-muted uppercase">스펙</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">타입</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">제조사</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">위치</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">스펙</th>
                           </tr>
                         </thead>
                         <tbody>
                           {robot.sensorSpecs.map((sensor: any, idx: number) => (
-                            <tr key={idx} className={idx % 2 === 0 ? 'bg-argos-surface/50' : ''}>
-                              <td className="px-4 py-3 text-sm text-argos-inkSoft">{sensor.type}</td>
-                              <td className="px-4 py-3 text-sm text-argos-muted">{sensor.manufacturer || '-'}</td>
-                              <td className="px-4 py-3 text-sm text-argos-muted">{sensor.location || '-'}</td>
-                              <td className="px-4 py-3 text-sm text-argos-muted">{sensor.specs || '-'}</td>
+                            <tr key={idx} className={idx % 2 === 0 ? 'bg-white/50' : ''}>
+                              <td className="px-4 py-3 text-sm text-ink-700">{sensor.type}</td>
+                              <td className="px-4 py-3 text-sm text-ink-500">{sensor.manufacturer || '-'}</td>
+                              <td className="px-4 py-3 text-sm text-ink-500">{sensor.location || '-'}</td>
+                              <td className="px-4 py-3 text-sm text-ink-500">{sensor.specs || '-'}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
                     </div>
                   ) : (
-                    <p className="text-argos-faint">센서 정보가 없습니다.</p>
+                    <p className="text-ink-400">센서 정보가 없습니다.</p>
                   )}
                 </div>
               )}
@@ -465,11 +465,11 @@ export default function HumanoidRobotDetailPage() {
               {/* Power 탭 */}
               {activeTab === 'power' && (
                 <div>
-                  <p className="text-argos-muted mb-6">로봇의 전원 공급 및 배터리 스펙입니다.</p>
+                  <p className="text-ink-500 mb-6">로봇의 전원 공급 및 배터리 스펙입니다.</p>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2">
                       {robot.powerSpec ? (
-                        <div className="bg-argos-bgAlt rounded-lg overflow-hidden">
+                        <div className="bg-ink-100 rounded-lg overflow-hidden">
                           <table className="w-full">
                             <tbody>
                               <SpecRow label="배터리 종류" value={(robot.powerSpec as any).batteryType} />
@@ -482,11 +482,11 @@ export default function HumanoidRobotDetailPage() {
                           </table>
                         </div>
                       ) : (
-                        <p className="text-argos-faint">전원 스펙 정보가 없습니다.</p>
+                        <p className="text-ink-400">전원 스펙 정보가 없습니다.</p>
                       )}
                     </div>
-                    <div className="bg-argos-bgAlt rounded-lg p-6 flex items-center justify-center min-h-[200px]">
-                      <div className="text-center text-argos-faint">
+                    <div className="bg-ink-100 rounded-lg p-6 flex items-center justify-center min-h-[200px]">
+                      <div className="text-center text-ink-400">
                         <Battery className="w-16 h-16 mx-auto mb-3 opacity-30" />
                         <p className="text-sm">배터리 구성</p>
                       </div>
@@ -498,29 +498,29 @@ export default function HumanoidRobotDetailPage() {
               {/* 관련 기사 탭 - 타임라인 뷰 */}
               {activeTab === 'articles' && (
                 <div>
-                  <p className="text-argos-muted mb-6">이 로봇과 관련된 기사, 발표, 이벤트 타임라인입니다.</p>
+                  <p className="text-ink-500 mb-6">이 로봇과 관련된 기사, 발표, 이벤트 타임라인입니다.</p>
                   {articles?.items && articles.items.length > 0 ? (
                     <div className="space-y-4">
                       {articles.items.map((article: any, idx: number) => (
                         <div key={article.id} className="flex gap-4">
                           {/* 타임라인 라인 */}
                           <div className="flex flex-col items-center">
-                            <div className="w-3 h-3 rounded-full bg-argos-blue"></div>
+                            <div className="w-3 h-3 rounded-full bg-info"></div>
                             {idx < articles.items.length - 1 && (
-                              <div className="w-0.5 flex-1 bg-argos-border mt-2"></div>
+                              <div className="w-0.5 flex-1 bg-ink-200 mt-2"></div>
                             )}
                           </div>
                           {/* 기사 카드 */}
-                          <div className="flex-1 bg-argos-bgAlt rounded-lg p-4 mb-2">
+                          <div className="flex-1 bg-ink-100 rounded-lg p-4 mb-2">
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1">
-                                <p className="text-xs text-argos-faint mb-1">
+                                <p className="text-xs text-ink-400 mb-1">
                                   {article.publishedAt ? new Date(article.publishedAt).toLocaleDateString('ko-KR') : '-'}
                                   {' · '}{article.source}
                                 </p>
-                                <h4 className="text-argos-inkSoft font-medium">{article.title}</h4>
+                                <h4 className="text-ink-700 font-medium">{article.title}</h4>
                                 {article.summary && (
-                                  <p className="text-sm text-argos-muted mt-2 line-clamp-2">{article.summary}</p>
+                                  <p className="text-sm text-ink-500 mt-2 line-clamp-2">{article.summary}</p>
                                 )}
                               </div>
                               {article.url && (
@@ -528,7 +528,7 @@ export default function HumanoidRobotDetailPage() {
                                   href={article.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="shrink-0 p-2 text-argos-muted hover:text-argos-blue transition-colors"
+                                  className="shrink-0 p-2 text-ink-500 hover:text-info transition-colors"
                                 >
                                   <ExternalLink className="w-4 h-4" />
                                 </a>
@@ -539,7 +539,7 @@ export default function HumanoidRobotDetailPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-argos-faint">관련 기사가 없습니다.</p>
+                    <p className="text-ink-400">관련 기사가 없습니다.</p>
                   )}
                 </div>
               )}
@@ -547,25 +547,25 @@ export default function HumanoidRobotDetailPage() {
               {/* 적용 사례 탭 */}
               {activeTab === 'cases' && (
                 <div>
-                  <p className="text-argos-muted mb-6">
+                  <p className="text-ink-500 mb-6">
                     이 로봇은 현재 주로 {(robot as any).mainEnvironments || '공장, 물류센터'}에서 {(robot as any).mainStage || 'PoC'} 단계로 활용 중입니다.
                   </p>
                   {robot.applicationCases && robot.applicationCases.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {robot.applicationCases.map((caseItem: any) => (
-                        <div key={caseItem.id} className="bg-argos-bgAlt rounded-lg p-4 border border-argos-borderSoft hover:border-argos-border transition-colors">
+                        <div key={caseItem.id} className="bg-ink-100 rounded-lg p-4 border border-ink-100 hover:border-ink-200 transition-colors">
                           <div className="flex items-start justify-between gap-3">
-                            <h4 className="text-argos-inkSoft font-medium">{caseItem.title}</h4>
+                            <h4 className="text-ink-700 font-medium">{caseItem.title}</h4>
                             <span className={`px-2 py-0.5 text-[10px] font-medium rounded ${
                               caseItem.status === 'production' ? 'bg-green-500/10 text-green-600' :
                               caseItem.status === 'poc' ? 'bg-yellow-500/10 text-yellow-600' :
-                              'bg-slate-500/10 text-argos-muted'
+                              'bg-slate-500/10 text-ink-500'
                             }`}>
                               {caseItem.status === 'production' ? '상용' : caseItem.status === 'poc' ? 'PoC' : caseItem.status}
                             </span>
                           </div>
                           <div className="flex gap-2 mt-2">
-                            <span className="px-2 py-0.5 text-xs bg-blue-500/10 text-argos-blue rounded">
+                            <span className="px-2 py-0.5 text-xs bg-blue-500/10 text-info rounded">
                               {caseItem.environment}
                             </span>
                             <span className="px-2 py-0.5 text-xs bg-green-500/10 text-green-600 rounded">
@@ -573,13 +573,13 @@ export default function HumanoidRobotDetailPage() {
                             </span>
                           </div>
                           {caseItem.description && (
-                            <p className="text-sm text-argos-muted mt-3 line-clamp-2">{caseItem.description}</p>
+                            <p className="text-sm text-ink-500 mt-3 line-clamp-2">{caseItem.description}</p>
                           )}
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-argos-faint">적용 사례가 없습니다.</p>
+                    <p className="text-ink-400">적용 사례가 없습니다.</p>
                   )}
                 </div>
               )}
@@ -600,15 +600,15 @@ function SummaryCard({ icon: Icon, label, value, subValue }: {
   subValue?: string;
 }) {
   return (
-    <div className="bg-argos-bgAlt rounded-lg p-4">
+    <div className="bg-ink-100 rounded-lg p-4">
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-argos-border/50 rounded-lg">
-          <Icon className="w-5 h-5 text-argos-muted" />
+        <div className="p-2 bg-ink-200/50 rounded-lg">
+          <Icon className="w-5 h-5 text-ink-500" />
         </div>
         <div>
-          <p className="text-xs text-argos-faint">{label}</p>
-          <p className="text-argos-inkSoft font-medium">{value}</p>
-          {subValue && <p className="text-xs text-argos-faint">{subValue}</p>}
+          <p className="text-xs text-ink-400">{label}</p>
+          <p className="text-ink-700 font-medium">{value}</p>
+          {subValue && <p className="text-xs text-ink-400">{subValue}</p>}
         </div>
       </div>
     </div>
@@ -624,26 +624,26 @@ function KpiCard({ icon: Icon, label, value, unit, color }: {
   color: string;
 }) {
   const colorClasses: Record<string, string> = {
-    blue: 'bg-blue-500/10 text-argos-blue',
+    blue: 'bg-blue-500/10 text-info',
     purple: 'bg-purple-500/10 text-purple-600',
     green: 'bg-green-500/10 text-green-600',
     orange: 'bg-orange-500/10 text-orange-600',
     cyan: 'bg-cyan-500/10 text-cyan-600',
-    slate: 'bg-slate-500/10 text-argos-muted',
+    slate: 'bg-slate-500/10 text-ink-500',
   };
 
   return (
-    <div className="bg-argos-bgAlt rounded-lg p-4 text-center">
+    <div className="bg-ink-100 rounded-lg p-4 text-center">
       <div className={`inline-flex p-2 rounded-lg mb-2 ${colorClasses[color]}`}>
         <Icon className="w-5 h-5" />
       </div>
-      <p className="text-2xl font-bold text-argos-ink">
+      <p className="text-2xl font-bold text-ink-900">
         {value !== null && value !== undefined ? value : '-'}
         {value !== null && value !== undefined && unit && (
-          <span className="text-sm font-normal text-argos-muted ml-1">{unit}</span>
+          <span className="text-sm font-normal text-ink-500 ml-1">{unit}</span>
         )}
       </p>
-      <p className="text-xs text-argos-faint mt-1">{label}</p>
+      <p className="text-xs text-ink-400 mt-1">{label}</p>
     </div>
   );
 }
@@ -651,9 +651,9 @@ function KpiCard({ icon: Icon, label, value, unit, color }: {
 // 스펙 테이블 행 컴포넌트
 function SpecRow({ label, value, unit }: { label: string; value: any; unit?: string }) {
   return (
-    <tr className="border-b border-argos-borderSoft last:border-0">
-      <td className="px-4 py-3 text-sm text-argos-muted w-1/3">{label}</td>
-      <td className="px-4 py-3 text-sm text-argos-inkSoft">
+    <tr className="border-b border-ink-100 last:border-0">
+      <td className="px-4 py-3 text-sm text-ink-500 w-1/3">{label}</td>
+      <td className="px-4 py-3 text-sm text-ink-700">
         {value !== null && value !== undefined ? `${value}${unit ? ` ${unit}` : ''}` : '-'}
       </td>
     </tr>

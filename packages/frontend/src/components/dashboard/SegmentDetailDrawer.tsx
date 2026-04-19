@@ -59,11 +59,11 @@ const eventTypeStyles: Record<string, { bg: string; text: string; label: string 
   investment: { bg: 'bg-green-500/20', text: 'text-green-400', label: '투자' },
   poc: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: 'PoC' },
   production: { bg: 'bg-purple-500/20', text: 'text-purple-400', label: '양산' },
-  other: { bg: 'bg-slate-500/20', text: 'text-argos-muted', label: '기타' },
+  other: { bg: 'bg-slate-500/20', text: 'text-ink-500', label: '기타' },
 };
 
 const stageBadgeStyles: Record<string, { bg: string; text: string }> = {
-  concept: { bg: 'bg-slate-500/20', text: 'text-argos-inkSoft' },
+  concept: { bg: 'bg-slate-500/20', text: 'text-ink-700' },
   prototype: { bg: 'bg-blue-500/20', text: 'text-blue-400' },
   poc: { bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
   pilot: { bg: 'bg-orange-500/20', text: 'text-orange-400' },
@@ -109,21 +109,21 @@ export function SegmentDetailDrawer({
       />
 
       {/* Drawer */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-argos-bg border-l border-argos-border z-50 shadow-2xl overflow-y-auto">
+      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-paper border-l border-ink-200 z-50 shadow-2xl overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-argos-bg border-b border-argos-border p-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-paper border-b border-ink-200 p-4 flex items-center justify-between z-10">
           <div>
-            <h2 className="text-lg font-semibold text-argos-ink">
+            <h2 className="text-lg font-semibold text-ink-900">
               {locomotionLabels[locomotion] || locomotion} × {purposeLabels[purpose] || purpose}
             </h2>
-            <p className="text-sm text-argos-muted">총 {totalRobots}개 제품</p>
+            <p className="text-sm text-ink-500">총 {totalRobots}개 제품</p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-argos-bgAlt rounded-lg transition-colors"
+            className="p-2 hover:bg-ink-100 rounded-lg transition-colors"
             aria-label="닫기"
           >
-            <svg className="w-5 h-5 text-argos-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-ink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -141,7 +141,7 @@ export function SegmentDetailDrawer({
           {/* Empty segment message */}
           {!isLoading && isEmptySegment && (
             <div className="flex items-center justify-center py-16">
-              <p className="text-sm text-argos-muted text-center">
+              <p className="text-sm text-ink-500 text-center">
                 해당 세그먼트에 등록된 로봇이 없습니다
               </p>
             </div>
@@ -150,7 +150,7 @@ export function SegmentDetailDrawer({
           {/* Robot list section */}
           {!isLoading && !isEmptySegment && robots && robots.length > 0 && (
             <section>
-              <h3 className="text-sm font-medium text-argos-muted mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-medium text-ink-500 mb-3 flex items-center gap-2">
                 로봇 목록 ({robots.length})
               </h3>
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
@@ -159,16 +159,16 @@ export function SegmentDetailDrawer({
                   return (
                     <div
                       key={robot.id}
-                      className="bg-argos-surface rounded-lg p-3 hover:bg-argos-bgAlt transition-colors"
+                      className="bg-white rounded-lg p-3 hover:bg-ink-100 transition-colors"
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-argos-ink text-sm">{robot.name}</span>
+                        <span className="font-medium text-ink-900 text-sm">{robot.name}</span>
                         <span className={`text-xs px-2 py-0.5 rounded ${stageStyle.bg} ${stageStyle.text}`}>
                           {robot.commercializationStage}
                         </span>
                       </div>
-                      <p className="text-xs text-argos-muted mb-2">{robot.companyName}</p>
-                      <div className="flex gap-3 text-xs text-argos-muted">
+                      <p className="text-xs text-ink-500 mb-2">{robot.companyName}</p>
+                      <div className="flex gap-3 text-xs text-ink-500">
                         {robot.dofCount != null && (
                           <span>DoF: {robot.dofCount}</span>
                         )}
@@ -189,7 +189,7 @@ export function SegmentDetailDrawer({
           {/* Top Companies */}
           {!isLoading && !isEmptySegment && (
             <section>
-              <h3 className="text-sm font-medium text-argos-muted mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-medium text-ink-500 mb-3 flex items-center gap-2">
                 Top 3 회사
               </h3>
               <div className="space-y-3">
@@ -197,14 +197,14 @@ export function SegmentDetailDrawer({
                   topCompanies.slice(0, 3).map((company, idx) => (
                     <div
                       key={company.id}
-                      className="bg-argos-surface rounded-lg p-4 hover:bg-argos-bgAlt transition-colors cursor-pointer"
+                      className="bg-white rounded-lg p-4 hover:bg-ink-100 transition-colors cursor-pointer"
                     >
                       <div className="flex items-start gap-3">
                         {/* Rank badge */}
                         <div className={`
                           w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
                           ${idx === 0 ? 'bg-yellow-500/20 text-yellow-400' :
-                            idx === 1 ? 'bg-argos-border text-argos-inkSoft' :
+                            idx === 1 ? 'bg-ink-200 text-ink-700' :
                             'bg-orange-500/20 text-orange-400'}
                         `}>
                           {idx + 1}
@@ -213,11 +213,11 @@ export function SegmentDetailDrawer({
                         {/* Company info */}
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium text-argos-ink">{company.name}</span>
-                            <span className="text-xs text-argos-muted">{company.country}</span>
+                            <span className="font-medium text-ink-900">{company.name}</span>
+                            <span className="text-xs text-ink-500">{company.country}</span>
                           </div>
-                          <p className="text-sm text-argos-muted">대표 제품: {company.mainProduct}</p>
-                          <p className="text-xs text-argos-muted mt-1">{company.mainSpec}</p>
+                          <p className="text-sm text-ink-500">대표 제품: {company.mainProduct}</p>
+                          <p className="text-xs text-ink-500 mt-1">{company.mainSpec}</p>
                         </div>
 
                         {/* Logo placeholder */}
@@ -228,7 +228,7 @@ export function SegmentDetailDrawer({
                             className="w-10 h-10 rounded object-contain bg-white"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded bg-argos-bgAlt flex items-center justify-center text-argos-muted text-xs">
+                          <div className="w-10 h-10 rounded bg-ink-100 flex items-center justify-center text-ink-500 text-xs">
                             Logo
                           </div>
                         )}
@@ -236,7 +236,7 @@ export function SegmentDetailDrawer({
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-argos-muted text-center py-4">회사 정보가 없습니다</p>
+                  <p className="text-sm text-ink-500 text-center py-4">회사 정보가 없습니다</p>
                 )}
               </div>
             </section>
@@ -245,12 +245,12 @@ export function SegmentDetailDrawer({
           {/* Recent Events Timeline */}
           {!isLoading && !isEmptySegment && (
             <section>
-              <h3 className="text-sm font-medium text-argos-muted mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-medium text-ink-500 mb-3 flex items-center gap-2">
                 최근 이벤트
               </h3>
               <div className="relative">
                 {/* Timeline line */}
-                <div className="absolute left-4 top-0 bottom-0 w-px bg-argos-border" />
+                <div className="absolute left-4 top-0 bottom-0 w-px bg-ink-200" />
 
                 {/* Events */}
                 <div className="space-y-4">
@@ -260,23 +260,23 @@ export function SegmentDetailDrawer({
                       return (
                         <div key={event.id} className="relative pl-10">
                           {/* Timeline dot */}
-                          <div className={`absolute left-2 w-4 h-4 rounded-full ${style.bg} border-2 border-argos-bg`} />
+                          <div className={`absolute left-2 w-4 h-4 rounded-full ${style.bg} border-2 border-paper`} />
 
                           {/* Event content */}
-                          <div className="bg-argos-surface rounded-lg p-3">
+                          <div className="bg-white rounded-lg p-3">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs text-argos-muted">{event.date}</span>
+                              <span className="text-xs text-ink-500">{event.date}</span>
                               <span className={`text-xs px-2 py-0.5 rounded ${style.bg} ${style.text}`}>
                                 {style.label}
                               </span>
                             </div>
-                            <p className="text-sm text-argos-ink">{event.description}</p>
+                            <p className="text-sm text-ink-900">{event.description}</p>
                           </div>
                         </div>
                       );
                     })
                   ) : (
-                    <p className="text-sm text-argos-muted text-center py-4 pl-10">이벤트가 없습니다</p>
+                    <p className="text-sm text-ink-500 text-center py-4 pl-10">이벤트가 없습니다</p>
                   )}
                 </div>
               </div>

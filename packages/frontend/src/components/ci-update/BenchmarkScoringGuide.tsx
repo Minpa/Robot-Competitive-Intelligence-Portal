@@ -127,19 +127,19 @@ export function BenchmarkScoringGuide({ axes }: BenchmarkScoringGuideProps) {
   const [showPerfectRobot, setShowPerfectRobot] = useState(false);
 
   return (
-    <div className="bg-argos-surface rounded-xl border border-argos-border p-5 space-y-4">
+    <div className="bg-white rounded-xl border border-ink-200 p-5 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-base font-semibold text-argos-ink">스코어링 기준 가이드</h3>
-          <p className="text-xs text-argos-muted mt-0.5">각 축의 1~10점이 의미하는 구체적 기준. 축을 클릭하면 레벨별 상세 기준을 확인할 수 있습니다.</p>
+          <h3 className="text-base font-semibold text-ink-900">스코어링 기준 가이드</h3>
+          <p className="text-xs text-ink-500 mt-0.5">각 축의 1~10점이 의미하는 구체적 기준. 축을 클릭하면 레벨별 상세 기준을 확인할 수 있습니다.</p>
         </div>
         <button
           onClick={() => setShowPerfectRobot(prev => !prev)}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
             showPerfectRobot
               ? 'bg-green-600 text-white'
-              : 'bg-argos-bgAlt text-argos-muted hover:text-argos-inkSoft'
+              : 'bg-ink-100 text-ink-500 hover:text-ink-700'
           }`}
         >
           {showPerfectRobot ? '퍼펙트 로봇 숨기기' : '퍼펙트 로봇 스펙 보기'}
@@ -148,22 +148,22 @@ export function BenchmarkScoringGuide({ axes }: BenchmarkScoringGuideProps) {
 
       {/* Perfect Robot Spec Panel */}
       {showPerfectRobot && (
-        <div className="bg-argos-bgAlt border border-argos-border rounded-xl p-5">
+        <div className="bg-ink-100 border border-ink-200 rounded-xl p-5">
           <div className="mb-4">
-            <h4 className="text-base font-bold text-argos-ink">THE PERFECT ROBOT — 100점 만점 스펙</h4>
-            <p className="text-xs text-argos-muted">모든 축 10점을 달성한 이상적 로봇의 구체적 사양</p>
+            <h4 className="text-base font-bold text-ink-900">THE PERFECT ROBOT — 100점 만점 스펙</h4>
+            <p className="text-xs text-ink-500">모든 축 10점을 달성한 이상적 로봇의 구체적 사양</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {axes.map(axis => {
               const rubric = SCORING_RUBRIC[axis.key];
               if (!rubric) return null;
               return (
-                <div key={axis.key} className="bg-argos-surface rounded-lg p-3 border border-argos-borderSoft">
+                <div key={axis.key} className="bg-white rounded-lg p-3 border border-ink-100">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-sm font-semibold text-argos-ink">{axis.label}</span>
-                    <span className="text-xs text-argos-muted ml-auto">10/10</span>
+                    <span className="text-sm font-semibold text-ink-900">{axis.label}</span>
+                    <span className="text-xs text-ink-500 ml-auto">10/10</span>
                   </div>
-                  <p className="text-xs text-argos-inkSoft leading-relaxed">{rubric.perfectSpec}</p>
+                  <p className="text-xs text-ink-700 leading-relaxed">{rubric.perfectSpec}</p>
                 </div>
               );
             })}
@@ -182,12 +182,12 @@ export function BenchmarkScoringGuide({ axes }: BenchmarkScoringGuideProps) {
             <div key={axis.key}>
               <button
                 onClick={() => setExpandedAxis(prev => prev === axis.key ? null : axis.key)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-argos-bgAlt transition-colors text-left"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-ink-100 transition-colors text-left"
               >
-                <span className="text-xs text-argos-muted">{isExpanded ? '▼' : '▶'}</span>
+                <span className="text-xs text-ink-500">{isExpanded ? '▼' : '▶'}</span>
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium text-argos-inkSoft">{axis.label}</span>
-                  <span className="text-xs text-argos-muted ml-2">{axis.description}</span>
+                  <span className="text-sm font-medium text-ink-700">{axis.label}</span>
+                  <span className="text-xs text-ink-500 ml-2">{axis.description}</span>
                 </div>
                 {/* Mini level indicator */}
                 <div className="hidden sm:flex items-center gap-0.5">
@@ -212,20 +212,20 @@ export function BenchmarkScoringGuide({ axes }: BenchmarkScoringGuideProps) {
                         {LEVEL_LABELS[i]}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <span className="text-xs text-argos-muted font-medium">{LEVEL_NAMES[i]}</span>
-                        <p className="text-xs text-argos-inkSoft leading-relaxed mt-0.5">{desc}</p>
+                        <span className="text-xs text-ink-500 font-medium">{LEVEL_NAMES[i]}</span>
+                        <p className="text-xs text-ink-700 leading-relaxed mt-0.5">{desc}</p>
                       </div>
                     </div>
                   ))}
                   {/* Perfect spec inline */}
-                  <div className="mt-2 pt-2 border-t border-argos-borderSoft">
+                  <div className="mt-2 pt-2 border-t border-ink-100">
                     <div className="flex items-start gap-3">
                       <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded text-green-400 bg-green-500/10 ring-1 ring-green-500/30">
                         10점
                       </span>
                       <div className="flex-1 min-w-0">
-                        <span className="text-xs text-argos-ink font-medium">퍼펙트 로봇 스펙</span>
-                        <p className="text-xs text-argos-inkSoft leading-relaxed mt-0.5">{rubric.perfectSpec}</p>
+                        <span className="text-xs text-ink-900 font-medium">퍼펙트 로봇 스펙</span>
+                        <p className="text-xs text-ink-700 leading-relaxed mt-0.5">{rubric.perfectSpec}</p>
                       </div>
                     </div>
                   </div>

@@ -34,13 +34,13 @@ export function CiStagingPanel() {
     }
   };
 
-  if (isLoading) return <div className="text-argos-muted text-sm p-4">로딩 중...</div>;
+  if (isLoading) return <div className="text-ink-500 text-sm p-4">로딩 중...</div>;
   if (error) return <div className="text-red-400 text-sm p-4">에러 발생</div>;
   if (!data || data.length === 0) {
     return (
-      <div className="bg-argos-surface rounded-xl border border-argos-border p-4">
-        <h3 className="text-sm font-semibold text-argos-ink mb-2">스테이징 큐</h3>
-        <p className="text-argos-muted text-xs">대기 중인 업데이트가 없습니다.</p>
+      <div className="bg-white rounded-xl border border-ink-200 p-4">
+        <h3 className="text-sm font-semibold text-ink-900 mb-2">스테이징 큐</h3>
+        <p className="text-ink-500 text-xs">대기 중인 업데이트가 없습니다.</p>
       </div>
     );
   }
@@ -58,9 +58,9 @@ export function CiStagingPanel() {
   };
 
   return (
-    <div className="bg-argos-surface rounded-xl border border-argos-border p-4">
+    <div className="bg-white rounded-xl border border-ink-200 p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-argos-ink">스테이징 큐</h3>
+        <h3 className="text-sm font-semibold text-ink-900">스테이징 큐</h3>
         <span className="text-xs text-blue-400 bg-blue-500/20 px-2 py-0.5 rounded-full">
           {data.length}건 대기
         </span>
@@ -68,24 +68,24 @@ export function CiStagingPanel() {
 
       <div className="space-y-2 max-h-[400px] overflow-auto">
         {data.map(entry => (
-          <div key={entry.id} className="bg-argos-bgAlt rounded-lg p-3">
+          <div key={entry.id} className="bg-ink-100 rounded-lg p-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs px-2 py-0.5 rounded bg-argos-surface text-argos-inkSoft">
+                <span className="text-xs px-2 py-0.5 rounded bg-white text-ink-700">
                   {typeLabels[entry.updateType] || entry.updateType}
                 </span>
-                <span className="text-xs text-argos-muted">
+                <span className="text-xs text-ink-500">
                   {channelLabels[entry.sourceChannel] || entry.sourceChannel}
                 </span>
               </div>
-              <span className="text-[10px] text-argos-muted">
+              <span className="text-[10px] text-ink-500">
                 {new Date(entry.createdAt).toLocaleDateString('ko-KR')}
               </span>
             </div>
 
             {/* Payload preview */}
-            <div className="bg-argos-surface rounded p-2 mb-2 max-h-24 overflow-auto">
-              <pre className="text-[10px] text-argos-muted whitespace-pre-wrap">
+            <div className="bg-white rounded p-2 mb-2 max-h-24 overflow-auto">
+              <pre className="text-[10px] text-ink-500 whitespace-pre-wrap">
                 {JSON.stringify(entry.payload, null, 2).slice(0, 300)}
               </pre>
             </div>
@@ -95,7 +95,7 @@ export function CiStagingPanel() {
               <button
                 onClick={() => handleDismiss(entry.id)}
                 disabled={processing === entry.id}
-                className="px-3 py-1 text-xs rounded bg-argos-bgAlt text-argos-inkSoft hover:bg-argos-bgAlt disabled:opacity-50"
+                className="px-3 py-1 text-xs rounded bg-ink-100 text-ink-700 hover:bg-ink-100 disabled:opacity-50"
               >
                 무시
               </button>

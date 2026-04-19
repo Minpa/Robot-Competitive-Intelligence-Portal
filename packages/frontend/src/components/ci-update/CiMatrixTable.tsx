@@ -15,7 +15,7 @@ const confidenceColors: Record<string, string> = {
 
 // Freshness indicator based on lastVerified date
 function getFreshnessIndicator(lastVerified: string | null): { dotColor: string; label: string; color: string } {
-  if (!lastVerified) return { dotColor: 'bg-argos-muted', label: '\uBBF8\uAC80\uC99D', color: 'text-argos-muted' };
+  if (!lastVerified) return { dotColor: 'bg-ink-500', label: '\uBBF8\uAC80\uC99D', color: 'text-ink-500' };
   const days = Math.floor((Date.now() - new Date(lastVerified).getTime()) / (1000 * 60 * 60 * 24));
   if (days <= 30) return { dotColor: 'bg-green-500', label: `${days}\uC77C \uC804`, color: 'text-green-400' };
   if (days <= 90) return { dotColor: 'bg-yellow-500', label: `${days}\uC77C \uC804`, color: 'text-yellow-400' };
@@ -107,32 +107,32 @@ export function CiMatrixTable({ data, onRefresh }: CiMatrixTableProps) {
       {/* History Modal */}
       {showHistory && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowHistory(false)}>
-          <div className="bg-argos-surface rounded-xl border border-argos-border max-w-lg w-full max-h-[80vh] overflow-auto p-6" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-xl border border-ink-200 max-w-lg w-full max-h-[80vh] overflow-auto p-6" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-argos-ink">{'\uBCC0\uACBD \uC774\uB825'}</h3>
-              <button onClick={() => setShowHistory(false)} className="text-argos-muted hover:text-argos-ink">{'\u2715'}</button>
+              <h3 className="text-lg font-semibold text-ink-900">{'\uBCC0\uACBD \uC774\uB825'}</h3>
+              <button onClick={() => setShowHistory(false)} className="text-ink-500 hover:text-ink-900">{'\u2715'}</button>
             </div>
             {historyData.length === 0 ? (
-              <p className="text-argos-muted text-sm">{'\uBCC0\uACBD \uC774\uB825\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.'}</p>
+              <p className="text-ink-500 text-sm">{'\uBCC0\uACBD \uC774\uB825\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.'}</p>
             ) : (
               <div className="space-y-3">
                 {historyData.map((h: any) => (
-                  <div key={h.id} className="bg-argos-bgAlt rounded-lg p-3 text-sm">
-                    <div className="flex justify-between text-argos-muted mb-1">
+                  <div key={h.id} className="bg-ink-100 rounded-lg p-3 text-sm">
+                    <div className="flex justify-between text-ink-500 mb-1">
                       <span>{h.changedBy || '\uC2DC\uC2A4\uD15C'}</span>
                       <span>{new Date(h.changedAt).toLocaleDateString('ko-KR')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-red-400 line-through">{h.oldValue || '(\uC5C6\uC74C)'}</span>
-                      <span className="text-argos-muted">{'\u2192'}</span>
+                      <span className="text-ink-500">{'\u2192'}</span>
                       <span className="text-green-400">{h.newValue || '(\uC5C6\uC74C)'}</span>
                     </div>
                     {h.oldConfidence !== h.newConfidence && (
-                      <div className="text-xs text-argos-muted mt-1">
+                      <div className="text-xs text-ink-500 mt-1">
                         {'\uC2E0\uB8B0\uB3C4'}: {h.oldConfidence || '-'} {'\u2192'} {h.newConfidence || '-'}
                       </div>
                     )}
-                    <div className="text-xs text-argos-muted mt-1">{h.changeSource}</div>
+                    <div className="text-xs text-ink-500 mt-1">{h.changeSource}</div>
                   </div>
                 ))}
               </div>
@@ -144,19 +144,19 @@ export function CiMatrixTable({ data, onRefresh }: CiMatrixTableProps) {
       {/* Edit Modal */}
       {editingCell && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={cancelEdit}>
-          <div className="bg-argos-surface rounded-xl border border-argos-border max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-argos-ink mb-4">{'\uC140 \uD3B8\uC9D1'}</h3>
+          <div className="bg-white rounded-xl border border-ink-200 max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-ink-900 mb-4">{'\uC140 \uD3B8\uC9D1'}</h3>
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-argos-muted mb-1 block">{'\uAC12'}</label>
+                <label className="text-xs text-ink-500 mb-1 block">{'\uAC12'}</label>
                 <input
                   value={editingCell.value}
                   onChange={e => setEditingCell({ ...editingCell, value: e.target.value })}
-                  className="w-full bg-argos-bgAlt border border-argos-border rounded px-3 py-2 text-argos-ink text-sm focus:outline-none focus:border-blue-500"
+                  className="w-full bg-ink-100 border border-ink-200 rounded px-3 py-2 text-ink-900 text-sm focus:outline-none focus:border-blue-500"
                 />
               </div>
               <div>
-                <label className="text-xs text-argos-muted mb-1 block">{'\uC2E0\uB8B0\uB3C4'}</label>
+                <label className="text-xs text-ink-500 mb-1 block">{'\uC2E0\uB8B0\uB3C4'}</label>
                 <div className="flex gap-2">
                   {['A', 'B', 'C', 'D', 'F'].map(c => (
                     <button
@@ -165,7 +165,7 @@ export function CiMatrixTable({ data, onRefresh }: CiMatrixTableProps) {
                       className={`px-3 py-1 rounded text-sm font-medium border ${
                         editingCell.confidence === c
                           ? confidenceColors[c]
-                          : 'bg-argos-bgAlt text-argos-muted border-argos-border'
+                          : 'bg-ink-100 text-ink-500 border-ink-200'
                       }`}
                     >
                       {c}
@@ -174,33 +174,33 @@ export function CiMatrixTable({ data, onRefresh }: CiMatrixTableProps) {
                 </div>
               </div>
               <div>
-                <label className="text-xs text-argos-muted mb-1 block">{'\uCD9C\uCC98'}</label>
+                <label className="text-xs text-ink-500 mb-1 block">{'\uCD9C\uCC98'}</label>
                 <input
                   value={editingCell.source}
                   onChange={e => setEditingCell({ ...editingCell, source: e.target.value })}
-                  className="w-full bg-argos-bgAlt border border-argos-border rounded px-3 py-2 text-argos-ink text-sm focus:outline-none focus:border-blue-500"
+                  className="w-full bg-ink-100 border border-ink-200 rounded px-3 py-2 text-ink-900 text-sm focus:outline-none focus:border-blue-500"
                 />
               </div>
               <div>
-                <label className="text-xs text-argos-muted mb-1 block">{'\uCD9C\uCC98 URL'}</label>
+                <label className="text-xs text-ink-500 mb-1 block">{'\uCD9C\uCC98 URL'}</label>
                 <input
                   value={editingCell.sourceUrl}
                   onChange={e => setEditingCell({ ...editingCell, sourceUrl: e.target.value })}
-                  className="w-full bg-argos-bgAlt border border-argos-border rounded px-3 py-2 text-argos-ink text-sm focus:outline-none focus:border-blue-500"
+                  className="w-full bg-ink-100 border border-ink-200 rounded px-3 py-2 text-ink-900 text-sm focus:outline-none focus:border-blue-500"
                 />
               </div>
               <div>
-                <label className="text-xs text-argos-muted mb-1 block">{'\uCD9C\uCC98\uC77C'}</label>
+                <label className="text-xs text-ink-500 mb-1 block">{'\uCD9C\uCC98\uC77C'}</label>
                 <input
                   type="date"
                   value={editingCell.sourceDate}
                   onChange={e => setEditingCell({ ...editingCell, sourceDate: e.target.value })}
-                  className="w-full bg-argos-bgAlt border border-argos-border rounded px-3 py-2 text-argos-ink text-sm focus:outline-none focus:border-blue-500"
+                  className="w-full bg-ink-100 border border-ink-200 rounded px-3 py-2 text-ink-900 text-sm focus:outline-none focus:border-blue-500"
                 />
               </div>
             </div>
             <div className="flex gap-2 mt-4 justify-end">
-              <button onClick={cancelEdit} className="px-4 py-2 rounded bg-argos-bgAlt text-argos-inkSoft text-sm hover:bg-argos-bgAlt">{'\uCDE8\uC18C'}</button>
+              <button onClick={cancelEdit} className="px-4 py-2 rounded bg-ink-100 text-ink-700 text-sm hover:bg-ink-100">{'\uCDE8\uC18C'}</button>
               <button
                 onClick={saveEdit}
                 disabled={saving}
@@ -218,19 +218,19 @@ export function CiMatrixTable({ data, onRefresh }: CiMatrixTableProps) {
         <table className="w-full border-collapse min-w-[900px]">
           <thead>
             <tr>
-              <th className="sticky left-0 z-10 bg-argos-bg text-left text-xs font-medium text-argos-muted px-3 py-2 border-b border-argos-border min-w-[200px]">
+              <th className="sticky left-0 z-10 bg-paper text-left text-xs font-medium text-ink-500 px-3 py-2 border-b border-ink-200 min-w-[200px]">
                 {'\uBE44\uAD50 \uD56D\uBAA9'}
               </th>
               {competitors.map(comp => (
-                <th key={comp.id} className="text-center text-xs font-medium text-argos-inkSoft px-3 py-2 border-b border-argos-border min-w-[160px]">
+                <th key={comp.id} className="text-center text-xs font-medium text-ink-700 px-3 py-2 border-b border-ink-200 min-w-[160px]">
                   <div className="flex flex-col items-center gap-0.5">
                     <span className="font-semibold">{comp.name}</span>
-                    <span className="text-[10px] text-argos-muted">{comp.manufacturer}</span>
+                    <span className="text-[10px] text-ink-500">{comp.manufacturer}</span>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
                       comp.stage === 'commercial' ? 'bg-green-500/20 text-green-400' :
                       comp.stage === 'pilot' ? 'bg-blue-500/20 text-blue-400' :
                       comp.stage === 'poc' ? 'bg-yellow-500/20 text-yellow-400' :
-                      'bg-argos-bgAlt text-argos-muted'
+                      'bg-ink-100 text-ink-500'
                     }`}>
                       {comp.stage}
                     </span>
@@ -245,16 +245,16 @@ export function CiMatrixTable({ data, onRefresh }: CiMatrixTableProps) {
                 {/* Layer header row */}
                 <tr
                   key={`layer-${layer.id}`}
-                  className="cursor-pointer hover:bg-argos-bgAlt"
+                  className="cursor-pointer hover:bg-ink-100"
                   onClick={() => toggleLayer(layer.id)}
                 >
                   <td
                     colSpan={competitors.length + 1}
-                    className="px-3 py-2 bg-argos-bgAlt border-b border-argos-border"
+                    className="px-3 py-2 bg-ink-100 border-b border-ink-200"
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-sm">{expandedLayers.has(layer.id) ? '\u25BC' : '\u25B6'}</span>
-                      <span className="font-semibold text-argos-ink text-sm">{layer.name}</span>
+                      <span className="font-semibold text-ink-900 text-sm">{layer.name}</span>
                     </div>
                   </td>
                 </tr>
@@ -265,23 +265,23 @@ export function CiMatrixTable({ data, onRefresh }: CiMatrixTableProps) {
                     <tr key={`cat-${category.id}`}>
                       <td
                         colSpan={competitors.length + 1}
-                        className="px-3 py-1.5 bg-argos-surface border-b border-argos-borderSoft"
+                        className="px-3 py-1.5 bg-white border-b border-ink-100"
                       >
-                        <span className="text-xs font-medium text-argos-muted pl-6">{category.name}</span>
+                        <span className="text-xs font-medium text-ink-500 pl-6">{category.name}</span>
                       </td>
                     </tr>
 
                     {/* Items */}
                     {category.items.map(item => (
-                      <tr key={`item-${item.id}`} className="hover:bg-argos-bgAlt group">
-                        <td className="sticky left-0 z-10 bg-argos-bg text-xs text-argos-inkSoft px-3 py-2 border-b border-argos-borderSoft pl-10">
+                      <tr key={`item-${item.id}`} className="hover:bg-ink-100 group">
+                        <td className="sticky left-0 z-10 bg-paper text-xs text-ink-700 px-3 py-2 border-b border-ink-100 pl-10">
                           {item.name}
                         </td>
                         {competitors.map(comp => {
                           const cv = item.values[comp.id];
                           if (!cv) {
                             return (
-                              <td key={comp.id} className="text-center text-xs text-argos-faint px-2 py-2 border-b border-argos-borderSoft">
+                              <td key={comp.id} className="text-center text-xs text-ink-400 px-2 py-2 border-b border-ink-100">
                                 {'\u2014'}
                               </td>
                             );
@@ -290,11 +290,11 @@ export function CiMatrixTable({ data, onRefresh }: CiMatrixTableProps) {
                           return (
                             <td
                               key={comp.id}
-                              className="text-center text-xs px-2 py-2 border-b border-argos-borderSoft cursor-pointer hover:bg-blue-500/10 transition-colors relative"
+                              className="text-center text-xs px-2 py-2 border-b border-ink-100 cursor-pointer hover:bg-blue-500/10 transition-colors relative"
                               onClick={() => startEdit(cv)}
                             >
                               <div className="flex flex-col items-center gap-0.5">
-                                <span className="text-argos-inkSoft">{cv.value || '\u2014'}</span>
+                                <span className="text-ink-700">{cv.value || '\u2014'}</span>
                                 <div className="flex items-center gap-1">
                                   <span className={`inline-block px-1 py-0 rounded text-[10px] font-mono border ${confidenceColors[cv.confidence] || confidenceColors.D}`}>
                                     {cv.confidence}
@@ -304,7 +304,7 @@ export function CiMatrixTable({ data, onRefresh }: CiMatrixTableProps) {
                               </div>
                               {/* History button (visible on hover) */}
                               <button
-                                className="absolute top-0.5 right-0.5 text-[10px] text-argos-muted hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="absolute top-0.5 right-0.5 text-[10px] text-ink-500 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
                                 onClick={(e) => { e.stopPropagation(); loadHistory(cv.id); }}
                                 title={'\uBCC0\uACBD \uC774\uB825'}
                               >

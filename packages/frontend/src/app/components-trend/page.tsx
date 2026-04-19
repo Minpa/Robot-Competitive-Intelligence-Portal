@@ -129,9 +129,9 @@ export default function ComponentsTrendPage() {
         {/* 상단 분석 영역 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           {/* 좌측: 성능 맵 패널 */}
-          <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-5">
+          <div className="bg-white backdrop-blur rounded-xl border border-ink-100 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-argos-ink">성능 맵 – 유형별 핵심 지표</h2>
+              <h2 className="text-lg font-semibold text-ink-900">성능 맵 – 유형별 핵심 지표</h2>
             </div>
             {/* 탭 */}
             <div className="flex gap-2 mb-4">
@@ -142,7 +142,7 @@ export default function ComponentsTrendPage() {
                   className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
                     mapTab === tab.id
                       ? 'bg-blue-500 text-white'
-                      : 'bg-argos-chip/50 text-argos-muted hover:bg-argos-bgAlt'
+                      : 'bg-info-soft/50 text-ink-500 hover:bg-ink-100'
                   }`}
                 >
                   {tab.label}
@@ -150,7 +150,7 @@ export default function ComponentsTrendPage() {
               ))}
             </div>
             {/* 산점도 */}
-            <div className="h-72 relative bg-white rounded-lg border border-argos-borderSoft">
+            <div className="h-72 relative bg-white rounded-lg border border-ink-100">
               {(() => {
                 const maxX = Math.max(...mapData.map((d: any) => d.x), 1);
                 const maxY = Math.max(...mapData.map((d: any) => d.y), 1);
@@ -164,31 +164,31 @@ export default function ComponentsTrendPage() {
                     {/* Y축 눈금 */}
                     <div className="absolute left-0 top-4 bottom-8 w-10 flex flex-col justify-between text-right pr-1">
                       {yTicks.reverse().map((tick, i) => (
-                        <span key={i} className="text-[10px] text-argos-faint">{tick}</span>
+                        <span key={i} className="text-[10px] text-ink-400">{tick}</span>
                       ))}
                     </div>
 
                     {/* X축 눈금 */}
                     <div className="absolute left-10 right-4 bottom-0 h-6 flex justify-between">
                       {xTicks.map((tick, i) => (
-                        <span key={i} className="text-[10px] text-argos-faint">{tick}</span>
+                        <span key={i} className="text-[10px] text-ink-400">{tick}</span>
                       ))}
                     </div>
 
                     {/* 차트 영역 */}
-                    <div className="absolute left-10 right-4 top-4 bottom-8 border-l border-b border-argos-border">
+                    <div className="absolute left-10 right-4 top-4 bottom-8 border-l border-b border-ink-200">
                       {/* 그리드 라인 */}
                       {[0.25, 0.5, 0.75].map(ratio => (
                         <div
                           key={`h-${ratio}`}
-                          className="absolute w-full border-t border-argos-borderSoft"
+                          className="absolute w-full border-t border-ink-100"
                           style={{ top: `${ratio * 100}%` }}
                         />
                       ))}
                       {[0.25, 0.5, 0.75].map(ratio => (
                         <div
                           key={`v-${ratio}`}
-                          className="absolute h-full border-l border-argos-borderSoft"
+                          className="absolute h-full border-l border-ink-100"
                           style={{ left: `${ratio * 100}%` }}
                         />
                       ))}
@@ -206,7 +206,7 @@ export default function ComponentsTrendPage() {
                               onMouseLeave={() => setHoveredComponent(null)}
                             >
                               {/* 회사명 라벨 */}
-                              <div className="absolute bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] text-argos-muted group-hover:text-argos-ink transition-colors">
+                              <div className="absolute bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] text-ink-500 group-hover:text-ink-900 transition-colors">
                                 {item.vendor || item.company || ''}
                               </div>
                               {/* 점 */}
@@ -218,17 +218,17 @@ export default function ComponentsTrendPage() {
                           );
                         })
                       ) : (
-                        <div className="flex items-center justify-center h-full text-argos-faint">
+                        <div className="flex items-center justify-center h-full text-ink-400">
                           데이터가 없습니다
                         </div>
                       )}
                     </div>
 
                     {/* 축 라벨 */}
-                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-xs text-argos-muted font-medium">
+                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-xs text-ink-500 font-medium">
                       {PERFORMANCE_MAP_TABS.find(t => t.id === mapTab)?.xLabel}
                     </div>
-                    <div className="absolute left-0 top-1/2 transform -rotate-90 -translate-y-1/2 text-xs text-argos-muted font-medium whitespace-nowrap origin-center">
+                    <div className="absolute left-0 top-1/2 transform -rotate-90 -translate-y-1/2 text-xs text-ink-500 font-medium whitespace-nowrap origin-center">
                       {PERFORMANCE_MAP_TABS.find(t => t.id === mapTab)?.yLabel}
                     </div>
                   </>
@@ -238,12 +238,12 @@ export default function ComponentsTrendPage() {
           </div>
 
           {/* 우측: 트렌드 + 채택 현황 패널 */}
-          <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-5">
-            <h2 className="text-lg font-semibold text-argos-ink mb-4">트렌드 & 채택 현황</h2>
+          <div className="bg-white backdrop-blur rounded-xl border border-ink-100 p-5">
+            <h2 className="text-lg font-semibold text-ink-900 mb-4">트렌드 & 채택 현황</h2>
 
             {/* 상단: 연도별 성능 바 차트 */}
             <div className="mb-6">
-              <h3 className="text-sm text-argos-muted mb-3 flex items-center gap-2">
+              <h3 className="text-sm text-ink-500 mb-3 flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />
                 연도별 평균/최대 TOPS
               </h3>
@@ -251,12 +251,12 @@ export default function ComponentsTrendPage() {
                 {adoptionData.slice(-5).map((d: any) => (
                   <div key={d.year}>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-argos-inkSoft">{d.year}</span>
-                      <span className="text-argos-faint">
+                      <span className="text-ink-700">{d.year}</span>
+                      <span className="text-ink-400">
                         평균 {d.avgPerformance?.toFixed(0)} / 최대 {d.maxPerformance?.toFixed(0)}
                       </span>
                     </div>
-                    <div className="w-full bg-argos-chip/50 rounded-full h-2">
+                    <div className="w-full bg-info-soft/50 rounded-full h-2">
                       <div
                         className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400"
                         style={{ width: `${Math.min((d.maxPerformance / 500) * 100, 100)}%` }}
@@ -269,7 +269,7 @@ export default function ComponentsTrendPage() {
 
             {/* 하단: 채택 로봇 수 추이 */}
             <div>
-              <h3 className="text-sm text-argos-muted mb-3 flex items-center gap-2">
+              <h3 className="text-sm text-ink-500 mb-3 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4" />
                 연도별 채택 로봇 수
               </h3>
@@ -283,7 +283,7 @@ export default function ComponentsTrendPage() {
                         className="w-full bg-gradient-to-t from-green-500 to-emerald-400 rounded-t"
                         style={{ height: `${height}%` }}
                       />
-                      <span className="text-[10px] text-argos-faint mt-1">{d.year}</span>
+                      <span className="text-[10px] text-ink-400 mt-1">{d.year}</span>
                     </div>
                   );
                 })}
@@ -293,7 +293,7 @@ export default function ComponentsTrendPage() {
         </div>
 
         {/* 필터 바 */}
-        <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-4 mb-6">
+        <div className="bg-white backdrop-blur rounded-xl border border-ink-100 p-4 mb-6">
           <div className="flex flex-wrap items-center gap-4">
             {/* 타입 필터 */}
             <div className="flex gap-2">
@@ -306,7 +306,7 @@ export default function ComponentsTrendPage() {
                     className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${
                       selectedType === type.id
                         ? 'bg-blue-500 text-white'
-                        : 'bg-argos-chip/50 text-argos-muted hover:bg-argos-bgAlt'
+                        : 'bg-info-soft/50 text-ink-500 hover:bg-ink-100'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -316,15 +316,15 @@ export default function ComponentsTrendPage() {
               })}
             </div>
 
-            <div className="h-6 w-px bg-argos-border" />
+            <div className="h-6 w-px bg-ink-200" />
 
             {/* 적용 로봇 수 필터 */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-argos-faint">적용 로봇:</span>
+              <span className="text-xs text-ink-400">적용 로봇:</span>
               <select
                 value={minRobotCount}
                 onChange={(e) => { setMinRobotCount(Number(e.target.value)); setPage(1); }}
-                className="bg-white border-argos-border text-argos-inkSoft text-sm rounded-lg px-2 py-1"
+                className="bg-white border-ink-200 text-ink-700 text-sm rounded-lg px-2 py-1"
               >
                 {ROBOT_COUNT_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -334,11 +334,11 @@ export default function ComponentsTrendPage() {
 
             {/* 정렬 */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-argos-faint">정렬:</span>
+              <span className="text-xs text-ink-400">정렬:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-white border-argos-border text-argos-inkSoft text-sm rounded-lg px-2 py-1"
+                className="bg-white border-ink-200 text-ink-700 text-sm rounded-lg px-2 py-1"
               >
                 {SORT_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -346,15 +346,15 @@ export default function ComponentsTrendPage() {
               </select>
             </div>
 
-            <div className="h-6 w-px bg-argos-border" />
+            <div className="h-6 w-px bg-ink-200" />
 
             {/* BOM 모드: 로봇 선택 */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-argos-faint">BOM 보기:</span>
+              <span className="text-xs text-ink-400">BOM 보기:</span>
               <select
                 value={selectedRobotId || ''}
                 onChange={(e) => { setSelectedRobotId(e.target.value || null); setPage(1); }}
-                className="bg-white border-argos-border text-argos-inkSoft text-sm rounded-lg px-2 py-1 max-w-[200px]"
+                className="bg-white border-ink-200 text-ink-700 text-sm rounded-lg px-2 py-1 max-w-[200px]"
               >
                 <option value="">전체 부품</option>
                 {robots?.items?.map((robot: any) => (
@@ -364,7 +364,7 @@ export default function ComponentsTrendPage() {
               {selectedRobotId && (
                 <button
                   onClick={() => setSelectedRobotId(null)}
-                  className="p-1 text-argos-muted hover:text-argos-ink"
+                  className="p-1 text-ink-500 hover:text-ink-900"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -374,9 +374,9 @@ export default function ComponentsTrendPage() {
         </div>
 
         {/* 부품 테이블 */}
-        <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft overflow-hidden">
-          <div className="p-4 border-b border-argos-borderSoft flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-argos-ink">
+        <div className="bg-white backdrop-blur rounded-xl border border-ink-100 overflow-hidden">
+          <div className="p-4 border-b border-ink-100 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-ink-900">
               부품 목록
               {selectedRobotId && (
                 <span className="ml-2 text-sm text-blue-400">
@@ -384,7 +384,7 @@ export default function ComponentsTrendPage() {
                 </span>
               )}
             </h2>
-            <span className="text-sm text-argos-muted">
+            <span className="text-sm text-ink-500">
               총 {components?.total || 0}개
             </span>
           </div>
@@ -396,23 +396,23 @@ export default function ComponentsTrendPage() {
           ) : components?.items && components.items.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-argos-surface border-b border-argos-border">
+                <thead className="bg-white border-b border-ink-200">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-argos-muted uppercase">이름</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-argos-muted uppercase">회사</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-argos-muted uppercase">타입</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-argos-muted uppercase">핵심 지표</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-argos-muted uppercase">출시</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-argos-muted uppercase">적용 로봇</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-argos-muted uppercase">대표 로봇</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">이름</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">회사</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">타입</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">핵심 지표</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">출시</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">적용 로봇</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-ink-500 uppercase">대표 로봇</th>
                   </tr>
                 </thead>
                 <tbody>
                   {components.items.map((component: any, idx: number) => (
                     <tr
                       key={component.id}
-                      className={`border-t border-argos-borderSoft hover:bg-argos-bgAlt transition-colors cursor-pointer ${
-                        idx % 2 === 0 ? 'even:bg-argos-bgAlt/50' : ''
+                      className={`border-t border-ink-100 hover:bg-ink-100 transition-colors cursor-pointer ${
+                        idx % 2 === 0 ? 'even:bg-ink-100/50' : ''
                       }`}
                       onMouseEnter={() => setHoveredComponent(component)}
                       onMouseLeave={() => setHoveredComponent(null)}
@@ -420,21 +420,21 @@ export default function ComponentsTrendPage() {
                       <td className="px-4 py-3">
                         <Link
                           href={`/components-trend/${component.id}`}
-                          className="text-sm font-medium text-argos-ink hover:text-blue-400 transition-colors"
+                          className="text-sm font-medium text-ink-900 hover:text-blue-400 transition-colors"
                         >
                           {component.name}
                         </Link>
                       </td>
-                      <td className="px-4 py-3 text-sm text-argos-muted">
+                      <td className="px-4 py-3 text-sm text-ink-500">
                         {component.company || '-'}
                       </td>
                       <td className="px-4 py-3">
                         <ComponentTypeBadge type={component.type} />
                       </td>
-                      <td className="px-4 py-3 text-sm text-argos-inkSoft">
+                      <td className="px-4 py-3 text-sm text-ink-700">
                         <KeyMetric component={component} />
                       </td>
-                      <td className="px-4 py-3 text-sm text-argos-muted">
+                      <td className="px-4 py-3 text-sm text-ink-500">
                         {(component as any).releaseYear || '-'}
                       </td>
                       <td className="px-4 py-3">
@@ -446,13 +446,13 @@ export default function ComponentsTrendPage() {
                         {(component as any).representativeRobot ? (
                           <Link
                             href={`/humanoid-robots/${(component as any).representativeRobot.id}`}
-                            className="flex items-center gap-2 text-sm text-argos-inkSoft hover:text-argos-ink"
+                            className="flex items-center gap-2 text-sm text-ink-700 hover:text-ink-900"
                           >
                             <Bot className="w-4 h-4 text-blue-400" />
                             {(component as any).representativeRobot.name}
                           </Link>
                         ) : (
-                          <span className="text-sm text-argos-faint">-</span>
+                          <span className="text-sm text-ink-400">-</span>
                         )}
                       </td>
                     </tr>
@@ -461,28 +461,28 @@ export default function ComponentsTrendPage() {
               </table>
             </div>
           ) : (
-            <div className="p-8 text-center text-argos-faint">
+            <div className="p-8 text-center text-ink-400">
               부품 데이터가 없습니다.
             </div>
           )}
 
           {/* 페이지네이션 */}
           {components && components.total > 20 && (
-            <div className="px-4 py-3 border-t border-argos-borderSoft flex justify-center gap-2">
+            <div className="px-4 py-3 border-t border-ink-100 flex justify-center gap-2">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-4 py-1.5 text-sm rounded-lg bg-argos-chip/50 text-argos-inkSoft hover:bg-argos-bgAlt disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-1.5 text-sm rounded-lg bg-info-soft/50 text-ink-700 hover:bg-ink-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 이전
               </button>
-              <span className="px-4 py-1.5 text-sm text-argos-muted">
+              <span className="px-4 py-1.5 text-sm text-ink-500">
                 {page} / {Math.ceil(components.total / 20)}
               </span>
               <button
                 onClick={() => setPage(p => p + 1)}
                 disabled={page >= Math.ceil(components.total / 20)}
-                className="px-4 py-1.5 text-sm rounded-lg bg-argos-chip/50 text-argos-inkSoft hover:bg-argos-bgAlt disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-1.5 text-sm rounded-lg bg-info-soft/50 text-ink-700 hover:bg-ink-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 다음
               </button>
@@ -492,8 +492,8 @@ export default function ComponentsTrendPage() {
 
         {/* UsedInRobotsPanel - 호버 시 표시 */}
         {hoveredComponent && hoveredComponent.usedInRobots && hoveredComponent.usedInRobots.length > 0 && (
-          <div className="fixed bottom-4 right-4 w-72 bg-argos-surface rounded-xl border border-argos-border shadow-xl p-4 z-50">
-            <h4 className="text-sm font-medium text-argos-ink mb-3">
+          <div className="fixed bottom-4 right-4 w-72 bg-white rounded-xl border border-ink-200 shadow-xl p-4 z-50">
+            <h4 className="text-sm font-medium text-ink-900 mb-3">
               적용 로봇 ({hoveredComponent.robotCount || hoveredComponent.usedInRobots.length}개)
             </h4>
             <div className="space-y-2">
@@ -501,11 +501,11 @@ export default function ComponentsTrendPage() {
                 <Link
                   key={robot.id}
                   href={`/humanoid-robots/${robot.id}`}
-                  className="flex items-center gap-2 p-2 bg-argos-bgAlt rounded-lg hover:bg-argos-chip/50 transition-colors"
+                  className="flex items-center gap-2 p-2 bg-ink-100 rounded-lg hover:bg-info-soft/50 transition-colors"
                 >
                   <Bot className="w-5 h-5 text-blue-400" />
-                  <span className="text-sm text-argos-inkSoft">{robot.name}</span>
-                  <ChevronRight className="w-4 h-4 text-argos-faint ml-auto" />
+                  <span className="text-sm text-ink-700">{robot.name}</span>
+                  <ChevronRight className="w-4 h-4 text-ink-400 ml-auto" />
                 </Link>
               ))}
             </div>
@@ -551,31 +551,31 @@ function KeyMetric({ component }: { component: any }) {
       return (
         <span>
           {specs.tops ? `${specs.tops} TOPS` : '-'}
-          {specs.topsPerWatt && <span className="text-argos-faint ml-1">({specs.topsPerWatt} TOPS/W)</span>}
+          {specs.topsPerWatt && <span className="text-ink-400 ml-1">({specs.topsPerWatt} TOPS/W)</span>}
         </span>
       );
     case 'actuator':
       return (
         <span>
           {specs.ratedTorque ? `${specs.ratedTorque} Nm` : '-'}
-          {specs.torqueDensity && <span className="text-argos-faint ml-1">({specs.torqueDensity} Nm/kg)</span>}
+          {specs.torqueDensity && <span className="text-ink-400 ml-1">({specs.torqueDensity} Nm/kg)</span>}
         </span>
       );
     case 'sensor':
       return (
         <span>
           {specs.resolution || '-'}
-          {specs.fov && <span className="text-argos-faint ml-1">(FOV {specs.fov}°)</span>}
+          {specs.fov && <span className="text-ink-400 ml-1">(FOV {specs.fov}°)</span>}
         </span>
       );
     case 'power':
       return (
         <span>
           {specs.capacity ? `${specs.capacity} Wh` : '-'}
-          {specs.voltage && <span className="text-argos-faint ml-1">({specs.voltage}V)</span>}
+          {specs.voltage && <span className="text-ink-400 ml-1">({specs.voltage}V)</span>}
         </span>
       );
     default:
-      return <span className="text-argos-faint">-</span>;
+      return <span className="text-ink-400">-</span>;
   }
 }

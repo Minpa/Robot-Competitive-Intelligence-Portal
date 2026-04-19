@@ -38,42 +38,42 @@ export function GlobalFilterBar({
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   return (
-    <div className="bg-argos-surface border border-argos-borderSoft rounded-xl p-4 mb-6">
+    <div className="bg-white border border-ink-100 rounded-xl p-4 mb-6">
       <div className="flex flex-wrap items-center gap-4">
         {/* Date Range */}
         <div className="relative">
           <button
             onClick={() => setShowDatePicker(!showDatePicker)}
-            className="flex items-center gap-2 px-4 py-2 bg-argos-bgAlt hover:bg-argos-border rounded-lg text-sm text-argos-ink transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-ink-100 hover:bg-ink-200 rounded-lg text-sm text-ink-900 transition-colors"
           >
-            <svg className="w-4 h-4 text-argos-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-ink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <span>{dateRange.start} ~ {dateRange.end}</span>
-            <svg className="w-4 h-4 text-argos-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-ink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
 
           {showDatePicker && (
-            <div className="absolute z-50 top-full mt-2 bg-argos-surface border border-argos-border rounded-lg p-4 shadow-xl">
+            <div className="absolute z-50 top-full mt-2 bg-white border border-ink-200 rounded-lg p-4 shadow-xl">
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs text-argos-muted mb-1">시작일</label>
+                  <label className="block text-xs text-ink-500 mb-1">시작일</label>
                   <input
                     type="date"
                     value={dateRange.start}
                     onChange={(e) => onDateRangeChange({ ...dateRange, start: e.target.value })}
-                    className="w-full px-3 py-2 bg-argos-bgAlt border border-argos-border rounded text-sm text-argos-ink"
+                    className="w-full px-3 py-2 bg-ink-100 border border-ink-200 rounded text-sm text-ink-900"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-argos-muted mb-1">종료일</label>
+                  <label className="block text-xs text-ink-500 mb-1">종료일</label>
                   <input
                     type="date"
                     value={dateRange.end}
                     onChange={(e) => onDateRangeChange({ ...dateRange, end: e.target.value })}
-                    className="w-full px-3 py-2 bg-argos-bgAlt border border-argos-border rounded text-sm text-argos-ink"
+                    className="w-full px-3 py-2 bg-ink-100 border border-ink-200 rounded text-sm text-ink-900"
                   />
                 </div>
                 <button
@@ -89,11 +89,11 @@ export function GlobalFilterBar({
 
         {/* Region Filter */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-argos-muted">지역:</span>
+          <span className="text-xs text-ink-500">지역:</span>
           <select
             value={region}
             onChange={(e) => onRegionChange(e.target.value)}
-            className="px-3 py-2 bg-argos-bgAlt hover:bg-argos-border border border-argos-border rounded-lg text-sm text-argos-ink transition-colors cursor-pointer"
+            className="px-3 py-2 bg-ink-100 hover:bg-ink-200 border border-ink-200 rounded-lg text-sm text-ink-900 transition-colors cursor-pointer"
           >
             {regions.map((r) => (
               <option key={r.value} value={r.value}>{r.label}</option>
@@ -103,8 +103,8 @@ export function GlobalFilterBar({
 
         {/* Segment Filter */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-argos-muted">세그먼트:</span>
-          <div className="flex bg-argos-bgAlt rounded-lg p-1">
+          <span className="text-xs text-ink-500">세그먼트:</span>
+          <div className="flex bg-ink-100 rounded-lg p-1">
             {segments.map((s) => (
               <button
                 key={s.value}
@@ -112,7 +112,7 @@ export function GlobalFilterBar({
                 className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
                   segment === s.value
                     ? 'bg-blue-600 text-white'
-                    : 'text-argos-muted hover:text-argos-ink'
+                    : 'text-ink-500 hover:text-ink-900'
                 }`}
               >
                 {s.label}
@@ -129,9 +129,9 @@ export function GlobalFilterBar({
           <input
             type="text"
             placeholder="검색..."
-            className="w-48 px-4 py-2 pl-10 bg-argos-bgAlt border border-argos-border rounded-lg text-sm text-argos-ink placeholder-argos-muted focus:outline-none focus:border-blue-500 transition-colors"
+            className="w-48 px-4 py-2 pl-10 bg-ink-100 border border-ink-200 rounded-lg text-sm text-ink-900 placeholder-ink-500 focus:outline-none focus:border-blue-500 transition-colors"
           />
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-argos-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>

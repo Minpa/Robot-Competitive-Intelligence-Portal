@@ -46,11 +46,11 @@ export default function TimelinePage() {
       {/* Left: Chart area */}
       <div className="col-span-12 space-y-4 lg:col-span-8">
         {/* Filter bar */}
-        <div className="rounded-xl border border-argos-border bg-argos-surface p-4 shadow-argos-card">
-          <h3 className="mb-3 text-sm font-semibold text-argos-ink">필터</h3>
+        <div className="rounded-xl border border-ink-200 bg-white p-4 shadow-report">
+          <h3 className="mb-3 text-sm font-semibold text-ink-900">필터</h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs text-argos-muted">로봇 선택</label>
+              <label className="mb-1 block text-xs text-ink-500">로봇 선택</label>
               <RobotMultiSelect
                 robots={lgRobots}
                 selected={selectedRobotIds}
@@ -58,7 +58,7 @@ export default function TimelinePage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-argos-muted">팩터 선택</label>
+              <label className="mb-1 block text-xs text-ink-500">팩터 선택</label>
               <FactorMultiSelect
                 selected={selectedFactors}
                 onChange={setSelectedFactors}

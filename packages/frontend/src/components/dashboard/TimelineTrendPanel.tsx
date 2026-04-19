@@ -164,21 +164,21 @@ export function TimelineTrendPanel({
 
   if (isLoading) {
     return (
-      <div className="bg-argos-bg rounded-xl p-6 h-full animate-pulse">
-        <div className="h-6 bg-argos-bgAlt rounded w-2/3 mb-4" />
+      <div className="bg-paper rounded-xl p-6 h-full animate-pulse">
+        <div className="h-6 bg-ink-100 rounded w-2/3 mb-4" />
         <div className="flex gap-2 mb-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-8 bg-argos-surface rounded w-16" />
+            <div key={i} className="h-8 bg-white rounded w-16" />
           ))}
         </div>
-        <div className="h-48 bg-argos-surface rounded" />
+        <div className="h-48 bg-white rounded" />
       </div>
     );
   }
 
   if (data.length === 0) {
     return (
-      <div className="bg-argos-bg rounded-xl p-6 h-full">
+      <div className="bg-paper rounded-xl p-6 h-full">
         <EmptyChartPlaceholder
           title="타임라인 데이터 없음"
           message="타임라인 데이터가 없습니다"
@@ -196,7 +196,7 @@ export function TimelineTrendPanel({
       pilot: 'bg-blue-500/20 text-blue-400',
       poc: 'bg-yellow-500/20 text-yellow-400',
       prototype: 'bg-purple-500/20 text-purple-400',
-      concept: 'bg-slate-500/20 text-argos-muted',
+      concept: 'bg-slate-500/20 text-ink-500',
     };
     return (
       <span className={`px-2 py-0.5 text-[10px] font-medium rounded ${styles[stage || ''] || styles.concept}`}>
@@ -206,24 +206,24 @@ export function TimelineTrendPanel({
   };
 
   return (
-    <div className="bg-argos-bg rounded-xl p-6 h-full flex flex-col relative">
+    <div className="bg-paper rounded-xl p-6 h-full flex flex-col relative">
       {/* Header */}
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-argos-ink flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-ink-900 flex items-center gap-2">
           월별 이벤트/신규 제품 트렌드
         </h3>
-        <p className="text-xs text-argos-muted mt-1">이벤트 수(막대) vs 신규 제품(라인) · 차트 클릭 시 카테고리별 로봇 목록 표시</p>
+        <p className="text-xs text-ink-500 mt-1">이벤트 수(막대) vs 신규 제품(라인) · 차트 클릭 시 카테고리별 로봇 목록 표시</p>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-4">
-        <div className="flex bg-argos-bgAlt rounded-lg p-1">
+        <div className="flex bg-ink-100 rounded-lg p-1">
           {(['3m', '6m', '12m', '24m', '36m'] as PeriodFilter[]).map((period) => (
             <button
               key={period}
               onClick={() => setPeriodFilter(period)}
               className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                periodFilter === period ? 'bg-blue-600 text-white' : 'text-argos-muted hover:text-argos-ink'
+                periodFilter === period ? 'bg-blue-600 text-white' : 'text-ink-500 hover:text-ink-900'
               }`}
             >
               {period === '3m' ? '3개월' : period === '6m' ? '6개월' : period === '12m' ? '1년' : period === '24m' ? '2년' : '3년'}
@@ -231,7 +231,7 @@ export function TimelineTrendPanel({
           ))}
         </div>
 
-        <div className="flex bg-argos-bgAlt rounded-lg p-1">
+        <div className="flex bg-ink-100 rounded-lg p-1">
           {([
             { key: 'month' as GroupBy, label: '월별' },
             { key: 'quarter' as GroupBy, label: '분기별' },
@@ -241,7 +241,7 @@ export function TimelineTrendPanel({
               key={key}
               onClick={() => setGroupBy(key)}
               className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                groupBy === key ? 'bg-emerald-600 text-white' : 'text-argos-muted hover:text-argos-ink'
+                groupBy === key ? 'bg-emerald-600 text-white' : 'text-ink-500 hover:text-ink-900'
               }`}
             >
               {label}
@@ -258,7 +258,7 @@ export function TimelineTrendPanel({
               key={key}
               onClick={() => setEventTypes(prev => ({ ...prev, [key]: !prev[key] }))}
               className={`flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-colors ${
-                eventTypes[key] ? 'bg-argos-border text-argos-ink' : 'bg-argos-bgAlt text-argos-muted'
+                eventTypes[key] ? 'bg-ink-200 text-ink-900' : 'bg-ink-100 text-ink-500'
               }`}
             >
               <span className={`w-2 h-2 rounded-full ${color}`} />
@@ -353,15 +353,15 @@ export function TimelineTrendPanel({
 
       {/* Category selection popup */}
       {categoryPopup && !drillDownYear && (
-        <div className="absolute inset-0 z-10 bg-argos-bg/80 rounded-xl flex items-center justify-center">
-          <div className="bg-argos-surface border border-argos-border rounded-xl p-5 shadow-2xl min-w-[240px]">
+        <div className="absolute inset-0 z-10 bg-paper/80 rounded-xl flex items-center justify-center">
+          <div className="bg-white border border-ink-200 rounded-xl p-5 shadow-2xl min-w-[240px]">
             <div className="flex items-center justify-between mb-4">
-              <h4 className="text-sm font-semibold text-argos-ink">
+              <h4 className="text-sm font-semibold text-ink-900">
                 {categoryPopup.year}년 · 카테고리 선택
               </h4>
               <button
                 onClick={() => setCategoryPopup(null)}
-                className="p-1 rounded-lg text-argos-muted hover:text-argos-ink hover:bg-argos-bgAlt transition-colors"
+                className="p-1 rounded-lg text-ink-500 hover:text-ink-900 hover:bg-ink-100 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -371,17 +371,17 @@ export function TimelineTrendPanel({
                 <button
                   key={key}
                   onClick={() => handleCategorySelect(categoryPopup.year, key)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-argos-bgAlt hover:bg-argos-border transition-colors text-left group"
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-ink-100 hover:bg-ink-200 transition-colors text-left group"
                 >
                   <div className="flex items-center gap-2">
                     <span className={`w-2.5 h-2.5 rounded-full ${categoryColors[key]}`} />
-                    <span className="text-sm text-argos-ink">{categoryLabels[key]}</span>
+                    <span className="text-sm text-ink-900">{categoryLabels[key]}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-argos-muted">
+                    <span className="text-xs text-ink-500">
                       {categoryPopup[key]}{key === 'newProducts' ? '개' : '건'}
                     </span>
-                    <ExternalLink className="w-3 h-3 text-argos-muted group-hover:text-blue-400" />
+                    <ExternalLink className="w-3 h-3 text-ink-500 group-hover:text-blue-400" />
                   </div>
                 </button>
               ))}
@@ -392,16 +392,16 @@ export function TimelineTrendPanel({
 
       {/* Drill-down robot list */}
       {drillDownYear !== null && (
-        <div className="absolute inset-0 z-10 bg-argos-bg/95 rounded-xl p-6 flex flex-col overflow-hidden">
+        <div className="absolute inset-0 z-10 bg-paper/95 rounded-xl p-6 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between mb-4">
-            <h4 className="text-lg font-semibold text-argos-ink flex items-center gap-2">
+            <h4 className="text-lg font-semibold text-ink-900 flex items-center gap-2">
               <Bot className="w-5 h-5 text-orange-400" />
               {drillDownYear}년 {drillDownCategory ? categoryLabels[drillDownCategory] : ''} 로봇
-              <span className="text-sm text-argos-muted font-normal">({drillDownRobots.length}개)</span>
+              <span className="text-sm text-ink-500 font-normal">({drillDownRobots.length}개)</span>
             </h4>
             <button
               onClick={closeDrillDown}
-              className="p-1.5 rounded-lg bg-argos-surface text-argos-muted hover:text-argos-ink hover:bg-argos-bgAlt transition-colors"
+              className="p-1.5 rounded-lg bg-white text-ink-500 hover:text-ink-900 hover:bg-ink-100 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -412,7 +412,7 @@ export function TimelineTrendPanel({
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
             </div>
           ) : drillDownRobots.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center text-argos-muted">
+            <div className="flex-1 flex items-center justify-center text-ink-500">
               {drillDownYear}년 {drillDownCategory ? categoryLabels[drillDownCategory] : ''} 로봇이 없습니다.
             </div>
           ) : (
@@ -421,22 +421,22 @@ export function TimelineTrendPanel({
                 <Link
                   key={robot.id}
                   href={`/humanoid-robots/${robot.id}`}
-                  className="flex items-center justify-between p-3 bg-argos-surface rounded-lg hover:bg-argos-bgAlt transition-colors group"
+                  className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-ink-100 transition-colors group"
                 >
                   <div className="flex items-center gap-3">
                     <Bot className="w-5 h-5 text-blue-400" />
                     <div>
-                      <div className="text-sm font-medium text-argos-ink group-hover:text-blue-400 transition-colors">
+                      <div className="text-sm font-medium text-ink-900 group-hover:text-blue-400 transition-colors">
                         {robot.name}
                       </div>
-                      <div className="text-xs text-argos-muted">
+                      <div className="text-xs text-ink-500">
                         {robot.companyName || '-'} · {robot.purpose || '-'}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {stageBadge(robot.commercializationStage)}
-                    <ExternalLink className="w-3.5 h-3.5 text-argos-muted group-hover:text-blue-400" />
+                    <ExternalLink className="w-3.5 h-3.5 text-ink-500 group-hover:text-blue-400" />
                   </div>
                 </Link>
               ))}

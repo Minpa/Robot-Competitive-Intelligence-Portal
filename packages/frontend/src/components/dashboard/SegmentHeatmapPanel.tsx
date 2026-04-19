@@ -86,7 +86,7 @@ export function SegmentHeatmapPanel({
   };
 
   const getHeatmapColor = (count: number) => {
-    if (count === 0) return 'bg-argos-surface';
+    if (count === 0) return 'bg-white';
     if (count <= 2) return 'bg-blue-900/60';
     if (count <= 5) return 'bg-blue-700/70';
     if (count <= 10) return 'bg-blue-600/80';
@@ -94,17 +94,17 @@ export function SegmentHeatmapPanel({
   };
 
   const getTextColor = (count: number) => {
-    if (count === 0) return 'text-argos-muted';
+    if (count === 0) return 'text-ink-500';
     return 'text-white';
   };
 
   if (isLoading) {
     return (
-      <div className="bg-argos-bg rounded-xl p-6 h-full animate-pulse">
-        <div className="h-6 bg-argos-bgAlt rounded w-1/2 mb-4" />
+      <div className="bg-paper rounded-xl p-6 h-full animate-pulse">
+        <div className="h-6 bg-ink-100 rounded w-1/2 mb-4" />
         <div className="grid grid-cols-4 gap-2">
           {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="h-20 bg-argos-surface rounded" />
+            <div key={i} className="h-20 bg-white rounded" />
           ))}
         </div>
       </div>
@@ -113,7 +113,7 @@ export function SegmentHeatmapPanel({
 
   if (allCellsEmpty) {
     return (
-      <div className="bg-argos-bg rounded-xl p-6 h-full">
+      <div className="bg-paper rounded-xl p-6 h-full">
         <EmptyChartPlaceholder
           title="세그먼트 데이터 없음"
           message="세그먼트 데이터가 없습니다"
@@ -143,27 +143,27 @@ export function SegmentHeatmapPanel({
         <p className="mb-3">
           셀을 클릭하면 해당 조합에 속한 로봇 목록과 최근 이벤트를 확인할 수 있습니다.
         </p>
-        <p className="text-xs text-argos-muted">
+        <p className="text-xs text-ink-500">
           ※ 데이터가 적은 셀은 시각적으로 과소평가될 수 있으므로, 전체 분포를 함께 확인하세요.
         </p>
       </ChartInfoModal>
 
-      <div className="bg-argos-bg rounded-xl p-6 h-full">
+      <div className="bg-paper rounded-xl p-6 h-full">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-argos-ink flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-ink-900 flex items-center gap-2">
               <span className="text-xl">🗺️</span>
               세그먼트 매트릭스
             </h3>
-            <p className="text-xs text-argos-muted mt-1">환경 × 이동 방식별 로봇 분포</p>
+            <p className="text-xs text-ink-500 mt-1">환경 × 이동 방식별 로봇 분포</p>
           </div>
           <div className="flex items-center gap-3">
             {/* Task type dropdown filter */}
             <select
               value={activeTaskType}
               onChange={(e) => handleTaskTypeChange(e.target.value)}
-              className="text-sm bg-argos-bgAlt text-argos-inkSoft border border-argos-border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="text-sm bg-ink-100 text-ink-700 border border-ink-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {availableTaskTypes.map((type) => (
                 <option key={type} value={type}>
@@ -171,12 +171,12 @@ export function SegmentHeatmapPanel({
                 </option>
               ))}
             </select>
-            <span className="text-sm text-argos-muted bg-argos-bgAlt px-3 py-1 rounded-full">
+            <span className="text-sm text-ink-500 bg-ink-100 px-3 py-1 rounded-full">
               총 {totalCount}개
             </span>
             <button
               onClick={() => setShowInfo(true)}
-              className="rounded-md bg-argos-bgAlt px-3 py-1 text-xs font-medium text-argos-ink hover:bg-argos-border"
+              className="rounded-md bg-ink-100 px-3 py-1 text-xs font-medium text-ink-900 hover:bg-ink-200"
             >
               상세 설명
             </button>
@@ -188,9 +188,9 @@ export function SegmentHeatmapPanel({
         <table className="w-full">
           <thead>
             <tr>
-              <th className="p-2 text-left text-xs font-medium text-argos-muted uppercase w-24" />
+              <th className="p-2 text-left text-xs font-medium text-ink-500 uppercase w-24" />
               {displayCols.map((col) => (
-                <th key={col} className="p-2 text-center text-xs font-medium text-argos-muted uppercase">
+                <th key={col} className="p-2 text-center text-xs font-medium text-ink-500 uppercase">
                   {locomotionLabels[col] || col}
                 </th>
               ))}
@@ -199,7 +199,7 @@ export function SegmentHeatmapPanel({
           <tbody>
             {displayRows.map((row) => (
               <tr key={row}>
-                <td className="p-2 text-sm font-medium text-argos-inkSoft">
+                <td className="p-2 text-sm font-medium text-ink-700">
                   {environmentLabels[row] || row}
                 </td>
                 {displayCols.map((col) => {
@@ -226,17 +226,17 @@ export function SegmentHeatmapPanel({
 
                         {/* Hover tooltip */}
                         {isHovered && cell.count > 0 && (
-                          <div className="absolute z-50 left-1/2 -translate-x-1/2 top-full mt-2 bg-argos-surface border border-argos-border rounded-lg p-3 shadow-xl min-w-[180px]">
-                            <div className="text-xs text-argos-muted mb-2">Top 3 로봇</div>
+                          <div className="absolute z-50 left-1/2 -translate-x-1/2 top-full mt-2 bg-white border border-ink-200 rounded-lg p-3 shadow-xl min-w-[180px]">
+                            <div className="text-xs text-ink-500 mb-2">Top 3 로봇</div>
                             <ul className="space-y-1">
                               {cell.robots.slice(0, 3).map((robot) => (
-                                <li key={robot.id} className="text-sm text-argos-ink truncate">
+                                <li key={robot.id} className="text-sm text-ink-900 truncate">
                                   • {robot.name}
                                 </li>
                               ))}
                             </ul>
                             {cell.robots.length > 3 && (
-                              <div className="text-xs text-argos-muted mt-2">
+                              <div className="text-xs text-ink-500 mt-2">
                                 +{cell.robots.length - 3}개 더보기
                               </div>
                             )}
@@ -253,10 +253,10 @@ export function SegmentHeatmapPanel({
       </div>
 
       {/* Legend */}
-      <div className="flex items-center justify-end gap-2 mt-4 text-xs text-argos-muted">
+      <div className="flex items-center justify-end gap-2 mt-4 text-xs text-ink-500">
         <span>적음</span>
         <div className="flex gap-1">
-          <div className="w-4 h-4 rounded bg-argos-surface" />
+          <div className="w-4 h-4 rounded bg-white" />
           <div className="w-4 h-4 rounded bg-blue-900/60" />
           <div className="w-4 h-4 rounded bg-blue-700/70" />
           <div className="w-4 h-4 rounded bg-blue-600/80" />

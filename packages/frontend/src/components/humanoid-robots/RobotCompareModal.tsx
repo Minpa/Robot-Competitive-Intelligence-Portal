@@ -87,30 +87,30 @@ export function RobotCompareModal({ robots, onClose }: RobotCompareModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-argos-surface rounded-xl border border-argos-border shadow-argos-raised w-full max-w-5xl max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-xl border border-ink-200 shadow-report-lg w-full max-w-5xl max-h-[90vh] overflow-hidden">
         {/* 헤더 */}
-        <div className="flex items-center justify-between p-4 border-b border-argos-border">
-          <h2 className="text-lg font-semibold text-argos-ink">로봇 비교 ({robots.length}개)</h2>
+        <div className="flex items-center justify-between p-4 border-b border-ink-200">
+          <h2 className="text-lg font-semibold text-ink-900">로봇 비교 ({robots.length}개)</h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-argos-bgAlt transition-colors"
+            className="p-2 rounded-lg hover:bg-ink-100 transition-colors"
           >
-            <X className="w-5 h-5 text-argos-muted" />
+            <X className="w-5 h-5 text-ink-500" />
           </button>
         </div>
 
         {/* 비교 테이블 */}
         <div className="overflow-auto max-h-[calc(90vh-80px)]">
           <table className="w-full">
-            <thead className="sticky top-0 bg-argos-bgAlt">
+            <thead className="sticky top-0 bg-ink-100">
               <tr>
-                <th className="text-left p-3 text-sm font-medium text-argos-muted border-b border-argos-border min-w-[120px]">
+                <th className="text-left p-3 text-sm font-medium text-ink-500 border-b border-ink-200 min-w-[120px]">
                   항목
                 </th>
                 {robots.map((robot) => (
                   <th
                     key={robot.id}
-                    className="text-left p-3 text-sm font-semibold text-argos-ink border-b border-argos-border min-w-[150px]"
+                    className="text-left p-3 text-sm font-semibold text-ink-900 border-b border-ink-200 min-w-[150px]"
                   >
                     {robot.name}
                   </th>
@@ -119,14 +119,14 @@ export function RobotCompareModal({ robots, onClose }: RobotCompareModalProps) {
             </thead>
             <tbody>
               {SPEC_ROWS.map((row, idx) => (
-                <tr key={row.key} className={idx % 2 === 0 ? 'bg-argos-bg/30' : ''}>
-                  <td className="p-3 text-sm text-argos-muted border-b border-argos-borderSoft">
+                <tr key={row.key} className={idx % 2 === 0 ? 'bg-paper/30' : ''}>
+                  <td className="p-3 text-sm text-ink-500 border-b border-ink-100">
                     {row.label}
                   </td>
                   {robots.map((robot) => (
                     <td
                       key={robot.id}
-                      className="p-3 text-sm text-argos-inkSoft border-b border-argos-borderSoft"
+                      className="p-3 text-sm text-ink-700 border-b border-ink-100"
                     >
                       {row.format((robot as any)[row.key], robot)}
                     </td>

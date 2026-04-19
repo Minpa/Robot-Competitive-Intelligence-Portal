@@ -32,7 +32,7 @@ export function SubCategoryTabs({ selected, onChange, visible }: Props) {
             'whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
             selected === s.key
               ? 'bg-indigo-600 text-white'
-              : 'bg-argos-bgAlt text-argos-muted hover:bg-argos-bgAlt hover:text-argos-inkSoft'
+              : 'bg-ink-100 text-ink-500 hover:bg-ink-100 hover:text-ink-700'
           )}
         >
           {s.label}

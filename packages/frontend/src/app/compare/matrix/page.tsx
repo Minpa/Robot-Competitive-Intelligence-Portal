@@ -21,7 +21,7 @@ function MatrixContent() {
           <>
             <button
               onClick={() => setShowAddCompetitor(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-argos-chip/50 text-argos-inkSoft text-sm hover:bg-argos-bgAlt transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-info-soft/50 text-ink-700 text-sm hover:bg-ink-100 transition-colors"
             >
               <span>+</span>
               <span>경쟁사 추가</span>
@@ -39,7 +39,7 @@ function MatrixContent() {
 
       {isLoading && (
         <div className="flex items-center justify-center py-20">
-          <div className="text-argos-muted text-sm">CI 매트릭스 로딩 중...</div>
+          <div className="text-ink-500 text-sm">CI 매트릭스 로딩 중...</div>
         </div>
       )}
       {error && (
@@ -48,12 +48,12 @@ function MatrixContent() {
         </div>
       )}
       {matrixData && (
-        <div className="bg-argos-surface rounded-xl border border-argos-border p-4">
+        <div className="bg-white rounded-xl border border-ink-200 p-4">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-xs text-argos-muted">
+            <div className="text-xs text-ink-500">
               {matrixData.competitors.length}개 경쟁사 × {matrixData.layers.length}개 레이어
             </div>
-            <div className="flex items-center gap-3 text-[10px] text-argos-faint">
+            <div className="flex items-center gap-3 text-[10px] text-ink-400">
               <span>신뢰도:</span>
               <span className="text-green-400">A 확인</span>
               <span className="text-blue-400">B 높음</span>

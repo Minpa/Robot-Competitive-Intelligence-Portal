@@ -190,7 +190,7 @@ export default function CompaniesPage() {
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
                   isSelected
                     ? 'bg-blue-500/20 text-blue-400 border-blue-500/50'
-                    : 'bg-argos-surface border-argos-borderSoft text-argos-muted hover:border-argos-blue/30'
+                    : 'bg-white border-ink-100 text-ink-500 hover:border-info/30'
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -201,11 +201,11 @@ export default function CompaniesPage() {
         </div>
 
         {/* 검색 및 추가 필터 */}
-        <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-4 mb-6">
+        <div className="bg-white backdrop-blur rounded-xl border border-ink-100 p-4 mb-6">
           <div className="flex flex-wrap gap-3 items-center">
             {/* 검색 */}
             <div className="relative flex-1 min-w-[200px] max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-argos-faint" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-ink-400" />
               <input
                 type="text"
                 placeholder="회사명 검색..."
@@ -214,7 +214,7 @@ export default function CompaniesPage() {
                   setSearchTerm(e.target.value);
                   setPage(1);
                 }}
-                className="w-full pl-10 pr-4 py-2 bg-white border border-argos-border rounded-lg text-argos-ink placeholder-argos-faint focus:ring-2 focus:ring-argos-blue focus:border-argos-blue text-sm"
+                className="w-full pl-10 pr-4 py-2 bg-white border border-ink-200 rounded-lg text-ink-900 placeholder-ink-400 focus:ring-2 focus:ring-info focus:border-info text-sm"
               />
             </div>
 
@@ -222,7 +222,7 @@ export default function CompaniesPage() {
             <select
               value={filters.segment}
               onChange={(e) => handleFilterChange('segment', e.target.value)}
-              className="px-3 py-2 bg-white border border-argos-border rounded-lg text-argos-inkSoft focus:ring-2 focus:ring-argos-blue text-sm"
+              className="px-3 py-2 bg-white border border-ink-200 rounded-lg text-ink-700 focus:ring-2 focus:ring-info text-sm"
             >
               {SEGMENT_FILTERS.map(seg => (
                 <option key={seg.id} value={seg.id}>{seg.label}</option>
@@ -233,7 +233,7 @@ export default function CompaniesPage() {
             <select
               value={filters.country}
               onChange={(e) => handleFilterChange('country', e.target.value)}
-              className="px-3 py-2 bg-white border border-argos-border rounded-lg text-argos-inkSoft focus:ring-2 focus:ring-argos-blue text-sm"
+              className="px-3 py-2 bg-white border border-ink-200 rounded-lg text-ink-700 focus:ring-2 focus:ring-info text-sm"
             >
               {COUNTRIES.map(c => (
                 <option key={c.id} value={c.id}>{c.label}</option>
@@ -244,7 +244,7 @@ export default function CompaniesPage() {
             <select
               value={filters.sortBy}
               onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-              className="px-3 py-2 bg-white border border-argos-border rounded-lg text-argos-inkSoft focus:ring-2 focus:ring-argos-blue text-sm"
+              className="px-3 py-2 bg-white border border-ink-200 rounded-lg text-ink-700 focus:ring-2 focus:ring-info text-sm"
             >
               {SORT_OPTIONS.map(opt => (
                 <option key={opt.id} value={opt.id}>{opt.label}</option>
@@ -253,26 +253,26 @@ export default function CompaniesPage() {
           </div>
 
           {/* 토글 옵션 */}
-          <div className="flex gap-4 mt-3 pt-3 border-t border-argos-borderSoft">
+          <div className="flex gap-4 mt-3 pt-3 border-t border-ink-100">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={showKeyPlayersOnly}
                 onChange={(e) => setShowKeyPlayersOnly(e.target.checked)}
-                className="rounded border-argos-border bg-white text-blue-500 focus:ring-argos-blue"
+                className="rounded border-ink-200 bg-white text-blue-500 focus:ring-info"
               />
               <Star className="w-4 h-4 text-yellow-500" />
-              <span className="text-sm text-argos-muted">핵심 플레이어만</span>
+              <span className="text-sm text-ink-500">핵심 플레이어만</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={groupByRole}
                 onChange={(e) => setGroupByRole(e.target.checked)}
-                className="rounded border-argos-border bg-white text-blue-500 focus:ring-argos-blue"
+                className="rounded border-ink-200 bg-white text-blue-500 focus:ring-info"
               />
-              <Filter className="w-4 h-4 text-argos-faint" />
-              <span className="text-sm text-argos-muted">역할별 그룹핑</span>
+              <Filter className="w-4 h-4 text-ink-400" />
+              <span className="text-sm text-ink-500">역할별 그룹핑</span>
             </label>
           </div>
         </div>
@@ -290,10 +290,10 @@ export default function CompaniesPage() {
               const groupInfo = GROUP_LABELS[groupKey] || { label: groupKey, icon: '' };
               return (
                 <div key={groupKey}>
-                  <h2 className="text-lg font-semibold text-argos-ink mb-4 flex items-center gap-2">
+                  <h2 className="text-lg font-semibold text-ink-900 mb-4 flex items-center gap-2">
                     <span>{groupInfo.icon}</span>
                     {groupInfo.label}
-                    <span className="text-sm font-normal text-argos-faint">({companies.length})</span>
+                    <span className="text-sm font-normal text-ink-400">({companies.length})</span>
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {companies.map((company: any) => (
@@ -314,7 +314,7 @@ export default function CompaniesPage() {
         )}
 
         {enrichedCompanies.length === 0 && !isLoading && (
-          <div className="text-center py-12 text-argos-faint">
+          <div className="text-center py-12 text-ink-400">
             {searchTerm
               ? `"${searchTerm}" 검색 결과가 없습니다.`
               : filters.role
@@ -329,17 +329,17 @@ export default function CompaniesPage() {
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="p-2 rounded-lg bg-argos-surface border border-argos-borderSoft text-argos-muted disabled:opacity-50 disabled:cursor-not-allowed hover:bg-argos-bgAlt transition-colors"
+              className="p-2 rounded-lg bg-white border border-ink-100 text-ink-500 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-ink-100 transition-colors"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <span className="px-4 py-2 text-sm text-argos-muted">
+            <span className="px-4 py-2 text-sm text-ink-500">
               {page} / {totalPages}
             </span>
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="p-2 rounded-lg bg-argos-surface border border-argos-borderSoft text-argos-muted disabled:opacity-50 disabled:cursor-not-allowed hover:bg-argos-bgAlt transition-colors"
+              className="p-2 rounded-lg bg-white border border-ink-100 text-ink-500 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-ink-100 transition-colors"
             >
               <ChevronRight className="w-5 h-5" />
             </button>

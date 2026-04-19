@@ -50,7 +50,7 @@ const ENTITY_GROUPS = [
 
 function ConfidenceBadge({ confidence }: { confidence: number }) {
   const pct = Math.round(confidence * 100);
-  const color = pct >= 80 ? 'text-emerald-600' : pct >= 50 ? 'text-amber-500' : 'text-argos-muted';
+  const color = pct >= 80 ? 'text-emerald-600' : pct >= 50 ? 'text-amber-500' : 'text-ink-500';
   return <span className={`ml-1.5 text-xs ${color}`}>{pct}%</span>;
 }
 
@@ -68,9 +68,9 @@ function EntityCard({
   const [showDropdown, setShowDropdown] = useState(false);
 
   return (
-    <div className="flex items-center justify-between gap-2 px-3 py-2 bg-argos-bgAlt border border-argos-border rounded-lg">
+    <div className="flex items-center justify-between gap-2 px-3 py-2 bg-ink-100 border border-ink-200 rounded-lg">
       <div className="flex items-center gap-2 min-w-0">
-        <span className="text-sm text-argos-inkSoft truncate" title={entity.context}>
+        <span className="text-sm text-ink-700 truncate" title={entity.context}>
           {entity.name}
         </span>
         <ConfidenceBadge confidence={entity.confidence} />
@@ -95,7 +95,7 @@ function EntityCard({
             <ChevronDown className="w-3 h-3" />
           </button>
           {showDropdown && linkCandidates.length > 0 && (
-            <div className="absolute right-0 top-full mt-1 z-20 w-56 bg-argos-surface border border-argos-border rounded-lg shadow-argos-raised overflow-hidden">
+            <div className="absolute right-0 top-full mt-1 z-20 w-56 bg-white border border-ink-200 rounded-lg shadow-report-lg overflow-hidden">
               {linkCandidates.map((candidate) => (
                 <button
                   key={candidate.entityId}
@@ -103,10 +103,10 @@ function EntityCard({
                     onLinkEntity(entity.name, candidate.entityId);
                     setShowDropdown(false);
                   }}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-argos-bgAlt transition-colors flex items-center justify-between cursor-pointer"
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-ink-100 transition-colors flex items-center justify-between cursor-pointer"
                 >
-                  <span className="text-argos-inkSoft truncate">{candidate.entityName}</span>
-                  <span className="text-xs text-argos-muted shrink-0 ml-2">
+                  <span className="text-ink-700 truncate">{candidate.entityName}</span>
+                  <span className="text-xs text-ink-500 shrink-0 ml-2">
                     {Math.round(candidate.similarityScore * 100)}%
                     {candidate.isAutoRecommended && <span className="ml-0.5 text-amber-500">추천</span>}
                   </span>
@@ -115,8 +115,8 @@ function EntityCard({
             </div>
           )}
           {showDropdown && linkCandidates.length === 0 && (
-            <div className="absolute right-0 top-full mt-1 z-20 w-48 bg-argos-surface border border-argos-border rounded-lg shadow-argos-raised p-3">
-              <p className="text-xs text-argos-muted">연결 후보가 없습니다</p>
+            <div className="absolute right-0 top-full mt-1 z-20 w-48 bg-white border border-ink-200 rounded-lg shadow-report-lg p-3">
+              <p className="text-xs text-ink-500">연결 후보가 없습니다</p>
             </div>
           )}
         </div>
@@ -137,11 +137,11 @@ export function InsightPanel({
   // Empty state
   if (!result) {
     return (
-      <div className="bg-argos-bg border border-argos-border rounded-xl p-8 text-center">
-        <div className="w-16 h-16 mx-auto mb-4 bg-argos-bgAlt rounded-full flex items-center justify-center">
-          <Lightbulb className="w-8 h-8 text-argos-faint" />
+      <div className="bg-paper border border-ink-200 rounded-xl p-8 text-center">
+        <div className="w-16 h-16 mx-auto mb-4 bg-ink-100 rounded-full flex items-center justify-center">
+          <Lightbulb className="w-8 h-8 text-ink-400" />
         </div>
-        <p className="text-argos-muted">분석 결과가 여기에 표시됩니다</p>
+        <p className="text-ink-500">분석 결과가 여기에 표시됩니다</p>
       </div>
     );
   }
@@ -150,7 +150,7 @@ export function InsightPanel({
     <div className="space-y-4">
       {/* Duplicate warning */}
       {isDuplicate && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-argos-warningBg border border-amber-500/30 rounded-xl text-amber-600 text-sm">
+        <div className="flex items-center gap-2 px-4 py-3 bg-warn-soft border border-amber-500/30 rounded-xl text-amber-600 text-sm">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           <span>이미 저장된 기사와 중복됩니다. 저장이 제한됩니다.</span>
         </div>
@@ -158,7 +158,7 @@ export function InsightPanel({
 
       {/* Save success */}
       {saveSuccess && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-argos-successBg border border-emerald-500/30 rounded-xl text-emerald-600 text-sm">
+        <div className="flex items-center gap-2 px-4 py-3 bg-pos-soft border border-emerald-500/30 rounded-xl text-emerald-600 text-sm">
           <CheckCircle className="w-4 h-4 shrink-0" />
           <span>DB에 성공적으로 저장되었습니다.</span>
         </div>
@@ -166,12 +166,12 @@ export function InsightPanel({
 
       {/* Summary section */}
       {result.summary && (
-        <div className="bg-argos-bgAlt border border-argos-border rounded-xl p-5">
-          <h3 className="text-sm font-medium text-argos-inkSoft mb-2 flex items-center gap-2">
+        <div className="bg-ink-100 border border-ink-200 rounded-xl p-5">
+          <h3 className="text-sm font-medium text-ink-700 mb-2 flex items-center gap-2">
             <Lightbulb className="w-4 h-4 text-amber-500" />
             요약
           </h3>
-          <p className="text-argos-inkSoft text-sm leading-relaxed whitespace-pre-wrap">
+          <p className="text-ink-700 text-sm leading-relaxed whitespace-pre-wrap">
             {result.summary}
           </p>
         </div>
@@ -184,8 +184,8 @@ export function InsightPanel({
           if (!keywords || keywords.length === 0) return null;
           const Icon = group.icon;
           return (
-            <div key={group.key} className="bg-argos-bgAlt border border-argos-border rounded-xl p-5">
-              <h3 className="text-sm font-medium text-argos-inkSoft mb-3 flex items-center gap-2">
+            <div key={group.key} className="bg-ink-100 border border-ink-200 rounded-xl p-5">
+              <h3 className="text-sm font-medium text-ink-700 mb-3 flex items-center gap-2">
                 <Icon className="w-4 h-4 text-cyan-600" />
                 {group.label} ({keywords.length})
               </h3>
@@ -211,8 +211,8 @@ export function InsightPanel({
         const Icon = group.icon;
 
         return (
-          <div key={group.key} className="bg-argos-bgAlt border border-argos-border rounded-xl p-5">
-            <h3 className="text-sm font-medium text-argos-inkSoft mb-3 flex items-center gap-2">
+          <div key={group.key} className="bg-ink-100 border border-ink-200 rounded-xl p-5">
+            <h3 className="text-sm font-medium text-ink-700 mb-3 flex items-center gap-2">
               <Icon className="w-4 h-4" />
               {group.label} ({entities.length})
             </h3>
@@ -233,8 +233,8 @@ export function InsightPanel({
 
       {/* Source info (AI agent mode only) */}
       {sourceType === 'ai-agent' && result.sources && result.sources.length > 0 && (
-        <div className="bg-argos-bgAlt border border-argos-border rounded-xl p-5">
-          <h3 className="text-sm font-medium text-argos-inkSoft mb-3 flex items-center gap-2">
+        <div className="bg-ink-100 border border-ink-200 rounded-xl p-5">
+          <h3 className="text-sm font-medium text-ink-700 mb-3 flex items-center gap-2">
             <Globe className="w-4 h-4 text-blue-600" />
             참고 출처 ({result.sources.length})
           </h3>
@@ -242,11 +242,11 @@ export function InsightPanel({
             {result.sources.map((src, i) => (
               <li
                 key={i}
-                className="flex items-start gap-2 text-sm text-argos-muted"
+                className="flex items-start gap-2 text-sm text-ink-500"
               >
-                <Globe className="w-3.5 h-3.5 mt-0.5 shrink-0 text-argos-faint" />
+                <Globe className="w-3.5 h-3.5 mt-0.5 shrink-0 text-ink-400" />
                 <span>
-                  <span className="text-argos-inkSoft">{src.domain}</span>
+                  <span className="text-ink-700">{src.domain}</span>
                   {' — '}
                   {src.title}
                 </span>

@@ -41,20 +41,20 @@ export function RobotMultiSelect({ robots, selected, onChange }: RobotMultiSelec
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between rounded-lg border border-argos-border bg-argos-surface px-3 py-2 text-sm text-argos-ink hover:border-argos-border"
+        className="flex w-full items-center justify-between rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-900 hover:border-ink-200"
       >
         <span className="truncate">
           {selected.length === 0
             ? '로봇 선택 (최대 10개)'
             : `${selectedNames.slice(0, 2).join(', ')}${selected.length > 2 ? ` 외 ${selected.length - 2}개` : ''}`}
         </span>
-        <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-argos-muted" />
+        <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-ink-500" />
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-argos-border bg-argos-surface shadow-xl">
+        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-ink-200 bg-white shadow-xl">
           {robots.length === 0 ? (
-            <p className="p-3 text-sm text-argos-muted">로봇이 없습니다</p>
+            <p className="p-3 text-sm text-ink-500">로봇이 없습니다</p>
           ) : (
             robots.map((robot) => {
               const checked = selected.includes(robot.id);
@@ -62,18 +62,18 @@ export function RobotMultiSelect({ robots, selected, onChange }: RobotMultiSelec
               return (
                 <label
                   key={robot.id}
-                  className={`flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-argos-bgAlt ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
+                  className={`flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-ink-100 ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
                 >
                   <input
                     type="checkbox"
                     checked={checked}
                     disabled={disabled}
                     onChange={() => toggle(robot.id)}
-                    className="h-3.5 w-3.5 rounded border-argos-border bg-argos-bgAlt text-blue-500 focus:ring-blue-500/30"
+                    className="h-3.5 w-3.5 rounded border-ink-200 bg-ink-100 text-blue-500 focus:ring-blue-500/30"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm text-argos-ink">{robot.name}</p>
-                    <p className="truncate text-xs text-argos-muted">{robot.companyName}</p>
+                    <p className="truncate text-sm text-ink-900">{robot.name}</p>
+                    <p className="truncate text-xs text-ink-500">{robot.companyName}</p>
                   </div>
                 </label>
               );

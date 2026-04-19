@@ -63,8 +63,8 @@ export default function LgRobotManagementPage() {
             />
           </>
         ) : (
-          <div className="flex h-64 items-center justify-center rounded-xl border border-argos-border bg-argos-surface shadow-argos-card">
-            <p className="text-sm text-argos-muted">
+          <div className="flex h-64 items-center justify-center rounded-xl border border-ink-200 bg-white shadow-report">
+            <p className="text-sm text-ink-500">
               왼쪽 목록에서 로봇을 선택하세요
             </p>
           </div>

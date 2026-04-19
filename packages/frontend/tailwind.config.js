@@ -21,35 +21,6 @@ module.exports = {
           900: 'rgb(var(--color-slate-900) / <alpha-value>)',
           950: 'rgb(var(--color-slate-950) / <alpha-value>)',
         },
-        // ARGOS design system palette (fixed — does not theme-swap)
-        argos: {
-          bg:         '#F4F6FA', // page background
-          bgAlt:      '#EEF1F6', // alternate surface
-          surface:    '#FFFFFF', // cards
-          border:     '#E5E9F0', // card / divider border
-          borderSoft: '#EEF1F6', // faint dividers
-          ink:        '#1E2838', // primary navy ink
-          inkSoft:    '#4A5468', // secondary ink
-          muted:      '#6B7585', // muted text
-          faint:      '#98A2B3', // caption / placeholder
-          navy:       '#1E2838', // dark blocks (sidebar logo block, dark buttons)
-          navyDark:   '#141B26', // darker navy
-          blue:       '#2563EB', // primary accent
-          blueHover:  '#1D4ED8',
-          blueSoft:   '#3B82F6',
-          chip:       '#DBE8FA', // soft blue chip bg
-          chipInk:    '#2563EB',
-          chipAlt:    '#E8EEFB',
-          success:    '#22C55E',
-          successBg:  '#DCFCE7',
-          successInk: '#15803D',
-          danger:     '#EF4444',
-          dangerBg:   '#FEE2E2',
-          dangerInk:  '#B91C1C',
-          warning:    '#F59E0B',
-          warningBg:  '#FEF3C7',
-          warningInk: '#B45309',
-        },
         // ARGOS v2 — consulting report palette (active design system)
         ink: {
           50:  '#F6F7F9',
@@ -85,8 +56,8 @@ module.exports = {
         mono:    ['var(--font-mono)', '"JetBrains Mono"', '"SF Mono"', 'Menlo', 'monospace'],
       },
       boxShadow: {
-        'argos-card': '0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06)',
-        'argos-raised': '0 4px 12px rgba(16, 24, 40, 0.06), 0 2px 4px rgba(16, 24, 40, 0.04)',
+        'report':    '0 1px 2px rgba(11, 30, 58, 0.04), 0 1px 3px rgba(11, 30, 58, 0.06)',
+        'report-lg': '0 4px 12px rgba(11, 30, 58, 0.06), 0 2px 4px rgba(11, 30, 58, 0.04)',
       },
     },
   },

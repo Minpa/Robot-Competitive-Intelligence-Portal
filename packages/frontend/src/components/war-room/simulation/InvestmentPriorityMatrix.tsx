@@ -28,9 +28,9 @@ export function InvestmentPriorityMatrix() {
 
   if (isLoading) {
     return (
-      <div className="rounded-lg bg-argos-surface border border-argos-borderSoft p-4">
-        <div className="h-5 w-40 bg-argos-bgAlt rounded animate-pulse mb-4" />
-        <div className="h-64 bg-argos-bgAlt rounded animate-pulse" />
+      <div className="rounded-lg bg-white border border-ink-100 p-4">
+        <div className="h-5 w-40 bg-ink-100 rounded animate-pulse mb-4" />
+        <div className="h-64 bg-ink-100 rounded animate-pulse" />
       </div>
     );
   }
@@ -44,10 +44,10 @@ export function InvestmentPriorityMatrix() {
   }));
 
   return (
-    <div className="rounded-lg bg-argos-surface border border-argos-borderSoft p-4">
-      <h3 className="text-sm font-semibold text-argos-ink mb-4">투자 우선순위 매트릭스</h3>
+    <div className="rounded-lg bg-white border border-ink-100 p-4">
+      <h3 className="text-sm font-semibold text-ink-900 mb-4">투자 우선순위 매트릭스</h3>
       {chartData.length === 0 ? (
-        <p className="text-xs text-argos-muted text-center py-8">데이터 없음</p>
+        <p className="text-xs text-ink-500 text-center py-8">데이터 없음</p>
       ) : (
         <ResponsiveContainer width="100%" height={280}>
           <ScatterChart margin={{ top: 10, right: 10, bottom: 25, left: 10 }}>

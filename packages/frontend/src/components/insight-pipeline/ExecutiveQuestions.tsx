@@ -23,8 +23,8 @@ const EXECUTIVE_QUESTIONS = [
 export function ExecutiveQuestions({ activeTab, onQuestionClick }: ExecutiveQuestionsProps) {
   if (activeTab === 'manual') {
     return (
-      <div className="bg-argos-surface border border-argos-border rounded-xl p-4">
-        <div className="flex items-center gap-2 text-argos-muted text-sm">
+      <div className="bg-white border border-ink-200 rounded-xl p-4">
+        <div className="flex items-center gap-2 text-ink-500 text-sm">
           <Info className="w-4 h-4 shrink-0" />
           <span>이 기사에서 어떤 회사/제품/부품 정보를 추출할 수 있을까?</span>
         </div>
@@ -33,8 +33,8 @@ export function ExecutiveQuestions({ activeTab, onQuestionClick }: ExecutiveQues
   }
 
   return (
-    <div className="bg-argos-surface border border-argos-border rounded-xl p-4">
-      <h3 className="text-sm font-medium text-argos-inkSoft mb-3 flex items-center gap-2">
+    <div className="bg-white border border-ink-200 rounded-xl p-4">
+      <h3 className="text-sm font-medium text-ink-700 mb-3 flex items-center gap-2">
         <Lightbulb className="w-4 h-4 text-amber-500" />
         경영진 핵심 질문
       </h3>

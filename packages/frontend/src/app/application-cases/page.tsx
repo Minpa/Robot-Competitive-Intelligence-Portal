@@ -266,16 +266,16 @@ export default function ApplicationCasesPage() {
         {/* 상단 인사이트 영역 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           {/* 좌측: 환경×작업 매트릭스 */}
-          <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-5">
+          <div className="bg-white backdrop-blur rounded-xl border border-ink-100 p-5">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-argos-ink">환경 × 작업 매트릭스</h2>
+              <h2 className="text-lg font-semibold text-ink-900">환경 × 작업 매트릭스</h2>
             </div>
 
             {/* 한줄 인사이트 */}
             <p className="text-sm text-cyan-400 mb-2">{matrixInsight}</p>
 
             {/* 기간별 변화 */}
-            <div className="flex items-center gap-2 text-xs text-argos-muted mb-4 bg-white rounded-lg px-3 py-2 border border-argos-borderSoft">
+            <div className="flex items-center gap-2 text-xs text-ink-500 mb-4 bg-white rounded-lg px-3 py-2 border border-ink-100">
               <TrendingUp className="w-4 h-4 text-green-400" />
               <span>{periodChangeText}</span>
             </div>
@@ -285,9 +285,9 @@ export default function ApplicationCasesPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr>
-                    <th className="p-2 text-left text-argos-faint"></th>
+                    <th className="p-2 text-left text-ink-400"></th>
                     {TASK_TYPES.slice(1, 6).map(task => (
-                      <th key={task.id} className="p-2 text-center text-argos-muted font-medium">
+                      <th key={task.id} className="p-2 text-center text-ink-500 font-medium">
                         {task.label}
                       </th>
                     ))}
@@ -298,7 +298,7 @@ export default function ApplicationCasesPage() {
                     const Icon = env.icon || HelpCircle;
                     return (
                       <tr key={env.id}>
-                        <td className="p-2 text-argos-inkSoft flex items-center gap-1">
+                        <td className="p-2 text-ink-700 flex items-center gap-1">
                           <Icon className="w-3 h-3" />
                           {env.label}
                         </td>
@@ -312,7 +312,7 @@ export default function ApplicationCasesPage() {
                                 className={`w-8 h-8 rounded text-xs font-medium transition-all ${
                                   count > 0
                                     ? 'bg-blue-500/30 text-blue-300 hover:bg-blue-500/50'
-                                    : 'bg-argos-bgAlt text-argos-faint hover:bg-argos-chip/50'
+                                    : 'bg-ink-100 text-ink-400 hover:bg-info-soft/50'
                                 }`}
                               >
                                 {count || '-'}
@@ -329,9 +329,9 @@ export default function ApplicationCasesPage() {
           </div>
 
           {/* 우측: 최근 적용·도입 이벤트 */}
-          <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-5">
+          <div className="bg-white backdrop-blur rounded-xl border border-ink-100 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-argos-ink">최근 적용·도입 이벤트</h2>
+              <h2 className="text-lg font-semibold text-ink-900">최근 적용·도입 이벤트</h2>
               <div className="flex items-center gap-3 text-xs">
                 <span className="text-green-400">상용 {stats.pocToProductionCount}</span>
                 <span className="text-blue-400">파일럿 {stats.pilotCount}</span>
@@ -348,30 +348,30 @@ export default function ApplicationCasesPage() {
                   <div
                     key={item.id}
                     onClick={() => handleCaseClick(item.id)}
-                    className="p-3 bg-white rounded-lg border border-argos-borderSoft hover:border-argos-blue/30 hover:bg-argos-bgAlt transition-colors cursor-pointer group"
+                    className="p-3 bg-white rounded-lg border border-ink-100 hover:border-info/30 hover:bg-ink-100 transition-colors cursor-pointer group"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <Icon className="w-4 h-4 text-argos-muted" />
-                          <span className="text-sm font-medium text-argos-ink group-hover:text-blue-400 transition-colors">
+                          <Icon className="w-4 h-4 text-ink-500" />
+                          <span className="text-sm font-medium text-ink-900 group-hover:text-blue-400 transition-colors">
                             {item.title}
                           </span>
                           <span className={`px-1.5 py-0.5 text-[10px] rounded ${statusConf.bg} ${statusConf.text}`}>
                             {statusConf.label}
                           </span>
                         </div>
-                        <p className="text-xs text-argos-faint">
-                          {item.robotName && <span className="text-argos-muted">{item.robotName}</span>}
+                        <p className="text-xs text-ink-400">
+                          {item.robotName && <span className="text-ink-500">{item.robotName}</span>}
                           {item.companyName && <span> · {item.companyName}</span>}
                         </p>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-argos-faint group-hover:text-argos-muted" />
+                      <ChevronRight className="w-4 h-4 text-ink-400 group-hover:text-ink-500" />
                     </div>
                   </div>
                 );
               }) : (
-                <div className="text-center text-argos-faint py-8">
+                <div className="text-center text-ink-400 py-8">
                   최근 이벤트가 없습니다
                 </div>
               )}
@@ -380,15 +380,15 @@ export default function ApplicationCasesPage() {
         </div>
 
         {/* 필터 바 */}
-        <div className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-4 mb-6">
+        <div className="bg-white backdrop-blur rounded-xl border border-ink-100 p-4 mb-6">
           <div className="flex flex-wrap items-center gap-4">
             {/* 환경 */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-argos-faint">환경:</span>
+              <span className="text-xs text-ink-400">환경:</span>
               <select
                 value={filters.environment}
                 onChange={(e) => setFilters(prev => ({ ...prev, environment: e.target.value }))}
-                className="bg-white border-argos-border text-argos-inkSoft text-sm rounded-lg px-2 py-1.5"
+                className="bg-white border-ink-200 text-ink-700 text-sm rounded-lg px-2 py-1.5"
               >
                 {ENVIRONMENTS.map(env => (
                   <option key={env.id} value={env.id}>{env.label}</option>
@@ -398,11 +398,11 @@ export default function ApplicationCasesPage() {
 
             {/* 작업 유형 */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-argos-faint">작업:</span>
+              <span className="text-xs text-ink-400">작업:</span>
               <select
                 value={filters.taskType}
                 onChange={(e) => setFilters(prev => ({ ...prev, taskType: e.target.value }))}
-                className="bg-white border-argos-border text-argos-inkSoft text-sm rounded-lg px-2 py-1.5"
+                className="bg-white border-ink-200 text-ink-700 text-sm rounded-lg px-2 py-1.5"
               >
                 {TASK_TYPES.map(task => (
                   <option key={task.id} value={task.id}>{task.label}</option>
@@ -412,11 +412,11 @@ export default function ApplicationCasesPage() {
 
             {/* 배포 상태 */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-argos-faint">상태:</span>
+              <span className="text-xs text-ink-400">상태:</span>
               <select
                 value={filters.deploymentStatus}
                 onChange={(e) => setFilters(prev => ({ ...prev, deploymentStatus: e.target.value }))}
-                className="bg-white border-argos-border text-argos-inkSoft text-sm rounded-lg px-2 py-1.5"
+                className="bg-white border-ink-200 text-ink-700 text-sm rounded-lg px-2 py-1.5"
               >
                 <option value="">전체</option>
                 <option value="production">상용</option>
@@ -427,15 +427,15 @@ export default function ApplicationCasesPage() {
               </select>
             </div>
 
-            <div className="h-6 w-px bg-argos-border" />
+            <div className="h-6 w-px bg-ink-200" />
 
             {/* 고객 산업 */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-argos-faint">산업:</span>
+              <span className="text-xs text-ink-400">산업:</span>
               <select
                 value={filters.industry}
                 onChange={(e) => setFilters(prev => ({ ...prev, industry: e.target.value }))}
-                className="bg-white border-argos-border text-argos-inkSoft text-sm rounded-lg px-2 py-1.5"
+                className="bg-white border-ink-200 text-ink-700 text-sm rounded-lg px-2 py-1.5"
               >
                 {INDUSTRIES.map(ind => (
                   <option key={ind.id} value={ind.id}>{ind.label}</option>
@@ -445,11 +445,11 @@ export default function ApplicationCasesPage() {
 
             {/* 로봇 유형 */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-argos-faint">로봇:</span>
+              <span className="text-xs text-ink-400">로봇:</span>
               <select
                 value={filters.robotType}
                 onChange={(e) => setFilters(prev => ({ ...prev, robotType: e.target.value }))}
-                className="bg-white border-argos-border text-argos-inkSoft text-sm rounded-lg px-2 py-1.5"
+                className="bg-white border-ink-200 text-ink-700 text-sm rounded-lg px-2 py-1.5"
               >
                 {ROBOT_TYPES.map(type => (
                   <option key={type.id} value={type.id}>{type.label}</option>
@@ -457,15 +457,15 @@ export default function ApplicationCasesPage() {
               </select>
             </div>
 
-            <div className="h-6 w-px bg-argos-border" />
+            <div className="h-6 w-px bg-ink-200" />
 
             {/* 정렬 */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-argos-faint">정렬:</span>
+              <span className="text-xs text-ink-400">정렬:</span>
               <select
                 value={filters.sortBy}
                 onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value }))}
-                className="bg-white border-argos-border text-argos-inkSoft text-sm rounded-lg px-2 py-1.5"
+                className="bg-white border-ink-200 text-ink-700 text-sm rounded-lg px-2 py-1.5"
               >
                 {SORT_OPTIONS.map(opt => (
                   <option key={opt.id} value={opt.id}>{opt.label}</option>
@@ -484,7 +484,7 @@ export default function ApplicationCasesPage() {
                   robotType: '',
                   sortBy: 'latest',
                 })}
-                className="flex items-center gap-1 text-xs text-argos-muted hover:text-argos-ink transition-colors"
+                className="flex items-center gap-1 text-xs text-ink-500 hover:text-ink-900 transition-colors"
               >
                 <X className="w-3 h-3" />
                 초기화
@@ -495,9 +495,9 @@ export default function ApplicationCasesPage() {
 
         {/* 사례 목록 헤더 */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-argos-ink">
+          <h2 className="text-lg font-semibold text-ink-900">
             적용 사례 목록
-            <span className="ml-2 text-sm font-normal text-argos-muted">
+            <span className="ml-2 text-sm font-normal text-ink-500">
               총 {cases?.items?.length || 0}건
             </span>
           </h2>
@@ -505,7 +505,7 @@ export default function ApplicationCasesPage() {
 
         {/* 사례 카드 그리드 */}
         {isLoading ? (
-          <div className="bg-argos-surface rounded-xl p-8 text-center border border-argos-border">
+          <div className="bg-white rounded-xl p-8 text-center border border-ink-200">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
           </div>
         ) : caseCards.length > 0 ? (
@@ -518,12 +518,12 @@ export default function ApplicationCasesPage() {
                 <div
                   key={caseData.id}
                   onClick={() => handleCaseClick(caseData.id)}
-                  className="bg-argos-surface backdrop-blur rounded-xl border border-argos-borderSoft p-4 hover:border-argos-blue/30 transition-all cursor-pointer group"
+                  className="bg-white backdrop-blur rounded-xl border border-ink-100 p-4 hover:border-info/30 transition-all cursor-pointer group"
                 >
                   {/* 헤더 */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <h3 className="text-sm font-medium text-argos-ink group-hover:text-blue-400 transition-colors line-clamp-2">
+                      <h3 className="text-sm font-medium text-ink-900 group-hover:text-blue-400 transition-colors line-clamp-2">
                         {caseData.title}
                       </h3>
                     </div>
@@ -533,10 +533,10 @@ export default function ApplicationCasesPage() {
                   </div>
 
                   {/* 메타 정보 */}
-                  <div className="flex items-center gap-2 text-xs text-argos-muted mb-3">
+                  <div className="flex items-center gap-2 text-xs text-ink-500 mb-3">
                     <EnvIcon className="w-3.5 h-3.5" />
                     <span>{getEnvLabel(caseData.environment)}</span>
-                    <span className="text-argos-faint">·</span>
+                    <span className="text-ink-400">·</span>
                     <span>{getTaskLabel(caseData.taskType)}</span>
                   </div>
 
@@ -544,23 +544,23 @@ export default function ApplicationCasesPage() {
                   {caseData.robotName && (
                     <div className="flex items-center gap-2 text-xs mb-3">
                       <Bot className="w-3.5 h-3.5 text-blue-400" />
-                      <span className="text-argos-inkSoft">{caseData.robotName}</span>
+                      <span className="text-ink-700">{caseData.robotName}</span>
                       {caseData.companyName && (
-                        <span className="text-argos-faint">({caseData.companyName})</span>
+                        <span className="text-ink-400">({caseData.companyName})</span>
                       )}
                     </div>
                   )}
 
                   {/* 설명 */}
                   {caseData.description && (
-                    <p className="text-xs text-argos-faint line-clamp-2 mb-3">
+                    <p className="text-xs text-ink-400 line-clamp-2 mb-3">
                       {caseData.description}
                     </p>
                   )}
 
                   {/* 하단: 날짜 + 정량 효과 */}
-                  <div className="flex items-center justify-between pt-3 border-t border-argos-borderSoft">
-                    <div className="flex items-center gap-1 text-[10px] text-argos-faint">
+                  <div className="flex items-center justify-between pt-3 border-t border-ink-100">
+                    <div className="flex items-center gap-1 text-[10px] text-ink-400">
                       <Calendar className="w-3 h-3" />
                       {caseData.demoDate ? new Date(caseData.demoDate).toLocaleDateString('ko-KR') : '-'}
                     </div>
@@ -578,7 +578,7 @@ export default function ApplicationCasesPage() {
             })}
           </div>
         ) : (
-          <div className="bg-argos-surface rounded-xl p-8 text-center text-argos-faint border border-argos-border">
+          <div className="bg-white rounded-xl p-8 text-center text-ink-400 border border-ink-200">
             적용 사례가 없습니다.
           </div>
         )}
@@ -597,7 +597,7 @@ export default function ApplicationCasesPage() {
           />
 
           {/* 드로어 */}
-          <div className="relative w-full max-w-lg bg-argos-surface border-l border-argos-border overflow-y-auto">
+          <div className="relative w-full max-w-lg bg-white border-l border-ink-200 overflow-y-auto">
             <div className="p-6">
               {/* 닫기 버튼 */}
               <button
@@ -605,7 +605,7 @@ export default function ApplicationCasesPage() {
                   setIsDrawerOpen(false);
                   setSelectedCaseId(null);
                 }}
-                className="absolute top-4 right-4 p-2 text-argos-muted hover:text-argos-ink transition-colors"
+                className="absolute top-4 right-4 p-2 text-ink-500 hover:text-ink-900 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -625,32 +625,32 @@ export default function ApplicationCasesPage() {
                           {statusConf.label}
                         </span>
                       </div>
-                      <h2 className="text-xl font-bold text-argos-ink mb-2">
+                      <h2 className="text-xl font-bold text-ink-900 mb-2">
                         {detail?.demoEvent || detail?.description || '적용 사례'}
                       </h2>
-                      <p className="text-sm text-argos-muted">
+                      <p className="text-sm text-ink-500">
                         {getEnvLabel(detail?.environment || detail?.environmentType)} · {getTaskLabel(detail?.taskType)}
                       </p>
                     </div>
 
                     {/* 로봇 정보 */}
                     {robot && (
-                      <div className="mb-6 p-4 bg-white rounded-lg border border-argos-borderSoft">
-                        <h3 className="text-sm font-medium text-argos-inkSoft mb-3">적용 로봇</h3>
+                      <div className="mb-6 p-4 bg-white rounded-lg border border-ink-100">
+                        <h3 className="text-sm font-medium text-ink-700 mb-3">적용 로봇</h3>
                         <Link
                           href={`/humanoid-robots/${robot.id}`}
                           className="flex items-center gap-3 group"
                         >
-                          <div className="w-12 h-12 bg-argos-bgAlt rounded-lg flex items-center justify-center">
+                          <div className="w-12 h-12 bg-ink-100 rounded-lg flex items-center justify-center">
                             <Bot className="w-6 h-6 text-blue-400" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-argos-ink group-hover:text-blue-400 transition-colors">
+                            <p className="text-sm font-medium text-ink-900 group-hover:text-blue-400 transition-colors">
                               {robot.name}
                             </p>
-                            <p className="text-xs text-argos-faint">{company?.name || ''}</p>
+                            <p className="text-xs text-ink-400">{company?.name || ''}</p>
                           </div>
-                          <ExternalLink className="w-4 h-4 text-argos-faint ml-auto" />
+                          <ExternalLink className="w-4 h-4 text-ink-400 ml-auto" />
                         </Link>
                       </div>
                     )}
@@ -658,8 +658,8 @@ export default function ApplicationCasesPage() {
                     {/* 상세 설명 */}
                     {detail?.taskDescription && (
                       <div className="mb-6">
-                        <h3 className="text-sm font-medium text-argos-inkSoft mb-2">상세 설명</h3>
-                        <p className="text-sm text-argos-muted leading-relaxed">
+                        <h3 className="text-sm font-medium text-ink-700 mb-2">상세 설명</h3>
+                        <p className="text-sm text-ink-500 leading-relaxed">
                           {detail.taskDescription}
                         </p>
                       </div>
@@ -672,14 +672,14 @@ export default function ApplicationCasesPage() {
                           <TrendingUp className="w-4 h-4" />
                           정량 효과
                         </h3>
-                        <p className="text-lg font-semibold text-argos-ink">
+                        <p className="text-lg font-semibold text-ink-900">
                           {(detail as any).quantitativeEffect}
                         </p>
                       </div>
                     )}
 
                     {/* 날짜 정보 */}
-                    <div className="text-xs text-argos-faint">
+                    <div className="text-xs text-ink-400">
                       {detail?.demoDate && (
                         <p>시연일: {new Date(detail.demoDate).toLocaleDateString('ko-KR')}</p>
                       )}

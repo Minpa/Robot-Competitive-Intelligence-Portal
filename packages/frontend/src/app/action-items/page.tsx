@@ -295,31 +295,31 @@ export default function ActionItemsPage() {
         <div className="grid grid-cols-4 gap-4">
           <button
             onClick={() => setFilterPriority(null)}
-            className={`p-4 rounded-xl border transition-colors cursor-pointer ${!filterPriority ? 'bg-argos-surface border-violet-500/50 shadow-argos-card' : 'bg-argos-surface border-argos-border hover:border-argos-blue/30'}`}
+            className={`p-4 rounded-xl border transition-colors cursor-pointer ${!filterPriority ? 'bg-white border-violet-500/50 shadow-report' : 'bg-white border-ink-200 hover:border-info/30'}`}
           >
-            <p className="text-2xl font-bold text-argos-ink">{totalItems}</p>
-            <p className="text-sm text-argos-muted">전체 Action Items</p>
+            <p className="text-2xl font-bold text-ink-900">{totalItems}</p>
+            <p className="text-sm text-ink-500">전체 Action Items</p>
           </button>
           <button
             onClick={() => setFilterPriority(filterPriority === 'critical' ? null : 'critical')}
-            className={`p-4 rounded-xl border transition-colors cursor-pointer ${filterPriority === 'critical' ? 'bg-red-500/10 border-red-500/50' : 'bg-argos-surface border-argos-border hover:border-argos-blue/30'}`}
+            className={`p-4 rounded-xl border transition-colors cursor-pointer ${filterPriority === 'critical' ? 'bg-red-500/10 border-red-500/50' : 'bg-white border-ink-200 hover:border-info/30'}`}
           >
             <p className="text-2xl font-bold text-red-400">{criticalCount}</p>
-            <p className="text-sm text-argos-muted">긴급 (Critical)</p>
+            <p className="text-sm text-ink-500">긴급 (Critical)</p>
           </button>
           <button
             onClick={() => setFilterPriority(filterPriority === 'high' ? null : 'high')}
-            className={`p-4 rounded-xl border transition-colors cursor-pointer ${filterPriority === 'high' ? 'bg-amber-500/10 border-amber-500/50' : 'bg-argos-surface border-argos-border hover:border-argos-blue/30'}`}
+            className={`p-4 rounded-xl border transition-colors cursor-pointer ${filterPriority === 'high' ? 'bg-amber-500/10 border-amber-500/50' : 'bg-white border-ink-200 hover:border-info/30'}`}
           >
             <p className="text-2xl font-bold text-amber-400">{highCount}</p>
-            <p className="text-sm text-argos-muted">높음 (High)</p>
+            <p className="text-sm text-ink-500">높음 (High)</p>
           </button>
           <button
             onClick={() => setFilterPriority(filterPriority === 'medium' ? null : 'medium')}
-            className={`p-4 rounded-xl border transition-colors cursor-pointer ${filterPriority === 'medium' ? 'bg-blue-500/10 border-blue-500/50' : 'bg-argos-surface border-argos-border hover:border-argos-blue/30'}`}
+            className={`p-4 rounded-xl border transition-colors cursor-pointer ${filterPriority === 'medium' ? 'bg-blue-500/10 border-blue-500/50' : 'bg-white border-ink-200 hover:border-info/30'}`}
           >
             <p className="text-2xl font-bold text-blue-400">{totalItems - criticalCount - highCount}</p>
-            <p className="text-sm text-argos-muted">보통 (Medium)</p>
+            <p className="text-sm text-ink-500">보통 (Medium)</p>
           </button>
         </div>
 
@@ -330,42 +330,42 @@ export default function ActionItemsPage() {
             const isExpanded = expandedCategories.has(cat.id);
 
             return (
-              <div key={cat.id} className="bg-argos-surface border border-argos-border rounded-xl overflow-hidden shadow-argos-card">
+              <div key={cat.id} className="bg-white border border-ink-200 rounded-xl overflow-hidden shadow-report">
                 {/* Category header */}
                 <button
                   onClick={() => toggleCategory(cat.id)}
-                  className="w-full flex items-center gap-4 px-6 py-4 hover:bg-argos-bgAlt transition-colors cursor-pointer"
+                  className="w-full flex items-center gap-4 px-6 py-4 hover:bg-ink-100 transition-colors cursor-pointer"
                 >
                   <div className={`w-10 h-10 rounded-lg ${cat.bgColor} flex items-center justify-center`}>
                     <Icon className={`w-5 h-5 ${cat.color}`} />
                   </div>
                   <div className="flex-1 text-left">
                     <div className="flex items-center gap-3">
-                      <h2 className="text-base font-semibold text-argos-ink">{cat.name}</h2>
-                      <span className="text-sm text-argos-faint">{cat.items.length}건</span>
+                      <h2 className="text-base font-semibold text-ink-900">{cat.name}</h2>
+                      <span className="text-sm text-ink-400">{cat.items.length}건</span>
                     </div>
-                    <p className="text-sm text-argos-muted mt-0.5">{cat.description}</p>
+                    <p className="text-sm text-ink-500 mt-0.5">{cat.description}</p>
                   </div>
-                  {isExpanded ? <ChevronUp className="w-5 h-5 text-argos-faint" /> : <ChevronDown className="w-5 h-5 text-argos-faint" />}
+                  {isExpanded ? <ChevronUp className="w-5 h-5 text-ink-400" /> : <ChevronDown className="w-5 h-5 text-ink-400" />}
                 </button>
 
                 {/* Action items */}
                 {isExpanded && (
-                  <div className="border-t border-argos-border">
+                  <div className="border-t border-ink-200">
                     {cat.items.map((item, idx) => {
                       const ps = PRIORITY_STYLES[item.priority];
                       return (
-                        <div key={item.id} className={`px-6 py-5 ${idx > 0 ? 'border-t border-argos-borderSoft' : ''}`}>
+                        <div key={item.id} className={`px-6 py-5 ${idx > 0 ? 'border-t border-ink-100' : ''}`}>
                           {/* Title row */}
                           <div className="flex items-start gap-3">
                             <span className={`shrink-0 mt-0.5 px-2.5 py-0.5 text-xs font-medium rounded-full border ${ps.bg} ${ps.text} ${ps.border}`}>
                               {ps.label}
                             </span>
                             <div className="flex-1">
-                              <h3 className="text-sm font-semibold text-argos-ink leading-relaxed">{item.title}</h3>
+                              <h3 className="text-sm font-semibold text-ink-900 leading-relaxed">{item.title}</h3>
                               <div className="flex items-center gap-4 mt-2 text-sm">
-                                <span className="text-argos-faint">목표 기간: <span className="text-argos-inkSoft">{item.timeframe}</span></span>
-                                <span className="text-argos-faint">
+                                <span className="text-ink-400">목표 기간: <span className="text-ink-700">{item.timeframe}</span></span>
+                                <span className="text-ink-400">
                                   LG <span className="text-red-400 font-medium">{item.lgCurrent}점</span> vs {item.competitorBest.name} <span className="text-emerald-400 font-medium">{item.competitorBest.score}점</span>
                                   {item.gap > 0 && <span className="text-red-400 ml-1">(−{item.gap})</span>}
                                 </span>
@@ -376,15 +376,15 @@ export default function ActionItemsPage() {
                           {/* Gap bar */}
                           <div className="mt-3 ml-14">
                             <div className="flex items-center gap-3">
-                              <span className="text-xs text-argos-faint w-8">LG</span>
-                              <div className="flex-1 h-2 bg-argos-bgAlt rounded-full overflow-hidden">
+                              <span className="text-xs text-ink-400 w-8">LG</span>
+                              <div className="flex-1 h-2 bg-ink-100 rounded-full overflow-hidden">
                                 <div
                                   className="h-full bg-red-400 rounded-full transition-all"
                                   style={{ width: `${item.lgCurrent * 10}%` }}
                                 />
                               </div>
-                              <span className="text-xs text-argos-faint w-16">{item.competitorBest.name.split(' ')[0]}</span>
-                              <div className="flex-1 h-2 bg-argos-bgAlt rounded-full overflow-hidden">
+                              <span className="text-xs text-ink-400 w-16">{item.competitorBest.name.split(' ')[0]}</span>
+                              <div className="flex-1 h-2 bg-ink-100 rounded-full overflow-hidden">
                                 <div
                                   className="h-full bg-emerald-400 rounded-full transition-all"
                                   style={{ width: `${item.competitorBest.score * 10}%` }}
@@ -394,9 +394,9 @@ export default function ActionItemsPage() {
                           </div>
 
                           {/* Reason */}
-                          <div className="mt-3 ml-14 p-4 bg-argos-bgAlt border border-argos-borderSoft rounded-lg">
-                            <p className="text-sm text-argos-inkSoft leading-relaxed">
-                              <span className="text-argos-faint font-medium">이유: </span>
+                          <div className="mt-3 ml-14 p-4 bg-ink-100 border border-ink-100 rounded-lg">
+                            <p className="text-sm text-ink-700 leading-relaxed">
+                              <span className="text-ink-400 font-medium">이유: </span>
                               {item.reason}
                             </p>
                           </div>

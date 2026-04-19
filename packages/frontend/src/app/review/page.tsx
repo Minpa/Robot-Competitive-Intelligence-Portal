@@ -42,13 +42,13 @@ export default function ReviewPage() {
         {/* 필터 */}
         <div className="flex gap-4 mb-6">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-argos-muted" />
+            <Filter className="w-4 h-4 text-ink-500" />
             <div className="flex gap-1">
               {PERIODS.map(p => (
                 <button
                   key={p.value}
                   onClick={() => setPeriod(p.value)}
-                  className={`px-3 py-1.5 rounded text-sm ${period === p.value ? 'bg-violet-600 text-white' : 'bg-argos-surface text-argos-muted border border-argos-border hover:bg-argos-bgAlt'}`}
+                  className={`px-3 py-1.5 rounded text-sm ${period === p.value ? 'bg-violet-600 text-white' : 'bg-white text-ink-500 border border-ink-200 hover:bg-ink-100'}`}
                 >
                   {p.label}
                 </button>
@@ -60,7 +60,7 @@ export default function ReviewPage() {
               <button
                 key={t.value}
                 onClick={() => setType(t.value)}
-                className={`px-3 py-1.5 rounded text-sm ${type === t.value ? 'bg-cyan-600 text-white' : 'bg-argos-surface text-argos-muted border border-argos-border hover:bg-argos-bgAlt'}`}
+                className={`px-3 py-1.5 rounded text-sm ${type === t.value ? 'bg-cyan-600 text-white' : 'bg-white text-ink-500 border border-ink-200 hover:bg-ink-100'}`}
               >
                 {t.label}
               </button>
@@ -71,15 +71,15 @@ export default function ReviewPage() {
         {/* 요약 카드 */}
         {data && (
           <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="bg-argos-surface border border-argos-border rounded-xl p-4">
-              <p className="text-sm text-argos-muted">전체</p>
-              <p className="text-2xl font-bold text-argos-ink">{data.total}</p>
+            <div className="bg-white border border-ink-200 rounded-xl p-4">
+              <p className="text-sm text-ink-500">전체</p>
+              <p className="text-2xl font-bold text-ink-900">{data.total}</p>
             </div>
-            <div className="bg-argos-surface border border-amber-500/30 rounded-xl p-4">
+            <div className="bg-white border border-amber-500/30 rounded-xl p-4">
               <p className="text-sm text-amber-400">이슈 있음</p>
               <p className="text-2xl font-bold text-amber-300">{data.withIssues}</p>
             </div>
-            <div className="bg-argos-surface border border-emerald-500/30 rounded-xl p-4">
+            <div className="bg-white border border-emerald-500/30 rounded-xl p-4">
               <p className="text-sm text-emerald-400">정상</p>
               <p className="text-2xl font-bold text-emerald-300">{data.total - data.withIssues}</p>
             </div>
@@ -88,11 +88,11 @@ export default function ReviewPage() {
 
         {/* 엔티티 목록 */}
         {isLoading ? (
-          <div className="text-center py-12 text-argos-muted">로딩 중...</div>
+          <div className="text-center py-12 text-ink-500">로딩 중...</div>
         ) : (
           <div className="space-y-2">
             {data?.entities?.map((entity: any) => (
-              <div key={entity.id} className={`bg-argos-surface border rounded-lg p-4 ${entity.issues.length > 0 ? 'border-amber-500/30' : 'border-argos-border'}`}>
+              <div key={entity.id} className={`bg-white border rounded-lg p-4 ${entity.issues.length > 0 ? 'border-amber-500/30' : 'border-ink-200'}`}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
                     {entity.issues.length > 0 ? (
@@ -100,10 +100,10 @@ export default function ReviewPage() {
                     ) : (
                       <CheckCircle className="w-4 h-4 text-emerald-400" />
                     )}
-                    <span className="text-argos-ink font-medium">{entity.name}</span>
-                    <span className="text-xs px-2 py-0.5 bg-argos-bgAlt text-argos-muted rounded border border-argos-borderSoft">{entity.type}</span>
+                    <span className="text-ink-900 font-medium">{entity.name}</span>
+                    <span className="text-xs px-2 py-0.5 bg-ink-100 text-ink-500 rounded border border-ink-100">{entity.type}</span>
                   </div>
-                  <span className="text-xs text-argos-faint">{new Date(entity.createdAt).toLocaleDateString('ko-KR')}</span>
+                  <span className="text-xs text-ink-400">{new Date(entity.createdAt).toLocaleDateString('ko-KR')}</span>
                 </div>
                 {entity.issues.length > 0 && (
                   <div className="ml-7 space-y-1">
@@ -117,7 +117,7 @@ export default function ReviewPage() {
               </div>
             ))}
             {data?.entities?.length === 0 && (
-              <div className="text-center py-12 text-argos-faint">해당 기간에 생성된 엔티티가 없습니다.</div>
+              <div className="text-center py-12 text-ink-400">해당 기간에 생성된 엔티티가 없습니다.</div>
             )}
           </div>
         )}

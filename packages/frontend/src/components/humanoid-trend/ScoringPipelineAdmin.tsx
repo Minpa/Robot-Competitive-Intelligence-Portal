@@ -105,12 +105,12 @@ export default function ScoringPipelineAdmin() {
       ? <AlertTriangle className="w-4 h-4 text-yellow-500" />
       : lastStatus?.status === 'failure'
         ? <XCircle className="w-4 h-4 text-red-500" />
-        : <Clock className="w-4 h-4 text-argos-muted" />;
+        : <Clock className="w-4 h-4 text-ink-500" />;
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-argos-inkSoft">
+        <h3 className="text-sm font-semibold text-ink-700">
           스코어링 파이프라인
         </h3>
         {isRunning && (
@@ -123,35 +123,35 @@ export default function ScoringPipelineAdmin() {
 
       {/* Last run status */}
       {statusLoading ? (
-        <div className="text-xs text-argos-muted">상태 로딩 중...</div>
+        <div className="text-xs text-ink-500">상태 로딩 중...</div>
       ) : lastStatus ? (
-        <div className="flex items-center gap-2 text-xs text-argos-muted bg-argos-bgAlt rounded px-3 py-2">
+        <div className="flex items-center gap-2 text-xs text-ink-500 bg-ink-100 rounded px-3 py-2">
           {statusIcon}
           <span>
             {lastStatus.status === 'success' ? '성공' : lastStatus.status === 'partial_failure' ? '부분 실패' : lastStatus.status === 'failure' ? '실패' : '알 수 없음'}
           </span>
-          <span className="text-argos-muted">|</span>
+          <span className="text-ink-500">|</span>
           <span>{lastStatus.totalRobots ?? 0}개 로봇 처리</span>
           {lastStatus.totalDurationMs != null && (
             <>
-              <span className="text-argos-muted">|</span>
+              <span className="text-ink-500">|</span>
               <span>{formatDuration(lastStatus.totalDurationMs)}</span>
             </>
           )}
           {lastStatus.timestamp && (
             <>
-              <span className="text-argos-muted">|</span>
+              <span className="text-ink-500">|</span>
               <span>{formatTimestamp(lastStatus.timestamp)}</span>
             </>
           )}
         </div>
       ) : (
-        <div className="text-xs text-argos-muted">실행 기록 없음</div>
+        <div className="text-xs text-ink-500">실행 기록 없음</div>
       )}
 
       {/* DB Migration section */}
-      <div className="border border-argos-border rounded p-3 space-y-2">
-        <div className="text-xs font-medium text-argos-muted">DB 마이그레이션</div>
+      <div className="border border-ink-200 rounded p-3 space-y-2">
+        <div className="text-xs font-medium text-ink-500">DB 마이그레이션</div>
         <button
           onClick={() => { setMigrationResult(null); migrationMutation.mutate(); }}
           disabled={migrationMutation.isPending}
@@ -171,7 +171,7 @@ export default function ScoringPipelineAdmin() {
           <div className="text-xs space-y-1">
             <div className="text-green-400">{migrationResult.message}</div>
             {migrationResult.results?.map((r: any, i: number) => (
-              <div key={i} className={`pl-2 border-l-2 ${r.status === 'success' ? 'border-green-300 text-argos-muted' : 'border-red-300 text-red-500'}`}>
+              <div key={i} className={`pl-2 border-l-2 ${r.status === 'success' ? 'border-green-300 text-ink-500' : 'border-red-300 text-red-500'}`}>
                 {r.file}: {r.status === 'success' ? <CheckCircle2 className="w-3 h-3 text-green-400 inline" /> : <><XCircle className="w-3 h-3 text-red-400 inline" /> {r.error}</>}
               </div>
             ))}
@@ -205,7 +205,7 @@ export default function ScoringPipelineAdmin() {
 
       {/* Execution result summary */}
       {result && (
-        <div className="rounded border border-argos-border overflow-hidden">
+        <div className="rounded border border-ink-200 overflow-hidden">
           <div className={`px-3 py-2 text-xs font-medium ${
             result.status === 'success'
               ? 'bg-green-900/20 text-green-400'
@@ -221,14 +221,14 @@ export default function ScoringPipelineAdmin() {
 
           {/* Error details */}
           {result.errors && result.errors.length > 0 && (
-            <div className="px-3 py-2 space-y-1 bg-argos-surface">
+            <div className="px-3 py-2 space-y-1 bg-white">
               <div className="text-xs font-medium text-red-400">오류 상세:</div>
               {result.errors.map((err, i) => (
-                <div key={i} className="text-xs text-argos-muted pl-2 border-l-2 border-red-700">
+                <div key={i} className="text-xs text-ink-500 pl-2 border-l-2 border-red-700">
                   <span className="font-medium">{err.robotId}</span>
-                  <span className="text-argos-muted mx-1">→</span>
+                  <span className="text-ink-500 mx-1">→</span>
                   <span className="text-red-500">{err.step}</span>
-                  <span className="text-argos-muted mx-1">:</span>
+                  <span className="text-ink-500 mx-1">:</span>
                   <span>{err.message}</span>
                 </div>
               ))}
@@ -272,14 +272,14 @@ function RobotRecalcList({
 
   return (
     <div className="space-y-1">
-      <div className="text-xs font-medium text-argos-muted">로봇별 재계산</div>
+      <div className="text-xs font-medium text-ink-500">로봇별 재계산</div>
       <div className="max-h-40 overflow-y-auto space-y-0.5">
         {robots.map((robot: any) => (
           <div
             key={robot.id}
-            className="flex items-center justify-between text-xs py-1 px-2 rounded hover:bg-argos-bgAlt"
+            className="flex items-center justify-between text-xs py-1 px-2 rounded hover:bg-ink-100"
           >
-            <span className="text-argos-inkSoft truncate mr-2">
+            <span className="text-ink-700 truncate mr-2">
               {robot.name} {robot.company && `(${robot.company})`}
             </span>
             <button

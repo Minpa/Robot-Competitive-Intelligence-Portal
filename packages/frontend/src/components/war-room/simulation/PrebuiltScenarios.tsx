@@ -61,20 +61,20 @@ export function PrebuiltScenarios({ baseSpecs, onApply }: Props) {
   }
 
   return (
-    <div className="rounded-lg bg-argos-surface border border-argos-borderSoft p-4">
-      <h3 className="text-sm font-semibold text-argos-ink mb-3">프리빌트 시나리오</h3>
+    <div className="rounded-lg bg-white border border-ink-100 p-4">
+      <h3 className="text-sm font-semibold text-ink-900 mb-3">프리빌트 시나리오</h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {PREBUILT.map((s) => (
           <button
             key={s.name}
             onClick={() => apply(s)}
-            className="text-left rounded-md border border-argos-borderSoft bg-argos-bgAlt p-2.5 hover:border-blue-500/50 hover:bg-argos-bgAlt transition-colors"
+            className="text-left rounded-md border border-ink-100 bg-ink-100 p-2.5 hover:border-blue-500/50 hover:bg-ink-100 transition-colors"
           >
             <div className="flex items-center gap-1.5 mb-1">
               <Zap className="h-3 w-3 text-yellow-400" />
-              <span className="text-xs font-medium text-argos-ink">{s.name}</span>
+              <span className="text-xs font-medium text-ink-900">{s.name}</span>
             </div>
-            <p className="text-[10px] text-argos-muted">{s.description}</p>
+            <p className="text-[10px] text-ink-500">{s.description}</p>
           </button>
         ))}
       </div>
