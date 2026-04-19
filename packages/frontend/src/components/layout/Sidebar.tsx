@@ -5,13 +5,10 @@ import { usePathname } from 'next/navigation';
 import {
   Search,
   Settings,
-  Bot,
   FileText,
-  Presentation,
   ChevronDown,
   ChevronRight,
   FlaskConical,
-  ClipboardCheck,
   GitBranch,
   Radar,
   Table2,
@@ -23,6 +20,7 @@ import {
   Bell,
   CheckSquare,
   Database,
+  Presentation,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -108,32 +106,29 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-argos-surface min-h-screen flex flex-col border-r border-argos-border">
+    <aside className="w-60 bg-brand text-brand-ink min-h-screen flex flex-col">
       {/* Logo Block */}
-      <div className="px-5 pt-5 pb-6 border-b border-argos-border">
-        <Link href="/robot-evolution" className="flex items-start gap-3">
-          <div className="w-11 h-11 bg-argos-navy rounded-lg flex items-center justify-center shrink-0">
-            <Bot className="w-5 h-5 text-white" strokeWidth={2.25} />
+      <div className="px-5 pt-6 pb-5 border-b border-white/10">
+        <Link href="/robot-evolution" className="block">
+          <div className="flex items-baseline gap-2">
+            <h1 className="font-serif text-[22px] font-semibold tracking-tight leading-none text-white">
+              ARGOS
+            </h1>
+            <span className="font-mono text-[9px] font-medium text-gold tracking-[0.18em] uppercase">
+              AWE 2026
+            </span>
           </div>
-          <div className="flex-1 min-w-0 pt-0.5">
-            <div className="flex items-center gap-1.5">
-              <h1 className="text-[17px] font-extrabold text-argos-ink tracking-tight leading-none">ARGOS</h1>
-              <span className="text-[9px] font-bold bg-argos-chip text-argos-chipInk px-1.5 py-0.5 rounded tracking-wider">
-                AWE 2026
-              </span>
-            </div>
-            <p className="text-[10px] font-semibold text-argos-muted uppercase tracking-[0.14em] mt-1 leading-tight">
-              Robot Intelligence
-            </p>
-            <p className="text-[9px] text-argos-faint leading-tight mt-0.5">
-              MODE v4.2
-            </p>
-          </div>
+          <p className="font-mono text-[9px] text-white/50 uppercase tracking-[0.22em] mt-2">
+            Robot Intelligence
+          </p>
+          <p className="font-mono text-[9px] text-white/35 mt-1">
+            MODE v4.2
+          </p>
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-5">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
         {navigationGroups.map((group) => {
           const isCollapsed = collapsedGroups.has(group.title);
           const hasActiveItem = group.items.some(
@@ -150,28 +145,28 @@ export function Sidebar() {
               >
                 <div className="flex flex-col items-start">
                   <span className={cn(
-                    'text-[10px] font-bold uppercase tracking-[0.16em]',
-                    hasActiveItem ? 'text-argos-blue' : 'text-argos-faint'
+                    'font-mono text-[9px] font-medium uppercase tracking-[0.22em]',
+                    hasActiveItem ? 'text-gold' : 'text-white/45'
                   )}>
                     {group.subtitle}
                   </span>
                   <span className={cn(
-                    'text-[11px] font-semibold mt-0.5',
-                    hasActiveItem ? 'text-argos-ink' : 'text-argos-inkSoft group-hover:text-argos-ink'
+                    'text-[11.5px] font-medium mt-1',
+                    hasActiveItem ? 'text-white' : 'text-white/70 group-hover:text-white'
                   )}>
                     {group.title}
                   </span>
                 </div>
                 {isCollapsed ? (
-                  <ChevronRight className="w-3.5 h-3.5 text-argos-faint" />
+                  <ChevronRight className="w-3.5 h-3.5 text-white/40" />
                 ) : (
-                  <ChevronDown className="w-3.5 h-3.5 text-argos-faint" />
+                  <ChevronDown className="w-3.5 h-3.5 text-white/40" />
                 )}
               </button>
 
               {/* Group Items */}
               {!isCollapsed && (
-                <div className="mt-2 space-y-0.5">
+                <div className="mt-1.5 space-y-px">
                   {group.items.map((item) => {
                     const isActive = pathname === item.href ||
                       (item.href !== '/' && pathname.startsWith(item.href));
@@ -181,22 +176,22 @@ export function Sidebar() {
                         key={item.name}
                         href={item.href}
                         className={cn(
-                          'relative flex items-center gap-2.5 pl-4 pr-3 py-2 rounded-lg text-[13px] font-medium transition-all',
+                          'relative flex items-center gap-2.5 pl-4 pr-3 py-2 text-[12.5px] font-medium transition-colors',
                           isActive
-                            ? 'bg-argos-chip text-argos-blue'
-                            : 'text-argos-inkSoft hover:bg-argos-bgAlt hover:text-argos-ink'
+                            ? 'bg-white/[0.08] text-white'
+                            : 'text-white/65 hover:bg-white/[0.04] hover:text-white'
                         )}
                       >
                         {isActive && (
-                          <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r bg-argos-blue" />
+                          <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-gold" />
                         )}
                         {item.icon && (
                           <item.icon
                             className={cn(
-                              'w-[15px] h-[15px] shrink-0',
-                              isActive ? 'text-argos-blue' : 'text-argos-muted'
+                              'w-[14px] h-[14px] shrink-0',
+                              isActive ? 'text-gold' : 'text-white/50'
                             )}
-                            strokeWidth={isActive ? 2.25 : 2}
+                            strokeWidth={isActive ? 2.25 : 1.75}
                           />
                         )}
                         <span className="truncate">{item.name}</span>
@@ -211,9 +206,9 @@ export function Sidebar() {
       </nav>
 
       {/* Footer — Generate Report CTA */}
-      <div className="p-4 border-t border-argos-border">
-        <button className="w-full flex items-center justify-center gap-2 bg-argos-navy hover:bg-argos-navyDark text-white text-[12px] font-semibold py-2.5 rounded-lg transition-colors tracking-wide">
-          <FileText className="w-3.5 h-3.5" />
+      <div className="p-4 border-t border-white/10">
+        <button className="w-full flex items-center justify-center gap-2 bg-gold hover:bg-gold/90 text-brand font-mono text-[10px] font-semibold uppercase tracking-[0.18em] py-2.5 transition-colors">
+          <FileText className="w-3.5 h-3.5" strokeWidth={2.25} />
           Generate Report
         </button>
       </div>

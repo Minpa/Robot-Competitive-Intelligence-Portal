@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts';
-import { getRobotColor } from './color-utils';
+import { getRobotColorV2, CHART_AXIS_V2 } from './color-utils';
 import type { PocScoreWithRobot } from '@/types/humanoid-trend';
 
 const AXES = [
@@ -34,19 +34,24 @@ function buildRadarData(score: PocScoreWithRobot) {
 
 function PlaceholderCard({ robotName, companyName }: { robotName?: string; companyName?: string }) {
   return (
-    <div className="rounded-xl border border-argos-border bg-argos-surface p-6 flex flex-col items-center justify-center min-h-[320px]">
+    <div className="border border-ink-200 bg-paper p-6 flex flex-col items-center justify-center min-h-[320px]">
       {robotName && (
-        <p className="text-sm font-medium text-argos-inkSoft mb-2">
-          {robotName} {companyName && <span className="text-argos-muted">({companyName})</span>}
+        <p className="font-serif text-[14px] font-semibold text-ink-900 mb-1">
+          {robotName}
         </p>
       )}
-      <p className="text-argos-muted text-sm">PoC 평가 데이터 미등록</p>
+      {companyName && (
+        <p className="font-mono text-[10px] text-ink-500 uppercase tracking-[0.18em] mb-3">
+          {companyName}
+        </p>
+      )}
+      <p className="text-ink-400 text-[12px]">PoC 평가 데이터 미등록</p>
     </div>
   );
 }
 
 function RobotRadarCard({ score }: { score: PocScoreWithRobot }) {
-  const color = getRobotColor(score.robotId);
+  const color = getRobotColorV2(score.robotId);
   const radarData = buildRadarData(score);
   const avg = score.averageScore.toFixed(1);
 
@@ -56,27 +61,32 @@ function RobotRadarCard({ score }: { score: PocScoreWithRobot }) {
   }
 
   return (
-    <div className="rounded-xl border border-argos-border bg-argos-surface p-4">
-      <div className="text-center mb-2">
-        <p className="text-sm font-semibold text-argos-ink">
+    <div className="border border-ink-200 bg-white p-4">
+      <div className="pb-3 mb-2 border-b border-ink-100">
+        <p className="font-serif text-[14px] font-semibold text-ink-900 leading-tight">
           {score.robotName}
         </p>
-        <p className="text-xs text-argos-muted">
-          {score.companyName} · 평균 {avg}
-        </p>
+        <div className="flex items-center justify-between mt-1">
+          <span className="font-mono text-[10px] text-ink-500 uppercase tracking-[0.16em]">
+            {score.companyName}
+          </span>
+          <span className="font-mono text-[11px] text-gold tracking-wide">
+            AVG {avg}
+          </span>
+        </div>
       </div>
-      <div className="h-64">
+      <div className="h-60">
         <ResponsiveContainer width="100%" height="100%">
-          <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-            <PolarGrid stroke="#E5E9F0" />
+          <RadarChart cx="50%" cy="50%" outerRadius="72%" data={radarData}>
+            <PolarGrid stroke={CHART_AXIS_V2.grid} />
             <PolarAngleAxis
               dataKey="axis"
-              tick={{ fontSize: 11, fill: '#6B7A90' }}
+              tick={{ fontSize: 10, fill: CHART_AXIS_V2.tick }}
             />
             <PolarRadiusAxis
               angle={90}
               domain={[0, 10]}
-              tick={{ fontSize: 9, fill: '#6B7A90' }}
+              tick={{ fontSize: 9, fill: CHART_AXIS_V2.tick }}
               tickCount={6}
             />
             <Radar
@@ -84,16 +94,17 @@ function RobotRadarCard({ score }: { score: PocScoreWithRobot }) {
               dataKey="value"
               stroke={color}
               fill={color}
-              fillOpacity={0.25}
-              strokeWidth={2}
+              fillOpacity={0.18}
+              strokeWidth={1.75}
             />
             <Tooltip
               contentStyle={{
                 backgroundColor: '#FFFFFF',
-                border: '1px solid #E5E9F0',
-                borderRadius: '8px',
+                border: '1px solid #D9DDE4',
+                borderRadius: 0,
                 fontSize: '12px',
-                color: '#1E2838',
+                color: '#0B1E3A',
+                boxShadow: '0 2px 6px rgba(11, 30, 58, 0.08)',
               }}
             />
           </RadarChart>
@@ -106,7 +117,7 @@ function RobotRadarCard({ score }: { score: PocScoreWithRobot }) {
 export default function PocRadarSection({ data }: PocRadarSectionProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[200px] text-argos-muted text-sm">
+      <div className="flex items-center justify-center min-h-[200px] text-ink-400 text-[12px]">
         PoC 평가 데이터가 없습니다.
       </div>
     );

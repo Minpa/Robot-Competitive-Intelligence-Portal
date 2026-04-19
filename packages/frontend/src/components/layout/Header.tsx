@@ -15,6 +15,30 @@ const TOP_NAV = [
   { label: 'Compliance',   href: '/compliance' },
 ];
 
+const BREADCRUMBS: Record<string, string> = {
+  '/robot-evolution':    'FLEET › EVOLUTION',
+  '/humanoid-robots':    'TELEMETRY › REGISTRY',
+  '/humanoid-trend':     'INTELLIGENCE › TREND',
+  '/compare/matrix':     'INTELLIGENCE › MATRIX',
+  '/compare/benchmark':  'INTELLIGENCE › BENCHMARK',
+  '/action-items':       'STRATEGY › ACTION',
+  '/insight-pipeline':   'INTELLIGENCE › PIPELINE',
+  '/national-projects':  'INTELLIGENCE › R&D',
+  '/reports':            'INTELLIGENCE › REPORTS',
+  '/compliance':         'COMPLIANCE › DASHBOARD',
+  '/search':             'SEARCH',
+  '/admin':              'ADMIN',
+};
+
+function resolveBreadcrumb(pathname: string): string {
+  const direct = BREADCRUMBS[pathname];
+  if (direct) return direct;
+  const match = Object.keys(BREADCRUMBS)
+    .filter(k => pathname.startsWith(k))
+    .sort((a, b) => b.length - a.length)[0];
+  return match ? BREADCRUMBS[match] : 'ARGOS';
+}
+
 export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [userName, setUserName] = useState('사용자');
@@ -66,11 +90,19 @@ export function Header() {
   };
 
   const initials = (userName[0] || 'U').toUpperCase();
+  const breadcrumb = resolveBreadcrumb(pathname);
 
   return (
-    <header className="h-16 bg-argos-surface border-b border-argos-border px-6 flex items-center gap-6">
+    <header className="h-14 bg-paper border-b border-ink-200 px-6 flex items-center gap-6">
+      {/* Breadcrumb */}
+      <div className="shrink-0">
+        <p className="font-mono text-[10px] font-medium text-ink-500 uppercase tracking-[0.22em]">
+          {breadcrumb}
+        </p>
+      </div>
+
       {/* Top nav (horizontal module selector) */}
-      <nav className="flex items-center gap-1 shrink-0">
+      <nav className="flex items-center gap-4 shrink-0 border-l border-ink-200 pl-6 h-full">
         {TOP_NAV.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
           return (
@@ -78,56 +110,56 @@ export function Header() {
               key={item.href}
               href={item.href}
               className={cn(
-                'relative px-3 py-2 text-[13px] font-semibold transition-colors',
-                isActive ? 'text-argos-ink' : 'text-argos-muted hover:text-argos-ink'
+                'relative h-full flex items-center text-[12px] font-medium tracking-wide transition-colors',
+                isActive ? 'text-ink-900' : 'text-ink-500 hover:text-ink-800'
               )}
             >
               {item.label}
               {isActive && (
-                <span className="absolute left-3 right-3 -bottom-[17px] h-[2px] bg-argos-blue rounded-full" />
+                <span className="absolute left-0 right-0 -bottom-px h-[2px] bg-gold" />
               )}
             </Link>
           );
         })}
       </nav>
 
-      {/* Search */}
-      <form onSubmit={handleSearch} className="flex-1 max-w-md">
+      {/* Search (center-ish, flex-grow) */}
+      <form onSubmit={handleSearch} className="flex-1 max-w-md mx-auto">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-argos-faint" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-400" />
           <input
             type="text"
-            placeholder="Search Global Fleet..."
+            placeholder="Search fleet, reports, regulations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 h-9 bg-argos-bg border border-argos-border rounded-lg text-[13px] text-argos-ink placeholder:text-argos-faint focus:outline-none focus:border-argos-blue focus:ring-2 focus:ring-argos-blue/15 transition-all"
+            className="w-full pl-9 pr-4 h-8 bg-white border border-ink-200 text-[12px] text-ink-800 placeholder:text-ink-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 transition-colors font-sans"
           />
         </div>
       </form>
 
       {/* Right cluster */}
-      <div className="flex items-center gap-1 ml-auto">
+      <div className="flex items-center gap-1 ml-auto shrink-0">
         <IconBtn onClick={toggleTheme} title={theme === 'dark' ? '라이트 모드' : '다크 모드'}>
-          {theme === 'dark' ? <Sun className="w-[17px] h-[17px]" /> : <Moon className="w-[17px] h-[17px]" />}
+          {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </IconBtn>
         <IconBtn title="도움말">
-          <HelpCircle className="w-[17px] h-[17px]" />
+          <HelpCircle className="w-4 h-4" />
         </IconBtn>
         <IconBtn title="설정">
-          <SettingsIcon className="w-[17px] h-[17px]" />
+          <SettingsIcon className="w-4 h-4" />
         </IconBtn>
         <IconBtn title="알림" dot>
-          <Bell className="w-[17px] h-[17px]" />
+          <Bell className="w-4 h-4" />
         </IconBtn>
 
-        <div className="w-px h-6 bg-argos-border mx-2" />
+        <div className="w-px h-5 bg-ink-200 mx-2" />
 
         <div className="flex items-center gap-2.5 pr-1">
           <div className="text-right leading-tight">
-            <div className="text-[11px] font-bold text-argos-ink tracking-wide">{userRole}</div>
-            <div className="text-[10px] text-argos-muted">{userName}</div>
+            <div className="font-mono text-[10px] font-semibold text-ink-800 tracking-[0.14em]">{userRole}</div>
+            <div className="text-[10px] text-ink-500">{userName}</div>
           </div>
-          <div className="w-9 h-9 rounded-full bg-argos-navy flex items-center justify-center text-white text-[12px] font-bold ring-2 ring-argos-bg">
+          <div className="w-8 h-8 bg-brand flex items-center justify-center text-white font-mono text-[11px] font-semibold">
             {initials}
           </div>
         </div>
@@ -138,10 +170,10 @@ export function Header() {
             localStorage.removeItem('user');
             window.location.href = '/login';
           }}
-          className="ml-1 p-2 text-argos-muted hover:text-argos-danger hover:bg-argos-dangerBg rounded-lg transition-colors"
+          className="ml-1 p-2 text-ink-500 hover:text-neg hover:bg-neg-soft transition-colors"
           title="로그아웃"
         >
-          <LogOut className="w-[17px] h-[17px]" />
+          <LogOut className="w-4 h-4" />
         </button>
       </div>
     </header>
@@ -163,10 +195,10 @@ function IconBtn({
     <button
       onClick={onClick}
       title={title}
-      className="relative p-2 text-argos-muted hover:text-argos-ink hover:bg-argos-bgAlt rounded-lg transition-colors"
+      className="relative p-2 text-ink-500 hover:text-ink-900 hover:bg-ink-100 transition-colors"
     >
       {children}
-      {dot && <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-argos-blue rounded-full" />}
+      {dot && <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-gold rounded-full" />}
     </button>
   );
 }

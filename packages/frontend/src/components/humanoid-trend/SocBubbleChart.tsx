@@ -4,21 +4,34 @@ import {
   ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell, Label,
 } from 'recharts';
-import { getCountryColor } from './color-utils';
+import { CHART_AXIS_V2 } from './color-utils';
 import type { PositioningDataWithRobot } from '@/types/humanoid-trend';
 
 interface Props { data: PositioningDataWithRobot[]; }
 
+// Muted country palette aligned with v2 tokens
+const COUNTRY_COLORS_V2: Record<string, string> = {
+  US: '#1F4A7A', // info
+  CN: '#B0452A', // neg
+  KR: '#B8892B', // gold
+  EU: '#2F7D5A', // pos
+  JP: '#15325B', // brand soft
+};
+const COUNTRY_FALLBACK = '#5A6475';
+
+function resolveCountryColor(code: string): string {
+  return COUNTRY_COLORS_V2[code.toUpperCase()] ?? COUNTRY_FALLBACK;
+}
+
 const COUNTRY_LEGEND = [
-  { value: 'US', color: '#3B82F6' },
-  { value: 'CN', color: '#F97316' },
-  { value: 'KR', color: '#EC4899' },
-  { value: 'EU', color: '#10B981' },
-  { value: 'JP', color: '#8B5CF6' },
-  { value: 'Other', color: '#94A3B8' },
+  { value: 'US', color: COUNTRY_COLORS_V2.US },
+  { value: 'CN', color: COUNTRY_COLORS_V2.CN },
+  { value: 'KR', color: COUNTRY_COLORS_V2.KR },
+  { value: 'EU', color: COUNTRY_COLORS_V2.EU },
+  { value: 'JP', color: COUNTRY_COLORS_V2.JP },
+  { value: 'Other', color: COUNTRY_FALLBACK },
 ];
 
-// Custom angled tick for X axis (SoC names)
 const AngledTick = (props: any) => {
   const { x, y, payload } = props;
   return (
@@ -26,7 +39,7 @@ const AngledTick = (props: any) => {
       <text
         x={0} y={0} dy={8}
         textAnchor="end"
-        fill="#1E2838"
+        fill={CHART_AXIS_V2.tick}
         fontSize={10}
         transform="rotate(-35)"
       >
@@ -39,7 +52,7 @@ const AngledTick = (props: any) => {
 export default function SocBubbleChart({ data }: Props) {
   if (!data || data.length < 2) {
     return (
-      <div className="flex items-center justify-center min-h-[300px] text-argos-muted text-sm">
+      <div className="flex items-center justify-center min-h-[300px] text-ink-400 text-[12px]">
         포지셔닝 비교를 위해 최소 2개 이상의 데이터가 필요합니다.
       </div>
     );
@@ -58,7 +71,6 @@ export default function SocBubbleChart({ data }: Props) {
     const soc = (meta?.mainSoc as string) ?? 'Unknown';
     const xIndex = socNames.indexOf(soc) + 1;
     const rawTops = d.yValue;
-    // Log scale: use log10 for display, keep raw for tooltip
     return {
       x: xIndex,
       y: rawTops > 0 ? Math.log10(rawTops) : 0,
@@ -67,17 +79,15 @@ export default function SocBubbleChart({ data }: Props) {
       robotName: d.robotName || d.label,
       colorGroup: d.colorGroup || 'Other',
       mainSoc: soc,
-      color: getCountryColor(d.colorGroup || ''),
+      color: resolveCountryColor(d.colorGroup || ''),
     };
   });
 
-  // Build Y-axis ticks at round TOPS values (log scale)
   const maxTops = Math.max(...chartData.map((d) => d.yRaw));
   const topsTicks = [1, 10, 50, 100, 200, 500, 1000, 2000, 5000].filter((t) => t <= maxTops * 1.5);
   const yTicks = topsTicks.map((t) => Math.log10(t));
   const yDomain = [0, Math.log10(Math.max(maxTops, 100) * 2)];
 
-  // Sort legend alphabetically by robot name
   const legendItems = [...chartData].sort((a, b) => a.robotName.localeCompare(b.robotName));
 
   return (
@@ -85,7 +95,7 @@ export default function SocBubbleChart({ data }: Props) {
       <div className="h-[520px]">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 20, right: 30, bottom: 80, left: 60 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E5E9F0" />
+            <CartesianGrid strokeDasharray="2 3" stroke={CHART_AXIS_V2.grid} />
             <XAxis
               type="number"
               dataKey="x"
@@ -95,8 +105,9 @@ export default function SocBubbleChart({ data }: Props) {
               tick={<AngledTick />}
               interval={0}
               height={70}
+              stroke={CHART_AXIS_V2.stroke}
             >
-              <Label value="SoC 칩셋" position="bottom" offset={55} style={{ fontSize: 12, fill: '#6B7A90' }} />
+              <Label value="SoC 칩셋" position="bottom" offset={55} style={{ fontSize: 11, fill: CHART_AXIS_V2.label, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase' }} />
             </XAxis>
             <YAxis
               type="number"
@@ -107,31 +118,32 @@ export default function SocBubbleChart({ data }: Props) {
                 const t = Math.round(Math.pow(10, v));
                 return t >= 1000 ? `${(t / 1000).toFixed(t % 1000 === 0 ? 0 : 1)}K` : String(t);
               }}
-              tick={{ fontSize: 11, fill: '#1E2838' }}
+              tick={{ fontSize: 11, fill: CHART_AXIS_V2.tick }}
               width={55}
+              stroke={CHART_AXIS_V2.stroke}
             >
-              <Label value="TOPS (로그 스케일)" angle={-90} position="insideLeft" offset={15} style={{ fontSize: 11, fill: '#6B7A90' }} />
+              <Label value="TOPS (로그 스케일)" angle={-90} position="insideLeft" offset={15} style={{ fontSize: 11, fill: CHART_AXIS_V2.label, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase' }} />
             </YAxis>
             <ZAxis type="number" dataKey="z" range={[60, 400]} />
             <Tooltip
-              cursor={{ strokeDasharray: '3 3' }}
+              cursor={{ strokeDasharray: '3 3', stroke: CHART_AXIS_V2.stroke }}
               content={({ payload }) => {
                 if (!payload?.[0]) return null;
                 const d = payload[0].payload;
                 return (
-                  <div className="bg-argos-surface border border-argos-border rounded-lg p-3 text-xs text-argos-inkSoft shadow-lg">
-                    <p className="font-semibold text-argos-ink mb-1">{d.robotName}</p>
-                    <p>SoC: {d.mainSoc}</p>
-                    <p>TOPS: {d.yRaw.toLocaleString()}</p>
-                    <p>적용 사례: {d.z}건</p>
-                    <p>국가: {d.colorGroup}</p>
+                  <div className="bg-white border border-ink-200 p-3 text-[11px] text-ink-700 shadow-sm">
+                    <p className="font-serif font-semibold text-ink-900 mb-1.5 text-[13px]">{d.robotName}</p>
+                    <p className="font-mono">SoC: {d.mainSoc}</p>
+                    <p className="font-mono">TOPS: {d.yRaw.toLocaleString()}</p>
+                    <p className="font-mono">적용 사례: {d.z}건</p>
+                    <p className="font-mono text-ink-400 text-[10px] uppercase tracking-wide mt-1">국가: {d.colorGroup}</p>
                   </div>
                 );
               }}
             />
             <Scatter data={chartData}>
               {chartData.map((d, i) => (
-                <Cell key={i} fill={d.color} fillOpacity={0.85} stroke={d.color} strokeWidth={1} />
+                <Cell key={i} fill={d.color} fillOpacity={0.75} stroke={d.color} strokeWidth={1} />
               ))}
             </Scatter>
           </ScatterChart>
@@ -139,27 +151,29 @@ export default function SocBubbleChart({ data }: Props) {
       </div>
 
       {/* Country color legend */}
-      <div className="flex flex-wrap gap-3 px-1">
+      <div className="flex flex-wrap gap-4 px-1">
         {COUNTRY_LEGEND.map((c) => (
           <div key={c.value} className="flex items-center gap-1.5">
-            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color }} />
-            <span className="text-xs text-argos-inkSoft">{c.value}</span>
+            <span className="inline-block w-2 h-2" style={{ backgroundColor: c.color }} />
+            <span className="font-mono text-[10px] text-ink-600 uppercase tracking-[0.16em]">{c.value}</span>
           </div>
         ))}
       </div>
 
       {/* Robot legend */}
-      <div className="border border-argos-border rounded-lg p-3 bg-argos-bgAlt">
-        <p className="text-xs text-argos-muted mb-2 font-medium">범례 (버블 위에 마우스를 올리면 상세 정보가 표시됩니다)</p>
+      <div className="border border-ink-200 bg-paper px-4 py-3">
+        <p className="font-mono text-[10px] text-ink-500 uppercase tracking-[0.18em] mb-2">
+          범례 (버블 크기 = 적용 사례 수)
+        </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-1.5">
           {legendItems.map((item) => (
             <div key={item.robotName} className="flex items-center gap-1.5 min-w-0">
               <span
-                className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+                className="inline-block w-2 h-2 flex-shrink-0"
                 style={{ backgroundColor: item.color }}
               />
-              <span className="text-xs text-argos-inkSoft truncate">{item.robotName}</span>
-              <span className="text-xs text-argos-muted flex-shrink-0">({item.yRaw.toLocaleString()}T)</span>
+              <span className="text-[11.5px] text-ink-700 truncate">{item.robotName}</span>
+              <span className="font-mono text-[10px] text-ink-400 flex-shrink-0">{item.yRaw.toLocaleString()}T</span>
             </div>
           ))}
         </div>

@@ -1,18 +1,18 @@
 'use client';
 
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
-import { getRobotColor } from './color-utils';
+import { getRobotColorV2, CHART_AXIS_V2 } from './color-utils';
 import type { BarSpecData } from '@/types/humanoid-trend';
 
 interface Props { data: BarSpecData[]; }
 
 const CHARTS = [
-  { key: 'payloadKg' as const, title: '페이로드 (kg)', unit: 'kg' },
-  { key: 'operationTimeHours' as const, title: '연속 운용시간 (h)', unit: 'h' },
+  { key: 'payloadKg' as const, title: '페이로드', unit: 'kg' },
+  { key: 'operationTimeHours' as const, title: '연속 운용시간', unit: 'h' },
   { key: 'handDof' as const, title: '핸드 핑거 DoF', unit: '' },
-  { key: 'pocDeploymentScore' as const, title: '산업 PoC 배포 성숙도 (x/10)', unit: '/10' },
+  { key: 'pocDeploymentScore' as const, title: '산업 PoC 배포 성숙도', unit: '/10' },
 ] as const;
 
 function SingleBarChart({ data, chartKey, title, unit }: {
@@ -25,34 +25,42 @@ function SingleBarChart({ data, chartKey, title, unit }: {
     name: d.robotName,
     value: Number(d[chartKey]),
     company: d.companyName,
-    color: getRobotColor(d.robotId),
+    color: getRobotColorV2(d.robotId),
   }));
 
   return (
-    <div className="rounded-xl border border-argos-border bg-argos-surface p-4">
-      <h4 className="text-sm font-semibold text-argos-inkSoft mb-3">{title}</h4>
+    <div className="border border-ink-200 bg-white p-4">
+      <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-ink-100">
+        <h4 className="font-serif text-[14px] font-semibold text-ink-900">{title}</h4>
+        {unit && (
+          <span className="font-mono text-[10px] text-ink-500 uppercase tracking-[0.18em]">
+            {unit}
+          </span>
+        )}
+      </div>
       <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E5E9F0" />
-            <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#6B7A90' }} angle={-20} textAnchor="end" height={50} />
-            <YAxis tick={{ fontSize: 10, fill: '#6B7A90' }} />
+            <CartesianGrid strokeDasharray="2 3" stroke={CHART_AXIS_V2.grid} />
+            <XAxis dataKey="name" tick={{ fontSize: 10, fill: CHART_AXIS_V2.tick }} angle={-25} textAnchor="end" height={55} stroke={CHART_AXIS_V2.stroke} />
+            <YAxis tick={{ fontSize: 10, fill: CHART_AXIS_V2.tick }} stroke={CHART_AXIS_V2.stroke} />
             <Tooltip
+              cursor={{ fill: CHART_AXIS_V2.grid, fillOpacity: 0.4 }}
               content={({ payload }) => {
                 if (!payload?.[0]) return null;
                 const d = payload[0].payload;
                 return (
-                  <div className="bg-argos-surface border border-argos-border rounded-lg p-2 text-xs text-argos-inkSoft">
-                    <p className="font-semibold">{d.name}</p>
-                    <p>{d.company}</p>
-                    <p>{d.value}{unit}</p>
+                  <div className="bg-white border border-ink-200 p-2.5 text-[11px] text-ink-700 shadow-sm">
+                    <p className="font-serif font-semibold text-ink-900">{d.name}</p>
+                    <p className="font-mono text-[10px] text-ink-500 uppercase tracking-wide">{d.company}</p>
+                    <p className="font-mono mt-1">{d.value}{unit}</p>
                   </div>
                 );
               }}
             />
-            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+            <Bar dataKey="value">
               {chartData.map((d, i) => (
-                <rect key={i} fill={d.color} />
+                <Cell key={i} fill={d.color} fillOpacity={0.85} />
               ))}
             </Bar>
           </BarChart>
@@ -65,7 +73,7 @@ function SingleBarChart({ data, chartKey, title, unit }: {
 export default function SpecBarCharts({ data }: Props) {
   if (!data || data.length < 2) {
     return (
-      <div className="flex items-center justify-center min-h-[300px] text-argos-muted text-sm">
+      <div className="flex items-center justify-center min-h-[300px] text-ink-400 text-[12px]">
         비교를 위해 최소 2개 이상의 로봇 데이터가 필요합니다.
       </div>
     );
