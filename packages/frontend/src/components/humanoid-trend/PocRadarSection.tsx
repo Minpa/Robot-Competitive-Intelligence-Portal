@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import {
   RadarChart,
   Radar,
@@ -32,9 +33,9 @@ function buildRadarData(score: PocScoreWithRobot) {
   }));
 }
 
-function PlaceholderCard({ robotName, companyName }: { robotName?: string; companyName?: string }) {
-  return (
-    <div className="border border-ink-200 bg-paper p-6 flex flex-col items-center justify-center min-h-[320px]">
+function PlaceholderCard({ robotId, robotName, companyName }: { robotId?: string; robotName?: string; companyName?: string }) {
+  const content = (
+    <>
       {robotName && (
         <p className="font-serif text-[14px] font-semibold text-ink-900 mb-1">
           {robotName}
@@ -46,6 +47,23 @@ function PlaceholderCard({ robotName, companyName }: { robotName?: string; compa
         </p>
       )}
       <p className="text-ink-400 text-[12px]">PoC 평가 데이터 미등록</p>
+    </>
+  );
+
+  if (robotId) {
+    return (
+      <Link
+        href={`/humanoid-robots/${robotId}`}
+        className="border border-ink-200 bg-paper p-6 flex flex-col items-center justify-center min-h-[320px] transition-colors hover:border-gold hover:bg-white cursor-pointer"
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="border border-ink-200 bg-paper p-6 flex flex-col items-center justify-center min-h-[320px]">
+      {content}
     </div>
   );
 }
@@ -57,11 +75,14 @@ function RobotRadarCard({ score }: { score: PocScoreWithRobot }) {
 
   const hasData = AXES.some((axis) => score[axis.key] > 0);
   if (!hasData) {
-    return <PlaceholderCard robotName={score.robotName} companyName={score.companyName} />;
+    return <PlaceholderCard robotId={score.robotId} robotName={score.robotName} companyName={score.companyName} />;
   }
 
   return (
-    <div className="border border-ink-200 bg-white p-4">
+    <Link
+      href={`/humanoid-robots/${score.robotId}`}
+      className="block border border-ink-200 bg-white p-4 transition-colors hover:border-gold hover:shadow-sm cursor-pointer"
+    >
       <div className="pb-3 mb-2 border-b border-ink-100">
         <p className="font-serif text-[14px] font-semibold text-ink-900 leading-tight">
           {score.robotName}
@@ -110,7 +131,7 @@ function RobotRadarCard({ score }: { score: PocScoreWithRobot }) {
           </RadarChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </Link>
   );
 }
 
