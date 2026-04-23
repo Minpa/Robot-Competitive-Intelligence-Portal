@@ -124,6 +124,7 @@ export default function CiUpdatePage() {
         isOpen={showAddCompetitor}
         onClose={() => setShowAddCompetitor(false)}
         onSuccess={handleRefresh}
+        existingSlugs={matrixData?.competitors.map((c) => c.slug) ?? []}
       />
     </div>
   );

@@ -70,6 +70,7 @@ function MatrixContent() {
         isOpen={showAddCompetitor}
         onClose={() => setShowAddCompetitor(false)}
         onSuccess={() => mutateMatrix()}
+        existingSlugs={matrixData?.competitors.map((c) => c.slug) ?? []}
       />
     </div>
   );
