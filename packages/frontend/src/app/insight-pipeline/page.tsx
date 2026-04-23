@@ -9,15 +9,18 @@ import { api } from '@/lib/api';
 import type { AnalysisResult } from '@/types/insight-pipeline';
 import { PageHeader } from '@/components/layout/PageHeader';
 
-const PROGRESS_STEPS = [
-  { topic: '글로벌 기업 & 제품', detail: 'Tesla, Figure, Unitree, UBTECH, Rainbow Robotics, ABB...' },
-  { topic: '적용 사례 & 시장', detail: '물류(Amazon), 제조(BMW), 건설, 의료, 서비스...' },
-];
-
 const STORAGE_KEY_LOGS = 'insight-pipeline-last-logs';
 const STORAGE_KEY_RESULT = 'insight-pipeline-last-result';
 const STORAGE_KEY_HISTORY = 'insight-pipeline-history';
 const STORAGE_KEY_TIME = 'insight-pipeline-last-time';
+const STORAGE_KEY_JOB_ID = 'insight-pipeline-job-id';
+
+const POLL_INTERVAL_MS = 3000;
+
+const STEP_LABEL: Record<string, string> = {
+  ai_call: 'AI 호출 중',
+  rate_limit_wait: 'Rate limit 대기 중 (60초)',
+};
 
 interface HistoryEntry {
   timestamp: string;
@@ -71,7 +74,9 @@ export default function InsightPipelinePage() {
   const [showHistory, setShowHistory] = useState(false);
   const [expandedTopic, setExpandedTopic] = useState<number | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
-  const progressInterval = useRef<NodeJS.Timeout | null>(null);
+  const pollTimer = useRef<NodeJS.Timeout | null>(null);
+  const loggedTopicsRef = useRef<Set<number>>(new Set());
+  const lastStepRef = useRef<string | null>(null);
 
   // Restore from localStorage on mount
   useEffect(() => {
@@ -93,7 +98,7 @@ export default function InsightPipelinePage() {
 
   useEffect(() => {
     return () => {
-      if (progressInterval.current) clearInterval(progressInterval.current);
+      if (pollTimer.current) clearTimeout(pollTimer.current);
     };
   }, []);
 
@@ -107,6 +112,87 @@ export default function InsightPipelinePage() {
     setProgressLogs((prev) => [...prev, msg]);
   }, []);
 
+  const pollJob = useCallback((jobId: string, startTime: number, runTimestamp: string) => {
+    const tick = async () => {
+      try {
+        const state = await api.getDataBatchStatus(jobId);
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+
+        // Log new step transitions (current topic + step)
+        const stepKey = `${state.currentTopicIndex ?? -1}:${state.currentStep ?? ''}`;
+        if (stepKey !== lastStepRef.current && state.status === 'running') {
+          lastStepRef.current = stepKey;
+          if (state.currentTopicIndex != null && state.currentTopicLabel) {
+            const stepLabel = state.currentStep ? (STEP_LABEL[state.currentStep] ?? state.currentStep) : '';
+            addLog(`[${elapsed}s] 주제 ${state.currentTopicIndex + 1}/${state.totalTopics} · ${stepLabel} · ${state.currentTopicLabel.substring(0, 50)}...`);
+          }
+        }
+
+        // Log newly completed topics (results appended as each topic finishes)
+        for (let i = 0; i < state.results.length; i++) {
+          if (loggedTopicsRef.current.has(i)) continue;
+          loggedTopicsRef.current.add(i);
+          const r = state.results[i]!;
+          const total = r.companiesSaved + r.productsSaved + r.articlesSaved + r.keywordsSaved;
+          const hasError = r.errors && r.errors.length > 0;
+          if (hasError) {
+            addLog(`  ✗ ${r.topic}`);
+            for (const e of r.errors) addLog(`    → ${e}`);
+          } else if (total === 0) {
+            addLog(`  ↺ ${r.topic} (중복 — 이미 DB에 존재)`);
+          } else {
+            addLog(`  ✓ ${r.topic} → 기업 ${r.companiesSaved} · 제품 ${r.productsSaved} · 기사 ${r.articlesSaved} · 키워드 ${r.keywordsSaved}`);
+          }
+        }
+
+        if (state.status === 'running' || state.status === 'pending') {
+          pollTimer.current = setTimeout(tick, POLL_INTERVAL_MS);
+          return;
+        }
+
+        // Finished — completed or failed
+        const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        const result = {
+          totalTopics: state.totalTopics,
+          completed: state.completed,
+          failed: state.failed,
+          results: state.results as BatchResultItem[],
+        };
+
+        if (state.status === 'failed') {
+          addLog(`[${totalElapsed}s] 실패: ${state.error ?? '알 수 없는 오류'}`);
+          setAiError(state.error ?? '배치 실행 중 오류가 발생했습니다.');
+        } else {
+          const totalSaved = result.results.reduce((sum, r) => sum + r.companiesSaved + r.productsSaved + r.articlesSaved + r.keywordsSaved, 0);
+          if (totalSaved === 0 && result.failed === 0) {
+            addLog(`[${totalElapsed}s] 완료 — 새 데이터 없음 (모두 중복)`);
+          } else if (result.failed > 0) {
+            addLog(`[${totalElapsed}s] 완료 — 성공 ${result.completed}, 실패 ${result.failed}`);
+          } else {
+            addLog(`[${totalElapsed}s] 완료! ${result.completed}/${result.totalTopics} 주제 수집 성공`);
+          }
+        }
+
+        setBatchResult(result);
+        setLastRunTime(runTimestamp);
+        const newEntry: HistoryEntry = { timestamp: runTimestamp, ...result };
+        setHistory((prev) => {
+          const updated = [newEntry, ...prev].slice(0, 20);
+          localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(updated));
+          return updated;
+        });
+        localStorage.removeItem(STORAGE_KEY_JOB_ID);
+        setIsAICollecting(false);
+      } catch (err: any) {
+        addLog(`> 폴링 오류: ${err?.message ?? '알 수 없는 오류'} — 재시도`);
+        // Transient errors (network/server restart) — retry in 5s, don't drop the job
+        pollTimer.current = setTimeout(tick, 5000);
+      }
+    };
+
+    tick();
+  }, [addLog]);
+
   const handleAICollect = async () => {
     if (isAICollecting) return;
     setAiError(null);
@@ -114,77 +200,53 @@ export default function InsightPipelinePage() {
     setBatchResult(null);
     setProgressLogs([]);
     setExpandedTopic(null);
+    loggedTopicsRef.current = new Set();
+    lastStepRef.current = null;
+    localStorage.removeItem(STORAGE_KEY_RESULT);
 
     const startTime = Date.now();
     const runTimestamp = new Date().toISOString();
     addLog('> Claude Sonnet 4 연결 중...');
-
-    let stepIndex = 0;
-    const subSteps = ['분석 중...', '엔티티 추출 중...', 'DB 저장 중...'];
-
-    progressInterval.current = setInterval(() => {
-      const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
-      if (stepIndex < PROGRESS_STEPS.length) {
-        const step = PROGRESS_STEPS[stepIndex];
-        const sub = subSteps[stepIndex % subSteps.length];
-        addLog(`[${elapsed}s] ${step.topic} ${sub} (${step.detail})`);
-        stepIndex++;
-      } else {
-        const waitMsgs = ['응답 대기 중...', '데이터 정리 중...', '엔티티 링킹 중...', '키워드 매핑 중...'];
-        addLog(`[${elapsed}s] ${waitMsgs[(stepIndex - PROGRESS_STEPS.length) % waitMsgs.length]}`);
-        stepIndex++;
-      }
-    }, 6000);
-
-    setTimeout(() => addLog('> 웹 검색 활성화 (실시간 데이터)'), 800);
-    setTimeout(() => addLog('> 2개 주제 배치 시작'), 1600);
+    addLog('> 웹 검색 활성화 (실시간 데이터)');
 
     try {
-      const result = await api.generateDataBatch('claude', true);
-      if (progressInterval.current) clearInterval(progressInterval.current);
-      const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-
-      for (const r of result.results) {
-        const total = r.companiesSaved + r.productsSaved + r.articlesSaved + r.keywordsSaved;
-        const hasError = r.errors && r.errors.length > 0;
-        if (hasError) {
-          addLog(`  ✗ ${r.topic}`);
-          for (const e of r.errors) addLog(`    → ${e}`);
-        } else if (total === 0) {
-          addLog(`  ↺ ${r.topic} (중복 — 이미 DB에 존재)`);
-        } else {
-          addLog(`  ✓ ${r.topic} → 기업 ${r.companiesSaved} · 제품 ${r.productsSaved} · 기사 ${r.articlesSaved} · 키워드 ${r.keywordsSaved}`);
-        }
-      }
-
-      const totalSaved = result.results.reduce((sum: number, r: BatchResultItem) => sum + r.companiesSaved + r.productsSaved + r.articlesSaved + r.keywordsSaved, 0);
-      if (totalSaved === 0 && result.failed === 0) {
-        addLog(`[${totalElapsed}s] 완료 — 새 데이터 없음 (모두 중복)`);
-      } else if (result.failed > 0) {
-        addLog(`[${totalElapsed}s] 완료 — 성공 ${result.completed}, 실패 ${result.failed}`);
-      } else {
-        addLog(`[${totalElapsed}s] 완료! ${result.completed}/${result.totalTopics} 주제 수집 성공`);
-      }
-
-      setBatchResult(result);
-      setLastRunTime(runTimestamp);
-
-      // Save to localStorage
-      const newEntry: HistoryEntry = { timestamp: runTimestamp, ...result };
-      setHistory((prev) => {
-        const updated = [newEntry, ...prev].slice(0, 20);
-        localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(updated));
-        return updated;
-      });
-      // Logs and result are saved after state updates via separate effect
+      const { jobId } = await api.startDataBatch('claude', true);
+      localStorage.setItem(STORAGE_KEY_JOB_ID, jobId);
+      addLog(`> 배치 시작 (job ${jobId.substring(0, 8)}...) · 예상 소요: 약 3~5분`);
+      pollJob(jobId, startTime, runTimestamp);
     } catch (err: any) {
-      if (progressInterval.current) clearInterval(progressInterval.current);
       addLog(`> 오류: ${err?.message ?? '알 수 없는 오류'}`);
       setAiError(err?.message ?? 'AI 데이터 수집 중 오류가 발생했습니다.');
-    } finally {
       setIsAICollecting(false);
     }
   };
+
+  // Resume polling if there's an unfinished job (e.g. user refreshed mid-run)
+  useEffect(() => {
+    try {
+      const savedJobId = localStorage.getItem(STORAGE_KEY_JOB_ID);
+      if (!savedJobId) return;
+      // Check the job status — if still running, resume polling
+      (async () => {
+        try {
+          const state = await api.getDataBatchStatus(savedJobId);
+          if (state.status === 'running' || state.status === 'pending') {
+            setIsAICollecting(true);
+            setProgressLogs([`> 이전 실행 재개 중 (job ${savedJobId.substring(0, 8)}...)`]);
+            loggedTopicsRef.current = new Set();
+            lastStepRef.current = null;
+            const startedAt = state.startedAt ? new Date(state.startedAt).getTime() : Date.now();
+            pollJob(savedJobId, startedAt, state.createdAt);
+          } else {
+            localStorage.removeItem(STORAGE_KEY_JOB_ID);
+          }
+        } catch {
+          localStorage.removeItem(STORAGE_KEY_JOB_ID);
+        }
+      })();
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Persist logs & result to localStorage
   useEffect(() => {

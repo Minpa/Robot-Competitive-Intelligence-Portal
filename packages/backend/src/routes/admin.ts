@@ -354,7 +354,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // 배치 데이터 생성 (기본 주제 전체)
+  // 배치 데이터 생성 (기본 주제 전체) — 비동기 잡: jobId를 즉시 반환
   fastify.post('/data-generator/batch', async (request, reply) => {
     try {
       const body = request.body as {
@@ -362,12 +362,26 @@ export async function adminRoutes(fastify: FastifyInstance) {
         webSearch?: boolean;
       };
 
-      const result = await dataGeneratorService.generateBatch(
+      const { jobId } = await dataGeneratorService.startBatch(
         body?.provider || 'claude',
         body?.webSearch || false
       );
 
-      return result;
+      return { jobId };
+    } catch (err) {
+      return reply.status(500).send({ error: (err as Error).message });
+    }
+  });
+
+  // 배치 잡 상태 조회 (폴링용)
+  fastify.get('/data-generator/batch/status/:jobId', async (request, reply) => {
+    try {
+      const { jobId } = request.params as { jobId: string };
+      const state = await dataGeneratorService.getJobStatus(jobId);
+      if (!state) {
+        return reply.status(404).send({ error: '잡을 찾을 수 없습니다.' });
+      }
+      return state;
     } catch (err) {
       return reply.status(500).send({ error: (err as Error).message });
     }

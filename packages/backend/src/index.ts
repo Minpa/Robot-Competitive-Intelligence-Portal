@@ -7,6 +7,7 @@ import { fixSocPowerConsumption } from './db/fix-soc-startup.js';
 import { ciUpdateService } from './services/ci-update.service.js';
 import { benchmarkService } from './services/benchmark.service.js';
 import { seedCiData } from './db/seed-ci.js';
+import { dataGeneratorService } from './services/data-generator.service.js';
 
 const fastify = Fastify({
   logger: true,
@@ -52,6 +53,8 @@ const start = async () => {
     await ciUpdateService.ensureTables();
     await benchmarkService.ensureTables();
     await seedCiData();
+    const staleJobs = await dataGeneratorService.reconcileStaleJobs().catch(() => 0);
+    if (staleJobs > 0) console.log(`[DataGenerator] Reconciled ${staleJobs} stale job(s) as failed`);
     await fastify.listen({ port, host: '0.0.0.0' });
     console.log(`Backend server running on port ${port}`);
   } catch (err) {

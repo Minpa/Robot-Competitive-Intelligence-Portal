@@ -1555,12 +1555,37 @@ class ApiClient {
     }>('/admin/data-generator/generate', { method: 'POST', body: JSON.stringify(data) });
   }
 
-  async generateDataBatch(provider: 'chatgpt' | 'claude' = 'claude', webSearch: boolean = false) {
+  async startDataBatch(provider: 'chatgpt' | 'claude' = 'claude', webSearch: boolean = false) {
+    return this.request<{ jobId: string }>(
+      '/admin/data-generator/batch',
+      { method: 'POST', body: JSON.stringify({ provider, webSearch }) }
+    );
+  }
+
+  async getDataBatchStatus(jobId: string) {
     return this.request<{
-      totalTopics: number; completed: number; failed: number;
-      results: Array<{ topic: string; provider: string; companiesSaved: number; productsSaved: number; articlesSaved: number; keywordsSaved: number; errors: string[] }>;
-      totalCost: string;
-    }>('/admin/data-generator/batch', { method: 'POST', body: JSON.stringify({ provider, webSearch }) });
+      id: string;
+      status: 'pending' | 'running' | 'completed' | 'failed';
+      provider: string;
+      webSearch: boolean;
+      totalTopics: number;
+      completed: number;
+      failed: number;
+      currentTopicIndex: number | null;
+      currentTopicLabel: string | null;
+      currentStep: string | null;
+      results: Array<{
+        topic: string; provider: string;
+        companiesSaved: number; productsSaved: number; articlesSaved: number; keywordsSaved: number;
+        companyNames?: string[]; productNames?: string[]; articleTitles?: string[]; keywordTerms?: string[];
+        errors: string[];
+      }>;
+      error: string | null;
+      startedAt: string | null;
+      finishedAt: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>(`/admin/data-generator/batch/status/${encodeURIComponent(jobId)}`);
   }
 
   // ── War Room — Dashboard ──

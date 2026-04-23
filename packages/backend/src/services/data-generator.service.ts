@@ -12,7 +12,7 @@ import { externalAIAgent } from './external-ai-agent.service.js';
 import { saveAnalyzedData } from './text-analyzer.service.js';
 import type { AISearchRequest, AISearchResponse } from './external-ai-agent.service.js';
 import type { AnalyzedData } from './text-analyzer.service.js';
-import { db, humanoidRobots, companies } from '../db/index.js';
+import { db, humanoidRobots, companies, dataGeneratorJobs } from '../db/index.js';
 import { eq } from 'drizzle-orm';
 
 export interface GenerationTopic {
@@ -42,6 +42,27 @@ export interface BatchResult {
   failed: number;
   results: GenerationResult[];
   totalCost: string;
+}
+
+export type JobStatus = 'pending' | 'running' | 'completed' | 'failed';
+
+export interface JobState {
+  id: string;
+  status: JobStatus;
+  provider: string;
+  webSearch: boolean;
+  totalTopics: number;
+  completed: number;
+  failed: number;
+  currentTopicIndex: number | null;
+  currentTopicLabel: string | null;
+  currentStep: string | null;
+  results: GenerationResult[];
+  error: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**
@@ -251,43 +272,164 @@ class DataGeneratorService {
   }
 
   /**
-   * 기본 주제 목록으로 배치 데이터 생성
+   * 배치 잡을 DB에 생성하고 백그라운드에서 실행 시작. jobId를 즉시 반환.
    */
-  async generateBatch(
+  async startBatch(
     provider: 'chatgpt' | 'claude' = 'claude',
     webSearch: boolean = false,
     topics?: GenerationTopic[]
-  ): Promise<BatchResult> {
+  ): Promise<{ jobId: string }> {
     const topicList = topics || DEFAULT_TOPICS;
+
+    const [job] = await db
+      .insert(dataGeneratorJobs)
+      .values({
+        status: 'pending',
+        provider,
+        webSearch,
+        totalTopics: topicList.length,
+      })
+      .returning({ id: dataGeneratorJobs.id });
+
+    if (!job) throw new Error('배치 잡 생성 실패');
+
+    // 백그라운드에서 실행 — await 하지 않음
+    this.runBatchJob(job.id, topicList, provider, webSearch).catch(async (err) => {
+      console.error('[DataGenerator] Background job crashed:', err);
+      await db
+        .update(dataGeneratorJobs)
+        .set({
+          status: 'failed',
+          error: (err as Error).message || String(err),
+          finishedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(dataGeneratorJobs.id, job.id));
+    });
+
+    return { jobId: job.id };
+  }
+
+  /**
+   * 백그라운드 잡 실행 — 주제별로 진행 상태를 DB에 실시간 반영
+   */
+  private async runBatchJob(
+    jobId: string,
+    topicList: GenerationTopic[],
+    provider: 'chatgpt' | 'claude',
+    webSearch: boolean
+  ): Promise<void> {
+    await db
+      .update(dataGeneratorJobs)
+      .set({ status: 'running', startedAt: new Date(), updatedAt: new Date() })
+      .where(eq(dataGeneratorJobs.id, jobId));
+
     const results: GenerationResult[] = [];
     let completed = 0;
     let failed = 0;
 
-    for (const topic of topicList) {
-      console.log(`[DataGenerator] Processing: ${topic.query.substring(0, 60)}...`);
+    for (let i = 0; i < topicList.length; i++) {
+      const topic = topicList[i]!;
+      const topicLabel = topic.query.substring(0, 80);
+      console.log(`[DataGenerator] Job ${jobId} topic ${i + 1}/${topicList.length}: ${topicLabel}...`);
+
+      await db
+        .update(dataGeneratorJobs)
+        .set({
+          currentTopicIndex: i,
+          currentTopicLabel: topicLabel,
+          currentStep: 'ai_call',
+          updatedAt: new Date(),
+        })
+        .where(eq(dataGeneratorJobs.id, jobId));
 
       const result = await this.generateForTopic(topic, provider, webSearch);
       results.push(result);
 
       if (result.errors.length > 0 && result.companiesSaved === 0 && result.productsSaved === 0) {
         failed++;
-        console.error(`[DataGenerator] Failed: ${result.errors[0]}`);
+        console.error(`[DataGenerator] Job ${jobId} topic ${i + 1} failed: ${result.errors[0]}`);
       } else {
         completed++;
-        console.log(`[DataGenerator] Saved: ${result.companiesSaved} companies, ${result.productsSaved} products, ${result.keywordsSaved} keywords`);
+        console.log(`[DataGenerator] Job ${jobId} topic ${i + 1} saved: ${result.companiesSaved} companies, ${result.productsSaved} products, ${result.keywordsSaved} keywords`);
       }
 
-      // API rate limit 방지: 60초 대기 (30k input tokens/min 제한 대응)
-      await new Promise(resolve => setTimeout(resolve, 60000));
+      await db
+        .update(dataGeneratorJobs)
+        .set({
+          completed,
+          failed,
+          results: results as unknown[],
+          updatedAt: new Date(),
+        })
+        .where(eq(dataGeneratorJobs.id, jobId));
+
+      // API rate limit 방지 (30k input tokens/min 제한): 마지막 주제 이후에는 대기하지 않음
+      if (i < topicList.length - 1) {
+        await db
+          .update(dataGeneratorJobs)
+          .set({ currentStep: 'rate_limit_wait', updatedAt: new Date() })
+          .where(eq(dataGeneratorJobs.id, jobId));
+        await new Promise(resolve => setTimeout(resolve, 60000));
+      }
     }
 
+    await db
+      .update(dataGeneratorJobs)
+      .set({
+        status: 'completed',
+        currentStep: null,
+        currentTopicIndex: null,
+        currentTopicLabel: null,
+        finishedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(dataGeneratorJobs.id, jobId));
+  }
+
+  /**
+   * 잡 상태 조회 (폴링용)
+   */
+  async getJobStatus(jobId: string): Promise<JobState | null> {
+    const rows = await db.select().from(dataGeneratorJobs).where(eq(dataGeneratorJobs.id, jobId)).limit(1);
+    const row = rows[0];
+    if (!row) return null;
+
     return {
-      totalTopics: topicList.length,
-      completed,
-      failed,
-      results,
-      totalCost: 'Check AI usage dashboard for actual cost',
+      id: row.id,
+      status: row.status as JobStatus,
+      provider: row.provider,
+      webSearch: row.webSearch,
+      totalTopics: row.totalTopics,
+      completed: row.completed,
+      failed: row.failed,
+      currentTopicIndex: row.currentTopicIndex,
+      currentTopicLabel: row.currentTopicLabel,
+      currentStep: row.currentStep,
+      results: (row.results as GenerationResult[]) || [],
+      error: row.error,
+      startedAt: row.startedAt ? row.startedAt.toISOString() : null,
+      finishedAt: row.finishedAt ? row.finishedAt.toISOString() : null,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
     };
+  }
+
+  /**
+   * 서버 재시작 후 고아 잡 정리 (running 상태로 남은 잡을 failed로 마킹)
+   */
+  async reconcileStaleJobs(): Promise<number> {
+    const result = await db
+      .update(dataGeneratorJobs)
+      .set({
+        status: 'failed',
+        error: '서버 재시작으로 중단됨',
+        finishedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(dataGeneratorJobs.status, 'running'))
+      .returning({ id: dataGeneratorJobs.id });
+    return result.length;
   }
 
   /**

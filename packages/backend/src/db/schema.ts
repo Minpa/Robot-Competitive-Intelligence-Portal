@@ -867,6 +867,33 @@ export const pipelineStepLogs = pgTable(
   })
 );
 
+// 데이터 생성기 배치 잡 (AI 데이터 수집 비동기 실행)
+export const dataGeneratorJobs = pgTable(
+  'data_generator_jobs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    status: varchar('status', { length: 20 }).notNull().default('pending'),
+    provider: varchar('provider', { length: 20 }).notNull(),
+    webSearch: boolean('web_search').notNull().default(false),
+    totalTopics: integer('total_topics').notNull().default(0),
+    completed: integer('completed').notNull().default(0),
+    failed: integer('failed').notNull().default(0),
+    currentTopicIndex: integer('current_topic_index'),
+    currentTopicLabel: text('current_topic_label'),
+    currentStep: varchar('current_step', { length: 40 }),
+    results: jsonb('results').$type<unknown[]>().notNull().default([]),
+    error: text('error'),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    statusIdx: index('data_generator_jobs_status_idx').on(table.status),
+    createdAtIdx: index('data_generator_jobs_created_at_idx').on(table.createdAt),
+  })
+);
+
 // ============================================
 // 신규 Relations
 // ============================================

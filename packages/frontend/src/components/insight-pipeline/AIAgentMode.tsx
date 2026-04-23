@@ -52,6 +52,7 @@ export function AIAgentMode({
     totalTopics: number; completed: number; failed: number;
     results: Array<{ topic: string; companiesSaved: number; productsSaved: number; articlesSaved: number; keywordsSaved: number; errors: string[] }>;
   } | null>(null);
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number; step: string | null } | null>(null);
 
   const canSearch = selectedTypes.size > 0 && !isAnalyzing;
 
@@ -270,19 +271,45 @@ export function AIAgentMode({
           <p className="text-sm font-medium">배치 데이터 생성</p>
         </div>
         <p className="text-xs text-ink-400">
-          10개 주제(기업, 중국시장, 일한, SoC, 액추에이터, 적용사례, 투자, AI모델, 유럽, 센서)를 한 번에 실행하여 DB에 저장합니다.
+          글로벌 휴머노이드 기업·제품과 적용 사례 2개 주제를 비동기 배치로 실행하여 DB에 저장합니다. 주제 간 60초 rate-limit 대기 포함.
         </p>
         <button
           onClick={async () => {
             setIsBatchRunning(true);
             setBatchResult(null);
+            setBatchProgress({ current: 0, total: 0, step: null });
             setError(null);
             try {
-              const result = await api.generateDataBatch(provider, webSearch);
-              setBatchResult(result);
+              const { jobId } = await api.startDataBatch(provider, webSearch);
+              // Poll for progress/completion
+              const poll = async () => {
+                const state = await api.getDataBatchStatus(jobId);
+                setBatchProgress({
+                  current: state.currentTopicIndex != null ? state.currentTopicIndex + 1 : state.completed + state.failed,
+                  total: state.totalTopics,
+                  step: state.currentStep,
+                });
+                if (state.status === 'running' || state.status === 'pending') {
+                  setTimeout(poll, 3000);
+                  return;
+                }
+                if (state.status === 'failed') {
+                  setError(state.error ?? '배치 실행 중 오류가 발생했습니다.');
+                } else {
+                  setBatchResult({
+                    totalTopics: state.totalTopics,
+                    completed: state.completed,
+                    failed: state.failed,
+                    results: state.results,
+                  });
+                }
+                setBatchProgress(null);
+                setIsBatchRunning(false);
+              };
+              poll();
             } catch (err: any) {
               setError(err?.message ?? '배치 실행 중 오류가 발생했습니다.');
-            } finally {
+              setBatchProgress(null);
               setIsBatchRunning(false);
             }
           }}
@@ -290,7 +317,11 @@ export function AIAgentMode({
           className="w-full py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-amber-600 hover:bg-amber-500 !text-white"
         >
           <Database className="w-4 h-4" />
-          {isBatchRunning ? '배치 실행 중... (약 1~2분 소요)' : '배치 데이터 생성 (10개 주제)'}
+          {isBatchRunning
+            ? batchProgress && batchProgress.total > 0
+              ? `배치 실행 중... (${batchProgress.current}/${batchProgress.total}${batchProgress.step === 'rate_limit_wait' ? ' · rate limit 대기' : ''})`
+              : '배치 실행 중...'
+            : '배치 데이터 생성 (2개 주제, 약 3~5분)'}
         </button>
 
         {batchResult && (
