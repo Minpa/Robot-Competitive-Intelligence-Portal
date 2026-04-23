@@ -55,6 +55,10 @@ const start = async () => {
     await seedCiData();
     const staleJobs = await dataGeneratorService.reconcileStaleJobs().catch(() => 0);
     if (staleJobs > 0) console.log(`[DataGenerator] Reconciled ${staleJobs} stale job(s) as failed`);
+    const fabricated = await dataGeneratorService.cleanupFabricatedRobots().catch(() => null);
+    if (fabricated && fabricated.deleted > 0) {
+      console.log(`[DataGenerator] Removed ${fabricated.deleted} fabricated robot(s): ${fabricated.names.join(', ')}`);
+    }
     await fastify.listen({ port, host: '0.0.0.0' });
     console.log(`Backend server running on port ${port}`);
   } catch (err) {

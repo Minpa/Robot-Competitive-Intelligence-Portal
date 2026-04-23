@@ -393,6 +393,11 @@ export async function adminRoutes(fastify: FastifyInstance) {
     return dataGeneratorService.cleanupInvalidEntities();
   });
 
+  // 공식 발표 근거 없는 가짜 휴머노이드 로봇(Atlas Pro, HUBO 2 등) 삭제
+  fastify.post('/data-generator/cleanup-fabricated-robots', async () => {
+    return dataGeneratorService.cleanupFabricatedRobots();
+  });
+
   // 배치 잡 상태 조회 (폴링용)
   fastify.get('/data-generator/batch/status/:jobId', async (request, reply) => {
     try {

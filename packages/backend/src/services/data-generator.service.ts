@@ -628,6 +628,26 @@ class DataGeneratorService {
   }
 
   /**
+   * 공식 발표 근거 없이 DB에 남아있는 가짜 휴머노이드 로봇 이름 목록을 삭제.
+   * 이전 seed 버전에서 insert됐던 행들을 정리한다.
+   */
+  async cleanupFabricatedRobots(): Promise<{ deleted: number; names: string[] }> {
+    const fabricated = [
+      'G1 Pro',
+      'Optimus Production',
+      'Atlas Pro',
+      'Digit v3',
+      'Phoenix Gen 8',
+      'HUBO 2',
+    ];
+    const result = await db
+      .delete(humanoidRobots)
+      .where(inArray(humanoidRobots.name, fabricated))
+      .returning({ id: humanoidRobots.id, name: humanoidRobots.name });
+    return { deleted: result.length, names: result.map(r => r.name) };
+  }
+
+  /**
    * 이전 배치에서 뉴스 헤드라인이 엔티티 이름으로 들어간 것들을 찾아 정리.
    * isValidEntityName 실패 또는 sanitize 결과가 원본과 다른 companies/products를 반환.
    */
