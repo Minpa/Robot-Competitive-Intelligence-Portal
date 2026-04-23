@@ -45,6 +45,11 @@ export interface SourceReference {
 /**
  * AI가 뉴스 헤드라인을 name으로 넣는 걸 막기 위한 정제 함수.
  * 꼬리에 붙은 동작 서술(출시·도입·발표 등)과 숫자 단위 서술(1만대 출하 등)을 제거.
+ *
+ * 원칙: "확실한 뉴스 헤드라인 꼬리"만 제거. 제품 모델 번호, 영문 코드명, 약어는 건드리지 않음.
+ * - "Samsung Exynos 2100" → 그대로 (2100은 모델 번호)
+ * - "A100 (SXM)" → 그대로 (SXM은 폼팩터)
+ * - "Unitree H2 북미 출시" → "Unitree H2" (출시는 동사)
  */
 export function sanitizeEntityName(raw: string): string {
   let s = raw.trim();
@@ -52,30 +57,69 @@ export function sanitizeEntityName(raw: string): string {
   // 따옴표 제거
   s = s.replace(/^[\"'"'「『]|[\"'"'」』]$/g, '');
 
-  // 괄호 안 설명 제거 (예: "Pongbot (상하이)" → "Pongbot")
-  // 단, 괄호 안이 국가/영문이면 살려둠: "Figure AI (USA)" ← 이건 그대로 두는 게 나을 수도 있지만 엄격하게 제거
-  s = s.replace(/\s*\([^)]*\)\s*$/, '').trim();
+  // 괄호 내용 제거는 조건부:
+  //   - 한글 포함 → 번역/도시명으로 간주해 제거 ("Galaxy General (은하범용로봇)" → "Galaxy General")
+  //   - 명시적 국가 코드/명 → 제거 ("Humanoid (UK)" → "Humanoid")
+  //   - 그 외 ASCII 코드명/약어는 유지 ("A100 (SXM)", "Mobile Industrial Robots (MiR)")
+  // 주의: `[A-Z]{2,3}` 같은 generic 패턴 사용 금지 — SXM, MiR, HRX 같은 엔지니어링 약어가 국가로 오인됨.
+  const COUNTRY_CODES = new Set([
+    'USA', 'US', 'UK', 'JP', 'CN', 'KR', 'EU', 'DE', 'FR', 'IT', 'ES',
+    'CA', 'AU', 'IN', 'SG', 'IL', 'NO', 'SE', 'FI', 'DK', 'NL', 'CH', 'AT', 'GB',
+    'Korea', 'Japan', 'China', 'Germany', 'France', 'Italy', 'Spain',
+    'Canada', 'Australia', 'India', 'Singapore', 'Israel', 'Norway',
+    'Sweden', 'Finland', 'Denmark', 'Netherlands', 'Switzerland', 'Austria',
+    'Taiwan', 'Hong Kong', 'Vietnam', 'Thailand',
+  ]);
+  const parenMatch = s.match(/\s*\(([^)]*)\)\s*$/);
+  if (parenMatch && parenMatch[1]) {
+    const inside = parenMatch[1].trim();
+    const hasKorean = /[가-힣]/.test(inside);
+    const isCountry = COUNTRY_CODES.has(inside);
+    if (hasKorean || isCountry) {
+      s = s.replace(/\s*\([^)]*\)\s*$/, '').trim();
+    }
+  }
 
   // 꼬리에 붙은 한국어 서술 동사·명사구 제거 (뉴스 헤드라인 패턴)
-  // 예: "Unitree H2 북미 출시" → "Unitree H2"
-  //     "Agibot 1만대 누적 출하 달성" → "Agibot"
-  //     "SAIC Motor 휴머노이드 로봇 도입" → "SAIC Motor"
+  // 중요: 패턴은 반드시 "동사(출시/도입 등)" 또는 "년 마커(2024년)"를 명시적으로 요구 —
+  //       제품 모델의 4자리 숫자(Exynos 2100, Dimensity 9400)를 보호하기 위함.
+  // 순서: 복합 패턴(2-word 이상)을 먼저 매칭하도록 위쪽 배치. 단일-동사 패턴이 조각을 먼저 먹으면
+  //       복합 패턴이 영영 매칭되지 않는다.
   const tailPatterns = [
-    /\s+(북미|아시아|유럽|중국|미국|일본|한국|글로벌|해외|국내)?\s*(출시|런칭|공개|발표|도입|채택|확장|진출|선정|조성|달성|확보|유치|완료|시작|준비|결정|체결|서명|공급|제휴|파트너십|밸류에이션|계약|오픈|개시|론칭)\s*(준비|완료|예정|계획|체결)?\s*$/,
+    // === 복합 패턴 먼저 (더 긴 매칭 우선) ===
+    // 대규모/대량 + 동사 + 상태 (3-word) — "XPeng IRON 대량 생산 준비" → "XPeng IRON"
+    /\s+(대규모|대량)\s+(생산|배치|투자)\s+(준비|완료|계획|시작)\s*$/,
+    // 생산/배치/판매/공급 + 준비·계획·예정·목표 ("Tesla Gen 3 생산 준비" → "Tesla Gen 3")
+    /\s+(생산|배치|판매|공급)\s+(준비|계획|예정|목표|시작|체결)\s*$/,
+    // 대규모/대량 + 동사 (2-word) — "Unitree 로보틱스 대량 생산" → "Unitree 로보틱스"
+    /\s+(대규모|대량)\s*(생산|배치|투자)\s*$/,
+    // 숫자 + 단위 + 동사 (1만대 출하 달성)
     /\s+\d+(만|억|조|백만|천만)?\s*(대|원|달러|위안|엔|대수|건)\s*(누적)?\s*(출하|생산|판매|투자|펀딩|매출|계약)\s*(달성|돌파|확보|체결)?\s*$/,
+    // 펀딩 라운드 (시리즈 C 펀딩)
     /\s+시리즈\s*[A-Z]\s*(펀딩|투자|라운드|클로징)?\s*$/,
+    // CES/MWC + 연도 + 동사
     /\s+CES\s*\d{4}\s*(출시|공개|발표|참가)?\s*$/,
-    /\s+\d{4}년?\s*(\d+월)?\s*(출시|발표|공개|런칭)?\s*$/,
+    // 금액 + 시리즈
     /\s+(1조|\d+억)\s*(달러|원|위안|엔)\s*(시리즈\s*[A-Z])?\s*$/,
+    // 휴머노이드 꼬리
     /\s+휴머노이드\s*(로봇)?\s*(도입|선정|출시|채택)?\s*$/,
-    /\s+(대규모|대량)\s*(생산|배치|투자)\s*(준비|완료|계획)?\s*$/,
+    // 해외/국내 + 동사
     /\s+(해외|국내)\s*(투자|진출|확장)\s*(유치|완료)?\s*$/,
+    // 연도 — 반드시 "년" 마커 있거나 동사 뒤따라야 함 (2024, 2100 같은 bare 숫자는 보호)
+    /\s+\d{4}년\s*(\d+월)?\s*(출시|발표|공개|런칭)?\s*$/,
+    /\s+\d{4}\s*년\s*(\d+월)?\s*$/,
+
+    // === 단일 동사 (마지막) ===
+    /\s+(북미|아시아|유럽|중국|미국|일본|한국|글로벌|해외|국내|상용|본격|초기)?\s*(출시|런칭|공개|발표|도입|채택|확장|진출|선정|조성|달성|확보|유치|완료|시작|준비|결정|체결|서명|공급|제휴|파트너십|밸류에이션|계약|오픈|개시|론칭)\s*(준비|완료|예정|계획|체결)?\s*$/,
   ];
   let prev;
   do {
     prev = s;
     for (const pat of tailPatterns) s = s.replace(pat, '').trim();
   } while (prev !== s);
+
+  // 끝에 쉼표/세미콜론 제거 ("Dimensity 9400," → "Dimensity 9400")
+  s = s.replace(/[,;、]+\s*$/, '').trim();
 
   // 연속 공백 정리
   s = s.replace(/\s+/g, ' ').trim();
