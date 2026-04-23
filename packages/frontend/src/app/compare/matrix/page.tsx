@@ -53,14 +53,6 @@ function MatrixContent() {
             <div className="text-xs text-ink-500">
               {matrixData.competitors.length}개 경쟁사 × {matrixData.layers.length}개 레이어
             </div>
-            <div className="flex items-center gap-3 text-[10px] text-ink-400">
-              <span>신뢰도:</span>
-              <span className="text-green-400">A 확인</span>
-              <span className="text-blue-400">B 높음</span>
-              <span className="text-yellow-400">C 보통</span>
-              <span className="text-orange-400">D 낮음</span>
-              <span className="text-red-400">F 미확인</span>
-            </div>
           </div>
           <CiMatrixTable data={matrixData} onRefresh={() => mutateMatrix()} />
         </div>

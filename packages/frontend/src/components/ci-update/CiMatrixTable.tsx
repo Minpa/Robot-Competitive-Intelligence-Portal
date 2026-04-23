@@ -295,12 +295,7 @@ export function CiMatrixTable({ data, onRefresh }: CiMatrixTableProps) {
                             >
                               <div className="flex flex-col items-center gap-0.5">
                                 <span className="text-ink-700">{cv.value || '\u2014'}</span>
-                                <div className="flex items-center gap-1">
-                                  <span className={`inline-block px-1 py-0 rounded text-[10px] font-mono border ${confidenceColors[cv.confidence] || confidenceColors.D}`}>
-                                    {cv.confidence}
-                                  </span>
-                                  <span className={`inline-block w-1.5 h-1.5 rounded-full ${freshness.dotColor}`} title={`\uCD5C\uC885 \uAC80\uC99D: ${freshness.label}`} />
-                                </div>
+                                <span className={`inline-block w-1.5 h-1.5 rounded-full ${freshness.dotColor}`} title={`\uCD5C\uC885 \uAC80\uC99D: ${freshness.label}`} />
                               </div>
                               {/* History button (visible on hover) */}
                               <button
