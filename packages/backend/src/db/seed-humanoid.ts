@@ -23,6 +23,15 @@ async function seedHumanoid() {
   );
   console.log('Fixed legacy locomotionType values (biped → bipedal)');
 
+  // 데이터 신뢰도 복구: 확인되지 않은 미래 로봇 제거
+  // (G1 Pro, Optimus Production, Atlas Pro, Digit v3, Phoenix Gen 8, HUBO 2는 공식 발표 근거 없음)
+  const fabricatedNames = ['G1 Pro', 'Optimus Production', 'Atlas Pro', 'Digit v3', 'Phoenix Gen 8', 'HUBO 2'];
+  const removed = await db.execute(
+    sql`DELETE FROM humanoid_robots WHERE name = ANY(${fabricatedNames})`
+  );
+  console.log(`Removed unverified fabricated robots (affected rows reported by DB)`);
+  void removed;
+
   // 1. 회사 데이터 추가/업데이트
   const companiesData = [
     { name: 'Tesla', country: 'USA', category: 'automotive', city: 'Austin', foundingYear: 2003, mainBusiness: '전기차, 에너지, AI 로봇' },
@@ -328,85 +337,6 @@ async function seedHumanoid() {
       description: 'NEO 베타 버전. 가정 환경 실증 테스트 진행.',
       imageUrl: '/robots/neo.webp',
     },
-    {
-      companyName: 'Unitree Robotics',
-      name: 'G1 Pro',
-      announcementYear: 2025, announcementQuarter: 1,
-      status: 'commercial',
-      purpose: 'service',
-      locomotionType: 'bipedal',
-      handType: 'multi_finger',
-      commercializationStage: 'commercial',
-      region: 'china',
-      description: 'G1 업그레이드 모델. 향상된 손 조작 능력과 AI 추론.',
-      imageUrl: '/robots/unitree-g1.jpg',
-    },
-    // 2026 robots
-    {
-      companyName: 'Tesla',
-      name: 'Optimus Production',
-      announcementYear: 2026, announcementQuarter: 2,
-      status: 'commercial',
-      purpose: 'industrial',
-      locomotionType: 'bipedal',
-      handType: 'multi_finger',
-      commercializationStage: 'commercial',
-      region: 'north_america',
-      description: 'Tesla Optimus 양산 모델. 외부 고객 판매 시작.',
-      imageUrl: '/robots/optimus.jpg',
-    },
-    {
-      companyName: 'Boston Dynamics',
-      name: 'Atlas Pro',
-      announcementYear: 2026, announcementQuarter: 1,
-      status: 'development',
-      purpose: 'industrial',
-      locomotionType: 'bipedal',
-      handType: 'multi_finger',
-      commercializationStage: 'pilot',
-      region: 'north_america',
-      description: 'Atlas 상용화 모델. Hyundai 공장 파일럿 배치.',
-      imageUrl: '/robots/atlas.jpg',
-    },
-    {
-      companyName: 'Agility Robotics',
-      name: 'Digit v3',
-      announcementYear: 2026, announcementQuarter: 1,
-      status: 'commercial',
-      purpose: 'industrial',
-      locomotionType: 'bipedal',
-      handType: 'multi_finger',
-      commercializationStage: 'commercial',
-      region: 'north_america',
-      description: 'Digit 3세대. 다관절 손과 향상된 자율 내비게이션.',
-      imageUrl: '/robots/digit.webp',
-    },
-    {
-      companyName: 'Sanctuary AI',
-      name: 'Phoenix Gen 8',
-      announcementYear: 2026, announcementQuarter: 1,
-      status: 'development',
-      purpose: 'industrial',
-      locomotionType: 'bipedal',
-      handType: 'multi_finger',
-      commercializationStage: 'poc',
-      region: 'north_america',
-      description: 'Phoenix 최신 모델. Carbon 인지 AI 엔진 통합.',
-      imageUrl: '/robots/phoenix.webp',
-    },
-    {
-      companyName: 'Rainbow Robotics',
-      name: 'HUBO 2',
-      announcementYear: 2026, announcementQuarter: 2,
-      status: 'development',
-      purpose: 'industrial',
-      locomotionType: 'bipedal',
-      handType: 'multi_finger',
-      commercializationStage: 'prototype',
-      region: 'asia',
-      description: 'Rainbow Robotics 차세대 HUBO. 산업 현장 최적화 설계.',
-      imageUrl: '/robots/hubo.jpg',
-    },
     // 하이브리드 로봇
     {
       companyName: 'Honda',
@@ -642,12 +572,6 @@ async function seedHumanoid() {
     'Optimus Gen 3': { heightCm: 173, weightKg: 55, payloadKg: 25, dofCount: 32, maxSpeedMps: 3.0, operationTimeHours: 6 },
     'Figure 02': { heightCm: 170, weightKg: 58, payloadKg: 25, dofCount: 44, maxSpeedMps: 1.5, operationTimeHours: 6 },
     'NEO Beta': { heightCm: 165, weightKg: 29, payloadKg: 25, dofCount: 40, maxSpeedMps: 4.0, operationTimeHours: 6 },
-    'G1 Pro': { heightCm: 130, weightKg: 37, payloadKg: 5, dofCount: 30, maxSpeedMps: 2.5, operationTimeHours: 3 },
-    'Optimus Production': { heightCm: 173, weightKg: 52, payloadKg: 25, dofCount: 34, maxSpeedMps: 3.5, operationTimeHours: 8 },
-    'Atlas Pro': { heightCm: 150, weightKg: 85, payloadKg: 30, dofCount: 30, maxSpeedMps: 2.5, operationTimeHours: 3 },
-    'Digit v3': { heightCm: 175, weightKg: 62, payloadKg: 20, dofCount: 36, maxSpeedMps: 2.0, operationTimeHours: 10 },
-    'Phoenix Gen 8': { heightCm: 170, weightKg: 65, payloadKg: 25, dofCount: 24, maxSpeedMps: 1.5, operationTimeHours: 5 },
-    'HUBO 2': { heightCm: 160, weightKg: 55, payloadKg: 15, dofCount: 32, maxSpeedMps: 1.8, operationTimeHours: 4 },
   };
 
   for (const [robotName, spec] of Object.entries(bodySpecsData)) {
@@ -678,12 +602,6 @@ async function seedHumanoid() {
     'Optimus Gen 3': { handType: 'multi_finger', fingerCount: 5, handDof: 14, gripForceN: 120, isInterchangeable: false },
     'Figure 02': { handType: 'multi_finger', fingerCount: 5, handDof: 18, gripForceN: 120, isInterchangeable: false },
     'NEO Beta': { handType: 'multi_finger', fingerCount: 5, handDof: 14, gripForceN: 90, isInterchangeable: false },
-    'G1 Pro': { handType: 'multi_finger', fingerCount: 5, handDof: 10, gripForceN: 40, isInterchangeable: false },
-    'Optimus Production': { handType: 'multi_finger', fingerCount: 5, handDof: 16, gripForceN: 130, isInterchangeable: false },
-    'Atlas Pro': { handType: 'multi_finger', fingerCount: 5, handDof: 14, gripForceN: 160, isInterchangeable: true },
-    'Digit v3': { handType: 'multi_finger', fingerCount: 5, handDof: 12, gripForceN: 150, isInterchangeable: true },
-    'Phoenix Gen 8': { handType: 'multi_finger', fingerCount: 5, handDof: 22, gripForceN: 110, isInterchangeable: false },
-    'HUBO 2': { handType: 'multi_finger', fingerCount: 5, handDof: 14, gripForceN: 90, isInterchangeable: false },
   };
 
   for (const [robotName, spec] of Object.entries(handSpecsData)) {
@@ -715,12 +633,6 @@ async function seedHumanoid() {
     'Optimus Gen 3': { mainSoc: 'Tesla AI5 Chip', topsMin: 200, topsMax: 400, architectureType: 'onboard' },
     'Figure 02': { mainSoc: 'NVIDIA Thor', topsMin: 1000, topsMax: 2000, architectureType: 'hybrid' },
     'NEO Beta': { mainSoc: 'NVIDIA Jetson Orin', topsMin: 40, topsMax: 275, architectureType: 'onboard' },
-    'G1 Pro': { mainSoc: 'NVIDIA Jetson Orin NX', topsMin: 70, topsMax: 100, architectureType: 'onboard' },
-    'Optimus Production': { mainSoc: 'Tesla AI5 Chip', topsMin: 200, topsMax: 400, architectureType: 'onboard' },
-    'Atlas Pro': { mainSoc: 'Custom NVIDIA', topsMin: 200, topsMax: 400, architectureType: 'onboard' },
-    'Digit v3': { mainSoc: 'NVIDIA Jetson Thor', topsMin: 1000, topsMax: 2000, architectureType: 'onboard' },
-    'Phoenix Gen 8': { mainSoc: 'Custom AI Chip v2', topsMin: 100, topsMax: 300, architectureType: 'hybrid' },
-    'HUBO 2': { mainSoc: 'NVIDIA Jetson AGX Orin', topsMin: 200, topsMax: 275, architectureType: 'onboard' },
   };
 
   for (const [robotName, spec] of Object.entries(computingSpecsData)) {
@@ -751,12 +663,6 @@ async function seedHumanoid() {
     'Optimus Gen 3': { batteryType: 'Li-ion', capacityWh: 3000, operationTimeHours: 6, chargingMethod: 'fixed' },
     'Figure 02': { batteryType: 'Li-ion', capacityWh: 3000, operationTimeHours: 6, chargingMethod: 'fixed' },
     'NEO Beta': { batteryType: 'Li-ion', capacityWh: 2000, operationTimeHours: 6, chargingMethod: 'fixed' },
-    'G1 Pro': { batteryType: 'Li-ion', capacityWh: 1000, operationTimeHours: 3, chargingMethod: 'fixed' },
-    'Optimus Production': { batteryType: 'Li-ion', capacityWh: 4000, operationTimeHours: 8, chargingMethod: 'swappable' },
-    'Atlas Pro': { batteryType: 'Li-ion', capacityWh: 3500, operationTimeHours: 3, chargingMethod: 'swappable' },
-    'Digit v3': { batteryType: 'Li-ion', capacityWh: 5000, operationTimeHours: 10, chargingMethod: 'swappable' },
-    'Phoenix Gen 8': { batteryType: 'Li-ion', capacityWh: 2500, operationTimeHours: 5, chargingMethod: 'both' },
-    'HUBO 2': { batteryType: 'Li-ion', capacityWh: 2000, operationTimeHours: 4, chargingMethod: 'fixed' },
   };
 
   for (const [robotName, spec] of Object.entries(powerSpecsData)) {
@@ -912,12 +818,6 @@ async function seedHumanoid() {
     { robotName: 'Optimus Gen 3', environmentType: 'factory', taskType: 'assembly', taskDescription: 'Tesla 공장 파일럿 라인 배치', deploymentStatus: 'pilot', demoEvent: 'Tesla AI Day 2025', demoDate: '2025-06-15' },
     { robotName: 'Figure 02', environmentType: 'factory', taskType: 'assembly', taskDescription: 'BMW Spartanburg 공장 PoC', deploymentStatus: 'poc', demoEvent: 'Figure BMW Demo', demoDate: '2025-03-20' },
     { robotName: 'NEO Beta', environmentType: 'home', taskType: 'assistance', taskDescription: '노르웨이 가정 환경 실증', deploymentStatus: 'pilot', demoEvent: '1X Home Trial', demoDate: '2025-09-01' },
-    { robotName: 'G1 Pro', environmentType: 'research_lab', taskType: 'other', taskDescription: '연구소 조작 벤치마크 테스트', deploymentStatus: 'production', demoEvent: 'Unitree G1 Pro Launch', demoDate: '2025-04-10' },
-    { robotName: 'Optimus Production', environmentType: 'factory', taskType: 'assembly', taskDescription: 'Tesla Gigafactory 양산 라인 배치', deploymentStatus: 'production', demoEvent: 'Tesla Investor Day 2026', demoDate: '2026-01-20' },
-    { robotName: 'Atlas Pro', environmentType: 'factory', taskType: 'assembly', taskDescription: 'Hyundai 울산 공장 파일럿', deploymentStatus: 'pilot', demoEvent: 'Hyundai Robotics Summit', demoDate: '2026-02-15' },
-    { robotName: 'Digit v3', environmentType: 'warehouse', taskType: 'picking', taskDescription: 'Amazon 물류센터 본격 배치', deploymentStatus: 'production', demoEvent: 'Agility Scale-up Event', demoDate: '2026-01-10' },
-    { robotName: 'Phoenix Gen 8', environmentType: 'retail', taskType: 'picking', taskDescription: '대형 유통점 재고 관리 PoC', deploymentStatus: 'poc', demoEvent: 'Sanctuary AI Demo 2026', demoDate: '2026-03-01' },
-    { robotName: 'HUBO 2', environmentType: 'factory', taskType: 'assembly', taskDescription: '스마트 공장 조립 보조 테스트', deploymentStatus: 'concept', demoEvent: 'Rainbow Robotics Showcase', demoDate: '2026-02-28' },
   ];
 
   for (const ac of applicationCasesData) {

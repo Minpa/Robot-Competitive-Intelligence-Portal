@@ -8,12 +8,12 @@
  * 특정 사이트 크롤링이 아닙니다. 모든 데이터에 'ai-generated' 태그를 부여합니다.
  */
 
-import { externalAIAgent } from './external-ai-agent.service.js';
+import { externalAIAgent, sanitizeEntityName, isValidEntityName } from './external-ai-agent.service.js';
 import { saveAnalyzedData } from './text-analyzer.service.js';
 import type { AISearchRequest, AISearchResponse } from './external-ai-agent.service.js';
 import type { AnalyzedData } from './text-analyzer.service.js';
-import { db, humanoidRobots, companies, dataGeneratorJobs } from '../db/index.js';
-import { eq, desc } from 'drizzle-orm';
+import { db, humanoidRobots, companies, products, dataGeneratorJobs } from '../db/index.js';
+import { eq, desc, inArray } from 'drizzle-orm';
 
 export interface GenerationTopic {
   query: string;
@@ -625,6 +625,60 @@ class DataGeneratorService {
    */
   getDefaultTopics(): GenerationTopic[] {
     return buildDefaultTopics();
+  }
+
+  /**
+   * 이전 배치에서 뉴스 헤드라인이 엔티티 이름으로 들어간 것들을 찾아 정리.
+   * isValidEntityName 실패 또는 sanitize 결과가 원본과 다른 companies/products를 반환.
+   */
+  async findInvalidEntities(): Promise<{
+    invalidCompanies: { id: string; name: string; suggestedName: string; reason: string }[];
+    invalidProducts: { id: string; name: string; suggestedName: string; reason: string }[];
+  }> {
+    const allCompanies = await db.select({ id: companies.id, name: companies.name }).from(companies);
+    const allProducts = await db.select({ id: products.id, name: products.name }).from(products);
+
+    const check = (name: string) => {
+      const sanitized = sanitizeEntityName(name);
+      const validOriginal = isValidEntityName(name, 'company');
+      const validSanitized = isValidEntityName(sanitized, 'company');
+      if (validOriginal && sanitized === name) return null;
+      if (!validSanitized) return { suggestedName: sanitized, reason: 'invalid_headline' };
+      return { suggestedName: sanitized, reason: 'sanitizable' };
+    };
+
+    const invalidCompanies = allCompanies
+      .map(c => ({ ...c, ...(check(c.name) ?? {}) }))
+      .filter((c: any) => c.suggestedName !== undefined) as any;
+    const invalidProducts = allProducts
+      .map(p => ({ ...p, ...(check(p.name) ?? {}) }))
+      .filter((p: any) => p.suggestedName !== undefined) as any;
+
+    return { invalidCompanies, invalidProducts };
+  }
+
+  /**
+   * 뉴스 헤드라인이 이름으로 저장된 companies/products를 삭제.
+   * FK로 연결된 products/articles 등은 cascade로 함께 삭제됨 (schema 기준).
+   */
+  async cleanupInvalidEntities(): Promise<{ deletedCompanies: number; deletedProducts: number }> {
+    const { invalidCompanies, invalidProducts } = await this.findInvalidEntities();
+
+    let deletedCompanies = 0;
+    let deletedProducts = 0;
+
+    if (invalidProducts.length > 0) {
+      const ids = invalidProducts.map((p: any) => p.id);
+      const res = await db.delete(products).where(inArray(products.id, ids)).returning({ id: products.id });
+      deletedProducts = res.length;
+    }
+    if (invalidCompanies.length > 0) {
+      const ids = invalidCompanies.map((c: any) => c.id);
+      const res = await db.delete(companies).where(inArray(companies.id, ids)).returning({ id: companies.id });
+      deletedCompanies = res.length;
+    }
+
+    return { deletedCompanies, deletedProducts };
   }
 
   /**

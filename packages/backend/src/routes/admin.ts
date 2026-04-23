@@ -383,6 +383,16 @@ export async function adminRoutes(fastify: FastifyInstance) {
     return dataGeneratorService.backfillAnnouncementYears();
   });
 
+  // 뉴스 헤드라인이 이름으로 들어간 무효 엔티티 조회
+  fastify.get('/data-generator/invalid-entities', async () => {
+    return dataGeneratorService.findInvalidEntities();
+  });
+
+  // 뉴스 헤드라인이 이름으로 들어간 무효 엔티티 삭제
+  fastify.post('/data-generator/cleanup-invalid-entities', async () => {
+    return dataGeneratorService.cleanupInvalidEntities();
+  });
+
   // 배치 잡 상태 조회 (폴링용)
   fastify.get('/data-generator/batch/status/:jobId', async (request, reply) => {
     try {

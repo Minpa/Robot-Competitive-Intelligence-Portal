@@ -40,6 +40,72 @@ export interface SourceReference {
   title: string;
 }
 
+// ── Entity name sanitization ──
+
+/**
+ * AI가 뉴스 헤드라인을 name으로 넣는 걸 막기 위한 정제 함수.
+ * 꼬리에 붙은 동작 서술(출시·도입·발표 등)과 숫자 단위 서술(1만대 출하 등)을 제거.
+ */
+export function sanitizeEntityName(raw: string): string {
+  let s = raw.trim();
+
+  // 따옴표 제거
+  s = s.replace(/^[\"'"'「『]|[\"'"'」』]$/g, '');
+
+  // 괄호 안 설명 제거 (예: "Pongbot (상하이)" → "Pongbot")
+  // 단, 괄호 안이 국가/영문이면 살려둠: "Figure AI (USA)" ← 이건 그대로 두는 게 나을 수도 있지만 엄격하게 제거
+  s = s.replace(/\s*\([^)]*\)\s*$/, '').trim();
+
+  // 꼬리에 붙은 한국어 서술 동사·명사구 제거 (뉴스 헤드라인 패턴)
+  // 예: "Unitree H2 북미 출시" → "Unitree H2"
+  //     "Agibot 1만대 누적 출하 달성" → "Agibot"
+  //     "SAIC Motor 휴머노이드 로봇 도입" → "SAIC Motor"
+  const tailPatterns = [
+    /\s+(북미|아시아|유럽|중국|미국|일본|한국|글로벌|해외|국내)?\s*(출시|런칭|공개|발표|도입|채택|확장|진출|선정|조성|달성|확보|유치|완료|시작|준비|결정|체결|서명|공급|제휴|파트너십|밸류에이션|계약|오픈|개시|론칭)\s*(준비|완료|예정|계획|체결)?\s*$/,
+    /\s+\d+(만|억|조|백만|천만)?\s*(대|원|달러|위안|엔|대수|건)\s*(누적)?\s*(출하|생산|판매|투자|펀딩|매출|계약)\s*(달성|돌파|확보|체결)?\s*$/,
+    /\s+시리즈\s*[A-Z]\s*(펀딩|투자|라운드|클로징)?\s*$/,
+    /\s+CES\s*\d{4}\s*(출시|공개|발표|참가)?\s*$/,
+    /\s+\d{4}년?\s*(\d+월)?\s*(출시|발표|공개|런칭)?\s*$/,
+    /\s+(1조|\d+억)\s*(달러|원|위안|엔)\s*(시리즈\s*[A-Z])?\s*$/,
+    /\s+휴머노이드\s*(로봇)?\s*(도입|선정|출시|채택)?\s*$/,
+    /\s+(대규모|대량)\s*(생산|배치|투자)\s*(준비|완료|계획)?\s*$/,
+    /\s+(해외|국내)\s*(투자|진출|확장)\s*(유치|완료)?\s*$/,
+  ];
+  let prev;
+  do {
+    prev = s;
+    for (const pat of tailPatterns) s = s.replace(pat, '').trim();
+  } while (prev !== s);
+
+  // 연속 공백 정리
+  s = s.replace(/\s+/g, ' ').trim();
+
+  return s;
+}
+
+/**
+ * name이 유효한 엔티티명인지 검증. 뉴스 헤드라인처럼 보이면 reject.
+ */
+export function isValidEntityName(name: string, _category: string): boolean {
+  if (!name) return false;
+  if (name.length === 0) return false;
+  if (name.length > 60) return false; // 60자 초과는 헤드라인으로 간주
+
+  // 한국어 동작 서술 동사 포함 시 reject (sanitize 후에도 남아있다면 문제)
+  if (/(출시|런칭|공개|발표|도입|채택|확장|진출|선정|조성|달성|확보|유치|완료|체결|제휴|파트너십|펀딩|투자\s*유치)$/.test(name)) {
+    return false;
+  }
+
+  // 6 단어 초과는 문장일 가능성
+  const wordCount = name.split(/\s+/).length;
+  if (wordCount > 6) return false;
+
+  // 10자 이상 연속된 한국어 서술이면 reject
+  if (/[가-힣]{10,}/.test(name.replace(/\s+/g, ''))) return false;
+
+  return true;
+}
+
 // ── Service ──
 
 export class ExternalAIAgentService {
@@ -134,6 +200,15 @@ ${webSearchNote}
 - 각 팩트는 요약된 설명(1~2문장)만 포함하세요.
 - 반드시 아래 JSON 형식으로만 응답하세요.
 
+**⚠️ name 필드 규칙 (매우 중요):**
+- name은 엔티티의 **고유 명칭만** (회사 이름 또는 제품 이름만) 포함해야 합니다.
+- 뉴스 헤드라인, 설명, 동작(출시/도입/발표/투자 유치/북미 출시 등)은 절대 name에 포함하지 마세요.
+- 한국어 조사·동사·부가 설명 금지.
+- 최대 40자, 최대 4단어 이내.
+- 올바른 예: "Unitree", "Figure AI", "Optimus Gen 2", "Atlas", "Digit"
+- 잘못된 예: "Unitree H2 북미 출시" (→ "Unitree H2"), "SAIC Motor 휴머노이드 로봇 도입" (→ "SAIC Motor"), "Agibot 1만대 누적 출하 달성" (→ "Agibot"), "Figure AI 시리즈 C 펀딩" (→ "Figure AI")
+- 뉴스·이벤트 내용은 반드시 description 필드에만 넣으세요.
+
 **질의:** ${request.query}
 
 **분석 대상 유형:** ${targetDescriptions}
@@ -148,8 +223,8 @@ ${webSearchNote}
   "facts": [
     {
       "category": "company | product | component | application | workforce | market | technology | keyword",
-      "name": "엔티티 이름",
-      "description": "요약된 팩트 설명 (1~2문장, 원문 텍스트 금지)",
+      "name": "엔티티 고유명만 (예: 'Unitree', 'Optimus Gen 2') — 헤드라인·동사 절대 금지",
+      "description": "요약된 팩트 설명 (1~2문장, 원문 텍스트 금지) — 뉴스 내용·동작은 여기에만",
       "confidence": 0.0~1.0
     }
   ],
@@ -289,12 +364,16 @@ confidence는 정보의 신뢰도를 나타냅니다 (0.9+: 확실, 0.7~0.9: 높
 
       const facts: StructuredFact[] = (Array.isArray(data.facts) ? data.facts : [])
         .filter((f: any) => f && typeof f.name === 'string' && f.name.length > 0)
-        .map((f: any) => ({
-          category: validCategories.has(f.category) ? f.category : 'keyword',
-          name: String(f.name),
-          description: String(f.description || ''),
-          confidence: Math.max(0, Math.min(1, Number(f.confidence) || 0.5)),
-        }));
+        .map((f: any) => {
+          const sanitized = sanitizeEntityName(String(f.name));
+          return {
+            category: validCategories.has(f.category) ? f.category : 'keyword',
+            name: sanitized,
+            description: String(f.description || ''),
+            confidence: Math.max(0, Math.min(1, Number(f.confidence) || 0.5)),
+          };
+        })
+        .filter((f) => isValidEntityName(f.name, f.category));
 
       const sources: SourceReference[] = (Array.isArray(data.sources) ? data.sources : [])
         .filter((s: any) => s && typeof s.domain === 'string')
