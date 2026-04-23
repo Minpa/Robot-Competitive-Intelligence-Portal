@@ -72,7 +72,6 @@ export default function InsightPipelinePage() {
   const [lastRunTime, setLastRunTime] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [expandedTopic, setExpandedTopic] = useState<number | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
   const pollTimer = useRef<NodeJS.Timeout | null>(null);
   const loggedTopicsRef = useRef<Set<number>>(new Set());
@@ -199,7 +198,6 @@ export default function InsightPipelinePage() {
     setIsAICollecting(true);
     setBatchResult(null);
     setProgressLogs([]);
-    setExpandedTopic(null);
     loggedTopicsRef.current = new Set();
     lastStepRef.current = null;
     localStorage.removeItem(STORAGE_KEY_RESULT);
@@ -434,27 +432,21 @@ export default function InsightPipelinePage() {
               <div ref={logEndRef} />
             </div>
 
-            {/* Detailed results with expandable entity names */}
+            {/* Detailed results with entity names shown inline */}
             {batchResult && (
-              <div className="border-t border-ink-200 px-5 py-4 text-sm text-ink-500 space-y-1">
+              <div className="border-t border-ink-200 px-5 py-4 text-sm text-ink-500 space-y-3">
                 {batchResult.results.map((r, i) => {
                   const hasError = r.errors && r.errors.length > 0;
                   const total = r.companiesSaved + r.productsSaved + r.articlesSaved + r.keywordsSaved;
-                  const isExpanded = expandedTopic === i;
                   const hasDetails = (r.companyNames?.length || 0) + (r.productNames?.length || 0) + (r.articleTitles?.length || 0) + (r.keywordTerms?.length || 0) > 0;
                   return (
-                    <div key={i}>
-                      <div
-                        className={`flex items-center justify-between py-1.5 ${hasDetails ? 'cursor-pointer hover:bg-ink-100 -mx-2 px-2 rounded' : ''}`}
-                        onClick={() => hasDetails && setExpandedTopic(isExpanded ? null : i)}
-                      >
-                        <span className={`flex items-center gap-2 truncate flex-1 mr-2 ${hasError ? 'text-red-400' : total === 0 ? 'text-amber-400' : 'text-ink-700'}`}>
-                          {hasError ? '✗' : total > 0 ? '✓' : '↺'} {r.topic}
-                          {hasDetails && (
-                            isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-ink-400" /> : <ChevronDown className="w-3.5 h-3.5 text-ink-400" />
-                          )}
+                    <div key={i} className="space-y-1">
+                      <div className="flex items-start justify-between gap-3 py-1">
+                        <span className={`flex items-start gap-2 flex-1 min-w-0 ${hasError ? 'text-red-400' : total === 0 ? 'text-amber-400' : 'text-ink-700'}`}>
+                          <span className="shrink-0">{hasError ? '✗' : total > 0 ? '✓' : '↺'}</span>
+                          <span className="truncate">{r.topic}</span>
                         </span>
-                        <span className={`whitespace-nowrap ${hasError ? 'text-red-400' : total === 0 ? 'text-amber-400' : 'text-ink-400'}`}>
+                        <span className={`whitespace-nowrap shrink-0 ${hasError ? 'text-red-400' : total === 0 ? 'text-amber-400' : 'text-ink-400'}`}>
                           {hasError ? '오류' : total === 0 ? '중복' : `기업 ${r.companiesSaved} · 제품 ${r.productsSaved} · 기사 ${r.articlesSaved} · 키워드 ${r.keywordsSaved}`}
                         </span>
                       </div>
@@ -463,30 +455,30 @@ export default function InsightPipelinePage() {
                         <div key={j} className="text-red-400/70 ml-5 text-sm truncate">→ {e}</div>
                       ))}
 
-                      {isExpanded && hasDetails && (
-                        <div className="ml-5 mt-1 mb-2 space-y-1.5 text-sm">
+                      {hasDetails && (
+                        <div className="ml-5 space-y-1 text-sm">
                           {r.companyNames && r.companyNames.length > 0 && (
                             <div>
-                              <span className="text-ink-400">기업:</span>{' '}
+                              <span className="text-ink-400">기업 ({r.companyNames.length}):</span>{' '}
                               <span className="text-ink-700">{r.companyNames.join(', ')}</span>
                             </div>
                           )}
                           {r.productNames && r.productNames.length > 0 && (
                             <div>
-                              <span className="text-ink-400">제품:</span>{' '}
+                              <span className="text-ink-400">제품 ({r.productNames.length}):</span>{' '}
                               <span className="text-ink-700">{r.productNames.join(', ')}</span>
                             </div>
                           )}
                           {r.articleTitles && r.articleTitles.length > 0 && (
                             <div>
-                              <span className="text-ink-400">기사:</span>{' '}
+                              <span className="text-ink-400">기사 ({r.articleTitles.length}):</span>{' '}
                               <span className="text-ink-700">{r.articleTitles.join(', ')}</span>
                             </div>
                           )}
                           {r.keywordTerms && r.keywordTerms.length > 0 && (
                             <div>
-                              <span className="text-ink-400">키워드:</span>{' '}
-                              <span className="text-violet-300">{r.keywordTerms.join(', ')}</span>
+                              <span className="text-ink-400">키워드 ({r.keywordTerms.length}):</span>{' '}
+                              <span className="text-violet-400">{r.keywordTerms.join(', ')}</span>
                             </div>
                           )}
                         </div>
