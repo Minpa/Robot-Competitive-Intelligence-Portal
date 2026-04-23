@@ -82,13 +82,15 @@ function convertToAnalyzedData(response: AISearchResponse): AnalyzedData {
       };
     });
 
+  const companyFacts = response.facts.filter(f => f.category === 'company');
   const products = response.facts
     .filter(f => f.category === 'product')
     .map(f => {
-      // description에서 회사명 추출 시도
-      const companyFact = response.facts.find(
-        cf => cf.category === 'company' && f.description.includes(cf.name)
-      );
+      // description 또는 제품 이름에서 회사명 매칭 시도 (긴 이름부터 — "Figure AI"가 "Figure"보다 우선)
+      const haystack = `${f.description} ${f.name}`;
+      const companyFact = [...companyFacts]
+        .sort((a, b) => b.name.length - a.name.length)
+        .find(cf => haystack.toLowerCase().includes(cf.name.toLowerCase()));
       // description에서 날짜 추출 시도
       const dateMatch = f.description.match(/(\d{4})[-/](\d{1,2})/);
       const yearMatch = f.description.match(/(\d{4})년?/);
@@ -139,13 +141,68 @@ function convertToAnalyzedData(response: AISearchResponse): AnalyzedData {
 }
 
 /**
- * AI 응답에서 humanoid_robots 테이블에 저장할 로봇 추출 및 저장
+ * 제품 설명·이름 텍스트에서 발표 연도·분기 추출.
+ * 우선순위: "Q{1-4} YYYY" > "YYYY-MM" > 영문/한글 월 이름 근처의 연도 > 최신 연도만
  */
-async function saveHumanoidRobots(response: AISearchResponse): Promise<number> {
-  let saved = 0;
-  const productFacts = response.facts.filter(f => f.category === 'product');
+function extractAnnouncementDate(text: string): { year: number | null; quarter: number | null } {
+  const t = text;
 
-  // locomotion type 추론
+  // "Q1 2024" or "2024 Q1"
+  const qMatch = t.match(/\b(?:Q([1-4])\s*(20\d{2})|(20\d{2})\s*Q([1-4]))\b/i);
+  if (qMatch) {
+    const year = parseInt((qMatch[2] || qMatch[3])!, 10);
+    const quarter = parseInt((qMatch[1] || qMatch[4])!, 10);
+    if (year >= 2015 && year <= 2035) return { year, quarter };
+  }
+
+  // "2024-03" or "2024-03-15"
+  const ymMatch = t.match(/\b(20\d{2})-(\d{1,2})(?:-\d{1,2})?\b/);
+  if (ymMatch) {
+    const year = parseInt(ymMatch[1]!, 10);
+    const month = parseInt(ymMatch[2]!, 10);
+    if (year >= 2015 && year <= 2035 && month >= 1 && month <= 12) {
+      return { year, quarter: Math.ceil(month / 3) };
+    }
+  }
+
+  const lower = t.toLowerCase();
+  const monthMap: Record<string, number> = {
+    january: 1, jan: 1, february: 2, feb: 2, march: 3, mar: 3, april: 4, apr: 4,
+    may: 5, june: 6, jun: 6, july: 7, jul: 7, august: 8, aug: 8,
+    september: 9, sep: 9, october: 10, oct: 10, november: 11, nov: 11, december: 12, dec: 12,
+    '1월': 1, '2월': 2, '3월': 3, '4월': 4, '5월': 5, '6월': 6,
+    '7월': 7, '8월': 8, '9월': 9, '10월': 10, '11월': 11, '12월': 12,
+  };
+
+  // 연도 기반 검색 — 최신 연도 선호 (announced in, to be released, etc.)
+  const yearMatches = Array.from(lower.matchAll(/\b(20[1-3]\d)\b/g))
+    .map(m => ({ year: parseInt(m[1]!, 10), index: m.index ?? 0 }))
+    .filter(y => y.year >= 2015 && y.year <= 2035);
+  if (yearMatches.length === 0) return { year: null, quarter: null };
+
+  const latest = yearMatches.reduce((a, b) => (b.year > a.year ? b : a));
+  let quarter: number | null = null;
+  const window = lower.substring(Math.max(0, latest.index - 40), Math.min(lower.length, latest.index + 40));
+  for (const [monthName, m] of Object.entries(monthMap)) {
+    if (window.includes(monthName)) {
+      quarter = Math.ceil(m / 3);
+      break;
+    }
+  }
+  return { year: latest.year, quarter };
+}
+
+/**
+ * AI 응답에서 humanoid_robots 테이블에 저장할 로봇 추출 및 저장.
+ * analyzedProducts는 convertToAnalyzedData에서 이미 company 매칭이 해결된 제품 리스트.
+ */
+async function saveHumanoidRobots(
+  response: AISearchResponse,
+  analyzedProducts: AnalyzedData['products']
+): Promise<{ saved: number; skipped: { reason: string; name: string }[] }> {
+  let saved = 0;
+  const skipped: { reason: string; name: string }[] = [];
+
   const locomotionKeywords: Record<string, string> = {
     bipedal: 'bipedal', biped: 'bipedal', '2족': 'bipedal', '이족': 'bipedal',
     wheeled: 'wheeled', wheel: 'wheeled', '휠': 'wheeled', '바퀴': 'wheeled',
@@ -158,55 +215,84 @@ async function saveHumanoidRobots(response: AISearchResponse): Promise<number> {
     home: 'home', domestic: 'home', '가정': 'home',
   };
 
-  for (const fact of productFacts) {
-    const desc = (fact.description + ' ' + fact.name).toLowerCase();
+  // product 이름으로 원본 fact 찾기 위한 맵 (추출 텍스트 소스로 활용)
+  const factByName = new Map<string, { name: string; description: string }>();
+  for (const f of response.facts.filter(f => f.category === 'product')) {
+    factByName.set(f.name, f);
+  }
 
-    // humanoid/robot 관련 키워드가 있는지 확인
-    const isRobot = /humanoid|로봇|robot|android|avatar/i.test(desc);
-    if (!isRobot) continue;
+  for (const product of analyzedProducts) {
+    const fact = factByName.get(product.name);
+    const description = product.description || fact?.description || '';
+    const desc = (description + ' ' + product.name).toLowerCase();
 
-    // 이미 존재하는지 확인
-    const existing = await db.select().from(humanoidRobots).where(eq(humanoidRobots.name, fact.name)).limit(1);
-    if (existing.length > 0) continue;
-
-    // 회사 찾기
-    const companyFact = response.facts.find(cf => cf.category === 'company' && fact.description.includes(cf.name));
-    let companyId: string | null = null;
-    if (companyFact) {
-      const comp = await db.select().from(companies).where(eq(companies.name, companyFact.name)).limit(1);
-      if (comp.length > 0) companyId = comp[0]!.id;
+    const isRobot = /humanoid|로봇|robot|android|avatar|휴머노이드/i.test(desc);
+    if (!isRobot) {
+      skipped.push({ reason: 'not_robot', name: product.name });
+      continue;
     }
-    if (!companyId) continue; // company_id는 NOT NULL
 
-    // locomotion type 추론
+    const existing = await db.select().from(humanoidRobots).where(eq(humanoidRobots.name, product.name)).limit(1);
+    if (existing.length > 0) {
+      skipped.push({ reason: 'duplicate', name: product.name });
+      continue;
+    }
+
+    // analyzedProduct.companyName은 convertToAnalyzedData에서 매칭된 이름 — saveAnalyzedData가 DB에 생성해둠
+    if (!product.companyName || product.companyName === 'Unknown') {
+      skipped.push({ reason: 'no_company_match', name: product.name });
+      continue;
+    }
+    const comp = await db.select().from(companies).where(eq(companies.name, product.companyName)).limit(1);
+    if (comp.length === 0) {
+      skipped.push({ reason: 'company_not_in_db', name: product.name });
+      continue;
+    }
+    const companyId = comp[0]!.id;
+
     let locomotionType = 'bipedal';
     for (const [kw, type] of Object.entries(locomotionKeywords)) {
       if (desc.includes(kw)) { locomotionType = type; break; }
     }
-
-    // purpose 추론
     let purpose = 'service';
     for (const [kw, type] of Object.entries(purposeKeywords)) {
       if (desc.includes(kw)) { purpose = type; break; }
     }
 
+    // 연도·분기 추출 — 없으면 NULL (타임라인에는 안 나타나지만, 그래도 DB에는 저장)
+    const { year, quarter } = extractAnnouncementDate(description + ' ' + product.name + ' ' + (product.releaseDate ?? ''));
+
     try {
       await db.insert(humanoidRobots).values({
         companyId,
-        name: fact.name,
+        name: product.name,
+        announcementYear: year,
+        announcementQuarter: quarter,
         purpose,
         locomotionType,
         handType: 'multi_finger',
         commercializationStage: 'prototype',
         region: 'global',
-        description: fact.description,
+        description,
       });
       saved++;
-    } catch {
-      // 중복 등 무시
+    } catch (err) {
+      skipped.push({ reason: `db_error: ${(err as Error).message}`, name: product.name });
     }
   }
-  return saved;
+
+  if (skipped.length > 0) {
+    const counts = skipped.reduce((acc, s) => { acc[s.reason] = (acc[s.reason] ?? 0) + 1; return acc; }, {} as Record<string, number>);
+    console.log(`[DataGenerator] saveHumanoidRobots: ${saved} saved, ${skipped.length} skipped —`, counts);
+    const dropped = skipped.filter(s => s.reason !== 'duplicate' && s.reason !== 'not_robot');
+    if (dropped.length > 0) {
+      console.log(`[DataGenerator] dropped robots:`, dropped.slice(0, 10));
+    }
+  } else {
+    console.log(`[DataGenerator] saveHumanoidRobots: ${saved} saved`);
+  }
+
+  return { saved, skipped };
 }
 
 // 기본 주제 목록 - 핵심 2개 주제
@@ -325,13 +411,13 @@ class DataGeneratorService {
       const aiResponse = await externalAIAgent.search(request);
       const analyzedData = convertToAnalyzedData(aiResponse);
       const saveResult = await saveAnalyzedData(analyzedData);
-      const robotsSaved = await saveHumanoidRobots(aiResponse);
+      const robotResult = await saveHumanoidRobots(aiResponse, analyzedData.products);
 
       return {
         topic: topic.query.substring(0, 80),
         provider,
         ...saveResult,
-        robotsSaved,
+        robotsSaved: robotResult.saved,
       };
     } catch (error) {
       return {
