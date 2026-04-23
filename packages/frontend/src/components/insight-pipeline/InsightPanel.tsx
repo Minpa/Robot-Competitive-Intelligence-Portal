@@ -29,7 +29,7 @@ import type {
 
 interface InsightPanelProps {
   result: AnalysisResult | null;
-  sourceType: 'manual' | 'ai-agent';
+  sourceType: 'manual' | 'ai-agent' | 'batch';
   onSave: (saveRequest: any) => void;
   onLinkEntity: (entityName: string, linkedEntityId: string) => void;
   isSaving: boolean;
@@ -146,10 +146,20 @@ export function InsightPanel({
     );
   }
 
+  const isBatch = sourceType === 'batch';
+
   return (
     <div className="space-y-4">
+      {/* Batch auto-saved banner */}
+      {isBatch && (
+        <div className="flex items-center gap-2 px-4 py-3 bg-pos-soft border border-emerald-500/30 rounded-xl text-emerald-600 text-sm">
+          <CheckCircle className="w-4 h-4 shrink-0" />
+          <span>배치 수집 완료 — DB에 자동 저장되었습니다.</span>
+        </div>
+      )}
+
       {/* Duplicate warning */}
-      {isDuplicate && (
+      {!isBatch && isDuplicate && (
         <div className="flex items-center gap-2 px-4 py-3 bg-warn-soft border border-amber-500/30 rounded-xl text-amber-600 text-sm">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           <span>이미 저장된 기사와 중복됩니다. 저장이 제한됩니다.</span>
@@ -157,7 +167,7 @@ export function InsightPanel({
       )}
 
       {/* Save success */}
-      {saveSuccess && (
+      {!isBatch && saveSuccess && (
         <div className="flex items-center gap-2 px-4 py-3 bg-pos-soft border border-emerald-500/30 rounded-xl text-emerald-600 text-sm">
           <CheckCircle className="w-4 h-4 shrink-0" />
           <span>DB에 성공적으로 저장되었습니다.</span>
@@ -256,15 +266,17 @@ export function InsightPanel({
         </div>
       )}
 
-      {/* Save button */}
-      <button
-        onClick={() => onSave(result)}
-        disabled={isSaving || isDuplicate}
-        className="w-full py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-violet-600 hover:bg-violet-500 !text-white"
-      >
-        <Save className="w-4 h-4" />
-        {isSaving ? '저장 중...' : 'DB에 저장'}
-      </button>
+      {/* Save button (hidden for batch — already persisted) */}
+      {!isBatch && (
+        <button
+          onClick={() => onSave(result)}
+          disabled={isSaving || isDuplicate}
+          className="w-full py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-violet-600 hover:bg-violet-500 !text-white"
+        >
+          <Save className="w-4 h-4" />
+          {isSaving ? '저장 중...' : 'DB에 저장'}
+        </button>
+      )}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 import { ManualPasteMode } from '@/components/insight-pipeline/ManualPasteMode';
 import { InsightPanel } from '@/components/insight-pipeline/InsightPanel';
 import { api } from '@/lib/api';
-import type { AnalysisResult } from '@/types/insight-pipeline';
+import type { AnalysisResult, EntityItem } from '@/types/insight-pipeline';
 import { PageHeader } from '@/components/layout/PageHeader';
 
 const STORAGE_KEY_LOGS = 'insight-pipeline-last-logs';
@@ -43,6 +43,50 @@ interface BatchResultItem {
   errors: string[];
 }
 
+function aggregateBatchResult(
+  batch: { totalTopics: number; completed: number; failed: number; results: BatchResultItem[] },
+): AnalysisResult {
+  const dedupe = (arr: string[]) => Array.from(new Set(arr.filter((s) => s && s.trim().length > 0)));
+  const toEntity = (name: string, context: string): EntityItem => ({
+    name,
+    type: 'batch',
+    confidence: 1,
+    context,
+  });
+
+  const allCompanies = dedupe(batch.results.flatMap((r) => r.companyNames ?? []));
+  const allProducts = dedupe(batch.results.flatMap((r) => r.productNames ?? []));
+  const allKeywords = dedupe(batch.results.flatMap((r) => r.keywordTerms ?? []));
+  const allArticles = dedupe(batch.results.flatMap((r) => r.articleTitles ?? []));
+
+  const totalSaved = batch.results.reduce(
+    (sum, r) => sum + r.companiesSaved + r.productsSaved + r.articlesSaved + r.keywordsSaved,
+    0,
+  );
+
+  const summary =
+    `배치 자동 수집 — ${batch.completed}/${batch.totalTopics} 주제 완료` +
+    (batch.failed > 0 ? `, 실패 ${batch.failed}` : '') +
+    `. 총 ${totalSaved}건이 DB에 저장되었습니다.\n` +
+    `기업 ${allCompanies.length} · 제품 ${allProducts.length} · 기사 ${allArticles.length} · 키워드 ${allKeywords.length}`;
+
+  return {
+    summary,
+    entities: {
+      companies: allCompanies.map((n) => toEntity(n, '배치 수집')),
+      products: allProducts.map((n) => toEntity(n, '배치 수집')),
+      components: [],
+      applications: [],
+      workforce: [],
+      market: [],
+      technology: [],
+      keywords: allKeywords.map((term) => ({ term, relevance: 1 })),
+    },
+    linkCandidates: {},
+    sources: allArticles.map((title) => ({ domain: '배치 수집', title })),
+  };
+}
+
 function formatTime(iso: string) {
   const d = new Date(iso);
   const now = new Date();
@@ -60,6 +104,7 @@ function formatTime(iso: string) {
 
 export default function InsightPipelinePage() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [resultSource, setResultSource] = useState<'manual' | 'ai-agent' | 'batch'>('manual');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -85,7 +130,12 @@ export default function InsightPipelinePage() {
       const savedTime = localStorage.getItem(STORAGE_KEY_TIME);
       const savedHistory = localStorage.getItem(STORAGE_KEY_HISTORY);
       if (savedLogs) setProgressLogs(JSON.parse(savedLogs));
-      if (savedResult) setBatchResult(JSON.parse(savedResult));
+      if (savedResult) {
+        const parsed = JSON.parse(savedResult);
+        setBatchResult(parsed);
+        setAnalysisResult(aggregateBatchResult(parsed));
+        setResultSource('batch');
+      }
       if (savedTime) setLastRunTime(savedTime);
       if (savedHistory) setHistory(JSON.parse(savedHistory));
     } catch { /* ignore */ }
@@ -103,6 +153,7 @@ export default function InsightPipelinePage() {
 
   const handleAnalysisComplete = (result: AnalysisResult) => {
     setAnalysisResult(result);
+    setResultSource('manual');
     setSaveSuccess(false);
     setIsDuplicate(false);
   };
@@ -174,6 +225,16 @@ export default function InsightPipelinePage() {
 
         setBatchResult(result);
         setLastRunTime(runTimestamp);
+
+        // Fill the right-side InsightPanel with an aggregated view of batch data
+        if (state.status !== 'failed') {
+          const aggregated = aggregateBatchResult(result);
+          setAnalysisResult(aggregated);
+          setResultSource('batch');
+          setSaveSuccess(false);
+          setIsDuplicate(false);
+        }
+
         const newEntry: HistoryEntry = { timestamp: runTimestamp, ...result };
         setHistory((prev) => {
           const updated = [newEntry, ...prev].slice(0, 20);
@@ -318,8 +379,13 @@ export default function InsightPipelinePage() {
   };
 
   const loadHistoryEntry = (entry: HistoryEntry) => {
-    setBatchResult({ totalTopics: entry.totalTopics, completed: entry.completed, failed: entry.failed, results: entry.results });
+    const batch = { totalTopics: entry.totalTopics, completed: entry.completed, failed: entry.failed, results: entry.results };
+    setBatchResult(batch);
     setLastRunTime(entry.timestamp);
+    setAnalysisResult(aggregateBatchResult(batch));
+    setResultSource('batch');
+    setSaveSuccess(false);
+    setIsDuplicate(false);
     setProgressLogs([`> ${new Date(entry.timestamp).toLocaleString('ko-KR')} 실행 기록`]);
     for (const r of entry.results) {
       const total = r.companiesSaved + r.productsSaved + r.articlesSaved + r.keywordsSaved;
@@ -508,7 +574,7 @@ export default function InsightPipelinePage() {
           <div>
             <InsightPanel
               result={analysisResult}
-              sourceType="manual"
+              sourceType={resultSource}
               onSave={handleSave}
               onLinkEntity={handleLinkEntity}
               isSaving={isSaving}
