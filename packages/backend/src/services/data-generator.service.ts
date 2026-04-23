@@ -295,19 +295,25 @@ async function saveHumanoidRobots(
   return { saved, skipped };
 }
 
-// 기본 주제 목록 - 핵심 2개 주제
-const DEFAULT_TOPICS: GenerationTopic[] = [
-  // 글로벌 휴머노이드 로봇 기업 & 제품 (미국+중국+일본/한국+유럽 통합)
-  {
-    query: '2024-2025년 글로벌 휴머노이드 로봇 기업과 제품 현황을 상세히 분석해줘. 미국(Tesla Optimus, Figure, Agility Digit, Apptronik Apollo), 중국(Unitree G1/H1, UBTECH Walker, Fourier GR-1/GR-2, Xiaomi CyberOne, Galbot, Agibot), 일본/한국(Honda, Toyota, SoftBank Robotics, Rainbow Robotics, Hyundai Robotics, Doosan Robotics), 유럽(ABB, KUKA, Universal Robots, PAL Robotics) 등 각 기업의 최신 제품, 출시일, 스펙, 가격대, 시장 포지션을 분석해줘.',
-    targetTypes: ['company', 'product', 'market', 'technology'],
-  },
-  // 적용 사례 & 시장
-  {
-    query: '휴머노이드 로봇 적용 사례 분석. 물류(Amazon, Agility), 제조(BMW, Mercedes), 건설, 의료, 서비스 분야별 실제 배치 사례, PoC 결과, 투자 현황을 분석해줘.',
-    targetTypes: ['application', 'company', 'market'],
-  },
-];
+// 기본 주제 목록 — 오늘 날짜 기준으로 동적 생성 (최근 90일 포커스)
+function buildDefaultTopics(): GenerationTopic[] {
+  const today = new Date();
+  const ninetyDaysAgo = new Date(today);
+  ninetyDaysAgo.setDate(today.getDate() - 90);
+  const todayStr = today.toISOString().split('T')[0];
+  const sinceStr = ninetyDaysAgo.toISOString().split('T')[0];
+
+  return [
+    {
+      query: `오늘은 ${todayStr}입니다. ${sinceStr} 이후 (최근 90일 이내) 발표된 휴머노이드 로봇 업계 뉴스를 분석해주세요. 새로 공개된 제품, 신규 런칭, 시리즈 펀딩 클로징, 파트너십, 고용/채용 공고, 대량 배치 계약 등에 초점을 맞춰주세요. CES 2026(1월), MWC(2-3월) 같은 이미 끝난 이벤트의 발표는 제외하고, 정말 이번 달 또는 지난 달에 나온 신규 뉴스를 우선적으로 찾아주세요.`,
+      targetTypes: ['company', 'product', 'market', 'technology'],
+    },
+    {
+      query: `오늘은 ${todayStr}입니다. ${sinceStr} 이후 (최근 90일 이내) 휴머노이드 로봇 실제 배치·적용 사례, 신규 PoC, 파일럿 확장, 상용 계약을 분석해주세요. 물류·제조·건설·의료·서비스 분야에서 진짜로 새롭게 발표된 케이스만 포함해주세요.`,
+      targetTypes: ['application', 'company', 'market'],
+    },
+  ];
+}
 
 export interface CollectionContext {
   lastCollectedAt: Date | null;
@@ -353,34 +359,42 @@ class DataGeneratorService {
 
   /**
    * CollectionContext를 topic.query에 주입하여 AI가 기존 항목을 건너뛰도록 유도.
+   * context가 없어도 오늘 날짜 기준 최신성 지시는 항상 포함한다.
    */
   private applyCollectionContext(topic: GenerationTopic, context: CollectionContext | undefined, defaultStart: string): { query: string; timeRangeStart: string } {
-    if (!context || (!context.lastCollectedAt && context.knownCompanies.length === 0 && context.knownProducts.length === 0)) {
-      return { query: topic.query, timeRangeStart: defaultStart };
-    }
-
     const parts: string[] = [topic.query];
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0]!;
 
-    if (context.lastCollectedAt) {
+    // 항상: 오늘 날짜 고정 + "정말 최근" 강한 지시
+    parts.push(`\n\n**오늘 날짜:** ${todayStr}. \"최신\"은 오늘로부터 30일 이내의 뉴스·발표만 의미합니다. 3개월 이상 된 뉴스(예: CES 2026 발표, MWC 2026)는 \"최신\"이 아닙니다.`);
+
+    if (context?.lastCollectedAt) {
       const sinceStr = context.lastCollectedAt.toISOString().split('T')[0];
-      parts.push(`\n\n**업데이트 모드:** ${sinceStr} 이후의 새로운 발표·출시·뉴스·투자 라운드에 집중해주세요. 이 날짜 이전의 정보는 이미 수집되어 있으므로 중복 반환을 피해주세요.`);
+      parts.push(`\n\n**마지막 수집:** ${sinceStr}. 이 날짜 이후에 새로 나온 정보만 포함해주세요. 그 이전 정보는 이미 DB에 있습니다.`);
     }
 
     const excluded: string[] = [];
-    if (context.knownCompanies.length > 0) excluded.push(`기업 (${context.knownCompanies.length}): ${context.knownCompanies.join(', ')}`);
-    if (context.knownProducts.length > 0) excluded.push(`제품 (${context.knownProducts.length}): ${context.knownProducts.join(', ')}`);
+    if (context && context.knownCompanies.length > 0) excluded.push(`기업 (${context.knownCompanies.length}): ${context.knownCompanies.join(', ')}`);
+    if (context && context.knownProducts.length > 0) excluded.push(`제품 (${context.knownProducts.length}): ${context.knownProducts.join(', ')}`);
     if (excluded.length > 0) {
       parts.push(`\n\n**이미 수집된 항목 (제외):**\n${excluded.join('\n')}\n\n위 목록에 없는 신규 기업·제품·뉴스·사례를 우선적으로 분석해주세요. 목록에 있는 항목이더라도 **업데이트된 최신 정보(새로운 모델, 버전, 발표)**가 있다면 포함하세요.`);
     }
 
-    // 마지막 수집 30일 전부터 시작해서 간극을 커버
-    let timeRangeStart = defaultStart;
-    if (context.lastCollectedAt) {
+    // timeRange.start: 기본값은 오늘-90일. 이전 수집이 있으면 (lastCollectedAt - 30)부터.
+    const ninety = new Date(today);
+    ninety.setDate(today.getDate() - 90);
+    let timeRangeStart = ninety.toISOString().split('T')[0]!;
+
+    if (context?.lastCollectedAt) {
       const buffered = new Date(context.lastCollectedAt);
       buffered.setDate(buffered.getDate() - 30);
       const bufferedStr = buffered.toISOString().split('T')[0]!;
-      if (bufferedStr > defaultStart) timeRangeStart = bufferedStr;
+      if (bufferedStr > timeRangeStart) timeRangeStart = bufferedStr;
     }
+
+    // defaultStart보다 앞서가지 않도록 (하한)
+    if (timeRangeStart < defaultStart) timeRangeStart = defaultStart;
 
     return { query: parts.join(''), timeRangeStart };
   }
@@ -445,7 +459,7 @@ class DataGeneratorService {
     webSearch: boolean = false,
     topics?: GenerationTopic[]
   ): Promise<{ jobId: string }> {
-    const topicList = topics || DEFAULT_TOPICS;
+    const topicList = topics || buildDefaultTopics();
 
     const [job] = await db
       .insert(dataGeneratorJobs)
@@ -610,7 +624,7 @@ class DataGeneratorService {
    * 기본 주제 목록 반환 (프론트엔드에서 확인용)
    */
   getDefaultTopics(): GenerationTopic[] {
-    return DEFAULT_TOPICS;
+    return buildDefaultTopics();
   }
 
   /**
