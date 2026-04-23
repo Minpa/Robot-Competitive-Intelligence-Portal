@@ -13,7 +13,7 @@ import { saveAnalyzedData } from './text-analyzer.service.js';
 import type { AISearchRequest, AISearchResponse } from './external-ai-agent.service.js';
 import type { AnalyzedData } from './text-analyzer.service.js';
 import { db, humanoidRobots, companies, dataGeneratorJobs } from '../db/index.js';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 
 export interface GenerationTopic {
   query: string;
@@ -223,19 +223,99 @@ const DEFAULT_TOPICS: GenerationTopic[] = [
   },
 ];
 
+export interface CollectionContext {
+  lastCollectedAt: Date | null;
+  knownCompanies: string[];
+  knownProducts: string[];
+}
+
 class DataGeneratorService {
+  /**
+   * 이전 완료된 배치 잡에서 수집된 엔티티 목록과 마지막 수집 시각을 반환.
+   * 다음 배치 실행 시 AI에 이미 알고 있는 엔티티를 제외하도록 지시할 때 사용.
+   */
+  async getCollectionContext(maxJobs = 5, maxNamesPerCategory = 80): Promise<CollectionContext> {
+    const rows = await db
+      .select()
+      .from(dataGeneratorJobs)
+      .where(eq(dataGeneratorJobs.status, 'completed'))
+      .orderBy(desc(dataGeneratorJobs.finishedAt))
+      .limit(maxJobs);
+
+    if (rows.length === 0) {
+      return { lastCollectedAt: null, knownCompanies: [], knownProducts: [] };
+    }
+
+    const companySet = new Set<string>();
+    const productSet = new Set<string>();
+    for (const row of rows) {
+      const results = (row.results as GenerationResult[]) || [];
+      for (const r of results) {
+        for (const n of r.companyNames ?? []) if (n) companySet.add(n);
+        for (const n of r.productNames ?? []) if (n) productSet.add(n);
+      }
+    }
+
+    const lastCollectedAt = rows[0]?.finishedAt ?? null;
+
+    return {
+      lastCollectedAt,
+      knownCompanies: Array.from(companySet).slice(0, maxNamesPerCategory),
+      knownProducts: Array.from(productSet).slice(0, maxNamesPerCategory),
+    };
+  }
+
+  /**
+   * CollectionContext를 topic.query에 주입하여 AI가 기존 항목을 건너뛰도록 유도.
+   */
+  private applyCollectionContext(topic: GenerationTopic, context: CollectionContext | undefined, defaultStart: string): { query: string; timeRangeStart: string } {
+    if (!context || (!context.lastCollectedAt && context.knownCompanies.length === 0 && context.knownProducts.length === 0)) {
+      return { query: topic.query, timeRangeStart: defaultStart };
+    }
+
+    const parts: string[] = [topic.query];
+
+    if (context.lastCollectedAt) {
+      const sinceStr = context.lastCollectedAt.toISOString().split('T')[0];
+      parts.push(`\n\n**업데이트 모드:** ${sinceStr} 이후의 새로운 발표·출시·뉴스·투자 라운드에 집중해주세요. 이 날짜 이전의 정보는 이미 수집되어 있으므로 중복 반환을 피해주세요.`);
+    }
+
+    const excluded: string[] = [];
+    if (context.knownCompanies.length > 0) excluded.push(`기업 (${context.knownCompanies.length}): ${context.knownCompanies.join(', ')}`);
+    if (context.knownProducts.length > 0) excluded.push(`제품 (${context.knownProducts.length}): ${context.knownProducts.join(', ')}`);
+    if (excluded.length > 0) {
+      parts.push(`\n\n**이미 수집된 항목 (제외):**\n${excluded.join('\n')}\n\n위 목록에 없는 신규 기업·제품·뉴스·사례를 우선적으로 분석해주세요. 목록에 있는 항목이더라도 **업데이트된 최신 정보(새로운 모델, 버전, 발표)**가 있다면 포함하세요.`);
+    }
+
+    // 마지막 수집 30일 전부터 시작해서 간극을 커버
+    let timeRangeStart = defaultStart;
+    if (context.lastCollectedAt) {
+      const buffered = new Date(context.lastCollectedAt);
+      buffered.setDate(buffered.getDate() - 30);
+      const bufferedStr = buffered.toISOString().split('T')[0]!;
+      if (bufferedStr > defaultStart) timeRangeStart = bufferedStr;
+    }
+
+    return { query: parts.join(''), timeRangeStart };
+  }
+
   /**
    * 단일 주제로 데이터 생성 및 저장
    */
   async generateForTopic(
     topic: GenerationTopic,
     provider: 'chatgpt' | 'claude' = 'claude',
-    webSearch: boolean = false
+    webSearch: boolean = false,
+    context?: CollectionContext
   ): Promise<GenerationResult> {
+    const defaultStart = '2023-01-01';
+    const defaultEnd = new Date().toISOString().split('T')[0]!;
+    const { query, timeRangeStart } = this.applyCollectionContext(topic, context, defaultStart);
+
     const request: AISearchRequest = {
-      query: topic.query,
+      query,
       targetTypes: topic.targetTypes,
-      timeRange: { start: '2023-01-01', end: '2025-12-31' },
+      timeRange: { start: timeRangeStart, end: defaultEnd },
       region: topic.region || 'global',
       provider,
       webSearch,
@@ -324,6 +404,14 @@ class DataGeneratorService {
       .set({ status: 'running', startedAt: new Date(), updatedAt: new Date() })
       .where(eq(dataGeneratorJobs.id, jobId));
 
+    // 이전 수집 히스토리로부터 이미 알고 있는 엔티티 목록과 마지막 수집 시각을 로드
+    const context = await this.getCollectionContext();
+    if (context.lastCollectedAt || context.knownCompanies.length > 0 || context.knownProducts.length > 0) {
+      console.log(
+        `[DataGenerator] Job ${jobId} using collection context: since=${context.lastCollectedAt?.toISOString() ?? 'none'}, known companies=${context.knownCompanies.length}, products=${context.knownProducts.length}`
+      );
+    }
+
     const results: GenerationResult[] = [];
     let completed = 0;
     let failed = 0;
@@ -343,7 +431,7 @@ class DataGeneratorService {
         })
         .where(eq(dataGeneratorJobs.id, jobId));
 
-      const result = await this.generateForTopic(topic, provider, webSearch);
+      const result = await this.generateForTopic(topic, provider, webSearch, context);
       results.push(result);
 
       if (result.errors.length > 0 && result.companiesSaved === 0 && result.productsSaved === 0) {
