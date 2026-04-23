@@ -113,7 +113,7 @@ function nodeWidth(name: string, showTBD: boolean): number {
 
 export default function RobotEvolutionTimeline() {
   const [regionFilter, setRegionFilter] = useState('');
-  const [recentYears, setRecentYears] = useState(5);
+  const [recentYears, setRecentYears] = useState(2);
   const [hoveredRobot, setHoveredRobot] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<{
     x: number; y: number; robot: Robot; companyName: string;
@@ -322,11 +322,11 @@ export default function RobotEvolutionTimeline() {
                     <g key={`${year}-${qi}`}>
                       <text
                         x={qx + quarterW / 2}
-                        y={38}
+                        y={40}
                         textAnchor="middle"
-                        fill={SVG_FAINT}
-                        fontSize={10}
-                        fontWeight={400}
+                        fill={SVG_MUTED}
+                        fontSize={12}
+                        fontWeight={600}
                       >
                         {ql}
                       </text>
@@ -334,7 +334,7 @@ export default function RobotEvolutionTimeline() {
                         <line
                           x1={qx} y1={TOP_HEADER_H}
                           x2={qx} y2={svgH}
-                          stroke={SVG_BORDER_SOFT} strokeWidth={0.3} strokeDasharray="2 3"
+                          stroke={SVG_BORDER_SOFT} strokeWidth={0.5}
                         />
                       )}
                     </g>
