@@ -403,6 +403,16 @@ export async function adminRoutes(fastify: FastifyInstance) {
     return dataGeneratorService.fixCompanyCountries();
   });
 
+  // description/summary에서 <cite> 및 HTML 태그 제거
+  fastify.post('/data-generator/cleanup-citation-tags', async () => {
+    return dataGeneratorService.cleanupCitationTags();
+  });
+
+  // 알려진 로봇의 정확한 발표 분기로 업데이트
+  fastify.post('/data-generator/fix-robot-quarters', async () => {
+    return dataGeneratorService.fixRobotQuarters();
+  });
+
   // 배치 잡 상태 조회 (폴링용)
   fastify.get('/data-generator/batch/status/:jobId', async (request, reply) => {
     try {

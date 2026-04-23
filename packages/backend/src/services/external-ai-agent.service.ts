@@ -40,6 +40,23 @@ export interface SourceReference {
   title: string;
 }
 
+// ── Citation tag stripping ──
+
+/**
+ * Claude Sonnet 4 + web_search가 description에 삽입하는 <cite index="..."> 태그 제거.
+ * 내부 텍스트는 보존하고 태그만 제거.
+ */
+export function stripCitationTags(text: string): string {
+  if (!text) return text;
+  // <cite ...>...</cite> — 열림/닫힘 모두 제거, 내부 텍스트 유지
+  let s = text.replace(/<cite\b[^>]*>/gi, '').replace(/<\/cite>/gi, '');
+  // 다른 잔여 HTML 태그도 제거 (description은 plain text여야 함)
+  s = s.replace(/<\/?[a-z][a-z0-9]*\b[^>]*>/gi, '');
+  // 연속 공백·줄바꿈 정리
+  s = s.replace(/[ \t]+/g, ' ').replace(/\s*\n\s*/g, '\n').trim();
+  return s;
+}
+
 // ── Entity name sanitization ──
 
 /**
@@ -413,7 +430,7 @@ confidence는 정보의 신뢰도를 나타냅니다 (0.9+: 확실, 0.7~0.9: 높
           return {
             category: validCategories.has(f.category) ? f.category : 'keyword',
             name: sanitized,
-            description: String(f.description || ''),
+            description: stripCitationTags(String(f.description || '')),
             confidence: Math.max(0, Math.min(1, Number(f.confidence) || 0.5)),
           };
         })
@@ -427,7 +444,7 @@ confidence는 정보의 신뢰도를 나타냅니다 (0.9+: 확실, 0.7~0.9: 높
         }));
 
       return {
-        summary: typeof data.summary === 'string' ? data.summary : '',
+        summary: stripCitationTags(typeof data.summary === 'string' ? data.summary : ''),
         facts,
         sources,
       };

@@ -63,6 +63,14 @@ const start = async () => {
     if (countries && countries.updated > 0) {
       console.log(`[DataGenerator] Fixed ${countries.updated} company country(ies):`, countries.changes.slice(0, 10));
     }
+    const citations = await dataGeneratorService.cleanupCitationTags().catch(() => null);
+    if (citations && (citations.humanoidRobots + citations.companies + citations.articles) > 0) {
+      console.log(`[DataGenerator] Stripped citation/HTML tags from:`, citations);
+    }
+    const quarters = await dataGeneratorService.fixRobotQuarters().catch(() => null);
+    if (quarters && quarters.updated > 0) {
+      console.log(`[DataGenerator] Fixed ${quarters.updated} robot quarter(s):`, quarters.changes);
+    }
     await fastify.listen({ port, host: '0.0.0.0' });
     console.log(`Backend server running on port ${port}`);
   } catch (err) {

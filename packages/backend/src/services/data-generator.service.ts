@@ -8,11 +8,11 @@
  * 특정 사이트 크롤링이 아닙니다. 모든 데이터에 'ai-generated' 태그를 부여합니다.
  */
 
-import { externalAIAgent, sanitizeEntityName, isValidEntityName } from './external-ai-agent.service.js';
+import { externalAIAgent, sanitizeEntityName, isValidEntityName, stripCitationTags } from './external-ai-agent.service.js';
 import { saveAnalyzedData } from './text-analyzer.service.js';
 import type { AISearchRequest, AISearchResponse } from './external-ai-agent.service.js';
 import type { AnalyzedData } from './text-analyzer.service.js';
-import { db, humanoidRobots, companies, products, dataGeneratorJobs } from '../db/index.js';
+import { db, humanoidRobots, companies, products, articles, dataGeneratorJobs } from '../db/index.js';
 import { eq, desc, inArray } from 'drizzle-orm';
 
 export interface GenerationTopic {
@@ -625,6 +625,97 @@ class DataGeneratorService {
    */
   getDefaultTopics(): GenerationTopic[] {
     return buildDefaultTopics();
+  }
+
+  /**
+   * 이미 DB에 저장된 description/summary에서 <cite>·HTML 태그를 제거.
+   * Claude Sonnet 4 + web_search가 citation을 raw로 남긴 흔적 정리.
+   */
+  async cleanupCitationTags(): Promise<{ humanoidRobots: number; companies: number; articles: number }> {
+    let robotsFixed = 0;
+    let companiesFixed = 0;
+    let articlesFixed = 0;
+
+    // humanoid_robots.description
+    const robotRows = await db.select({ id: humanoidRobots.id, description: humanoidRobots.description }).from(humanoidRobots);
+    for (const row of robotRows) {
+      if (!row.description || !/<[/a-z]/i.test(row.description)) continue;
+      const cleaned = stripCitationTags(row.description);
+      if (cleaned !== row.description) {
+        await db.update(humanoidRobots).set({ description: cleaned, updatedAt: new Date() }).where(eq(humanoidRobots.id, row.id));
+        robotsFixed++;
+      }
+    }
+
+    // companies.description
+    const compRows = await db.select({ id: companies.id, description: companies.description }).from(companies);
+    for (const row of compRows) {
+      if (!row.description || !/<[/a-z]/i.test(row.description)) continue;
+      const cleaned = stripCitationTags(row.description);
+      if (cleaned !== row.description) {
+        await db.update(companies).set({ description: cleaned, updatedAt: new Date() }).where(eq(companies.id, row.id));
+        companiesFixed++;
+      }
+    }
+
+    // articles.summary (no updatedAt column on articles)
+    const artRows = await db.select({ id: articles.id, summary: articles.summary }).from(articles);
+    for (const row of artRows) {
+      if (!row.summary || !/<[/a-z]/i.test(row.summary)) continue;
+      const cleaned = stripCitationTags(row.summary);
+      if (cleaned !== row.summary) {
+        await db.update(articles).set({ summary: cleaned }).where(eq(articles.id, row.id));
+        articlesFixed++;
+      }
+    }
+
+    return { humanoidRobots: robotsFixed, companies: companiesFixed, articles: articlesFixed };
+  }
+
+  /**
+   * 알려진 로봇의 정확한 발표 분기로 업데이트 (분기 정보가 없거나 틀린 경우).
+   */
+  async fixRobotQuarters(): Promise<{ updated: number; changes: { name: string; year: number; quarter: number }[] }> {
+    const knownQuarters: { name: string; year: number; quarter: number }[] = [
+      { name: 'Optimus Gen 2', year: 2023, quarter: 4 },      // Dec 13, 2023
+      { name: 'Optimus Gen 3', year: 2026, quarter: 1 },      // Early 2026 prototype
+      { name: 'CyberOne', year: 2022, quarter: 3 },            // Aug 11, 2022
+      { name: 'Figure 01', year: 2023, quarter: 1 },           // Mar 2023
+      { name: 'Figure 02', year: 2024, quarter: 3 },           // Aug 2024
+      { name: 'Figure 03', year: 2025, quarter: 4 },           // Oct 2025
+      { name: 'Atlas (Electric)', year: 2024, quarter: 2 },    // Apr 2024
+      { name: 'Digit', year: 2023, quarter: 3 },               // v4 gen released mid-2023
+      { name: 'Apollo', year: 2023, quarter: 3 },              // Aug 2023
+      { name: 'G1', year: 2024, quarter: 2 },                  // May 2024
+      { name: 'H1', year: 2023, quarter: 3 },                  // Aug 2023
+      { name: 'NEO', year: 2024, quarter: 3 },                 // Aug 2024
+      { name: 'NEO Beta', year: 2025, quarter: 1 },            // CES 2025 (Jan)
+      { name: 'Phoenix', year: 2023, quarter: 2 },             // May 2023 (Gen 6)
+      { name: 'GR-1', year: 2023, quarter: 3 },                // Jul 2023
+      { name: 'Fourier GR-2', year: 2024, quarter: 1 },        // Mar 2024
+      { name: 'Fourier N1', year: 2024, quarter: 4 },          // Late 2024
+      { name: 'Walker X', year: 2021, quarter: 1 },            // Jan 2021
+      { name: 'Kepler Forerunner', year: 2023, quarter: 4 },   // Oct 2023
+      { name: 'Agibot A2', year: 2024, quarter: 3 },           // Aug 2024
+    ];
+
+    const changes: { name: string; year: number; quarter: number }[] = [];
+    for (const target of knownQuarters) {
+      const rows = await db
+        .select({ id: humanoidRobots.id, year: humanoidRobots.announcementYear, quarter: humanoidRobots.announcementQuarter })
+        .from(humanoidRobots)
+        .where(eq(humanoidRobots.name, target.name));
+      for (const row of rows) {
+        if (row.year !== target.year || row.quarter !== target.quarter) {
+          await db
+            .update(humanoidRobots)
+            .set({ announcementYear: target.year, announcementQuarter: target.quarter, updatedAt: new Date() })
+            .where(eq(humanoidRobots.id, row.id));
+          changes.push(target);
+        }
+      }
+    }
+    return { updated: changes.length, changes };
   }
 
   /**
