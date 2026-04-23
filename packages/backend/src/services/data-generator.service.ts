@@ -612,6 +612,78 @@ class DataGeneratorService {
   getDefaultTopics(): GenerationTopic[] {
     return DEFAULT_TOPICS;
   }
+
+  /**
+   * humanoid_robots 테이블 상태 조회 — 타임라인에 노출되는 비율 확인용
+   */
+  async getRobotStats(): Promise<{
+    total: number;
+    withYear: number;
+    withoutYear: number;
+    sampleMissing: { id: string; name: string; description: string | null }[];
+  }> {
+    const allRows = await db.select({
+      id: humanoidRobots.id,
+      name: humanoidRobots.name,
+      announcementYear: humanoidRobots.announcementYear,
+      description: humanoidRobots.description,
+    }).from(humanoidRobots);
+
+    const withYear = allRows.filter(r => r.announcementYear != null).length;
+    const withoutYear = allRows.length - withYear;
+    const sampleMissing = allRows
+      .filter(r => r.announcementYear == null)
+      .slice(0, 20)
+      .map(r => ({ id: r.id, name: r.name, description: r.description }));
+
+    return { total: allRows.length, withYear, withoutYear, sampleMissing };
+  }
+
+  /**
+   * announcement_year가 NULL인 로봇들의 description에서 연도·분기를 재추출하여 업데이트.
+   * 배치에서 수집되었지만 extractAnnouncementDate가 당시 없었거나 실패했던 로봇을 복구.
+   */
+  async backfillAnnouncementYears(): Promise<{
+    processed: number;
+    updated: number;
+    stillMissing: number;
+    updates: { name: string; year: number; quarter: number | null }[];
+  }> {
+    const rows = await db.select({
+      id: humanoidRobots.id,
+      name: humanoidRobots.name,
+      description: humanoidRobots.description,
+    }).from(humanoidRobots);
+
+    const missing = rows.filter(r => r.description);
+    const updates: { name: string; year: number; quarter: number | null }[] = [];
+    let updated = 0;
+
+    // announcement_year 컬럼을 별도로 체크하기 위해 재조회
+    const currentYears = await db.select({
+      id: humanoidRobots.id,
+      year: humanoidRobots.announcementYear,
+    }).from(humanoidRobots);
+    const yearMap = new Map(currentYears.map(r => [r.id, r.year]));
+
+    for (const row of missing) {
+      if (yearMap.get(row.id) != null) continue; // 이미 연도 있음
+
+      const { year, quarter } = extractAnnouncementDate((row.description ?? '') + ' ' + row.name);
+      if (year == null) continue;
+
+      await db
+        .update(humanoidRobots)
+        .set({ announcementYear: year, announcementQuarter: quarter, updatedAt: new Date() })
+        .where(eq(humanoidRobots.id, row.id));
+
+      updated++;
+      updates.push({ name: row.name, year, quarter });
+    }
+
+    const stillMissing = missing.filter(r => yearMap.get(r.id) == null).length - updated;
+    return { processed: missing.length, updated, stillMissing, updates };
+  }
 }
 
 export const dataGeneratorService = new DataGeneratorService();

@@ -373,6 +373,16 @@ export async function adminRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // 휴머노이드 로봇 테이블 통계 (타임라인 노출 진단용)
+  fastify.get('/data-generator/robot-stats', async () => {
+    return dataGeneratorService.getRobotStats();
+  });
+
+  // announcement_year가 NULL인 로봇들의 연도를 description에서 재추출하여 백필
+  fastify.post('/data-generator/backfill-years', async () => {
+    return dataGeneratorService.backfillAnnouncementYears();
+  });
+
   // 배치 잡 상태 조회 (폴링용)
   fastify.get('/data-generator/batch/status/:jobId', async (request, reply) => {
     try {
