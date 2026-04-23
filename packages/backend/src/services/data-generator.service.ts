@@ -628,6 +628,69 @@ class DataGeneratorService {
   }
 
   /**
+   * AI 배치가 country='Unknown'으로 생성한 기업들을 알려진 본사 국가로 수정.
+   * 또한 'Korea' 같은 비표준 표기를 'South Korea'로 통일.
+   */
+  async fixCompanyCountries(): Promise<{ updated: number; changes: { name: string; from: string; to: string }[] }> {
+    const knownCountries: Record<string, string> = {
+      'Tesla': 'USA',
+      'Figure AI': 'USA',
+      'Foundation': 'USA',
+      'Foundation Robotics': 'USA',
+      'Apptronik': 'USA',
+      'Agility Robotics': 'USA',
+      'Boston Dynamics': 'USA',
+      'Diligent Robotics': 'USA',
+      'Savioke': 'USA',
+      '1X Technologies': 'Norway',
+      'Unitree Robotics': 'China',
+      'UBTECH': 'China',
+      'Xiaomi': 'China',
+      'Fourier Intelligence': 'China',
+      'Kepler Robotics': 'China',
+      'Kepler Robot': 'China',
+      'Agibot': 'China',
+      'LimX Dynamics': 'China',
+      'Rebodis': 'China',
+      'Honda': 'Japan',
+      'Toyota': 'Japan',
+      'SoftBank Robotics': 'Japan',
+      'Rainbow Robotics': 'South Korea',
+      'KAIST': 'South Korea',
+      'LG Electronics': 'South Korea',
+      'Samsung': 'South Korea',
+      'Sanctuary AI': 'Canada',
+      'PAL Robotics': 'Spain',
+      'NEURA Robotics': 'Germany',
+      'Engineered Arts': 'UK',
+      'Humanoid': 'UK',
+      'Mentee Robotics': 'Israel',
+      'Aeolus Robotics': 'Taiwan',
+    };
+
+    const changes: { name: string; from: string; to: string }[] = [];
+
+    // Pass 1: Unknown → 알려진 국가로 (이름 매칭 기준)
+    for (const [name, correctCountry] of Object.entries(knownCountries)) {
+      const rows = await db
+        .select({ id: companies.id, country: companies.country })
+        .from(companies)
+        .where(eq(companies.name, name));
+      for (const row of rows) {
+        if (row.country !== correctCountry) {
+          await db
+            .update(companies)
+            .set({ country: correctCountry, updatedAt: new Date() })
+            .where(eq(companies.id, row.id));
+          changes.push({ name, from: row.country, to: correctCountry });
+        }
+      }
+    }
+
+    return { updated: changes.length, changes };
+  }
+
+  /**
    * 공식 발표 근거 없이 DB에 남아있는 가짜 휴머노이드 로봇 이름 목록을 삭제.
    * 이전 seed 버전에서 insert됐던 행들을 정리한다.
    */

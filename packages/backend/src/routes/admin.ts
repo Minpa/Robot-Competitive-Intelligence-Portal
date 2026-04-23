@@ -398,6 +398,11 @@ export async function adminRoutes(fastify: FastifyInstance) {
     return dataGeneratorService.cleanupFabricatedRobots();
   });
 
+  // 기업 국가 정보 Unknown/불일치 수정 (Figure AI → USA 등)
+  fastify.post('/data-generator/fix-company-countries', async () => {
+    return dataGeneratorService.fixCompanyCountries();
+  });
+
   // 배치 잡 상태 조회 (폴링용)
   fastify.get('/data-generator/batch/status/:jobId', async (request, reply) => {
     try {

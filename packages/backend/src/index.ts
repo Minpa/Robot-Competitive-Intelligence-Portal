@@ -59,6 +59,10 @@ const start = async () => {
     if (fabricated && fabricated.deleted > 0) {
       console.log(`[DataGenerator] Removed ${fabricated.deleted} fabricated robot(s): ${fabricated.names.join(', ')}`);
     }
+    const countries = await dataGeneratorService.fixCompanyCountries().catch(() => null);
+    if (countries && countries.updated > 0) {
+      console.log(`[DataGenerator] Fixed ${countries.updated} company country(ies):`, countries.changes.slice(0, 10));
+    }
     await fastify.listen({ port, host: '0.0.0.0' });
     console.log(`Backend server running on port ${port}`);
   } catch (err) {
