@@ -30,6 +30,12 @@ interface HistoryEntry {
   results: BatchResultItem[];
 }
 
+interface SkippedItem {
+  category: 'company' | 'product' | 'article' | 'keyword';
+  name: string;
+  reason: string;
+}
+
 interface BatchResultItem {
   topic: string;
   companiesSaved: number;
@@ -41,6 +47,23 @@ interface BatchResultItem {
   articleTitles?: string[];
   keywordTerms?: string[];
   errors: string[];
+  skipped?: SkippedItem[];
+}
+
+const SKIP_REASON_LABEL: Record<string, string> = {
+  missing_country: '국가 정보 없음',
+  no_company_match: '회사 매칭 실패',
+  company_not_in_db: '회사 미등록',
+  missing_year: '발표 연도 없음',
+  not_robot: '로봇 아님',
+  duplicate: '중복',
+  unverified: '출처 미확인',
+};
+
+function labelReason(reason: string): string {
+  if (SKIP_REASON_LABEL[reason]) return SKIP_REASON_LABEL[reason]!;
+  if (reason.startsWith('db_error')) return 'DB 오류';
+  return reason;
 }
 
 function aggregateBatchResult(
@@ -549,6 +572,28 @@ export default function InsightPipelinePage() {
                           )}
                         </div>
                       )}
+
+                      {r.skipped && r.skipped.length > 0 && (() => {
+                        const groups = r.skipped.reduce<Record<string, string[]>>((acc, s) => {
+                          const key = labelReason(s.reason);
+                          (acc[key] ??= []).push(s.name);
+                          return acc;
+                        }, {});
+                        const total = r.skipped.length;
+                        return (
+                          <div className="ml-5 mt-1 p-2 rounded bg-amber-50 border border-amber-200 text-sm">
+                            <div className="text-amber-700 font-medium mb-1">스킵됨 ({total}건) — 데이터 게이트에서 거부</div>
+                            <div className="space-y-0.5 text-amber-800">
+                              {Object.entries(groups).map(([reason, names]) => (
+                                <div key={reason}>
+                                  <span className="text-amber-600">{reason} ({names.length}):</span>{' '}
+                                  <span>{names.slice(0, 8).join(', ')}{names.length > 8 ? ` 외 ${names.length - 8}건` : ''}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}

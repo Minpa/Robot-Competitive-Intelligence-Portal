@@ -85,6 +85,12 @@ export interface AnalyzedData {
   summary: string;
 }
 
+export interface SkippedItem {
+  category: 'company' | 'product' | 'article' | 'keyword';
+  name: string;
+  reason: string;
+}
+
 export interface SaveResult {
   companiesSaved: number;
   productsSaved: number;
@@ -95,6 +101,7 @@ export interface SaveResult {
   articleTitles: string[];
   keywordTerms: string[];
   errors: string[];
+  skipped: SkippedItem[];
 }
 
 /**
@@ -200,6 +207,7 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
     articleTitles: [],
     keywordTerms: [],
     errors: [],
+    skipped: [],
   };
 
   const companyIdMap = new Map<string, string>();
@@ -207,7 +215,7 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
   // 1. 회사 저장
   for (const company of data.companies) {
     try {
-      // 중복 체크
+      // 중복 체크 — 기존 회사는 나라 정보가 없어도 매핑은 유지
       const existing = await db.select().from(companies)
         .where(eq(companies.name, company.name))
         .limit(1);
@@ -218,9 +226,16 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
         continue;
       }
 
+      // 게이트: country가 'Unknown'이거나 비어 있으면 새 회사를 만들지 않음.
+      // AI가 국가를 판별하지 못한 회사는 후속 cleanup에서 재보정 불가하므로 저장 자체를 거부.
+      if (!company.country || company.country === 'Unknown') {
+        result.skipped.push({ category: 'company', name: company.name, reason: 'missing_country' });
+        continue;
+      }
+
       const [inserted] = await db.insert(companies).values({
         name: company.name,
-        country: company.country || 'Unknown',
+        country: company.country,
         category: company.category || 'robotics',
         description: company.description,
       }).returning({ id: companies.id });
@@ -238,6 +253,13 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
   // 2. 제품 저장
   for (const product of data.products) {
     try {
+      // 게이트: 회사 매칭에 실패한 제품은 저장하지 않음.
+      // 'Unknown' 더미 회사를 만들면 data-trust가 훼손되고 후속 cleanup 대상이 누적됨.
+      if (!product.companyName || product.companyName === 'Unknown') {
+        result.skipped.push({ category: 'product', name: product.name, reason: 'no_company_match' });
+        continue;
+      }
+
       // 회사 ID 찾기
       let companyId = companyIdMap.get(product.companyName);
       if (!companyId) {
@@ -247,21 +269,11 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
         companyId = company?.id;
       }
 
+      // 회사가 DB에 없으면 스킵 (1단계에서 country='Unknown'로 걸러졌거나 애초에 없음)
       if (!companyId) {
-        // 회사가 없으면 생성
-        const [newCompany] = await db.insert(companies).values({
-          name: product.companyName,
-          country: 'Unknown',
-          category: 'robotics',
-        }).returning({ id: companies.id });
-        companyId = newCompany?.id;
-        if (companyId) {
-          companyIdMap.set(product.companyName, companyId);
-          result.companiesSaved++;
-        }
+        result.skipped.push({ category: 'product', name: product.name, reason: 'company_not_in_db' });
+        continue;
       }
-
-      if (!companyId) continue;
 
       // 중복 체크
       const existing = await db.select().from(products)

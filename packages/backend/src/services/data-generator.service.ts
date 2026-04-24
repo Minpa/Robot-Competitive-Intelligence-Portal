@@ -11,7 +11,7 @@
 import { externalAIAgent, sanitizeEntityName, isValidEntityName, stripCitationTags } from './external-ai-agent.service.js';
 import { saveAnalyzedData } from './text-analyzer.service.js';
 import type { AISearchRequest, AISearchResponse } from './external-ai-agent.service.js';
-import type { AnalyzedData } from './text-analyzer.service.js';
+import type { AnalyzedData, SkippedItem } from './text-analyzer.service.js';
 import { db, humanoidRobots, companies, products, articles, dataGeneratorJobs } from '../db/index.js';
 import { eq, desc, inArray } from 'drizzle-orm';
 
@@ -34,6 +34,8 @@ export interface GenerationResult {
   articleTitles: string[];
   keywordTerms: string[];
   errors: string[];
+  /** 저장 단계에서 거부된 항목(사유별) — UI에서 사용자에게 노출 */
+  skipped: SkippedItem[];
 }
 
 export interface BatchResult {
@@ -199,9 +201,11 @@ function extractAnnouncementDate(text: string): { year: number | null; quarter: 
 async function saveHumanoidRobots(
   response: AISearchResponse,
   analyzedProducts: AnalyzedData['products']
-): Promise<{ saved: number; skipped: { reason: string; name: string }[] }> {
+): Promise<{ saved: number; skipped: SkippedItem[] }> {
   let saved = 0;
-  const skipped: { reason: string; name: string }[] = [];
+  const skipped: SkippedItem[] = [];
+  const push = (reason: string, name: string) =>
+    skipped.push({ category: 'product', name, reason });
 
   const locomotionKeywords: Record<string, string> = {
     bipedal: 'bipedal', biped: 'bipedal', '2족': 'bipedal', '이족': 'bipedal',
@@ -216,10 +220,17 @@ async function saveHumanoidRobots(
   };
 
   // product 이름으로 원본 fact 찾기 위한 맵 (추출 텍스트 소스로 활용)
-  const factByName = new Map<string, { name: string; description: string }>();
+  const factByName = new Map<string, { name: string; description: string; confidence: number }>();
   for (const f of response.facts.filter(f => f.category === 'product')) {
     factByName.set(f.name, f);
   }
+
+  // 환각 탐지용 검증 코퍼스: 응답의 summary + sources[].title을 합쳐 소문자화.
+  // 신규 로봇 이름이 이 코퍼스에 등장해야 실재 근거가 있다고 간주.
+  const verificationCorpus = [
+    response.summary,
+    ...response.sources.map(s => `${s.domain} ${s.title}`),
+  ].join(' ').toLowerCase();
 
   for (const product of analyzedProducts) {
     const fact = factByName.get(product.name);
@@ -228,24 +239,24 @@ async function saveHumanoidRobots(
 
     const isRobot = /humanoid|로봇|robot|android|avatar|휴머노이드/i.test(desc);
     if (!isRobot) {
-      skipped.push({ reason: 'not_robot', name: product.name });
+      push('not_robot', product.name);
       continue;
     }
 
     const existing = await db.select().from(humanoidRobots).where(eq(humanoidRobots.name, product.name)).limit(1);
     if (existing.length > 0) {
-      skipped.push({ reason: 'duplicate', name: product.name });
+      push('duplicate', product.name);
       continue;
     }
 
-    // analyzedProduct.companyName은 convertToAnalyzedData에서 매칭된 이름 — saveAnalyzedData가 DB에 생성해둠
+    // analyzedProduct.companyName은 convertToAnalyzedData에서 매칭된 이름
     if (!product.companyName || product.companyName === 'Unknown') {
-      skipped.push({ reason: 'no_company_match', name: product.name });
+      push('no_company_match', product.name);
       continue;
     }
     const comp = await db.select().from(companies).where(eq(companies.name, product.companyName)).limit(1);
     if (comp.length === 0) {
-      skipped.push({ reason: 'company_not_in_db', name: product.name });
+      push('company_not_in_db', product.name);
       continue;
     }
     const companyId = comp[0]!.id;
@@ -259,8 +270,26 @@ async function saveHumanoidRobots(
       if (desc.includes(kw)) { purpose = type; break; }
     }
 
-    // 연도·분기 추출 — 없으면 NULL (타임라인에는 안 나타나지만, 그래도 DB에는 저장)
+    // 연도·분기 추출 — 실패하면 skip (NULL year는 타임라인에 노출되지 않아 저장해도 쓰임 없음)
     const { year, quarter } = extractAnnouncementDate(description + ' ' + product.name + ' ' + (product.releaseDate ?? ''));
+    if (year == null) {
+      push('missing_year', product.name);
+      continue;
+    }
+
+    // 환각 탐지 게이트:
+    //   신규 로봇 이름이 AI 자신의 description 바깥에서 등장하지 않으면 unverified로 간주.
+    //   summary 또는 sources[].title에 등장 + fact.confidence >= 0.6 중 하나는 만족해야 함.
+    //   이름이 너무 짧으면(3자 미만, 예: "H1") 흔한 토큰과 충돌하므로 검사에서 제외.
+    if (product.name.length >= 3) {
+      const nameLower = product.name.toLowerCase();
+      const mentionedInCorpus = verificationCorpus.includes(nameLower);
+      const confidence = fact?.confidence ?? 0;
+      if (!mentionedInCorpus && confidence < 0.6) {
+        push('unverified', product.name);
+        continue;
+      }
+    }
 
     try {
       await db.insert(humanoidRobots).values({
@@ -277,12 +306,15 @@ async function saveHumanoidRobots(
       });
       saved++;
     } catch (err) {
-      skipped.push({ reason: `db_error: ${(err as Error).message}`, name: product.name });
+      push(`db_error: ${(err as Error).message}`, product.name);
     }
   }
 
   if (skipped.length > 0) {
-    const counts = skipped.reduce((acc, s) => { acc[s.reason] = (acc[s.reason] ?? 0) + 1; return acc; }, {} as Record<string, number>);
+    const counts = skipped.reduce<Record<string, number>>((acc, s) => {
+      acc[s.reason] = (acc[s.reason] ?? 0) + 1;
+      return acc;
+    }, {});
     console.log(`[DataGenerator] saveHumanoidRobots: ${saved} saved, ${skipped.length} skipped —`, counts);
     const dropped = skipped.filter(s => s.reason !== 'duplicate' && s.reason !== 'not_robot');
     if (dropped.length > 0) {
@@ -432,6 +464,7 @@ class DataGeneratorService {
         provider,
         ...saveResult,
         robotsSaved: robotResult.saved,
+        skipped: [...saveResult.skipped, ...robotResult.skipped],
       };
     } catch (error) {
       return {
@@ -447,6 +480,7 @@ class DataGeneratorService {
         articleTitles: [],
         keywordTerms: [],
         errors: [(error as Error).message],
+        skipped: [],
       };
     }
   }
