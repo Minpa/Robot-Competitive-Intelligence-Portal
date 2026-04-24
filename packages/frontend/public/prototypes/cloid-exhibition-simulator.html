@@ -5,68 +5,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CLOiD Exhibition Scenario Simulator v0.5</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
-  <script async src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
-    /* ============ RESET & BASE ============ */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      /* Phase 0 색상 팔레트 */
       --bg-0: #0a0a0a;
-      --bg-1: #1a1a1a;
-      --bg-2: #2a2a2a;
-      --bg-3: #3a3a3a;
+      --bg-1: #141414;
+      --bg-2: #1e1e1e;
+      --bg-3: #2d2d2d;
+      --bg-4: #3a3a3a;
       --text-primary: #e5e5e5;
-      --text-secondary: #a0a0a0;
+      --text-secondary: #9a9a9a;
+      --text-tertiary: #6a6a6a;
       --lg-red: #E63950;
+      --lg-red-dim: #A50034;
       --cyan: #00D9FF;
+      --cyan-dim: #0099B8;
       --success: #22C55E;
       --warn: #F59E0B;
       --error: #EF4444;
-
-      /* GHRIM 신뢰도 색상 */
-      --rel-a: #059669;
-      --rel-b: #10B981;
-      --rel-c: #F59E0B;
-      --rel-d: #F97316;
-      --rel-e: #EF4444;
-      --rel-f: #991B1B;
-
-      /* 국가별 색상 */
-      --country-eu: #003399;
-      --country-us: #3C3B6E;
-      --country-cn: #DE2910;
-      --country-jp: #BC002D;
-      --country-kr: #0047A0;
-
-      /* Gesture 상태 */
-      --status-complete: #22C55E;
-      --status-progress: #3B82F6;
-      --status-unverified: #6B7280;
-      --status-notaddressed: #EF4444;
     }
 
     html, body {
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       background: var(--bg-0);
       color: var(--text-primary);
       font-family: 'IBM Plex Sans', sans-serif;
       font-size: 13px;
       overflow: hidden;
+      user-select: none;
     }
 
     #app {
       display: grid;
       grid-template-rows: 44px 1fr 240px;
       grid-template-columns: 260px 1fr 280px;
-      width: 100%;
-      height: 100%;
-      gap: 0;
+      width: 100%; height: 100%;
     }
 
     /* ============ TOPBAR ============ */
@@ -74,344 +49,307 @@
       grid-column: 1 / -1;
       background: var(--bg-1);
       border-bottom: 1px solid var(--bg-3);
-      display: flex;
-      align-items: center;
-      padding: 0 16px;
-      gap: 24px;
+      display: flex; align-items: center;
+      padding: 0 16px; gap: 16px;
       z-index: 100;
     }
-
-    .topbar-left {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      flex: 1;
-    }
-
+    .topbar-left { display: flex; align-items: center; gap: 14px; flex: 1; }
     .logo {
       font-family: 'IBM Plex Mono', monospace;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 1.2px;
-      color: var(--cyan);
+      font-size: 12px; font-weight: 600;
+      letter-spacing: 1.5px; color: var(--cyan);
     }
-
     .scenario-name-input {
       background: var(--bg-2);
       border: 1px solid var(--bg-3);
       color: var(--text-primary);
-      padding: 6px 10px;
+      padding: 5px 10px;
       font-family: 'IBM Plex Mono', monospace;
-      font-size: 12px;
-      width: 200px;
-      border-radius: 3px;
+      font-size: 12px; width: 180px; border-radius: 2px;
     }
-
-    .scenario-name-input:focus {
-      outline: none;
-      border-color: var(--cyan);
-    }
-
+    .scenario-name-input:focus { outline: none; border-color: var(--cyan); }
     .d-day {
-      font-size: 11px;
-      color: var(--text-secondary);
+      font-size: 11px; color: var(--text-secondary);
       font-family: 'IBM Plex Mono', monospace;
     }
-
-    /* 모드 토글 (세그먼트 컨트롤) */
     .mode-toggle {
-      display: flex;
-      gap: 2px;
+      display: flex; gap: 0;
       background: var(--bg-2);
       border: 1px solid var(--bg-3);
-      border-radius: 3px;
-      padding: 2px;
+      border-radius: 2px; padding: 2px;
     }
-
     .mode-toggle button {
-      flex: 1;
-      padding: 6px 16px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      background: transparent;
-      color: var(--text-secondary);
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s;
+      padding: 5px 18px;
+      font-size: 10.5px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 1px;
+      background: transparent; color: var(--text-secondary);
+      border: none; cursor: pointer;
+      transition: all 0.15s;
+      font-family: 'IBM Plex Mono', monospace;
     }
-
     .mode-toggle button.active {
-      background: var(--lg-red);
-      color: white;
-      border-radius: 2px;
+      background: var(--lg-red); color: white; border-radius: 1px;
     }
-
-    .topbar-right {
-      display: flex;
-      gap: 12px;
-    }
-
+    .topbar-right { display: flex; gap: 6px; }
     .btn-primary {
-      padding: 6px 14px;
+      padding: 5px 12px;
       background: var(--bg-2);
       border: 1px solid var(--bg-3);
       color: var(--text-primary);
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      cursor: pointer;
-      border-radius: 3px;
-      transition: all 0.2s;
+      font-size: 10.5px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      cursor: pointer; border-radius: 2px;
+      font-family: 'IBM Plex Mono', monospace;
+      transition: all 0.15s;
     }
+    .btn-primary:hover { background: var(--bg-3); border-color: var(--cyan); color: var(--cyan); }
+    .btn-primary.primary-red { background: var(--lg-red); border-color: var(--lg-red); color: white; }
+    .btn-primary.primary-red:hover { background: #ff4d64; }
 
-    .btn-primary:hover {
-      background: var(--bg-3);
-      border-color: var(--cyan);
-    }
-
-    .btn-primary:active {
-      transform: scale(0.98);
-    }
-
-    /* ============ SIDEBAR LEFT ============ */
+    /* ============ SIDEBARS ============ */
     .sidebar-left {
-      grid-row: 2;
-      grid-column: 1;
+      grid-row: 2; grid-column: 1;
       background: var(--bg-1);
       border-right: 1px solid var(--bg-3);
-      overflow-y: auto;
-      padding: 16px;
+      overflow-y: auto; padding: 14px 12px;
     }
-
-    .sidebar-section {
-      margin-bottom: 24px;
+    .sidebar-right {
+      grid-row: 2; grid-column: 3;
+      background: var(--bg-1);
+      border-left: 1px solid var(--bg-3);
+      overflow-y: auto; padding: 14px 12px;
     }
-
+    .sidebar-section { margin-bottom: 20px; }
     .sidebar-section-title {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--text-secondary);
-      margin-bottom: 8px;
-      font-weight: 600;
+      font-size: 10px; text-transform: uppercase;
+      letter-spacing: 1.4px; color: var(--text-secondary);
+      margin-bottom: 8px; font-weight: 600;
+      font-family: 'IBM Plex Mono', monospace;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .sidebar-section-title .count {
+      color: var(--text-tertiary); font-size: 10px;
     }
 
-    .catalog-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 6px;
-    }
-
+    .catalog-grid { display: grid; grid-template-columns: 1fr; gap: 4px; }
     .catalog-item {
-      padding: 10px;
+      padding: 8px 10px;
       background: var(--bg-2);
       border: 1px solid var(--bg-3);
-      border-radius: 3px;
-      cursor: pointer;
-      transition: all 0.2s;
+      border-radius: 2px; cursor: pointer;
+      transition: all 0.15s;
     }
-
-    .catalog-item:hover {
-      background: var(--bg-3);
-      border-color: var(--cyan);
-    }
-
-    .catalog-item-name {
-      font-size: 11px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
+    .catalog-item:hover { background: var(--bg-3); border-color: var(--cyan); }
+    .catalog-item-name { font-size: 11px; font-weight: 600; margin-bottom: 2px; }
     .catalog-item-dims {
-      font-size: 10px;
-      color: var(--text-secondary);
+      font-size: 9.5px; color: var(--text-secondary);
       font-family: 'IBM Plex Mono', monospace;
     }
 
-    .placed-list {
-      max-height: 200px;
-      overflow-y: auto;
-    }
-
+    .placed-list { max-height: 180px; overflow-y: auto; }
     .placed-item {
-      padding: 8px;
+      padding: 7px 10px; margin-bottom: 2px;
       background: var(--bg-2);
-      border-left: 3px solid var(--cyan);
-      margin-bottom: 4px;
-      font-size: 11px;
-      cursor: pointer;
-      transition: all 0.2s;
+      border-left: 3px solid var(--bg-4);
+      font-size: 11px; cursor: pointer;
+      transition: all 0.15s;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .placed-item:hover { background: var(--bg-3); }
+    .placed-item.selected { background: var(--bg-3); border-left-color: var(--lg-red); }
+    .placed-item .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      display: inline-block; margin-right: 6px;
+    }
+    .placed-item .item-meta {
+      font-size: 9px; color: var(--text-tertiary);
+      font-family: 'IBM Plex Mono', monospace;
     }
 
-    .placed-item:hover {
-      background: var(--bg-3);
+    .form-row { margin-bottom: 10px; }
+    .form-row label {
+      display: block; font-size: 10px;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      color: var(--text-secondary); margin-bottom: 4px;
+      font-family: 'IBM Plex Mono', monospace;
     }
+    .form-input, .form-select {
+      width: 100%; padding: 5px 8px;
+      background: var(--bg-2);
+      border: 1px solid var(--bg-3);
+      color: var(--text-primary);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; border-radius: 2px;
+    }
+    .form-input:focus, .form-select:focus { outline: none; border-color: var(--cyan); }
+    .form-row-split { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 
-    .placed-item.selected {
-      background: var(--bg-3);
-      border-left-color: var(--lg-red);
+    .camera-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
     }
+    .btn-secondary {
+      padding: 6px;
+      background: var(--bg-2);
+      border: 1px solid var(--bg-3);
+      color: var(--text-primary);
+      font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      cursor: pointer; border-radius: 2px;
+      font-family: 'IBM Plex Mono', monospace;
+      transition: all 0.15s;
+    }
+    .btn-secondary:hover { background: var(--bg-3); border-color: var(--cyan); color: var(--cyan); }
+    .btn-secondary.danger { color: var(--error); }
+    .btn-secondary.danger:hover { border-color: var(--error); background: rgba(239, 68, 68, 0.1); color: var(--error); }
 
     /* ============ VIEWPORT ============ */
     .viewport {
-      grid-row: 2;
-      grid-column: 2;
+      grid-row: 2; grid-column: 2;
       position: relative;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      background: #0a0f18;
+      overflow: hidden;
     }
-
-    #canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
+    #canvas { width: 100%; height: 100%; display: block; cursor: grab; }
+    #canvas:active { cursor: grabbing; }
     .viewport-hud {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      background: rgba(10, 10, 10, 0.8);
+      position: absolute; top: 12px; left: 12px;
+      background: rgba(10, 10, 10, 0.75);
       border: 1px solid var(--bg-3);
-      border-radius: 3px;
-      padding: 10px 12px;
+      border-radius: 2px;
+      padding: 8px 12px;
       font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
+      font-size: 10.5px;
       color: var(--text-secondary);
+      pointer-events: none;
+      line-height: 1.7;
+      backdrop-filter: blur(4px);
+    }
+    .viewport-hud .hud-label { color: var(--text-tertiary); width: 62px; display: inline-block; }
+    .viewport-hud .hud-value { color: var(--text-primary); }
+    .viewport-hint {
+      position: absolute; bottom: 12px; left: 12px;
+      background: rgba(10, 10, 10, 0.75);
+      border: 1px solid var(--bg-3);
+      border-radius: 2px;
+      padding: 6px 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9.5px;
+      color: var(--text-tertiary);
       pointer-events: none;
       line-height: 1.6;
     }
-
-    /* ============ SIDEBAR RIGHT ============ */
-    .sidebar-right {
-      grid-row: 2;
-      grid-column: 3;
-      background: var(--bg-1);
-      border-left: 1px solid var(--bg-3);
-      overflow-y: auto;
-      padding: 16px;
+    .viewport-hint kbd {
+      background: var(--bg-3); padding: 1px 5px;
+      border-radius: 2px; color: var(--text-primary);
+      font-family: inherit; font-size: 9px;
+      margin: 0 2px;
     }
 
-    .properties-panel {
-      display: none;
-    }
-
-    .properties-panel.active {
-      display: block;
-    }
-
-    .property-row {
-      margin-bottom: 12px;
-    }
-
-    .property-label {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: var(--text-secondary);
-      margin-bottom: 4px;
-      display: block;
-    }
-
-    .property-input,
-    .property-select {
-      width: 100%;
-      padding: 6px 8px;
-      background: var(--bg-2);
-      border: 1px solid var(--bg-3);
-      color: var(--text-primary);
+    /* ============ PROPERTIES PANEL ============ */
+    .properties-panel { display: none; }
+    .properties-panel.active { display: block; }
+    .panel-heading {
+      font-size: 10px; text-transform: uppercase;
+      letter-spacing: 1.4px; color: var(--lg-red);
+      margin-bottom: 12px; font-weight: 600;
       font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      border-radius: 3px;
     }
-
-    .property-input:focus,
-    .property-select:focus {
-      outline: none;
-      border-color: var(--cyan);
+    .panel-subheading {
+      font-size: 13px; color: var(--text-primary);
+      margin-bottom: 14px; font-weight: 600;
+      word-break: break-all;
     }
-
     .property-value {
       font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px;
-      color: var(--text-primary);
+      font-size: 11px; color: var(--text-secondary);
       background: var(--bg-2);
-      padding: 6px 8px;
-      border-radius: 3px;
+      padding: 5px 8px; border-radius: 2px;
     }
-
-    .property-button-group {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      margin-top: 8px;
+    .action-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 4px; margin-top: 10px;
     }
-
-    .property-button {
-      padding: 6px 8px;
-      background: var(--bg-2);
-      border: 1px solid var(--bg-3);
-      color: var(--text-primary);
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      cursor: pointer;
-      border-radius: 3px;
-      transition: all 0.2s;
-    }
-
-    .property-button:hover {
-      background: var(--bg-3);
-      border-color: var(--cyan);
-    }
-
-    .property-button.danger {
-      color: var(--error);
-    }
-
-    .property-button.danger:hover {
-      background: rgba(239, 68, 68, 0.1);
+    .empty-state {
+      padding: 20px 12px; text-align: center;
+      color: var(--text-tertiary); font-size: 11px;
+      font-family: 'IBM Plex Mono', monospace;
+      line-height: 1.6;
     }
 
     /* ============ TIMELINE ============ */
     .timeline {
-      grid-row: 3;
-      grid-column: 1 / -1;
+      grid-row: 3; grid-column: 1 / -1;
       background: var(--bg-1);
       border-top: 1px solid var(--bg-3);
       display: grid;
-      grid-template-columns: 260px 1fr;
+      grid-template-columns: 220px 1fr;
       overflow: hidden;
-    }
-
-    .timeline-labels {
-      background: var(--bg-2);
-      border-right: 1px solid var(--bg-3);
-      padding: 8px;
-      overflow-y: auto;
-      max-height: 240px;
-    }
-
-    .timeline-track-label {
-      height: 20px;
-      padding: 2px 8px;
-      font-size: 10px;
-      color: var(--text-secondary);
-      border-bottom: 1px solid var(--bg-3);
-      display: flex;
-      align-items: center;
-      font-weight: 600;
-    }
-
-    .timeline-content {
-      background: var(--bg-1);
-      overflow-x: auto;
-      overflow-y: auto;
       position: relative;
     }
-
+    .timeline-header {
+      grid-column: 1 / -1;
+      height: 32px;
+      background: var(--bg-2);
+      border-bottom: 1px solid var(--bg-3);
+      display: flex; align-items: center;
+      padding: 0 12px; gap: 10px;
+    }
+    .timeline-playback {
+      display: flex; gap: 4px;
+    }
+    .timeline-playback button {
+      width: 24px; height: 22px;
+      background: var(--bg-3); border: 1px solid var(--bg-4);
+      color: var(--text-primary); cursor: pointer;
+      border-radius: 2px; font-size: 11px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .timeline-playback button:hover { border-color: var(--cyan); color: var(--cyan); }
+    .timeline-time {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; color: var(--text-secondary);
+      min-width: 100px;
+    }
+    .timeline-time .current { color: var(--cyan); }
+    .timeline-body {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      overflow: hidden;
+      height: 208px;
+    }
+    .timeline-labels {
+      background: var(--bg-1);
+      border-right: 1px solid var(--bg-3);
+      overflow-y: auto;
+    }
+    .timeline-labels-inner {
+      padding-top: 24px; /* match ruler height */
+    }
+    .timeline-track-label {
+      height: 22px;
+      padding: 2px 12px;
+      font-size: 10.5px;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--bg-2);
+      display: flex; align-items: center;
+      gap: 6px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .timeline-track-label.gesture {
+      color: var(--text-tertiary);
+      padding-left: 26px;
+      font-size: 9.5px;
+    }
+    .timeline-track-label .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .timeline-content {
+      overflow-x: auto; overflow-y: auto;
+      position: relative;
+    }
     .timeline-ruler {
       position: sticky;
       top: 0;
@@ -420,143 +358,159 @@
       border-bottom: 1px solid var(--bg-3);
       z-index: 10;
     }
-
+    .timeline-ruler-tick {
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 1px;
+      background: var(--bg-3);
+    }
+    .timeline-ruler-tick.major { background: var(--bg-4); }
+    .timeline-ruler-label {
+      position: absolute;
+      top: 4px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      color: var(--text-tertiary);
+      transform: translateX(2px);
+    }
     .timeline-tracks {
       position: relative;
       min-width: 100%;
-      padding-bottom: 8px;
     }
-
-    .timeline-track-group {
-      border-bottom: 1px solid var(--bg-3);
-    }
-
     .timeline-track-row {
-      height: 20px;
+      height: 22px;
       position: relative;
-      background: var(--bg-1);
+      border-bottom: 1px solid var(--bg-2);
     }
-
-    .timeline-track-row.gesture {
-      background: rgba(0, 217, 255, 0.02);
-    }
-
+    .timeline-track-row.gesture { background: rgba(0, 217, 255, 0.03); }
+    .timeline-track-row:hover { background: rgba(255, 255, 255, 0.02); }
+    .timeline-track-row.gesture:hover { background: rgba(0, 217, 255, 0.06); }
     .keyframe-marker {
       position: absolute;
-      width: 8px;
-      height: 8px;
+      width: 10px; height: 10px;
       background: var(--cyan);
       border: 1px solid var(--bg-0);
-      border-radius: 50%;
       top: 50%;
-      transform: translate(-4px, -4px);
-      cursor: move;
+      transform: translate(-5px, -5px) rotate(45deg);
+      cursor: pointer;
       z-index: 5;
     }
-
+    .keyframe-marker.selected {
+      background: var(--lg-red);
+      box-shadow: 0 0 0 2px var(--cyan);
+    }
     .gesture-block {
       position: absolute;
       height: 18px;
-      background: var(--lg-red);
-      border: 1px solid rgba(230, 57, 80, 0.8);
+      background: var(--lg-red-dim);
+      border: 1px solid var(--lg-red);
       border-radius: 2px;
-      font-size: 9px;
+      font-size: 9.5px;
+      font-family: 'IBM Plex Mono', monospace;
       color: white;
-      top: 1px;
-      padding: 0 4px;
-      display: flex;
-      align-items: center;
+      top: 2px;
+      padding: 0 6px;
+      display: flex; align-items: center;
       cursor: move;
       z-index: 4;
+      overflow: hidden;
+      white-space: nowrap;
+      letter-spacing: 0.5px;
     }
-
-    .gesture-block:hover {
-      background: #ff4960;
-    }
-
+    .gesture-block:hover { background: var(--lg-red); }
     .gesture-block.selected {
       box-shadow: 0 0 0 2px var(--cyan);
+      background: var(--lg-red);
     }
-
     .gesture-block-handle {
       position: absolute;
-      width: 4px;
-      height: 100%;
-      right: 0;
-      top: 0;
+      width: 6px; height: 100%;
+      right: 0; top: 0;
       cursor: col-resize;
-      background: transparent;
+      background: rgba(0, 0, 0, 0.2);
     }
-
+    .gesture-block-handle:hover { background: var(--cyan); }
     .playhead {
       position: absolute;
       width: 2px;
       height: 100%;
       background: var(--cyan);
-      top: 0;
-      left: 0;
+      top: 0; left: 0;
       z-index: 20;
       pointer-events: none;
+      box-shadow: 0 0 8px rgba(0, 217, 255, 0.6);
+    }
+    .playhead::before {
+      content: '';
+      position: absolute;
+      top: -4px; left: -6px;
+      width: 14px; height: 8px;
+      background: var(--cyan);
+      clip-path: polygon(0 0, 100% 0, 50% 100%);
     }
 
     /* ============ TOAST ============ */
     .toast-container {
       position: fixed;
-      bottom: 16px;
-      right: 16px;
+      bottom: 260px; right: 16px;
       z-index: 1000;
+      display: flex; flex-direction: column; gap: 6px;
     }
-
     .toast {
       background: var(--bg-2);
       border: 1px solid var(--bg-3);
+      border-left: 3px solid var(--cyan);
       color: var(--text-primary);
-      padding: 12px 16px;
-      margin-bottom: 8px;
-      border-radius: 3px;
-      font-size: 12px;
-      animation: slideIn 0.3s ease-out;
-      max-width: 300px;
+      padding: 10px 14px;
+      border-radius: 2px;
+      font-size: 11.5px;
+      animation: slideIn 0.25s ease-out;
+      max-width: 320px;
+      font-family: 'IBM Plex Mono', monospace;
     }
-
-    .toast.success {
-      border-color: var(--success);
-      color: var(--success);
-    }
-
-    .toast.error {
-      border-color: var(--error);
-      color: var(--error);
-    }
-
+    .toast.success { border-left-color: var(--success); color: var(--success); }
+    .toast.error { border-left-color: var(--error); color: var(--error); }
+    .toast.warn { border-left-color: var(--warn); color: var(--warn); }
     @keyframes slideIn {
-      from {
-        transform: translateX(320px);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
+      from { transform: translateX(340px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
     }
 
     /* ============ SCROLLBARS ============ */
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg-1); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--bg-4); }
 
-    ::-webkit-scrollbar-track {
-      background: var(--bg-1);
+    /* ============ CONTEXT MENU ============ */
+    .context-menu {
+      position: fixed;
+      background: var(--bg-2);
+      border: 1px solid var(--bg-4);
+      border-radius: 2px;
+      padding: 4px 0;
+      z-index: 1000;
+      min-width: 160px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
     }
-
-    ::-webkit-scrollbar-thumb {
-      background: var(--bg-3);
-      border-radius: 4px;
+    .context-menu-item {
+      padding: 6px 14px;
+      font-size: 11px;
+      font-family: 'IBM Plex Mono', monospace;
+      cursor: pointer;
+      color: var(--text-primary);
+      transition: background 0.1s;
     }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--bg-3);
+    .context-menu-item:hover { background: var(--bg-3); color: var(--cyan); }
+    .context-menu-item.danger { color: var(--error); }
+    .context-menu-item.danger:hover { background: rgba(239,68,68,0.1); }
+    .context-menu-divider {
+      height: 1px; background: var(--bg-3); margin: 4px 0;
+    }
+    .context-menu-group-label {
+      font-size: 9px; text-transform: uppercase;
+      padding: 4px 14px 2px; color: var(--text-tertiary);
+      letter-spacing: 1px;
     }
   </style>
 </head>
@@ -565,64 +519,64 @@
     <!-- TOPBAR -->
     <div class="topbar">
       <div class="topbar-left">
-        <div class="logo">CLOiD SIMULATOR</div>
+        <div class="logo">CLOiD · SIM v0.5</div>
         <input type="text" class="scenario-name-input" id="scenarioName" placeholder="Scenario Name" value="Exhibition_01">
         <div class="d-day" id="dday">D-Day: 180 days</div>
+        <div class="mode-toggle">
+          <button class="active" data-mode="build">BUILD</button>
+          <button data-mode="choreo">CHOREO</button>
+        </div>
       </div>
-
-      <!-- 모드 토글 -->
-      <div class="mode-toggle">
-        <button class="active" data-mode="build">BUILD</button>
-        <button data-mode="choreo">CHOREO</button>
-      </div>
-
       <div class="topbar-right">
         <button class="btn-primary" id="loadBtn">LOAD</button>
         <button class="btn-primary" id="exportBtn">EXPORT</button>
-        <button class="btn-primary" id="saveBtn">SAVE</button>
+        <button class="btn-primary primary-red" id="saveBtn">SAVE</button>
       </div>
     </div>
 
     <!-- SIDEBAR LEFT -->
     <div class="sidebar-left" id="sidebarLeft">
-      <!-- BUILD 모드 콘텐츠 -->
+      <!-- BUILD MODE -->
       <div id="buildMode" style="display: block;">
         <div class="sidebar-section">
           <div class="sidebar-section-title">Furniture Catalog</div>
           <div class="catalog-grid" id="furnitureCatalog"></div>
         </div>
-
         <div class="sidebar-section">
-          <div class="sidebar-section-title">Placed Furniture</div>
+          <div class="sidebar-section-title">
+            Placed Furniture <span class="count" id="furnitureCount">0</span>
+          </div>
           <div class="placed-list" id="placedFurnitureList"></div>
         </div>
-
         <div class="sidebar-section">
           <div class="sidebar-section-title">Booth</div>
           <div id="boothSettings"></div>
         </div>
-
         <div class="sidebar-section">
           <div class="sidebar-section-title">Camera</div>
-          <div id="cameraPresets"></div>
+          <div class="camera-grid" id="cameraPresets"></div>
         </div>
       </div>
 
-      <!-- CHOREO 모드 콘텐츠 -->
+      <!-- CHOREO MODE -->
       <div id="choreoMode" style="display: none;">
         <div class="sidebar-section">
-          <div class="sidebar-section-title">Robots</div>
+          <div class="sidebar-section-title">Robot Catalog</div>
+          <div class="catalog-grid" id="robotCatalog"></div>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">
+            Robots <span class="count" id="robotCount">0</span>
+          </div>
           <div class="placed-list" id="robotList"></div>
         </div>
-
         <div class="sidebar-section">
           <div class="sidebar-section-title">Booth</div>
           <div id="boothSettingsChoreo"></div>
         </div>
-
         <div class="sidebar-section">
           <div class="sidebar-section-title">Camera</div>
-          <div id="cameraPresetsChoreo"></div>
+          <div class="camera-grid" id="cameraPresetsChoreo"></div>
         </div>
       </div>
     </div>
@@ -631,85 +585,182 @@
     <div class="viewport">
       <canvas id="canvas"></canvas>
       <div class="viewport-hud" id="hud">
-        <div>MODE <span id="hudMode">BUILD</span></div>
-        <div>CURSOR <span id="hudCursor">0.0, 0.0</span> ft</div>
-        <div>BOOTH <span id="hudBooth">80 × 80</span> ft</div>
-        <div>ITEMS <span id="hudItems">0 furniture / 0 robots</span></div>
+        <div><span class="hud-label">MODE</span><span class="hud-value" id="hudMode">BUILD</span></div>
+        <div><span class="hud-label">CURSOR</span><span class="hud-value" id="hudCursor">0.0, 0.0 ft</span></div>
+        <div><span class="hud-label">BOOTH</span><span class="hud-value" id="hudBooth">80 × 80 ft</span></div>
+        <div><span class="hud-label">ITEMS</span><span class="hud-value" id="hudItems">0 furniture / 0 robots</span></div>
+      </div>
+      <div class="viewport-hint" id="hint">
+        <kbd>LMB</kbd>orbit · <kbd>RMB</kbd>pan · <kbd>Wheel</kbd>zoom · <kbd>Tab</kbd>mode · <kbd>Space</kbd>play · <kbd>W</kbd>waypoint · <kbd>R</kbd>rotate · <kbd>Del</kbd>delete
       </div>
     </div>
 
     <!-- SIDEBAR RIGHT -->
     <div class="sidebar-right" id="sidebarRight">
-      <div id="propertiesFurniture" class="properties-panel">
-        <h3 style="margin-bottom: 12px; font-size: 12px; text-transform: uppercase;">Furniture Properties</h3>
-        <div class="property-row">
-          <label class="property-label">Name</label>
-          <input type="text" class="property-input" id="propFurnitureName">
+      <div id="propertiesEmpty" class="properties-panel active">
+        <div class="panel-heading">Inspector</div>
+        <div class="empty-state">
+          Nothing selected.<br><br>
+          In <span style="color: var(--lg-red)">BUILD</span>, click a furniture<br>
+          in the scene or catalog.<br><br>
+          In <span style="color: var(--lg-red)">CHOREO</span>, click a robot in<br>
+          the list to edit its motion.
         </div>
-        <div class="property-row">
-          <label class="property-label">Type</label>
+      </div>
+
+      <div id="propertiesFurniture" class="properties-panel">
+        <div class="panel-heading">Furniture</div>
+        <div class="panel-subheading" id="propFurnitureSubhead">-</div>
+        <div class="form-row">
+          <label>Name</label>
+          <input type="text" class="form-input" id="propFurnitureName">
+        </div>
+        <div class="form-row">
+          <label>Type</label>
           <div class="property-value" id="propFurnitureType">-</div>
         </div>
-        <div class="property-row">
-          <label class="property-label">Position X (ft)</label>
-          <input type="number" class="property-input" id="propFurnitureX" step="0.1">
+        <div class="form-row-split">
+          <div class="form-row">
+            <label>Pos X (ft)</label>
+            <input type="number" class="form-input" id="propFurnitureX" step="0.5">
+          </div>
+          <div class="form-row">
+            <label>Pos Z (ft)</label>
+            <input type="number" class="form-input" id="propFurnitureZ" step="0.5">
+          </div>
         </div>
-        <div class="property-row">
-          <label class="property-label">Position Z (ft)</label>
-          <input type="number" class="property-input" id="propFurnitureZ" step="0.1">
+        <div class="form-row">
+          <label>Rotation (°)</label>
+          <input type="number" class="form-input" id="propFurnitureRotY" step="15">
         </div>
-        <div class="property-row">
-          <label class="property-label">Rotation Y (°)</label>
-          <input type="number" class="property-input" id="propFurnitureRotY" step="1">
-        </div>
-        <div class="property-row">
-          <label class="property-label">Dimensions</label>
+        <div class="form-row">
+          <label>Dimensions (m)</label>
           <div class="property-value" id="propFurnitureDims">-</div>
         </div>
-        <div class="property-button-group">
-          <button class="property-button" id="propFurnitureDelete danger">DELETE</button>
-          <button class="property-button" id="propFurnitureDuplicate">DUPLICATE</button>
+        <div class="action-grid">
+          <button class="btn-secondary" id="propFurnitureResetRot">Reset Rot</button>
+          <button class="btn-secondary" id="propFurnitureCenter">Center</button>
         </div>
-        <div class="property-button-group">
-          <button class="property-button" id="propFurnitureResetRot">RESET ROT</button>
-          <button class="property-button" id="propFurnitureCenter">CENTER</button>
+        <div class="action-grid">
+          <button class="btn-secondary" id="propFurnitureDuplicate">Duplicate</button>
+          <button class="btn-secondary danger" id="propFurnitureDelete">Delete</button>
         </div>
       </div>
 
       <div id="propertiesRobot" class="properties-panel">
-        <h3 style="margin-bottom: 12px; font-size: 12px; text-transform: uppercase;">Robot Properties</h3>
-        <div class="property-value" id="propRobotName" style="margin-bottom: 12px;">-</div>
-        <div id="robotPropertyContent"></div>
+        <div class="panel-heading">Robot</div>
+        <div class="panel-subheading" id="propRobotSubhead">-</div>
+        <div class="form-row">
+          <label>Name</label>
+          <input type="text" class="form-input" id="propRobotName">
+        </div>
+        <div class="form-row-split">
+          <div class="form-row">
+            <label>Type</label>
+            <div class="property-value" id="propRobotType">-</div>
+          </div>
+          <div class="form-row">
+            <label>Height (m)</label>
+            <input type="number" class="form-input" id="propRobotHeight" step="0.05" min="0.3" max="2.5">
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Color</label>
+          <input type="color" class="form-input" id="propRobotColor" style="height: 30px;">
+        </div>
+        <div class="form-row">
+          <label>Waypoints</label>
+          <div class="property-value" id="propRobotWaypoints">0</div>
+        </div>
+        <div class="form-row">
+          <label>Gestures</label>
+          <div class="property-value" id="propRobotGestures">0</div>
+        </div>
+        <div class="action-grid">
+          <button class="btn-secondary" id="propRobotAddWaypoint">+ Waypoint</button>
+          <button class="btn-secondary" id="propRobotAddGesture">+ Gesture</button>
+        </div>
+        <div class="action-grid">
+          <button class="btn-secondary" id="propRobotClearWaypoints">Clear Path</button>
+          <button class="btn-secondary danger" id="propRobotDelete">Delete</button>
+        </div>
       </div>
 
       <div id="propertiesGesture" class="properties-panel">
-        <h3 style="margin-bottom: 12px; font-size: 12px; text-transform: uppercase;">Gesture Properties</h3>
-        <div class="property-row">
-          <label class="property-label">Type</label>
-          <select class="property-select" id="propGestureType"></select>
+        <div class="panel-heading">Gesture</div>
+        <div class="panel-subheading" id="propGestureSubhead">-</div>
+        <div class="form-row">
+          <label>Type</label>
+          <select class="form-select" id="propGestureType"></select>
         </div>
-        <div class="property-row">
-          <label class="property-label">Start Time (s)</label>
-          <input type="number" class="property-input" id="propGestureStart" step="0.1">
-        </div>
-        <div class="property-row">
-          <label class="property-label">Duration (s)</label>
-          <input type="number" class="property-input" id="propGestureDuration" step="0.1">
+        <div class="form-row-split">
+          <div class="form-row">
+            <label>Start (s)</label>
+            <input type="number" class="form-input" id="propGestureStart" step="0.1" min="0">
+          </div>
+          <div class="form-row">
+            <label>Duration (s)</label>
+            <input type="number" class="form-input" id="propGestureDuration" step="0.1" min="0.1">
+          </div>
         </div>
         <div id="propGestureParams"></div>
-        <div class="property-button-group">
-          <button class="property-button danger" id="propGestureDelete">DELETE</button>
+        <div class="action-grid">
+          <button class="btn-secondary danger" id="propGestureDelete">Delete</button>
+        </div>
+      </div>
+
+      <div id="propertiesWaypoint" class="properties-panel">
+        <div class="panel-heading">Waypoint</div>
+        <div class="panel-subheading" id="propWaypointSubhead">-</div>
+        <div class="form-row">
+          <label>Time (s)</label>
+          <input type="number" class="form-input" id="propWaypointTime" step="0.1" min="0">
+        </div>
+        <div class="form-row-split">
+          <div class="form-row">
+            <label>Pos X (ft)</label>
+            <input type="number" class="form-input" id="propWaypointX" step="0.5">
+          </div>
+          <div class="form-row">
+            <label>Pos Z (ft)</label>
+            <input type="number" class="form-input" id="propWaypointZ" step="0.5">
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Rotation (°)</label>
+          <input type="number" class="form-input" id="propWaypointRotY" step="15">
+        </div>
+        <div class="action-grid">
+          <button class="btn-secondary danger" id="propWaypointDelete">Delete</button>
         </div>
       </div>
     </div>
 
     <!-- TIMELINE -->
     <div class="timeline">
-      <div class="timeline-labels" id="timelineLabels"></div>
-      <div class="timeline-content" id="timelineContent">
-        <div class="timeline-ruler" id="timelineRuler"></div>
-        <div class="timeline-tracks" id="timelineTracks"></div>
-        <div class="playhead" id="playhead"></div>
+      <div class="timeline-header">
+        <div class="timeline-playback">
+          <button id="btnRewind" title="Rewind">⏮</button>
+          <button id="btnPlayPause" title="Play/Pause">▶</button>
+          <button id="btnStop" title="Stop">⏹</button>
+        </div>
+        <div class="timeline-time">
+          <span class="current" id="timeCurrent">0.0</span> / <span id="timeTotal">180.0</span>s
+        </div>
+        <div class="timeline-playback" style="margin-left: auto;">
+          <button id="btnAddGesture" title="Add gesture at playhead" style="width: auto; padding: 0 10px; font-size: 10px;">+ GESTURE</button>
+          <button id="btnAddWaypointHere" title="Add waypoint at playhead" style="width: auto; padding: 0 10px; font-size: 10px;">+ WAYPOINT</button>
+        </div>
+      </div>
+      <div class="timeline-body">
+        <div class="timeline-labels">
+          <div class="timeline-labels-inner" id="timelineLabels"></div>
+        </div>
+        <div class="timeline-content" id="timelineContent">
+          <div class="timeline-ruler" id="timelineRuler"></div>
+          <div class="timeline-tracks" id="timelineTracks"></div>
+          <div class="playhead" id="playhead"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -717,18 +768,17 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <script>
+  (function () {
+    'use strict';
+
     /* ============ CONSTANTS ============ */
     const FT_TO_M = 0.3048;
-    const SCENE_WIDTH = 80; // default booth width in ft
+    const SCHEMA_VERSION = 'cloid-exhibition-sim-v0.2';
+    const LEGACY_SCHEMA = 'cloid-exhibition-sim-v0';
+    const WALL_SNAP_DIST = 0.6;
+    const PX_PER_SEC = 40;
 
-    const FURNITURE_TYPES = {
-      MAIN_STAGE: 'MAIN_STAGE',
-      PRODUCT_SHELF: 'PRODUCT_SHELF',
-      SCREEN_WALL: 'SCREEN_WALL',
-      EXPERIENCE_ZONE: 'EXPERIENCE_ZONE',
-      INFO_DESK: 'INFO_DESK',
-    };
-
+    const FURNITURE_TYPES = ['MAIN_STAGE', 'PRODUCT_SHELF', 'SCREEN_WALL', 'EXPERIENCE_ZONE', 'INFO_DESK'];
     const FURNITURE_DIMS = {
       MAIN_STAGE: { width: 4.0, depth: 3.0, height: 0.4 },
       PRODUCT_SHELF: { width: 1.8, depth: 0.6, height: 1.5 },
@@ -736,7 +786,6 @@
       EXPERIENCE_ZONE: { width: 2.5, depth: 2.5, height: 0.1 },
       INFO_DESK: { width: 2.0, depth: 0.8, height: 1.1 },
     };
-
     const FURNITURE_SNAP = {
       MAIN_STAGE: 'free',
       PRODUCT_SHELF: 'wall',
@@ -744,7 +793,6 @@
       EXPERIENCE_ZONE: 'free',
       INFO_DESK: 'free',
     };
-
     const FURNITURE_COLORS = {
       MAIN_STAGE: 0xA50034,
       PRODUCT_SHELF: 0x2a2a2a,
@@ -752,288 +800,409 @@
       EXPERIENCE_ZONE: 0x00D9FF,
       INFO_DESK: 0xf0f0f0,
     };
+    const FURNITURE_LABELS = {
+      MAIN_STAGE: 'Main Stage',
+      PRODUCT_SHELF: 'Product Shelf',
+      SCREEN_WALL: 'Screen Wall',
+      EXPERIENCE_ZONE: 'Experience Zone',
+      INFO_DESK: 'Info Desk',
+    };
 
-    const GESTURE_TYPES = [
-      'IDLE',
-      'WAVE',
-      'POINT',
-      'PICKUP',
-      'BOW',
-      'WALK',
-      'SCAN',
-    ];
+    const ROBOT_TYPES = ['humanoid', 'companion', 'service', 'station'];
+    const ROBOT_LABELS = {
+      humanoid: 'Humanoid',
+      companion: 'Companion',
+      service: 'Service',
+      station: 'Station',
+    };
+    const ROBOT_DEFAULTS = {
+      humanoid: { height: 1.70, color: '#E63950' },
+      companion: { height: 0.60, color: '#00D9FF' },
+      service:   { height: 1.30, color: '#22C55E' },
+      station:   { height: 1.50, color: '#F59E0B' },
+    };
 
-    const WALL_SNAP_DIST = 0.5; // meters
+    const GESTURE_TYPES = ['IDLE', 'WAVE', 'POINT', 'PICKUP', 'BOW', 'WALK', 'SCAN'];
+    const GESTURE_DURATIONS = {
+      IDLE: Infinity, WAVE: 3.0, POINT: 2.5, PICKUP: 4.0,
+      BOW: 2.0, WALK: Infinity, SCAN: 4.0,
+    };
+    const GESTURE_ROBOT_APPLIES = {
+      IDLE: ['humanoid', 'companion', 'service', 'station'],
+      WAVE: ['humanoid', 'service'],
+      POINT: ['humanoid', 'service'],
+      PICKUP: ['humanoid'],
+      BOW: ['humanoid', 'service'],
+      WALK: ['humanoid'],
+      SCAN: ['humanoid', 'companion', 'service', 'station'],
+    };
 
     /* ============ STATE ============ */
     const state = {
       mode: 'build',
-      booth: {
-        widthFt: 80,
-        depthFt: 80,
-      },
+      booth: { widthFt: 80, depthFt: 80 },
       duration: 180,
       currentTime: 0,
       playing: false,
       furniture: [],
       robots: [],
-      selectedType: null, // 'furniture' | 'robot' | 'gesture'
+      selectedType: null,  // 'furniture' | 'robot' | 'gesture' | 'waypoint'
       selectedId: null,
-      selectedGestureId: null,
-      selectedRobotId: null,
-      furnitureIdCounter: 0,
+      selectedSubId: null, // for gesture/waypoint under a robot
+      // Camera (custom orbit)
+      cam: {
+        target: new THREE.Vector3(0, 0, 0),
+        yaw: Math.PI * 0.2,
+        pitch: Math.PI * 0.28,
+        distance: 22,
+      },
+      // Drag state
+      drag: null, // { type: 'camera-orbit' | 'camera-pan' | 'furniture' | 'waypoint' | 'gesture-move' | 'gesture-resize' | 'scrub', ... }
     };
 
-    /* ============ THREE.JS SETUP ============ */
+    /* ============ THREE.JS ============ */
     const canvas = document.getElementById('canvas');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1a2e);
-    scene.fog = new THREE.Fog(0x1a1a2e, 100, 500);
+    scene.background = new THREE.Color(0x0a0f18);
+    scene.fog = new THREE.Fog(0x0a0f18, 50, 200);
 
-    const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-    camera.position.set(15, 20, 20);
-    camera.lookAt(0, 0, 0);
+    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFShadowMap;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
+    function resizeRenderer() {
+      const w = canvas.clientWidth || canvas.parentElement.clientWidth;
+      const h = canvas.clientHeight || canvas.parentElement.clientHeight;
+      if (w < 4 || h < 4) return;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(20, 30, 20);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
-    directionalLight.shadow.camera.left = -60;
-    directionalLight.shadow.camera.right = 60;
-    directionalLight.shadow.camera.top = 60;
-    directionalLight.shadow.camera.bottom = -60;
-    directionalLight.shadow.camera.far = 200;
-    scene.add(directionalLight);
+    // Lights
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.85);
+    keyLight.position.set(15, 25, 10);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 2048;
+    keyLight.shadow.mapSize.height = 2048;
+    keyLight.shadow.camera.left = -30;
+    keyLight.shadow.camera.right = 30;
+    keyLight.shadow.camera.top = 30;
+    keyLight.shadow.camera.bottom = -30;
+    keyLight.shadow.camera.near = 0.5;
+    keyLight.shadow.camera.far = 100;
+    keyLight.shadow.bias = -0.0005;
+    scene.add(keyLight);
 
-    // Group managers
+    const fillLight = new THREE.DirectionalLight(0x6080ff, 0.25);
+    fillLight.position.set(-10, 15, -8);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0xff4060, 0.18);
+    rimLight.position.set(0, 10, -20);
+    scene.add(rimLight);
+
+    // Scene groups
+    const worldGroup = new THREE.Group();
+    scene.add(worldGroup);
     const boothGroup = new THREE.Group();
-    scene.add(boothGroup);
+    worldGroup.add(boothGroup);
     const furnitureGroup = new THREE.Group();
-    boothGroup.add(furnitureGroup);
+    worldGroup.add(furnitureGroup);
     const robotsGroup = new THREE.Group();
-    boothGroup.add(robotsGroup);
+    worldGroup.add(robotsGroup);
     const helpersGroup = new THREE.Group();
-    boothGroup.add(helpersGroup);
+    worldGroup.add(helpersGroup);
 
-    // Mesh storage
-    const robotMeshes = {}; // id -> { group, instance }
-    const furnitureMeshes = {}; // id -> { group, instance }
+    // Storage
+    const robotMeshes = {};     // robotId -> { group, instance, parts: {head, armR, armL, legL, legR, root_body, ...} }
+    const furnitureMeshes = {}; // furnitureId -> { group, instance, outlineRing }
+    const waypointMarkers = {}; // waypointId -> Mesh
+    let pathLines = {};         // robotId -> Line
 
-    /* ============ UTILITY ============ */
+    /* ============ UTILITIES ============ */
     function showToast(msg, type = 'info') {
       const toast = document.createElement('div');
       toast.className = `toast ${type}`;
       toast.textContent = msg;
       document.getElementById('toastContainer').appendChild(toast);
-      setTimeout(() => toast.remove(), 3000);
+      setTimeout(() => {
+        toast.style.transition = 'opacity 0.3s, transform 0.3s';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(340px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 2600);
     }
 
     function generateId(prefix) {
-      return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+    }
+
+    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+
+    function lerpKeyframes(frames, t) {
+      if (!frames.length) return 0;
+      if (t <= frames[0][0]) return frames[0][1];
+      if (t >= frames[frames.length - 1][0]) return frames[frames.length - 1][1];
+      for (let i = 0; i < frames.length - 1; i++) {
+        const [t0, v0] = frames[i], [t1, v1] = frames[i + 1];
+        if (t >= t0 && t <= t1) {
+          const a = (t - t0) / (t1 - t0);
+          return v0 + (v1 - v0) * a;
+        }
+      }
+      return frames[frames.length - 1][1];
+    }
+
+    function ftToM(ft) { return ft * FT_TO_M; }
+    function mToFt(m) { return m / FT_TO_M; }
+
+    /* ============ CAMERA CONTROL ============ */
+    function updateCamera() {
+      const c = state.cam;
+      const sp = Math.sin(c.pitch), cp = Math.cos(c.pitch);
+      const sy = Math.sin(c.yaw), cy = Math.cos(c.yaw);
+      camera.position.set(
+        c.target.x + c.distance * cp * sy,
+        c.target.y + c.distance * sp,
+        c.target.z + c.distance * cp * cy
+      );
+      camera.lookAt(c.target);
+    }
+
+    const CAMERA_PRESETS = {
+      PERSP: { yaw: Math.PI * 0.2, pitch: Math.PI * 0.28, distance: 22, targetY: 0 },
+      TOP:   { yaw: 0, pitch: Math.PI * 0.49, distance: 28, targetY: 0 },
+      FRONT: { yaw: 0, pitch: Math.PI * 0.08, distance: 22, targetY: 1.2 },
+      SIDE:  { yaw: Math.PI * 0.5, pitch: Math.PI * 0.08, distance: 22, targetY: 1.2 },
+    };
+
+    function applyCameraPreset(name) {
+      const p = CAMERA_PRESETS[name];
+      if (!p) return;
+      state.cam.yaw = p.yaw;
+      state.cam.pitch = p.pitch;
+      state.cam.distance = p.distance;
+      state.cam.target.set(0, p.targetY, 0);
+      updateCamera();
     }
 
     /* ============ BOOTH ============ */
     function rebuildBooth() {
-      // Remove old booth
-      boothGroup.children.forEach(c => {
-        if (c.userData?.isBooth) boothGroup.remove(c);
-      });
+      while (boothGroup.children.length) boothGroup.remove(boothGroup.children[0]);
 
-      const wftm = state.booth.widthFt * FT_TO_M / 2;
-      const dftm = state.booth.depthFt * FT_TO_M / 2;
+      const w = ftToM(state.booth.widthFt);
+      const d = ftToM(state.booth.depthFt);
 
       // Floor
-      const floorGeo = new THREE.PlaneGeometry(state.booth.widthFt * FT_TO_M, state.booth.depthFt * FT_TO_M);
-      const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8 });
+      const floorGeo = new THREE.PlaneGeometry(w, d);
+      const floorMat = new THREE.MeshStandardMaterial({ color: 0x0f0f0f, roughness: 0.85, metalness: 0.1 });
       const floor = new THREE.Mesh(floorGeo, floorMat);
       floor.rotation.x = -Math.PI / 2;
       floor.receiveShadow = true;
-      floor.userData = { isBooth: true };
+      floor.userData.isFloor = true;
       boothGroup.add(floor);
 
-      // Walls (visual only)
-      const wallMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.7 });
-      const wallH = 3;
-      const wallThick = 0.1;
+      // Grid
+      const gridDivs = Math.max(Math.round(state.booth.widthFt / 5), 4);
+      const grid = new THREE.GridHelper(Math.max(w, d), gridDivs, 0x333333, 0x1a1a1a);
+      grid.position.y = 0.003;
+      boothGroup.add(grid);
 
-      // West wall
-      const westWallGeo = new THREE.BoxGeometry(wallThick, wallH, state.booth.depthFt * FT_TO_M);
-      const westWall = new THREE.Mesh(westWallGeo, wallMat);
-      westWall.position.set(-wftm, wallH / 2, 0);
-      westWall.castShadow = true;
-      westWall.userData = { isBooth: true };
-      boothGroup.add(westWall);
+      // Booth boundary (red outline on floor)
+      const boundaryGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-w/2, 0.01, -d/2),
+        new THREE.Vector3( w/2, 0.01, -d/2),
+        new THREE.Vector3( w/2, 0.01,  d/2),
+        new THREE.Vector3(-w/2, 0.01,  d/2),
+        new THREE.Vector3(-w/2, 0.01, -d/2),
+      ]);
+      const boundary = new THREE.Line(boundaryGeo, new THREE.LineBasicMaterial({ color: 0xE63950 }));
+      boothGroup.add(boundary);
 
-      // East wall
-      const eastWall = new THREE.Mesh(westWallGeo, wallMat);
-      eastWall.position.set(wftm, wallH / 2, 0);
-      eastWall.castShadow = true;
-      eastWall.userData = { isBooth: true };
-      boothGroup.add(eastWall);
+      // Back wall (north) — subtle
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.8 });
+      const wallH = 3.5;
+      const backGeo = new THREE.BoxGeometry(w, wallH, 0.08);
+      const backWall = new THREE.Mesh(backGeo, wallMat);
+      backWall.position.set(0, wallH / 2, -d / 2);
+      backWall.receiveShadow = true;
+      boothGroup.add(backWall);
 
-      // North wall
-      const northWallGeo = new THREE.BoxGeometry(state.booth.widthFt * FT_TO_M, wallH, wallThick);
-      const northWall = new THREE.Mesh(northWallGeo, wallMat);
-      northWall.position.set(0, wallH / 2, -dftm);
-      northWall.castShadow = true;
-      northWall.userData = { isBooth: true };
-      boothGroup.add(northWall);
-
-      // South wall
-      const southWall = new THREE.Mesh(northWallGeo, wallMat);
-      southWall.position.set(0, wallH / 2, dftm);
-      southWall.castShadow = true;
-      southWall.userData = { isBooth: true };
-      boothGroup.add(southWall);
+      // Cardinal labels on floor (as simple cones)
+      const northMark = new THREE.Mesh(
+        new THREE.ConeGeometry(0.15, 0.25, 4),
+        new THREE.MeshBasicMaterial({ color: 0x666666 })
+      );
+      northMark.position.set(0, 0.04, -d/2 + 0.3);
+      northMark.rotation.x = Math.PI;
+      boothGroup.add(northMark);
     }
 
     /* ============ FURNITURE BUILDERS ============ */
-    function buildMainStage(instance) {
+    function buildMainStage() {
       const group = new THREE.Group();
       const dims = FURNITURE_DIMS.MAIN_STAGE;
+      const base = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.MAIN_STAGE, roughness: 0.5, metalness: 0.3 })
+      );
+      base.position.y = dims.height / 2;
+      base.castShadow = true; base.receiveShadow = true;
+      group.add(base);
 
-      const geo = new THREE.CylinderGeometry(dims.width / 2, dims.width / 2, dims.height, 16);
-      const mat = new THREE.MeshStandardMaterial({
-        color: FURNITURE_COLORS.MAIN_STAGE,
-        roughness: 0.6,
-        metalness: 0.4,
-      });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      mesh.position.y = dims.height / 2;
-      group.add(mesh);
-
-      // LED strip (emissive)
-      const stripGeo = new THREE.BoxGeometry(dims.width - 0.1, 0.05, dims.width - 0.1);
-      const stripMat = new THREE.MeshStandardMaterial({
-        color: 0x00D9FF,
-        emissive: 0x00D9FF,
-        emissiveIntensity: 0.8,
-      });
-      const strip = new THREE.Mesh(stripGeo, stripMat);
-      strip.position.y = dims.height + 0.05;
-      group.add(strip);
-
+      const ledGeo = new THREE.BoxGeometry(dims.width + 0.02, 0.04, dims.depth + 0.02);
+      const ledMat = new THREE.MeshStandardMaterial({ color: 0x00D9FF, emissive: 0x00D9FF, emissiveIntensity: 1.2 });
+      const led = new THREE.Mesh(ledGeo, ledMat);
+      led.position.y = dims.height + 0.005;
+      group.add(led);
       return group;
     }
 
-    function buildProductShelf(instance) {
+    function buildProductShelf() {
       const group = new THREE.Group();
       const dims = FURNITURE_DIMS.PRODUCT_SHELF;
+      const back = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, 0.05),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.PRODUCT_SHELF, roughness: 0.7 })
+      );
+      back.position.set(0, dims.height / 2, -dims.depth / 2);
+      back.castShadow = true;
+      group.add(back);
 
-      const mainGeo = new THREE.BoxGeometry(dims.width, dims.height, dims.depth);
-      const mat = new THREE.MeshStandardMaterial({
-        color: FURNITURE_COLORS.PRODUCT_SHELF,
-        roughness: 0.7,
-      });
-      const mainMesh = new THREE.Mesh(mainGeo, mat);
-      mainMesh.castShadow = true;
-      mainMesh.receiveShadow = true;
-      mainMesh.position.y = dims.height / 2;
-      group.add(mainMesh);
-
-      // Shelves
-      const shelfMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
-      for (let i = 0; i < 3; i++) {
-        const shelfGeo = new THREE.BoxGeometry(dims.width, 0.02, dims.depth);
-        const shelf = new THREE.Mesh(shelfGeo, shelfMat);
-        shelf.position.y = 0.3 + i * 0.35;
-        shelf.castShadow = true;
+      const shelfMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.6 });
+      for (let i = 0; i < 4; i++) {
+        const shelf = new THREE.Mesh(
+          new THREE.BoxGeometry(dims.width - 0.02, 0.025, dims.depth - 0.02),
+          shelfMat
+        );
+        shelf.position.set(0, 0.15 + i * 0.43, 0);
+        shelf.castShadow = true; shelf.receiveShadow = true;
         group.add(shelf);
+
+        // glow strip under each shelf
+        const glow = new THREE.Mesh(
+          new THREE.BoxGeometry(dims.width - 0.05, 0.01, 0.04),
+          new THREE.MeshStandardMaterial({ color: 0x00D9FF, emissive: 0x00D9FF, emissiveIntensity: 0.9 })
+        );
+        glow.position.set(0, 0.14 + i * 0.43, dims.depth / 2 - 0.05);
+        group.add(glow);
       }
 
+      // end panels
+      [-1, 1].forEach(s => {
+        const side = new THREE.Mesh(
+          new THREE.BoxGeometry(0.03, dims.height, dims.depth),
+          new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.PRODUCT_SHELF })
+        );
+        side.position.set(s * dims.width / 2, dims.height / 2, 0);
+        side.castShadow = true;
+        group.add(side);
+      });
       return group;
     }
 
-    function buildScreenWall(instance) {
+    function buildScreenWall() {
       const group = new THREE.Group();
       const dims = FURNITURE_DIMS.SCREEN_WALL;
-
-      const frameGeo = new THREE.BoxGeometry(dims.width, dims.height, dims.depth);
-      const frameMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.SCREEN_WALL });
-      const frame = new THREE.Mesh(frameGeo, frameMat);
-      frame.castShadow = true;
+      const frame = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.SCREEN_WALL, roughness: 0.4 })
+      );
       frame.position.y = dims.height / 2;
+      frame.castShadow = true;
       group.add(frame);
 
-      // Screen (emissive cyan)
-      const screenGeo = new THREE.PlaneGeometry(dims.width - 0.2, dims.height - 0.2);
-      const screenMat = new THREE.MeshStandardMaterial({
-        color: 0x00D9FF,
-        emissive: 0x00D9FF,
-        emissiveIntensity: 0.5,
-      });
-      const screen = new THREE.Mesh(screenGeo, screenMat);
+      const screen = new THREE.Mesh(
+        new THREE.PlaneGeometry(dims.width - 0.25, dims.height - 0.25),
+        new THREE.MeshStandardMaterial({ color: 0x00D9FF, emissive: 0x00D9FF, emissiveIntensity: 0.65 })
+      );
       screen.position.set(0, dims.height / 2, dims.depth / 2 + 0.01);
-      screen.castShadow = false;
       group.add(screen);
 
+      // tiny "CLOiD" text via TextureCanvas
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 256;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#00D9FF'; ctx.fillRect(0, 0, c.width, c.height);
+      ctx.fillStyle = '#0a0a0a'; ctx.fillRect(2, 2, c.width - 4, c.height - 4);
+      ctx.strokeStyle = 'rgba(0, 217, 255, 0.3)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 16; i++) {
+        ctx.beginPath(); ctx.moveTo(i * 32, 0); ctx.lineTo(i * 32, c.height); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i * 32); ctx.lineTo(c.width, i * 32); ctx.stroke();
+      }
+      ctx.fillStyle = '#00D9FF';
+      ctx.font = 'bold 64px IBM Plex Mono, monospace';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('CLOiD', c.width / 2, c.height / 2 - 18);
+      ctx.font = '24px IBM Plex Mono, monospace';
+      ctx.fillStyle = '#9a9a9a';
+      ctx.fillText('LG EXHIBITION', c.width / 2, c.height / 2 + 32);
+      const tex = new THREE.CanvasTexture(c);
+      screen.material.map = tex;
+      screen.material.needsUpdate = true;
       return group;
     }
 
-    function buildExperienceZone(instance) {
+    function buildExperienceZone() {
       const group = new THREE.Group();
       const dims = FURNITURE_DIMS.EXPERIENCE_ZONE;
-
-      const floorGeo = new THREE.PlaneGeometry(dims.width, dims.depth);
-      const floorMat = new THREE.MeshStandardMaterial({
-        color: FURNITURE_COLORS.EXPERIENCE_ZONE,
-        transparent: true,
-        opacity: 0.3,
-      });
-      const floor = new THREE.Mesh(floorGeo, floorMat);
+      const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(dims.width, dims.depth),
+        new THREE.MeshStandardMaterial({
+          color: FURNITURE_COLORS.EXPERIENCE_ZONE,
+          transparent: true, opacity: 0.22,
+          emissive: 0x00D9FF, emissiveIntensity: 0.3,
+          roughness: 0.3,
+        })
+      );
       floor.rotation.x = -Math.PI / 2;
+      floor.position.y = 0.02;
       floor.receiveShadow = true;
       group.add(floor);
 
-      // Corner markers
-      const markerGeo = new THREE.BoxGeometry(0.1, 0.05, 0.1);
-      const markerMat = new THREE.MeshStandardMaterial({ color: 0x00D9FF });
-      const corners = [
-        [-dims.width / 2, -dims.depth / 2],
-        [dims.width / 2, -dims.depth / 2],
-        [-dims.width / 2, dims.depth / 2],
-        [dims.width / 2, dims.depth / 2],
-      ];
-      corners.forEach(([x, z]) => {
-        const marker = new THREE.Mesh(markerGeo, markerMat);
-        marker.position.set(x, 0.03, z);
-        group.add(marker);
+      // corner markers
+      const cornerMat = new THREE.MeshStandardMaterial({ color: 0x00D9FF, emissive: 0x00D9FF, emissiveIntensity: 1.0 });
+      [[-1,-1],[1,-1],[1,1],[-1,1]].forEach(([sx, sz]) => {
+        const corner = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.06, 0.15), cornerMat);
+        corner.position.set(sx * (dims.width / 2 - 0.075), 0.05, sz * (dims.depth / 2 - 0.075));
+        group.add(corner);
       });
-
       return group;
     }
 
-    function buildInfoDesk(instance) {
+    function buildInfoDesk() {
       const group = new THREE.Group();
       const dims = FURNITURE_DIMS.INFO_DESK;
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height - 0.1, dims.depth),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.INFO_DESK, roughness: 0.6 })
+      );
+      body.position.y = (dims.height - 0.1) / 2;
+      body.castShadow = true; body.receiveShadow = true;
+      group.add(body);
 
-      const counterGeo = new THREE.BoxGeometry(dims.width, dims.height - 0.2, dims.depth);
-      const mat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.INFO_DESK });
-      const counter = new THREE.Mesh(counterGeo, mat);
-      counter.castShadow = true;
-      counter.receiveShadow = true;
-      counter.position.y = (dims.height - 0.2) / 2;
-      group.add(counter);
-
-      // Top
-      const topGeo = new THREE.BoxGeometry(dims.width, 0.05, dims.depth);
-      const topMat = new THREE.MeshStandardMaterial({ color: 0xa0a0a0 });
-      const top = new THREE.Mesh(topGeo, topMat);
-      top.position.y = dims.height;
+      const top = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width + 0.05, 0.04, dims.depth + 0.1),
+        new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.3, metalness: 0.5 })
+      );
+      top.position.y = dims.height - 0.06;
       top.castShadow = true;
       group.add(top);
 
+      // accent stripe
+      const stripe = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width * 0.85, 0.03, 0.02),
+        new THREE.MeshStandardMaterial({ color: 0xE63950, emissive: 0xE63950, emissiveIntensity: 0.8 })
+      );
+      stripe.position.set(0, dims.height - 0.35, dims.depth / 2 + 0.001);
+      group.add(stripe);
       return group;
     }
 
@@ -1045,155 +1214,355 @@
       INFO_DESK: buildInfoDesk,
     };
 
+    function makeOutlineRing(dims) {
+      const w = Math.max(dims.width, dims.depth) * 0.65;
+      const geo = new THREE.RingGeometry(w, w + 0.06, 48);
+      const mat = new THREE.MeshBasicMaterial({ color: 0x00D9FF, side: THREE.DoubleSide, transparent: true, opacity: 0 });
+      const ring = new THREE.Mesh(geo, mat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.015;
+      return ring;
+    }
+
     function rebuildFurniture() {
-      furnitureGroup.clear();
-      furnitureMeshes = {};
+      Object.keys(furnitureMeshes).forEach(k => delete furnitureMeshes[k]);
+      while (furnitureGroup.children.length) furnitureGroup.remove(furnitureGroup.children[0]);
 
       state.furniture.forEach(f => {
         const builder = FURNITURE_BUILDERS[f.type];
         if (!builder) return;
-        const group = builder(f);
+        const group = builder();
         group.position.set(f.x, 0, f.z);
         group.rotation.y = f.rotY;
         group.userData = { isFurniture: true, furnitureId: f.id };
+
+        // outline ring
+        const dims = FURNITURE_DIMS[f.type];
+        const outlineRing = makeOutlineRing(dims);
+        group.add(outlineRing);
+
         furnitureGroup.add(group);
-        furnitureMeshes[f.id] = { group, instance: f };
+        furnitureMeshes[f.id] = { group, instance: f, outlineRing };
       });
+      updateSelectionVisuals();
     }
 
-    /* ============ FURNITURE SNAP ============ */
     function applySnap(furniture, rawX, rawZ) {
-      const hw = state.booth.widthFt * FT_TO_M / 2;
-      const hd = state.booth.depthFt * FT_TO_M / 2;
+      const hw = ftToM(state.booth.widthFt) / 2;
+      const hd = ftToM(state.booth.depthFt) / 2;
       const dims = FURNITURE_DIMS[furniture.type];
       const needsSnap = FURNITURE_SNAP[furniture.type] === 'wall';
 
       let x = rawX, z = rawZ, rotY = furniture.rotY;
 
       if (needsSnap) {
-        const distances = {
-          west: Math.abs(rawX - (-hw + dims.width / 2 * FT_TO_M)),
-          east: Math.abs(rawX - (hw - dims.width / 2 * FT_TO_M)),
-          north: Math.abs(rawZ - (-hd + dims.depth / 2 * FT_TO_M)),
-          south: Math.abs(rawZ - (hd - dims.depth / 2 * FT_TO_M)),
-        };
-        const minWall = Object.entries(distances).reduce((a, b) => a[1] < b[1] ? a : b);
-        if (minWall[1] < WALL_SNAP_DIST) {
-          if (minWall[0] === 'west') {
-            x = -hw + dims.width / 2 * FT_TO_M;
-            rotY = Math.PI / 2;
-          }
-          if (minWall[0] === 'east') {
-            x = hw - dims.width / 2 * FT_TO_M;
-            rotY = -Math.PI / 2;
-          }
-          if (minWall[0] === 'north') {
-            z = -hd + dims.depth / 2 * FT_TO_M;
-            rotY = 0;
-          }
-          if (minWall[0] === 'south') {
-            z = hd - dims.depth / 2 * FT_TO_M;
-            rotY = Math.PI;
-          }
+        const distW = Math.abs(rawX - (-hw + dims.depth / 2));
+        const distE = Math.abs(rawX - ( hw - dims.depth / 2));
+        const distN = Math.abs(rawZ - (-hd + dims.depth / 2));
+        const distS = Math.abs(rawZ - ( hd - dims.depth / 2));
+        const nearest = Math.min(distW, distE, distN, distS);
+
+        if (nearest < WALL_SNAP_DIST) {
+          if (nearest === distW)      { x = -hw + dims.depth / 2; rotY = Math.PI / 2; }
+          else if (nearest === distE) { x =  hw - dims.depth / 2; rotY = -Math.PI / 2; }
+          else if (nearest === distN) { z = -hd + dims.depth / 2; rotY = 0; }
+          else                        { z =  hd - dims.depth / 2; rotY = Math.PI; }
         }
       }
 
-      // Clamp to booth bounds
-      const marginX = dims.width / 2 * FT_TO_M;
-      const marginZ = dims.depth / 2 * FT_TO_M;
-      x = Math.max(-hw + marginX, Math.min(hw - marginX, x));
-      z = Math.max(-hd + marginZ, Math.min(hd - marginZ, z));
-
+      // Clamp, using rotated bbox half-extents
+      const rotated = Math.abs(Math.cos(rotY));
+      const halfW = (rotated * dims.width + (1 - rotated) * dims.depth) / 2;
+      const halfD = (rotated * dims.depth + (1 - rotated) * dims.width) / 2;
+      x = clamp(x, -hw + halfW, hw - halfW);
+      z = clamp(z, -hd + halfD, hd - halfD);
       return { x, z, rotY };
     }
 
-    /* ============ ROBOTS (STUB) ============ */
-    function buildHumanoid(color, height = 1.7) {
+    /* ============ ROBOT BUILDERS ============ */
+    function buildHumanoid(color, height) {
       const root = new THREE.Group();
+      const parts = {};
+      const col = new THREE.Color(color);
+      const matMain = new THREE.MeshStandardMaterial({ color: col, roughness: 0.45, metalness: 0.55 });
+      const matDark = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6, metalness: 0.3 });
+      const matAccent = new THREE.MeshStandardMaterial({ color: 0x00D9FF, emissive: 0x00D9FF, emissiveIntensity: 0.7 });
 
-      // Simplified humanoid
-      const bodyGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.5, 8);
-      const bodyMat = new THREE.MeshStandardMaterial({ color });
-      const body = new THREE.Mesh(bodyGeo, bodyMat);
-      body.castShadow = true;
-      body.position.y = height * 0.5;
+      // Legs container
+      const legs = new THREE.Group();
+      legs.name = 'legs';
+      legs.position.y = 0.05;
+      root.add(legs);
+      parts.legs = legs;
+
+      // Left leg (pivoted at hip)
+      const legL = new THREE.Group();
+      legL.name = 'legL';
+      legL.position.set(-0.09, height * 0.45, 0);
+      const legLMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.065, 0.055, height * 0.42, 10),
+        matMain
+      );
+      legLMesh.position.y = -height * 0.21;
+      legLMesh.castShadow = true;
+      legL.add(legLMesh);
+      const footL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.04, 0.22), matDark);
+      footL.position.set(0, -height * 0.445, 0.03);
+      footL.castShadow = true;
+      legL.add(footL);
+      legs.add(legL);
+      parts.legL = legL;
+
+      // Right leg
+      const legR = new THREE.Group();
+      legR.name = 'legR';
+      legR.position.set(0.09, height * 0.45, 0);
+      const legRMesh = legLMesh.clone();
+      legRMesh.material = matMain;
+      legR.add(legRMesh);
+      const footR = footL.clone();
+      legR.add(footR);
+      legs.add(legR);
+      parts.legR = legR;
+
+      // Torso (root_body)
+      const body = new THREE.Group();
+      body.name = 'root_body';
+      body.position.y = height * 0.52;
       root.add(body);
+      parts.root_body = body;
+
+      const torso = new THREE.Mesh(
+        new THREE.BoxGeometry(0.32, height * 0.36, 0.2),
+        matMain
+      );
+      torso.position.y = 0;
+      torso.castShadow = true;
+      body.add(torso);
+
+      // chest accent
+      const chest = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08, 0.08, 0.01),
+        matAccent
+      );
+      chest.position.set(0, 0.03, 0.105);
+      body.add(chest);
 
       // Head
-      const headGeo = new THREE.SphereGeometry(0.15, 16, 12);
-      const headMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
-      const head = new THREE.Mesh(headGeo, headMat);
+      const head = new THREE.Group();
       head.name = 'head';
-      head.castShadow = true;
-      head.position.set(0, height * 0.85, 0);
-      root.add(head);
+      head.position.y = height * 0.22;
+      body.add(head);
+      parts.head = head;
 
-      // Arms
-      const armGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.6, 8);
-      const armMat = new THREE.MeshStandardMaterial({ color });
+      const headMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.11, 16, 12),
+        matDark
+      );
+      headMesh.castShadow = true;
+      head.add(headMesh);
+      const visor = new THREE.Mesh(
+        new THREE.BoxGeometry(0.17, 0.04, 0.03),
+        matAccent
+      );
+      visor.position.set(0, 0.015, 0.1);
+      head.add(visor);
 
-      const armR = new THREE.Mesh(armGeo, armMat);
+      // Right arm
+      const armR = new THREE.Group();
       armR.name = 'armR';
-      armR.castShadow = true;
-      armR.position.set(0.25, height * 0.65, 0);
-      root.add(armR);
+      armR.position.set(0.19, height * 0.15, 0);
+      body.add(armR);
+      parts.armR = armR;
+      const armRMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.045, 0.04, height * 0.32, 10),
+        matMain
+      );
+      armRMesh.position.y = -height * 0.16;
+      armRMesh.castShadow = true;
+      armR.add(armRMesh);
+      const handR = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), matDark);
+      handR.position.y = -height * 0.33;
+      armR.add(handR);
 
-      const armL = new THREE.Mesh(armGeo, armMat);
+      // Left arm
+      const armL = new THREE.Group();
       armL.name = 'armL';
-      armL.castShadow = true;
-      armL.position.set(-0.25, height * 0.65, 0);
-      root.add(armL);
+      armL.position.set(-0.19, height * 0.15, 0);
+      body.add(armL);
+      parts.armL = armL;
+      const armLMesh = armRMesh.clone();
+      armLMesh.material = matMain;
+      armL.add(armLMesh);
+      const handL = handR.clone();
+      armL.add(handL);
 
-      // Legs
-      const legGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.7, 8);
-      const legMat = new THREE.MeshStandardMaterial({ color });
-
-      const legL = new THREE.Mesh(legGeo, legMat);
-      legL.name = 'legL';
-      legL.castShadow = true;
-      legL.position.set(-0.1, height * 0.35, 0);
-      root.add(legL);
-
-      const legR = new THREE.Mesh(legGeo, legMat);
-      legR.name = 'legR';
-      legR.castShadow = true;
-      legR.position.set(0.1, height * 0.35, 0);
-      root.add(legR);
-
-      return root;
+      return { root, parts };
     }
 
-    function buildCompanion(color) {
+    function buildCompanion(color, height) {
       const root = new THREE.Group();
-      const geo = new THREE.BoxGeometry(0.4, 0.6, 0.4);
-      const mat = new THREE.MeshStandardMaterial({ color });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.castShadow = true;
-      mesh.position.y = 0.3;
-      root.add(mesh);
-      return root;
+      const parts = {};
+      const col = new THREE.Color(color);
+      const matMain = new THREE.MeshStandardMaterial({ color: col, roughness: 0.35, metalness: 0.4 });
+      const matDark = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 });
+      const matAccent = new THREE.MeshStandardMaterial({ color: 0x00D9FF, emissive: 0x00D9FF, emissiveIntensity: 0.9 });
+
+      // Body (rounded box-ish)
+      const body = new THREE.Group();
+      body.name = 'root_body';
+      body.position.y = height * 0.5;
+      root.add(body);
+      parts.root_body = body;
+
+      const bodyMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(height * 0.38, 16, 12),
+        matMain
+      );
+      bodyMesh.scale.set(1, 0.9, 1);
+      bodyMesh.castShadow = true;
+      body.add(bodyMesh);
+
+      // Head
+      const head = new THREE.Group();
+      head.name = 'head';
+      head.position.y = height * 0.45;
+      body.add(head);
+      parts.head = head;
+      const headMesh = new THREE.Mesh(new THREE.SphereGeometry(height * 0.22, 16, 12), matDark);
+      headMesh.castShadow = true;
+      head.add(headMesh);
+      const eye = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.06, 0.02), matAccent);
+      eye.position.set(0, 0.01, height * 0.22);
+      head.add(eye);
+
+      // wheels
+      const wheelMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.4 });
+      [-1, 1].forEach(s => {
+        const w = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.03, 12), wheelMat);
+        w.rotation.z = Math.PI / 2;
+        w.position.set(s * 0.15, 0.08, 0);
+        w.castShadow = true;
+        root.add(w);
+      });
+
+      return { root, parts };
     }
 
-    function buildService(color) {
+    function buildService(color, height) {
       const root = new THREE.Group();
-      const geo = new THREE.CylinderGeometry(0.3, 0.35, 0.8, 16);
-      const mat = new THREE.MeshStandardMaterial({ color });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.castShadow = true;
-      mesh.position.y = 0.4;
-      root.add(mesh);
-      return root;
+      const parts = {};
+      const col = new THREE.Color(color);
+      const matMain = new THREE.MeshStandardMaterial({ color: col, roughness: 0.45, metalness: 0.5 });
+      const matDark = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 });
+      const matAccent = new THREE.MeshStandardMaterial({ color: 0x00D9FF, emissive: 0x00D9FF, emissiveIntensity: 0.6 });
+
+      // Base (mobile platform)
+      const base = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.24, 0.28, 0.22, 16),
+        matDark
+      );
+      base.position.y = 0.11;
+      base.castShadow = true; base.receiveShadow = true;
+      root.add(base);
+
+      // Column (body)
+      const body = new THREE.Group();
+      body.name = 'root_body';
+      body.position.y = 0.22;
+      root.add(body);
+      parts.root_body = body;
+
+      const column = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.14, 0.18, height - 0.4, 12),
+        matMain
+      );
+      column.position.y = (height - 0.4) / 2;
+      column.castShadow = true;
+      body.add(column);
+
+      // Tray area
+      const tray = new THREE.Mesh(
+        new THREE.BoxGeometry(0.4, 0.03, 0.3),
+        matDark
+      );
+      tray.position.y = (height - 0.4) + 0.02;
+      tray.castShadow = true;
+      body.add(tray);
+
+      // Head
+      const head = new THREE.Group();
+      head.name = 'head';
+      head.position.y = (height - 0.4) + 0.12;
+      body.add(head);
+      parts.head = head;
+      const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.16, 0.18), matMain);
+      headMesh.castShadow = true;
+      head.add(headMesh);
+      const eye = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.04, 0.02), matAccent);
+      eye.position.set(0, 0, 0.091);
+      head.add(eye);
+
+      // Arm (single right arm)
+      const armR = new THREE.Group();
+      armR.name = 'armR';
+      armR.position.set(0.14, (height - 0.4) - 0.1, 0);
+      body.add(armR);
+      parts.armR = armR;
+      const armMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.4, 8), matMain);
+      armMesh.position.y = -0.2;
+      armMesh.castShadow = true;
+      armR.add(armMesh);
+
+      return { root, parts };
     }
 
-    function buildStation(color) {
+    function buildStation(color, height) {
       const root = new THREE.Group();
-      const geo = new THREE.BoxGeometry(0.8, 1.0, 0.6);
-      const mat = new THREE.MeshStandardMaterial({ color });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.castShadow = true;
-      mesh.position.y = 0.5;
-      root.add(mesh);
-      return root;
+      const parts = {};
+      const col = new THREE.Color(color);
+      const matMain = new THREE.MeshStandardMaterial({ color: col, roughness: 0.5, metalness: 0.6 });
+      const matDark = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 });
+      const matAccent = new THREE.MeshStandardMaterial({ color: 0x00D9FF, emissive: 0x00D9FF, emissiveIntensity: 0.5 });
+
+      const body = new THREE.Group();
+      body.name = 'root_body';
+      body.position.y = 0;
+      root.add(body);
+      parts.root_body = body;
+
+      const mainBox = new THREE.Mesh(
+        new THREE.BoxGeometry(0.6, height, 0.4),
+        matMain
+      );
+      mainBox.position.y = height / 2;
+      mainBox.castShadow = true; mainBox.receiveShadow = true;
+      body.add(mainBox);
+
+      // Screen
+      const screen = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.5, height * 0.45),
+        matAccent
+      );
+      screen.position.set(0, height * 0.72, 0.202);
+      body.add(screen);
+
+      // Base
+      const stand = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.5), matDark);
+      stand.position.y = 0.04;
+      stand.castShadow = true;
+      body.add(stand);
+
+      // Fake "head" group for SCAN rotation
+      const head = new THREE.Group();
+      head.name = 'head';
+      head.position.y = height + 0.02;
+      body.add(head);
+      parts.head = head;
+      const sensor = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 8), matAccent);
+      head.add(sensor);
+
+      return { root, parts };
     }
 
     const ROBOT_BUILDERS = {
@@ -1203,150 +1572,1081 @@
       station: buildStation,
     };
 
-    /* ============ UI RENDERING ============ */
+    function rebuildRobots() {
+      Object.keys(robotMeshes).forEach(k => delete robotMeshes[k]);
+      while (robotsGroup.children.length) robotsGroup.remove(robotsGroup.children[0]);
+      while (helpersGroup.children.length) helpersGroup.remove(helpersGroup.children[0]);
+      Object.keys(waypointMarkers).forEach(k => delete waypointMarkers[k]);
+      pathLines = {};
+
+      state.robots.forEach(r => {
+        const builder = ROBOT_BUILDERS[r.type];
+        if (!builder) return;
+        const { root, parts } = builder(r.color, r.height);
+        root.userData = { isRobot: true, robotId: r.id };
+        root.position.set(r.x || 0, 0, r.z || 0);
+        root.rotation.y = r.rotY || 0;
+        robotsGroup.add(root);
+
+        // status ring on floor
+        const ring = makeOutlineRing({ width: 0.8, depth: 0.8 });
+        ring.material.color.set(r.color);
+        root.add(ring);
+
+        robotMeshes[r.id] = { group: root, instance: r, parts, outlineRing: ring };
+
+        rebuildRobotPath(r);
+      });
+      updateSelectionVisuals();
+    }
+
+    function rebuildRobotPath(robot) {
+      // Remove old
+      if (pathLines[robot.id]) {
+        helpersGroup.remove(pathLines[robot.id]);
+        delete pathLines[robot.id];
+      }
+      robot.positionTrack.forEach(wp => {
+        if (waypointMarkers[wp.id]) {
+          helpersGroup.remove(waypointMarkers[wp.id]);
+          delete waypointMarkers[wp.id];
+        }
+      });
+
+      // Add markers
+      const col = new THREE.Color(robot.color);
+      robot.positionTrack.forEach((wp, i) => {
+        const marker = new THREE.Mesh(
+          new THREE.SphereGeometry(0.09, 12, 8),
+          new THREE.MeshBasicMaterial({ color: col })
+        );
+        marker.position.set(wp.x, 0.12, wp.z);
+        marker.userData = { isWaypoint: true, robotId: robot.id, waypointId: wp.id };
+        helpersGroup.add(marker);
+        waypointMarkers[wp.id] = marker;
+      });
+
+      // Draw path line
+      if (robot.positionTrack.length > 1) {
+        const sorted = [...robot.positionTrack].sort((a, b) => a.t - b.t);
+        const points = sorted.map(wp => new THREE.Vector3(wp.x, 0.08, wp.z));
+        const geo = new THREE.BufferGeometry().setFromPoints(points);
+        const mat = new THREE.LineDashedMaterial({
+          color: col, dashSize: 0.15, gapSize: 0.1, transparent: true, opacity: 0.6,
+        });
+        const line = new THREE.Line(geo, mat);
+        line.computeLineDistances();
+        helpersGroup.add(line);
+        pathLines[robot.id] = line;
+      }
+    }
+
+    /* ============ GESTURE ENGINE ============ */
+    function resetRobotPose(robotId) {
+      const meshData = robotMeshes[robotId];
+      if (!meshData) return;
+      const { parts } = meshData;
+      Object.values(parts).forEach(part => {
+        part.rotation.set(0, 0, 0);
+      });
+    }
+
+    const GESTURE_IMPLS = {
+      IDLE: (parts, globalT) => {
+        if (parts.head) {
+          parts.head.rotation.y = Math.sin(globalT * 0.6) * 0.08;
+          parts.head.rotation.x = Math.sin(globalT * 0.35) * 0.03;
+        }
+        if (parts.root_body) {
+          parts.root_body.position.y = (parts.root_body.userData.baseY || parts.root_body.position.y) + Math.sin(globalT * 1.2) * 0.005;
+        }
+      },
+      WAVE: (parts, localT) => {
+        if (!parts.armR) return;
+        const zFrames = [
+          [0.0, 0.0], [0.5, -2.2], [1.0, -2.0], [1.5, -2.2],
+          [2.0, -2.0], [2.5, -2.2], [3.0, 0.0]
+        ];
+        const xFrames = [
+          [0.0, 0.0], [0.5, 0.0], [1.0, 0.3], [1.5, -0.3],
+          [2.0, 0.3], [2.5, -0.3], [3.0, 0.0]
+        ];
+        parts.armR.rotation.z = lerpKeyframes(zFrames, localT);
+        parts.armR.rotation.x = lerpKeyframes(xFrames, localT);
+      },
+      POINT: (parts, localT, params) => {
+        if (!parts.armR) return;
+        const dir = (params && typeof params.direction === 'number') ? params.direction : 0;
+        const zFrames = [[0.0, 0.0], [1.0, -1.5], [2.0, -1.5], [2.5, 0.0]];
+        const yFrames = [[0.0, 0.0], [1.0, dir], [2.0, dir], [2.5, 0.0]];
+        parts.armR.rotation.z = lerpKeyframes(zFrames, localT);
+        parts.armR.rotation.y = lerpKeyframes(yFrames, localT);
+      },
+      PICKUP: (parts, localT) => {
+        if (parts.root_body) {
+          const frames = [[0.0, 0.0], [1.5, 0.6], [2.5, 0.6], [3.5, 0.0], [4.0, 0.0]];
+          parts.root_body.rotation.x = lerpKeyframes(frames, localT);
+        }
+        if (parts.armR) {
+          const frames = [[0.0, 0.0], [1.5, -0.5], [2.5, -0.5], [3.5, -1.8], [4.0, 0.0]];
+          parts.armR.rotation.z = lerpKeyframes(frames, localT);
+        }
+      },
+      BOW: (parts, localT) => {
+        if (parts.root_body) {
+          const frames = [[0.0, 0.0], [1.0, 0.45], [1.5, 0.45], [2.0, 0.0]];
+          parts.root_body.rotation.x = lerpKeyframes(frames, localT);
+        }
+      },
+      WALK: (parts, globalT) => {
+        const T = 0.8;
+        const phase = (globalT / T) * Math.PI * 2;
+        if (parts.legL) parts.legL.rotation.x = Math.sin(phase) * 0.4;
+        if (parts.legR) parts.legR.rotation.x = -Math.sin(phase) * 0.4;
+        if (parts.armL) parts.armL.rotation.x = -Math.sin(phase) * 0.3;
+        if (parts.armR) parts.armR.rotation.x = Math.sin(phase) * 0.3;
+      },
+      SCAN: (parts, localT) => {
+        if (!parts.head) return;
+        const frames = [[0.0, 0.0], [1.0, 1.05], [2.0, 0.0], [3.0, -1.05], [4.0, 0.0]];
+        parts.head.rotation.y = lerpKeyframes(frames, localT);
+      },
+    };
+
+    function computeRobotPosition(robot, t) {
+      const track = robot.positionTrack;
+      if (!track || track.length === 0) {
+        return { x: robot.x || 0, z: robot.z || 0, rotY: robot.rotY || 0 };
+      }
+      const sorted = [...track].sort((a, b) => a.t - b.t);
+      if (t <= sorted[0].t) return { x: sorted[0].x, z: sorted[0].z, rotY: sorted[0].rotY };
+      const last = sorted[sorted.length - 1];
+      if (t >= last.t) return { x: last.x, z: last.z, rotY: last.rotY };
+      for (let i = 0; i < sorted.length - 1; i++) {
+        const a = sorted[i], b = sorted[i + 1];
+        if (t >= a.t && t <= b.t) {
+          const alpha = (t - a.t) / (b.t - a.t);
+          // unwrap rotation for shortest path
+          let da = b.rotY - a.rotY;
+          while (da > Math.PI) da -= Math.PI * 2;
+          while (da < -Math.PI) da += Math.PI * 2;
+          return {
+            x: lerp(a.x, b.x, alpha),
+            z: lerp(a.z, b.z, alpha),
+            rotY: a.rotY + da * alpha,
+          };
+        }
+      }
+      return { x: last.x, z: last.z, rotY: last.rotY };
+    }
+
+    function computeRobotSpeed(robot, t) {
+      const dt = 0.05;
+      const p1 = computeRobotPosition(robot, Math.max(0, t - dt));
+      const p2 = computeRobotPosition(robot, t + dt);
+      const dx = p2.x - p1.x, dz = p2.z - p1.z;
+      return Math.sqrt(dx * dx + dz * dz) / (dt * 2);
+    }
+
+    function applyGestures(t) {
+      state.robots.forEach(r => {
+        const meshData = robotMeshes[r.id];
+        if (!meshData) return;
+        // record base Y for torso if not set
+        if (meshData.parts.root_body && meshData.parts.root_body.userData.baseY === undefined) {
+          meshData.parts.root_body.userData.baseY = meshData.parts.root_body.position.y;
+        }
+
+        resetRobotPose(r.id);
+        GESTURE_IMPLS.IDLE(meshData.parts, t);
+
+        // Active explicit gestures
+        const active = (r.gestureTrack || []).filter(g =>
+          t >= g.t && t <= g.t + (g.duration || GESTURE_DURATIONS[g.type] || 2)
+        );
+
+        // WALK auto if moving
+        const speed = computeRobotSpeed(r, t);
+        if (speed > 0.05 && r.type === 'humanoid') {
+          GESTURE_IMPLS.WALK(meshData.parts, t);
+        }
+
+        active.forEach(g => {
+          if (g.type === 'IDLE' || g.type === 'WALK') return;
+          const impl = GESTURE_IMPLS[g.type];
+          if (!impl) return;
+          const localT = t - g.t;
+          impl(meshData.parts, localT, g.params);
+        });
+
+        // Apply computed position
+        const pos = computeRobotPosition(r, t);
+        meshData.group.position.x = pos.x;
+        meshData.group.position.z = pos.z;
+        meshData.group.rotation.y = pos.rotY;
+      });
+    }
+
+    /* ============ SELECTION VISUALS ============ */
+    function updateSelectionVisuals() {
+      // furniture outline
+      Object.entries(furnitureMeshes).forEach(([id, m]) => {
+        const sel = state.selectedType === 'furniture' && state.selectedId === id;
+        m.outlineRing.material.opacity = sel ? 0.9 : 0;
+      });
+      // robot outline
+      Object.entries(robotMeshes).forEach(([id, m]) => {
+        const sel = state.selectedType === 'robot' && state.selectedId === id;
+        m.outlineRing.material.opacity = sel ? 1 : 0.25;
+        m.outlineRing.scale.set(sel ? 1.1 : 1, sel ? 1.1 : 1, sel ? 1.1 : 1);
+      });
+      // waypoint selection
+      Object.entries(waypointMarkers).forEach(([id, m]) => {
+        const sel = state.selectedType === 'waypoint' && state.selectedSubId === id;
+        m.scale.set(sel ? 1.8 : 1, sel ? 1.8 : 1, sel ? 1.8 : 1);
+      });
+    }
+
+    /* ============ UI RENDERERS ============ */
     function renderCatalog() {
-      const catalog = document.getElementById('furnitureCatalog');
-      catalog.innerHTML = '';
-      Object.entries(FURNITURE_TYPES).forEach(([key, type]) => {
+      const container = document.getElementById('furnitureCatalog');
+      container.innerHTML = '';
+      FURNITURE_TYPES.forEach(type => {
         const dims = FURNITURE_DIMS[type];
-        const item = document.createElement('div');
-        item.className = 'catalog-item';
-        item.innerHTML = `
-          <div class="catalog-item-name">${type.replace(/_/g, ' ')}</div>
-          <div class="catalog-item-dims">${dims.width.toFixed(1)} × ${dims.depth.toFixed(1)} × ${dims.height.toFixed(1)} m</div>
+        const el = document.createElement('div');
+        el.className = 'catalog-item';
+        el.innerHTML = `
+          <div class="catalog-item-name">${FURNITURE_LABELS[type]}</div>
+          <div class="catalog-item-dims">${dims.width.toFixed(1)} × ${dims.depth.toFixed(1)} × ${dims.height.toFixed(1)} m · ${FURNITURE_SNAP[type]}</div>
         `;
-        item.addEventListener('click', () => addFurniture(type));
-        catalog.appendChild(item);
+        el.addEventListener('click', () => addFurniture(type));
+        container.appendChild(el);
       });
     }
 
     function renderPlacedFurniture() {
       const list = document.getElementById('placedFurnitureList');
       list.innerHTML = '';
+      document.getElementById('furnitureCount').textContent = state.furniture.length;
+      if (state.furniture.length === 0) {
+        list.innerHTML = '<div class="empty-state" style="padding: 10px 4px;">No furniture yet</div>';
+        return;
+      }
       state.furniture.forEach(f => {
         const item = document.createElement('div');
-        item.className = `placed-item ${state.selectedType === 'furniture' && state.selectedId === f.id ? 'selected' : ''}`;
-        item.innerHTML = `<div>${f.name}</div>`;
+        const sel = state.selectedType === 'furniture' && state.selectedId === f.id;
+        item.className = `placed-item${sel ? ' selected' : ''}`;
+        const color = '#' + FURNITURE_COLORS[f.type].toString(16).padStart(6, '0');
+        item.innerHTML = `
+          <span><span class="dot" style="background:${color}"></span>${f.name}</span>
+          <span class="item-meta">${mToFt(f.x).toFixed(1)}, ${mToFt(f.z).toFixed(1)}</span>
+        `;
         item.addEventListener('click', () => selectFurniture(f.id));
         list.appendChild(item);
+      });
+    }
+
+    function renderRobotCatalog() {
+      const container = document.getElementById('robotCatalog');
+      container.innerHTML = '';
+      ROBOT_TYPES.forEach(type => {
+        const defaults = ROBOT_DEFAULTS[type];
+        const el = document.createElement('div');
+        el.className = 'catalog-item';
+        el.innerHTML = `
+          <div class="catalog-item-name"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${defaults.color};margin-right:6px"></span>${ROBOT_LABELS[type]}</div>
+          <div class="catalog-item-dims">height ${defaults.height.toFixed(2)}m</div>
+        `;
+        el.addEventListener('click', () => addRobot(type));
+        container.appendChild(el);
       });
     }
 
     function renderRobotList() {
       const list = document.getElementById('robotList');
       list.innerHTML = '';
+      document.getElementById('robotCount').textContent = state.robots.length;
+      if (state.robots.length === 0) {
+        list.innerHTML = '<div class="empty-state" style="padding: 10px 4px;">No robots yet</div>';
+        return;
+      }
       state.robots.forEach(r => {
         const item = document.createElement('div');
-        item.className = `placed-item ${state.selectedType === 'robot' && state.selectedId === r.id ? 'selected' : ''}`;
-        item.innerHTML = `<div>${r.name}</div>`;
+        const sel = state.selectedType === 'robot' && state.selectedId === r.id;
+        item.className = `placed-item${sel ? ' selected' : ''}`;
+        item.innerHTML = `
+          <span><span class="dot" style="background:${r.color}"></span>${r.name}</span>
+          <span class="item-meta">${r.positionTrack.length}wp / ${r.gestureTrack.length}g</span>
+        `;
         item.addEventListener('click', () => selectRobot(r.id));
         list.appendChild(item);
       });
     }
 
+    function renderBoothSettings() {
+      ['boothSettings', 'boothSettingsChoreo'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.innerHTML = `
+          <div class="form-row-split">
+            <div class="form-row">
+              <label>Width (ft)</label>
+              <input type="number" class="form-input boothWidth" value="${state.booth.widthFt}" min="10" max="300" step="5">
+            </div>
+            <div class="form-row">
+              <label>Depth (ft)</label>
+              <input type="number" class="form-input boothDepth" value="${state.booth.depthFt}" min="10" max="300" step="5">
+            </div>
+          </div>
+        `;
+        el.querySelector('.boothWidth').addEventListener('change', e => {
+          state.booth.widthFt = clamp(parseFloat(e.target.value) || 80, 10, 300);
+          rebuildBooth(); updateHUD(); renderBoothSettings();
+        });
+        el.querySelector('.boothDepth').addEventListener('change', e => {
+          state.booth.depthFt = clamp(parseFloat(e.target.value) || 80, 10, 300);
+          rebuildBooth(); updateHUD(); renderBoothSettings();
+        });
+      });
+    }
+
+    function renderCameraPresets() {
+      ['cameraPresets', 'cameraPresetsChoreo'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.innerHTML = '';
+        Object.keys(CAMERA_PRESETS).forEach(name => {
+          const btn = document.createElement('button');
+          btn.className = 'btn-secondary';
+          btn.textContent = name;
+          btn.addEventListener('click', () => applyCameraPreset(name));
+          el.appendChild(btn);
+        });
+      });
+    }
+
     function updateHUD() {
       document.getElementById('hudMode').textContent = state.mode.toUpperCase();
-      document.getElementById('hudBooth').textContent = `${state.booth.widthFt} × ${state.booth.depthFt}`;
+      document.getElementById('hudBooth').textContent = `${state.booth.widthFt} × ${state.booth.depthFt} ft`;
       document.getElementById('hudItems').textContent = `${state.furniture.length} furniture / ${state.robots.length} robots`;
     }
 
-    /* ============ INTERACTIONS ============ */
+    /* ============ PROPERTIES PANEL ============ */
+    function renderProperties() {
+      ['propertiesEmpty', 'propertiesFurniture', 'propertiesRobot', 'propertiesGesture', 'propertiesWaypoint'].forEach(id => {
+        document.getElementById(id).classList.remove('active');
+      });
+
+      if (state.selectedType === 'furniture') {
+        const f = state.furniture.find(x => x.id === state.selectedId);
+        if (!f) { document.getElementById('propertiesEmpty').classList.add('active'); return; }
+        document.getElementById('propertiesFurniture').classList.add('active');
+        document.getElementById('propFurnitureSubhead').textContent = f.name;
+        document.getElementById('propFurnitureName').value = f.name;
+        document.getElementById('propFurnitureType').textContent = f.type;
+        document.getElementById('propFurnitureX').value = mToFt(f.x).toFixed(1);
+        document.getElementById('propFurnitureZ').value = mToFt(f.z).toFixed(1);
+        document.getElementById('propFurnitureRotY').value = Math.round(f.rotY * 180 / Math.PI);
+        const d = FURNITURE_DIMS[f.type];
+        document.getElementById('propFurnitureDims').textContent = `${d.width} × ${d.depth} × ${d.height}`;
+      } else if (state.selectedType === 'robot') {
+        const r = state.robots.find(x => x.id === state.selectedId);
+        if (!r) { document.getElementById('propertiesEmpty').classList.add('active'); return; }
+        document.getElementById('propertiesRobot').classList.add('active');
+        document.getElementById('propRobotSubhead').textContent = r.name;
+        document.getElementById('propRobotName').value = r.name;
+        document.getElementById('propRobotType').textContent = r.type;
+        document.getElementById('propRobotHeight').value = r.height.toFixed(2);
+        document.getElementById('propRobotColor').value = r.color;
+        document.getElementById('propRobotWaypoints').textContent = r.positionTrack.length;
+        document.getElementById('propRobotGestures').textContent = r.gestureTrack.length;
+      } else if (state.selectedType === 'gesture') {
+        const r = state.robots.find(x => x.id === state.selectedId);
+        const g = r && r.gestureTrack.find(x => x.id === state.selectedSubId);
+        if (!g) { document.getElementById('propertiesEmpty').classList.add('active'); return; }
+        document.getElementById('propertiesGesture').classList.add('active');
+        document.getElementById('propGestureSubhead').textContent = `${r.name} · ${g.type}`;
+        const sel = document.getElementById('propGestureType');
+        sel.innerHTML = '';
+        GESTURE_TYPES.filter(t => t !== 'IDLE' && t !== 'WALK').forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = t; opt.textContent = t;
+          if (t === g.type) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        document.getElementById('propGestureStart').value = g.t.toFixed(1);
+        document.getElementById('propGestureDuration').value = g.duration.toFixed(1);
+        renderGestureParams(g);
+      } else if (state.selectedType === 'waypoint') {
+        const r = state.robots.find(x => x.id === state.selectedId);
+        const wp = r && r.positionTrack.find(x => x.id === state.selectedSubId);
+        if (!wp) { document.getElementById('propertiesEmpty').classList.add('active'); return; }
+        document.getElementById('propertiesWaypoint').classList.add('active');
+        document.getElementById('propWaypointSubhead').textContent = `${r.name} · t=${wp.t.toFixed(1)}s`;
+        document.getElementById('propWaypointTime').value = wp.t.toFixed(1);
+        document.getElementById('propWaypointX').value = mToFt(wp.x).toFixed(1);
+        document.getElementById('propWaypointZ').value = mToFt(wp.z).toFixed(1);
+        document.getElementById('propWaypointRotY').value = Math.round(wp.rotY * 180 / Math.PI);
+      } else {
+        document.getElementById('propertiesEmpty').classList.add('active');
+      }
+    }
+
+    function renderGestureParams(g) {
+      const el = document.getElementById('propGestureParams');
+      el.innerHTML = '';
+      if (g.type === 'POINT') {
+        const row = document.createElement('div');
+        row.className = 'form-row';
+        row.innerHTML = `
+          <label>Direction (°, 0=front)</label>
+          <input type="number" class="form-input" id="propGestureDirection" step="15" value="${Math.round((g.params?.direction || 0) * 180 / Math.PI)}">
+        `;
+        el.appendChild(row);
+        row.querySelector('#propGestureDirection').addEventListener('change', e => {
+          g.params = g.params || {};
+          g.params.direction = parseFloat(e.target.value) * Math.PI / 180;
+        });
+      }
+    }
+
+    /* ============ ADD / REMOVE ============ */
     function addFurniture(type) {
       const id = generateId('f');
+      const existing = state.furniture.filter(x => x.type === type).length;
       const instance = {
-        id,
-        type,
-        name: `${type.replace(/_/g, ' ')} ${state.furniture.length + 1}`,
-        x: 0,
-        z: 0,
-        rotY: 0,
-        scale: 1.0,
+        id, type,
+        name: `${FURNITURE_LABELS[type]} ${existing + 1}`,
+        x: 0, z: 0, rotY: 0, scale: 1.0,
       };
+      const snapped = applySnap(instance, 0, 0);
+      instance.x = snapped.x; instance.z = snapped.z; instance.rotY = snapped.rotY;
       state.furniture.push(instance);
       rebuildFurniture();
       renderPlacedFurniture();
       updateHUD();
       selectFurniture(id);
-      showToast(`Added ${type}`, 'success');
+      showToast(`Added ${FURNITURE_LABELS[type]}`, 'success');
+    }
+
+    function addRobot(type) {
+      const id = generateId('r');
+      const defaults = ROBOT_DEFAULTS[type];
+      const existing = state.robots.filter(x => x.type === type).length;
+      // spread starting positions
+      const offset = state.robots.length * 1.5 - 2;
+      const r = {
+        id, type,
+        name: `${ROBOT_LABELS[type]} ${existing + 1}`,
+        color: defaults.color,
+        height: defaults.height,
+        description: '',
+        x: offset, z: 0, rotY: 0,
+        positionTrack: [{ id: generateId('p'), t: 0, x: offset, z: 0, rotY: 0 }],
+        gestureTrack: [],
+      };
+      state.robots.push(r);
+      rebuildRobots();
+      renderRobotList();
+      renderTimeline();
+      updateHUD();
+      selectRobot(id);
+      showToast(`Added ${ROBOT_LABELS[type]}`, 'success');
+    }
+
+    function deleteFurniture(id) {
+      state.furniture = state.furniture.filter(f => f.id !== id);
+      if (state.selectedId === id) { state.selectedType = null; state.selectedId = null; }
+      rebuildFurniture();
+      renderPlacedFurniture();
+      renderProperties();
+      updateHUD();
+    }
+
+    function deleteRobot(id) {
+      state.robots = state.robots.filter(r => r.id !== id);
+      if (state.selectedId === id) { state.selectedType = null; state.selectedId = null; }
+      rebuildRobots();
+      renderRobotList();
+      renderTimeline();
+      renderProperties();
+      updateHUD();
     }
 
     function selectFurniture(id) {
       state.selectedType = 'furniture';
       state.selectedId = id;
+      state.selectedSubId = null;
       renderPlacedFurniture();
-      updatePropertiesPanel();
+      renderProperties();
+      updateSelectionVisuals();
     }
 
     function selectRobot(id) {
       state.selectedType = 'robot';
       state.selectedId = id;
+      state.selectedSubId = null;
       renderRobotList();
-      updatePropertiesPanel();
+      renderProperties();
+      renderTimeline();
+      updateSelectionVisuals();
     }
 
-    function updatePropertiesPanel() {
-      document.getElementById('propertiesFurniture').classList.remove('active');
-      document.getElementById('propertiesRobot').classList.remove('active');
-      document.getElementById('propertiesGesture').classList.remove('active');
-
-      if (state.selectedType === 'furniture') {
-        const f = state.furniture.find(x => x.id === state.selectedId);
-        if (!f) return;
-
-        document.getElementById('propertiesFurniture').classList.add('active');
-        document.getElementById('propFurnitureName').value = f.name;
-        document.getElementById('propFurnitureType').textContent = f.type;
-        document.getElementById('propFurnitureX').value = (f.x / FT_TO_M).toFixed(1);
-        document.getElementById('propFurnitureZ').value = (f.z / FT_TO_M).toFixed(1);
-        document.getElementById('propFurnitureRotY').value = (f.rotY * 180 / Math.PI).toFixed(0);
-        const dims = FURNITURE_DIMS[f.type];
-        document.getElementById('propFurnitureDims').textContent = `${dims.width} × ${dims.depth} × ${dims.height} m`;
-      }
+    function selectGesture(robotId, gestureId) {
+      state.selectedType = 'gesture';
+      state.selectedId = robotId;
+      state.selectedSubId = gestureId;
+      renderRobotList();
+      renderProperties();
+      renderTimeline();
+      updateSelectionVisuals();
     }
 
-    /* ============ KEYBOARD ============ */
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        toggleMode();
-      }
-      if (e.key === ' ') {
-        e.preventDefault();
-        state.playing = !state.playing;
-      }
-      if (e.key === 'Escape') {
-        state.selectedType = null;
-        state.selectedId = null;
-        renderPlacedFurniture();
-        updatePropertiesPanel();
-      }
-      if (e.key === 'Delete') {
-        if (state.selectedType === 'furniture') {
-          state.furniture = state.furniture.filter(f => f.id !== state.selectedId);
-          state.selectedId = null;
-          rebuildFurniture();
-          renderPlacedFurniture();
-          updatePropertiesPanel();
-          updateHUD();
+    function selectWaypoint(robotId, waypointId) {
+      state.selectedType = 'waypoint';
+      state.selectedId = robotId;
+      state.selectedSubId = waypointId;
+      renderRobotList();
+      renderProperties();
+      renderTimeline();
+      updateSelectionVisuals();
+    }
+
+    function clearSelection() {
+      state.selectedType = null;
+      state.selectedId = null;
+      state.selectedSubId = null;
+      renderPlacedFurniture();
+      renderRobotList();
+      renderProperties();
+      renderTimeline();
+      updateSelectionVisuals();
+    }
+
+    /* ============ TIMELINE ============ */
+    function renderTimeline() {
+      const labels = document.getElementById('timelineLabels');
+      const tracks = document.getElementById('timelineTracks');
+      const ruler = document.getElementById('timelineRuler');
+      labels.innerHTML = '';
+      tracks.innerHTML = '';
+      ruler.innerHTML = '';
+
+      const width = Math.max(state.duration * PX_PER_SEC, 800);
+      tracks.style.width = `${width}px`;
+      ruler.style.width = `${width}px`;
+
+      // ruler ticks
+      for (let s = 0; s <= state.duration; s += 1) {
+        const isMajor = (s % 10 === 0);
+        const isMid = (s % 5 === 0);
+        if (!isMajor && !isMid && s % 1 !== 0) continue;
+        const tick = document.createElement('div');
+        tick.className = `timeline-ruler-tick ${isMajor ? 'major' : ''}`;
+        tick.style.left = `${s * PX_PER_SEC}px`;
+        tick.style.height = isMajor ? '100%' : (isMid ? '60%' : '40%');
+        tick.style.top = isMajor ? '0' : 'auto';
+        tick.style.bottom = isMajor ? 'auto' : '0';
+        ruler.appendChild(tick);
+        if (isMajor) {
+          const label = document.createElement('div');
+          label.className = 'timeline-ruler-label';
+          label.style.left = `${s * PX_PER_SEC}px`;
+          label.textContent = `${s}s`;
+          ruler.appendChild(label);
         }
       }
-      if (e.key === 'r' || e.key === 'R') {
-        if (state.selectedType === 'furniture') {
-          const f = state.furniture.find(x => x.id === state.selectedId);
-          if (f) {
-            f.rotY += Math.PI / 2;
-            rebuildFurniture();
+
+      // Ruler click to scrub
+      ruler.onclick = (e) => {
+        const rect = ruler.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        state.currentTime = clamp(x / PX_PER_SEC, 0, state.duration);
+        updatePlayhead();
+      };
+
+      // Robots → 2 rows each (POS + GEST)
+      state.robots.forEach(r => {
+        // Labels
+        const posLabel = document.createElement('div');
+        posLabel.className = 'timeline-track-label';
+        posLabel.innerHTML = `<span class="dot" style="background:${r.color}"></span>${r.name}`;
+        labels.appendChild(posLabel);
+        const gestLabel = document.createElement('div');
+        gestLabel.className = 'timeline-track-label gesture';
+        gestLabel.textContent = 'gesture';
+        labels.appendChild(gestLabel);
+
+        // POS row
+        const posRow = document.createElement('div');
+        posRow.className = 'timeline-track-row';
+        posRow.dataset.robotId = r.id;
+        posRow.dataset.trackType = 'pos';
+        r.positionTrack.forEach(wp => {
+          const marker = document.createElement('div');
+          marker.className = 'keyframe-marker';
+          if (state.selectedType === 'waypoint' && state.selectedSubId === wp.id) {
+            marker.classList.add('selected');
           }
+          marker.style.left = `${wp.t * PX_PER_SEC}px`;
+          marker.dataset.wpId = wp.id;
+          marker.title = `t=${wp.t.toFixed(1)}s`;
+          marker.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            selectWaypoint(r.id, wp.id);
+            startWaypointDrag(e, r.id, wp.id);
+          });
+          posRow.appendChild(marker);
+        });
+        posRow.addEventListener('click', (e) => {
+          if (e.target !== posRow) return;
+          const rect = posRow.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const t = clamp(x / PX_PER_SEC, 0, state.duration);
+          addWaypoint(r.id, t);
+        });
+        tracks.appendChild(posRow);
+
+        // GESTURE row
+        const gestRow = document.createElement('div');
+        gestRow.className = 'timeline-track-row gesture';
+        gestRow.dataset.robotId = r.id;
+        gestRow.dataset.trackType = 'gesture';
+        r.gestureTrack.forEach(g => {
+          const block = document.createElement('div');
+          block.className = 'gesture-block';
+          if (state.selectedType === 'gesture' && state.selectedSubId === g.id) block.classList.add('selected');
+          block.style.left = `${g.t * PX_PER_SEC}px`;
+          block.style.width = `${Math.max(g.duration * PX_PER_SEC, 24)}px`;
+          block.textContent = g.type;
+          block.dataset.gId = g.id;
+          block.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            selectGesture(r.id, g.id);
+            startGestureDrag(e, r.id, g.id, 'move');
+          });
+          const handle = document.createElement('div');
+          handle.className = 'gesture-block-handle';
+          handle.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            selectGesture(r.id, g.id);
+            startGestureDrag(e, r.id, g.id, 'resize');
+          });
+          block.appendChild(handle);
+          gestRow.appendChild(block);
+        });
+        gestRow.addEventListener('click', (e) => {
+          if (e.target !== gestRow) return;
+          const rect = gestRow.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const t = clamp(x / PX_PER_SEC, 0, state.duration);
+          addGesture(r.id, t);
+        });
+        tracks.appendChild(gestRow);
+      });
+
+      if (state.robots.length === 0) {
+        const hint = document.createElement('div');
+        hint.className = 'empty-state';
+        hint.style.padding = '30px';
+        hint.textContent = 'Switch to CHOREO mode and add a robot to see tracks here.';
+        tracks.appendChild(hint);
+      }
+
+      updatePlayhead();
+    }
+
+    function updatePlayhead() {
+      const ph = document.getElementById('playhead');
+      ph.style.left = `${state.currentTime * PX_PER_SEC}px`;
+      document.getElementById('timeCurrent').textContent = state.currentTime.toFixed(1);
+      document.getElementById('timeTotal').textContent = state.duration.toFixed(1);
+    }
+
+    function addWaypoint(robotId, t) {
+      const r = state.robots.find(x => x.id === robotId);
+      if (!r) return;
+      // Compute position by interpolating current path at t (or use last WP location)
+      const pos = computeRobotPosition(r, t);
+      const wp = { id: generateId('p'), t, x: pos.x, z: pos.z, rotY: pos.rotY };
+      r.positionTrack.push(wp);
+      rebuildRobotPath(r);
+      renderRobotList();
+      renderTimeline();
+      selectWaypoint(r.id, wp.id);
+      showToast(`Waypoint @ ${t.toFixed(1)}s`, 'success');
+    }
+
+    function addGesture(robotId, t) {
+      const r = state.robots.find(x => x.id === robotId);
+      if (!r) return;
+      const dur = 3.0;
+      const g = {
+        id: generateId('g'), t, duration: dur, type: 'WAVE', params: {},
+      };
+      r.gestureTrack.push(g);
+      renderTimeline();
+      renderRobotList();
+      selectGesture(r.id, g.id);
+      showToast(`Gesture WAVE @ ${t.toFixed(1)}s`, 'success');
+    }
+
+    /* ============ DRAG LOGIC — TIMELINE ============ */
+    function startWaypointDrag(e, robotId, wpId) {
+      const r = state.robots.find(x => x.id === robotId);
+      const wp = r && r.positionTrack.find(w => w.id === wpId);
+      if (!wp) return;
+      state.drag = {
+        type: 'timeline-waypoint', robotId, wpId,
+        startX: e.clientX, origT: wp.t,
+      };
+    }
+
+    function startGestureDrag(e, robotId, gId, mode) {
+      const r = state.robots.find(x => x.id === robotId);
+      const g = r && r.gestureTrack.find(x => x.id === gId);
+      if (!g) return;
+      state.drag = {
+        type: mode === 'resize' ? 'gesture-resize' : 'gesture-move',
+        robotId, gId,
+        startX: e.clientX, origT: g.t, origDuration: g.duration,
+      };
+    }
+
+    document.addEventListener('mousemove', (e) => {
+      if (!state.drag) return;
+      const d = state.drag;
+      if (d.type === 'timeline-waypoint') {
+        const dx = e.clientX - d.startX;
+        const dt = dx / PX_PER_SEC;
+        const r = state.robots.find(x => x.id === d.robotId);
+        const wp = r && r.positionTrack.find(w => w.id === d.wpId);
+        if (wp) {
+          wp.t = clamp(d.origT + dt, 0, state.duration);
+          renderTimeline();
+          renderProperties();
+        }
+      } else if (d.type === 'gesture-move') {
+        const dx = e.clientX - d.startX;
+        const dt = dx / PX_PER_SEC;
+        const r = state.robots.find(x => x.id === d.robotId);
+        const g = r && r.gestureTrack.find(x => x.id === d.gId);
+        if (g) {
+          g.t = clamp(d.origT + dt, 0, state.duration - g.duration);
+          renderTimeline();
+          renderProperties();
+        }
+      } else if (d.type === 'gesture-resize') {
+        const dx = e.clientX - d.startX;
+        const dt = dx / PX_PER_SEC;
+        const r = state.robots.find(x => x.id === d.robotId);
+        const g = r && r.gestureTrack.find(x => x.id === d.gId);
+        if (g) {
+          g.duration = clamp(d.origDuration + dt, 0.2, state.duration - g.t);
+          renderTimeline();
+          renderProperties();
         }
       }
     });
 
+    document.addEventListener('mouseup', () => {
+      if (state.drag && (state.drag.type === 'timeline-waypoint')) {
+        const r = state.robots.find(x => x.id === state.drag.robotId);
+        if (r) rebuildRobotPath(r);
+      }
+      state.drag = null;
+    });
+
+    /* ============ CAMERA + CANVAS INTERACTIONS ============ */
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    function screenToFloor(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+      const hit = new THREE.Vector3();
+      raycaster.ray.intersectPlane(plane, hit);
+      return hit;
+    }
+
+    function pickScene(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+
+      if (state.mode === 'build') {
+        const hits = raycaster.intersectObjects(furnitureGroup.children, true);
+        if (hits.length > 0) {
+          let node = hits[0].object;
+          while (node && !node.userData?.isFurniture) node = node.parent;
+          if (node) return { type: 'furniture', id: node.userData.furnitureId };
+        }
+      } else {
+        // CHOREO: waypoints first, then robots
+        const wpHits = raycaster.intersectObjects(Object.values(waypointMarkers), false);
+        if (wpHits.length > 0) {
+          const d = wpHits[0].object.userData;
+          return { type: 'waypoint', robotId: d.robotId, waypointId: d.waypointId };
+        }
+        const robotHits = raycaster.intersectObjects(robotsGroup.children, true);
+        if (robotHits.length > 0) {
+          let node = robotHits[0].object;
+          while (node && !node.userData?.isRobot) node = node.parent;
+          if (node) return { type: 'robot', id: node.userData.robotId };
+        }
+      }
+      return null;
+    }
+
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const startX = e.clientX, startY = e.clientY;
+
+      if (e.button === 2) {
+        // Right: pan
+        state.drag = {
+          type: 'camera-pan',
+          startX, startY,
+          origTarget: state.cam.target.clone(),
+        };
+        canvas.style.cursor = 'grabbing';
+        return;
+      }
+
+      // LMB: try to pick
+      const hit = pickScene(e.clientX, e.clientY);
+      if (hit) {
+        if (hit.type === 'furniture') {
+          selectFurniture(hit.id);
+          if (state.mode === 'build') {
+            // start furniture drag
+            const floor = screenToFloor(e.clientX, e.clientY);
+            const f = state.furniture.find(x => x.id === hit.id);
+            state.drag = {
+              type: 'furniture',
+              id: hit.id,
+              startFloorX: floor.x, startFloorZ: floor.z,
+              origX: f.x, origZ: f.z,
+            };
+            return;
+          }
+        } else if (hit.type === 'robot') {
+          selectRobot(hit.id);
+          return;
+        } else if (hit.type === 'waypoint') {
+          selectWaypoint(hit.robotId, hit.waypointId);
+          const floor = screenToFloor(e.clientX, e.clientY);
+          const r = state.robots.find(x => x.id === hit.robotId);
+          const wp = r.positionTrack.find(w => w.id === hit.waypointId);
+          state.drag = {
+            type: 'scene-waypoint',
+            robotId: hit.robotId, waypointId: hit.waypointId,
+            startFloorX: floor.x, startFloorZ: floor.z,
+            origX: wp.x, origZ: wp.z,
+          };
+          return;
+        }
+      } else {
+        // Empty click in CHOREO with a selected robot AND floor hit → add waypoint
+        if (state.mode === 'choreo' && state.selectedType === 'robot') {
+          const floor = screenToFloor(e.clientX, e.clientY);
+          const hw = ftToM(state.booth.widthFt) / 2;
+          const hd = ftToM(state.booth.depthFt) / 2;
+          if (Math.abs(floor.x) < hw && Math.abs(floor.z) < hd) {
+            const r = state.robots.find(x => x.id === state.selectedId);
+            const lastT = r.positionTrack.length > 0 ? Math.max(...r.positionTrack.map(w => w.t)) : 0;
+            const newT = Math.min(state.duration, lastT + 3);
+            // compute rotation to face new point from last
+            let rotY = 0;
+            if (r.positionTrack.length > 0) {
+              const last = [...r.positionTrack].sort((a,b)=>b.t-a.t)[0];
+              const dx = floor.x - last.x, dz = floor.z - last.z;
+              if (Math.abs(dx) > 0.01 || Math.abs(dz) > 0.01) rotY = Math.atan2(dx, dz);
+            }
+            r.positionTrack.push({
+              id: generateId('p'), t: newT, x: floor.x, z: floor.z, rotY,
+            });
+            rebuildRobotPath(r);
+            renderRobotList();
+            renderTimeline();
+            showToast(`Waypoint @ ${newT.toFixed(1)}s`, 'success');
+            return;
+          }
+        }
+        clearSelection();
+      }
+
+      // Default: orbit camera
+      state.drag = {
+        type: 'camera-orbit',
+        startX, startY,
+        origYaw: state.cam.yaw, origPitch: state.cam.pitch,
+      };
+      canvas.style.cursor = 'grabbing';
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      // HUD update
+      const floor = screenToFloor(e.clientX, e.clientY);
+      document.getElementById('hudCursor').textContent =
+        `${mToFt(floor.x).toFixed(1)}, ${mToFt(floor.z).toFixed(1)} ft`;
+
+      if (!state.drag) return;
+      const d = state.drag;
+      if (d.type === 'camera-orbit') {
+        const dx = e.clientX - d.startX;
+        const dy = e.clientY - d.startY;
+        state.cam.yaw = d.origYaw - dx * 0.008;
+        state.cam.pitch = clamp(d.origPitch - dy * 0.006, -Math.PI / 2 + 0.15, Math.PI / 2 - 0.05);
+        updateCamera();
+      } else if (d.type === 'camera-pan') {
+        const dx = e.clientX - d.startX;
+        const dy = e.clientY - d.startY;
+        // pan relative to camera yaw
+        const right = new THREE.Vector3(Math.cos(state.cam.yaw), 0, -Math.sin(state.cam.yaw));
+        const forward = new THREE.Vector3(Math.sin(state.cam.yaw), 0, Math.cos(state.cam.yaw));
+        const panScale = state.cam.distance * 0.0015;
+        state.cam.target.copy(d.origTarget);
+        state.cam.target.addScaledVector(right, -dx * panScale);
+        state.cam.target.addScaledVector(forward, dy * panScale);
+        updateCamera();
+      } else if (d.type === 'furniture') {
+        const f = state.furniture.find(x => x.id === d.id);
+        if (f) {
+          const rawX = d.origX + (floor.x - d.startFloorX);
+          const rawZ = d.origZ + (floor.z - d.startFloorZ);
+          const snapped = applySnap(f, rawX, rawZ);
+          f.x = snapped.x; f.z = snapped.z; f.rotY = snapped.rotY;
+          const mesh = furnitureMeshes[f.id];
+          if (mesh) {
+            mesh.group.position.set(f.x, 0, f.z);
+            mesh.group.rotation.y = f.rotY;
+          }
+          renderProperties();
+        }
+      } else if (d.type === 'scene-waypoint') {
+        const r = state.robots.find(x => x.id === d.robotId);
+        const wp = r && r.positionTrack.find(w => w.id === d.waypointId);
+        if (wp) {
+          const hw = ftToM(state.booth.widthFt) / 2;
+          const hd = ftToM(state.booth.depthFt) / 2;
+          wp.x = clamp(d.origX + (floor.x - d.startFloorX), -hw, hw);
+          wp.z = clamp(d.origZ + (floor.z - d.startFloorZ), -hd, hd);
+          const marker = waypointMarkers[wp.id];
+          if (marker) marker.position.set(wp.x, 0.12, wp.z);
+          renderProperties();
+        }
+      }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      if (state.drag && (state.drag.type === 'furniture')) {
+        renderPlacedFurniture();
+      }
+      if (state.drag && state.drag.type === 'scene-waypoint') {
+        const r = state.robots.find(x => x.id === state.drag.robotId);
+        if (r) rebuildRobotPath(r);
+      }
+      state.drag = null;
+      canvas.style.cursor = 'grab';
+    });
+
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const factor = e.deltaY > 0 ? 1.1 : 0.9;
+      state.cam.distance = clamp(state.cam.distance * factor, 3, 80);
+      updateCamera();
+    }, { passive: false });
+
+    /* ============ KEYBOARD ============ */
+    document.addEventListener('keydown', (e) => {
+      // Avoid interfering with form inputs
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        toggleMode();
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        togglePlayback();
+      } else if (e.key === 'Escape') {
+        clearSelection();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        handleDelete();
+      } else if (e.key === 'r' || e.key === 'R') {
+        if (state.selectedType === 'furniture') {
+          const f = state.furniture.find(x => x.id === state.selectedId);
+          if (f) {
+            f.rotY = (f.rotY + Math.PI / 2) % (Math.PI * 2);
+            const mesh = furnitureMeshes[f.id];
+            if (mesh) mesh.group.rotation.y = f.rotY;
+            renderProperties();
+          }
+        }
+      } else if (e.key === 'w' || e.key === 'W') {
+        if (state.mode === 'choreo' && state.selectedType === 'robot') {
+          addWaypoint(state.selectedId, state.currentTime);
+        }
+      } else if (e.key === 'd' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        if (state.selectedType === 'furniture') {
+          duplicateFurniture(state.selectedId);
+        }
+      }
+    });
+
+    function handleDelete() {
+      if (state.selectedType === 'furniture') deleteFurniture(state.selectedId);
+      else if (state.selectedType === 'robot') deleteRobot(state.selectedId);
+      else if (state.selectedType === 'gesture') {
+        const r = state.robots.find(x => x.id === state.selectedId);
+        if (r) {
+          r.gestureTrack = r.gestureTrack.filter(g => g.id !== state.selectedSubId);
+          state.selectedType = 'robot'; state.selectedSubId = null;
+          renderRobotList(); renderTimeline(); renderProperties();
+        }
+      } else if (state.selectedType === 'waypoint') {
+        const r = state.robots.find(x => x.id === state.selectedId);
+        if (r && r.positionTrack.length > 1) {
+          r.positionTrack = r.positionTrack.filter(w => w.id !== state.selectedSubId);
+          state.selectedType = 'robot'; state.selectedSubId = null;
+          rebuildRobotPath(r);
+          renderRobotList(); renderTimeline(); renderProperties();
+        } else {
+          showToast('Cannot delete last waypoint', 'warn');
+        }
+      }
+    }
+
+    function duplicateFurniture(id) {
+      const f = state.furniture.find(x => x.id === id);
+      if (!f) return;
+      const dup = {
+        ...f,
+        id: generateId('f'),
+        name: f.name + ' Copy',
+        x: f.x + 0.5,
+        z: f.z + 0.5,
+      };
+      const snapped = applySnap(dup, dup.x, dup.z);
+      dup.x = snapped.x; dup.z = snapped.z; dup.rotY = snapped.rotY;
+      state.furniture.push(dup);
+      rebuildFurniture();
+      renderPlacedFurniture();
+      updateHUD();
+      selectFurniture(dup.id);
+      showToast('Duplicated', 'success');
+    }
+
     /* ============ MODE TOGGLE ============ */
     document.querySelectorAll('.mode-toggle button').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const mode = btn.dataset.mode;
-        if (mode) toggleToMode(mode);
-      });
+      btn.addEventListener('click', () => toggleToMode(btn.dataset.mode));
     });
 
     function toggleMode() {
@@ -1357,218 +2657,413 @@
       state.mode = mode;
       document.querySelectorAll('.mode-toggle button').forEach(b => b.classList.remove('active'));
       document.querySelector(`.mode-toggle button[data-mode="${mode}"]`).classList.add('active');
-
       document.getElementById('buildMode').style.display = mode === 'build' ? 'block' : 'none';
       document.getElementById('choreoMode').style.display = mode === 'choreo' ? 'block' : 'none';
-
+      helpersGroup.visible = (mode === 'choreo');
+      clearSelection();
       updateHUD();
     }
 
-    /* ============ MOUSE INTERACTIONS ============ */
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-
-    canvas.addEventListener('mousemove', e => {
-      const rect = canvas.getBoundingClientRect();
-      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-      // Compute floor hit for HUD
-      raycaster.setFromCamera(mouse, camera);
-      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-      const hitPoint = new THREE.Vector3();
-      raycaster.ray.intersectPlane(plane, hitPoint);
-      const xft = (hitPoint.x / FT_TO_M).toFixed(1);
-      const zft = (hitPoint.z / FT_TO_M).toFixed(1);
-      document.getElementById('hudCursor').textContent = `${xft}, ${zft}`;
+    /* ============ PLAYBACK ============ */
+    document.getElementById('btnPlayPause').addEventListener('click', togglePlayback);
+    document.getElementById('btnRewind').addEventListener('click', () => {
+      state.currentTime = 0;
+      updatePlayhead();
     });
-
-    canvas.addEventListener('click', e => {
-      const rect = canvas.getBoundingClientRect();
-      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(mouse, camera);
-
-      if (state.mode === 'build') {
-        const hits = raycaster.intersectObjects(furnitureGroup.children, true);
-        if (hits.length > 0) {
-          let node = hits[0].object;
-          while (node && !node.userData?.isFurniture) node = node.parent;
-          if (node) selectFurniture(node.userData.furnitureId);
-        } else {
-          state.selectedType = null;
-          state.selectedId = null;
-          renderPlacedFurniture();
-          updatePropertiesPanel();
-        }
+    document.getElementById('btnStop').addEventListener('click', () => {
+      state.playing = false;
+      state.currentTime = 0;
+      document.getElementById('btnPlayPause').textContent = '▶';
+      updatePlayhead();
+    });
+    document.getElementById('btnAddGesture').addEventListener('click', () => {
+      if (state.selectedType === 'robot') {
+        addGesture(state.selectedId, state.currentTime);
+      } else {
+        showToast('Select a robot first', 'warn');
       }
     });
+    document.getElementById('btnAddWaypointHere').addEventListener('click', () => {
+      if (state.selectedType === 'robot') {
+        addWaypoint(state.selectedId, state.currentTime);
+      } else {
+        showToast('Select a robot first', 'warn');
+      }
+    });
+
+    function togglePlayback() {
+      state.playing = !state.playing;
+      document.getElementById('btnPlayPause').textContent = state.playing ? '⏸' : '▶';
+    }
 
     /* ============ PROPERTY PANEL EVENTS ============ */
+    // Furniture
     document.getElementById('propFurnitureName').addEventListener('change', e => {
       const f = state.furniture.find(x => x.id === state.selectedId);
-      if (f) {
-        f.name = e.target.value;
-        renderPlacedFurniture();
-      }
+      if (f) { f.name = e.target.value; renderPlacedFurniture(); renderProperties(); }
     });
-
     document.getElementById('propFurnitureX').addEventListener('change', e => {
       const f = state.furniture.find(x => x.id === state.selectedId);
       if (f) {
-        f.x = parseFloat(e.target.value) * FT_TO_M;
-        const snapped = applySnap(f, f.x, f.z);
-        f.x = snapped.x;
-        f.z = snapped.z;
-        f.rotY = snapped.rotY;
-        rebuildFurniture();
-        updatePropertiesPanel();
+        const snapped = applySnap(f, ftToM(parseFloat(e.target.value) || 0), f.z);
+        f.x = snapped.x; f.rotY = snapped.rotY;
+        const m = furnitureMeshes[f.id];
+        if (m) { m.group.position.x = f.x; m.group.rotation.y = f.rotY; }
+        renderProperties(); renderPlacedFurniture();
       }
     });
-
     document.getElementById('propFurnitureZ').addEventListener('change', e => {
       const f = state.furniture.find(x => x.id === state.selectedId);
       if (f) {
-        f.z = parseFloat(e.target.value) * FT_TO_M;
-        const snapped = applySnap(f, f.x, f.z);
-        f.x = snapped.x;
-        f.z = snapped.z;
-        f.rotY = snapped.rotY;
-        rebuildFurniture();
-        updatePropertiesPanel();
+        const snapped = applySnap(f, f.x, ftToM(parseFloat(e.target.value) || 0));
+        f.z = snapped.z; f.rotY = snapped.rotY;
+        const m = furnitureMeshes[f.id];
+        if (m) { m.group.position.z = f.z; m.group.rotation.y = f.rotY; }
+        renderProperties(); renderPlacedFurniture();
       }
     });
-
     document.getElementById('propFurnitureRotY').addEventListener('change', e => {
       const f = state.furniture.find(x => x.id === state.selectedId);
       if (f) {
-        f.rotY = parseFloat(e.target.value) * Math.PI / 180;
-        rebuildFurniture();
+        f.rotY = (parseFloat(e.target.value) || 0) * Math.PI / 180;
+        const m = furnitureMeshes[f.id];
+        if (m) m.group.rotation.y = f.rotY;
+        renderProperties();
       }
     });
-
     document.getElementById('propFurnitureDelete').addEventListener('click', () => {
-      state.furniture = state.furniture.filter(f => f.id !== state.selectedId);
-      state.selectedId = null;
-      rebuildFurniture();
-      renderPlacedFurniture();
-      updatePropertiesPanel();
-      updateHUD();
-      showToast('Furniture deleted', 'success');
+      if (state.selectedId) deleteFurniture(state.selectedId);
     });
-
     document.getElementById('propFurnitureDuplicate').addEventListener('click', () => {
-      const f = state.furniture.find(x => x.id === state.selectedId);
-      if (f) {
-        const dup = { ...f, id: generateId('f'), x: f.x + 0.5 * FT_TO_M, z: f.z + 0.5 * FT_TO_M };
-        state.furniture.push(dup);
-        rebuildFurniture();
-        renderPlacedFurniture();
-        updateHUD();
-        showToast('Furniture duplicated', 'success');
-      }
+      if (state.selectedId) duplicateFurniture(state.selectedId);
     });
-
     document.getElementById('propFurnitureResetRot').addEventListener('click', () => {
       const f = state.furniture.find(x => x.id === state.selectedId);
       if (f) {
         f.rotY = 0;
-        rebuildFurniture();
-        updatePropertiesPanel();
+        const m = furnitureMeshes[f.id];
+        if (m) m.group.rotation.y = 0;
+        renderProperties();
       }
     });
-
     document.getElementById('propFurnitureCenter').addEventListener('click', () => {
       const f = state.furniture.find(x => x.id === state.selectedId);
       if (f) {
-        f.x = 0;
-        f.z = 0;
-        rebuildFurniture();
-        updatePropertiesPanel();
+        const snapped = applySnap(f, 0, 0);
+        f.x = snapped.x; f.z = snapped.z; f.rotY = snapped.rotY;
+        const m = furnitureMeshes[f.id];
+        if (m) { m.group.position.set(f.x, 0, f.z); m.group.rotation.y = f.rotY; }
+        renderProperties();
       }
     });
 
-    /* ============ SAVE / LOAD / EXPORT ============ */
+    // Robot
+    document.getElementById('propRobotName').addEventListener('change', e => {
+      const r = state.robots.find(x => x.id === state.selectedId);
+      if (r) { r.name = e.target.value; renderRobotList(); renderTimeline(); renderProperties(); }
+    });
+    document.getElementById('propRobotHeight').addEventListener('change', e => {
+      const r = state.robots.find(x => x.id === state.selectedId);
+      if (r) {
+        r.height = clamp(parseFloat(e.target.value) || 1.0, 0.3, 2.5);
+        rebuildRobots();
+      }
+    });
+    document.getElementById('propRobotColor').addEventListener('change', e => {
+      const r = state.robots.find(x => x.id === state.selectedId);
+      if (r) {
+        r.color = e.target.value;
+        rebuildRobots();
+        renderRobotList();
+        renderTimeline();
+      }
+    });
+    document.getElementById('propRobotAddWaypoint').addEventListener('click', () => {
+      if (state.selectedType === 'robot') addWaypoint(state.selectedId, state.currentTime);
+    });
+    document.getElementById('propRobotAddGesture').addEventListener('click', () => {
+      if (state.selectedType === 'robot') addGesture(state.selectedId, state.currentTime);
+    });
+    document.getElementById('propRobotClearWaypoints').addEventListener('click', () => {
+      const r = state.robots.find(x => x.id === state.selectedId);
+      if (r && r.positionTrack.length > 1) {
+        const first = r.positionTrack.sort((a,b) => a.t - b.t)[0];
+        r.positionTrack = [first];
+        rebuildRobotPath(r);
+        renderRobotList();
+        renderTimeline();
+        renderProperties();
+        showToast('Path cleared', 'success');
+      }
+    });
+    document.getElementById('propRobotDelete').addEventListener('click', () => {
+      if (state.selectedType === 'robot') deleteRobot(state.selectedId);
+    });
+
+    // Gesture
+    document.getElementById('propGestureType').addEventListener('change', e => {
+      const r = state.robots.find(x => x.id === state.selectedId);
+      const g = r && r.gestureTrack.find(x => x.id === state.selectedSubId);
+      if (g) {
+        g.type = e.target.value;
+        renderTimeline();
+        renderProperties();
+      }
+    });
+    document.getElementById('propGestureStart').addEventListener('change', e => {
+      const r = state.robots.find(x => x.id === state.selectedId);
+      const g = r && r.gestureTrack.find(x => x.id === state.selectedSubId);
+      if (g) {
+        g.t = clamp(parseFloat(e.target.value) || 0, 0, state.duration - g.duration);
+        renderTimeline();
+      }
+    });
+    document.getElementById('propGestureDuration').addEventListener('change', e => {
+      const r = state.robots.find(x => x.id === state.selectedId);
+      const g = r && r.gestureTrack.find(x => x.id === state.selectedSubId);
+      if (g) {
+        g.duration = clamp(parseFloat(e.target.value) || 1, 0.2, state.duration - g.t);
+        renderTimeline();
+      }
+    });
+    document.getElementById('propGestureDelete').addEventListener('click', () => {
+      if (state.selectedType === 'gesture') handleDelete();
+    });
+
+    // Waypoint
+    document.getElementById('propWaypointTime').addEventListener('change', e => {
+      const r = state.robots.find(x => x.id === state.selectedId);
+      const wp = r && r.positionTrack.find(x => x.id === state.selectedSubId);
+      if (wp) {
+        wp.t = clamp(parseFloat(e.target.value) || 0, 0, state.duration);
+        rebuildRobotPath(r);
+        renderTimeline();
+      }
+    });
+    document.getElementById('propWaypointX').addEventListener('change', e => {
+      const r = state.robots.find(x => x.id === state.selectedId);
+      const wp = r && r.positionTrack.find(x => x.id === state.selectedSubId);
+      if (wp) {
+        const hw = ftToM(state.booth.widthFt) / 2;
+        wp.x = clamp(ftToM(parseFloat(e.target.value) || 0), -hw, hw);
+        rebuildRobotPath(r);
+        if (waypointMarkers[wp.id]) waypointMarkers[wp.id].position.x = wp.x;
+      }
+    });
+    document.getElementById('propWaypointZ').addEventListener('change', e => {
+      const r = state.robots.find(x => x.id === state.selectedId);
+      const wp = r && r.positionTrack.find(x => x.id === state.selectedSubId);
+      if (wp) {
+        const hd = ftToM(state.booth.depthFt) / 2;
+        wp.z = clamp(ftToM(parseFloat(e.target.value) || 0), -hd, hd);
+        rebuildRobotPath(r);
+        if (waypointMarkers[wp.id]) waypointMarkers[wp.id].position.z = wp.z;
+      }
+    });
+    document.getElementById('propWaypointRotY').addEventListener('change', e => {
+      const r = state.robots.find(x => x.id === state.selectedId);
+      const wp = r && r.positionTrack.find(x => x.id === state.selectedSubId);
+      if (wp) {
+        wp.rotY = (parseFloat(e.target.value) || 0) * Math.PI / 180;
+      }
+    });
+    document.getElementById('propWaypointDelete').addEventListener('click', () => {
+      if (state.selectedType === 'waypoint') handleDelete();
+    });
+
+    /* ============ SERIALIZATION ============ */
     function serializeScenario() {
       return {
-        schema: 'cloid-exhibition-sim-v0.2',
-        name: document.getElementById('scenarioName').value,
+        schema: SCHEMA_VERSION,
+        name: document.getElementById('scenarioName').value || 'Untitled',
         savedAt: new Date().toISOString(),
-        booth: state.booth,
+        booth: { ...state.booth },
         duration: state.duration,
-        furniture: state.furniture,
-        robots: state.robots,
+        furniture: state.furniture.map(f => ({
+          id: f.id, type: f.type, name: f.name,
+          x: f.x, z: f.z, rotY: f.rotY, scale: f.scale || 1.0,
+        })),
+        robots: state.robots.map(r => ({
+          id: r.id, type: r.type, name: r.name,
+          color: r.color, height: r.height, description: r.description || '',
+          positionTrack: r.positionTrack.map(p => ({ id: p.id, t: p.t, x: p.x, z: p.z, rotY: p.rotY })),
+          gestureTrack: (r.gestureTrack || []).map(g => ({
+            id: g.id, t: g.t, duration: g.duration, type: g.type, params: g.params || {},
+          })),
+        })),
       };
+    }
+
+    function deserializeScenario(data) {
+      let migrated = false;
+      if (data.schema === LEGACY_SCHEMA) {
+        // v0.1 → v0.2: waypoints → positionTrack, add empty gestureTrack, empty furniture
+        data.furniture = data.furniture || [];
+        data.robots = (data.robots || []).map(r => ({
+          ...r,
+          positionTrack: r.positionTrack || r.waypoints || [],
+          gestureTrack: r.gestureTrack || [],
+        }));
+        migrated = true;
+      }
+
+      state.booth = data.booth || state.booth;
+      state.duration = data.duration || 180;
+      state.furniture = (data.furniture || []).map(f => ({ ...f, scale: f.scale || 1.0 }));
+      state.robots = (data.robots || []).map(r => ({
+        ...r,
+        description: r.description || '',
+        positionTrack: (r.positionTrack || []).map(p => ({ ...p, id: p.id || generateId('p') })),
+        gestureTrack: (r.gestureTrack || []).map(g => ({ ...g, id: g.id || generateId('g'), params: g.params || {} })),
+      }));
+
+      rebuildBooth();
+      rebuildFurniture();
+      rebuildRobots();
+      renderPlacedFurniture();
+      renderRobotList();
+      renderBoothSettings();
+      renderTimeline();
+      updateHUD();
+      renderProperties();
+      if (migrated) showToast('Migrated from v0.1', 'warn');
     }
 
     document.getElementById('saveBtn').addEventListener('click', () => {
       const data = serializeScenario();
-      localStorage.setItem('cloid_scenario', JSON.stringify(data));
-      showToast('Scenario saved', 'success');
+      localStorage.setItem('cloid_scenario_v0_5', JSON.stringify(data));
+      showToast('Saved to browser', 'success');
     });
 
     document.getElementById('loadBtn').addEventListener('click', () => {
-      const saved = localStorage.getItem('cloid_scenario');
-      if (saved) {
-        const data = JSON.parse(saved);
-        document.getElementById('scenarioName').value = data.name;
-        state.booth = data.booth;
-        state.furniture = data.furniture || [];
-        state.robots = data.robots || [];
-        rebuildBooth();
-        rebuildFurniture();
-        renderPlacedFurniture();
-        updateHUD();
-        showToast('Scenario loaded', 'success');
-      } else {
-        showToast('No saved scenario found', 'error');
-      }
+      // Attempt to load from input file; fallback to localStorage
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json,application/json';
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const data = JSON.parse(ev.target.result);
+            deserializeScenario(data);
+            document.getElementById('scenarioName').value = data.name || 'Untitled';
+            showToast(`Loaded ${data.name || 'scenario'}`, 'success');
+          } catch (err) {
+            showToast('Load failed: ' + err.message, 'error');
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+
+      // Also offer localStorage if empty
+      setTimeout(() => {
+        if (state.furniture.length === 0 && state.robots.length === 0) {
+          const saved = localStorage.getItem('cloid_scenario_v0_5');
+          if (saved) {
+            try {
+              const data = JSON.parse(saved);
+              deserializeScenario(data);
+              document.getElementById('scenarioName').value = data.name || 'Untitled';
+              showToast(`Restored from browser`, 'success');
+            } catch (e) {}
+          }
+        }
+      }, 200);
     });
 
     document.getElementById('exportBtn').addEventListener('click', () => {
       const data = serializeScenario();
-      const json = JSON.stringify(data, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${data.name || 'scenario'}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      showToast('Scenario exported', 'success');
+      showToast('Exported', 'success');
     });
+
+    /* ============ D-DAY ============ */
+    // Compute a fake D-day from scenario name (deterministic silly counter)
+    function updateDDay() {
+      const nm = document.getElementById('scenarioName').value || '';
+      const base = nm.length > 0 ? 180 - (nm.charCodeAt(0) % 90) : 180;
+      document.getElementById('dday').textContent = `D-Day: ${base} days`;
+    }
+    document.getElementById('scenarioName').addEventListener('input', updateDDay);
 
     /* ============ ANIMATION LOOP ============ */
     function tick() {
       requestAnimationFrame(tick);
-
       if (state.playing) {
         state.currentTime += 1 / 60;
         if (state.currentTime > state.duration) {
           state.currentTime = 0;
         }
+        updatePlayhead();
       }
+
+      if (state.mode === 'choreo' || state.robots.length > 0) {
+        applyGestures(state.currentTime);
+      }
+
+      // Pulse experience zone corners
+      const pulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.003);
+      furnitureGroup.children.forEach(group => {
+        if (group.userData?.furnitureId) {
+          const f = state.furniture.find(x => x.id === group.userData.furnitureId);
+          if (f && f.type === 'EXPERIENCE_ZONE') {
+            group.children.forEach(c => {
+              if (c.material && c.material.emissive && c !== group.children[0]) {
+                c.material.emissiveIntensity = 0.5 + pulse * 0.8;
+              }
+            });
+          }
+        }
+      });
 
       renderer.render(scene, camera);
     }
 
-    /* ============ INITIALIZATION ============ */
-    window.addEventListener('resize', () => {
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
-    });
+    /* ============ RESIZE ============ */
+    window.addEventListener('resize', resizeRenderer);
+    const resizeObserver = new ResizeObserver(resizeRenderer);
+    resizeObserver.observe(canvas.parentElement);
 
-    rebuildBooth();
-    renderCatalog();
-    renderPlacedFurniture();
-    renderRobotList();
-    updateHUD();
-    tick();
+    /* ============ INIT ============ */
+    function init() {
+      resizeRenderer();
+      updateCamera();
+      rebuildBooth();
+      renderCatalog();
+      renderPlacedFurniture();
+      renderRobotCatalog();
+      renderRobotList();
+      renderBoothSettings();
+      renderCameraPresets();
+      renderTimeline();
+      updateHUD();
+      updateDDay();
+      renderProperties();
+      tick();
+      showToast('Ready — Tab to toggle BUILD/CHOREO', 'success');
+    }
 
-    showToast('Phase 0.5 initialized - Press TAB to toggle BUILD/CHOREO', 'success');
+    if (window.THREE) {
+      init();
+    } else {
+      // Should not happen since script is sync, but defensive
+      let tries = 0;
+      const wait = setInterval(() => {
+        tries++;
+        if (window.THREE) { clearInterval(wait); init(); }
+        else if (tries > 50) { clearInterval(wait); alert('THREE.js failed to load'); }
+      }, 100);
+    }
+  })();
   </script>
 </body>
 </html>
