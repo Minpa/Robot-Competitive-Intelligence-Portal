@@ -21,6 +21,7 @@ import {
   CheckSquare,
   Database,
   Presentation,
+  Boxes,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -74,6 +75,13 @@ const navigationGroups: NavGroup[] = [
       { name: 'LG 체크리스트', href: '/compliance/checklist', icon: CheckSquare },
       { name: '규제 상세 DB', href: '/compliance/regulations', icon: Database },
       { name: '규제 문서 라이브러리', href: '/compliance/documents', icon: FileText },
+    ],
+  },
+  {
+    title: '프로토타입',
+    subtitle: 'Prototypes',
+    items: [
+      { name: 'CLOiD 전시 시뮬레이터', href: '/cloid-simulator', icon: Boxes },
     ],
   },
   {
