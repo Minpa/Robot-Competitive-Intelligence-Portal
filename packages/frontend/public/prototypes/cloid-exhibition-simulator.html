@@ -1281,362 +1281,412 @@
 
     /* ============ ROBOT BUILDERS ============ */
     function buildHumanoid(color, height) {
-      // CLOiD — LG humanoid visual ID: white polymer body, LG red accents,
-      // cyan eyes/chest display. The `color` param drives the user-visible
-      // accent stripes so each robot instance stays distinguishable.
+      // CLOiD — LG mobile manipulator: wheeled drum base, slim white torso
+      // with chest camera module, articulated arms with 3-finger grippers,
+      // tablet-style black display head. Named parts retained so the
+      // gesture engine keeps working (legL/legR are empty groups — no legs).
       const root = new THREE.Group();
       const parts = {};
-      const accentCol = new THREE.Color(color);
       const H = height;
 
-      const matBody   = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.35, metalness: 0.25 });
-      const matPanel  = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.42, metalness: 0.30 });
-      const matShell  = new THREE.MeshStandardMaterial({ color: 0xdedede, roughness: 0.30, metalness: 0.55 });
-      const matJoint  = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.55, metalness: 0.55 });
-      const matAccent = new THREE.MeshStandardMaterial({
-        color: accentCol, roughness: 0.35, metalness: 0.5,
-        emissive: accentCol, emissiveIntensity: 0.18,
-      });
-      const matEye    = new THREE.MeshStandardMaterial({
-        color: 0x00D9FF, emissive: 0x00D9FF, emissiveIntensity: 1.5,
-      });
-      const matVisor  = new THREE.MeshStandardMaterial({
-        color: 0x0a0a0a, roughness: 0.15, metalness: 0.85,
+      const matWhite  = new THREE.MeshStandardMaterial({ color: 0xf4f4f4, roughness: 0.40, metalness: 0.18 });
+      const matShell  = new THREE.MeshStandardMaterial({ color: 0xe2e2e2, roughness: 0.32, metalness: 0.40 });
+      const matSilver = new THREE.MeshStandardMaterial({ color: 0x9a9a9a, roughness: 0.32, metalness: 0.75 });
+      const matDark   = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.50, metalness: 0.55 });
+      const matJoint  = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.55, metalness: 0.55 });
+      const matLens   = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.15, metalness: 0.9 });
+      const matGlass  = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.1, metalness: 0.95 });
+      const matEye    = new THREE.MeshStandardMaterial({ color: 0x00D9FF, emissive: 0x00D9FF, emissiveIntensity: 1.6 });
+
+      // ============ WHEELED DRUM BASE ============
+      const baseH = H * 0.23;
+      const baseTopR = H * 0.135;
+      const baseBotR = H * 0.165;
+
+      // Bottom silver ring
+      const baseRim = new THREE.Mesh(
+        new THREE.CylinderGeometry(baseBotR + 0.005, baseBotR, 0.03, 40),
+        matSilver
+      );
+      baseRim.position.y = 0.015;
+      baseRim.castShadow = true; baseRim.receiveShadow = true;
+      root.add(baseRim);
+
+      // Main white drum (tapered slightly)
+      const baseDrum = new THREE.Mesh(
+        new THREE.CylinderGeometry(baseTopR, baseBotR, baseH - 0.06, 40),
+        matWhite
+      );
+      baseDrum.position.y = 0.03 + (baseH - 0.06) / 2;
+      baseDrum.castShadow = true; baseDrum.receiveShadow = true;
+      root.add(baseDrum);
+
+      // Dark front sensor recess (front-facing strip)
+      const frontSensor = new THREE.Mesh(
+        new THREE.BoxGeometry(baseBotR * 1.05, 0.08, 0.025),
+        matLens
+      );
+      frontSensor.position.set(0, 0.12, baseBotR - 0.01);
+      root.add(frontSensor);
+      // Lidar-style silver ring on lower base
+      const lidarRing = new THREE.Mesh(
+        new THREE.TorusGeometry(baseBotR + 0.002, 0.006, 8, 48),
+        matSilver
+      );
+      lidarRing.rotation.x = Math.PI / 2;
+      lidarRing.position.y = 0.07;
+      root.add(lidarRing);
+
+      // Wheel housings (two shallow recesses on sides, bottom)
+      [-1, 1].forEach(s => {
+        const housing = new THREE.Mesh(
+          new THREE.BoxGeometry(0.05, 0.06, 0.1),
+          matDark
+        );
+        housing.position.set(s * (baseBotR - 0.015), 0.05, 0.0);
+        root.add(housing);
+        // Wheel
+        const wheel = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.045, 0.045, 0.04, 20),
+          matDark
+        );
+        wheel.rotation.z = Math.PI / 2;
+        wheel.position.set(s * (baseBotR - 0.01), 0.045, 0);
+        root.add(wheel);
       });
 
-      const hipY   = H * 0.49;   // hip joint height in world
-      const bodyY  = H * 0.56;   // torso group pivot
-      const headY  = H * 0.32;   // head relative to torso pivot
+      // Top groove + shoulder line on base
+      const baseTopGroove = new THREE.Mesh(
+        new THREE.TorusGeometry(baseTopR - 0.003, 0.01, 8, 48),
+        matDark
+      );
+      baseTopGroove.rotation.x = Math.PI / 2;
+      baseTopGroove.position.y = baseH - 0.06;
+      root.add(baseTopGroove);
 
-      // ============ LEGS ============
+      // Top cap (gentle dome transitioning to torso)
+      const baseCap = new THREE.Mesh(
+        new THREE.SphereGeometry(baseTopR, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.4),
+        matWhite
+      );
+      baseCap.position.y = baseH - 0.06;
+      baseCap.castShadow = true;
+      root.add(baseCap);
+
+      // ============ EMPTY LEG GROUPS (gesture-engine compatibility) ============
       const legsGroup = new THREE.Group();
       legsGroup.name = 'legs';
       root.add(legsGroup);
       parts.legs = legsGroup;
+      const legL = new THREE.Group(); legL.name = 'legL'; legsGroup.add(legL); parts.legL = legL;
+      const legR = new THREE.Group(); legR.name = 'legR'; legsGroup.add(legR); parts.legR = legR;
 
-      function makeLeg(side) {
-        const g = new THREE.Group();
-        g.name = side === 1 ? 'legR' : 'legL';
-        g.position.set(side * 0.085, hipY, 0);
-
-        // Hip joint ball
-        const hip = new THREE.Mesh(new THREE.SphereGeometry(0.06, 14, 10), matJoint);
-        hip.castShadow = true;
-        g.add(hip);
-
-        // Upper thigh shroud (slightly trapezoidal via cylinder taper)
-        const thigh = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.072, 0.062, H * 0.21, 14),
-          matBody
-        );
-        thigh.position.y = -H * 0.11;
-        thigh.castShadow = true;
-        g.add(thigh);
-
-        // Vertical accent stripe on outer thigh
-        const thighStripe = new THREE.Mesh(
-          new THREE.BoxGeometry(0.012, H * 0.18, 0.012),
-          matAccent
-        );
-        thighStripe.position.set(side * 0.068, -H * 0.11, 0);
-        g.add(thighStripe);
-
-        // Knee joint (darker mechanical ring)
-        const knee = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.058, 0.058, 0.04, 14),
-          matJoint
-        );
-        knee.position.y = -H * 0.225;
-        g.add(knee);
-        const kneeCap = new THREE.Mesh(
-          new THREE.SphereGeometry(0.058, 14, 10),
-          matShell
-        );
-        kneeCap.position.set(0, -H * 0.225, 0.055);
-        g.add(kneeCap);
-
-        // Shin
-        const shin = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.058, 0.052, H * 0.20, 14),
-          matPanel
-        );
-        shin.position.y = -H * 0.33;
-        shin.castShadow = true;
-        g.add(shin);
-
-        // Shin accent ring
-        const shinRing = new THREE.Mesh(
-          new THREE.TorusGeometry(0.054, 0.006, 6, 24),
-          matAccent
-        );
-        shinRing.rotation.x = Math.PI / 2;
-        shinRing.position.y = -H * 0.28;
-        g.add(shinRing);
-
-        // Ankle joint
-        const ankle = new THREE.Mesh(new THREE.SphereGeometry(0.048, 12, 10), matJoint);
-        ankle.position.y = -H * 0.435;
-        g.add(ankle);
-
-        // Boot (extends forward at the toe)
-        const boot = new THREE.Mesh(new THREE.BoxGeometry(0.115, 0.06, 0.23), matBody);
-        boot.position.set(0, -H * 0.465, 0.035);
-        boot.castShadow = true;
-        g.add(boot);
-
-        // Sole (black tread)
-        const sole = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.018, 0.24), matJoint);
-        sole.position.set(0, -H * 0.490, 0.035);
-        g.add(sole);
-
-        // Toe-cap accent
-        const toe = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.018, 0.022), matAccent);
-        toe.position.set(0, -H * 0.478, 0.145);
-        g.add(toe);
-
-        return g;
-      }
-
-      const legL = makeLeg(-1);
-      const legR = makeLeg(1);
-      legsGroup.add(legL); legsGroup.add(legR);
-      parts.legL = legL; parts.legR = legR;
-
-      // ============ PELVIS ============
-      const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.12, 0.19), matPanel);
-      pelvis.position.y = hipY + 0.04;
-      pelvis.castShadow = true;
-      root.add(pelvis);
-      const pelvisBelt = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.018, 0.195), matAccent);
-      pelvisBelt.position.y = hipY + 0.008;
-      root.add(pelvisBelt);
+      // ============ TORSO NECK / PELVIS TRANSITION ============
+      const waistY = baseH - 0.02;
+      const waistNeck = new THREE.Mesh(
+        new THREE.CylinderGeometry(baseTopR * 0.55, baseTopR * 0.85, H * 0.07, 20),
+        matShell
+      );
+      waistNeck.position.y = waistY + (H * 0.07) / 2;
+      waistNeck.castShadow = true;
+      root.add(waistNeck);
 
       // ============ TORSO (root_body) ============
+      const bodyY = waistY + H * 0.15;
       const body = new THREE.Group();
       body.name = 'root_body';
       body.position.y = bodyY;
       root.add(body);
       parts.root_body = body;
 
-      // Chest (wider at shoulders)
-      const chest = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.20, 0.23), matBody);
-      chest.position.y = 0.08;
-      chest.castShadow = true;
-      body.add(chest);
+      // Lower torso (rounded rectangular, tapered to waist)
+      const torsoLow = new THREE.Mesh(
+        new THREE.BoxGeometry(0.26, H * 0.12, 0.20),
+        matShell
+      );
+      torsoLow.position.y = -H * 0.06;
+      torsoLow.castShadow = true;
+      body.add(torsoLow);
 
-      // Mid torso (waist narrower)
-      const waist = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.15, 0.20), matPanel);
-      waist.position.y = -0.08;
-      waist.castShadow = true;
-      body.add(waist);
+      // Main torso — slim, slightly wider at shoulders
+      const torsoMain = new THREE.Mesh(
+        new THREE.BoxGeometry(0.30, H * 0.22, 0.21),
+        matWhite
+      );
+      torsoMain.position.y = H * 0.06;
+      torsoMain.castShadow = true;
+      body.add(torsoMain);
 
-      // Chest plate (slightly proud, gives definition)
-      const chestPlate = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.16, 0.015), matShell);
-      chestPlate.position.set(0, 0.08, 0.117);
+      // Front chest plate (slightly offset, gives rounded-rect feel)
+      const chestPlate = new THREE.Mesh(
+        new THREE.BoxGeometry(0.25, H * 0.18, 0.01),
+        matWhite
+      );
+      chestPlate.position.set(0, H * 0.05, 0.108);
       body.add(chestPlate);
 
-      // Chest status display (emissive cyan)
-      const display = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.05, 0.008), matEye);
-      display.position.set(0, 0.12, 0.126);
-      body.add(display);
-      // "LG" logo panel
+      // Central chest camera module — black circular
+      const camHousing = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.05, 0.04, 28),
+        matDark
+      );
+      camHousing.rotation.x = Math.PI / 2;
+      camHousing.position.set(0, H * 0.02, 0.115);
+      body.add(camHousing);
+      const camRim = new THREE.Mesh(
+        new THREE.TorusGeometry(0.05, 0.007, 8, 28),
+        matSilver
+      );
+      camRim.position.set(0, H * 0.02, 0.135);
+      body.add(camRim);
+      const camLens = new THREE.Mesh(
+        new THREE.CircleGeometry(0.035, 28),
+        matLens
+      );
+      camLens.position.set(0, H * 0.02, 0.138);
+      body.add(camLens);
+      // Tiny red glint in lens
+      const camGlint = new THREE.Mesh(
+        new THREE.CircleGeometry(0.006, 12),
+        new THREE.MeshStandardMaterial({ color: 0xE63950, emissive: 0xE63950, emissiveIntensity: 1.2 })
+      );
+      camGlint.position.set(0.012, H * 0.025, 0.139);
+      body.add(camGlint);
+
+      // Vertical center seam line
+      const seam = new THREE.Mesh(
+        new THREE.BoxGeometry(0.004, H * 0.20, 0.003),
+        matDark
+      );
+      seam.position.set(0, H * 0.05, 0.115);
+      body.add(seam);
+
+      // Small LG logo plate at upper chest
       const logoCanvas = document.createElement('canvas');
       logoCanvas.width = 128; logoCanvas.height = 64;
       const lctx = logoCanvas.getContext('2d');
-      lctx.fillStyle = '#eeeeee'; lctx.fillRect(0, 0, 128, 64);
-      lctx.fillStyle = '#E63950';
-      lctx.font = 'bold 44px IBM Plex Sans, sans-serif';
+      lctx.fillStyle = '#f4f4f4'; lctx.fillRect(0, 0, 128, 64);
+      lctx.fillStyle = '#A50034';
+      lctx.font = 'bold 42px IBM Plex Sans, sans-serif';
       lctx.textAlign = 'center'; lctx.textBaseline = 'middle';
       lctx.fillText('LG', 64, 34);
       const logoTex = new THREE.CanvasTexture(logoCanvas);
-      const logoMat = new THREE.MeshStandardMaterial({ map: logoTex, roughness: 0.5 });
-      const logo = new THREE.Mesh(new THREE.PlaneGeometry(0.06, 0.03), logoMat);
-      logo.position.set(0, 0.04, 0.127);
+      const logoMat = new THREE.MeshStandardMaterial({ map: logoTex, roughness: 0.6 });
+      const logo = new THREE.Mesh(new THREE.PlaneGeometry(0.04, 0.02), logoMat);
+      logo.position.set(0, H * 0.12, 0.116);
       body.add(logo);
 
-      // Diagonal accent stripes (LG-ish)
-      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.012, 0.005), matAccent);
-      stripe.position.set(0, -0.01, 0.122);
-      body.add(stripe);
-
-      // Shoulder pauldrons (rounded domes)
-      [-1, 1].forEach(s => {
-        const pauldron = new THREE.Mesh(
-          new THREE.SphereGeometry(0.095, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2),
-          matBody
-        );
-        pauldron.position.set(s * 0.215, 0.16, 0);
-        pauldron.rotation.z = s * -0.05;
-        pauldron.castShadow = true;
-        body.add(pauldron);
-
-        const pauldronRim = new THREE.Mesh(
-          new THREE.TorusGeometry(0.09, 0.008, 6, 20),
-          matAccent
-        );
-        pauldronRim.rotation.x = Math.PI / 2;
-        pauldronRim.position.set(s * 0.215, 0.16, 0);
-        body.add(pauldronRim);
-      });
-
-      // Back pack unit
-      const backpack = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.32, 0.06), matPanel);
-      backpack.position.set(0, 0.04, -0.125);
-      backpack.castShadow = true;
-      body.add(backpack);
-      // Cooling vent lines on backpack
-      for (let i = 0; i < 4; i++) {
-        const vent = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.008, 0.002), matJoint);
-        vent.position.set(0, 0.12 - i * 0.05, -0.156);
-        body.add(vent);
-      }
+      // Upper shoulder yoke (slight hump)
+      const shoulderYoke = new THREE.Mesh(
+        new THREE.BoxGeometry(0.34, H * 0.06, 0.20),
+        matWhite
+      );
+      shoulderYoke.position.y = H * 0.195;
+      shoulderYoke.castShadow = true;
+      body.add(shoulderYoke);
 
       // ============ HEAD ============
       const head = new THREE.Group();
       head.name = 'head';
-      head.position.y = headY;
+      head.position.y = H * 0.25; // relative to body pivot
       body.add(head);
       parts.head = head;
 
-      // Neck
+      // Short dark neck
       const neck = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.042, 0.048, 0.05, 12),
-        matJoint
+        new THREE.CylinderGeometry(0.035, 0.04, H * 0.04, 18),
+        matDark
       );
-      neck.position.y = -0.075;
+      neck.position.y = 0.01;
       head.add(neck);
 
-      // Head dome (slightly oval)
-      const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.125, 24, 18), matBody);
-      headMesh.scale.set(1, 1.05, 0.98);
-      headMesh.castShadow = true;
-      head.add(headMesh);
+      // Main tablet display (rounded rectangle via slightly scaled box)
+      const displayW = H * 0.13;
+      const displayHh = H * 0.10;
+      const displayD = H * 0.055;
 
-      // Face plate (dark visor wraps front of head)
-      const visorGeo = new THREE.SphereGeometry(
-        0.127, 24, 18,
-        Math.PI * 0.30, Math.PI * 0.40,
-        Math.PI * 0.38, Math.PI * 0.28
+      // White mounting bracket (frame around display)
+      const bracket = new THREE.Mesh(
+        new THREE.BoxGeometry(displayW + 0.015, displayHh + 0.015, displayD + 0.01),
+        matWhite
       );
-      const visor = new THREE.Mesh(visorGeo, matVisor);
-      visor.scale.set(1, 1.05, 0.98);
-      head.add(visor);
+      bracket.position.y = H * 0.075;
+      bracket.castShadow = true;
+      head.add(bracket);
 
-      // Eyes (two glowing cyan dots behind visor)
-      [-1, 1].forEach(s => {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.017, 12, 10), matEye);
-        eye.position.set(s * 0.035, 0.008, 0.118);
+      // Black glossy display face
+      const displayBody = new THREE.Mesh(
+        new THREE.BoxGeometry(displayW, displayHh, displayD),
+        matDark
+      );
+      displayBody.position.y = H * 0.075;
+      displayBody.castShadow = true;
+      head.add(displayBody);
+
+      // Glass front of the display
+      const glass = new THREE.Mesh(
+        new THREE.BoxGeometry(displayW - 0.008, displayHh - 0.008, 0.004),
+        matGlass
+      );
+      glass.position.set(0, H * 0.075, displayD / 2 + 0.0025);
+      head.add(glass);
+
+      // Camera array (4 small lens dots across top)
+      [[-0.032, 0.022], [0.032, 0.022], [-0.016, 0.022], [0.016, 0.022]].forEach(([x, y]) => {
+        const dot = new THREE.Mesh(
+          new THREE.CircleGeometry(0.0055, 12),
+          matSilver
+        );
+        dot.position.set(x, H * 0.075 + y, displayD / 2 + 0.003);
+        head.add(dot);
+      });
+
+      // Subtle cyan eye glow (two) — CLOiD keeps these quiet
+      [-0.022, 0.022].forEach(x => {
+        const eye = new THREE.Mesh(
+          new THREE.CircleGeometry(0.009, 14),
+          matEye
+        );
+        eye.position.set(x, H * 0.075, displayD / 2 + 0.0035);
         head.add(eye);
       });
 
-      // Top antenna + blinking red tip
-      const antennaBase = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.012, 0.015, 0.02, 8), matJoint
+      // Tiny cheek status dot (center-bottom)
+      const cheekDot = new THREE.Mesh(
+        new THREE.CircleGeometry(0.005, 10),
+        new THREE.MeshStandardMaterial({ color: 0xE63950, emissive: 0xE63950, emissiveIntensity: 0.9 })
       );
-      antennaBase.position.y = 0.135;
-      head.add(antennaBase);
-      const antenna = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.006, 0.008, 0.055, 8), matJoint
-      );
-      antenna.position.y = 0.17;
-      head.add(antenna);
-      const antennaTip = new THREE.Mesh(
-        new THREE.SphereGeometry(0.014, 10, 8), matAccent
-      );
-      antennaTip.position.y = 0.205;
-      head.add(antennaTip);
+      cheekDot.position.set(0, H * 0.075 - 0.028, displayD / 2 + 0.003);
+      head.add(cheekDot);
 
-      // Ear modules (side sensors)
-      [-1, 1].forEach(s => {
-        const ear = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.022, 0.022, 0.04, 16), matJoint
-        );
-        ear.rotation.z = Math.PI / 2;
-        ear.position.set(s * 0.122, 0.0, 0);
-        head.add(ear);
-        const earRing = new THREE.Mesh(
-          new THREE.TorusGeometry(0.018, 0.004, 6, 16), matAccent
-        );
-        earRing.rotation.y = Math.PI / 2;
-        earRing.position.set(s * 0.145, 0, 0);
-        head.add(earRing);
-      });
-
-      // Chin underside
-      const chin = new THREE.Mesh(
-        new THREE.SphereGeometry(0.095, 12, 8, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5),
-        matPanel
+      // Top silver strip on display
+      const topStrip = new THREE.Mesh(
+        new THREE.BoxGeometry(displayW - 0.002, 0.006, displayD - 0.002),
+        matSilver
       );
-      chin.position.y = -0.05;
-      head.add(chin);
+      topStrip.position.y = H * 0.075 + displayHh / 2 + 0.003;
+      head.add(topStrip);
 
       // ============ ARMS ============
       function makeArm(side) {
         const g = new THREE.Group();
         g.name = side === 1 ? 'armR' : 'armL';
-        // Shoulder pivot is inside pauldron dome
-        g.position.set(side * 0.22, 0.1, 0);
+        // Shoulder pivot — inside/under the shoulder yoke
+        g.position.set(side * 0.175, H * 0.19, 0);
 
-        // Shoulder joint cap
-        const sh = new THREE.Mesh(new THREE.SphereGeometry(0.052, 14, 10), matJoint);
-        g.add(sh);
-
-        // Upper arm
-        const upper = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.045, 0.042, H * 0.17, 14), matBody
+        // Shoulder joint sleeve (horizontal dark cylinder — visible mechanical joint)
+        const shSleeve = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.06, 0.06, 0.055, 20),
+          matJoint
         );
-        upper.position.y = -H * 0.085;
+        shSleeve.rotation.z = Math.PI / 2;
+        g.add(shSleeve);
+
+        // Shoulder white cap over the sleeve
+        const shCap = new THREE.Mesh(
+          new THREE.SphereGeometry(0.062, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.55),
+          matWhite
+        );
+        shCap.position.set(side * 0.01, 0.015, 0);
+        shCap.castShadow = true;
+        g.add(shCap);
+
+        // Upper arm — slim tapered white cylinder
+        const upper = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.042, 0.035, H * 0.22, 16),
+          matWhite
+        );
+        upper.position.y = -H * 0.11;
         upper.castShadow = true;
         g.add(upper);
 
-        // Elbow
-        const elbow = new THREE.Mesh(new THREE.SphereGeometry(0.044, 12, 10), matJoint);
-        elbow.position.y = -H * 0.175;
+        // Elbow sleeve (dark horizontal mechanical joint)
+        const elbow = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.045, 0.045, 0.055, 20),
+          matJoint
+        );
+        elbow.rotation.z = Math.PI / 2;
+        elbow.position.y = -H * 0.225;
         g.add(elbow);
-        const elbowCap = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 10), matShell);
-        elbowCap.position.set(side * 0.02, -H * 0.175, -0.02);
+        const elbowCap = new THREE.Mesh(
+          new THREE.SphereGeometry(0.047, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55),
+          matWhite
+        );
+        elbowCap.rotation.x = Math.PI;
+        elbowCap.position.y = -H * 0.225;
         g.add(elbowCap);
 
-        // Forearm
+        // Forearm — slightly shorter, tapered
         const fore = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.042, 0.038, H * 0.16, 14), matPanel
+          new THREE.CylinderGeometry(0.035, 0.031, H * 0.20, 16),
+          matWhite
         );
-        fore.position.y = -H * 0.255;
+        fore.position.y = -H * 0.33;
         fore.castShadow = true;
         g.add(fore);
 
-        // Forearm accent ring
-        const foreRing = new THREE.Mesh(
-          new THREE.TorusGeometry(0.042, 0.006, 6, 20), matAccent
+        // Silver band on forearm
+        const band = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.036, 0.036, 0.012, 20),
+          matSilver
         );
-        foreRing.rotation.x = Math.PI / 2;
-        foreRing.position.y = -H * 0.215;
-        g.add(foreRing);
+        band.position.y = -H * 0.28;
+        g.add(band);
 
-        // Wrist
-        const wrist = new THREE.Mesh(new THREE.SphereGeometry(0.036, 12, 10), matJoint);
-        wrist.position.y = -H * 0.335;
+        // Wrist sleeve (dark)
+        const wrist = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.033, 0.033, 0.04, 18),
+          matJoint
+        );
+        wrist.position.y = -H * 0.435;
         g.add(wrist);
 
-        // Hand (palm)
-        const palm = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.085, 0.04), matBody);
-        palm.position.y = -H * 0.385;
+        // Hand — palm base (dark, squarish)
+        const palm = new THREE.Mesh(
+          new THREE.BoxGeometry(0.05, 0.045, 0.045),
+          matDark
+        );
+        palm.position.y = -H * 0.465;
         palm.castShadow = true;
         g.add(palm);
 
-        // Knuckle line accent
-        const knuckle = new THREE.Mesh(
-          new THREE.BoxGeometry(0.055, 0.006, 0.042), matAccent
+        // 3-finger gripper (two forward, one opposing thumb)
+        const fingerMat = matDark;
+        // Index finger — forward, slightly curved inward
+        const f1 = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.007, 0.006, 0.08, 10),
+          fingerMat
         );
-        knuckle.position.y = -H * 0.42;
-        g.add(knuckle);
+        f1.position.set(0.012, -H * 0.505, 0.018);
+        f1.rotation.x = -0.3;
+        g.add(f1);
+        const f1Tip = new THREE.Mesh(new THREE.SphereGeometry(0.008, 10, 8), fingerMat);
+        f1Tip.position.set(0.025, -H * 0.54, 0.035);
+        g.add(f1Tip);
 
-        // Thumb nub
-        const thumb = new THREE.Mesh(
-          new THREE.BoxGeometry(0.02, 0.04, 0.025), matBody
+        // Middle finger — parallel, shorter
+        const f2 = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.007, 0.006, 0.08, 10),
+          fingerMat
         );
-        thumb.position.set(-side * 0.03, -H * 0.378, 0.008);
+        f2.position.set(-0.012, -H * 0.505, 0.018);
+        f2.rotation.x = -0.3;
+        g.add(f2);
+        const f2Tip = new THREE.Mesh(new THREE.SphereGeometry(0.008, 10, 8), fingerMat);
+        f2Tip.position.set(-0.025, -H * 0.54, 0.035);
+        g.add(f2Tip);
+
+        // Opposing thumb — other side, curls inward
+        const thumb = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.007, 0.006, 0.065, 10),
+          fingerMat
+        );
+        thumb.position.set(0, -H * 0.498, -0.02);
+        thumb.rotation.x = 0.35;
         g.add(thumb);
+        const thumbTip = new THREE.Mesh(new THREE.SphereGeometry(0.008, 10, 8), fingerMat);
+        thumbTip.position.set(0, -H * 0.525, -0.035);
+        g.add(thumbTip);
 
         return g;
       }
