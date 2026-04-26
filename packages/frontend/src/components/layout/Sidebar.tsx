@@ -22,7 +22,6 @@ import {
   Database,
   Presentation,
   Boxes,
-  Wrench,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -83,7 +82,6 @@ const navigationGroups: NavGroup[] = [
     subtitle: 'Prototypes',
     items: [
       { name: 'CLOiD 전시 시뮬레이터', href: '/cloid-simulator', icon: Boxes },
-      { name: '청소기+팔 Feasibility', href: '/vacuum-arm-sim', icon: Wrench },
     ],
   },
   {

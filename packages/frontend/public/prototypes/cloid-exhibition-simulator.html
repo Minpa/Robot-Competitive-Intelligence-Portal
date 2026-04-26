@@ -131,7 +131,22 @@
       color: var(--text-tertiary); font-size: 10px;
     }
 
-    .catalog-grid { display: grid; grid-template-columns: 1fr; gap: 4px; }
+    .catalog-grid { display: flex; flex-direction: column; gap: 3px; }
+    .catalog-category-head {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 9px 4px 4px 4px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9.5px; font-weight: 600;
+      letter-spacing: 1.5px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--bg-3);
+      margin-top: 4px;
+    }
+    .catalog-category-head:first-child { margin-top: 0; }
+    .catalog-category-head .cat-count {
+      color: var(--text-tertiary); font-weight: 400;
+    }
     .catalog-item {
       padding: 8px 10px;
       background: var(--bg-2);
@@ -201,6 +216,126 @@
     .btn-secondary:hover { background: var(--bg-3); border-color: var(--cyan); color: var(--cyan); }
     .btn-secondary.danger { color: var(--error); }
     .btn-secondary.danger:hover { border-color: var(--error); background: rgba(239, 68, 68, 0.1); color: var(--error); }
+
+    /* ============ SPEC MODE PANELS ============ */
+    .spec-slider-row { margin-bottom: 9px; }
+    .spec-slider-label {
+      display: flex; justify-content: space-between;
+      font-size: 11px; color: var(--text-secondary);
+      margin-bottom: 3px;
+    }
+    .spec-slider-label .v {
+      color: var(--text-primary);
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 500;
+    }
+    .spec-slider {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 3px;
+      background: var(--bg-3); border-radius: 2px;
+      outline: none;
+    }
+    .spec-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 12px; height: 12px;
+      background: var(--cyan); border-radius: 50%;
+      cursor: pointer;
+    }
+    .spec-slider::-moz-range-thumb {
+      width: 12px; height: 12px;
+      background: var(--cyan); border-radius: 50%;
+      border: none; cursor: pointer;
+    }
+    .spec-toggle-chip {
+      width: 100%; padding: 6px 10px;
+      background: var(--bg-2);
+      border: 1px solid var(--bg-3);
+      color: var(--text-secondary);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; letter-spacing: 0.8px;
+      cursor: pointer; border-radius: 2px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .spec-toggle-chip.active {
+      color: var(--cyan); border-color: var(--cyan);
+      background: rgba(0, 217, 255, 0.06);
+    }
+    .spec-summary {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px; margin-bottom: 12px;
+    }
+    .spec-summary-cell {
+      padding: 8px 6px; text-align: center;
+      background: var(--bg-2); border: 1px solid var(--bg-3);
+      border-radius: 2px;
+    }
+    .spec-summary-cell .num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 18px; font-weight: 600;
+    }
+    .spec-summary-cell .lab {
+      font-size: 9px; color: var(--text-tertiary);
+      letter-spacing: 1px; text-transform: uppercase; margin-top: 2px;
+    }
+    .spec-summary-cell.pass .num { color: var(--success); }
+    .spec-summary-cell.warn .num { color: var(--warn); }
+    .spec-summary-cell.fail .num { color: var(--error); }
+    .spec-risk-card {
+      padding: 7px 9px; margin-bottom: 4px;
+      background: var(--bg-2); border: 1px solid var(--bg-3);
+      border-radius: 2px;
+    }
+    .spec-risk-card.pass { border-left: 3px solid var(--success); }
+    .spec-risk-card.warn { border-left: 3px solid var(--warn); }
+    .spec-risk-card.fail { border-left: 3px solid var(--error); }
+    .spec-risk-head {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px;
+    }
+    .spec-risk-head .name { flex: 1; }
+    .spec-risk-head .sym {
+      width: 16px; text-align: center;
+      font-family: 'IBM Plex Mono', monospace; font-weight: 600;
+    }
+    .spec-risk-head .sym.pass { color: var(--success); }
+    .spec-risk-head .sym.warn { color: var(--warn); }
+    .spec-risk-head .sym.fail { color: var(--error); }
+    .spec-risk-detail {
+      margin-top: 4px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9.5px;
+      color: var(--text-tertiary);
+      line-height: 1.5;
+    }
+    .spec-risk-fix {
+      margin-top: 5px; padding: 4px 6px;
+      background: rgba(245, 158, 11, 0.07);
+      border-left: 2px solid var(--warn);
+      font-size: 9.5px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+    .spec-risk-fix.fail {
+      background: rgba(239, 68, 68, 0.07);
+      border-left-color: var(--error);
+    }
+    /* Build-mode embedded spec preview */
+    .build-spec-preview {
+      padding: 6px 8px; margin-top: 8px;
+      background: var(--bg-2); border: 1px solid var(--bg-3);
+      border-radius: 2px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+    .build-spec-preview .row {
+      display: flex; justify-content: space-between;
+      margin: 1px 0;
+    }
+    .build-spec-preview .v.pass { color: var(--success); }
+    .build-spec-preview .v.warn { color: var(--warn); }
+    .build-spec-preview .v.fail { color: var(--error); }
 
     /* ============ VIEWPORT ============ */
     .viewport {
@@ -525,6 +660,7 @@
         <div class="mode-toggle">
           <button class="active" data-mode="build">BUILD</button>
           <button data-mode="choreo">CHOREO</button>
+          <button data-mode="spec">SPEC</button>
         </div>
       </div>
       <div class="topbar-right">
@@ -555,6 +691,30 @@
         <div class="sidebar-section">
           <div class="sidebar-section-title">Camera</div>
           <div class="camera-grid" id="cameraPresets"></div>
+        </div>
+      </div>
+
+      <!-- SPEC MODE -->
+      <div id="specMode" style="display: none;">
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">로봇 베이스</div>
+          <div id="specBasePanel"></div>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">팔 (Arm)</div>
+          <div id="specArmPanel"></div>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">그리퍼 (End Effector)</div>
+          <div id="specGripperPanel"></div>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Spec 프리셋</div>
+          <div id="specPresetPanel"></div>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">시각화 토글</div>
+          <div id="specToggles"></div>
         </div>
       </div>
 
@@ -709,6 +869,30 @@
         </div>
       </div>
 
+      <div id="propertiesSpec" class="properties-panel">
+        <div class="panel-heading">Spec → Risk</div>
+        <div class="panel-subheading" id="propSpecSubhead">로봇 스펙 → 가구 도달성</div>
+        <div class="spec-summary">
+          <div class="spec-summary-cell pass"><div class="num" id="specPass">0</div><div class="lab">PASS</div></div>
+          <div class="spec-summary-cell warn"><div class="num" id="specWarn">0</div><div class="lab">WARN</div></div>
+          <div class="spec-summary-cell fail"><div class="num" id="specFail">0</div><div class="lab">FAIL</div></div>
+        </div>
+        <div class="form-row">
+          <label>로봇 앵커 위치</label>
+          <div class="property-value" id="propSpecAnchor">-</div>
+        </div>
+        <div class="form-row">
+          <label>도달 / 최소도달</label>
+          <div class="property-value" id="propSpecReach">-</div>
+        </div>
+        <div class="form-row">
+          <label>팔 추정 무게</label>
+          <div class="property-value" id="propSpecArmMass">-</div>
+        </div>
+        <div class="sidebar-section-title" style="margin-top: 14px; margin-bottom: 8px">PLACED 가구 평가</div>
+        <div id="specRiskList"></div>
+      </div>
+
       <div id="propertiesWaypoint" class="properties-panel">
         <div class="panel-heading">Waypoint</div>
         <div class="panel-subheading" id="propWaypointSubhead">-</div>
@@ -778,34 +962,132 @@
     const WALL_SNAP_DIST = 0.6;
     const PX_PER_SEC = 40;
 
-    const FURNITURE_TYPES = ['MAIN_STAGE', 'PRODUCT_SHELF', 'SCREEN_WALL', 'EXPERIENCE_ZONE', 'INFO_DESK'];
+    const FURNITURE_TYPES = [
+      // STAGING (existing booth elements)
+      'MAIN_STAGE', 'PRODUCT_SHELF', 'SCREEN_WALL', 'EXPERIENCE_ZONE', 'INFO_DESK',
+      // DISPLAY
+      'OLED_TV_65', 'OLED_TV_77', 'OLED_TV_97', 'SMART_PANEL',
+      // AUDIO
+      'FLOOR_SPEAKER', 'BOOKSHELF_SPEAKER', 'SOUNDBAR', 'SUBWOOFER', 'SPEAKER_PEDESTAL',
+      // APPLIANCE
+      'REFRIGERATOR', 'WASHING_MACHINE', 'DRYER',
+      // FURNITURE
+      'SOFA_3SEAT', 'SOFA_2SEAT', 'COFFEE_TABLE', 'SIDE_TABLE', 'CURIO_SHELF', 'RUG',
+      // ARCHITECTURE
+      'WALL_PANEL', 'DOORWAY', 'FIREPLACE', 'FLOOR_LAMP', 'SLAT_PANEL', 'LED_STRIP',
+    ];
+    const FURNITURE_CATEGORIES = {
+      MAIN_STAGE: 'STAGING', PRODUCT_SHELF: 'STAGING', SCREEN_WALL: 'STAGING',
+      EXPERIENCE_ZONE: 'STAGING', INFO_DESK: 'STAGING',
+      OLED_TV_65: 'DISPLAY', OLED_TV_77: 'DISPLAY', OLED_TV_97: 'DISPLAY', SMART_PANEL: 'DISPLAY',
+      FLOOR_SPEAKER: 'AUDIO', BOOKSHELF_SPEAKER: 'AUDIO', SOUNDBAR: 'AUDIO',
+      SUBWOOFER: 'AUDIO', SPEAKER_PEDESTAL: 'AUDIO',
+      REFRIGERATOR: 'APPLIANCE', WASHING_MACHINE: 'APPLIANCE', DRYER: 'APPLIANCE',
+      SOFA_3SEAT: 'FURNITURE', SOFA_2SEAT: 'FURNITURE', COFFEE_TABLE: 'FURNITURE',
+      SIDE_TABLE: 'FURNITURE', CURIO_SHELF: 'FURNITURE', RUG: 'FURNITURE',
+      WALL_PANEL: 'ARCHITECTURE', DOORWAY: 'ARCHITECTURE', FIREPLACE: 'ARCHITECTURE',
+      FLOOR_LAMP: 'ARCHITECTURE', SLAT_PANEL: 'ARCHITECTURE', LED_STRIP: 'ARCHITECTURE',
+    };
+    const FURNITURE_CATEGORY_ORDER = ['STAGING', 'DISPLAY', 'AUDIO', 'APPLIANCE', 'FURNITURE', 'ARCHITECTURE'];
     const FURNITURE_DIMS = {
       MAIN_STAGE: { width: 4.0, depth: 3.0, height: 0.4 },
       PRODUCT_SHELF: { width: 1.8, depth: 0.6, height: 1.5 },
       SCREEN_WALL: { width: 3.0, depth: 0.2, height: 2.5 },
       EXPERIENCE_ZONE: { width: 2.5, depth: 2.5, height: 0.1 },
       INFO_DESK: { width: 2.0, depth: 0.8, height: 1.1 },
+      OLED_TV_65: { width: 1.45, depth: 0.08, height: 0.85 },
+      OLED_TV_77: { width: 1.72, depth: 0.08, height: 1.00 },
+      OLED_TV_97: { width: 2.16, depth: 0.10, height: 1.24 },
+      SMART_PANEL: { width: 0.30, depth: 0.05, height: 0.45 },
+      FLOOR_SPEAKER: { width: 0.22, depth: 0.22, height: 1.10 },
+      BOOKSHELF_SPEAKER: { width: 0.20, depth: 0.22, height: 0.32 },
+      SOUNDBAR: { width: 1.20, depth: 0.10, height: 0.07 },
+      SUBWOOFER: { width: 0.36, depth: 0.36, height: 0.42 },
+      SPEAKER_PEDESTAL: { width: 0.30, depth: 0.30, height: 0.80 },
+      REFRIGERATOR: { width: 0.83, depth: 0.75, height: 1.80 },
+      WASHING_MACHINE: { width: 0.60, depth: 0.62, height: 0.85 },
+      DRYER: { width: 0.60, depth: 0.62, height: 0.85 },
+      SOFA_3SEAT: { width: 2.10, depth: 0.95, height: 0.85 },
+      SOFA_2SEAT: { width: 1.55, depth: 0.95, height: 0.85 },
+      COFFEE_TABLE: { width: 1.20, depth: 0.60, height: 0.40 },
+      SIDE_TABLE: { width: 0.50, depth: 0.50, height: 0.55 },
+      CURIO_SHELF: { width: 1.50, depth: 0.40, height: 1.80 },
+      RUG: { width: 2.50, depth: 1.80, height: 0.02 },
+      WALL_PANEL: { width: 3.00, depth: 0.10, height: 2.50 },
+      DOORWAY: { width: 1.20, depth: 0.10, height: 2.10 },
+      FIREPLACE: { width: 1.00, depth: 0.30, height: 0.60 },
+      FLOOR_LAMP: { width: 0.30, depth: 0.30, height: 1.65 },
+      SLAT_PANEL: { width: 1.50, depth: 0.06, height: 2.50 },
+      LED_STRIP: { width: 3.00, depth: 0.03, height: 0.04 },
     };
     const FURNITURE_SNAP = {
-      MAIN_STAGE: 'free',
-      PRODUCT_SHELF: 'wall',
-      SCREEN_WALL: 'wall',
-      EXPERIENCE_ZONE: 'free',
-      INFO_DESK: 'free',
+      MAIN_STAGE: 'free', PRODUCT_SHELF: 'wall', SCREEN_WALL: 'wall',
+      EXPERIENCE_ZONE: 'free', INFO_DESK: 'free',
+      OLED_TV_65: 'wall', OLED_TV_77: 'wall', OLED_TV_97: 'wall', SMART_PANEL: 'free',
+      FLOOR_SPEAKER: 'free', BOOKSHELF_SPEAKER: 'free', SOUNDBAR: 'wall',
+      SUBWOOFER: 'free', SPEAKER_PEDESTAL: 'free',
+      REFRIGERATOR: 'wall', WASHING_MACHINE: 'wall', DRYER: 'wall',
+      SOFA_3SEAT: 'free', SOFA_2SEAT: 'free', COFFEE_TABLE: 'free',
+      SIDE_TABLE: 'free', CURIO_SHELF: 'wall', RUG: 'free',
+      WALL_PANEL: 'wall', DOORWAY: 'wall', FIREPLACE: 'wall',
+      FLOOR_LAMP: 'free', SLAT_PANEL: 'wall', LED_STRIP: 'wall',
     };
     const FURNITURE_COLORS = {
-      MAIN_STAGE: 0xA50034,
-      PRODUCT_SHELF: 0x2a2a2a,
-      SCREEN_WALL: 0x0a0a0a,
-      EXPERIENCE_ZONE: 0x00D9FF,
-      INFO_DESK: 0xf0f0f0,
+      MAIN_STAGE: 0xA50034, PRODUCT_SHELF: 0x2a2a2a, SCREEN_WALL: 0x0a0a0a,
+      EXPERIENCE_ZONE: 0x00D9FF, INFO_DESK: 0xf0f0f0,
+      OLED_TV_65: 0x0a0a0a, OLED_TV_77: 0x0a0a0a, OLED_TV_97: 0x0a0a0a, SMART_PANEL: 0x1a1a2a,
+      FLOOR_SPEAKER: 0x202020, BOOKSHELF_SPEAKER: 0x202020, SOUNDBAR: 0x141414,
+      SUBWOOFER: 0x202020, SPEAKER_PEDESTAL: 0xc0c0c0,
+      REFRIGERATOR: 0xe5e5e5, WASHING_MACHINE: 0xf5f5f5, DRYER: 0xf5f5f5,
+      SOFA_3SEAT: 0xd6c9b8, SOFA_2SEAT: 0xd6c9b8, COFFEE_TABLE: 0x6b5544,
+      SIDE_TABLE: 0xd0d0d0, CURIO_SHELF: 0xf5f5f5, RUG: 0xc0b8a8,
+      WALL_PANEL: 0xc0bbb0, DOORWAY: 0xc0bbb0, FIREPLACE: 0x222222,
+      FLOOR_LAMP: 0xc0c0c0, SLAT_PANEL: 0x8a6a4a, LED_STRIP: 0xff6688,
     };
     const FURNITURE_LABELS = {
-      MAIN_STAGE: 'Main Stage',
-      PRODUCT_SHELF: 'Product Shelf',
-      SCREEN_WALL: 'Screen Wall',
-      EXPERIENCE_ZONE: 'Experience Zone',
-      INFO_DESK: 'Info Desk',
+      MAIN_STAGE: 'Main Stage', PRODUCT_SHELF: 'Product Shelf', SCREEN_WALL: 'Screen Wall',
+      EXPERIENCE_ZONE: 'Experience Zone', INFO_DESK: 'Info Desk',
+      OLED_TV_65: 'OLED TV 65"', OLED_TV_77: 'OLED TV 77"', OLED_TV_97: 'OLED TV 97"',
+      SMART_PANEL: 'Smart Panel',
+      FLOOR_SPEAKER: 'Floor Speaker', BOOKSHELF_SPEAKER: 'Bookshelf Speaker',
+      SOUNDBAR: 'Soundbar', SUBWOOFER: 'Subwoofer', SPEAKER_PEDESTAL: 'Speaker Pedestal',
+      REFRIGERATOR: 'Refrigerator', WASHING_MACHINE: 'Washing Machine', DRYER: 'Dryer',
+      SOFA_3SEAT: 'Sofa (3-seat)', SOFA_2SEAT: 'Sofa (2-seat)', COFFEE_TABLE: 'Coffee Table',
+      SIDE_TABLE: 'Side Table', CURIO_SHELF: 'Curio Shelf', RUG: 'Rug',
+      WALL_PANEL: 'Wall Panel', DOORWAY: 'Doorway', FIREPLACE: 'Fireplace',
+      FLOOR_LAMP: 'Floor Lamp', SLAT_PANEL: 'Slat Panel', LED_STRIP: 'LED Strip',
+    };
+    // Robot interaction height (top surface or button height) for SPEC risk eval.
+    const FURNITURE_INTERACTION = {
+      MAIN_STAGE: { h: 0.40, weight: 0.3, label: 'stage top' },
+      PRODUCT_SHELF: { h: 1.00, weight: 0.5, label: 'mid shelf' },
+      SCREEN_WALL: { h: 1.50, weight: 0.0, label: 'screen center' },
+      EXPERIENCE_ZONE: { h: 0.10, weight: 0.0, label: 'floor mat' },
+      INFO_DESK: { h: 1.10, weight: 0.3, label: 'desk top' },
+      OLED_TV_65: { h: 1.20, weight: 0.0, label: 'TV center' },
+      OLED_TV_77: { h: 1.30, weight: 0.0, label: 'TV center' },
+      OLED_TV_97: { h: 1.50, weight: 0.0, label: 'TV center' },
+      SMART_PANEL: { h: 1.10, weight: 0.0, label: 'panel touch' },
+      FLOOR_SPEAKER: { h: 1.10, weight: 0.0, label: 'speaker top' },
+      BOOKSHELF_SPEAKER: { h: 1.12, weight: 1.5, label: 'speaker top' },
+      SOUNDBAR: { h: 0.85, weight: 0.0, label: 'soundbar' },
+      SUBWOOFER: { h: 0.42, weight: 0.0, label: 'sub knob' },
+      SPEAKER_PEDESTAL: { h: 0.80, weight: 0.0, label: 'pedestal top' },
+      REFRIGERATOR: { h: 1.10, weight: 0.5, label: 'door handle' },
+      WASHING_MACHINE: { h: 0.80, weight: 0.3, label: 'control panel' },
+      DRYER: { h: 0.80, weight: 0.3, label: 'control panel' },
+      SOFA_3SEAT: { h: 0.45, weight: 0.2, label: 'seat (deliver)' },
+      SOFA_2SEAT: { h: 0.45, weight: 0.2, label: 'seat (deliver)' },
+      COFFEE_TABLE: { h: 0.40, weight: 0.4, label: 'table top' },
+      SIDE_TABLE: { h: 0.55, weight: 0.4, label: 'side top' },
+      CURIO_SHELF: { h: 1.20, weight: 0.5, label: 'mid shelf' },
+      RUG: { h: 0.02, weight: 0.0, label: 'rug surface' },
+      WALL_PANEL: { h: 1.50, weight: 0.0, label: 'wall' },
+      DOORWAY: { h: 1.05, weight: 0.0, label: 'door handle' },
+      FIREPLACE: { h: 0.60, weight: 0.0, label: 'mantel' },
+      FLOOR_LAMP: { h: 1.20, weight: 0.0, label: 'lamp switch' },
+      SLAT_PANEL: { h: 1.50, weight: 0.0, label: 'panel surface' },
+      LED_STRIP: { h: 0.04, weight: 0.0, label: 'strip' },
     };
 
     const ROBOT_TYPES = ['humanoid', 'companion', 'service', 'station'];
@@ -1206,12 +1488,661 @@
       return group;
     }
 
+    // ============ LG PRODUCT FURNITURE BUILDERS ============
+    function buildOledTV(type) {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS[type];
+      // back chassis
+      const back = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 0.4, metalness: 0.3 })
+      );
+      back.position.y = 1.30 + dims.height / 2; // wall-mounted at typical TV height
+      back.castShadow = true;
+      group.add(back);
+      // bezel + screen
+      const bezel = new THREE.Mesh(
+        new THREE.PlaneGeometry(dims.width - 0.02, dims.height - 0.02),
+        new THREE.MeshStandardMaterial({
+          color: 0x1a1a2a, emissive: 0x002244, emissiveIntensity: 0.6, roughness: 0.2,
+        })
+      );
+      bezel.position.set(0, 1.30 + dims.height / 2, dims.depth / 2 + 0.001);
+      group.add(bezel);
+      // logo strip
+      const logo = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.15, 0.04),
+        new THREE.MeshStandardMaterial({ color: 0xE63950, emissive: 0xE63950, emissiveIntensity: 0.8 })
+      );
+      logo.position.set(-dims.width / 2 + 0.12, 1.30 + 0.05, dims.depth / 2 + 0.002);
+      group.add(logo);
+      return group;
+    }
+    function buildOledTV65() { return buildOledTV('OLED_TV_65'); }
+    function buildOledTV77() { return buildOledTV('OLED_TV_77'); }
+    function buildOledTV97() { return buildOledTV('OLED_TV_97'); }
+
+    function buildSmartPanel() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.SMART_PANEL;
+      // stand pole
+      const pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.025, 0.95, 12),
+        new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.5 })
+      );
+      pole.position.y = 0.475;
+      pole.castShadow = true;
+      group.add(pole);
+      // base
+      const base = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.13, 0.15, 0.025, 24),
+        new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.5 })
+      );
+      base.position.y = 0.0125;
+      base.castShadow = true;
+      group.add(base);
+      // panel
+      const panel = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.3 })
+      );
+      panel.position.y = 0.95 + dims.height / 2;
+      panel.castShadow = true;
+      group.add(panel);
+      // screen
+      const screen = new THREE.Mesh(
+        new THREE.PlaneGeometry(dims.width - 0.02, dims.height - 0.04),
+        new THREE.MeshStandardMaterial({
+          color: 0x00D9FF, emissive: 0x00D9FF, emissiveIntensity: 0.45,
+        })
+      );
+      screen.position.set(0, 0.95 + dims.height / 2, dims.depth / 2 + 0.001);
+      group.add(screen);
+      return group;
+    }
+
+    function buildFloorSpeaker() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.FLOOR_SPEAKER;
+      // stand
+      const stand = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.020, 0.78, 12),
+        new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 })
+      );
+      stand.position.y = 0.39;
+      stand.castShadow = true;
+      group.add(stand);
+      // base plate
+      const base = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.16, 0.18, 0.02, 24),
+        new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5, metalness: 0.5 })
+      );
+      base.position.y = 0.01;
+      base.castShadow = true;
+      group.add(base);
+      // speaker body (cylinder)
+      const body = new THREE.Mesh(
+        new THREE.CylinderGeometry(dims.width / 2, dims.width / 2 * 0.85, 0.32, 24),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.FLOOR_SPEAKER, roughness: 0.6 })
+      );
+      body.position.y = 0.78 + 0.16;
+      body.castShadow = true;
+      group.add(body);
+      // tweeter
+      const tweeter = new THREE.Mesh(
+        new THREE.CircleGeometry(0.04, 24),
+        new THREE.MeshStandardMaterial({ color: 0xc0c0c0, metalness: 0.7, roughness: 0.3 })
+      );
+      tweeter.position.set(0, 0.95, dims.depth / 2 - 0.005);
+      group.add(tweeter);
+      return group;
+    }
+
+    function buildBookshelfSpeaker() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.BOOKSHELF_SPEAKER;
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.BOOKSHELF_SPEAKER, roughness: 0.7 })
+      );
+      body.position.y = 0.80 + dims.height / 2; // expects pedestal underneath
+      body.castShadow = true;
+      group.add(body);
+      // pedestal (concrete-style)
+      const ped = new THREE.Mesh(
+        new THREE.BoxGeometry(0.30, 0.80, 0.30),
+        new THREE.MeshStandardMaterial({ color: 0xc0c0c0, roughness: 0.85 })
+      );
+      ped.position.y = 0.40;
+      ped.castShadow = true;
+      ped.receiveShadow = true;
+      group.add(ped);
+      // tweeter
+      const tweeter = new THREE.Mesh(
+        new THREE.CircleGeometry(0.035, 20),
+        new THREE.MeshStandardMaterial({ color: 0xc0c0c0, metalness: 0.7 })
+      );
+      tweeter.position.set(0, 0.80 + dims.height * 0.7, dims.depth / 2 + 0.001);
+      group.add(tweeter);
+      // woofer
+      const woofer = new THREE.Mesh(
+        new THREE.CircleGeometry(0.07, 20),
+        new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 })
+      );
+      woofer.position.set(0, 0.80 + dims.height * 0.35, dims.depth / 2 + 0.001);
+      group.add(woofer);
+      return group;
+    }
+
+    function buildSoundbar() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.SOUNDBAR;
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.SOUNDBAR, roughness: 0.4 })
+      );
+      body.position.y = 0.80 + dims.height / 2;
+      body.castShadow = true;
+      group.add(body);
+      // grille fabric line
+      const grille = new THREE.Mesh(
+        new THREE.PlaneGeometry(dims.width - 0.04, dims.height - 0.02),
+        new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.95 })
+      );
+      grille.position.set(0, 0.80 + dims.height / 2, dims.depth / 2 + 0.001);
+      group.add(grille);
+      return group;
+    }
+
+    function buildSubwoofer() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.SUBWOOFER;
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.SUBWOOFER, roughness: 0.6 })
+      );
+      body.position.y = dims.height / 2;
+      body.castShadow = true;
+      body.receiveShadow = true;
+      group.add(body);
+      // big driver on side
+      const driver = new THREE.Mesh(
+        new THREE.CircleGeometry(0.13, 24),
+        new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4 })
+      );
+      driver.position.set(0, dims.height / 2, dims.depth / 2 + 0.001);
+      group.add(driver);
+      const cone = new THREE.Mesh(
+        new THREE.CircleGeometry(0.11, 24),
+        new THREE.MeshStandardMaterial({ color: 0x404040, roughness: 0.3, metalness: 0.4 })
+      );
+      cone.position.set(0, dims.height / 2, dims.depth / 2 + 0.002);
+      group.add(cone);
+      return group;
+    }
+
+    function buildSpeakerPedestal() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.SPEAKER_PEDESTAL;
+      const ped = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.SPEAKER_PEDESTAL, roughness: 0.85 })
+      );
+      ped.position.y = dims.height / 2;
+      ped.castShadow = true;
+      ped.receiveShadow = true;
+      group.add(ped);
+      return group;
+    }
+
+    function buildRefrigerator() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.REFRIGERATOR;
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.REFRIGERATOR, roughness: 0.4, metalness: 0.4 })
+      );
+      body.position.y = dims.height / 2;
+      body.castShadow = true;
+      body.receiveShadow = true;
+      group.add(body);
+      // door split (French-door style)
+      const splitMat = new THREE.MeshStandardMaterial({ color: 0xb0b0b0, roughness: 0.5 });
+      const splitH = new THREE.Mesh(new THREE.BoxGeometry(dims.width + 0.005, 0.01, dims.depth), splitMat);
+      splitH.position.y = 1.20;
+      group.add(splitH);
+      const splitV = new THREE.Mesh(new THREE.BoxGeometry(0.01, 1.20, dims.depth + 0.001), splitMat);
+      splitV.position.set(0, 0.60, 0);
+      group.add(splitV);
+      // handles
+      [[-1, 0.95], [1, 0.95], [0, 0.30]].forEach(([sx, hy]) => {
+        const handle = new THREE.Mesh(
+          new THREE.BoxGeometry(0.025, 0.30, 0.04),
+          new THREE.MeshStandardMaterial({ color: 0x808080, metalness: 0.8, roughness: 0.3 })
+        );
+        handle.position.set(sx * (dims.width / 2 - 0.06), hy, dims.depth / 2 + 0.025);
+        group.add(handle);
+      });
+      // logo
+      const logo = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.16, 0.04),
+        new THREE.MeshStandardMaterial({ color: 0xE63950, emissive: 0xE63950, emissiveIntensity: 0.6 })
+      );
+      logo.position.set(0, 1.62, dims.depth / 2 + 0.002);
+      group.add(logo);
+      return group;
+    }
+
+    function buildWashingMachine(opt = {}) {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.WASHING_MACHINE;
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.WASHING_MACHINE, roughness: 0.5, metalness: 0.2 })
+      );
+      body.position.y = dims.height / 2;
+      body.castShadow = true;
+      body.receiveShadow = true;
+      group.add(body);
+      // round door
+      const door = new THREE.Mesh(
+        new THREE.CircleGeometry(0.22, 32),
+        new THREE.MeshStandardMaterial({ color: 0x303030, roughness: 0.3, metalness: 0.5 })
+      );
+      door.position.set(0, dims.height * 0.55, dims.depth / 2 + 0.001);
+      group.add(door);
+      const doorRing = new THREE.Mesh(
+        new THREE.RingGeometry(0.22, 0.245, 32),
+        new THREE.MeshStandardMaterial({ color: 0x808080, metalness: 0.7 })
+      );
+      doorRing.position.set(0, dims.height * 0.55, dims.depth / 2 + 0.002);
+      group.add(doorRing);
+      // control panel band
+      const panel = new THREE.Mesh(
+        new THREE.PlaneGeometry(dims.width - 0.04, 0.10),
+        new THREE.MeshStandardMaterial({ color: 0x202020, emissive: 0x00D9FF, emissiveIntensity: 0.3 })
+      );
+      panel.position.set(0, dims.height - 0.10, dims.depth / 2 + 0.001);
+      group.add(panel);
+      // logo
+      const logo = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.10, 0.025),
+        new THREE.MeshStandardMaterial({ color: 0xE63950, emissive: 0xE63950, emissiveIntensity: 0.5 })
+      );
+      logo.position.set(-dims.width / 2 + 0.10, dims.height - 0.10, dims.depth / 2 + 0.002);
+      group.add(logo);
+      return group;
+    }
+    function buildDryer() { return buildWashingMachine({ dryer: true }); }
+
+    function buildSofa3() { return buildSofa('SOFA_3SEAT'); }
+    function buildSofa2() { return buildSofa('SOFA_2SEAT'); }
+    function buildSofa(type) {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS[type];
+      const cushionMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS[type], roughness: 0.85 });
+      // base
+      const baseH = 0.30;
+      const base = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, baseH, dims.depth),
+        cushionMat
+      );
+      base.position.y = baseH / 2 + 0.10;
+      base.castShadow = true;
+      base.receiveShadow = true;
+      group.add(base);
+      // seat cushions
+      const seatH = 0.15;
+      const seats = type === 'SOFA_3SEAT' ? 3 : 2;
+      const seatW = (dims.width - 0.10) / seats;
+      for (let i = 0; i < seats; i++) {
+        const cushion = new THREE.Mesh(
+          new THREE.BoxGeometry(seatW - 0.02, seatH, dims.depth - 0.10),
+          cushionMat
+        );
+        cushion.position.set(-dims.width / 2 + 0.05 + seatW / 2 + i * seatW, baseH + 0.10 + seatH / 2, 0);
+        cushion.castShadow = true;
+        group.add(cushion);
+      }
+      // back cushions
+      for (let i = 0; i < seats; i++) {
+        const back = new THREE.Mesh(
+          new THREE.BoxGeometry(seatW - 0.04, 0.40, 0.18),
+          cushionMat
+        );
+        back.position.set(-dims.width / 2 + 0.05 + seatW / 2 + i * seatW, baseH + 0.10 + seatH + 0.20, -dims.depth / 2 + 0.10);
+        back.castShadow = true;
+        group.add(back);
+      }
+      // armrests
+      [-1, 1].forEach(sx => {
+        const arm = new THREE.Mesh(
+          new THREE.BoxGeometry(0.10, 0.55, dims.depth),
+          cushionMat
+        );
+        arm.position.set(sx * (dims.width / 2 - 0.05), 0.10 + 0.275, 0);
+        arm.castShadow = true;
+        group.add(arm);
+      });
+      // legs (just hint)
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
+        const leg = new THREE.Mesh(
+          new THREE.BoxGeometry(0.04, 0.10, 0.04),
+          new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.4, metalness: 0.5 })
+        );
+        leg.position.set(sx * (dims.width / 2 - 0.05), 0.05, sz * (dims.depth / 2 - 0.05));
+        group.add(leg);
+      });
+      return group;
+    }
+
+    function buildCoffeeTable() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.COFFEE_TABLE;
+      // top
+      const top = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, 0.04, dims.depth),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.COFFEE_TABLE, roughness: 0.5 })
+      );
+      top.position.y = dims.height - 0.02;
+      top.castShadow = true;
+      top.receiveShadow = true;
+      group.add(top);
+      // 4 legs
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
+        const leg = new THREE.Mesh(
+          new THREE.BoxGeometry(0.04, dims.height - 0.04, 0.04),
+          new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.6 })
+        );
+        leg.position.set(sx * (dims.width / 2 - 0.05), (dims.height - 0.04) / 2, sz * (dims.depth / 2 - 0.05));
+        leg.castShadow = true;
+        group.add(leg);
+      });
+      return group;
+    }
+
+    function buildSideTable() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.SIDE_TABLE;
+      // pedestal style
+      const top = new THREE.Mesh(
+        new THREE.CylinderGeometry(dims.width / 2, dims.width / 2, 0.04, 24),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.SIDE_TABLE, roughness: 0.5 })
+      );
+      top.position.y = dims.height - 0.02;
+      top.castShadow = true;
+      top.receiveShadow = true;
+      group.add(top);
+      const stem = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.04, 0.06, dims.height - 0.06, 16),
+        new THREE.MeshStandardMaterial({ color: 0x404040, roughness: 0.4, metalness: 0.5 })
+      );
+      stem.position.y = (dims.height - 0.06) / 2 + 0.02;
+      group.add(stem);
+      const base = new THREE.Mesh(
+        new THREE.CylinderGeometry(dims.width / 2 - 0.05, dims.width / 2 - 0.05, 0.025, 24),
+        new THREE.MeshStandardMaterial({ color: 0x404040, roughness: 0.4, metalness: 0.5 })
+      );
+      base.position.y = 0.0125;
+      group.add(base);
+      return group;
+    }
+
+    function buildCurioShelf() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.CURIO_SHELF;
+      // back wall
+      const back = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, 0.05),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.CURIO_SHELF, roughness: 0.6 })
+      );
+      back.position.set(0, dims.height / 2, -dims.depth / 2 + 0.025);
+      back.castShadow = true;
+      group.add(back);
+      // shelves with niche lighting
+      const shelfMat = new THREE.MeshStandardMaterial({ color: 0xe5e5e5, roughness: 0.5 });
+      const lightMat = new THREE.MeshStandardMaterial({ color: 0xfff8e1, emissive: 0xfff8e1, emissiveIntensity: 0.6 });
+      for (let i = 0; i < 4; i++) {
+        const sy = 0.30 + i * 0.42;
+        const shelf = new THREE.Mesh(
+          new THREE.BoxGeometry(dims.width - 0.02, 0.025, dims.depth - 0.02),
+          shelfMat
+        );
+        shelf.position.set(0, sy, 0);
+        shelf.castShadow = true;
+        shelf.receiveShadow = true;
+        group.add(shelf);
+        // under-shelf strip
+        const strip = new THREE.Mesh(
+          new THREE.BoxGeometry(dims.width - 0.10, 0.005, 0.015),
+          lightMat
+        );
+        strip.position.set(0, sy - 0.020, dims.depth / 2 - 0.05);
+        group.add(strip);
+      }
+      // side walls
+      [-1, 1].forEach(sx => {
+        const side = new THREE.Mesh(
+          new THREE.BoxGeometry(0.025, dims.height, dims.depth),
+          new THREE.MeshStandardMaterial({ color: 0xe0e0e0, roughness: 0.5 })
+        );
+        side.position.set(sx * (dims.width / 2 - 0.0125), dims.height / 2, 0);
+        side.castShadow = true;
+        group.add(side);
+      });
+      return group;
+    }
+
+    function buildRug() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.RUG;
+      const rug = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.RUG, roughness: 0.95 })
+      );
+      rug.position.y = dims.height / 2;
+      rug.receiveShadow = true;
+      group.add(rug);
+      // border accent
+      const border = new THREE.Mesh(
+        new THREE.PlaneGeometry(dims.width - 0.05, dims.depth - 0.05),
+        new THREE.MeshStandardMaterial({ color: 0xa89880, roughness: 0.95, side: THREE.DoubleSide })
+      );
+      border.rotation.x = -Math.PI / 2;
+      border.position.y = dims.height + 0.001;
+      group.add(border);
+      return group;
+    }
+
+    function buildWallPanel() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.WALL_PANEL;
+      const panel = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.WALL_PANEL, roughness: 0.85 })
+      );
+      panel.position.y = dims.height / 2;
+      panel.castShadow = true;
+      panel.receiveShadow = true;
+      group.add(panel);
+      return group;
+    }
+
+    function buildDoorway() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.DOORWAY;
+      const frameMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.DOORWAY, roughness: 0.7 });
+      // top lintel
+      const lintel = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width + 0.20, 0.20, dims.depth),
+        frameMat
+      );
+      lintel.position.y = dims.height + 0.10;
+      lintel.castShadow = true;
+      group.add(lintel);
+      // side jambs
+      [-1, 1].forEach(sx => {
+        const jamb = new THREE.Mesh(
+          new THREE.BoxGeometry(0.10, dims.height, dims.depth),
+          frameMat
+        );
+        jamb.position.set(sx * (dims.width / 2 + 0.05), dims.height / 2, 0);
+        jamb.castShadow = true;
+        group.add(jamb);
+      });
+      // glass door (semi-transparent)
+      const glass = new THREE.Mesh(
+        new THREE.PlaneGeometry(dims.width - 0.05, dims.height - 0.05),
+        new THREE.MeshStandardMaterial({
+          color: 0xa0d0e0, transparent: true, opacity: 0.18,
+          roughness: 0.05, metalness: 0.1, side: THREE.DoubleSide,
+        })
+      );
+      glass.position.set(0, dims.height / 2, 0);
+      group.add(glass);
+      // handle
+      const handle = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.012, 0.012, 0.30, 12),
+        new THREE.MeshStandardMaterial({ color: 0xc0c0c0, metalness: 0.8, roughness: 0.2 })
+      );
+      handle.rotation.z = Math.PI / 2;
+      handle.position.set(dims.width / 2 - 0.10, 1.00, 0.04);
+      group.add(handle);
+      return group;
+    }
+
+    function buildFireplace() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.FIREPLACE;
+      // recessed box
+      const back = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.FIREPLACE, roughness: 0.4 })
+      );
+      back.position.y = 0.30 + dims.height / 2; // mid-wall recess
+      back.castShadow = true;
+      group.add(back);
+      // flame surface (animated emissive)
+      const flame = new THREE.Mesh(
+        new THREE.PlaneGeometry(dims.width - 0.10, dims.height - 0.10),
+        new THREE.MeshStandardMaterial({
+          color: 0xff8844, emissive: 0xff5522, emissiveIntensity: 1.4, roughness: 0.4,
+        })
+      );
+      flame.position.set(0, 0.30 + dims.height / 2, dims.depth / 2 + 0.001);
+      group.add(flame);
+      return group;
+    }
+
+    function buildFloorLamp() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.FLOOR_LAMP;
+      // base
+      const base = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.15, 0.18, 0.025, 24),
+        new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.4, metalness: 0.5 })
+      );
+      base.position.y = 0.0125;
+      base.castShadow = true;
+      group.add(base);
+      // pole
+      const pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.012, 0.014, dims.height - 0.30, 12),
+        new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.5 })
+      );
+      pole.position.y = (dims.height - 0.30) / 2 + 0.025;
+      group.add(pole);
+      // shade
+      const shade = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.18, 0.22, 0.28, 24, 1, true),
+        new THREE.MeshStandardMaterial({
+          color: 0xe0d0a0, transparent: true, opacity: 0.7,
+          emissive: 0xfff8c0, emissiveIntensity: 0.4, side: THREE.DoubleSide,
+        })
+      );
+      shade.position.y = dims.height - 0.14;
+      group.add(shade);
+      // small bulb glow
+      const bulb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.06, 12, 12),
+        new THREE.MeshStandardMaterial({ color: 0xfff8c0, emissive: 0xfff8c0, emissiveIntensity: 1.2 })
+      );
+      bulb.position.y = dims.height - 0.14;
+      group.add(bulb);
+      return group;
+    }
+
+    function buildSlatPanel() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.SLAT_PANEL;
+      // back
+      const back = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, 0.02),
+        new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.7 })
+      );
+      back.position.set(0, dims.height / 2, -0.02);
+      back.castShadow = true;
+      group.add(back);
+      // vertical slats
+      const slatMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.SLAT_PANEL, roughness: 0.7 });
+      const slatCount = Math.floor(dims.width / 0.08);
+      const spacing = dims.width / slatCount;
+      for (let i = 0; i < slatCount; i++) {
+        const slat = new THREE.Mesh(
+          new THREE.BoxGeometry(0.05, dims.height, 0.04),
+          slatMat
+        );
+        slat.position.set(-dims.width / 2 + spacing / 2 + i * spacing, dims.height / 2, 0.01);
+        slat.castShadow = true;
+        group.add(slat);
+      }
+      return group;
+    }
+
+    function buildLEDStrip() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.LED_STRIP;
+      const strip = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({
+          color: FURNITURE_COLORS.LED_STRIP, emissive: FURNITURE_COLORS.LED_STRIP, emissiveIntensity: 1.8,
+        })
+      );
+      strip.position.y = 0.30; // mid-wall accent
+      group.add(strip);
+      return group;
+    }
+
     const FURNITURE_BUILDERS = {
       MAIN_STAGE: buildMainStage,
       PRODUCT_SHELF: buildProductShelf,
       SCREEN_WALL: buildScreenWall,
       EXPERIENCE_ZONE: buildExperienceZone,
       INFO_DESK: buildInfoDesk,
+      OLED_TV_65: buildOledTV65,
+      OLED_TV_77: buildOledTV77,
+      OLED_TV_97: buildOledTV97,
+      SMART_PANEL: buildSmartPanel,
+      FLOOR_SPEAKER: buildFloorSpeaker,
+      BOOKSHELF_SPEAKER: buildBookshelfSpeaker,
+      SOUNDBAR: buildSoundbar,
+      SUBWOOFER: buildSubwoofer,
+      SPEAKER_PEDESTAL: buildSpeakerPedestal,
+      REFRIGERATOR: buildRefrigerator,
+      WASHING_MACHINE: buildWashingMachine,
+      DRYER: buildDryer,
+      SOFA_3SEAT: buildSofa3,
+      SOFA_2SEAT: buildSofa2,
+      COFFEE_TABLE: buildCoffeeTable,
+      SIDE_TABLE: buildSideTable,
+      CURIO_SHELF: buildCurioShelf,
+      RUG: buildRug,
+      WALL_PANEL: buildWallPanel,
+      DOORWAY: buildDoorway,
+      FIREPLACE: buildFireplace,
+      FLOOR_LAMP: buildFloorLamp,
+      SLAT_PANEL: buildSlatPanel,
+      LED_STRIP: buildLEDStrip,
     };
 
     function makeOutlineRing(dims) {
@@ -2110,16 +3041,24 @@
     function renderCatalog() {
       const container = document.getElementById('furnitureCatalog');
       container.innerHTML = '';
-      FURNITURE_TYPES.forEach(type => {
-        const dims = FURNITURE_DIMS[type];
-        const el = document.createElement('div');
-        el.className = 'catalog-item';
-        el.innerHTML = `
-          <div class="catalog-item-name">${FURNITURE_LABELS[type]}</div>
-          <div class="catalog-item-dims">${dims.width.toFixed(1)} × ${dims.depth.toFixed(1)} × ${dims.height.toFixed(1)} m · ${FURNITURE_SNAP[type]}</div>
-        `;
-        el.addEventListener('click', () => addFurniture(type));
-        container.appendChild(el);
+      FURNITURE_CATEGORY_ORDER.forEach(cat => {
+        const types = FURNITURE_TYPES.filter(t => FURNITURE_CATEGORIES[t] === cat);
+        if (!types.length) return;
+        const groupHead = document.createElement('div');
+        groupHead.className = 'catalog-category-head';
+        groupHead.innerHTML = `<span>${cat}</span><span class="cat-count">${types.length}</span>`;
+        container.appendChild(groupHead);
+        types.forEach(type => {
+          const dims = FURNITURE_DIMS[type];
+          const el = document.createElement('div');
+          el.className = 'catalog-item';
+          el.innerHTML = `
+            <div class="catalog-item-name">${FURNITURE_LABELS[type]}</div>
+            <div class="catalog-item-dims">${dims.width.toFixed(1)} × ${dims.depth.toFixed(1)} × ${dims.height.toFixed(1)} m · ${FURNITURE_SNAP[type]}</div>
+          `;
+          el.addEventListener('click', () => addFurniture(type));
+          container.appendChild(el);
+        });
       });
     }
 
@@ -2232,9 +3171,17 @@
 
     /* ============ PROPERTIES PANEL ============ */
     function renderProperties() {
-      ['propertiesEmpty', 'propertiesFurniture', 'propertiesRobot', 'propertiesGesture', 'propertiesWaypoint'].forEach(id => {
-        document.getElementById(id).classList.remove('active');
+      ['propertiesEmpty', 'propertiesFurniture', 'propertiesRobot', 'propertiesGesture', 'propertiesWaypoint', 'propertiesSpec'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
       });
+
+      // In SPEC mode, the spec inspector takes over the right panel (unless user explicitly selects a furniture).
+      if (state.mode === 'spec' && !state.selectedType) {
+        document.getElementById('propertiesSpec').classList.add('active');
+        renderSpecRiskInspector();
+        return;
+      }
 
       if (state.selectedType === 'furniture') {
         const f = state.furniture.find(x => x.id === state.selectedId);
@@ -2323,6 +3270,8 @@
       state.furniture.push(instance);
       rebuildFurniture();
       renderPlacedFurniture();
+      renderBuildSpecPreview();
+      if (state.mode === 'spec') renderSpecRiskInspector();
       updateHUD();
       selectFurniture(id);
       showToast(`Added ${FURNITURE_LABELS[type]}`, 'success');
@@ -2358,6 +3307,8 @@
       if (state.selectedId === id) { state.selectedType = null; state.selectedId = null; }
       rebuildFurniture();
       renderPlacedFurniture();
+      renderBuildSpecPreview();
+      if (state.mode === 'spec') renderSpecRiskInspector();
       renderProperties();
       updateHUD();
     }
@@ -2943,13 +3894,415 @@
       showToast('Duplicated', 'success');
     }
 
+    /* ============ SPEC MODE ============ */
+    state.spec = {
+      base: { diameter: 350, height: 100, mass: 4.0 },         // mm, mm, kg
+      arm: { totalReach: 700, mountOffset: 0 },                // mm, mm
+      gripper: { type: 'parallel', aperture: 80, fingerLength: 60, maxPayload: 500 },  // mm, g
+    };
+    state.specViz = { showReach: true, showTipping: true };
+
+    const SPEC_PRESETS = {
+      vacuum_compact: {
+        base: { diameter: 350, height: 100, mass: 4.0 },
+        arm: { totalReach: 350, mountOffset: 0 },
+        gripper: { type: 'parallel', aperture: 80, fingerLength: 60, maxPayload: 500 },
+      },
+      vacuum_tall: {
+        base: { diameter: 380, height: 200, mass: 6.5 },
+        arm: { totalReach: 440, mountOffset: 50 },
+        gripper: { type: 'parallel', aperture: 100, fingerLength: 70, maxPayload: 800 },
+      },
+      butler_mini: {
+        base: { diameter: 420, height: 350, mass: 12 },
+        arm: { totalReach: 560, mountOffset: 80 },
+        gripper: { type: '3finger', aperture: 110, fingerLength: 80, maxPayload: 1500 },
+      },
+      butler_pro: {
+        base: { diameter: 480, height: 480, mass: 22 },
+        arm: { totalReach: 760, mountOffset: 120 },
+        gripper: { type: '5finger', aperture: 130, fingerLength: 100, maxPayload: 2500 },
+      },
+      cloid_humanoid: {
+        base: { diameter: 360, height: 1100, mass: 35 },
+        arm: { totalReach: 720, mountOffset: 280 },
+        gripper: { type: '5finger', aperture: 140, fingerLength: 100, maxPayload: 5000 },
+      },
+    };
+
+    const GRIPPER_LABELS = {
+      parallel: 'Parallel Jaw', '3finger': '3-Finger', '5finger': '5-Finger', suction: 'Suction',
+    };
+
+    // 3D groups for SPEC visualization
+    const specReachGroup = new THREE.Group();
+    const specTippingGroup = new THREE.Group();
+    scene.add(specReachGroup);
+    scene.add(specTippingGroup);
+    specReachGroup.visible = false;
+    specTippingGroup.visible = false;
+
+    function specAnchor() {
+      const r = state.robots[0];
+      if (r) return { x: r.x || 0, z: r.z || 0 };
+      return { x: 0, z: 0 };
+    }
+    function specArmMass() {
+      // arm + actuators rough estimate: 1.4 kg per meter of total reach
+      return (state.spec.arm.totalReach * 0.001) * 1.4;
+    }
+    function specMinReach() {
+      // simplified — assume folded arm covers ~30% of total reach
+      return state.spec.arm.totalReach * 0.30;
+    }
+
+    function evaluateSpecForFurniture(f) {
+      const inter = FURNITURE_INTERACTION[f.type] || { h: 0, weight: 0, label: '-' };
+      const anchor = specAnchor();
+      const dx = f.x - anchor.x, dz = f.z - anchor.z;
+      const distance = Math.sqrt(dx * dx + dz * dz);
+      const baseR = state.spec.base.diameter * 0.001 / 2;
+      const horizontal = Math.max(0, distance - baseR);
+      const armOriginY = state.spec.base.height * 0.001 + state.spec.arm.mountOffset * 0.001;
+      const vertical = inter.h - armOriginY;
+      const straight = Math.sqrt(horizontal * horizontal + vertical * vertical);
+      const reachM = state.spec.arm.totalReach * 0.001;
+      const minReachM = specMinReach() * 0.001;
+
+      // Reach
+      const reachOK = straight <= reachM && straight >= minReachM;
+      const reachStatus = !reachOK ? 'fail' : (straight > reachM * 0.92 ? 'warn' : 'pass');
+
+      // Tipping
+      const armM = specArmMass();
+      const baseMass = state.spec.base.mass;
+      const payload = inter.weight;
+      const cogX = (armM * horizontal / 2 + payload * horizontal) / (baseMass + armM + payload);
+      const tipMargin = (baseR - cogX) / baseR;
+      const tippingStatus = tipMargin >= 0.30 ? 'pass' : (tipMargin >= 0.10 ? 'warn' : 'fail');
+
+      // Payload
+      const payloadG = payload * 1000;
+      const payloadStatus = payloadG <= state.spec.gripper.maxPayload ? 'pass' : 'fail';
+
+      // Overall
+      const order = { pass: 0, warn: 1, fail: 2 };
+      const all = [reachStatus, tippingStatus, payloadStatus];
+      const overall = all.reduce((w, s) => order[s] > order[w] ? s : w, 'pass');
+
+      // Fix suggestions
+      const fixes = [];
+      if (reachStatus === 'fail') {
+        if (straight > reachM) {
+          const need = Math.ceil((straight - reachM) * 1000);
+          fixes.push(`팔 +${need}mm`);
+          if (vertical > 0 && state.spec.base.mass < 30) {
+            const lift = Math.ceil(vertical * 1000 - state.spec.base.height);
+            if (lift > 0) fixes.push(`또는 베이스 +${lift}mm`);
+          }
+        }
+        if (straight < minReachM) {
+          fixes.push(`거리 너무 가까움 — 베이스를 ${Math.ceil((minReachM - straight) * 1000)}mm 후진`);
+        }
+      }
+      if (tippingStatus !== 'pass') {
+        const targetCog = 0.70 * baseR;
+        const numer = armM * horizontal / 2 + payload * horizontal;
+        const baseM2 = numer / targetCog - armM - payload;
+        const extra = Math.max(0, baseM2 - baseMass);
+        if (extra > 0.05) fixes.push(`베이스 무게 +${extra.toFixed(1)}kg`);
+      }
+      if (payloadStatus === 'fail') {
+        const extra = Math.ceil(payloadG - state.spec.gripper.maxPayload);
+        fixes.push(`그리퍼 페이로드 +${extra}g`);
+      }
+
+      return {
+        f, inter, distance, horizontal, vertical, straight, reachM, minReachM,
+        tipMargin, reachStatus, tippingStatus, payloadStatus, overall, fixes,
+      };
+    }
+
+    function rebuildSpecReach() {
+      while (specReachGroup.children.length) specReachGroup.remove(specReachGroup.children[0]);
+      const anchor = specAnchor();
+      const armOriginY = state.spec.base.height * 0.001 + state.spec.arm.mountOffset * 0.001;
+      const reachM = state.spec.arm.totalReach * 0.001;
+      const minReachM = specMinReach() * 0.001;
+      // outer hemisphere wireframe
+      const outer = new THREE.WireframeGeometry(
+        new THREE.SphereGeometry(reachM, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2)
+      );
+      const outerLine = new THREE.LineSegments(outer, new THREE.LineBasicMaterial({
+        color: 0x00D9FF, transparent: true, opacity: 0.20,
+      }));
+      outerLine.position.set(anchor.x, armOriginY, anchor.z);
+      specReachGroup.add(outerLine);
+      // lower partial hemisphere
+      const lower = new THREE.WireframeGeometry(
+        new THREE.SphereGeometry(reachM, 32, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 4)
+      );
+      const lowerLine = new THREE.LineSegments(lower, new THREE.LineBasicMaterial({
+        color: 0x00D9FF, transparent: true, opacity: 0.10,
+      }));
+      lowerLine.position.set(anchor.x, armOriginY, anchor.z);
+      specReachGroup.add(lowerLine);
+      // inner dead zone
+      if (minReachM > 0.05) {
+        const inner = new THREE.SphereGeometry(minReachM, 16, 8);
+        const innerMesh = new THREE.Mesh(inner, new THREE.MeshBasicMaterial({
+          color: 0xEF4444, wireframe: true, transparent: true, opacity: 0.20,
+        }));
+        innerMesh.position.set(anchor.x, armOriginY, anchor.z);
+        specReachGroup.add(innerMesh);
+      }
+      // anchor pin
+      const pin = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.01, 0.04, armOriginY, 12),
+        new THREE.MeshBasicMaterial({ color: 0xE63950 })
+      );
+      pin.position.set(anchor.x, armOriginY / 2, anchor.z);
+      specReachGroup.add(pin);
+    }
+
+    function rebuildSpecTipping() {
+      while (specTippingGroup.children.length) specTippingGroup.remove(specTippingGroup.children[0]);
+      const anchor = specAnchor();
+      const baseR = state.spec.base.diameter * 0.001 / 2;
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(baseR - 0.012, baseR, 48),
+        new THREE.MeshBasicMaterial({ color: 0xF59E0B, transparent: true, opacity: 0.7, side: THREE.DoubleSide })
+      );
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.set(anchor.x, 0.005, anchor.z);
+      specTippingGroup.add(ring);
+      // base disc (fill)
+      const disc = new THREE.Mesh(
+        new THREE.CircleGeometry(baseR, 48),
+        new THREE.MeshBasicMaterial({ color: 0xF59E0B, transparent: true, opacity: 0.10, side: THREE.DoubleSide })
+      );
+      disc.rotation.x = -Math.PI / 2;
+      disc.position.set(anchor.x, 0.004, anchor.z);
+      specTippingGroup.add(disc);
+    }
+
+    function rebuildSpecVisuals() {
+      rebuildSpecReach();
+      rebuildSpecTipping();
+      const inSpec = state.mode === 'spec';
+      specReachGroup.visible = inSpec && state.specViz.showReach;
+      specTippingGroup.visible = inSpec && state.specViz.showTipping;
+    }
+
+    function renderSpecPanels() {
+      // BASE
+      document.getElementById('specBasePanel').innerHTML = `
+        <div class="spec-slider-row">
+          <div class="spec-slider-label"><span>지름 (mm)</span><span class="v" id="vSpecBaseDia">${state.spec.base.diameter}</span></div>
+          <input type="range" class="spec-slider" id="sSpecBaseDia" min="200" max="600" step="10" value="${state.spec.base.diameter}">
+        </div>
+        <div class="spec-slider-row">
+          <div class="spec-slider-label"><span>높이 (mm)</span><span class="v" id="vSpecBaseH">${state.spec.base.height}</span></div>
+          <input type="range" class="spec-slider" id="sSpecBaseH" min="60" max="1500" step="10" value="${state.spec.base.height}">
+        </div>
+        <div class="spec-slider-row">
+          <div class="spec-slider-label"><span>무게 (kg)</span><span class="v" id="vSpecBaseM">${state.spec.base.mass.toFixed(1)}</span></div>
+          <input type="range" class="spec-slider" id="sSpecBaseM" min="2" max="60" step="0.5" value="${state.spec.base.mass}">
+        </div>
+      `;
+      // ARM
+      document.getElementById('specArmPanel').innerHTML = `
+        <div class="spec-slider-row">
+          <div class="spec-slider-label"><span>총 도달거리 (mm)</span><span class="v" id="vSpecArmReach">${state.spec.arm.totalReach}</span></div>
+          <input type="range" class="spec-slider" id="sSpecArmReach" min="200" max="1200" step="10" value="${state.spec.arm.totalReach}">
+        </div>
+        <div class="spec-slider-row">
+          <div class="spec-slider-label"><span>마운트 오프셋 (mm)</span><span class="v" id="vSpecArmOff">${state.spec.arm.mountOffset}</span></div>
+          <input type="range" class="spec-slider" id="sSpecArmOff" min="-100" max="500" step="5" value="${state.spec.arm.mountOffset}">
+        </div>
+      `;
+      // GRIPPER
+      document.getElementById('specGripperPanel').innerHTML = `
+        <div class="spec-slider-row">
+          <div class="spec-slider-label"><span>타입</span><span class="v" id="vSpecGripType">${GRIPPER_LABELS[state.spec.gripper.type]}</span></div>
+          <select class="form-select" id="sSpecGripType">
+            <option value="parallel">Parallel Jaw</option>
+            <option value="3finger">3-Finger</option>
+            <option value="5finger">5-Finger</option>
+            <option value="suction">Suction</option>
+          </select>
+        </div>
+        <div class="spec-slider-row">
+          <div class="spec-slider-label"><span>aperture (mm)</span><span class="v" id="vSpecGripAp">${state.spec.gripper.aperture}</span></div>
+          <input type="range" class="spec-slider" id="sSpecGripAp" min="20" max="200" step="5" value="${state.spec.gripper.aperture}">
+        </div>
+        <div class="spec-slider-row">
+          <div class="spec-slider-label"><span>페이로드 (g)</span><span class="v" id="vSpecGripPay">${state.spec.gripper.maxPayload}</span></div>
+          <input type="range" class="spec-slider" id="sSpecGripPay" min="50" max="6000" step="50" value="${state.spec.gripper.maxPayload}">
+        </div>
+      `;
+      // PRESETS
+      const presetEl = document.getElementById('specPresetPanel');
+      presetEl.innerHTML = '';
+      Object.keys(SPEC_PRESETS).forEach(key => {
+        const btn = document.createElement('button');
+        btn.className = 'btn-secondary';
+        btn.style.width = '100%';
+        btn.style.marginBottom = '4px';
+        btn.textContent = key.replace(/_/g, ' ');
+        btn.addEventListener('click', () => applySpecPreset(key));
+        presetEl.appendChild(btn);
+      });
+      // TOGGLES
+      const togEl = document.getElementById('specToggles');
+      togEl.innerHTML = `
+        <button class="spec-toggle-chip ${state.specViz.showReach ? 'active' : ''}" id="tSpecReach">REACH ENVELOPE</button>
+        <button class="spec-toggle-chip ${state.specViz.showTipping ? 'active' : ''}" id="tSpecTipping">TIPPING POLYGON</button>
+      `;
+      document.getElementById('tSpecReach').onclick = () => {
+        state.specViz.showReach = !state.specViz.showReach;
+        rebuildSpecVisuals(); renderSpecPanels();
+      };
+      document.getElementById('tSpecTipping').onclick = () => {
+        state.specViz.showTipping = !state.specViz.showTipping;
+        rebuildSpecVisuals(); renderSpecPanels();
+      };
+      bindSpecSliders();
+      document.getElementById('sSpecGripType').value = state.spec.gripper.type;
+    }
+
+    function bindSpecSliders() {
+      const wire = (sliderId, valId, key, sub, parser, fmt) => {
+        const s = document.getElementById(sliderId);
+        if (!s) return;
+        s.addEventListener('input', () => {
+          state.spec[key][sub] = parser(s.value);
+          document.getElementById(valId).textContent = fmt(state.spec[key][sub]);
+          rebuildSpecVisuals();
+          renderSpecRiskInspector();
+          renderBuildSpecPreview();
+        });
+      };
+      wire('sSpecBaseDia', 'vSpecBaseDia', 'base', 'diameter', parseInt, v => v);
+      wire('sSpecBaseH',   'vSpecBaseH',   'base', 'height',   parseInt, v => v);
+      wire('sSpecBaseM',   'vSpecBaseM',   'base', 'mass',     parseFloat, v => v.toFixed(1));
+      wire('sSpecArmReach','vSpecArmReach','arm',  'totalReach', parseInt, v => v);
+      wire('sSpecArmOff',  'vSpecArmOff',  'arm',  'mountOffset', parseInt, v => v);
+      wire('sSpecGripAp',  'vSpecGripAp',  'gripper', 'aperture', parseInt, v => v);
+      wire('sSpecGripPay', 'vSpecGripPay', 'gripper', 'maxPayload', parseInt, v => v);
+      const sel = document.getElementById('sSpecGripType');
+      if (sel) {
+        sel.addEventListener('change', () => {
+          state.spec.gripper.type = sel.value;
+          document.getElementById('vSpecGripType').textContent = GRIPPER_LABELS[sel.value];
+          renderSpecRiskInspector(); renderBuildSpecPreview();
+        });
+      }
+    }
+
+    function applySpecPreset(key) {
+      const p = SPEC_PRESETS[key];
+      if (!p) return;
+      state.spec.base = { ...p.base };
+      state.spec.arm = { ...p.arm };
+      state.spec.gripper = { ...p.gripper };
+      renderSpecPanels();
+      rebuildSpecVisuals();
+      renderSpecRiskInspector();
+      renderBuildSpecPreview();
+      showToast(`Spec preset: ${key.replace(/_/g, ' ')}`, 'success');
+    }
+
+    function renderSpecRiskInspector() {
+      if (state.mode !== 'spec') return;
+      const evals = state.furniture.map(f => evaluateSpecForFurniture(f));
+      const counts = { pass: 0, warn: 0, fail: 0 };
+      evals.forEach(e => counts[e.overall]++);
+      document.getElementById('specPass').textContent = counts.pass;
+      document.getElementById('specWarn').textContent = counts.warn;
+      document.getElementById('specFail').textContent = counts.fail;
+      const anchor = specAnchor();
+      document.getElementById('propSpecAnchor').textContent =
+        `(${mToFt(anchor.x).toFixed(1)}, ${mToFt(anchor.z).toFixed(1)}) ft${state.robots[0] ? ' · 첫 번째 로봇' : ' · 원점 (로봇 없음)'}`;
+      document.getElementById('propSpecReach').textContent =
+        `${state.spec.arm.totalReach}mm / 최소 ${Math.round(specMinReach())}mm`;
+      document.getElementById('propSpecArmMass').textContent = `${specArmMass().toFixed(2)} kg`;
+
+      const list = document.getElementById('specRiskList');
+      list.innerHTML = '';
+      if (evals.length === 0) {
+        list.innerHTML = '<div class="empty-state" style="padding: 12px 4px; font-size: 11px;">BUILD 모드에서 가구를 배치하세요.</div>';
+        return;
+      }
+      evals.forEach(ev => {
+        const sym = ev.overall === 'pass' ? '✓' : ev.overall === 'warn' ? '⚠' : '✗';
+        const card = document.createElement('div');
+        card.className = `spec-risk-card ${ev.overall}`;
+        let fixHtml = '';
+        if (ev.fixes.length) {
+          const cls = ev.overall === 'fail' ? 'fail' : '';
+          fixHtml = `<div class="spec-risk-fix ${cls}">권장: ${ev.fixes.join(' · ')}</div>`;
+        }
+        card.innerHTML = `
+          <div class="spec-risk-head">
+            <span class="sym ${ev.overall}">${sym}</span>
+            <span class="name">${ev.f.name}</span>
+          </div>
+          <div class="spec-risk-detail">
+            ${ev.inter.label} @ ${(ev.inter.h * 100).toFixed(0)}cm · 거리 ${(ev.distance).toFixed(2)}m<br>
+            도달 ${(ev.straight * 1000).toFixed(0)}/${Math.round(ev.reachM * 1000)}mm
+            <span class="${ev.reachStatus}">[${ev.reachStatus}]</span> ·
+            전도 ${(ev.tipMargin * 100).toFixed(0)}%
+            <span class="${ev.tippingStatus}">[${ev.tippingStatus}]</span>
+          </div>
+          ${fixHtml}
+        `;
+        card.addEventListener('click', () => selectFurniture(ev.f.id));
+        list.appendChild(card);
+      });
+    }
+
+    function renderBuildSpecPreview() {
+      // Show a compact spec-risk summary inside BUILD mode left sidebar
+      let host = document.getElementById('buildSpecPreview');
+      if (!host) {
+        const buildMode = document.getElementById('buildMode');
+        if (!buildMode) return;
+        const section = document.createElement('div');
+        section.className = 'sidebar-section';
+        section.innerHTML = `
+          <div class="sidebar-section-title">SPEC 프리뷰 <span class="count" id="bspPresetName">vacuum compact</span></div>
+          <div id="buildSpecPreview"></div>
+        `;
+        buildMode.appendChild(section);
+        host = document.getElementById('buildSpecPreview');
+      }
+      const evals = state.furniture.map(f => evaluateSpecForFurniture(f));
+      const counts = { pass: 0, warn: 0, fail: 0 };
+      evals.forEach(e => counts[e.overall]++);
+      host.innerHTML = `
+        <div class="build-spec-preview">
+          <div class="row"><span>arm reach</span><span>${state.spec.arm.totalReach}mm</span></div>
+          <div class="row"><span>base ø × m</span><span>${state.spec.base.diameter}mm · ${state.spec.base.mass.toFixed(1)}kg</span></div>
+          <div class="row"><span>gripper</span><span>${GRIPPER_LABELS[state.spec.gripper.type]} ${state.spec.gripper.aperture}mm</span></div>
+          <div class="row" style="margin-top:6px;border-top:1px solid var(--bg-3);padding-top:5px">
+            <span>risk (${state.furniture.length} items)</span>
+            <span><span class="v pass">${counts.pass}</span> / <span class="v warn">${counts.warn}</span> / <span class="v fail">${counts.fail}</span></span>
+          </div>
+          <div class="row" style="margin-top:4px;color:var(--text-tertiary);font-size:9px">SPEC 모드에서 상세 진단</div>
+        </div>
+      `;
+    }
+
     /* ============ MODE TOGGLE ============ */
     document.querySelectorAll('.mode-toggle button').forEach(btn => {
       btn.addEventListener('click', () => toggleToMode(btn.dataset.mode));
     });
 
     function toggleMode() {
-      toggleToMode(state.mode === 'build' ? 'choreo' : 'build');
+      const order = ['build', 'choreo', 'spec'];
+      const i = order.indexOf(state.mode);
+      toggleToMode(order[(i + 1) % order.length]);
     }
 
     function toggleToMode(mode) {
@@ -2958,8 +4311,26 @@
       document.querySelector(`.mode-toggle button[data-mode="${mode}"]`).classList.add('active');
       document.getElementById('buildMode').style.display = mode === 'build' ? 'block' : 'none';
       document.getElementById('choreoMode').style.display = mode === 'choreo' ? 'block' : 'none';
+      document.getElementById('specMode').style.display = mode === 'spec' ? 'block' : 'none';
       helpersGroup.visible = (mode === 'choreo');
       clearSelection();
+      if (mode === 'spec') {
+        renderSpecPanels();
+        rebuildSpecVisuals();
+        renderSpecRiskInspector();
+        // force-show the spec inspector
+        ['propertiesEmpty','propertiesFurniture','propertiesRobot','propertiesGesture','propertiesWaypoint','propertiesSpec'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.remove('active');
+        });
+        document.getElementById('propertiesSpec').classList.add('active');
+      } else {
+        specReachGroup.visible = false;
+        specTippingGroup.visible = false;
+      }
+      if (mode === 'build') {
+        renderBuildSpecPreview();
+      }
       updateHUD();
     }
 
@@ -3347,8 +4718,9 @@
       updateHUD();
       updateDDay();
       renderProperties();
+      renderBuildSpecPreview();
       tick();
-      showToast('Ready — Tab to toggle BUILD/CHOREO', 'success');
+      showToast('Ready — Tab toggles BUILD / CHOREO / SPEC', 'success');
     }
 
     if (window.THREE) {
