@@ -162,6 +162,21 @@
     }
 
     .placed-list { max-height: 180px; overflow-y: auto; }
+    .placed-list-tall { max-height: 280px; }
+    .sidebar-section-sticky {
+      background: rgba(10, 10, 10, 0.6);
+      border: 1px solid var(--bg-3);
+      border-radius: 2px;
+      padding: 8px 10px;
+      margin-bottom: 12px;
+    }
+    .placed-hint {
+      margin-top: 6px;
+      font-size: 9.5px;
+      color: var(--text-tertiary);
+      font-family: 'IBM Plex Mono', monospace;
+      line-height: 1.4;
+    }
     .placed-item {
       padding: 7px 10px; margin-bottom: 2px;
       background: var(--bg-2);
@@ -674,15 +689,16 @@
     <div class="sidebar-left" id="sidebarLeft">
       <!-- BUILD MODE -->
       <div id="buildMode" style="display: block;">
+        <div class="sidebar-section sidebar-section-sticky">
+          <div class="sidebar-section-title">
+            배치된 가구 (Placed) <span class="count" id="furnitureCount">0</span>
+          </div>
+          <div class="placed-list placed-list-tall" id="placedFurnitureList"></div>
+          <div class="placed-hint">씬에서 또는 위 목록에서 클릭 → 우측 인스펙터에서 위치·회전·복제·삭제</div>
+        </div>
         <div class="sidebar-section">
           <div class="sidebar-section-title">Furniture Catalog</div>
           <div class="catalog-grid" id="furnitureCatalog"></div>
-        </div>
-        <div class="sidebar-section">
-          <div class="sidebar-section-title">
-            Placed Furniture <span class="count" id="furnitureCount">0</span>
-          </div>
-          <div class="placed-list" id="placedFurnitureList"></div>
         </div>
         <div class="sidebar-section">
           <div class="sidebar-section-title">Booth</div>
@@ -720,15 +736,15 @@
 
       <!-- CHOREO MODE -->
       <div id="choreoMode" style="display: none;">
+        <div class="sidebar-section sidebar-section-sticky">
+          <div class="sidebar-section-title">
+            배치된 로봇 (Placed) <span class="count" id="robotCount">0</span>
+          </div>
+          <div class="placed-list placed-list-tall" id="robotList"></div>
+        </div>
         <div class="sidebar-section">
           <div class="sidebar-section-title">Robot Catalog</div>
           <div class="catalog-grid" id="robotCatalog"></div>
-        </div>
-        <div class="sidebar-section">
-          <div class="sidebar-section-title">
-            Robots <span class="count" id="robotCount">0</span>
-          </div>
-          <div class="placed-list" id="robotList"></div>
         </div>
         <div class="sidebar-section">
           <div class="sidebar-section-title">Booth</div>
@@ -760,11 +776,26 @@
       <div id="propertiesEmpty" class="properties-panel active">
         <div class="panel-heading">Inspector</div>
         <div class="empty-state">
-          Nothing selected.<br><br>
-          In <span style="color: var(--lg-red)">BUILD</span>, click a furniture<br>
-          in the scene or catalog.<br><br>
-          In <span style="color: var(--lg-red)">CHOREO</span>, click a robot in<br>
-          the list to edit its motion.
+          <div style="margin-bottom: 14px; color: var(--text-secondary);">선택된 항목 없음</div>
+          <div style="text-align: left; line-height: 1.7; font-size: 11px; color: var(--text-secondary);">
+            <div style="margin-bottom: 10px"><span style="color: var(--lg-red); font-weight: 600">BUILD</span> 모드:</div>
+            <div style="padding-left: 8px;">
+              · 좌측 카탈로그에서 가구 클릭 → 추가<br>
+              · 씬의 가구 클릭 → 선택 (드래그로 이동)<br>
+              · 좌측 <strong>배치된 가구</strong> 목록 클릭 → 선택<br>
+              · 선택 후 우측에 위치·회전·복제·삭제
+            </div>
+            <div style="margin: 14px 0 10px"><span style="color: var(--lg-red); font-weight: 600">CHOREO</span> 모드:</div>
+            <div style="padding-left: 8px;">
+              · 좌측 로봇 목록 클릭 → 선택<br>
+              · 빈 바닥 클릭 → waypoint 추가
+            </div>
+            <div style="margin: 14px 0 10px"><span style="color: var(--cyan); font-weight: 600">SPEC</span> 모드:</div>
+            <div style="padding-left: 8px;">
+              · 좌측 spec 슬라이더로 로봇 사양 변경<br>
+              · 우측에 가구별 도달성·전도 위험 자동 평가
+            </div>
+          </div>
         </div>
       </div>
 
@@ -3260,12 +3291,22 @@
     function addFurniture(type) {
       const id = generateId('f');
       const existing = state.furniture.filter(x => x.type === type).length;
+      // Spawn near camera target with a small spiral spread so items don't all stack at origin/wall.
+      const camX = state.cam.target.x;
+      const camZ = state.cam.target.z;
+      const n = state.furniture.length;
+      const spreadAngle = n * 0.7;
+      const spreadR = 0.6 + (n % 4) * 0.4;
+      const hw = ftToM(state.booth.widthFt) / 2 - 1;
+      const hd = ftToM(state.booth.depthFt) / 2 - 1;
+      const sx = clamp(camX + Math.cos(spreadAngle) * spreadR, -hw, hw);
+      const sz = clamp(camZ + Math.sin(spreadAngle) * spreadR, -hd, hd);
       const instance = {
         id, type,
         name: `${FURNITURE_LABELS[type]} ${existing + 1}`,
-        x: 0, z: 0, rotY: 0, scale: 1.0,
+        x: sx, z: sz, rotY: 0, scale: 1.0,
       };
-      const snapped = applySnap(instance, 0, 0);
+      const snapped = applySnap(instance, sx, sz);
       instance.x = snapped.x; instance.z = snapped.z; instance.rotY = snapped.rotY;
       state.furniture.push(instance);
       rebuildFurniture();
@@ -3274,6 +3315,9 @@
       if (state.mode === 'spec') renderSpecRiskInspector();
       updateHUD();
       selectFurniture(id);
+      // Re-center camera on the newly added item so it's always visible.
+      state.cam.target.set(instance.x, 0.5, instance.z);
+      updateCamera();
       showToast(`Added ${FURNITURE_LABELS[type]}`, 'success');
     }
 
