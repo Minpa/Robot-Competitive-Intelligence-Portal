@@ -255,6 +255,11 @@ export async function humanoidRobotRoutes(fastify: FastifyInstance) {
           purpose: humanoidRobots.purpose,
           stage: humanoidRobots.commercializationStage,
           region: humanoidRobots.region,
+          description: humanoidRobots.description,
+          dataType: humanoidRobots.dataType,
+          forecastRationale: humanoidRobots.forecastRationale,
+          forecastSources: humanoidRobots.forecastSources,
+          forecastConfidence: humanoidRobots.forecastConfidence,
           companyId: companies.id,
           companyName: companies.name,
           companyCountry: companies.country,
@@ -276,6 +281,11 @@ export async function humanoidRobotRoutes(fastify: FastifyInstance) {
           quarter: number | null;
           purpose: string | null;
           stage: string | null;
+          description: string | null;
+          dataType: string | null;
+          forecastRationale: string | null;
+          forecastSources: string | null;
+          forecastConfidence: string | null;
         }[];
       }>();
 
@@ -295,6 +305,11 @@ export async function humanoidRobotRoutes(fastify: FastifyInstance) {
           quarter: row.announcementQuarter ?? 1,
           purpose: row.purpose,
           stage: row.stage,
+          description: row.description,
+          dataType: row.dataType,
+          forecastRationale: row.forecastRationale,
+          forecastSources: row.forecastSources,
+          forecastConfidence: row.forecastConfidence,
         });
       }
 

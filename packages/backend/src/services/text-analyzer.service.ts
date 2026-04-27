@@ -49,6 +49,11 @@ export interface AnalyzedData {
     type: string;
     releaseDate?: string;
     description?: string;
+    // Forecast metadata (set when AI marked this as a predicted/upcoming product)
+    dataType?: 'confirmed' | 'forecast';
+    forecastRationale?: string;
+    forecastSources?: string[];
+    forecastConfidence?: 'high' | 'medium' | 'low';
     formFactor?: {
       arms?: number;
       hands?: string;

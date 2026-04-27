@@ -123,6 +123,11 @@ function convertToAnalyzedData(response: AISearchResponse): AnalyzedData {
         type: productType,
         releaseDate: dateMatch ? `${dateMatch[1]!}-${dateMatch[2]!.padStart(2, '0')}` : yearMatch ? yearMatch[1]! : undefined,
         description: f.description,
+        // Pass through forecast metadata if the AI marked this fact as a prediction
+        ...(f.dataType ? { dataType: f.dataType } : {}),
+        ...(f.forecastRationale ? { forecastRationale: f.forecastRationale } : {}),
+        ...(f.forecastSources ? { forecastSources: f.forecastSources } : {}),
+        ...(f.forecastConfidence ? { forecastConfidence: f.forecastConfidence } : {}),
       };
     });
 
@@ -292,6 +297,7 @@ async function saveHumanoidRobots(
     }
 
     try {
+      const isForecast = product.dataType === 'forecast';
       await db.insert(humanoidRobots).values({
         companyId,
         name: product.name,
@@ -300,9 +306,15 @@ async function saveHumanoidRobots(
         purpose,
         locomotionType,
         handType: 'multi_finger',
-        commercializationStage: 'prototype',
+        commercializationStage: isForecast ? 'concept' : 'prototype',
         region: 'global',
         description,
+        dataType: isForecast ? 'forecast' : 'confirmed',
+        forecastRationale: isForecast ? product.forecastRationale : undefined,
+        forecastSources: isForecast && product.forecastSources?.length
+          ? product.forecastSources.join('; ')
+          : undefined,
+        forecastConfidence: isForecast ? product.forecastConfidence : undefined,
       });
       saved++;
     } catch (err) {

@@ -374,6 +374,11 @@ export const humanoidRobots = pgTable(
     region: varchar('region', { length: 50 }), // north_america, europe, china, japan, korea, other
     imageUrl: varchar('image_url', { length: 500 }),
     description: text('description'),
+    // Forecast vs confirmed
+    dataType: varchar('data_type', { length: 20 }).default('confirmed').notNull(), // 'confirmed' | 'forecast'
+    forecastRationale: text('forecast_rationale'), // why we predict this robot will appear (used when dataType='forecast')
+    forecastSources: text('forecast_sources'), // semicolon-separated source strings (CES booth assignments, exec quotes, supply-chain signals, etc)
+    forecastConfidence: varchar('forecast_confidence', { length: 10 }), // 'high' | 'medium' | 'low'
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
@@ -384,6 +389,7 @@ export const humanoidRobots = pgTable(
     handTypeIdx: index('humanoid_robots_hand_type_idx').on(table.handType),
     stageIdx: index('humanoid_robots_stage_idx').on(table.commercializationStage),
     regionIdx: index('humanoid_robots_region_idx').on(table.region),
+    dataTypeIdx: index('humanoid_robots_data_type_idx').on(table.dataType),
   })
 );
 

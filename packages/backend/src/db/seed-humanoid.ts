@@ -58,6 +58,24 @@ async function seedHumanoid() {
     { name: 'Mentee Robotics', country: 'Israel', category: 'robotics', city: 'Haifa', foundingYear: 2022, mainBusiness: 'AI 휴머노이드 로봇' },
     { name: 'LimX Dynamics', country: 'China', category: 'robotics', city: 'Shenzhen', foundingYear: 2022, mainBusiness: '이족 보행 로봇' },
     { name: 'Agibot', country: 'China', category: 'robotics', city: 'Shanghai', foundingYear: 2023, mainBusiness: 'AI 범용 로봇' },
+    // CES 2027 forecast 추가 회사들
+    { name: 'Samsung Electronics', country: 'Korea', category: 'electronics', city: 'Suwon', foundingYear: 1969, mainBusiness: '전자제품·반도체·로봇' },
+    { name: 'Hyundai Motor Group', country: 'Korea', category: 'automotive', city: 'Seoul', foundingYear: 1967, mainBusiness: '자동차·로보틱스 (Boston Dynamics 보유)' },
+    { name: 'Kia Corp', country: 'Korea', category: 'automotive', city: 'Seoul', foundingYear: 1944, mainBusiness: '자동차·HMG 로보틱스 ecosystem' },
+    { name: 'Hyundai WIA', country: 'Korea', category: 'manufacturing', city: 'Changwon', foundingYear: 1976, mainBusiness: '공작기계·H-motion 로봇' },
+    { name: 'HL Robotics', country: 'Korea', category: 'robotics', city: 'Pangyo', foundingYear: 2024, mainBusiness: '주차·보안 로봇 (HL Mando)' },
+    { name: 'CJ Logistics', country: 'Korea', category: 'logistics', city: 'Seoul', foundingYear: 1930, mainBusiness: '물류·휴머노이드 deploy' },
+    { name: 'BodyFriend', country: 'Korea', category: 'healthcare', city: 'Seoul', foundingYear: 2007, mainBusiness: '헬스케어 로봇·안마의자' },
+    { name: 'Doosan Robotics', country: 'Korea', category: 'robotics', city: 'Suwon', foundingYear: 2015, mainBusiness: '협동·휴머노이드 로봇' },
+    { name: 'TCL', country: 'China', category: 'electronics', city: 'Huizhou', foundingYear: 1981, mainBusiness: '가전·동반자 로봇' },
+    { name: 'Hisense', country: 'China', category: 'electronics', city: 'Qingdao', foundingYear: 1969, mainBusiness: '가전·스마트홈 로봇' },
+    { name: 'Sharpa Robotics', country: 'Singapore', category: 'robotics', city: 'Singapore', foundingYear: 2023, mainBusiness: '풀자율 휴머노이드·dexterous hand' },
+    { name: 'NEURA Robotics', country: 'Germany', category: 'robotics', city: 'Metzingen', foundingYear: 2019, mainBusiness: '인지형 휴머노이드 (4NE1)' },
+    { name: 'KEENON Robotics', country: 'China', category: 'robotics', city: 'Shanghai', foundingYear: 2010, mainBusiness: '호스피탈리티·서비스 로봇' },
+    { name: 'SwitchBot', country: 'Japan', category: 'robotics', city: 'Tokyo', foundingYear: 2016, mainBusiness: '스마트홈·가정 휴머노이드' },
+    { name: 'Roborock', country: 'China', category: 'robotics', city: 'Beijing', foundingYear: 2014, mainBusiness: '청소·휠-레그 로봇' },
+    { name: 'Dreame Technology', country: 'China', category: 'robotics', city: 'Suzhou', foundingYear: 2017, mainBusiness: '청소·휴머노이드 로봇' },
+    { name: 'NVIDIA', country: 'USA', category: 'semiconductor', city: 'Santa Clara', foundingYear: 1993, mainBusiness: 'GPU·Physical AI 플랫폼 (GR00T·Cosmos·Jetson)' },
   ];
 
   const companyMap: Record<string, string> = {};
@@ -521,19 +539,222 @@ async function seedHumanoid() {
       description: 'GR-1 후속 모델. NVIDIA Isaac 플랫폼 통합, 의료/물류 실증.',
       imageUrl: '/robots/gr1.webp',
     },
+
+    // ============ CES 2027 FORECAST ROBOTS (예측 데이터) ============
+    // 각 항목은 사용자 제공 분석표 (CES 2026 참가 → 2027 예측) 기반
+    // 국내 ─────────────────────────────────────────────
+    {
+      companyName: 'Samsung Electronics',
+      name: 'Samsung Humanoid (가칭)',
+      announcementYear: 2027, announcementQuarter: 1,
+      status: 'development', purpose: 'service', locomotionType: 'bipedal',
+      handType: 'multi_finger', commercializationStage: 'concept', region: 'korea',
+      description: 'CES 2027 출품 예상. 26년 1월 실적발표 컨콜에서 휴머노이드 로봇산업 실질 성과의 한해로 발표 예정.',
+      dataType: 'forecast', forecastConfidence: 'medium',
+      forecastRationale: 'CES 2026 미출품 후 27년 첫 출품 예상. 26년 1월 실적발표에서 휴머노이드를 핵심 사업으로 발표 → CES 2027에 데뷔 무대 가능성 高. Wynn 호텔 부스 임대 패턴.',
+      forecastSources: 'CES 2026 미출품 (Wynn 호텔 부스 패턴); 26년 1월 실적발표 컨콜 가이던스; 삼성전자 미래사업기획단 휴머노이드 R&D 보도',
+    },
+    {
+      companyName: 'Hyundai Motor Group',
+      name: 'Atlas Production',
+      announcementYear: 2027, announcementQuarter: 1,
+      status: 'development', purpose: 'industrial', locomotionType: 'bipedal',
+      handType: 'multi_finger', commercializationStage: 'pilot', region: 'korea',
+      description: 'Atlas 양산형 + Gemini Robotics 통합. HMGMA 1년 deploy 데이터 + 첫 비-Hyundai 외부고객 발표 가능성 高.',
+      dataType: 'forecast', forecastConfidence: 'high',
+      forecastRationale: 'CES 2026 West Hall 단독 부스 → 27년 양산 외부 공급 시점에 맞춘 발표. 연 3만대 전용 공장 가동 실적 어필. Atlas 양산형 + 26년 Gemini Robotics 통합 로드맵.',
+      forecastSources: 'CES 2026 West Hall 부스 (Hyundai); HMGMA 휴머노이드 deploy 보도; Boston Dynamics-Google DeepMind Gemini Robotics 협업 발표',
+    },
+    {
+      companyName: 'Kia Corp',
+      name: 'Kia PBV Robot',
+      announcementYear: 2027, announcementQuarter: 1,
+      status: 'development', purpose: 'industrial', locomotionType: 'wheeled',
+      handType: 'multi_finger', commercializationStage: 'concept', region: 'korea',
+      description: '기아 첫 CES 참가 — HMG ecosystem 확장 메시지 (Mobis 액추에이터 + 글로비스 SCM 연계).',
+      dataType: 'forecast', forecastConfidence: 'medium',
+      forecastRationale: '기아社 CES 첫 참가 예정. Hyundai Motor Group 통합 ecosystem 메시지로 PBV(Purpose-Built Vehicle) 기반 로보틱스 차량 컨셉 발표 가능성.',
+      forecastSources: 'CES 2027 기아 첫 참가 발표; HMG 그룹 전략 (Mobis·글로비스 통합); CES 2024 PBV 컨셉카 발표 패턴',
+    },
+    {
+      companyName: 'CJ Logistics',
+      name: 'CJ Mobile Manipulator',
+      announcementYear: 2027, announcementQuarter: 1,
+      status: 'development', purpose: 'industrial', locomotionType: 'wheeled',
+      handType: 'multi_finger', commercializationStage: 'poc', region: 'korea',
+      description: 'Rainbow Robotics 협업 「이동형 양팔 로봇」 첫 출품 가능성. 군포FC deploy + TES연구소 RFM(로봇파운데이션모델).',
+      dataType: 'forecast', forecastConfidence: 'medium',
+      forecastRationale: 'CES 2026 Central Hall 부스. 26년 이재현·이선호 시찰 단계 → 27년 Rainbow Robotics 협업 양팔 로봇 데뷔 가능성. 군포FC 휴머노이드 양산 deploy 실적 어필.',
+      forecastSources: 'CES 2026 Central Hall 부스; Rainbow Robotics 협업 MOU 보도; CJ대한통운 군포FC 자동화 보도; TES연구소 RFM 발표',
+    },
+    {
+      companyName: 'BodyFriend',
+      name: '733 Healthcare AI',
+      announcementYear: 2027, announcementQuarter: 1,
+      status: 'development', purpose: 'home', locomotionType: 'wheeled',
+      handType: 'gripper', commercializationStage: 'pilot', region: 'korea',
+      description: '733 헬스케어 로봇 (전신 스트레칭) + Gemini LLM 탑재 양산. 메디컬팬텀로보 등 의료기기 라인업 확장.',
+      dataType: 'forecast', forecastConfidence: 'high',
+      forecastRationale: 'CES 2026에 26.8월 출시 예정 발표 → CES 2027 양산형 + B2B/렌탈 전략 강화. "헬스케어 휴머노이드" 정체성 굳히기.',
+      forecastSources: 'CES 2026 Central Hall 부스 (733 발표); BodyFriend Gemini 탑재 26.8월 출시 가이던스; 메디컬팬텀로보 자체 의료기기 인증 추진',
+    },
+    {
+      companyName: 'HL Robotics',
+      name: 'Parkie + Goalie Fleet',
+      announcementYear: 2027, announcementQuarter: 1,
+      status: 'commercial', purpose: 'service', locomotionType: 'wheeled',
+      handType: 'gripper', commercializationStage: 'commercial', region: 'korea',
+      description: 'Parkie 글로벌 deploy 누적 사례 + RaaS 비즈모델 公개. SEA 액추에이터·자율주행 SW 부품화.',
+      dataType: 'forecast', forecastConfidence: 'high',
+      forecastRationale: 'CES 2026 West Hall 부스 + 현대건설·엘리베이터 MOU 후속. RaaS 비즈모델 공개 + 글로벌 누적 사례 어필 시점.',
+      forecastSources: 'CES 2026 West Hall 부스 (HL Mando); 현대건설·엘리베이터 MOU 발표; HL Mando spin-off → HL Robotics 신설 보도',
+    },
+
+    // 해외 ─────────────────────────────────────────────
+    {
+      companyName: 'Agibot',
+      name: 'Expedition A4',
+      announcementYear: 2027, announcementQuarter: 1,
+      status: 'development', purpose: 'industrial', locomotionType: 'bipedal',
+      handType: 'multi_finger', commercializationStage: 'pilot', region: 'china',
+      description: '누적 1만→3~5만대 + Genie Sim 4.0 + Las Vegas 호텔 컨시어지 deploy 라이브. X2 24대 군무 시연.',
+      dataType: 'forecast', forecastConfidence: 'high',
+      forecastRationale: 'CES 2026 풀라인업 데뷔 (X1·X2·A2·G2·D1, 5,100대 #1) → CES 2027 누적 출하 + Genie Sim 4.0 신규 + 호텔 deploy. Spring Festival Gala X2 24대 군무 자산 글로벌화.',
+      forecastSources: 'CES 2026 North Hall 부스; Agibot 5,100대 출하 보도 (글로벌 #1); Spring Festival Gala 2025 X2 24대 군무 영상; Las Vegas 호텔 deploy MOU 추정',
+    },
+    {
+      companyName: 'Unitree Robotics',
+      name: 'G3',
+      announcementYear: 2027, announcementQuarter: 1,
+      status: 'development', purpose: 'service', locomotionType: 'bipedal',
+      handType: 'multi_finger', commercializationStage: 'prototype', region: 'china',
+      description: 'STAR Market IPO 후 첫 CES — G3 + R2 데뷔. G1 가격 $13.5K→$10K 추가 인하 + UnifoLM 차세대 모델.',
+      dataType: 'forecast', forecastConfidence: 'high',
+      forecastRationale: 'CES 2026 G1·H2·R1 + App Store 발표 (4,200~5,500대 #2) → IPO 후 첫 CES에서 차세대 G3·R2 데뷔. 인간 vs 로봇 마라톤·100m 라이브 가능성.',
+      forecastSources: 'CES 2026 North Hall 부스; Unitree STAR Market IPO 신청 보도; G1 가격 인하 트렌드; UnifoLM 모델 발표',
+    },
+    {
+      companyName: 'Sharpa Robotics',
+      name: 'SharpaWave Production',
+      announcementYear: 2027, announcementQuarter: 1,
+      status: 'development', purpose: 'industrial', locomotionType: 'bipedal',
+      handType: 'multi_finger', commercializationStage: 'pilot', region: 'other',
+      description: 'SharpaWave 양산 가격 公개 + 산업 deploy 사례 (제조·실험실). 22 DOF 손 + 1,000+ 촉각센서/지문.',
+      dataType: 'forecast', forecastConfidence: 'medium',
+      forecastRationale: 'CES 2026 North 풀자율 휴머노이드 + SharpaWave 22 DOF 손 데뷔 → 27년 양산 가격 공개 + 산업 deploy. 韓·美 핸드 부품 직접 위협 (PaXini 경쟁).',
+      forecastSources: 'CES 2026 North Hall 부스; Sharpa VLTA 모델 발표; SharpaWave 1,000+ 촉각센서 데모 영상',
+    },
+    {
+      companyName: 'KEENON Robotics',
+      name: 'XMAN-R2',
+      announcementYear: 2027, announcementQuarter: 1,
+      status: 'development', purpose: 'service', locomotionType: 'bipedal',
+      handType: 'multi_finger', commercializationStage: 'pilot', region: 'china',
+      description: 'XMAN-R1 (호스피탈리티) 美 첫 데뷔 후 R2 후속. 글로벌 호텔 chain 정식 사업 발표 (Marriott·Hilton 추정).',
+      dataType: 'forecast', forecastConfidence: 'high',
+      forecastRationale: 'CES 2026 XMAN-R1 데뷔 + Shangri-La 모델 → 27년 R2 후속 + Marriott·Hilton 공식 발표. 누적 10만+대 출하 어필 + 가정 시장 진입.',
+      forecastSources: 'CES 2026 North Hall 부스; KEENON Shangri-La 호텔 deploy 발표; KOM 2.0 VLA 모델 출시',
+    },
+    {
+      companyName: 'Fourier Intelligence',
+      name: 'Care-bot Production',
+      announcementYear: 2027, announcementQuarter: 1,
+      status: 'development', purpose: 'service', locomotionType: 'bipedal',
+      handType: 'multi_finger', commercializationStage: 'pilot', region: 'china',
+      description: 'Care-bot 풀사이즈 의료·재활 deploy 누적 사례. GR3/Care-bot 후속 + 양손 정밀 의료 작업 시연.',
+      dataType: 'forecast', forecastConfidence: 'medium',
+      forecastRationale: 'CES 2026 Care-bot 北美 데뷔 → CES 2027 의료·재활 deploy 누적 사례 + 노약자 케어 시장 진입 본격화.',
+      forecastSources: 'CES 2026 North Hall 부스; Fourier 재활 로봇 의료기기 인증; Care-bot 노인 케어 시범 사업',
+    },
+    {
+      companyName: 'SwitchBot',
+      name: 'Onero H1 Global',
+      announcementYear: 2027, announcementQuarter: 1,
+      status: 'development', purpose: 'home', locomotionType: 'wheeled',
+      handType: 'multi_finger', commercializationStage: 'pilot', region: 'japan',
+      description: '글로벌 정식 출시 + 가격 公개 ($15~20K 추정) + B2C 채널 (Best Buy·Amazon) 발표. 휠베이스+22 DOF+OmniSense VLA on-device.',
+      dataType: 'forecast', forecastConfidence: 'medium',
+      forecastRationale: 'CES 2026 Venetian Onero H1 데뷔 → CES 2027 정식 출시 + 가격 공개. 일본 가정 (좁은 공간) 시뮬 부스 + LG ThinQ 비교 메시지. ★ CLOiD form factor 정면 경쟁.',
+      forecastSources: 'CES 2026 Venetian Expo 부스; Onero H1 OmniSense VLA on-device 발표; SwitchBot 글로벌 B2C 채널 확장 보도',
+    },
+    {
+      companyName: 'Agility Robotics',
+      name: 'Digit V5',
+      announcementYear: 2027, announcementQuarter: 1,
+      status: 'development', purpose: 'industrial', locomotionType: 'bipedal',
+      handType: 'multi_finger', commercializationStage: 'commercial', region: 'north_america',
+      description: 'Hall 이동 (Fontainebleau→North Hall) — 노출도 강화. RaaS 구독료 정식 公개 ($30~50/시간) + 신규 OEM 1~2社 + 양손 강화.',
+      dataType: 'forecast', forecastConfidence: 'high',
+      forecastRationale: 'CES 2026 Digit (Toyota Canada 7대·GXO·Spanx·Amazon) — RaaS 산업 첫 상용 → CES 2027 Hall 이동으로 中 진영(North Hall)과 동급 무대. RaaS 구독료 정식 공개 시점.',
+      forecastSources: 'CES 2026 Fontainebleau 부스 (Agility); Toyota Canada 7대 deploy 발표; GXO·Spanx·Amazon RaaS 계약 보도',
+    },
+    {
+      companyName: 'Dreame Technology',
+      name: 'Dreame Humanoid',
+      announcementYear: 2027, announcementQuarter: 1,
+      status: 'development', purpose: 'home', locomotionType: 'bipedal',
+      handType: 'multi_finger', commercializationStage: 'concept', region: 'china',
+      description: '면적 확대 = 휴머노이드 풀데뷔 가능성 高. 「Bionic + Humanoid 융합」 — LG·Samsung 가정 가전 직접 위협.',
+      dataType: 'forecast', forecastConfidence: 'high',
+      forecastRationale: 'CES 2026 부스 3개 임대 (역대 최대) — Cyber10 Ultra·CyberX·Nebula Next 01 → CES 2027 면적 확대 = 가전+청소+가정 휴머노이드 통합 ecosystem. Bionic + Humanoid 융합 메시지.',
+      forecastSources: 'CES 2026 Central Hall 부스 3개 (Dreame); Cyber10 Ultra 다관절 로봇팔 발표; Nebula Next 01 콘셉트카 공개',
+    },
+    {
+      companyName: 'Roborock',
+      name: 'G-Rover Humanoid',
+      announcementYear: 2027, announcementQuarter: 1,
+      status: 'development', purpose: 'home', locomotionType: 'hybrid',
+      handType: 'gripper', commercializationStage: 'concept', region: 'china',
+      description: 'Hall 이동 (Venetian→Central) — 가전 ecosystem 입성. 휴머노이드 진입 가능성 高 (Dreame Cyber10 패턴 추종) + Saros 후속.',
+      dataType: 'forecast', forecastConfidence: 'medium',
+      forecastRationale: 'CES 2026 G-Rover 휠-레그 청소로봇 (계단 자율 등반) — 2D→3D 공간 첫 진입 → CES 2027 Central Hall 이동으로 LG·Samsung 정면 경쟁 위치.',
+      forecastSources: 'CES 2026 Venetian Expo 부스; G-Rover 휠-레그 청소로봇 발표; Roborock Hall 이동 가이던스',
+    },
+    {
+      companyName: 'NEURA Robotics',
+      name: '4NE1 Gen 4',
+      announcementYear: 2027, announcementQuarter: 2,
+      status: 'development', purpose: 'industrial', locomotionType: 'bipedal',
+      handType: 'multi_finger', commercializationStage: 'pilot', region: 'europe',
+      description: '4NE1 Gen 3 (Studio Porsche 디자인 + 인공피부 + Neuraverse fleet) 후속. CES 미확정 — Hannover Messe 2027 집중 가능성 高.',
+      dataType: 'forecast', forecastConfidence: 'low',
+      forecastRationale: 'CES 2026 4NE1 Gen 3 데뷔 → 27년 CES 참가 미확정. Schaeffler·BMW 동맹 우선시 Hannover Messe 2027 집중 추정. EU 主권 AI 메시지.',
+      forecastSources: 'CES 2026 North Hall 부스 (NEURA); Studio Porsche 디자인 협업; Schaeffler·BMW NEURA 동맹 발표; Hannover Messe 2027 우선순위 추정',
+    },
+    {
+      companyName: 'NVIDIA',
+      name: 'GR00T N2.0',
+      announcementYear: 2027, announcementQuarter: 1,
+      status: 'development', purpose: 'industrial', locomotionType: 'bipedal',
+      handType: 'multi_finger', commercializationStage: 'pilot', region: 'north_america',
+      description: 'GR00T N2.0/3.0 + Cosmos 2.0 + 동반 출연 15~20社 확대. Physical AI ChatGPT moment → Production moment 메시지.',
+      dataType: 'forecast', forecastConfidence: 'high',
+      forecastRationale: 'CES 2026 Jensen Huang 키노트 — GR00T N1.6 + Cosmos + Jetson Thor + 휴머노이드 7社 동반 출연 → CES 2027 N2.0/3.0 + 동반 출연 15~20社 확대.',
+      forecastSources: 'CES 2026 Fontainebleau 키노트 (Jensen Huang); GR00T N1.6 발표; Jetson Thor 4x 성능 발표; Industrial AI Cloud 누적 사례',
+    },
   ];
 
   const robotMap: Record<string, string> = {};
   for (const r of robotsData) {
     const companyId = companyMap[r.companyName];
     if (!companyId) continue;
+    const r2 = r as typeof r & {
+      dataType?: 'confirmed' | 'forecast';
+      forecastRationale?: string;
+      forecastSources?: string;
+      forecastConfidence?: 'high' | 'medium' | 'low';
+    };
     const existing = await db.select().from(humanoidRobots).where(eq(humanoidRobots.name, r.name)).limit(1);
     if (existing.length > 0) {
       robotMap[r.name] = existing[0]!.id;
-      // Update imageUrl and announcementQuarter for existing robots
+      // Update imageUrl, announcementQuarter, and forecast fields for existing robots
       await db.update(humanoidRobots).set({
         ...(r.imageUrl ? { imageUrl: r.imageUrl } : {}),
         announcementQuarter: r.announcementQuarter || 1,
+        ...(r2.dataType ? { dataType: r2.dataType } : {}),
+        ...(r2.forecastRationale !== undefined ? { forecastRationale: r2.forecastRationale } : {}),
+        ...(r2.forecastSources !== undefined ? { forecastSources: r2.forecastSources } : {}),
+        ...(r2.forecastConfidence !== undefined ? { forecastConfidence: r2.forecastConfidence } : {}),
       }).where(eq(humanoidRobots.id, existing[0]!.id));
     } else {
       const [inserted] = await db.insert(humanoidRobots).values({
@@ -549,6 +770,10 @@ async function seedHumanoid() {
         region: r.region,
         description: r.description,
         imageUrl: r.imageUrl,
+        dataType: r2.dataType || 'confirmed',
+        forecastRationale: r2.forecastRationale,
+        forecastSources: r2.forecastSources,
+        forecastConfidence: r2.forecastConfidence,
       }).returning();
       robotMap[r.name] = inserted!.id;
     }

@@ -56,6 +56,17 @@ type Robot = {
   quarter: number | null;
   purpose: string | null;
   stage: string | null;
+  description?: string | null;
+  dataType?: string | null;            // 'confirmed' | 'forecast'
+  forecastRationale?: string | null;
+  forecastSources?: string | null;     // semicolon-separated
+  forecastConfidence?: string | null;  // 'high' | 'medium' | 'low'
+};
+
+const CONFIDENCE_LABELS: Record<string, { label: string; color: string }> = {
+  high:   { label: '신뢰도 높음', color: '#15803D' },
+  medium: { label: '신뢰도 중간', color: '#A16207' },
+  low:    { label: '신뢰도 낮음', color: '#C2410C' },
 };
 
 /** Compute a sortable value for year+quarter */
@@ -118,6 +129,7 @@ export default function RobotEvolutionTimeline() {
   const [tooltip, setTooltip] = useState<{
     x: number; y: number; robot: Robot; companyName: string;
   } | null>(null);
+  const [modalRobot, setModalRobot] = useState<{ robot: Robot; companyName: string } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const router = useRouter();
@@ -207,8 +219,9 @@ export default function RobotEvolutionTimeline() {
     });
   };
 
-  const handleClick = (robotId: string) => {
-    router.push(`/humanoid-robots/${robotId}`);
+  const handleClick = (robot: Robot, companyName: string) => {
+    setModalRobot({ robot, companyName });
+    setTooltip(null);
   };
 
   if (isLoading || containerWidth === 0) {
@@ -410,16 +423,23 @@ export default function RobotEvolutionTimeline() {
                   return group.items.map((robot, si) => {
                     const ny = startY + si * (NODE_H + NODE_GAP);
                     const future = isFuture(robot.year, robot.quarter);
-                    const nw = nodeWidth(robot.name, future);
+                    const isForecast = robot.dataType === 'forecast';
+                    const showBadge = isForecast || future;
+                    const badgeText = isForecast ? '예측' : 'TBD';
+                    const nw = nodeWidth(robot.name, showBadge);
                     const stage = STAGE_COLORS[robot.stage || 'concept'] || STAGE_COLORS.concept!;
                     const isHov = hoveredRobot === robot.id;
                     const displayName = truncName(robot.name);
+                    // forecast: dashed border + reduced opacity for visual distinction
+                    const dashed = isForecast || future;
+                    const opacity = isForecast ? 0.78 : 1.0;
 
                     return (
                       <g
                         key={robot.id}
                         className="cursor-pointer"
-                        onClick={() => handleClick(robot.id)}
+                        opacity={opacity}
+                        onClick={() => handleClick(robot, company.companyName)}
                         onMouseEnter={e => handleMouseEnter(e, robot, company.companyName)}
                         onMouseLeave={() => { setHoveredRobot(null); setTooltip(null); }}
                       >
@@ -432,10 +452,10 @@ export default function RobotEvolutionTimeline() {
                           fill={isHov ? stage.border : stage.bg}
                           stroke={stage.border}
                           strokeWidth={isHov ? 1.5 : 1}
-                          strokeDasharray={future ? '3 2' : undefined}
+                          strokeDasharray={dashed ? '3 2' : undefined}
                         />
                         <text
-                          x={cx - (future ? 12 : 0)}
+                          x={cx - (showBadge ? 14 : 0)}
                           y={ny + NODE_H / 2 + 3.5}
                           textAnchor="middle"
                           fill={isHov ? '#fff' : stage.text}
@@ -444,16 +464,16 @@ export default function RobotEvolutionTimeline() {
                         >
                           {displayName}
                         </text>
-                        {future && (
+                        {showBadge && (
                           <text
-                            x={cx + nw / 2 - 22}
+                            x={cx + nw / 2 - (isForecast ? 18 : 22)}
                             y={ny + NODE_H / 2 + 3}
                             textAnchor="middle"
-                            fill="#d97706"
+                            fill={isForecast ? '#9333ea' : '#d97706'}
                             fontSize={8}
-                            fontWeight={600}
+                            fontWeight={700}
                           >
-                            TBD
+                            {badgeText}
                           </text>
                         )}
                       </g>
@@ -496,6 +516,148 @@ export default function RobotEvolutionTimeline() {
       {companies.length === 0 && (
         <div className="text-center py-10 text-ink-500">해당 지역에 등록된 로봇이 없습니다.</div>
       )}
+
+      {/* Robot detail / forecast rationale modal */}
+      {modalRobot && (
+        <RobotRationaleModal
+          robot={modalRobot.robot}
+          companyName={modalRobot.companyName}
+          onClose={() => setModalRobot(null)}
+          onOpenDetail={() => {
+            const id = modalRobot.robot.id;
+            setModalRobot(null);
+            router.push(`/humanoid-robots/${id}`);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ============ MODAL: Robot rationale popup ============
+function RobotRationaleModal({
+  robot, companyName, onClose, onOpenDetail,
+}: {
+  robot: Robot;
+  companyName: string;
+  onClose: () => void;
+  onOpenDetail: () => void;
+}) {
+  const isForecast = robot.dataType === 'forecast';
+  const stage = STAGE_COLORS[robot.stage || 'concept'] || STAGE_COLORS.concept!;
+  const conf = robot.forecastConfidence && CONFIDENCE_LABELS[robot.forecastConfidence];
+  const sources = (robot.forecastSources || '').split(';').map(s => s.trim()).filter(Boolean);
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between p-5 border-b border-ink-100">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              {isForecast && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-300">
+                  예측 데이터 (FORECAST)
+                </span>
+              )}
+              {!isForecast && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-300">
+                  확정 데이터 (CONFIRMED)
+                </span>
+              )}
+              {conf && (
+                <span
+                  className="px-2 py-0.5 rounded-full text-[10px] font-semibold border"
+                  style={{ color: conf.color, borderColor: conf.color, backgroundColor: `${conf.color}15` }}
+                >
+                  {conf.label}
+                </span>
+              )}
+            </div>
+            <h2 className="text-xl font-bold text-ink-900 truncate">{robot.name}</h2>
+            <div className="text-sm text-ink-500 mt-0.5">
+              {companyName} · {robot.year}년 Q{robot.quarter || 1}
+              <span
+                className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium"
+                style={{ color: stage.text, backgroundColor: stage.bg, border: `1px solid ${stage.border}` }}
+              >
+                {stage.label}
+              </span>
+              {robot.purpose && (
+                <span className="ml-2 text-ink-500">{PURPOSE_LABELS[robot.purpose] || robot.purpose}</span>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="ml-4 text-ink-400 hover:text-ink-700 text-2xl leading-none"
+            aria-label="닫기"
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-5 space-y-4">
+          {robot.description && (
+            <section>
+              <h3 className="text-xs font-bold text-ink-500 uppercase tracking-wider mb-1.5">개요</h3>
+              <p className="text-sm text-ink-800 leading-relaxed">{robot.description}</p>
+            </section>
+          )}
+
+          {isForecast && robot.forecastRationale && (
+            <section>
+              <h3 className="text-xs font-bold text-purple-700 uppercase tracking-wider mb-1.5">📊 예측 근거</h3>
+              <p className="text-sm text-ink-800 leading-relaxed bg-purple-50 border border-purple-200 rounded-lg p-3">
+                {robot.forecastRationale}
+              </p>
+            </section>
+          )}
+
+          {isForecast && sources.length > 0 && (
+            <section>
+              <h3 className="text-xs font-bold text-purple-700 uppercase tracking-wider mb-1.5">📚 출처</h3>
+              <ul className="text-sm text-ink-700 space-y-1">
+                {sources.map((s, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="text-purple-400">•</span>
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {isForecast && (
+            <section className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+              ⚠️ 이 로봇은 <strong>아직 공식 발표되지 않은 예측 데이터</strong>입니다. CES 2026 부스 위치, 임원 발언, 공급망 신호, 보도 패턴을 종합한 추정으로, 실제 출시 시점·사양·전략은 변경될 수 있습니다.
+            </section>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-2 p-4 border-t border-ink-100 bg-ink-50/50">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-ink-700 hover:bg-ink-100 rounded-lg"
+          >
+            닫기
+          </button>
+          <button
+            onClick={onOpenDetail}
+            className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+          >
+            상세 페이지로 이동 →
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

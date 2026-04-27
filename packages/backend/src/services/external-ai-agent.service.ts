@@ -33,6 +33,11 @@ export interface StructuredFact {
   name: string;
   description: string;
   confidence: number;
+  // ── Forecast metadata (used when the fact describes an unannounced/predicted product) ──
+  dataType?: 'confirmed' | 'forecast';
+  forecastRationale?: string;       // 1~3문장: 왜 이 로봇이 출시될 것이라 예측하는가
+  forecastSources?: string[];       // 부스 위치, 임원 발언, 공급망 신호 등
+  forecastConfidence?: 'high' | 'medium' | 'low';
 }
 
 export interface SourceReference {
@@ -278,6 +283,13 @@ ${webSearchNote}
 
 **지역:** ${request.region}
 
+**📅 예측 데이터 수집 지침 (중요):**
+이미 공식 발표된 제품(confirmed)뿐 아니라, **가까운 미래(1~2년)에 출시·공개될 가능성이 높은 로봇/제품도 별도로 수집**하세요.
+- **수집 신호:** CES/Hannover Messe 같은 전시회 부스 사전 임대 패턴, 임원 컨콜·인터뷰의 가이던스, 공급망 (액추에이터·SoC) MOU 발표, 채용 공고 패턴, 격년 참가 이력, 후속 모델 명명 패턴 등
+- **표시 방법:** product 카테고리 facts에 \`dataType: "forecast"\` + \`forecastRationale\` (왜 출시될 것이라 예측하는지 1~3문장) + \`forecastSources\` (배열, 부스 위치/임원 발언/공급망 신호 등) + \`forecastConfidence\` ("high" | "medium" | "low") 를 채우세요.
+- **확정 데이터는** \`dataType: "confirmed"\` (또는 생략) — 이 경우 forecast* 필드는 비웁니다.
+- **환각 금지:** 근거가 약하면 confidence를 낮추거나 아예 포함하지 마세요. 모델명을 추측해서 만들어내지 말고, "Samsung Humanoid (가칭)"처럼 가칭임을 명시하세요.
+
 **응답 JSON 형식:**
 {
   "summary": "전체 요약 (한국어, 2~3문장)",
@@ -286,7 +298,11 @@ ${webSearchNote}
       "category": "company | product | component | application | workforce | market | technology | keyword",
       "name": "엔티티 고유명만 (예: 'Unitree', 'Optimus Gen 2') — 헤드라인·동사 절대 금지",
       "description": "요약된 팩트 설명 (1~2문장, 원문 텍스트 금지) — 뉴스 내용·동작은 여기에만",
-      "confidence": 0.0~1.0
+      "confidence": 0.0~1.0,
+      "dataType": "confirmed | forecast (선택, product 카테고리만)",
+      "forecastRationale": "예측 근거 1~3문장 (dataType=forecast일 때만)",
+      "forecastSources": ["부스 위치", "임원 발언", "MOU"] (dataType=forecast일 때만, 문자열 배열),
+      "forecastConfidence": "high | medium | low (dataType=forecast일 때만)"
     }
   ],
   "sources": [
@@ -423,16 +439,36 @@ confidence는 정보의 신뢰도를 나타냅니다 (0.9+: 확실, 0.7~0.9: 높
 
       const validCategories = new Set(['company', 'product', 'component', 'application', 'workforce', 'market', 'technology', 'keyword']);
 
+      const validDataTypes = new Set(['confirmed', 'forecast']);
+      const validForecastConf = new Set(['high', 'medium', 'low']);
       const facts: StructuredFact[] = (Array.isArray(data.facts) ? data.facts : [])
         .filter((f: any) => f && typeof f.name === 'string' && f.name.length > 0)
         .map((f: any) => {
           const sanitized = sanitizeEntityName(String(f.name));
-          return {
+          const dataType: 'confirmed' | 'forecast' = validDataTypes.has(f.dataType) ? f.dataType : 'confirmed';
+          const fact: StructuredFact = {
             category: validCategories.has(f.category) ? f.category : 'keyword',
             name: sanitized,
             description: stripCitationTags(String(f.description || '')),
             confidence: Math.max(0, Math.min(1, Number(f.confidence) || 0.5)),
+            dataType,
           };
+          if (dataType === 'forecast') {
+            if (typeof f.forecastRationale === 'string' && f.forecastRationale.trim()) {
+              fact.forecastRationale = stripCitationTags(f.forecastRationale).slice(0, 1000);
+            }
+            if (Array.isArray(f.forecastSources)) {
+              const arr = f.forecastSources
+                .filter((s: any) => typeof s === 'string' && s.trim())
+                .map((s: string) => stripCitationTags(s).slice(0, 200))
+                .slice(0, 10);
+              if (arr.length > 0) fact.forecastSources = arr;
+            }
+            if (validForecastConf.has(f.forecastConfidence)) {
+              fact.forecastConfidence = f.forecastConfidence;
+            }
+          }
+          return fact;
         })
         .filter((f) => isValidEntityName(f.name, f.category));
 
