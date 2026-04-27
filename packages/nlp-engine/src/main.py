@@ -8,6 +8,7 @@ import os
 from services.keyword_extractor import KeywordExtractor
 from services.trend_analyzer import TrendAnalyzer
 from services.language_detector import LanguageDetector
+from services.claude_chat import ClaudeChatService
 
 app = FastAPI(
     title="RCIP NLP Engine",
@@ -27,6 +28,7 @@ app.add_middleware(
 keyword_extractor = KeywordExtractor()
 trend_analyzer = TrendAnalyzer()
 language_detector = LanguageDetector()
+claude_chat_service = ClaudeChatService()
 
 
 class HealthResponse(BaseModel):
@@ -80,6 +82,17 @@ class LanguageDetectionRequest(BaseModel):
 class LanguageDetectionResponse(BaseModel):
     language: str
     confidence: float
+
+
+class ClaudeChatRequest(BaseModel):
+    message: str = Field(..., min_length=1)
+    context: Optional[str] = None
+    max_tokens: int = Field(default=1000, ge=1, le=4000)
+
+
+class ClaudeChatResponse(BaseModel):
+    response: str
+    model: str = "claude-opus-4-6"
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -141,6 +154,19 @@ async def detect_language(request: LanguageDetectionRequest):
     try:
         result = language_detector.detect(request.text)
         return LanguageDetectionResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/claude-chat", response_model=ClaudeChatResponse)
+async def claude_chat(request: ClaudeChatRequest):
+    """Chat with Claude AI"""
+    try:
+        response = claude_chat_service.generate_response(
+            user_message=request.message,
+            context=request.context or ""
+        )
+        return ClaudeChatResponse(response=response)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

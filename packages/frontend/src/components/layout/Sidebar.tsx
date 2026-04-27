@@ -67,7 +67,7 @@ const navigationGroups: NavGroup[] = [
     ],
   },
   {
-    title: '컴플라이언스',
+    title: '컴플라이언스2',
     subtitle: 'Compliance',
     items: [
       { name: '규제 대시보드', href: '/compliance', icon: LayoutDashboard },
