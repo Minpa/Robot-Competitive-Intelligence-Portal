@@ -1363,7 +1363,7 @@
     /* ============ THREE.JS ============ */
     const canvas = document.getElementById('canvas');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0f18);
+    scene.background = new THREE.Color(0x1d2433);
     scene.fog = new THREE.Fog(0x0a0f18, 50, 200);
 
     const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
@@ -1383,7 +1383,7 @@
     }
 
     // Lights
-    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.75));
     const keyLight = new THREE.DirectionalLight(0xffffff, 0.85);
     keyLight.position.set(15, 25, 10);
     keyLight.castShadow = true;
@@ -1501,7 +1501,7 @@
 
       // Floor
       const floorGeo = new THREE.PlaneGeometry(w, d);
-      const floorMat = new THREE.MeshStandardMaterial({ color: 0x0f0f0f, roughness: 0.85, metalness: 0.1 });
+      const floorMat = new THREE.MeshStandardMaterial({ color: 0x3a4250, roughness: 0.85, metalness: 0.1 });
       const floor = new THREE.Mesh(floorGeo, floorMat);
       floor.rotation.x = -Math.PI / 2;
       floor.receiveShadow = true;
@@ -1510,7 +1510,7 @@
 
       // Grid
       const gridDivs = Math.max(Math.round(state.booth.widthFt / 5), 4);
-      const grid = new THREE.GridHelper(Math.max(w, d), gridDivs, 0x333333, 0x1a1a1a);
+      const grid = new THREE.GridHelper(Math.max(w, d), gridDivs, 0x6a7585, 0x4a5260);
       grid.position.y = 0.003;
       boothGroup.add(grid);
 
@@ -1526,7 +1526,7 @@
       boothGroup.add(boundary);
 
       // Back wall (north) — subtle
-      const wallMat = new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.8 });
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0x4a5260, roughness: 0.8 });
       const wallH = 3.5;
       const backGeo = new THREE.BoxGeometry(w, wallH, 0.08);
       const backWall = new THREE.Mesh(backGeo, wallMat);
