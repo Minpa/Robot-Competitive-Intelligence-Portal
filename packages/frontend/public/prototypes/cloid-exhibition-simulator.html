@@ -285,12 +285,14 @@
     /* ============ GESTURE MENU (DROPDOWN) ============ */
     .gesture-menu-wrapper { position: relative; }
     .gesture-menu {
-      position: absolute; top: 100%; left: 0; right: 0;
+      position: absolute; top: 100%;
+      right: 0;  /* anchor right, expand left so sidebar doesn't clip it */
+      min-width: 240px;
       background: var(--bg-2);
       border: 1px solid var(--cyan);
       border-radius: 3px; margin-top: 2px;
-      z-index: 1000; max-height: 280px; overflow-y: auto;
-      box-shadow: 0 4px 12px rgba(0, 217, 255, 0.15);
+      z-index: 1000; max-height: 320px; overflow-y: auto;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 217, 255, 0.2);
     }
     .gesture-menu-header {
       padding: 6px 10px; font-size: 9px; text-transform: uppercase;
@@ -881,25 +883,27 @@
     <!-- SIDEBAR RIGHT -->
     <div class="sidebar-right" id="sidebarRight">
       <div id="propertiesEmpty" class="properties-panel active">
-        <div class="panel-heading">Inspector</div>
+        <div class="panel-heading">속성 패널</div>
         <div class="empty-state">
           <div style="margin-bottom: 14px; color: var(--text-secondary);">선택된 항목 없음</div>
           <div style="text-align: left; line-height: 1.7; font-size: 11px; color: var(--text-secondary);">
-            <div style="margin-bottom: 10px"><span style="color: var(--lg-red); font-weight: 600">BUILD</span> 모드:</div>
+            <div style="margin-bottom: 10px"><span style="color: var(--lg-red); font-weight: 600">부스 배치</span> (BUILD):</div>
             <div style="padding-left: 8px;">
               · 좌측 카탈로그에서 가구 클릭 → 추가<br>
-              · 씬의 가구 클릭 → 선택 (드래그로 이동)<br>
+              · 씬에서 가구 클릭 → 선택 (드래그로 이동)<br>
               · 좌측 <strong>배치된 가구</strong> 목록 클릭 → 선택<br>
-              · 선택 후 우측에 위치·회전·복제·삭제
+              · 선택 시 위치·회전·크기·복제·삭제 가능
             </div>
-            <div style="margin: 14px 0 10px"><span style="color: var(--lg-red); font-weight: 600">CHOREO</span> 모드:</div>
+            <div style="margin: 14px 0 10px"><span style="color: var(--lg-red); font-weight: 600">동작 연출</span> (CHOREO):</div>
             <div style="padding-left: 8px;">
-              · 좌측 로봇 목록 클릭 → 선택<br>
-              · 빈 바닥 클릭 → waypoint 추가
+              · 좌측 카탈로그에서 로봇 추가 → 목록 클릭으로 선택<br>
+              · 선택 시 <strong>이동 속도</strong> 슬라이더 + <strong>+ 동작</strong> 메뉴<br>
+              · 빈 바닥 클릭 → 경로점(waypoint) 추가<br>
+              · <strong>+ 동작 ▾</strong> 누르면 7가지 동작 리스트 표시
             </div>
-            <div style="margin: 14px 0 10px"><span style="color: var(--cyan); font-weight: 600">SPEC</span> 모드:</div>
+            <div style="margin: 14px 0 10px"><span style="color: var(--cyan); font-weight: 600">스펙 분석</span> (SPEC):</div>
             <div style="padding-left: 8px;">
-              · 좌측 spec 슬라이더로 로봇 사양 변경<br>
+              · 좌측 슬라이더로 로봇 스펙 변경<br>
               · 우측에 가구별 도달성·전도 위험 자동 평가
             </div>
           </div>
@@ -907,28 +911,28 @@
       </div>
 
       <div id="propertiesFurniture" class="properties-panel">
-        <div class="panel-heading">Furniture</div>
+        <div class="panel-heading">가구</div>
         <div class="panel-subheading" id="propFurnitureSubhead">-</div>
         <div class="form-row">
-          <label>Name</label>
+          <label>이름</label>
           <input type="text" class="form-input" id="propFurnitureName">
         </div>
         <div class="form-row">
-          <label>Type</label>
+          <label>종류</label>
           <div class="property-value" id="propFurnitureType">-</div>
         </div>
         <div class="form-row-split">
           <div class="form-row">
-            <label>Pos X (ft)</label>
+            <label>위치 X (ft)</label>
             <input type="number" class="form-input" id="propFurnitureX" step="0.5">
           </div>
           <div class="form-row">
-            <label>Pos Z (ft)</label>
+            <label>위치 Z (ft)</label>
             <input type="number" class="form-input" id="propFurnitureZ" step="0.5">
           </div>
         </div>
         <div class="form-row">
-          <label>Rotation (°)</label>
+          <label>회전 (°)</label>
           <input type="number" class="form-input" id="propFurnitureRotY" step="15">
         </div>
         <div class="rot-buttons">
@@ -940,7 +944,7 @@
         <input type="range" id="propFurnitureRotSlider" class="spec-slider" min="-180" max="180" step="1" value="0" style="margin-top: 6px">
 
         <div class="form-row" style="margin-top: 12px">
-          <label>Move (step <span class="step-active" id="propMoveStepLabel">0.5m</span>)</label>
+          <label>이동 (단위 <span class="step-active" id="propMoveStepLabel">0.5m</span>)</label>
           <div class="step-toggle-row">
             <button class="btn-mini step-btn" data-step="0.1">0.1m</button>
             <button class="btn-mini step-btn active" data-step="0.5">0.5m</button>
@@ -960,7 +964,7 @@
         </div>
 
         <div class="form-row" style="margin-top: 10px">
-          <label>Scale (size) <span class="v-mono" id="propScaleVal">1.00×</span></label>
+          <label>크기 <span class="v-mono" id="propScaleVal">1.00×</span></label>
           <input type="range" id="propFurnitureScale" class="spec-slider" min="0.3" max="3" step="0.05" value="1">
           <div class="action-grid" style="margin-top: 5px">
             <button class="btn-mini" data-scale="0.5">×0.5</button>
@@ -971,91 +975,91 @@
         </div>
 
         <div class="form-row">
-          <label>Dimensions (m)</label>
+          <label>치수 (m)</label>
           <div class="property-value" id="propFurnitureDims">-</div>
         </div>
         <div class="action-grid">
-          <button class="btn-secondary" id="propFurnitureResetRot">Reset Rot</button>
-          <button class="btn-secondary" id="propFurnitureCenter">Center</button>
+          <button class="btn-secondary" id="propFurnitureResetRot">회전 초기화</button>
+          <button class="btn-secondary" id="propFurnitureCenter">중앙으로</button>
         </div>
         <div class="action-grid">
-          <button class="btn-secondary" id="propFurnitureDuplicate">Duplicate</button>
-          <button class="btn-secondary danger" id="propFurnitureDelete">Delete</button>
+          <button class="btn-secondary" id="propFurnitureDuplicate">복제</button>
+          <button class="btn-secondary danger" id="propFurnitureDelete">삭제</button>
         </div>
       </div>
 
       <div id="propertiesRobot" class="properties-panel">
-        <div class="panel-heading">Robot</div>
+        <div class="panel-heading">로봇</div>
         <div class="panel-subheading" id="propRobotSubhead">-</div>
         <div class="form-row">
-          <label>Name</label>
+          <label>이름</label>
           <input type="text" class="form-input" id="propRobotName">
         </div>
         <div class="form-row-split">
           <div class="form-row">
-            <label>Type</label>
+            <label>종류</label>
             <div class="property-value" id="propRobotType">-</div>
           </div>
           <div class="form-row">
-            <label>Height (m)</label>
+            <label>키 (m)</label>
             <input type="number" class="form-input" id="propRobotHeight" step="0.05" min="0.3" max="2.5">
           </div>
         </div>
         <div class="form-row">
-          <label>Color</label>
+          <label>색상</label>
           <input type="color" class="form-input" id="propRobotColor" style="height: 30px;">
         </div>
-        <div class="form-row">
-          <label>Speed <span class="v-mono" id="propRobotSpeedVal">1.00×</span></label>
+        <div class="form-row" style="background: rgba(0,217,255,0.04); padding: 8px; border-radius: 3px; border: 1px solid rgba(0,217,255,0.15);">
+          <label>이동 속도 <span class="v-mono" id="propRobotSpeedVal">1.00×</span></label>
           <input type="range" id="propRobotSpeed" class="spec-slider" min="0.25" max="3" step="0.05" value="1">
           <div class="speed-row">
-            <button class="btn-mini" data-rspeed="0.5">×0.5</button>
-            <button class="btn-mini" data-rspeed="1">×1</button>
-            <button class="btn-mini" data-rspeed="1.5">×1.5</button>
-            <button class="btn-mini" data-rspeed="2">×2</button>
+            <button class="btn-mini" data-rspeed="0.5">느림 ×0.5</button>
+            <button class="btn-mini" data-rspeed="1">보통 ×1</button>
+            <button class="btn-mini" data-rspeed="1.5">빠름 ×1.5</button>
+            <button class="btn-mini" data-rspeed="2">최대 ×2</button>
           </div>
         </div>
         <div class="form-row">
-          <label>Waypoints</label>
+          <label>경로점 수</label>
           <div class="property-value" id="propRobotWaypoints">0</div>
         </div>
         <div class="form-row">
-          <label>Gestures</label>
+          <label>동작 수</label>
           <div class="property-value" id="propRobotGestures">0</div>
         </div>
         <div class="action-grid">
-          <button class="btn-secondary" id="propRobotAddWaypoint">+ Waypoint</button>
+          <button class="btn-secondary" id="propRobotAddWaypoint">+ 경로점</button>
           <div class="gesture-menu-wrapper">
-            <button class="btn-secondary" id="propRobotAddGesture" style="width:100%">+ Gesture ▾</button>
+            <button class="btn-secondary" id="propRobotAddGesture" style="width:100%">+ 동작 ▾</button>
             <div class="gesture-menu" id="gestureAddMenu" style="display:none"></div>
           </div>
         </div>
         <div class="action-grid">
-          <button class="btn-secondary" id="propRobotClearWaypoints">Clear Path</button>
-          <button class="btn-secondary danger" id="propRobotDelete">Delete</button>
+          <button class="btn-secondary" id="propRobotClearWaypoints">경로 초기화</button>
+          <button class="btn-secondary danger" id="propRobotDelete">삭제</button>
         </div>
       </div>
 
       <div id="propertiesGesture" class="properties-panel">
-        <div class="panel-heading">Gesture</div>
+        <div class="panel-heading">동작</div>
         <div class="panel-subheading" id="propGestureSubhead">-</div>
         <div class="form-row">
-          <label>Type</label>
+          <label>종류</label>
           <select class="form-select" id="propGestureType"></select>
         </div>
         <div class="form-row-split">
           <div class="form-row">
-            <label>Start (s)</label>
+            <label>시작 (초)</label>
             <input type="number" class="form-input" id="propGestureStart" step="0.1" min="0">
           </div>
           <div class="form-row">
-            <label>Duration (s)</label>
+            <label>지속 (초)</label>
             <input type="number" class="form-input" id="propGestureDuration" step="0.1" min="0.1">
           </div>
         </div>
         <div id="propGestureParams"></div>
         <div class="action-grid">
-          <button class="btn-secondary danger" id="propGestureDelete">Delete</button>
+          <button class="btn-secondary danger" id="propGestureDelete">삭제</button>
         </div>
       </div>
 
@@ -1084,28 +1088,28 @@
       </div>
 
       <div id="propertiesWaypoint" class="properties-panel">
-        <div class="panel-heading">Waypoint</div>
+        <div class="panel-heading">경로점</div>
         <div class="panel-subheading" id="propWaypointSubhead">-</div>
         <div class="form-row">
-          <label>Time (s)</label>
+          <label>시간 (초)</label>
           <input type="number" class="form-input" id="propWaypointTime" step="0.1" min="0">
         </div>
         <div class="form-row-split">
           <div class="form-row">
-            <label>Pos X (ft)</label>
+            <label>위치 X (ft)</label>
             <input type="number" class="form-input" id="propWaypointX" step="0.5">
           </div>
           <div class="form-row">
-            <label>Pos Z (ft)</label>
+            <label>위치 Z (ft)</label>
             <input type="number" class="form-input" id="propWaypointZ" step="0.5">
           </div>
         </div>
         <div class="form-row">
-          <label>Rotation (°)</label>
+          <label>회전 (°)</label>
           <input type="number" class="form-input" id="propWaypointRotY" step="15">
         </div>
         <div class="action-grid">
-          <button class="btn-secondary danger" id="propWaypointDelete">Delete</button>
+          <button class="btn-secondary danger" id="propWaypointDelete">삭제</button>
         </div>
       </div>
     </div>
@@ -1123,10 +1127,10 @@
         </div>
         <div class="timeline-playback" style="margin-left: auto;">
           <div class="gesture-menu-wrapper" style="display: inline-block;">
-            <button id="btnAddGesture" title="Add gesture at playhead" style="width: auto; padding: 0 10px; font-size: 10px;">+ GESTURE ▾</button>
-            <div class="gesture-menu" id="gestureAddMenuTimeline" style="display:none; right: 0; left: auto; min-width: 220px;"></div>
+            <button id="btnAddGesture" title="현재 시점에 동작 추가" style="width: auto; padding: 0 10px; font-size: 10px;">+ 동작 ▾</button>
+            <div class="gesture-menu" id="gestureAddMenuTimeline" style="display:none; right: 0; left: auto; min-width: 240px;"></div>
           </div>
-          <button id="btnAddWaypointHere" title="Add waypoint at playhead" style="width: auto; padding: 0 10px; font-size: 10px;">+ WAYPOINT</button>
+          <button id="btnAddWaypointHere" title="현재 시점에 경로점 추가" style="width: auto; padding: 0 10px; font-size: 10px;">+ 경로점</button>
         </div>
       </div>
       <div class="timeline-body">
@@ -1298,6 +1302,24 @@
     };
 
     const GESTURE_TYPES = ['IDLE', 'WAVE', 'POINT', 'PICKUP', 'BOW', 'WALK', 'SCAN'];
+    const GESTURE_LABELS = {
+      IDLE:   '대기',
+      WAVE:   '손 흔들기',
+      POINT:  '가리키기',
+      PICKUP: '물건 집기',
+      BOW:    '인사 (절)',
+      WALK:   '걷기',
+      SCAN:   '둘러보기',
+    };
+    const GESTURE_DESCRIPTIONS = {
+      IDLE:   '대기 / 호흡 (자동)',
+      WAVE:   '손을 들어 인사',
+      POINT:  '특정 방향을 가리킴',
+      PICKUP: '물건을 집어 드는 동작',
+      BOW:    '허리를 굽혀 인사',
+      WALK:   '이동 시 자동 재생',
+      SCAN:   '머리를 좌우로 둘러봄',
+    };
     const GESTURE_DURATIONS = {
       IDLE: Infinity, WAVE: 3.0, POINT: 2.5, PICKUP: 4.0,
       BOW: 2.0, WALK: Infinity, SCAN: 4.0,
@@ -3426,12 +3448,12 @@
         const g = r && r.gestureTrack.find(x => x.id === state.selectedSubId);
         if (!g) { document.getElementById('propertiesEmpty').classList.add('active'); return; }
         document.getElementById('propertiesGesture').classList.add('active');
-        document.getElementById('propGestureSubhead').textContent = `${r.name} · ${g.type}`;
+        document.getElementById('propGestureSubhead').textContent = `${r.name} · ${GESTURE_LABELS[g.type] || g.type}`;
         const sel = document.getElementById('propGestureType');
         sel.innerHTML = '';
         GESTURE_TYPES.filter(t => t !== 'IDLE' && t !== 'WALK').forEach(t => {
           const opt = document.createElement('option');
-          opt.value = t; opt.textContent = t;
+          opt.value = t; opt.textContent = `${GESTURE_LABELS[t] || t} (${t})`;
           if (t === g.type) opt.selected = true;
           sel.appendChild(opt);
         });
@@ -3768,7 +3790,8 @@
       renderTimeline();
       renderRobotList();
       selectGesture(r.id, g.id);
-      showToast(`Gesture ${type} @ ${t.toFixed(1)}s`, 'success');
+      const label = GESTURE_LABELS[type] || type;
+      showToast(`동작 추가: ${label} (${type}) · ${t.toFixed(1)}초`, 'success');
     }
 
     /* ============ DRAG LOGIC — TIMELINE ============ */
@@ -4821,16 +4844,6 @@
     });
 
     // ============ ROBOT SPEED ============
-    const GESTURE_DESCRIPTIONS = {
-      IDLE:   '대기 / 호흡 (자동)',
-      WAVE:   '손 흔들기 인사',
-      POINT:  '특정 방향 가리키기',
-      PICKUP: '물건 집기 동작',
-      BOW:    '인사 (허리 굽힘)',
-      WALK:   '걷기 (이동 시 자동)',
-      SCAN:   '머리 좌우로 살피기',
-    };
-
     document.getElementById('propRobotSpeed').addEventListener('input', e => {
       const r = state.robots.find(x => x.id === state.selectedId);
       if (!r) return;
@@ -4852,7 +4865,7 @@
       menuEl.innerHTML = '';
       const header = document.createElement('div');
       header.className = 'gesture-menu-header';
-      header.textContent = robotType ? `Gestures · ${robotType}` : 'Gestures';
+      header.textContent = robotType ? `동작 선택 · ${ROBOT_LABELS[robotType] || robotType}` : '동작 선택';
       menuEl.appendChild(header);
 
       // hide IDLE/WALK from explicit add (they're auto)
@@ -4861,11 +4874,13 @@
         const item = document.createElement('div');
         item.className = `gesture-menu-item${compat ? '' : ' disabled'}`;
         const dur = GESTURE_DURATIONS[type];
-        const durStr = isFinite(dur) ? `${dur.toFixed(1)}s` : '∞';
+        const durStr = isFinite(dur) ? `${dur.toFixed(1)}초` : '∞';
+        const label = GESTURE_LABELS[type] || type;
+        const desc = compat ? (GESTURE_DESCRIPTIONS[type] || '') : '이 로봇 종류에 적용 불가';
         item.innerHTML = `
           <div class="gesture-menu-item-left">
-            <span class="gesture-menu-item-name">${type}</span>
-            <span class="gesture-menu-item-desc">${GESTURE_DESCRIPTIONS[type] || ''}</span>
+            <span class="gesture-menu-item-name">${label} <span style="opacity:0.5; font-weight:400; font-size:9px">(${type})</span></span>
+            <span class="gesture-menu-item-desc">${desc}</span>
           </div>
           <span class="gesture-menu-item-meta">${durStr}</span>
         `;
