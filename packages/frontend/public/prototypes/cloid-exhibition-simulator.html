@@ -282,6 +282,51 @@
     }
     .zoom-btn { padding: 6px 4px; font-size: 10px; }
 
+    /* ============ GESTURE MENU (DROPDOWN) ============ */
+    .gesture-menu-wrapper { position: relative; }
+    .gesture-menu {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--bg-2);
+      border: 1px solid var(--cyan);
+      border-radius: 3px; margin-top: 2px;
+      z-index: 1000; max-height: 280px; overflow-y: auto;
+      box-shadow: 0 4px 12px rgba(0, 217, 255, 0.15);
+    }
+    .gesture-menu-header {
+      padding: 6px 10px; font-size: 9px; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--text-secondary);
+      background: var(--bg-1); border-bottom: 1px solid var(--bg-3);
+    }
+    .gesture-menu-item {
+      padding: 8px 10px; cursor: pointer; font-size: 11px;
+      border-bottom: 1px solid var(--bg-1);
+      display: flex; justify-content: space-between; align-items: center;
+      transition: all 0.12s;
+    }
+    .gesture-menu-item:last-child { border-bottom: none; }
+    .gesture-menu-item:hover:not(.disabled) {
+      background: var(--bg-3); color: var(--cyan);
+    }
+    .gesture-menu-item.disabled {
+      opacity: 0.35; cursor: not-allowed;
+    }
+    .gesture-menu-item-name { font-weight: 600; }
+    .gesture-menu-item-meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px; color: var(--text-secondary);
+    }
+    .gesture-menu-item-desc {
+      font-size: 9px; color: var(--text-secondary);
+      margin-top: 2px; font-weight: 400;
+    }
+    .gesture-menu-item-left { display: flex; flex-direction: column; gap: 0; }
+
+    /* ============ SPEED CONTROL ============ */
+    .speed-row {
+      display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 4px; margin-top: 4px;
+    }
+
     /* ============ SPEC MODE PANELS ============ */
     .spec-slider-row { margin-bottom: 9px; }
     .spec-slider-label {
@@ -961,6 +1006,16 @@
           <input type="color" class="form-input" id="propRobotColor" style="height: 30px;">
         </div>
         <div class="form-row">
+          <label>Speed <span class="v-mono" id="propRobotSpeedVal">1.00×</span></label>
+          <input type="range" id="propRobotSpeed" class="spec-slider" min="0.25" max="3" step="0.05" value="1">
+          <div class="speed-row">
+            <button class="btn-mini" data-rspeed="0.5">×0.5</button>
+            <button class="btn-mini" data-rspeed="1">×1</button>
+            <button class="btn-mini" data-rspeed="1.5">×1.5</button>
+            <button class="btn-mini" data-rspeed="2">×2</button>
+          </div>
+        </div>
+        <div class="form-row">
           <label>Waypoints</label>
           <div class="property-value" id="propRobotWaypoints">0</div>
         </div>
@@ -970,7 +1025,10 @@
         </div>
         <div class="action-grid">
           <button class="btn-secondary" id="propRobotAddWaypoint">+ Waypoint</button>
-          <button class="btn-secondary" id="propRobotAddGesture">+ Gesture</button>
+          <div class="gesture-menu-wrapper">
+            <button class="btn-secondary" id="propRobotAddGesture" style="width:100%">+ Gesture ▾</button>
+            <div class="gesture-menu" id="gestureAddMenu" style="display:none"></div>
+          </div>
         </div>
         <div class="action-grid">
           <button class="btn-secondary" id="propRobotClearWaypoints">Clear Path</button>
@@ -1064,7 +1122,10 @@
           <span class="current" id="timeCurrent">0.0</span> / <span id="timeTotal">180.0</span>s
         </div>
         <div class="timeline-playback" style="margin-left: auto;">
-          <button id="btnAddGesture" title="Add gesture at playhead" style="width: auto; padding: 0 10px; font-size: 10px;">+ GESTURE</button>
+          <div class="gesture-menu-wrapper" style="display: inline-block;">
+            <button id="btnAddGesture" title="Add gesture at playhead" style="width: auto; padding: 0 10px; font-size: 10px;">+ GESTURE ▾</button>
+            <div class="gesture-menu" id="gestureAddMenuTimeline" style="display:none; right: 0; left: auto; min-width: 220px;"></div>
+          </div>
           <button id="btnAddWaypointHere" title="Add waypoint at playhead" style="width: auto; padding: 0 10px; font-size: 10px;">+ WAYPOINT</button>
         </div>
       </div>
@@ -3120,30 +3181,34 @@
           meshData.parts.root_body.userData.baseY = meshData.parts.root_body.position.y;
         }
 
+        const speedMul = r.speedMultiplier || 1.0;
+        const tLocal = t * speedMul;
+
         resetRobotPose(r.id);
+        // breathing/idle uses global t — robot doesn't "breathe faster" with speed
         GESTURE_IMPLS.IDLE(meshData.parts, t);
 
-        // Active explicit gestures
+        // Active explicit gestures (in robot-local time)
         const active = (r.gestureTrack || []).filter(g =>
-          t >= g.t && t <= g.t + (g.duration || GESTURE_DURATIONS[g.type] || 2)
+          tLocal >= g.t && tLocal <= g.t + (g.duration || GESTURE_DURATIONS[g.type] || 2)
         );
 
-        // WALK auto if moving
-        const speed = computeRobotSpeed(r, t);
+        // WALK auto if moving (uses local time so step rate matches motion)
+        const speed = computeRobotSpeed(r, tLocal);
         if (speed > 0.05 && r.type === 'humanoid') {
-          GESTURE_IMPLS.WALK(meshData.parts, t);
+          GESTURE_IMPLS.WALK(meshData.parts, tLocal);
         }
 
         active.forEach(g => {
           if (g.type === 'IDLE' || g.type === 'WALK') return;
           const impl = GESTURE_IMPLS[g.type];
           if (!impl) return;
-          const localT = t - g.t;
+          const localT = tLocal - g.t;
           impl(meshData.parts, localT, g.params);
         });
 
-        // Apply computed position
-        const pos = computeRobotPosition(r, t);
+        // Apply computed position (in robot-local time)
+        const pos = computeRobotPosition(r, tLocal);
         meshData.group.position.x = pos.x;
         meshData.group.position.z = pos.z;
         meshData.group.rotation.y = pos.rotY;
@@ -3349,6 +3414,11 @@
         document.getElementById('propRobotType').textContent = r.type;
         document.getElementById('propRobotHeight').value = r.height.toFixed(2);
         document.getElementById('propRobotColor').value = r.color;
+        const sp = r.speedMultiplier || 1.0;
+        const spIn = document.getElementById('propRobotSpeed');
+        if (spIn) spIn.value = sp;
+        const spVal = document.getElementById('propRobotSpeedVal');
+        if (spVal) spVal.textContent = `${sp.toFixed(2)}×`;
         document.getElementById('propRobotWaypoints').textContent = r.positionTrack.length;
         document.getElementById('propRobotGestures').textContent = r.gestureTrack.length;
       } else if (state.selectedType === 'gesture') {
@@ -3448,6 +3518,7 @@
         height: defaults.height,
         description: '',
         x: offset, z: 0, rotY: 0,
+        speedMultiplier: 1.0,
         positionTrack: [{ id: generateId('p'), t: 0, x: offset, z: 0, rotY: 0 }],
         gestureTrack: [],
       };
@@ -3685,18 +3756,19 @@
       showToast(`Waypoint @ ${t.toFixed(1)}s`, 'success');
     }
 
-    function addGesture(robotId, t) {
+    function addGesture(robotId, t, type = 'WAVE') {
       const r = state.robots.find(x => x.id === robotId);
       if (!r) return;
-      const dur = 3.0;
+      const rawDur = GESTURE_DURATIONS[type];
+      const dur = isFinite(rawDur) ? rawDur : 3.0;
       const g = {
-        id: generateId('g'), t, duration: dur, type: 'WAVE', params: {},
+        id: generateId('g'), t, duration: dur, type, params: {},
       };
       r.gestureTrack.push(g);
       renderTimeline();
       renderRobotList();
       selectGesture(r.id, g.id);
-      showToast(`Gesture WAVE @ ${t.toFixed(1)}s`, 'success');
+      showToast(`Gesture ${type} @ ${t.toFixed(1)}s`, 'success');
     }
 
     /* ============ DRAG LOGIC — TIMELINE ============ */
@@ -4504,12 +4576,22 @@
       document.getElementById('btnPlayPause').textContent = '▶';
       updatePlayhead();
     });
-    document.getElementById('btnAddGesture').addEventListener('click', () => {
-      if (state.selectedType === 'robot') {
-        addGesture(state.selectedId, state.currentTime);
-      } else {
+    document.getElementById('btnAddGesture').addEventListener('click', e => {
+      e.stopPropagation();
+      if (state.selectedType !== 'robot') {
         showToast('Select a robot first', 'warn');
+        return;
       }
+      const r = state.robots.find(x => x.id === state.selectedId);
+      if (!r) return;
+      const menu = document.getElementById('gestureAddMenuTimeline');
+      const isOpen = menu.style.display === 'block';
+      closeAllGestureMenus();
+      if (isOpen) return;
+      buildGestureMenu(menu, r.type, type => {
+        addGesture(r.id, state.currentTime, type);
+      });
+      menu.style.display = 'block';
     });
     document.getElementById('btnAddWaypointHere').addEventListener('click', () => {
       if (state.selectedType === 'robot') {
@@ -4737,8 +4819,91 @@
     document.getElementById('propRobotAddWaypoint').addEventListener('click', () => {
       if (state.selectedType === 'robot') addWaypoint(state.selectedId, state.currentTime);
     });
-    document.getElementById('propRobotAddGesture').addEventListener('click', () => {
-      if (state.selectedType === 'robot') addGesture(state.selectedId, state.currentTime);
+
+    // ============ ROBOT SPEED ============
+    const GESTURE_DESCRIPTIONS = {
+      IDLE:   '대기 / 호흡 (자동)',
+      WAVE:   '손 흔들기 인사',
+      POINT:  '특정 방향 가리키기',
+      PICKUP: '물건 집기 동작',
+      BOW:    '인사 (허리 굽힘)',
+      WALK:   '걷기 (이동 시 자동)',
+      SCAN:   '머리 좌우로 살피기',
+    };
+
+    document.getElementById('propRobotSpeed').addEventListener('input', e => {
+      const r = state.robots.find(x => x.id === state.selectedId);
+      if (!r) return;
+      r.speedMultiplier = parseFloat(e.target.value);
+      document.getElementById('propRobotSpeedVal').textContent = `${r.speedMultiplier.toFixed(2)}×`;
+    });
+    document.querySelectorAll('button.btn-mini[data-rspeed]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const r = state.robots.find(x => x.id === state.selectedId);
+        if (!r) return;
+        r.speedMultiplier = parseFloat(btn.dataset.rspeed);
+        document.getElementById('propRobotSpeed').value = r.speedMultiplier;
+        document.getElementById('propRobotSpeedVal').textContent = `${r.speedMultiplier.toFixed(2)}×`;
+      });
+    });
+
+    // ============ GESTURE DROPDOWN MENU ============
+    function buildGestureMenu(menuEl, robotType, onSelect) {
+      menuEl.innerHTML = '';
+      const header = document.createElement('div');
+      header.className = 'gesture-menu-header';
+      header.textContent = robotType ? `Gestures · ${robotType}` : 'Gestures';
+      menuEl.appendChild(header);
+
+      // hide IDLE/WALK from explicit add (they're auto)
+      GESTURE_TYPES.filter(t => t !== 'IDLE' && t !== 'WALK').forEach(type => {
+        const compat = !robotType || (GESTURE_ROBOT_APPLIES[type] || []).includes(robotType);
+        const item = document.createElement('div');
+        item.className = `gesture-menu-item${compat ? '' : ' disabled'}`;
+        const dur = GESTURE_DURATIONS[type];
+        const durStr = isFinite(dur) ? `${dur.toFixed(1)}s` : '∞';
+        item.innerHTML = `
+          <div class="gesture-menu-item-left">
+            <span class="gesture-menu-item-name">${type}</span>
+            <span class="gesture-menu-item-desc">${GESTURE_DESCRIPTIONS[type] || ''}</span>
+          </div>
+          <span class="gesture-menu-item-meta">${durStr}</span>
+        `;
+        if (compat) {
+          item.addEventListener('click', () => {
+            onSelect(type);
+            menuEl.style.display = 'none';
+          });
+        }
+        menuEl.appendChild(item);
+      });
+    }
+
+    function closeAllGestureMenus() {
+      document.getElementById('gestureAddMenu').style.display = 'none';
+      const tl = document.getElementById('gestureAddMenuTimeline');
+      if (tl) tl.style.display = 'none';
+    }
+
+    document.getElementById('propRobotAddGesture').addEventListener('click', e => {
+      e.stopPropagation();
+      if (state.selectedType !== 'robot') return;
+      const r = state.robots.find(x => x.id === state.selectedId);
+      if (!r) return;
+      const menu = document.getElementById('gestureAddMenu');
+      const isOpen = menu.style.display === 'block';
+      closeAllGestureMenus();
+      if (isOpen) return;
+      buildGestureMenu(menu, r.type, type => {
+        addGesture(r.id, state.currentTime, type);
+      });
+      menu.style.display = 'block';
+    });
+
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.gesture-menu-wrapper')) {
+        closeAllGestureMenus();
+      }
     });
     document.getElementById('propRobotClearWaypoints').addEventListener('click', () => {
       const r = state.robots.find(x => x.id === state.selectedId);
