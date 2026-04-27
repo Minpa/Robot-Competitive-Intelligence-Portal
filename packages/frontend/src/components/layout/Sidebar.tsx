@@ -30,6 +30,7 @@ interface NavItem {
   name: string;
   href: string;
   icon: any;
+  children?: NavItem[];
 }
 
 interface NavGroup {
@@ -44,7 +45,9 @@ const navigationGroups: NavGroup[] = [
     subtitle: 'Robot Registry',
     items: [
       { name: '타임라인 기반', href: '/robot-evolution', icon: GitBranch },
-      { name: '리스트 기반', href: '/humanoid-robots', icon: List },
+      { name: '리스트 기반', href: '/humanoid-robots', icon: List, children: [
+        { name: '국가리스트', href: '/humanoid-robots/countries', icon: Globe },
+      ] },
     ],
   },
   {
@@ -141,7 +144,8 @@ export function Sidebar() {
           const isCollapsed = collapsedGroups.has(group.title);
           const hasActiveItem = group.items.some(
             item => pathname === item.href ||
-              (item.href !== '/' && pathname.startsWith(item.href))
+              (item.href !== '/' && pathname.startsWith(item.href)) ||
+              item.children?.some(c => pathname === c.href || (c.href !== '/' && pathname.startsWith(c.href)))
           );
 
           return (
@@ -176,34 +180,75 @@ export function Sidebar() {
               {!isCollapsed && (
                 <div className="mt-1.5 space-y-px">
                   {group.items.map((item) => {
-                    const isActive = pathname === item.href ||
-                      (item.href !== '/' && pathname.startsWith(item.href));
+                    const childActive = item.children?.some(
+                      c => pathname === c.href || (c.href !== '/' && pathname.startsWith(c.href))
+                    );
+                    const isActive = !childActive && (
+                      pathname === item.href ||
+                      (item.href !== '/' && pathname.startsWith(item.href))
+                    );
+                    const isHighlighted = isActive || childActive;
 
                     return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        className={cn(
-                          'relative flex items-center gap-2.5 pl-4 pr-3 py-2 text-[12.5px] font-medium transition-colors',
-                          isActive
-                            ? 'bg-white/[0.08] text-white'
-                            : 'text-white/65 hover:bg-white/[0.04] hover:text-white'
+                      <div key={item.name}>
+                        <Link
+                          href={item.href}
+                          className={cn(
+                            'relative flex items-center gap-2.5 pl-4 pr-3 py-2 text-[12.5px] font-medium transition-colors',
+                            isHighlighted
+                              ? 'bg-white/[0.08] text-white'
+                              : 'text-white/65 hover:bg-white/[0.04] hover:text-white'
+                          )}
+                        >
+                          {isActive && (
+                            <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-gold" />
+                          )}
+                          {item.icon && (
+                            <item.icon
+                              className={cn(
+                                'w-[14px] h-[14px] shrink-0',
+                                isHighlighted ? 'text-gold' : 'text-white/50'
+                              )}
+                              strokeWidth={isHighlighted ? 2.25 : 1.75}
+                            />
+                          )}
+                          <span className="truncate">{item.name}</span>
+                        </Link>
+                        {item.children && (
+                          <div className="space-y-px">
+                            {item.children.map((child) => {
+                              const isChildActive = pathname === child.href ||
+                                (child.href !== '/' && pathname.startsWith(child.href));
+                              return (
+                                <Link
+                                  key={child.name}
+                                  href={child.href}
+                                  className={cn(
+                                    'relative flex items-center gap-2.5 pl-9 pr-3 py-1.5 text-[11.5px] font-medium transition-colors',
+                                    isChildActive
+                                      ? 'bg-white/[0.08] text-white'
+                                      : 'text-white/55 hover:bg-white/[0.04] hover:text-white'
+                                  )}
+                                >
+                                  {isChildActive && (
+                                    <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-gold" />
+                                  )}
+                                  {child.icon && (
+                                    <child.icon
+                                      className={cn(
+                                        'w-[12px] h-[12px] shrink-0',
+                                        isChildActive ? 'text-gold' : 'text-white/40'
+                                      )}
+                                      strokeWidth={isChildActive ? 2.25 : 1.75}
+                                    />
+                                  )}
+                                  <span className="truncate">{child.name}</span>
+                                </Link>
+                              );
+                            })}
+                          </div>
                         )}
-                      >
-                        {isActive && (
-                          <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-gold" />
-                        )}
-                        {item.icon && (
-                          <item.icon
-                            className={cn(
-                              'w-[14px] h-[14px] shrink-0',
-                              isActive ? 'text-gold' : 'text-white/50'
-                            )}
-                            strokeWidth={isActive ? 2.25 : 1.75}
-                          />
-                        )}
-                        <span className="truncate">{item.name}</span>
-                      </Link>
+                      </div>
                     );
                   })}
                 </div>
