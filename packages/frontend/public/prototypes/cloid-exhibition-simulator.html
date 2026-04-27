@@ -770,9 +770,9 @@
         <input type="text" class="scenario-name-input" id="scenarioName" placeholder="Scenario Name" value="Exhibition_01">
         <div class="d-day" id="dday">D-Day: 180 days</div>
         <div class="mode-toggle">
-          <button class="active" data-mode="build">BUILD</button>
-          <button data-mode="choreo">CHOREO</button>
-          <button data-mode="spec">SPEC</button>
+          <button class="active" data-mode="build" title="가구·시설물을 부스에 배치">부스 배치</button>
+          <button data-mode="choreo" title="로봇의 이동 경로와 동작을 타임라인으로 연출">동작 연출</button>
+          <button data-mode="spec" title="로봇 스펙으로 가구별 도달성·전도 위험 평가">스펙 분석</button>
         </div>
       </div>
       <div class="topbar-right">
@@ -1010,13 +1010,16 @@
           <input type="color" class="form-input" id="propRobotColor" style="height: 30px;">
         </div>
         <div class="form-row" style="background: rgba(0,217,255,0.04); padding: 8px; border-radius: 3px; border: 1px solid rgba(0,217,255,0.15);">
-          <label>이동 속도 <span class="v-mono" id="propRobotSpeedVal">1.00×</span></label>
+          <label>보행 모션 속도 <span class="v-mono" id="propRobotSpeedVal">1.00×</span></label>
           <input type="range" id="propRobotSpeed" class="spec-slider" min="0.25" max="3" step="0.05" value="1">
           <div class="speed-row">
             <button class="btn-mini" data-rspeed="0.5">느림 ×0.5</button>
             <button class="btn-mini" data-rspeed="1">보통 ×1</button>
             <button class="btn-mini" data-rspeed="1.5">빠름 ×1.5</button>
             <button class="btn-mini" data-rspeed="2">최대 ×2</button>
+          </div>
+          <div style="font-size: 9px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4;">
+            ※ 다리 흔들림 속도 (시각 효과). 이동 도착 시각은 타임라인의 경로점 시간이 결정.
           </div>
         </div>
         <div class="form-row">
@@ -3203,34 +3206,33 @@
           meshData.parts.root_body.userData.baseY = meshData.parts.root_body.position.y;
         }
 
+        // speedMultiplier affects gait cadence only — timeline time stays authoritative
         const speedMul = r.speedMultiplier || 1.0;
-        const tLocal = t * speedMul;
 
         resetRobotPose(r.id);
-        // breathing/idle uses global t — robot doesn't "breathe faster" with speed
         GESTURE_IMPLS.IDLE(meshData.parts, t);
 
-        // Active explicit gestures (in robot-local time)
+        // Active explicit gestures — match timeline time exactly
         const active = (r.gestureTrack || []).filter(g =>
-          tLocal >= g.t && tLocal <= g.t + (g.duration || GESTURE_DURATIONS[g.type] || 2)
+          t >= g.t && t <= g.t + (g.duration || GESTURE_DURATIONS[g.type] || 2)
         );
 
-        // WALK auto if moving (uses local time so step rate matches motion)
-        const speed = computeRobotSpeed(r, tLocal);
+        // WALK auto if moving — speedMul stretches/compresses gait (visual only)
+        const speed = computeRobotSpeed(r, t);
         if (speed > 0.05 && r.type === 'humanoid') {
-          GESTURE_IMPLS.WALK(meshData.parts, tLocal);
+          GESTURE_IMPLS.WALK(meshData.parts, t * speedMul);
         }
 
         active.forEach(g => {
           if (g.type === 'IDLE' || g.type === 'WALK') return;
           const impl = GESTURE_IMPLS[g.type];
           if (!impl) return;
-          const localT = tLocal - g.t;
+          const localT = t - g.t;
           impl(meshData.parts, localT, g.params);
         });
 
-        // Apply computed position (in robot-local time)
-        const pos = computeRobotPosition(r, tLocal);
+        // Apply computed position — match timeline time exactly
+        const pos = computeRobotPosition(r, t);
         meshData.group.position.x = pos.x;
         meshData.group.position.z = pos.z;
         meshData.group.rotation.y = pos.rotY;
@@ -3383,10 +3385,11 @@
       });
     }
 
+    const MODE_LABELS = { build: '부스 배치', choreo: '동작 연출', spec: '스펙 분석' };
     function updateHUD() {
-      document.getElementById('hudMode').textContent = state.mode.toUpperCase();
+      document.getElementById('hudMode').textContent = MODE_LABELS[state.mode] || state.mode.toUpperCase();
       document.getElementById('hudBooth').textContent = `${state.booth.widthFt} × ${state.booth.depthFt} ft`;
-      document.getElementById('hudItems').textContent = `${state.furniture.length} furniture / ${state.robots.length} robots`;
+      document.getElementById('hudItems').textContent = `가구 ${state.furniture.length} / 로봇 ${state.robots.length}`;
     }
 
     /* ============ PROPERTIES PANEL ============ */
@@ -3719,7 +3722,8 @@
           if (state.selectedType === 'gesture' && state.selectedSubId === g.id) block.classList.add('selected');
           block.style.left = `${g.t * PX_PER_SEC}px`;
           block.style.width = `${Math.max(g.duration * PX_PER_SEC, 24)}px`;
-          block.textContent = g.type;
+          block.textContent = GESTURE_LABELS[g.type] || g.type;
+          block.title = `${GESTURE_LABELS[g.type] || g.type} (${g.type}) · ${g.t.toFixed(1)}~${(g.t + g.duration).toFixed(1)}초`;
           block.dataset.gId = g.id;
           block.addEventListener('mousedown', (e) => {
             e.stopPropagation();
