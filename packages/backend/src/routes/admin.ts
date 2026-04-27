@@ -360,11 +360,15 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const body = request.body as {
         provider?: 'chatgpt' | 'claude';
         webSearch?: boolean;
+        mode?: 'confirmed' | 'forecast';
       };
 
+      const mode = body?.mode === 'forecast' ? 'forecast' : 'confirmed';
       const { jobId } = await dataGeneratorService.startBatch(
         body?.provider || 'claude',
-        body?.webSearch || false
+        body?.webSearch || false,
+        undefined,
+        mode
       );
 
       return { jobId };

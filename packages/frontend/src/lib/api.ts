@@ -1555,10 +1555,14 @@ class ApiClient {
     }>('/admin/data-generator/generate', { method: 'POST', body: JSON.stringify(data) });
   }
 
-  async startDataBatch(provider: 'chatgpt' | 'claude' = 'claude', webSearch: boolean = false) {
+  async startDataBatch(
+    provider: 'chatgpt' | 'claude' = 'claude',
+    webSearch: boolean = false,
+    mode: 'confirmed' | 'forecast' = 'confirmed'
+  ) {
     return this.request<{ jobId: string }>(
       '/admin/data-generator/batch',
-      { method: 'POST', body: JSON.stringify({ provider, webSearch }) }
+      { method: 'POST', body: JSON.stringify({ provider, webSearch, mode }) }
     );
   }
 

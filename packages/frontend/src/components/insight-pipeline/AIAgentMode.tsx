@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Sparkles, Brain, Globe, Database } from 'lucide-react';
+import { Search, Sparkles, Brain, Globe, Database, CheckCircle2, Sparkle } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { AnalysisResult } from '@/types/insight-pipeline';
 
@@ -46,6 +46,7 @@ export function AIAgentMode({
   const [region, setRegion] = useState('글로벌');
   const [provider, setProvider] = useState<'chatgpt' | 'claude'>('chatgpt');
   const [webSearch, setWebSearch] = useState(true);
+  const [batchMode, setBatchMode] = useState<'confirmed' | 'forecast'>('confirmed');
   const [error, setError] = useState<string | null>(null);
   const [isBatchRunning, setIsBatchRunning] = useState(false);
   const [batchResult, setBatchResult] = useState<{
@@ -270,8 +271,51 @@ export function AIAgentMode({
           <Database className="w-4 h-4 text-amber-500" />
           <p className="text-sm font-medium">배치 데이터 생성</p>
         </div>
+
+        {/* Mode selector — confirmed (recent 30d) vs forecast (predictions, low confidence) */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => setBatchMode('confirmed')}
+            disabled={isBatchRunning}
+            className={`px-3 py-2.5 text-left rounded-lg border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+              batchMode === 'confirmed'
+                ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-700'
+                : 'bg-ink-100 border-ink-200 text-ink-500 hover:border-ink-200'
+            }`}
+            aria-pressed={batchMode === 'confirmed'}
+          >
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span className="text-sm font-medium">공식 발표 (최근 30일)</span>
+            </div>
+            <p className="text-[11px] leading-snug opacity-80">
+              실제 발표·런칭·계약된 사실만 수집. dataType=confirmed.
+            </p>
+          </button>
+          <button
+            onClick={() => setBatchMode('forecast')}
+            disabled={isBatchRunning}
+            className={`px-3 py-2.5 text-left rounded-lg border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+              batchMode === 'forecast'
+                ? 'bg-purple-500/10 border-purple-500/40 text-purple-700'
+                : 'bg-ink-100 border-ink-200 text-ink-500 hover:border-ink-200'
+            }`}
+            aria-pressed={batchMode === 'forecast'}
+          >
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <Sparkle className="w-3.5 h-3.5" />
+              <span className="text-sm font-medium">예측 Forecast (신뢰도 낮음)</span>
+            </div>
+            <p className="text-[11px] leading-snug opacity-80">
+              누적 신호 기반 향후 1~2년 출시 예측. dataType=forecast + 근거.
+            </p>
+          </button>
+        </div>
+
         <p className="text-xs text-ink-400">
-          글로벌 휴머노이드 기업·제품과 적용 사례 2개 주제를 비동기 배치로 실행하여 DB에 저장합니다. 주제 간 60초 rate-limit 대기 포함.
+          {batchMode === 'confirmed'
+            ? '최근 30일 이내 발표된 휴머노이드 기업·제품·적용 사례를 2개 주제로 분석합니다. 주제 간 60초 rate-limit 대기.'
+            : '과거 5년 누적 신호(부스 임대·MOU·임원 발언 등)를 분석해 향후 1~2년 출시 가능 모델을 예측합니다. 각 예측에 rationale+sources 필수.'}
         </p>
         <button
           onClick={async () => {
@@ -280,7 +324,7 @@ export function AIAgentMode({
             setBatchProgress({ current: 0, total: 0, step: null });
             setError(null);
             try {
-              const { jobId } = await api.startDataBatch(provider, webSearch);
+              const { jobId } = await api.startDataBatch(provider, webSearch, batchMode);
               // Poll for progress/completion
               const poll = async () => {
                 const state = await api.getDataBatchStatus(jobId);
@@ -314,14 +358,20 @@ export function AIAgentMode({
             }
           }}
           disabled={isBatchRunning}
-          className="w-full py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-amber-600 hover:bg-amber-500 !text-white"
+          className={`w-full py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed !text-white ${
+            batchMode === 'forecast'
+              ? 'bg-purple-600 hover:bg-purple-500'
+              : 'bg-amber-600 hover:bg-amber-500'
+          }`}
         >
           <Database className="w-4 h-4" />
           {isBatchRunning
             ? batchProgress && batchProgress.total > 0
               ? `배치 실행 중... (${batchProgress.current}/${batchProgress.total}${batchProgress.step === 'rate_limit_wait' ? ' · rate limit 대기' : ''})`
               : '배치 실행 중...'
-            : '배치 데이터 생성 (2개 주제, 약 3~5분)'}
+            : batchMode === 'forecast'
+              ? '예측 데이터 생성 (1개 주제, 약 1~2분)'
+              : '공식 발표 수집 (2개 주제, 약 3~5분)'}
         </button>
 
         {batchResult && (

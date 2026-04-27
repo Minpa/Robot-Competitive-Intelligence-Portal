@@ -19,7 +19,11 @@ export interface GenerationTopic {
   query: string;
   targetTypes: AISearchRequest['targetTypes'];
   region?: string;
+  /** Wide time range for AI evidence gathering (forecast mode). If omitted, uses recency window. */
+  timeRangeStart?: string;
 }
+
+export type BatchMode = 'confirmed' | 'forecast';
 
 export interface GenerationResult {
   topic: string;
@@ -283,10 +287,18 @@ async function saveHumanoidRobots(
     }
 
     // 환각 탐지 게이트:
-    //   신규 로봇 이름이 AI 자신의 description 바깥에서 등장하지 않으면 unverified로 간주.
-    //   summary 또는 sources[].title에 등장 + fact.confidence >= 0.6 중 하나는 만족해야 함.
-    //   이름이 너무 짧으면(3자 미만, 예: "H1") 흔한 토큰과 충돌하므로 검사에서 제외.
-    if (product.name.length >= 3) {
+    //   - confirmed: 신규 로봇 이름이 AI 자신의 description 바깥(summary/sources)에서 등장하거나
+    //                fact.confidence >= 0.6 이어야 함. 둘 다 실패하면 unverified.
+    //   - forecast:  본질적으로 미공개라 코퍼스 매칭이 불가. 대신 rationale(>=30자) + sources(>=1)을 요구.
+    const isForecastProduct = product.dataType === 'forecast';
+    if (isForecastProduct) {
+      const rationaleOk = (product.forecastRationale ?? '').trim().length >= 30;
+      const sourcesOk = Array.isArray(product.forecastSources) && product.forecastSources.length >= 1;
+      if (!rationaleOk || !sourcesOk) {
+        push('forecast_missing_evidence', product.name);
+        continue;
+      }
+    } else if (product.name.length >= 3) {
       const nameLower = product.name.toLowerCase();
       const mentionedInCorpus = verificationCorpus.includes(nameLower);
       const confidence = fact?.confidence ?? 0;
@@ -339,22 +351,58 @@ async function saveHumanoidRobots(
   return { saved, skipped };
 }
 
-// 기본 주제 목록 — 오늘 날짜 기준으로 동적 생성 (최근 90일 포커스)
-function buildDefaultTopics(): GenerationTopic[] {
+// Confirmed 모드: 최근 30일 내 공식 발표·배치된 사실만 수집
+function buildConfirmedTopics(): GenerationTopic[] {
   const today = new Date();
-  const ninetyDaysAgo = new Date(today);
-  ninetyDaysAgo.setDate(today.getDate() - 90);
+  const since = new Date(today);
+  since.setDate(today.getDate() - 30);
   const todayStr = today.toISOString().split('T')[0];
-  const sinceStr = ninetyDaysAgo.toISOString().split('T')[0];
+  const sinceStr = since.toISOString().split('T')[0];
 
   return [
     {
-      query: `오늘은 ${todayStr}입니다. ${sinceStr} 이후 (최근 90일 이내) 발표된 휴머노이드 로봇 업계 뉴스를 분석해주세요. 새로 공개된 제품, 신규 런칭, 시리즈 펀딩 클로징, 파트너십, 고용/채용 공고, 대량 배치 계약 등에 초점을 맞춰주세요. CES 2026(1월), MWC(2-3월) 같은 이미 끝난 이벤트의 발표는 제외하고, 정말 이번 달 또는 지난 달에 나온 신규 뉴스를 우선적으로 찾아주세요.`,
+      query: `오늘은 ${todayStr}입니다. ${sinceStr} 이후 (최근 30일 이내) 발표된 휴머노이드 로봇 업계 뉴스를 분석해주세요. 새로 공개된 제품, 신규 런칭, 시리즈 펀딩 클로징, 파트너십, 고용/채용 공고, 대량 배치 계약 등에 초점을 맞춰주세요. **반드시 ${sinceStr} 이후의 신규 발표만** 포함하세요. 모든 fact는 dataType="confirmed"여야 합니다 (예측 금지).`,
       targetTypes: ['company', 'product', 'market', 'technology'],
     },
     {
-      query: `오늘은 ${todayStr}입니다. ${sinceStr} 이후 (최근 90일 이내) 휴머노이드 로봇 실제 배치·적용 사례, 신규 PoC, 파일럿 확장, 상용 계약을 분석해주세요. 물류·제조·건설·의료·서비스 분야에서 진짜로 새롭게 발표된 케이스만 포함해주세요.`,
+      query: `오늘은 ${todayStr}입니다. ${sinceStr} 이후 (최근 30일 이내) 휴머노이드 로봇 실제 배치·적용 사례, 신규 PoC, 파일럿 확장, 상용 계약을 분석해주세요. 물류·제조·건설·의료·서비스 분야에서 진짜로 새롭게 발표된 케이스만 포함해주세요. 모든 fact는 dataType="confirmed"여야 합니다.`,
       targetTypes: ['application', 'company', 'market'],
+    },
+  ];
+}
+
+// Forecast 모드: 향후 1~2년 내 출시·발표 가능성이 있는 로봇 예측
+//   - timeRangeStart를 넓게 잡아 AI가 모든 누적 신호(부스 임대·공급망 MOU·임원 발언 등)를 활용하도록 유도
+//   - 모든 fact는 dataType="forecast" + rationale + sources 필수
+function buildForecastTopics(): GenerationTopic[] {
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  // 5년치 신호를 활용하도록 timeRangeStart를 과거로 확장
+  const wideStart = new Date(today);
+  wideStart.setFullYear(today.getFullYear() - 5);
+  const wideStartStr = wideStart.toISOString().split('T')[0]!;
+  const nextYear = today.getFullYear() + 1;
+  const yearAfter = today.getFullYear() + 2;
+
+  return [
+    {
+      query: `오늘은 ${todayStr}입니다. **향후 12~24개월 (${nextYear}~${yearAfter}년) 내 공개·출시될 가능성이 높은 휴머노이드 로봇을 예측**해주세요.
+
+**중요 — 환각 금지 / 근거 기반 예측:**
+- 모델명을 추측해서 만들지 마세요. 기업이 공식적으로 명명하지 않은 모델은 "Samsung Humanoid (가칭)"처럼 **가칭임을 반드시 표기**하세요.
+- 예측은 반드시 **실제 신호**에 기반해야 합니다: CES/Hannover Messe 등 전시회 부스 사전 임대 패턴, 임원 컨콜·인터뷰의 가이던스, 채용 공고 패턴, 공급망 (액추에이터·SoC) MOU, 격년 참가 이력, 후속 모델 명명 패턴, 자본 조달 라운드, 양산 공장 가동 보도 등.
+- 가능한 한 **현재 시점까지 누적된 모든 공개 정보**를 분석하여 결론을 만드세요. 시간 범위(${wideStartStr}~${todayStr})는 신호 수집 용도이며, 예측 대상 시점은 미래입니다.
+
+**각 fact 필수 필드:**
+- \`dataType: "forecast"\`
+- \`forecastRationale\`: 1~3문장으로 왜 이 로봇이 발표될 것이라 예측하는지 설명
+- \`forecastSources\`: 근거 신호 배열 (부스 위치·임원 발언·MOU·채용 공고 등 — 각 항목 200자 이내, 최소 1개 이상)
+- \`forecastConfidence\`: "high" (다수 신호 일치) / "medium" (1~2개 명시 신호) / "low" (간접 추정)
+- \`description\`: 예상 사양·기능·발표 시점 요약 (1~2문장, 예측 시점 연도 포함)
+
+신뢰도가 낮아도 무방합니다 — 다만 **rationale·sources가 비어있으면 절대 포함하지 마세요**. CES 2027 같은 가까운 이벤트, 양산 가동 시점, IPO 후 첫 신제품 등 명확한 트리거가 있는 예측을 우선해주세요.`,
+      targetTypes: ['company', 'product'],
+      timeRangeStart: wideStartStr,
     },
   ];
 }
@@ -405,36 +453,59 @@ class DataGeneratorService {
    * CollectionContext를 topic.query에 주입하여 AI가 기존 항목을 건너뛰도록 유도.
    * context가 없어도 오늘 날짜 기준 최신성 지시는 항상 포함한다.
    */
-  private applyCollectionContext(topic: GenerationTopic, context: CollectionContext | undefined, defaultStart: string): { query: string; timeRangeStart: string } {
+  private applyCollectionContext(
+    topic: GenerationTopic,
+    context: CollectionContext | undefined,
+    defaultStart: string,
+    mode: BatchMode = 'confirmed'
+  ): { query: string; timeRangeStart: string } {
     const parts: string[] = [topic.query];
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0]!;
 
-    // 항상: 오늘 날짜 고정 + "정말 최근" 강한 지시
-    parts.push(`\n\n**오늘 날짜:** ${todayStr}. \"최신\"은 오늘로부터 30일 이내의 뉴스·발표만 의미합니다. 3개월 이상 된 뉴스(예: CES 2026 발표, MWC 2026)는 \"최신\"이 아닙니다.`);
+    if (mode === 'confirmed') {
+      // Confirmed 모드: 30일 윈도우 강제
+      parts.push(`\n\n**오늘 날짜:** ${todayStr}. \"최신\"은 오늘로부터 30일 이내의 뉴스·발표만 의미합니다. 30일 이상 된 뉴스(예: CES 2026 발표, MWC 2026)는 \"최신\"이 아닙니다.`);
 
-    if (context?.lastCollectedAt) {
-      const sinceStr = context.lastCollectedAt.toISOString().split('T')[0];
-      parts.push(`\n\n**마지막 수집:** ${sinceStr}. 이 날짜 이후에 새로 나온 정보만 포함해주세요. 그 이전 정보는 이미 DB에 있습니다.`);
+      if (context?.lastCollectedAt) {
+        const sinceStr = context.lastCollectedAt.toISOString().split('T')[0];
+        parts.push(`\n\n**마지막 수집:** ${sinceStr}. 이 날짜 이후에 새로 나온 정보만 포함해주세요. 그 이전 정보는 이미 DB에 있습니다.`);
+      }
+
+      const excluded: string[] = [];
+      if (context && context.knownCompanies.length > 0) excluded.push(`기업 (${context.knownCompanies.length}): ${context.knownCompanies.join(', ')}`);
+      if (context && context.knownProducts.length > 0) excluded.push(`제품 (${context.knownProducts.length}): ${context.knownProducts.join(', ')}`);
+      if (excluded.length > 0) {
+        parts.push(`\n\n**이미 수집된 항목 (제외):**\n${excluded.join('\n')}\n\n위 목록에 없는 신규 기업·제품·뉴스·사례를 우선적으로 분석해주세요. 목록에 있는 항목이더라도 **업데이트된 최신 정보(새로운 모델, 버전, 발표)**가 있다면 포함하세요.`);
+      }
+    } else {
+      // Forecast 모드: 최근성 강제 없이 누적 신호 활용
+      parts.push(`\n\n**오늘 날짜:** ${todayStr}. 예측 모드 — 발표 시점 기준이 아니라 **누적된 모든 공개 신호**를 활용해 미래 출시를 예측합니다.`);
+      // 이미 수집된 forecast는 중복 회피
+      if (context && context.knownProducts.length > 0) {
+        parts.push(`\n\n**이미 예측된 제품 (제외):** ${context.knownProducts.slice(0, 60).join(', ')}\n위 목록에 없는 새로운 예측을 우선해주세요.`);
+      }
     }
 
-    const excluded: string[] = [];
-    if (context && context.knownCompanies.length > 0) excluded.push(`기업 (${context.knownCompanies.length}): ${context.knownCompanies.join(', ')}`);
-    if (context && context.knownProducts.length > 0) excluded.push(`제품 (${context.knownProducts.length}): ${context.knownProducts.join(', ')}`);
-    if (excluded.length > 0) {
-      parts.push(`\n\n**이미 수집된 항목 (제외):**\n${excluded.join('\n')}\n\n위 목록에 없는 신규 기업·제품·뉴스·사례를 우선적으로 분석해주세요. 목록에 있는 항목이더라도 **업데이트된 최신 정보(새로운 모델, 버전, 발표)**가 있다면 포함하세요.`);
-    }
-
-    // timeRange.start: 기본값은 오늘-90일. 이전 수집이 있으면 (lastCollectedAt - 30)부터.
-    const ninety = new Date(today);
-    ninety.setDate(today.getDate() - 90);
-    let timeRangeStart = ninety.toISOString().split('T')[0]!;
-
-    if (context?.lastCollectedAt) {
-      const buffered = new Date(context.lastCollectedAt);
-      buffered.setDate(buffered.getDate() - 30);
-      const bufferedStr = buffered.toISOString().split('T')[0]!;
-      if (bufferedStr > timeRangeStart) timeRangeStart = bufferedStr;
+    // timeRange.start: topic.timeRangeStart > confirmed 모드 기본(오늘-30) > defaultStart 하한
+    let timeRangeStart: string;
+    if (topic.timeRangeStart) {
+      timeRangeStart = topic.timeRangeStart;
+    } else if (mode === 'confirmed') {
+      const thirty = new Date(today);
+      thirty.setDate(today.getDate() - 30);
+      timeRangeStart = thirty.toISOString().split('T')[0]!;
+      if (context?.lastCollectedAt) {
+        const buffered = new Date(context.lastCollectedAt);
+        buffered.setDate(buffered.getDate() - 7);
+        const bufferedStr = buffered.toISOString().split('T')[0]!;
+        if (bufferedStr > timeRangeStart) timeRangeStart = bufferedStr;
+      }
+    } else {
+      // Forecast — fallback: 5년 백워드
+      const wide = new Date(today);
+      wide.setFullYear(today.getFullYear() - 5);
+      timeRangeStart = wide.toISOString().split('T')[0]!;
     }
 
     // defaultStart보다 앞서가지 않도록 (하한)
@@ -450,11 +521,12 @@ class DataGeneratorService {
     topic: GenerationTopic,
     provider: 'chatgpt' | 'claude' = 'claude',
     webSearch: boolean = false,
-    context?: CollectionContext
+    context?: CollectionContext,
+    mode: BatchMode = 'confirmed'
   ): Promise<GenerationResult> {
-    const defaultStart = '2023-01-01';
+    const defaultStart = mode === 'forecast' ? '2020-01-01' : '2023-01-01';
     const defaultEnd = new Date().toISOString().split('T')[0]!;
-    const { query, timeRangeStart } = this.applyCollectionContext(topic, context, defaultStart);
+    const { query, timeRangeStart } = this.applyCollectionContext(topic, context, defaultStart, mode);
 
     const request: AISearchRequest = {
       query,
@@ -503,9 +575,10 @@ class DataGeneratorService {
   async startBatch(
     provider: 'chatgpt' | 'claude' = 'claude',
     webSearch: boolean = false,
-    topics?: GenerationTopic[]
+    topics?: GenerationTopic[],
+    mode: BatchMode = 'confirmed'
   ): Promise<{ jobId: string }> {
-    const topicList = topics || buildDefaultTopics();
+    const topicList = topics || (mode === 'forecast' ? buildForecastTopics() : buildConfirmedTopics());
 
     const [job] = await db
       .insert(dataGeneratorJobs)
@@ -520,7 +593,7 @@ class DataGeneratorService {
     if (!job) throw new Error('배치 잡 생성 실패');
 
     // 백그라운드에서 실행 — await 하지 않음
-    this.runBatchJob(job.id, topicList, provider, webSearch).catch(async (err) => {
+    this.runBatchJob(job.id, topicList, provider, webSearch, mode).catch(async (err) => {
       console.error('[DataGenerator] Background job crashed:', err);
       await db
         .update(dataGeneratorJobs)
@@ -543,7 +616,8 @@ class DataGeneratorService {
     jobId: string,
     topicList: GenerationTopic[],
     provider: 'chatgpt' | 'claude',
-    webSearch: boolean
+    webSearch: boolean,
+    mode: BatchMode = 'confirmed'
   ): Promise<void> {
     await db
       .update(dataGeneratorJobs)
@@ -577,7 +651,7 @@ class DataGeneratorService {
         })
         .where(eq(dataGeneratorJobs.id, jobId));
 
-      const result = await this.generateForTopic(topic, provider, webSearch, context);
+      const result = await this.generateForTopic(topic, provider, webSearch, context, mode);
       results.push(result);
 
       if (result.errors.length > 0 && result.companiesSaved === 0 && result.productsSaved === 0) {
@@ -669,8 +743,8 @@ class DataGeneratorService {
   /**
    * 기본 주제 목록 반환 (프론트엔드에서 확인용)
    */
-  getDefaultTopics(): GenerationTopic[] {
-    return buildDefaultTopics();
+  getDefaultTopics(mode: BatchMode = 'confirmed'): GenerationTopic[] {
+    return mode === 'forecast' ? buildForecastTopics() : buildConfirmedTopics();
   }
 
   /**
