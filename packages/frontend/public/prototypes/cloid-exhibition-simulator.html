@@ -1295,7 +1295,7 @@
       cloidWheel:     'CLOiD Wheel',
       cloidBipedal:   'CLOiD Bipedal',
       quadruped:      '4족 로봇',
-      cleaner:        '청소로봇',
+      cleaner:        'NR',
       midManipulator: '중간형 로봇',
     };
     const ROBOT_DEFAULTS = {
@@ -1331,9 +1331,9 @@
     };
     const GESTURE_ROBOT_APPLIES = {
       IDLE: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator'],
-      WAVE: ['cloidWheel', 'cloidBipedal', 'midManipulator'],
-      POINT: ['cloidWheel', 'cloidBipedal', 'midManipulator'],
-      PICKUP: ['cloidWheel', 'cloidBipedal', 'midManipulator'],
+      WAVE: ['cloidWheel', 'cloidBipedal', 'midManipulator', 'cleaner'],
+      POINT: ['cloidWheel', 'cloidBipedal', 'midManipulator', 'cleaner'],
+      PICKUP: ['cloidWheel', 'cloidBipedal', 'midManipulator', 'cleaner'],
       BOW: ['cloidWheel', 'cloidBipedal', 'midManipulator'],
       WALK: ['cloidBipedal', 'quadruped'],
       SCAN: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator'],
@@ -3247,31 +3247,30 @@
     }
 
     function buildCleaner(color, height) {
-      // Roomba-style cleaning robot — low cylindrical disc with top sensor dome.
+      // NR — Roborock Z70-style cleaner: low disc + rear-mounted vertical post +
+      // single articulated manipulator on top. Disc is static; root_body is the
+      // post+arm assembly so PICKUP/BOW gestures only tilt the manipulator,
+      // not the disc itself.
       const root = new THREE.Group();
       const parts = {};
       const col = new THREE.Color(color);
       const matMain   = new THREE.MeshStandardMaterial({ color: col, roughness: 0.45, metalness: 0.30 });
       const matDark   = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.55, metalness: 0.4 });
+      const matFrame  = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.45, metalness: 0.6 });
       const matSilver = new THREE.MeshStandardMaterial({ color: 0x9a9a9a, roughness: 0.35, metalness: 0.7 });
       const matAccent = new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.6 });
 
-      const radius = Math.max(0.16, height * 1.5); // disc radius
+      const radius = Math.max(0.16, height * 1.5);
       const discH  = Math.max(0.06, height * 0.7);
 
-      const body = new THREE.Group();
-      body.name = 'root_body';
-      body.position.y = discH / 2;
-      root.add(body);
-      parts.root_body = body;
-
-      // Main disc
+      // ============ STATIC DISC (on root, not in root_body) ============
       const disc = new THREE.Mesh(
         new THREE.CylinderGeometry(radius, radius * 0.97, discH, 36),
         matMain
       );
+      disc.position.y = discH / 2;
       disc.castShadow = true; disc.receiveShadow = true;
-      body.add(disc);
+      root.add(disc);
 
       // Bumper ring
       const bumper = new THREE.Mesh(
@@ -3279,8 +3278,8 @@
         matDark
       );
       bumper.rotation.x = Math.PI / 2;
-      bumper.position.y = -discH * 0.15;
-      body.add(bumper);
+      bumper.position.y = discH * 0.35;
+      root.add(bumper);
 
       // Top accent ring
       const topRing = new THREE.Mesh(
@@ -3288,43 +3287,153 @@
         matSilver
       );
       topRing.rotation.x = Math.PI / 2;
-      topRing.position.y = discH / 2 - 0.005;
-      body.add(topRing);
+      topRing.position.y = discH - 0.005;
+      root.add(topRing);
 
-      // Side brushes (two small cylinders at front edge)
+      // Side brushes (two small cylinders at front edge, near floor)
       [-1, 1].forEach(s => {
         const brush = new THREE.Mesh(
           new THREE.CylinderGeometry(0.025, 0.025, 0.015, 16),
           matDark
         );
-        brush.position.set(s * radius * 0.55, -discH / 2 + 0.008, radius * 0.55);
-        body.add(brush);
+        brush.position.set(s * radius * 0.55, 0.008, radius * 0.55);
+        root.add(brush);
       });
 
-      // Head — top sensor turret (small puck)
+      // ============ HEAD (front sensor turret on disc) ============
       const head = new THREE.Group();
       head.name = 'head';
-      head.position.y = discH / 2 + 0.02;
-      body.add(head);
+      head.position.set(0, discH + 0.018, radius * 0.25);
+      root.add(head);
       parts.head = head;
 
       const turret = new THREE.Mesh(
-        new THREE.CylinderGeometry(radius * 0.28, radius * 0.30, 0.04, 24),
+        new THREE.CylinderGeometry(radius * 0.22, radius * 0.24, 0.035, 24),
         matDark
       );
       turret.castShadow = true;
       head.add(turret);
       const lensRing = new THREE.Mesh(
-        new THREE.TorusGeometry(radius * 0.23, 0.004, 6, 24),
+        new THREE.TorusGeometry(radius * 0.18, 0.004, 6, 24),
         matAccent
       );
       lensRing.rotation.x = Math.PI / 2;
       lensRing.position.y = 0.005;
       head.add(lensRing);
 
-      // Empty arm/leg groups for gesture compatibility (no-op)
+      // ============ root_body = POST + MANIPULATOR (gesture-controlled) ============
+      // Pivot is at top of disc, rear-of-center. BOW/PICKUP rotate this around X.
+      const body = new THREE.Group();
+      body.name = 'root_body';
+      body.position.set(0, discH, -radius * 0.40);
+      root.add(body);
+      parts.root_body = body;
+
+      // Vertical post (mount column)
+      const postH = Math.max(0.18, height * 1.8);
+      const post = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.022, 0.026, postH, 14),
+        matFrame
+      );
+      post.position.y = postH / 2;
+      post.castShadow = true;
+      body.add(post);
+
+      // Mount cap at top of post
+      const mountCap = new THREE.Mesh(
+        new THREE.BoxGeometry(0.055, 0.04, 0.05),
+        matDark
+      );
+      mountCap.position.y = postH;
+      body.add(mountCap);
+
+      // Status LED on post (small accent)
+      const statusLed = new THREE.Mesh(
+        new THREE.SphereGeometry(0.008, 10, 8),
+        matAccent
+      );
+      statusLed.position.set(0, postH * 0.7, 0.026);
+      body.add(statusLed);
+
+      // ============ ARM (parts.armR — gesture target) ============
+      const armR = new THREE.Group();
+      armR.name = 'armR';
+      armR.position.y = postH;
+      body.add(armR);
+      parts.armR = armR;
+
+      // Inner group: tilts arm forward at rest so the geometry reaches over the
+      // disc front instead of straight down (which would clip the floor).
+      const armInner = new THREE.Group();
+      armInner.rotation.x = Math.PI * 0.42; // ~76° forward from vertical
+      armR.add(armInner);
+
+      // Shoulder joint
+      const shoulder = new THREE.Mesh(
+        new THREE.SphereGeometry(0.028, 14, 10),
+        matSilver
+      );
+      armInner.add(shoulder);
+
+      // Upper arm (hangs down in inner-group local space)
+      const upperLen = Math.max(0.16, height * 1.5);
+      const upper = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.019, 0.016, upperLen, 12),
+        matFrame
+      );
+      upper.position.y = -upperLen / 2;
+      upper.castShadow = true;
+      armInner.add(upper);
+
+      // Elbow
+      const elbow = new THREE.Mesh(
+        new THREE.SphereGeometry(0.022, 12, 10),
+        matSilver
+      );
+      elbow.position.y = -upperLen;
+      armInner.add(elbow);
+
+      // Forearm — bent slightly back so gripper points forward, not into floor
+      const foreGroup = new THREE.Group();
+      foreGroup.position.y = -upperLen;
+      foreGroup.rotation.x = -Math.PI * 0.30; // bend at elbow
+      armInner.add(foreGroup);
+
+      const foreLen = Math.max(0.14, height * 1.3);
+      const fore = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.013, foreLen, 12),
+        matMain
+      );
+      fore.position.y = -foreLen / 2;
+      fore.castShadow = true;
+      foreGroup.add(fore);
+
+      // Wrist
+      const wrist = new THREE.Mesh(
+        new THREE.SphereGeometry(0.017, 12, 10),
+        matSilver
+      );
+      wrist.position.y = -foreLen;
+      foreGroup.add(wrist);
+
+      // 2-finger parallel-jaw gripper
+      const palm = new THREE.Mesh(
+        new THREE.BoxGeometry(0.035, 0.022, 0.025),
+        matDark
+      );
+      palm.position.y = -foreLen - 0.014;
+      foreGroup.add(palm);
+      [-0.011, 0.011].forEach(x => {
+        const finger = new THREE.Mesh(
+          new THREE.BoxGeometry(0.005, 0.028, 0.008),
+          matDark
+        );
+        finger.position.set(x, -foreLen - 0.038, 0);
+        foreGroup.add(finger);
+      });
+
+      // Empty armL stub for gesture compatibility (WALK refs it; no-op)
       const armL = new THREE.Group(); armL.name = 'armL'; body.add(armL); parts.armL = armL;
-      const armR = new THREE.Group(); armR.name = 'armR'; body.add(armR); parts.armR = armR;
 
       return { root, parts };
     }
