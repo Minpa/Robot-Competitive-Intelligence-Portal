@@ -22,6 +22,7 @@ import {
   Database,
   Presentation,
   Boxes,
+  CalendarDays,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -64,6 +65,7 @@ const navigationGroups: NavGroup[] = [
       { name: 'AI 활용 / 기사 입력', href: '/insight-pipeline', icon: FlaskConical },
       { name: '국내 국책과제 검색', href: '/national-projects', icon: Globe },
       { name: 'Report / AI 현황분석', href: '/reports', icon: Presentation },
+      { name: '이벤트 캘린더', href: '/event-calendar', icon: CalendarDays },
     ],
   },
   {
