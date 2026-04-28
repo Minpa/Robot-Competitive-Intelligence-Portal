@@ -1306,28 +1306,37 @@
       midManipulator: { height: 1.30, color: '#22C55E' },
     };
 
-    const GESTURE_TYPES = ['IDLE', 'WAVE', 'POINT', 'PICKUP', 'BOW', 'WALK', 'SCAN'];
+    const GESTURE_TYPES = ['IDLE', 'WAVE', 'POINT', 'PICKUP', 'BOW', 'WALK', 'SCAN', 'SIT', 'JUMP', 'TILT', 'DUAL_PICKUP'];
     const GESTURE_LABELS = {
-      IDLE:   '대기',
-      WAVE:   '손 흔들기',
-      POINT:  '가리키기',
-      PICKUP: '물건 집기',
-      BOW:    '인사 (절)',
-      WALK:   '걷기',
-      SCAN:   '둘러보기',
+      IDLE:        '대기',
+      WAVE:        '손 흔들기',
+      POINT:       '가리키기',
+      PICKUP:      '물건 집기',
+      BOW:         '인사 (절)',
+      WALK:        '걷기',
+      SCAN:        '둘러보기',
+      SIT:         '앉기',
+      JUMP:        '점프',
+      TILT:        '몸체 기울이기',
+      DUAL_PICKUP: '양손 픽업',
     };
     const GESTURE_DESCRIPTIONS = {
-      IDLE:   '대기 / 호흡 (자동)',
-      WAVE:   '손을 들어 인사',
-      POINT:  '특정 방향을 가리킴',
-      PICKUP: '물건을 집어 드는 동작',
-      BOW:    '허리를 굽혀 인사',
-      WALK:   '이동 시 자동 재생',
-      SCAN:   '머리를 좌우로 둘러봄',
+      IDLE:        '대기 / 호흡 (자동)',
+      WAVE:        '손을 들어 인사',
+      POINT:       '특정 방향을 가리킴',
+      PICKUP:      '물건을 집어 드는 동작',
+      BOW:         '허리를 굽혀 인사',
+      WALK:        '이동 시 자동 재생',
+      SCAN:        '머리를 좌우로 둘러봄',
+      SIT:         '뒷다리 접고 앉음 (4족)',
+      JUMP:        '제자리 점프 (4족)',
+      TILT:        '몸체 앞으로 기울임 (인사 대용)',
+      DUAL_PICKUP: '양 팔로 동시에 집기',
     };
     const GESTURE_DURATIONS = {
       IDLE: Infinity, WAVE: 3.0, POINT: 2.5, PICKUP: 4.0,
       BOW: 2.0, WALK: Infinity, SCAN: 4.0,
+      SIT: 3.0, JUMP: 1.2, TILT: 1.8, DUAL_PICKUP: 4.5,
     };
     const GESTURE_ROBOT_APPLIES = {
       IDLE: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator'],
@@ -1337,6 +1346,10 @@
       BOW: ['cloidWheel', 'cloidBipedal', 'midManipulator'],
       WALK: ['cloidBipedal', 'quadruped'],
       SCAN: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator'],
+      SIT: ['quadruped'],
+      JUMP: ['quadruped'],
+      TILT: ['quadruped'],
+      DUAL_PICKUP: ['midManipulator'],
     };
 
     /* ============ STATE ============ */
@@ -3233,17 +3246,81 @@
 
         return g;
       }
-      const legFL = makeQuadLeg('legL',  -1,  1); // front-left → drives "legL" gait
-      const legFR = makeQuadLeg('legR',   1,  1); // front-right → drives "legR" gait
+      const legFL = makeQuadLeg('legFL', -1,  1);
+      const legFR = makeQuadLeg('legFR',  1,  1);
       const legRL = makeQuadLeg('legRL', -1, -1);
       const legRR = makeQuadLeg('legRR',  1, -1);
       body.add(legFL); body.add(legFR); body.add(legRL); body.add(legRR);
+      // Explicit per-leg refs (used by quadruped-specific impls)
+      parts.legFL = legFL; parts.legFR = legFR;
+      parts.legRL = legRL; parts.legRR = legRR;
+      // Legacy aliases — kept so any default fallback still works on resetRobotPose etc.
       parts.legL = legFL; parts.legR = legFR;
-      // Rear legs counter-phased via armL/armR slots so WALK swings them
-      parts.armL = legRR; // swings opposite to legL (front-left)
-      parts.armR = legRL; // swings opposite to legR (front-right)
+      parts.armL = legRR; parts.armR = legRL;
 
-      return { root, parts };
+      // ============ QUADRUPED-SPECIFIC GESTURE IMPLS ============
+      const impls = {
+        // Diagonal trot: FL+RR move together, FR+RL counter-phase.
+        WALK: (p, globalT) => {
+          const T = 0.55;
+          const phase = (globalT / T) * Math.PI * 2;
+          const a = Math.sin(phase) * 0.5;
+          const b = -a;
+          if (p.legFL) p.legFL.rotation.x = a;
+          if (p.legRR) p.legRR.rotation.x = a;
+          if (p.legFR) p.legFR.rotation.x = b;
+          if (p.legRL) p.legRL.rotation.x = b;
+          if (p.root_body) {
+            const baseY = p.root_body.userData.baseY ?? p.root_body.position.y;
+            p.root_body.position.y = baseY + Math.abs(Math.sin(phase)) * 0.012;
+          }
+        },
+        // Sit: rear legs fold forward under body, body tilts back, drops slightly.
+        SIT: (p, localT) => {
+          const rearFrames = [[0.0, 0.0], [0.6, -0.7], [3.0, -0.7]];
+          const bodyXFrames = [[0.0, 0.0], [0.6, -0.25], [3.0, -0.25]];
+          const bodyYFrames = [[0.0, 0.0], [0.6, -0.05], [3.0, -0.05]];
+          const v = lerpKeyframes(rearFrames, localT);
+          if (p.legRL) p.legRL.rotation.x = v;
+          if (p.legRR) p.legRR.rotation.x = v;
+          if (p.root_body) {
+            p.root_body.rotation.x = lerpKeyframes(bodyXFrames, localT);
+            const baseY = p.root_body.userData.baseY ?? p.root_body.position.y;
+            p.root_body.position.y = baseY + lerpKeyframes(bodyYFrames, localT);
+          }
+        },
+        // Jump: 4-leg crouch → leap → airborne → land. Body Y is the main signal.
+        JUMP: (p, localT) => {
+          const yFrames = [
+            [0.0, 0.0], [0.25, -0.05], [0.50, 0.20], [0.75, 0.25],
+            [1.00, 0.05], [1.20, 0.0]
+          ];
+          // Front legs and rear legs crouch in opposite rotation directions
+          // (each rotates thigh toward body center) so the bend looks symmetric.
+          const crouchFrames = [
+            [0.0, 0.0], [0.25, 0.35], [0.40, -0.10],
+            [0.85, -0.10], [1.05, 0.20], [1.20, 0.0]
+          ];
+          const c = lerpKeyframes(crouchFrames, localT);
+          if (p.legFL) p.legFL.rotation.x = c;
+          if (p.legFR) p.legFR.rotation.x = c;
+          if (p.legRL) p.legRL.rotation.x = -c;
+          if (p.legRR) p.legRR.rotation.x = -c;
+          if (p.root_body) {
+            const baseY = p.root_body.userData.baseY ?? p.root_body.position.y;
+            p.root_body.position.y = baseY + lerpKeyframes(yFrames, localT);
+          }
+        },
+        // Tilt: body bows forward (front-end down) — used as a greeting.
+        TILT: (p, localT) => {
+          const xFrames = [[0.0, 0.0], [0.5, 0.4], [1.3, 0.4], [1.8, 0.0]];
+          if (p.root_body) {
+            p.root_body.rotation.x = lerpKeyframes(xFrames, localT);
+          }
+        },
+      };
+
+      return { root, parts, impls };
     }
 
     function buildCleaner(color, height) {
@@ -3435,7 +3512,44 @@
       // Empty armL stub for gesture compatibility (WALK refs it; no-op)
       const armL = new THREE.Group(); armL.name = 'armL'; body.add(armL); parts.armL = armL;
 
-      return { root, parts };
+      // ============ NR-SPECIFIC GESTURE IMPLS ============
+      // The arm's inner group is pre-tilted ~76° forward. The default humanoid
+      // WAVE/PICKUP keyframes (which assume an arm hanging straight down) don't
+      // map well to that geometry, so NR overrides them with arm-aware motion.
+      const impls = {
+        WAVE: (p, localT) => {
+          if (!p.armR) return;
+          // Lift arm toward vertical (negative rotation.x cancels inner tilt)
+          // and oscillate side-to-side via rotation.z for the "wave" feel.
+          const xFrames = [
+            [0.0, 0.0], [0.4, -0.85], [2.6, -0.85], [3.0, 0.0]
+          ];
+          const zFrames = [
+            [0.0, 0.0], [0.4, 0.0], [0.7, 0.45], [1.0, -0.45], [1.3, 0.45],
+            [1.6, -0.45], [1.9, 0.45], [2.2, -0.45], [2.6, 0.0], [3.0, 0.0]
+          ];
+          p.armR.rotation.x = lerpKeyframes(xFrames, localT);
+          p.armR.rotation.z = lerpKeyframes(zFrames, localT);
+        },
+        PICKUP: (p, localT) => {
+          if (!p.armR) return;
+          // Lower arm tip toward floor in front of disc, hold, lift, return.
+          // Positive rotation.x adds forward tilt → arm sweeps lower & further.
+          const xFrames = [
+            [0.0, 0.0], [1.0, 0.35], [1.6, 0.45], [2.4, 0.45],
+            [3.0, -0.10], [3.6, -0.10], [4.0, 0.0]
+          ];
+          p.armR.rotation.x = lerpKeyframes(xFrames, localT);
+          // Tiny disc dip during reach to suggest gripper pressure on object
+          if (p.root_body) {
+            const baseY = p.root_body.userData.baseY ?? p.root_body.position.y;
+            const yFrames = [[0.0, 0], [1.6, -0.004], [2.4, -0.004], [3.0, 0]];
+            p.root_body.position.y = baseY + lerpKeyframes(yFrames, localT);
+          }
+        },
+      };
+
+      return { root, parts, impls };
     }
 
     function buildMidManipulator(color, height) {
@@ -3645,7 +3759,28 @@
       body.add(armL); body.add(armR);
       parts.armL = armL; parts.armR = armR;
 
-      return { root, parts };
+      // ============ MID-MANIPULATOR-SPECIFIC GESTURE IMPLS ============
+      const impls = {
+        // Both arms reach forward+down in sync, grip together, lift, release.
+        // Mirrors armL via rotation.z sign flip (palms pointing inward).
+        DUAL_PICKUP: (p, localT) => {
+          const reachFrames = [
+            [0.0, 0.0], [1.2, -0.55], [1.8, -0.95],
+            [2.4, -0.95], [3.2, -0.30], [4.0, 0.0], [4.5, 0.0]
+          ];
+          const bowFrames = [
+            [0.0, 0.0], [1.2, 0.20], [2.4, 0.20], [3.5, 0.0], [4.5, 0.0]
+          ];
+          const v = lerpKeyframes(reachFrames, localT);
+          if (p.armR) p.armR.rotation.z = v;
+          if (p.armL) p.armL.rotation.z = -v; // mirror
+          if (p.root_body) {
+            p.root_body.rotation.x = lerpKeyframes(bowFrames, localT);
+          }
+        },
+      };
+
+      return { root, parts, impls };
     }
 
     const ROBOT_BUILDERS = {
@@ -3666,7 +3801,9 @@
       state.robots.forEach(r => {
         const builder = ROBOT_BUILDERS[r.type];
         if (!builder) return;
-        const { root, parts } = builder(r.color, r.height);
+        const built = builder(r.color, r.height);
+        const { root, parts } = built;
+        const impls = built.impls || {}; // per-robot gesture overrides
         root.userData = { isRobot: true, robotId: r.id };
         root.position.set(r.x || 0, 0, r.z || 0);
         root.rotation.y = r.rotY || 0;
@@ -3677,7 +3814,7 @@
         ring.material.color.set(r.color);
         root.add(ring);
 
-        robotMeshes[r.id] = { group: root, instance: r, parts, outlineRing: ring };
+        robotMeshes[r.id] = { group: root, instance: r, parts, outlineRing: ring, impls };
 
         rebuildRobotPath(r);
       });
@@ -3845,7 +3982,8 @@
         const speedMul = r.speedMultiplier || 1.0;
 
         resetRobotPose(r.id);
-        GESTURE_IMPLS.IDLE(meshData.parts, t);
+        const idleImpl = meshData.impls.IDLE || GESTURE_IMPLS.IDLE;
+        idleImpl(meshData.parts, t);
 
         // Active explicit gestures — match timeline time exactly
         const active = (r.gestureTrack || []).filter(g =>
@@ -3855,12 +3993,13 @@
         // WALK auto if moving — speedMul stretches/compresses gait (visual only)
         const speed = computeRobotSpeed(r, t);
         if (speed > 0.05 && (r.type === 'cloidBipedal' || r.type === 'quadruped')) {
-          GESTURE_IMPLS.WALK(meshData.parts, t * speedMul);
+          const walkImpl = meshData.impls.WALK || GESTURE_IMPLS.WALK;
+          walkImpl(meshData.parts, t * speedMul);
         }
 
         active.forEach(g => {
           if (g.type === 'IDLE' || g.type === 'WALK') return;
-          const impl = GESTURE_IMPLS[g.type];
+          const impl = meshData.impls[g.type] || GESTURE_IMPLS[g.type];
           if (!impl) return;
           const localT = t - g.t;
           impl(meshData.parts, localT, g.params);
