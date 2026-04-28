@@ -811,6 +811,10 @@
           </div>
           <button class="btn-secondary" id="cameraFitBtn" style="width:100%; margin-top: 4px">FIT TO ITEMS</button>
         </div>
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Preset</div>
+          <button class="btn-secondary" id="loadLGBoothBtn" style="width:100%">🏠 LG AI Home 부스 다시 로드</button>
+        </div>
       </div>
 
       <!-- SPEC MODE -->
@@ -1168,35 +1172,41 @@
 
     const FURNITURE_TYPES = [
       // STAGING (existing booth elements)
-      'MAIN_STAGE', 'PRODUCT_SHELF', 'SCREEN_WALL', 'EXPERIENCE_ZONE', 'INFO_DESK',
+      'MAIN_STAGE', 'CIRCULAR_PODIUM', 'PRODUCT_SHELF', 'SCREEN_WALL',
+      'LED_VIDEO_WALL', 'EXPERIENCE_ZONE', 'INFO_DESK',
       // DISPLAY
       'OLED_TV_65', 'OLED_TV_77', 'OLED_TV_97', 'SMART_PANEL',
       // AUDIO
       'FLOOR_SPEAKER', 'BOOKSHELF_SPEAKER', 'SOUNDBAR', 'SUBWOOFER', 'SPEAKER_PEDESTAL',
       // APPLIANCE
-      'REFRIGERATOR', 'WASHING_MACHINE', 'DRYER',
+      'REFRIGERATOR', 'WASHING_MACHINE', 'DRYER', 'WASHER_DRYER_TOWER', 'KITCHEN_WALL',
       // FURNITURE
-      'SOFA_3SEAT', 'SOFA_2SEAT', 'COFFEE_TABLE', 'SIDE_TABLE', 'CURIO_SHELF', 'RUG',
+      'SOFA_3SEAT', 'SOFA_2SEAT', 'COFFEE_TABLE', 'SIDE_TABLE', 'CURIO_SHELF', 'RUG', 'LAUNDRY_BASKET',
       // ARCHITECTURE
       'WALL_PANEL', 'DOORWAY', 'FIREPLACE', 'FLOOR_LAMP', 'SLAT_PANEL', 'LED_STRIP',
     ];
     const FURNITURE_CATEGORIES = {
-      MAIN_STAGE: 'STAGING', PRODUCT_SHELF: 'STAGING', SCREEN_WALL: 'STAGING',
+      MAIN_STAGE: 'STAGING', CIRCULAR_PODIUM: 'STAGING', PRODUCT_SHELF: 'STAGING',
+      SCREEN_WALL: 'STAGING', LED_VIDEO_WALL: 'STAGING',
       EXPERIENCE_ZONE: 'STAGING', INFO_DESK: 'STAGING',
       OLED_TV_65: 'DISPLAY', OLED_TV_77: 'DISPLAY', OLED_TV_97: 'DISPLAY', SMART_PANEL: 'DISPLAY',
       FLOOR_SPEAKER: 'AUDIO', BOOKSHELF_SPEAKER: 'AUDIO', SOUNDBAR: 'AUDIO',
       SUBWOOFER: 'AUDIO', SPEAKER_PEDESTAL: 'AUDIO',
       REFRIGERATOR: 'APPLIANCE', WASHING_MACHINE: 'APPLIANCE', DRYER: 'APPLIANCE',
+      WASHER_DRYER_TOWER: 'APPLIANCE', KITCHEN_WALL: 'APPLIANCE',
       SOFA_3SEAT: 'FURNITURE', SOFA_2SEAT: 'FURNITURE', COFFEE_TABLE: 'FURNITURE',
       SIDE_TABLE: 'FURNITURE', CURIO_SHELF: 'FURNITURE', RUG: 'FURNITURE',
+      LAUNDRY_BASKET: 'FURNITURE',
       WALL_PANEL: 'ARCHITECTURE', DOORWAY: 'ARCHITECTURE', FIREPLACE: 'ARCHITECTURE',
       FLOOR_LAMP: 'ARCHITECTURE', SLAT_PANEL: 'ARCHITECTURE', LED_STRIP: 'ARCHITECTURE',
     };
     const FURNITURE_CATEGORY_ORDER = ['STAGING', 'DISPLAY', 'AUDIO', 'APPLIANCE', 'FURNITURE', 'ARCHITECTURE'];
     const FURNITURE_DIMS = {
       MAIN_STAGE: { width: 4.0, depth: 3.0, height: 0.4 },
+      CIRCULAR_PODIUM: { width: 2.4, depth: 2.4, height: 0.35 },
       PRODUCT_SHELF: { width: 1.8, depth: 0.6, height: 1.5 },
       SCREEN_WALL: { width: 3.0, depth: 0.2, height: 2.5 },
+      LED_VIDEO_WALL: { width: 5.0, depth: 0.18, height: 1.85 },
       EXPERIENCE_ZONE: { width: 2.5, depth: 2.5, height: 0.1 },
       INFO_DESK: { width: 2.0, depth: 0.8, height: 1.1 },
       OLED_TV_65: { width: 1.45, depth: 0.08, height: 0.85 },
@@ -1211,12 +1221,15 @@
       REFRIGERATOR: { width: 0.83, depth: 0.75, height: 1.80 },
       WASHING_MACHINE: { width: 0.60, depth: 0.62, height: 0.85 },
       DRYER: { width: 0.60, depth: 0.62, height: 0.85 },
+      WASHER_DRYER_TOWER: { width: 0.70, depth: 0.70, height: 1.85 },
+      KITCHEN_WALL: { width: 3.20, depth: 0.65, height: 2.40 },
       SOFA_3SEAT: { width: 2.10, depth: 0.95, height: 0.85 },
       SOFA_2SEAT: { width: 1.55, depth: 0.95, height: 0.85 },
       COFFEE_TABLE: { width: 1.20, depth: 0.60, height: 0.40 },
       SIDE_TABLE: { width: 0.50, depth: 0.50, height: 0.55 },
       CURIO_SHELF: { width: 1.50, depth: 0.40, height: 1.80 },
       RUG: { width: 2.50, depth: 1.80, height: 0.02 },
+      LAUNDRY_BASKET: { width: 0.46, depth: 0.36, height: 0.30 },
       WALL_PANEL: { width: 3.00, depth: 0.10, height: 2.50 },
       DOORWAY: { width: 1.20, depth: 0.10, height: 2.10 },
       FIREPLACE: { width: 1.00, depth: 0.30, height: 0.60 },
@@ -1225,47 +1238,57 @@
       LED_STRIP: { width: 3.00, depth: 0.03, height: 0.04 },
     };
     const FURNITURE_SNAP = {
-      MAIN_STAGE: 'free', PRODUCT_SHELF: 'wall', SCREEN_WALL: 'wall',
-      EXPERIENCE_ZONE: 'free', INFO_DESK: 'free',
+      MAIN_STAGE: 'free', CIRCULAR_PODIUM: 'free', PRODUCT_SHELF: 'wall', SCREEN_WALL: 'wall',
+      LED_VIDEO_WALL: 'wall', EXPERIENCE_ZONE: 'free', INFO_DESK: 'free',
       OLED_TV_65: 'wall', OLED_TV_77: 'wall', OLED_TV_97: 'wall', SMART_PANEL: 'free',
       FLOOR_SPEAKER: 'free', BOOKSHELF_SPEAKER: 'free', SOUNDBAR: 'wall',
       SUBWOOFER: 'free', SPEAKER_PEDESTAL: 'free',
       REFRIGERATOR: 'wall', WASHING_MACHINE: 'wall', DRYER: 'wall',
+      WASHER_DRYER_TOWER: 'wall', KITCHEN_WALL: 'wall',
       SOFA_3SEAT: 'free', SOFA_2SEAT: 'free', COFFEE_TABLE: 'free',
-      SIDE_TABLE: 'free', CURIO_SHELF: 'wall', RUG: 'free',
+      SIDE_TABLE: 'free', CURIO_SHELF: 'wall', RUG: 'free', LAUNDRY_BASKET: 'free',
       WALL_PANEL: 'wall', DOORWAY: 'wall', FIREPLACE: 'wall',
       FLOOR_LAMP: 'free', SLAT_PANEL: 'wall', LED_STRIP: 'wall',
     };
     const FURNITURE_COLORS = {
-      MAIN_STAGE: 0xA50034, PRODUCT_SHELF: 0x2a2a2a, SCREEN_WALL: 0x0a0a0a,
+      MAIN_STAGE: 0xA50034, CIRCULAR_PODIUM: 0x2a221a, PRODUCT_SHELF: 0x2a2a2a,
+      SCREEN_WALL: 0x0a0a0a, LED_VIDEO_WALL: 0x050505,
       EXPERIENCE_ZONE: 0x00D9FF, INFO_DESK: 0xf0f0f0,
       OLED_TV_65: 0x0a0a0a, OLED_TV_77: 0x0a0a0a, OLED_TV_97: 0x0a0a0a, SMART_PANEL: 0x1a1a2a,
       FLOOR_SPEAKER: 0x202020, BOOKSHELF_SPEAKER: 0x202020, SOUNDBAR: 0x141414,
       SUBWOOFER: 0x202020, SPEAKER_PEDESTAL: 0xc0c0c0,
       REFRIGERATOR: 0xe5e5e5, WASHING_MACHINE: 0xf5f5f5, DRYER: 0xf5f5f5,
+      WASHER_DRYER_TOWER: 0x4a4f55, KITCHEN_WALL: 0x8a6a4a,
       SOFA_3SEAT: 0xd6c9b8, SOFA_2SEAT: 0xd6c9b8, COFFEE_TABLE: 0x6b5544,
       SIDE_TABLE: 0xd0d0d0, CURIO_SHELF: 0xf5f5f5, RUG: 0xc0b8a8,
+      LAUNDRY_BASKET: 0xb8a07a,
       WALL_PANEL: 0xc0bbb0, DOORWAY: 0xc0bbb0, FIREPLACE: 0x222222,
       FLOOR_LAMP: 0xc0c0c0, SLAT_PANEL: 0x8a6a4a, LED_STRIP: 0xff6688,
     };
     const FURNITURE_LABELS = {
-      MAIN_STAGE: 'Main Stage', PRODUCT_SHELF: 'Product Shelf', SCREEN_WALL: 'Screen Wall',
+      MAIN_STAGE: 'Main Stage', CIRCULAR_PODIUM: 'Circular Podium',
+      PRODUCT_SHELF: 'Product Shelf', SCREEN_WALL: 'Screen Wall',
+      LED_VIDEO_WALL: 'LED Video Wall',
       EXPERIENCE_ZONE: 'Experience Zone', INFO_DESK: 'Info Desk',
       OLED_TV_65: 'OLED TV 65"', OLED_TV_77: 'OLED TV 77"', OLED_TV_97: 'OLED TV 97"',
       SMART_PANEL: 'Smart Panel',
       FLOOR_SPEAKER: 'Floor Speaker', BOOKSHELF_SPEAKER: 'Bookshelf Speaker',
       SOUNDBAR: 'Soundbar', SUBWOOFER: 'Subwoofer', SPEAKER_PEDESTAL: 'Speaker Pedestal',
       REFRIGERATOR: 'Refrigerator', WASHING_MACHINE: 'Washing Machine', DRYER: 'Dryer',
+      WASHER_DRYER_TOWER: 'Washer/Dryer Tower', KITCHEN_WALL: 'Kitchen Wall',
       SOFA_3SEAT: 'Sofa (3-seat)', SOFA_2SEAT: 'Sofa (2-seat)', COFFEE_TABLE: 'Coffee Table',
       SIDE_TABLE: 'Side Table', CURIO_SHELF: 'Curio Shelf', RUG: 'Rug',
+      LAUNDRY_BASKET: 'Laundry Basket',
       WALL_PANEL: 'Wall Panel', DOORWAY: 'Doorway', FIREPLACE: 'Fireplace',
       FLOOR_LAMP: 'Floor Lamp', SLAT_PANEL: 'Slat Panel', LED_STRIP: 'LED Strip',
     };
     // Robot interaction height (top surface or button height) for SPEC risk eval.
     const FURNITURE_INTERACTION = {
       MAIN_STAGE: { h: 0.40, weight: 0.3, label: 'stage top' },
+      CIRCULAR_PODIUM: { h: 0.35, weight: 0.3, label: 'podium top' },
       PRODUCT_SHELF: { h: 1.00, weight: 0.5, label: 'mid shelf' },
       SCREEN_WALL: { h: 1.50, weight: 0.0, label: 'screen center' },
+      LED_VIDEO_WALL: { h: 3.00, weight: 0.0, label: 'video wall (overhead)' },
       EXPERIENCE_ZONE: { h: 0.10, weight: 0.0, label: 'floor mat' },
       INFO_DESK: { h: 1.10, weight: 0.3, label: 'desk top' },
       OLED_TV_65: { h: 1.20, weight: 0.0, label: 'TV center' },
@@ -1280,12 +1303,15 @@
       REFRIGERATOR: { h: 1.10, weight: 0.5, label: 'door handle' },
       WASHING_MACHINE: { h: 0.80, weight: 0.3, label: 'control panel' },
       DRYER: { h: 0.80, weight: 0.3, label: 'control panel' },
+      WASHER_DRYER_TOWER: { h: 0.55, weight: 0.4, label: 'washer porthole' },
+      KITCHEN_WALL: { h: 0.95, weight: 0.5, label: 'counter top' },
       SOFA_3SEAT: { h: 0.45, weight: 0.2, label: 'seat (deliver)' },
       SOFA_2SEAT: { h: 0.45, weight: 0.2, label: 'seat (deliver)' },
       COFFEE_TABLE: { h: 0.40, weight: 0.4, label: 'table top' },
       SIDE_TABLE: { h: 0.55, weight: 0.4, label: 'side top' },
       CURIO_SHELF: { h: 1.20, weight: 0.5, label: 'mid shelf' },
       RUG: { h: 0.02, weight: 0.0, label: 'rug surface' },
+      LAUNDRY_BASKET: { h: 0.30, weight: 1.5, label: 'basket rim' },
       WALL_PANEL: { h: 1.50, weight: 0.0, label: 'wall' },
       DOORWAY: { h: 1.05, weight: 0.0, label: 'door handle' },
       FIREPLACE: { h: 0.60, weight: 0.0, label: 'mantel' },
@@ -2438,10 +2464,379 @@
       return group;
     }
 
+    function buildCircularPodium() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.CIRCULAR_PODIUM;
+      const r = dims.width / 2;
+      // Main cylindrical podium
+      const body = new THREE.Mesh(
+        new THREE.CylinderGeometry(r, r, dims.height, 48),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.CIRCULAR_PODIUM, roughness: 0.6, metalness: 0.2 })
+      );
+      body.position.y = dims.height / 2;
+      body.castShadow = true; body.receiveShadow = true;
+      group.add(body);
+      // Top edge highlight
+      const topEdge = new THREE.Mesh(
+        new THREE.TorusGeometry(r - 0.005, 0.006, 8, 48),
+        new THREE.MeshStandardMaterial({ color: 0x9a9a9a, metalness: 0.7, roughness: 0.3 })
+      );
+      topEdge.rotation.x = Math.PI / 2;
+      topEdge.position.y = dims.height;
+      group.add(topEdge);
+      // Recessed base light strip (warm glow)
+      const baseRing = new THREE.Mesh(
+        new THREE.TorusGeometry(r - 0.01, 0.012, 8, 48),
+        new THREE.MeshStandardMaterial({ color: 0xffaa55, emissive: 0xffaa55, emissiveIntensity: 0.5 })
+      );
+      baseRing.rotation.x = Math.PI / 2;
+      baseRing.position.y = 0.018;
+      group.add(baseRing);
+      return group;
+    }
+
+    function buildLEDVideoWall() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.LED_VIDEO_WALL;
+      const liftY = 1.50; // bottom edge above floor (overhead/header signage)
+      // Outer bezel (dark frame)
+      const bezel = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.5, metalness: 0.4 })
+      );
+      bezel.position.y = liftY + dims.height / 2;
+      bezel.castShadow = true;
+      group.add(bezel);
+      // Emissive screen face — render LG AI Home content via canvas texture
+      const cnv = document.createElement('canvas');
+      cnv.width = 1024; cnv.height = 384;
+      const ctx = cnv.getContext('2d');
+      // Background gradient (warm interior tones)
+      const grad = ctx.createLinearGradient(0, 0, 0, 384);
+      grad.addColorStop(0, '#3a2a1a');
+      grad.addColorStop(1, '#1a1410');
+      ctx.fillStyle = grad; ctx.fillRect(0, 0, 1024, 384);
+      // Faint room mock
+      ctx.fillStyle = 'rgba(170, 140, 100, 0.25)';
+      ctx.fillRect(540, 130, 410, 220);
+      // CLOiD silhouettes (two abstract bubble heads)
+      ctx.fillStyle = 'rgba(245, 245, 245, 0.85)';
+      ctx.beginPath(); ctx.arc(280, 200, 70, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(440, 220, 55, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#0b0b0b';
+      ctx.fillRect(245, 175, 70, 50); ctx.fillRect(415, 200, 60, 40);
+      ctx.fillStyle = '#00d9ff';
+      ctx.beginPath(); ctx.arc(265, 200, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(295, 200, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(435, 220, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(455, 220, 3, 0, Math.PI * 2); ctx.fill();
+      // LG AI Home logo (top-right)
+      ctx.fillStyle = '#f4f4f4';
+      ctx.font = 'bold 64px IBM Plex Sans, sans-serif';
+      ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+      ctx.fillText('LG AI Home', 980, 30);
+      // Red accent dot on AI
+      ctx.fillStyle = '#E63950';
+      ctx.beginPath(); ctx.arc(845, 56, 5, 0, Math.PI * 2); ctx.fill();
+      const tex = new THREE.CanvasTexture(cnv);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      const screenMat = new THREE.MeshStandardMaterial({
+        map: tex, emissive: 0xffffff, emissiveIntensity: 0.6, emissiveMap: tex,
+        roughness: 0.35, metalness: 0.0,
+      });
+      const screen = new THREE.Mesh(
+        new THREE.PlaneGeometry(dims.width - 0.06, dims.height - 0.06),
+        screenMat
+      );
+      screen.position.set(0, liftY + dims.height / 2, dims.depth / 2 + 0.001);
+      group.add(screen);
+      // Mounting brackets (left/right)
+      [-1, 1].forEach(s => {
+        const bracket = new THREE.Mesh(
+          new THREE.BoxGeometry(0.06, 0.20, 0.04),
+          new THREE.MeshStandardMaterial({ color: 0x2a2a2a, metalness: 0.6 })
+        );
+        bracket.position.set(s * (dims.width / 2 - 0.20), liftY + dims.height + 0.10, -dims.depth / 2 + 0.02);
+        group.add(bracket);
+        // Drop wires to ceiling (thin black cylinders)
+        const wire = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.005, 0.005, 1.0, 6),
+          new THREE.MeshStandardMaterial({ color: 0x1a1a1a })
+        );
+        wire.position.set(s * (dims.width / 2 - 0.20), liftY + dims.height + 0.70, -dims.depth / 2 + 0.02);
+        group.add(wire);
+      });
+      return group;
+    }
+
+    function buildWasherDryerTower() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.WASHER_DRYER_TOWER;
+      // Outer cabinet (dark steel finish like LG WashTower)
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.WASHER_DRYER_TOWER, roughness: 0.45, metalness: 0.55 })
+      );
+      body.position.y = dims.height / 2;
+      body.castShadow = true; body.receiveShadow = true;
+      group.add(body);
+      // Center control panel (glowing blue OLED-style strip)
+      const ctrlPanel = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.04, 0.10, 0.005),
+        new THREE.MeshStandardMaterial({ color: 0x0a1a2a, emissive: 0x00D9FF, emissiveIntensity: 0.5 })
+      );
+      ctrlPanel.position.set(0, dims.height * 0.50, dims.depth / 2 + 0.001);
+      group.add(ctrlPanel);
+      // LED bar within control
+      const ledBar = new THREE.Mesh(
+        new THREE.BoxGeometry((dims.width - 0.04) * 0.4, 0.012, 0.002),
+        new THREE.MeshStandardMaterial({ color: 0x00D9FF, emissive: 0x00D9FF, emissiveIntensity: 1.4 })
+      );
+      ledBar.position.set(0, dims.height * 0.50, dims.depth / 2 + 0.004);
+      group.add(ledBar);
+      // Two round porthole doors (top = dryer, bottom = washer)
+      const doorMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.25, metalness: 0.55 });
+      const ringMat = new THREE.MeshStandardMaterial({ color: 0x808080, metalness: 0.8, roughness: 0.3 });
+      const glassMat = new THREE.MeshStandardMaterial({ color: 0x222a30, roughness: 0.15, metalness: 0.2, transparent: true, opacity: 0.85 });
+      [
+        { y: dims.height * 0.78, label: 'dryer' },  // top dryer
+        { y: dims.height * 0.22, label: 'washer' }, // bottom washer
+      ].forEach(({ y }) => {
+        const ring = new THREE.Mesh(new THREE.RingGeometry(0.21, 0.245, 36), ringMat);
+        ring.position.set(0, y, dims.depth / 2 + 0.002);
+        group.add(ring);
+        const rim = new THREE.Mesh(new THREE.TorusGeometry(0.225, 0.018, 8, 36), doorMat);
+        rim.rotation.y = Math.PI / 2;
+        rim.position.set(0, y, dims.depth / 2 + 0.005);
+        rim.rotation.x = Math.PI / 2;
+        group.add(rim);
+        const glass = new THREE.Mesh(new THREE.CircleGeometry(0.21, 36), glassMat);
+        glass.position.set(0, y, dims.depth / 2 + 0.012);
+        group.add(glass);
+        // Subtle drum visible inside (darker circle)
+        const drum = new THREE.Mesh(
+          new THREE.CircleGeometry(0.16, 28),
+          new THREE.MeshStandardMaterial({ color: 0x0c0c0c, roughness: 0.7 })
+        );
+        drum.position.set(0, y, dims.depth / 2 + 0.014);
+        group.add(drum);
+        // Drum pattern (small lighter dots = drum holes)
+        for (let a = 0; a < Math.PI * 2; a += Math.PI / 6) {
+          for (let rr = 0.05; rr < 0.15; rr += 0.04) {
+            const hole = new THREE.Mesh(
+              new THREE.CircleGeometry(0.005, 6),
+              new THREE.MeshStandardMaterial({ color: 0x2a2a2a })
+            );
+            hole.position.set(Math.cos(a) * rr, y + Math.sin(a) * rr, dims.depth / 2 + 0.015);
+            group.add(hole);
+          }
+        }
+      });
+      // LG logo (red) on top
+      const logo = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.10, 0.025),
+        new THREE.MeshStandardMaterial({ color: 0xE63950, emissive: 0xE63950, emissiveIntensity: 0.5 })
+      );
+      logo.position.set(-dims.width / 2 + 0.10, dims.height - 0.06, dims.depth / 2 + 0.002);
+      group.add(logo);
+      // Thinq accent label (bottom)
+      const accent = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.16, 0.018),
+        new THREE.MeshStandardMaterial({ color: 0xc0c0c0, roughness: 0.5 })
+      );
+      accent.position.set(0, 0.10, dims.depth / 2 + 0.002);
+      group.add(accent);
+      return group;
+    }
+
+    function buildKitchenWall() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.KITCHEN_WALL;
+      const woodMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.KITCHEN_WALL, roughness: 0.7, metalness: 0.05 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1410, roughness: 0.5, metalness: 0.3 });
+      const counterMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.4, metalness: 0.4 });
+      const handleMat = new THREE.MeshStandardMaterial({ color: 0x808080, metalness: 0.8, roughness: 0.3 });
+      // Backplate (wood-tone full wall)
+      const back = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, 0.05),
+        woodMat
+      );
+      back.position.set(0, dims.height / 2, -dims.depth / 2 + 0.025);
+      back.castShadow = true; back.receiveShadow = true;
+      group.add(back);
+      // Counter (mid-height stone slab, full width)
+      const counterY = 0.92;
+      const counter = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, 0.04, dims.depth - 0.05),
+        counterMat
+      );
+      counter.position.set(0, counterY, 0.02);
+      counter.castShadow = true;
+      group.add(counter);
+      // Counter front edge highlight
+      const counterEdge = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, 0.005, 0.005),
+        new THREE.MeshStandardMaterial({ color: 0x4a4a4a, metalness: 0.6 })
+      );
+      counterEdge.position.set(0, counterY - 0.022, dims.depth / 2 - 0.025);
+      group.add(counterEdge);
+      // Lower cabinets (3 doors below counter)
+      const lowerH = counterY - 0.03;
+      const cabinetCount = 4;
+      const cabW = (dims.width - 0.04) / cabinetCount;
+      for (let i = 0; i < cabinetCount; i++) {
+        const x = -dims.width / 2 + 0.02 + cabW * (i + 0.5);
+        const door = new THREE.Mesh(
+          new THREE.BoxGeometry(cabW - 0.015, lowerH * 0.85, 0.04),
+          woodMat
+        );
+        door.position.set(x, lowerH * 0.5, dims.depth / 2 - 0.04);
+        group.add(door);
+        // Vertical handle
+        const h = new THREE.Mesh(
+          new THREE.BoxGeometry(0.012, 0.16, 0.012),
+          handleMat
+        );
+        h.position.set(x + cabW * 0.4, lowerH * 0.55, dims.depth / 2 - 0.018);
+        group.add(h);
+      }
+      // Built-in oven (dark inset, second cabinet from left replaced)
+      const oven = new THREE.Mesh(
+        new THREE.BoxGeometry(cabW - 0.04, lowerH * 0.55, 0.05),
+        darkMat
+      );
+      const ovenX = -dims.width / 2 + 0.02 + cabW * 1.5;
+      oven.position.set(ovenX, lowerH * 0.40, dims.depth / 2 - 0.02);
+      group.add(oven);
+      // Oven glass (slightly emissive amber)
+      const ovenGlass = new THREE.Mesh(
+        new THREE.PlaneGeometry(cabW - 0.10, lowerH * 0.40),
+        new THREE.MeshStandardMaterial({ color: 0x111111, emissive: 0xff7a30, emissiveIntensity: 0.25 })
+      );
+      ovenGlass.position.set(ovenX, lowerH * 0.40, dims.depth / 2 - 0.018);
+      group.add(ovenGlass);
+      // Oven controls (3 silver knobs above glass)
+      [-0.05, 0, 0.05].forEach(dx => {
+        const knob = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.012, 0.012, 0.01, 16),
+          handleMat
+        );
+        knob.rotation.x = Math.PI / 2;
+        knob.position.set(ovenX + dx, lowerH * 0.62, dims.depth / 2 - 0.012);
+        group.add(knob);
+      });
+      // Upper cabinets (row above counter, 3 doors)
+      const upperY = counterY + 0.06;
+      const upperH = dims.height - upperY - 0.05;
+      const upperCount = 3;
+      const upW = (dims.width - 0.04) / upperCount;
+      for (let i = 0; i < upperCount; i++) {
+        const x = -dims.width / 2 + 0.02 + upW * (i + 0.5);
+        const door = new THREE.Mesh(
+          new THREE.BoxGeometry(upW - 0.015, upperH * 0.85, 0.04),
+          woodMat
+        );
+        door.position.set(x, upperY + upperH * 0.5, dims.depth / 2 - 0.04);
+        group.add(door);
+        // Horizontal handle
+        const h = new THREE.Mesh(
+          new THREE.BoxGeometry(0.20, 0.012, 0.012),
+          handleMat
+        );
+        h.position.set(x, upperY + 0.05, dims.depth / 2 - 0.018);
+        group.add(h);
+      }
+      // Hood/range above counter (centered)
+      const hood = new THREE.Mesh(
+        new THREE.BoxGeometry(0.50, 0.10, 0.30),
+        counterMat
+      );
+      hood.position.set(0, dims.height - 0.40, dims.depth / 2 - 0.18);
+      group.add(hood);
+      // Counter accessories — small bowl + jar (decoration)
+      const bowl = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.06, 0.05, 18),
+        new THREE.MeshStandardMaterial({ color: 0xc8b896, roughness: 0.7 })
+      );
+      bowl.position.set(-0.6, counterY + 0.025, 0.05);
+      group.add(bowl);
+      const jar = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.04, 0.04, 0.14, 14),
+        new THREE.MeshStandardMaterial({ color: 0x3a3a3a, metalness: 0.6, roughness: 0.4 })
+      );
+      jar.position.set(0.7, counterY + 0.07, 0.05);
+      group.add(jar);
+      return group;
+    }
+
+    function buildLaundryBasket() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.LAUNDRY_BASKET;
+      const wickerMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.LAUNDRY_BASKET, roughness: 0.95, metalness: 0.0 });
+      const wickerDark = new THREE.MeshStandardMaterial({ color: 0x8a6e4a, roughness: 0.9 });
+      // Tapered basket body
+      const body = new THREE.Mesh(
+        new THREE.CylinderGeometry(dims.width / 2, dims.width / 2 * 0.78, dims.height, 24, 1, true),
+        wickerMat
+      );
+      body.position.y = dims.height / 2;
+      body.castShadow = true; body.receiveShadow = true;
+      group.add(body);
+      // Bottom disk
+      const bottom = new THREE.Mesh(
+        new THREE.CircleGeometry(dims.width / 2 * 0.78, 24),
+        wickerDark
+      );
+      bottom.rotation.x = -Math.PI / 2;
+      bottom.position.y = 0.001;
+      group.add(bottom);
+      // Top rim
+      const rim = new THREE.Mesh(
+        new THREE.TorusGeometry(dims.width / 2, 0.012, 8, 32),
+        wickerDark
+      );
+      rim.rotation.x = Math.PI / 2;
+      rim.position.y = dims.height;
+      group.add(rim);
+      // Horizontal weave bands (5 bands) — implies wicker pattern
+      for (let i = 1; i <= 5; i++) {
+        const t = i / 6;
+        const r = (dims.width / 2) * (1 - t * 0.20);
+        const band = new THREE.Mesh(
+          new THREE.TorusGeometry(r, 0.005, 6, 28),
+          wickerDark
+        );
+        band.rotation.x = Math.PI / 2;
+        band.position.y = dims.height * t;
+        group.add(band);
+      }
+      // Fluffy laundry pile (folded towels = light gray bumpy mass on top)
+      const pileMat = new THREE.MeshStandardMaterial({ color: 0xeae0d4, roughness: 0.9 });
+      const pile = new THREE.Mesh(
+        new THREE.SphereGeometry(dims.width / 2 * 0.88, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.45),
+        pileMat
+      );
+      pile.position.y = dims.height + 0.005;
+      pile.scale.set(1, 0.7, 0.92);
+      group.add(pile);
+      // Subtle towel folds (alternating darker stripes)
+      [-0.04, 0.0, 0.04].forEach(z => {
+        const stripe = new THREE.Mesh(
+          new THREE.BoxGeometry(dims.width * 0.7, 0.005, 0.012),
+          new THREE.MeshStandardMaterial({ color: 0xc8b8a4, roughness: 0.9 })
+        );
+        stripe.position.set(0, dims.height + 0.04, z);
+        group.add(stripe);
+      });
+      return group;
+    }
+
     const FURNITURE_BUILDERS = {
       MAIN_STAGE: buildMainStage,
+      CIRCULAR_PODIUM: buildCircularPodium,
       PRODUCT_SHELF: buildProductShelf,
       SCREEN_WALL: buildScreenWall,
+      LED_VIDEO_WALL: buildLEDVideoWall,
       EXPERIENCE_ZONE: buildExperienceZone,
       INFO_DESK: buildInfoDesk,
       OLED_TV_65: buildOledTV65,
@@ -2456,12 +2851,15 @@
       REFRIGERATOR: buildRefrigerator,
       WASHING_MACHINE: buildWashingMachine,
       DRYER: buildDryer,
+      WASHER_DRYER_TOWER: buildWasherDryerTower,
+      KITCHEN_WALL: buildKitchenWall,
       SOFA_3SEAT: buildSofa3,
       SOFA_2SEAT: buildSofa2,
       COFFEE_TABLE: buildCoffeeTable,
       SIDE_TABLE: buildSideTable,
       CURIO_SHELF: buildCurioShelf,
       RUG: buildRug,
+      LAUNDRY_BASKET: buildLaundryBasket,
       WALL_PANEL: buildWallPanel,
       DOORWAY: buildDoorway,
       FIREPLACE: buildFireplace,
@@ -6138,6 +6536,13 @@
     }
     document.getElementById('cameraFitBtn').addEventListener('click', fitCameraToItems);
     document.getElementById('cameraFitBtnChoreo').addEventListener('click', fitCameraToItems);
+    document.getElementById('loadLGBoothBtn').addEventListener('click', () => {
+      if (state.furniture.length > 0 || state.robots.length > 0) {
+        if (!confirm('현재 배치된 가구·로봇이 모두 초기화됩니다. 계속하시겠어요?')) return;
+      }
+      loadLGBoothPreset();
+      showToast('LG AI Home 부스 프리셋 로드됨', 'success');
+    });
 
     // Robot
     document.getElementById('propRobotName').addEventListener('change', e => {
@@ -6498,6 +6903,109 @@
     const resizeObserver = new ResizeObserver(resizeRenderer);
     resizeObserver.observe(canvas.parentElement);
 
+    // ============ LG AI HOME BOOTH PRESET ============
+    // Layout based on LG CES booth reference photos:
+    //   back-left:  KITCHEN_WALL with built-in oven
+    //   back-right: WASHER_DRYER_TOWER × 2
+    //   header (overhead, back wall): LED_VIDEO_WALL spanning center
+    //   front-right: SOFA_3SEAT + COFFEE_TABLE lounge area
+    //   center: CIRCULAR_PODIUM with 2 LAUNDRY_BASKETs
+    //   robots: 1 cloidBipedal at podium (greeter), 1 at washer/dryer (laundry demo)
+    function loadLGBoothPreset() {
+      // Reset
+      state.furniture = [];
+      state.robots = [];
+      state.booth.widthFt = 50;
+      state.booth.depthFt = 35;
+
+      const m = (type, x, z, rotY = 0, name) => {
+        const id = generateId('f');
+        const inst = {
+          id, type,
+          name: name || `${FURNITURE_LABELS[type]}`,
+          x, z, rotY, scale: 1.0,
+        };
+        state.furniture.push(inst);
+        return inst;
+      };
+      const r = (type, x, z, rotY = 0, name) => {
+        const id = generateId('r');
+        const def = ROBOT_DEFAULTS[type];
+        const inst = {
+          id, type,
+          name: name || `${ROBOT_LABELS[type]} ${state.robots.filter(x => x.type === type).length + 1}`,
+          color: def.color,
+          height: def.height,
+          description: '',
+          x, z, rotY,
+          speedMultiplier: 1.0,
+          positionTrack: [{ id: generateId('p'), t: 0, x, z, rotY }],
+          gestureTrack: [],
+        };
+        state.robots.push(inst);
+        return inst;
+      };
+
+      // Booth coords: x = width (left/right), z = depth (front=+z, back=-z)
+      // Booth half-extents at 50×35 ft → ~7.62m × 5.33m
+      const Z_BACK = -5.10; // near back wall
+
+      // 1) Header LED video wall (center of back wall, suspended overhead)
+      m('LED_VIDEO_WALL', 0, Z_BACK, 0, 'LG AI Home 헤더');
+
+      // 2) Kitchen wall (back-left, against back wall)
+      m('KITCHEN_WALL', -3.30, Z_BACK + 0.30, 0, '주방 모듈');
+
+      // 3) Washer/dryer tower × 2 (back-right, against back wall)
+      m('WASHER_DRYER_TOWER',  3.10, Z_BACK + 0.30, 0, 'WashTower 1');
+      m('WASHER_DRYER_TOWER',  3.95, Z_BACK + 0.30, 0, 'WashTower 2');
+      m('WASHER_DRYER_TOWER',  4.80, Z_BACK + 0.30, 0, 'WashTower 3');
+
+      // 4) Refrigerator (left side wall area, floor of kitchen)
+      m('REFRIGERATOR', -5.20, Z_BACK + 0.40, Math.PI / 2, '냉장고');
+
+      // 5) Lounge area (right-front): sofa facing center + coffee table + side table
+      m('SOFA_3SEAT', 4.40, 1.80, -Math.PI / 2, '라운지 소파');
+      m('COFFEE_TABLE', 3.10, 1.80, 0, '커피 테이블');
+      m('FLOOR_LAMP', 5.20, 0.60, 0, '플로어 램프');
+      m('RUG', 3.50, 1.90, 0, '라운지 러그');
+
+      // 6) Center podium with laundry demo props
+      m('CIRCULAR_PODIUM', 0, 0.40, 0, '센터 포디움');
+      m('LAUNDRY_BASKET',  -0.55, 0.20, 0.2, '세탁 바구니 1');
+      m('LAUNDRY_BASKET',   0.50, 0.55, -0.3, '세탁 바구니 2');
+
+      // 7) Doorway / entry markers (front edges)
+      m('SLAT_PANEL', -5.20, 2.50, Math.PI / 2, '좌측 슬랫');
+
+      // 8) Robots
+      // Greeter robot at front of podium, facing audience
+      r('cloidBipedal', 0.20, 1.90, Math.PI, 'CLOiD Greeter');
+      // Laundry demo robot near washer/dryer, facing the appliance
+      r('cloidBipedal', 3.10, -3.40, 0, 'CLOiD Laundry Demo');
+      // CLOiD Wheel near kitchen as backup
+      r('cloidWheel', -3.30, -3.40, 0, 'CLOiD Wheel Kitchen');
+
+      // Rebuild scene
+      rebuildBooth();
+      rebuildFurniture();
+      rebuildRobots();
+      renderPlacedFurniture();
+      renderRobotList();
+      renderBoothSettings();
+      renderTimeline();
+      updateHUD();
+      renderProperties();
+      renderBuildSpecPreview();
+
+      // Position camera for nice overview shot
+      state.cam.target.set(0, 1.0, 0);
+      state.cam.yaw = Math.PI * 0.12;
+      state.cam.pitch = Math.PI * 0.20;
+      state.cam.distance = 14;
+      updateCamera();
+    }
+
     /* ============ INIT ============ */
     function init() {
       resizeRenderer();
@@ -6515,7 +7023,9 @@
       renderProperties();
       renderBuildSpecPreview();
       tick();
-      showToast('Ready — Tab toggles BUILD / CHOREO / SPEC', 'success');
+      // Auto-load LG AI Home booth preset on first open
+      loadLGBoothPreset();
+      showToast('LG AI Home 부스 프리셋 로드됨 — Tab 키로 모드 전환', 'success');
     }
 
     if (window.THREE) {
