@@ -12,6 +12,7 @@ import {
   FileText,
   Tag,
   ArrowRight,
+  AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { RobotAIEvent, EventType } from '@/types/event-calendar';
@@ -485,11 +486,36 @@ function EventSidePanel({
 
 // ---------- Main Component ----------
 
-interface EventCalendarProps {
-  events: RobotAIEvent[];
+// ---------- Skeleton Card ----------
+
+function SkeletonCard() {
+  return (
+    <div className="relative bg-white rounded-xl border border-ink-200 p-4 animate-pulse">
+      <div className="flex items-start gap-3">
+        <div className="shrink-0 w-14 h-14 rounded-lg bg-ink-100" />
+        <div className="flex-1 min-w-0 space-y-2.5">
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-12 bg-ink-100 rounded-full" />
+            <div className="h-3 w-10 bg-ink-50 rounded" />
+          </div>
+          <div className="h-4 w-3/4 bg-ink-100 rounded" />
+          <div className="flex gap-3">
+            <div className="h-3 w-28 bg-ink-50 rounded" />
+            <div className="h-3 w-24 bg-ink-50 rounded" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-export function EventCalendar({ events }: EventCalendarProps) {
+interface EventCalendarProps {
+  events: RobotAIEvent[];
+  loading?: boolean;
+  error?: string | null;
+}
+
+export function EventCalendar({ events, loading, error }: EventCalendarProps) {
   const now = useMemo(() => new Date(), []);
   const countries = useMemo(() => Array.from(new Set(events.map(e => e.country))).sort(), [events]);
 
@@ -590,12 +616,47 @@ export function EventCalendar({ events }: EventCalendarProps) {
         </div>
       </div>
 
+      {/* ===== Loading ===== */}
+      {loading && (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200/50 p-4 animate-pulse">
+            <div className="h-5 w-64 bg-blue-100 rounded" />
+          </div>
+          <div className="relative">
+            <div className="absolute left-[23px] top-0 bottom-0 w-px bg-ink-150" />
+            <div className="space-y-8">
+              {[1, 2, 3].map(g => (
+                <div key={g} className="relative">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="relative z-10 w-[47px] h-7 rounded-full bg-ink-100" />
+                    <div className="h-4 w-20 bg-ink-100 rounded" />
+                  </div>
+                  <div className="ml-[47px] pl-4 space-y-3">
+                    <SkeletonCard />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Error ===== */}
+      {!loading && error && (
+        <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl p-4">
+          <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
+      )}
+
       {/* ===== Summary Card ===== */}
-      <SummaryCard
-        thisMonthCount={thisMonthCount}
-        d30Count={d30Count}
-        onScrollToMonth={scrollToCurrentMonth}
-      />
+      {!loading && !error && (
+        <SummaryCard
+          thisMonthCount={thisMonthCount}
+          d30Count={d30Count}
+          onScrollToMonth={scrollToCurrentMonth}
+        />
+      )}
 
       {/* ===== Timeline ===== */}
       <div className="relative">
