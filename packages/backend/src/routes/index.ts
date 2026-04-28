@@ -29,6 +29,7 @@ import { ciUpdateRoutes } from './ci-update.js';
 import { complianceRoutes } from './compliance.js';
 import { regulatoryDocumentRoutes } from './regulatory-documents.js';
 import { designerRoutes } from './designer/index.js';
+import { cloidSimulatorRoutes } from './cloid-simulator.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -83,4 +84,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // ARGOS-Designer (Phase 1 PoC, microservice-isolated under services/designer/)
   fastify.register(designerRoutes, { prefix: '/api/designer' });
+
+  // CLOiD Exhibition Simulator — booth/scenario save/load
+  fastify.register(cloidSimulatorRoutes, { prefix: '/api/cloid-simulator' });
 }

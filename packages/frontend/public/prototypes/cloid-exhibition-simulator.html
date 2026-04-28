@@ -812,8 +812,13 @@
           <button class="btn-secondary" id="cameraFitBtn" style="width:100%; margin-top: 4px">FIT TO ITEMS</button>
         </div>
         <div class="sidebar-section">
-          <div class="sidebar-section-title">Preset</div>
-          <button class="btn-secondary" id="loadLGBoothBtn" style="width:100%">🏠 LG AI Home 부스 다시 로드</button>
+          <div class="sidebar-section-title">Scenario / Preset</div>
+          <select class="form-select" id="presetSelect" style="width:100%; margin-bottom: 6px"></select>
+          <div class="action-grid" style="margin-bottom: 6px">
+            <button class="btn-secondary" id="loadPresetBtn">📂 로드</button>
+            <button class="btn-secondary" id="deletePresetBtn">🗑️ 삭제</button>
+          </div>
+          <button class="btn-secondary" id="saveScenarioBtn" style="width:100%">💾 현재 상태 저장 (DB)</button>
         </div>
       </div>
 
@@ -1173,7 +1178,7 @@
     const FURNITURE_TYPES = [
       // STAGING (existing booth elements)
       'MAIN_STAGE', 'CIRCULAR_PODIUM', 'PRODUCT_SHELF', 'SCREEN_WALL',
-      'LED_VIDEO_WALL', 'EXPERIENCE_ZONE', 'INFO_DESK',
+      'LED_VIDEO_WALL', 'ZONE_BANNER', 'EXPERIENCE_ZONE', 'INFO_DESK',
       // DISPLAY
       'OLED_TV_65', 'OLED_TV_77', 'OLED_TV_97', 'SMART_PANEL',
       // AUDIO
@@ -1181,13 +1186,14 @@
       // APPLIANCE
       'REFRIGERATOR', 'WASHING_MACHINE', 'DRYER', 'WASHER_DRYER_TOWER', 'KITCHEN_WALL',
       // FURNITURE
-      'SOFA_3SEAT', 'SOFA_2SEAT', 'COFFEE_TABLE', 'SIDE_TABLE', 'CURIO_SHELF', 'RUG', 'LAUNDRY_BASKET',
+      'SOFA_3SEAT', 'SOFA_2SEAT', 'COFFEE_TABLE', 'SIDE_TABLE', 'CURIO_SHELF', 'RUG', 'PHOTO_RUG',
+      'LAUNDRY_BASKET', 'MEDIA_CABINET',
       // ARCHITECTURE
       'WALL_PANEL', 'DOORWAY', 'FIREPLACE', 'FLOOR_LAMP', 'SLAT_PANEL', 'LED_STRIP',
     ];
     const FURNITURE_CATEGORIES = {
       MAIN_STAGE: 'STAGING', CIRCULAR_PODIUM: 'STAGING', PRODUCT_SHELF: 'STAGING',
-      SCREEN_WALL: 'STAGING', LED_VIDEO_WALL: 'STAGING',
+      SCREEN_WALL: 'STAGING', LED_VIDEO_WALL: 'STAGING', ZONE_BANNER: 'STAGING',
       EXPERIENCE_ZONE: 'STAGING', INFO_DESK: 'STAGING',
       OLED_TV_65: 'DISPLAY', OLED_TV_77: 'DISPLAY', OLED_TV_97: 'DISPLAY', SMART_PANEL: 'DISPLAY',
       FLOOR_SPEAKER: 'AUDIO', BOOKSHELF_SPEAKER: 'AUDIO', SOUNDBAR: 'AUDIO',
@@ -1196,7 +1202,7 @@
       WASHER_DRYER_TOWER: 'APPLIANCE', KITCHEN_WALL: 'APPLIANCE',
       SOFA_3SEAT: 'FURNITURE', SOFA_2SEAT: 'FURNITURE', COFFEE_TABLE: 'FURNITURE',
       SIDE_TABLE: 'FURNITURE', CURIO_SHELF: 'FURNITURE', RUG: 'FURNITURE',
-      LAUNDRY_BASKET: 'FURNITURE',
+      PHOTO_RUG: 'FURNITURE', LAUNDRY_BASKET: 'FURNITURE', MEDIA_CABINET: 'FURNITURE',
       WALL_PANEL: 'ARCHITECTURE', DOORWAY: 'ARCHITECTURE', FIREPLACE: 'ARCHITECTURE',
       FLOOR_LAMP: 'ARCHITECTURE', SLAT_PANEL: 'ARCHITECTURE', LED_STRIP: 'ARCHITECTURE',
     };
@@ -1207,6 +1213,7 @@
       PRODUCT_SHELF: { width: 1.8, depth: 0.6, height: 1.5 },
       SCREEN_WALL: { width: 3.0, depth: 0.2, height: 2.5 },
       LED_VIDEO_WALL: { width: 5.0, depth: 0.18, height: 1.85 },
+      ZONE_BANNER: { width: 2.20, depth: 0.10, height: 0.45 },
       EXPERIENCE_ZONE: { width: 2.5, depth: 2.5, height: 0.1 },
       INFO_DESK: { width: 2.0, depth: 0.8, height: 1.1 },
       OLED_TV_65: { width: 1.45, depth: 0.08, height: 0.85 },
@@ -1229,7 +1236,9 @@
       SIDE_TABLE: { width: 0.50, depth: 0.50, height: 0.55 },
       CURIO_SHELF: { width: 1.50, depth: 0.40, height: 1.80 },
       RUG: { width: 2.50, depth: 1.80, height: 0.02 },
+      PHOTO_RUG: { width: 2.20, depth: 1.40, height: 0.02 },
       LAUNDRY_BASKET: { width: 0.46, depth: 0.36, height: 0.30 },
+      MEDIA_CABINET: { width: 1.80, depth: 0.45, height: 1.20 },
       WALL_PANEL: { width: 3.00, depth: 0.10, height: 2.50 },
       DOORWAY: { width: 1.20, depth: 0.10, height: 2.10 },
       FIREPLACE: { width: 1.00, depth: 0.30, height: 0.60 },
@@ -1239,20 +1248,21 @@
     };
     const FURNITURE_SNAP = {
       MAIN_STAGE: 'free', CIRCULAR_PODIUM: 'free', PRODUCT_SHELF: 'wall', SCREEN_WALL: 'wall',
-      LED_VIDEO_WALL: 'wall', EXPERIENCE_ZONE: 'free', INFO_DESK: 'free',
+      LED_VIDEO_WALL: 'wall', ZONE_BANNER: 'wall', EXPERIENCE_ZONE: 'free', INFO_DESK: 'free',
       OLED_TV_65: 'wall', OLED_TV_77: 'wall', OLED_TV_97: 'wall', SMART_PANEL: 'free',
       FLOOR_SPEAKER: 'free', BOOKSHELF_SPEAKER: 'free', SOUNDBAR: 'wall',
       SUBWOOFER: 'free', SPEAKER_PEDESTAL: 'free',
       REFRIGERATOR: 'wall', WASHING_MACHINE: 'wall', DRYER: 'wall',
       WASHER_DRYER_TOWER: 'wall', KITCHEN_WALL: 'wall',
       SOFA_3SEAT: 'free', SOFA_2SEAT: 'free', COFFEE_TABLE: 'free',
-      SIDE_TABLE: 'free', CURIO_SHELF: 'wall', RUG: 'free', LAUNDRY_BASKET: 'free',
+      SIDE_TABLE: 'free', CURIO_SHELF: 'wall', RUG: 'free', PHOTO_RUG: 'free',
+      LAUNDRY_BASKET: 'free', MEDIA_CABINET: 'wall',
       WALL_PANEL: 'wall', DOORWAY: 'wall', FIREPLACE: 'wall',
       FLOOR_LAMP: 'free', SLAT_PANEL: 'wall', LED_STRIP: 'wall',
     };
     const FURNITURE_COLORS = {
       MAIN_STAGE: 0xA50034, CIRCULAR_PODIUM: 0x2a221a, PRODUCT_SHELF: 0x2a2a2a,
-      SCREEN_WALL: 0x0a0a0a, LED_VIDEO_WALL: 0x050505,
+      SCREEN_WALL: 0x0a0a0a, LED_VIDEO_WALL: 0x050505, ZONE_BANNER: 0x111111,
       EXPERIENCE_ZONE: 0x00D9FF, INFO_DESK: 0xf0f0f0,
       OLED_TV_65: 0x0a0a0a, OLED_TV_77: 0x0a0a0a, OLED_TV_97: 0x0a0a0a, SMART_PANEL: 0x1a1a2a,
       FLOOR_SPEAKER: 0x202020, BOOKSHELF_SPEAKER: 0x202020, SOUNDBAR: 0x141414,
@@ -1261,14 +1271,14 @@
       WASHER_DRYER_TOWER: 0x4a4f55, KITCHEN_WALL: 0x8a6a4a,
       SOFA_3SEAT: 0xd6c9b8, SOFA_2SEAT: 0xd6c9b8, COFFEE_TABLE: 0x6b5544,
       SIDE_TABLE: 0xd0d0d0, CURIO_SHELF: 0xf5f5f5, RUG: 0xc0b8a8,
-      LAUNDRY_BASKET: 0xb8a07a,
+      PHOTO_RUG: 0xf2efe9, LAUNDRY_BASKET: 0xb8a07a, MEDIA_CABINET: 0x8a6a4a,
       WALL_PANEL: 0xc0bbb0, DOORWAY: 0xc0bbb0, FIREPLACE: 0x222222,
       FLOOR_LAMP: 0xc0c0c0, SLAT_PANEL: 0x8a6a4a, LED_STRIP: 0xff6688,
     };
     const FURNITURE_LABELS = {
       MAIN_STAGE: 'Main Stage', CIRCULAR_PODIUM: 'Circular Podium',
       PRODUCT_SHELF: 'Product Shelf', SCREEN_WALL: 'Screen Wall',
-      LED_VIDEO_WALL: 'LED Video Wall',
+      LED_VIDEO_WALL: 'LED Video Wall', ZONE_BANNER: 'Zone Banner',
       EXPERIENCE_ZONE: 'Experience Zone', INFO_DESK: 'Info Desk',
       OLED_TV_65: 'OLED TV 65"', OLED_TV_77: 'OLED TV 77"', OLED_TV_97: 'OLED TV 97"',
       SMART_PANEL: 'Smart Panel',
@@ -1277,8 +1287,8 @@
       REFRIGERATOR: 'Refrigerator', WASHING_MACHINE: 'Washing Machine', DRYER: 'Dryer',
       WASHER_DRYER_TOWER: 'Washer/Dryer Tower', KITCHEN_WALL: 'Kitchen Wall',
       SOFA_3SEAT: 'Sofa (3-seat)', SOFA_2SEAT: 'Sofa (2-seat)', COFFEE_TABLE: 'Coffee Table',
-      SIDE_TABLE: 'Side Table', CURIO_SHELF: 'Curio Shelf', RUG: 'Rug',
-      LAUNDRY_BASKET: 'Laundry Basket',
+      SIDE_TABLE: 'Side Table', CURIO_SHELF: 'Curio Shelf', RUG: 'Rug', PHOTO_RUG: 'Photo Zone Rug',
+      LAUNDRY_BASKET: 'Laundry Basket', MEDIA_CABINET: 'Media Cabinet (with display)',
       WALL_PANEL: 'Wall Panel', DOORWAY: 'Doorway', FIREPLACE: 'Fireplace',
       FLOOR_LAMP: 'Floor Lamp', SLAT_PANEL: 'Slat Panel', LED_STRIP: 'LED Strip',
     };
@@ -1289,6 +1299,7 @@
       PRODUCT_SHELF: { h: 1.00, weight: 0.5, label: 'mid shelf' },
       SCREEN_WALL: { h: 1.50, weight: 0.0, label: 'screen center' },
       LED_VIDEO_WALL: { h: 3.00, weight: 0.0, label: 'video wall (overhead)' },
+      ZONE_BANNER: { h: 2.50, weight: 0.0, label: 'banner sign' },
       EXPERIENCE_ZONE: { h: 0.10, weight: 0.0, label: 'floor mat' },
       INFO_DESK: { h: 1.10, weight: 0.3, label: 'desk top' },
       OLED_TV_65: { h: 1.20, weight: 0.0, label: 'TV center' },
@@ -1311,7 +1322,9 @@
       SIDE_TABLE: { h: 0.55, weight: 0.4, label: 'side top' },
       CURIO_SHELF: { h: 1.20, weight: 0.5, label: 'mid shelf' },
       RUG: { h: 0.02, weight: 0.0, label: 'rug surface' },
+      PHOTO_RUG: { h: 0.02, weight: 0.0, label: 'photo rug' },
       LAUNDRY_BASKET: { h: 0.30, weight: 1.5, label: 'basket rim' },
+      MEDIA_CABINET: { h: 1.00, weight: 0.4, label: 'cabinet display' },
       WALL_PANEL: { h: 1.50, weight: 0.0, label: 'wall' },
       DOORWAY: { h: 1.05, weight: 0.0, label: 'door handle' },
       FIREPLACE: { h: 0.60, weight: 0.0, label: 'mantel' },
@@ -2769,6 +2782,163 @@
       return group;
     }
 
+    // Sub-zone banner: backlit text panel mounted overhead. The label string
+    // is read from instance.label (defaults to "ZONE"); rendered via canvas.
+    function buildZoneBanner(instance) {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.ZONE_BANNER;
+      const liftY = 2.20; // bottom edge above floor (overhead sub-banner)
+      const label = (instance && instance.label) ? String(instance.label) : 'ZONE';
+      // Backplate (dark)
+      const back = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.5, metalness: 0.5 })
+      );
+      back.position.y = liftY + dims.height / 2;
+      back.castShadow = true;
+      group.add(back);
+      // Canvas text face (emissive cream/white, dark text — looks like backlit signage)
+      const cnv = document.createElement('canvas');
+      cnv.width = 1024; cnv.height = 200;
+      const ctx = cnv.getContext('2d');
+      // Warm-cream backlit panel
+      ctx.fillStyle = '#f5ead8';
+      ctx.fillRect(0, 0, 1024, 200);
+      // Subtle inner shadow at edges (vignette)
+      const grad = ctx.createRadialGradient(512, 100, 80, 512, 100, 600);
+      grad.addColorStop(0, 'rgba(0,0,0,0)');
+      grad.addColorStop(1, 'rgba(0,0,0,0.18)');
+      ctx.fillStyle = grad; ctx.fillRect(0, 0, 1024, 200);
+      // Text
+      ctx.fillStyle = '#1a1410';
+      ctx.font = 'bold 88px IBM Plex Sans, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(label, 512, 105);
+      const tex = new THREE.CanvasTexture(cnv);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      const face = new THREE.Mesh(
+        new THREE.PlaneGeometry(dims.width - 0.06, dims.height - 0.06),
+        new THREE.MeshStandardMaterial({
+          map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.9,
+          roughness: 0.4, metalness: 0.0,
+        })
+      );
+      face.position.set(0, liftY + dims.height / 2, dims.depth / 2 + 0.001);
+      group.add(face);
+      // Drop wires to ceiling (thin)
+      [-1, 1].forEach(s => {
+        const wire = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.004, 0.004, 0.8, 6),
+          new THREE.MeshStandardMaterial({ color: 0x1a1a1a })
+        );
+        wire.position.set(s * (dims.width / 2 - 0.20), liftY + dims.height + 0.40, 0);
+        group.add(wire);
+      });
+      return group;
+    }
+
+    function buildPhotoRug() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.PHOTO_RUG;
+      // Soft white wool-look with subtle ribbed border
+      const base = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.PHOTO_RUG, roughness: 0.95 })
+      );
+      base.position.y = dims.height / 2;
+      base.receiveShadow = true;
+      group.add(base);
+      // Border stripe (slightly darker outline)
+      const border = new THREE.Mesh(
+        new THREE.RingGeometry(Math.min(dims.width, dims.depth) / 2 - 0.05,
+                               Math.min(dims.width, dims.depth) / 2 - 0.02, 32),
+        new THREE.MeshStandardMaterial({ color: 0xd9d4ca, roughness: 0.9 })
+      );
+      border.rotation.x = -Math.PI / 2;
+      border.position.y = dims.height + 0.001;
+      border.scale.set(dims.width / Math.min(dims.width, dims.depth), 1,
+                       dims.depth / Math.min(dims.width, dims.depth));
+      group.add(border);
+      return group;
+    }
+
+    function buildMediaCabinet() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.MEDIA_CABINET;
+      const woodMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.MEDIA_CABINET, roughness: 0.7 });
+      const handleMat = new THREE.MeshStandardMaterial({ color: 0x808080, metalness: 0.8, roughness: 0.3 });
+      // Cabinet body
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height * 0.72, dims.depth),
+        woodMat
+      );
+      body.position.y = dims.height * 0.36;
+      body.castShadow = true; body.receiveShadow = true;
+      group.add(body);
+      // Cabinet doors (3-pane)
+      for (let i = 0; i < 3; i++) {
+        const dw = dims.width / 3;
+        const door = new THREE.Mesh(
+          new THREE.BoxGeometry(dw - 0.015, dims.height * 0.66, 0.012),
+          woodMat
+        );
+        door.position.set(-dims.width / 2 + dw * (i + 0.5), dims.height * 0.36, dims.depth / 2 + 0.002);
+        group.add(door);
+        // Slim recessed handle
+        const h = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.012, 0.008), handleMat);
+        h.position.set(-dims.width / 2 + dw * (i + 0.5), dims.height * 0.62, dims.depth / 2 + 0.012);
+        group.add(h);
+      }
+      // Display on top of cabinet (built-in OLED)
+      const screenH = dims.height * 0.28;
+      const screenY = dims.height * 0.72 + screenH / 2;
+      const bezel = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width * 0.85, screenH, 0.04),
+        new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.4 })
+      );
+      bezel.position.set(0, screenY, dims.depth / 2 - 0.02);
+      bezel.castShadow = true;
+      group.add(bezel);
+      // Emissive face (cool blue-tinted "live demo" look)
+      const cnv = document.createElement('canvas');
+      cnv.width = 512; cnv.height = 160;
+      const ctx = cnv.getContext('2d');
+      const g = ctx.createLinearGradient(0, 0, 512, 160);
+      g.addColorStop(0, '#0a1a3a'); g.addColorStop(1, '#102a55');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 160);
+      ctx.fillStyle = '#00d9ff';
+      ctx.font = 'bold 28px IBM Plex Sans, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('LG CLOiD', 30, 50);
+      ctx.font = '20px IBM Plex Sans, sans-serif';
+      ctx.fillStyle = '#dde6f5';
+      ctx.fillText('AI Smart Home Demo · Live', 30, 85);
+      // Mini chart / progress bar
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fillRect(30, 110, 280, 12);
+      ctx.fillStyle = '#00d9ff';
+      ctx.fillRect(30, 110, 200, 12);
+      const tex = new THREE.CanvasTexture(cnv);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      const screen = new THREE.Mesh(
+        new THREE.PlaneGeometry(dims.width * 0.83, screenH * 0.85),
+        new THREE.MeshStandardMaterial({
+          map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.7,
+          roughness: 0.3, metalness: 0.0,
+        })
+      );
+      screen.position.set(0, screenY, dims.depth / 2);
+      group.add(screen);
+      // Decor on top — small plant/jar
+      const jar = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.035, 0.04, 0.10, 14),
+        new THREE.MeshStandardMaterial({ color: 0xcfc6b8, roughness: 0.6 })
+      );
+      jar.position.set(-dims.width * 0.35, dims.height * 0.72 + 0.05, dims.depth * 0.05);
+      group.add(jar);
+      return group;
+    }
+
     function buildLaundryBasket() {
       const group = new THREE.Group();
       const dims = FURNITURE_DIMS.LAUNDRY_BASKET;
@@ -2837,6 +3007,7 @@
       PRODUCT_SHELF: buildProductShelf,
       SCREEN_WALL: buildScreenWall,
       LED_VIDEO_WALL: buildLEDVideoWall,
+      ZONE_BANNER: buildZoneBanner,
       EXPERIENCE_ZONE: buildExperienceZone,
       INFO_DESK: buildInfoDesk,
       OLED_TV_65: buildOledTV65,
@@ -2859,7 +3030,9 @@
       SIDE_TABLE: buildSideTable,
       CURIO_SHELF: buildCurioShelf,
       RUG: buildRug,
+      PHOTO_RUG: buildPhotoRug,
       LAUNDRY_BASKET: buildLaundryBasket,
+      MEDIA_CABINET: buildMediaCabinet,
       WALL_PANEL: buildWallPanel,
       DOORWAY: buildDoorway,
       FIREPLACE: buildFireplace,
@@ -2885,7 +3058,7 @@
       state.furniture.forEach(f => {
         const builder = FURNITURE_BUILDERS[f.type];
         if (!builder) return;
-        const group = builder();
+        const group = builder(f); // pass instance for per-item config (e.g. banner label)
         group.position.set(f.x, 0, f.z);
         group.rotation.y = f.rotY;
         group.scale.setScalar(f.scale || 1.0);
@@ -6536,13 +6709,9 @@
     }
     document.getElementById('cameraFitBtn').addEventListener('click', fitCameraToItems);
     document.getElementById('cameraFitBtnChoreo').addEventListener('click', fitCameraToItems);
-    document.getElementById('loadLGBoothBtn').addEventListener('click', () => {
-      if (state.furniture.length > 0 || state.robots.length > 0) {
-        if (!confirm('현재 배치된 가구·로봇이 모두 초기화됩니다. 계속하시겠어요?')) return;
-      }
-      loadLGBoothPreset();
-      showToast('LG AI Home 부스 프리셋 로드됨', 'success');
-    });
+    document.getElementById('loadPresetBtn').addEventListener('click', loadSelectedPreset);
+    document.getElementById('deletePresetBtn').addEventListener('click', deleteSelectedPreset);
+    document.getElementById('saveScenarioBtn').addEventListener('click', saveCurrentScenario);
 
     // Robot
     document.getElementById('propRobotName').addEventListener('change', e => {
@@ -6903,90 +7072,120 @@
     const resizeObserver = new ResizeObserver(resizeRenderer);
     resizeObserver.observe(canvas.parentElement);
 
-    // ============ LG AI HOME BOOTH PRESET ============
-    // Layout based on LG CES booth reference photos:
-    //   back-left:  KITCHEN_WALL with built-in oven
-    //   back-right: WASHER_DRYER_TOWER × 2
-    //   header (overhead, back wall): LED_VIDEO_WALL spanning center
-    //   front-right: SOFA_3SEAT + COFFEE_TABLE lounge area
-    //   center: CIRCULAR_PODIUM with 2 LAUNDRY_BASKETs
-    //   robots: 1 cloidBipedal at podium (greeter), 1 at washer/dryer (laundry demo)
-    function loadLGBoothPreset() {
-      // Reset
-      state.furniture = [];
-      state.robots = [];
-      state.booth.widthFt = 50;
-      state.booth.depthFt = 35;
-
-      const m = (type, x, z, rotY = 0, name) => {
+    // ============ PRESET REGISTRY ============
+    // Built-in scenarios that ship with the simulator. User-saved scenarios
+    // come from the backend DB and live alongside these in the selector.
+    // Each preset is a function that returns the simulator state shape:
+    //   { booth, furniture: [...], robots: [...] }
+    // Inside, helper "m(type, x, z, rotY?, name?, extra?)" appends furniture
+    // and "r(type, x, z, rotY?, name?)" appends a robot (uses ROBOT_DEFAULTS).
+    function presetHelpers(s) {
+      const m = (type, x, z, rotY = 0, name, extra = {}) => {
         const id = generateId('f');
-        const inst = {
-          id, type,
-          name: name || `${FURNITURE_LABELS[type]}`,
-          x, z, rotY, scale: 1.0,
-        };
-        state.furniture.push(inst);
+        const inst = { id, type, name: name || `${FURNITURE_LABELS[type]}`, x, z, rotY, scale: 1.0, ...extra };
+        s.furniture.push(inst);
         return inst;
       };
       const r = (type, x, z, rotY = 0, name) => {
         const id = generateId('r');
         const def = ROBOT_DEFAULTS[type];
+        const cnt = s.robots.filter(rr => rr.type === type).length;
         const inst = {
           id, type,
-          name: name || `${ROBOT_LABELS[type]} ${state.robots.filter(x => x.type === type).length + 1}`,
-          color: def.color,
-          height: def.height,
-          description: '',
-          x, z, rotY,
-          speedMultiplier: 1.0,
+          name: name || `${ROBOT_LABELS[type]} ${cnt + 1}`,
+          color: def.color, height: def.height, description: '',
+          x, z, rotY, speedMultiplier: 1.0,
           positionTrack: [{ id: generateId('p'), t: 0, x, z, rotY }],
           gestureTrack: [],
         };
-        state.robots.push(inst);
+        s.robots.push(inst);
         return inst;
       };
+      return { m, r };
+    }
 
-      // Booth coords: x = width (left/right), z = depth (front=+z, back=-z)
-      // Booth half-extents at 50×35 ft → ~7.62m × 5.33m
-      const Z_BACK = -5.10; // near back wall
+    // LG AI Home — three-zone booth (Living, Laundry, Photo).
+    // Reference: LG CES booth photos with overhead "LG AI Home" video wall +
+    // sub-banners "with me!" / "Take a photo with me!" above each demo zone.
+    function presetLGAIHome() {
+      const s = { booth: { widthFt: 60, depthFt: 35 }, furniture: [], robots: [] };
+      const { m, r } = presetHelpers(s);
+      const Z_BACK = -5.10;
 
-      // 1) Header LED video wall (center of back wall, suspended overhead)
-      m('LED_VIDEO_WALL', 0, Z_BACK, 0, 'LG AI Home 헤더');
+      // ── Header: main LG AI Home video wall (center of back wall, overhead) ──
+      m('LED_VIDEO_WALL', 0, Z_BACK, 0, 'LG AI Home Header');
 
-      // 2) Kitchen wall (back-left, against back wall)
-      m('KITCHEN_WALL', -3.30, Z_BACK + 0.30, 0, '주방 모듈');
+      // ── Sub-zone banners (overhead, behind each zone) ──
+      m('ZONE_BANNER', -5.50, Z_BACK + 0.10, 0, 'Living Banner', { label: 'Living with AI' });
+      m('ZONE_BANNER',  0.00, Z_BACK + 0.10, 0, 'Laundry Banner', { label: 'with me!' });
+      m('ZONE_BANNER',  5.50, Z_BACK + 0.10, 0, 'Photo Banner', { label: 'Take a photo with me!' });
 
-      // 3) Washer/dryer tower × 2 (back-right, against back wall)
-      m('WASHER_DRYER_TOWER',  3.10, Z_BACK + 0.30, 0, 'WashTower 1');
-      m('WASHER_DRYER_TOWER',  3.95, Z_BACK + 0.30, 0, 'WashTower 2');
-      m('WASHER_DRYER_TOWER',  4.80, Z_BACK + 0.30, 0, 'WashTower 3');
+      // ── ZONE 1: Living (left third, x ~ -8 to -3) ──
+      m('MEDIA_CABINET', -8.30, Z_BACK + 0.40, Math.PI / 2, '미디어 캐비닛 (좌측벽)');
+      m('SOFA_3SEAT',  -6.20, -2.30, 0, '리빙 소파');
+      m('COFFEE_TABLE', -6.20, -0.80, 0, '리빙 커피 테이블');
+      m('SIDE_TABLE',   -7.50, -2.30, 0, '사이드 테이블');
+      m('FLOOR_LAMP',   -8.20, -2.30, 0, '플로어 램프');
+      m('RUG',          -6.20, -1.50, 0, '리빙 러그');
 
-      // 4) Refrigerator (left side wall area, floor of kitchen)
-      m('REFRIGERATOR', -5.20, Z_BACK + 0.40, Math.PI / 2, '냉장고');
+      // ── ZONE 2: Laundry (center, x ~ -2.5 to 2.5) ──
+      m('WASHER_DRYER_TOWER', -1.20, Z_BACK + 0.30, 0, 'WashTower L');
+      m('WASHER_DRYER_TOWER',  0.00, Z_BACK + 0.30, 0, 'WashTower C');
+      m('WASHER_DRYER_TOWER',  1.20, Z_BACK + 0.30, 0, 'WashTower R');
+      m('PHOTO_RUG', 0.00, -2.20, 0, '세탁 존 흰 러그');
+      m('LAUNDRY_BASKET', -0.60, -2.10, 0.2, '세탁 바구니 1');
+      m('LAUNDRY_BASKET',  0.60, -2.30, -0.2, '세탁 바구니 2');
 
-      // 5) Lounge area (right-front): sofa facing center + coffee table + side table
-      m('SOFA_3SEAT', 4.40, 1.80, -Math.PI / 2, '라운지 소파');
-      m('COFFEE_TABLE', 3.10, 1.80, 0, '커피 테이블');
-      m('FLOOR_LAMP', 5.20, 0.60, 0, '플로어 램프');
-      m('RUG', 3.50, 1.90, 0, '라운지 러그');
+      // ── ZONE 3: Photo with CLOiD (right third, x ~ 3 to 8) ──
+      m('KITCHEN_WALL', 5.80, Z_BACK + 0.30, 0, '주방 모듈 (포토 백드롭)');
+      m('REFRIGERATOR', 8.20, Z_BACK + 0.40, -Math.PI / 2, '냉장고');
+      m('CIRCULAR_PODIUM', 5.80, -1.50, 0, '포토 포디움');
+      m('PHOTO_RUG', 5.80, -1.50, 0, '포토 러그');
 
-      // 6) Center podium with laundry demo props
-      m('CIRCULAR_PODIUM', 0, 0.40, 0, '센터 포디움');
-      m('LAUNDRY_BASKET',  -0.55, 0.20, 0.2, '세탁 바구니 1');
-      m('LAUNDRY_BASKET',   0.50, 0.55, -0.3, '세탁 바구니 2');
+      // ── Robots (one per zone) ──
+      // Living zone — wheeled CLOiD acts as roving concierge near sofa
+      r('cloidWheel',   -6.20, -1.20, Math.PI, 'CLOiD Living');
+      // Laundry zone — bipedal CLOiD doing laundry demo, facing washer
+      r('cloidBipedal',  0.00, -3.30, 0, 'CLOiD Laundry');
+      // Photo zone — bipedal CLOiD on podium, facing audience
+      r('cloidBipedal',  5.80, -1.50, Math.PI, 'CLOiD Photo');
 
-      // 7) Doorway / entry markers (front edges)
-      m('SLAT_PANEL', -5.20, 2.50, Math.PI / 2, '좌측 슬랫');
+      return s;
+    }
 
-      // 8) Robots
-      // Greeter robot at front of podium, facing audience
-      r('cloidBipedal', 0.20, 1.90, Math.PI, 'CLOiD Greeter');
-      // Laundry demo robot near washer/dryer, facing the appliance
-      r('cloidBipedal', 3.10, -3.40, 0, 'CLOiD Laundry Demo');
-      // CLOiD Wheel near kitchen as backup
-      r('cloidWheel', -3.30, -3.40, 0, 'CLOiD Wheel Kitchen');
+    // Empty booth presets (just a clean canvas at common booth sizes).
+    function presetBlank30x20() {
+      return { booth: { widthFt: 30, depthFt: 20 }, furniture: [], robots: [] };
+    }
+    function presetBlank50x35() {
+      return { booth: { widthFt: 50, depthFt: 35 }, furniture: [], robots: [] };
+    }
+    function presetBlank80x80() {
+      return { booth: { widthFt: 80, depthFt: 80 }, furniture: [], robots: [] };
+    }
 
-      // Rebuild scene
+    // Built-in preset registry. Add new presets here — they appear in the
+    // dropdown automatically alongside any DB-saved user scenarios.
+    const BUILTIN_PRESETS = [
+      { id: 'lg_ai_home',   name: 'LG AI Home (3-zone)', factory: presetLGAIHome,
+        description: 'CES LG 부스 — Living / Laundry / Photo 3-존 구성, 로봇 3대' },
+      { id: 'blank_30x20',  name: 'Blank · 30×20 ft',  factory: presetBlank30x20,
+        description: '소형 빈 부스' },
+      { id: 'blank_50x35',  name: 'Blank · 50×35 ft',  factory: presetBlank50x35,
+        description: '중형 빈 부스' },
+      { id: 'blank_80x80',  name: 'Blank · 80×80 ft',  factory: presetBlank80x80,
+        description: '대형 빈 부스' },
+    ];
+
+    // Apply a preset/scenario shape onto state and rebuild.
+    function applyScenarioState(scenarioState) {
+      state.furniture = scenarioState.furniture || [];
+      state.robots = scenarioState.robots || [];
+      if (scenarioState.booth) {
+        state.booth.widthFt = scenarioState.booth.widthFt || 50;
+        state.booth.depthFt = scenarioState.booth.depthFt || 35;
+      }
+      if (scenarioState.duration) state.duration = scenarioState.duration;
       rebuildBooth();
       rebuildFurniture();
       rebuildRobots();
@@ -6997,13 +7196,158 @@
       updateHUD();
       renderProperties();
       renderBuildSpecPreview();
-
-      // Position camera for nice overview shot
+      // Auto-frame
       state.cam.target.set(0, 1.0, 0);
       state.cam.yaw = Math.PI * 0.12;
       state.cam.pitch = Math.PI * 0.20;
-      state.cam.distance = 14;
+      state.cam.distance = Math.max(12, ftToM(state.booth.widthFt) * 0.35);
       updateCamera();
+    }
+
+    function loadBuiltinPreset(presetId) {
+      const p = BUILTIN_PRESETS.find(x => x.id === presetId);
+      if (!p) return;
+      applyScenarioState(p.factory());
+    }
+
+    // Backwards-compat alias for the existing button binding
+    function loadLGBoothPreset() { loadBuiltinPreset('lg_ai_home'); }
+
+    // ============ SCENARIO SAVE/LOAD (DB-backed via /api/cloid-simulator) ============
+    const SIM_API_BASE = (() => {
+      const origin = window.location.origin;
+      if (origin.includes('localhost')) return 'http://localhost:3001/api/cloid-simulator';
+      if (origin.includes('robot-info-personal')) return 'https://robot-info-api.up.railway.app/api/cloid-simulator';
+      return origin.replace(/\/$/, '') + '/api/cloid-simulator';
+    })();
+
+    async function apiListScenarios() {
+      const res = await fetch(`${SIM_API_BASE}/scenarios`);
+      if (!res.ok) throw new Error(`list failed (${res.status})`);
+      return (await res.json()).scenarios || [];
+    }
+    async function apiLoadScenario(id) {
+      const res = await fetch(`${SIM_API_BASE}/scenarios/${encodeURIComponent(id)}`);
+      if (!res.ok) throw new Error(`load failed (${res.status})`);
+      return (await res.json()).scenario;
+    }
+    async function apiSaveScenario(payload) {
+      const res = await fetch(`${SIM_API_BASE}/scenarios`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `save failed (${res.status})`);
+      }
+      return (await res.json()).scenario;
+    }
+    async function apiDeleteScenario(id) {
+      const res = await fetch(`${SIM_API_BASE}/scenarios/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`delete failed (${res.status})`);
+      return true;
+    }
+
+    function captureCurrentScenario() {
+      return {
+        booth: { widthFt: state.booth.widthFt, depthFt: state.booth.depthFt },
+        duration: state.duration,
+        furniture: JSON.parse(JSON.stringify(state.furniture)),
+        robots: JSON.parse(JSON.stringify(state.robots)),
+      };
+    }
+
+    async function saveCurrentScenario() {
+      const name = prompt('시나리오 이름:', `Scenario ${new Date().toISOString().slice(0, 16)}`);
+      if (!name) return;
+      const description = prompt('설명 (선택):', '') || '';
+      try {
+        const saved = await apiSaveScenario({ name, description, data: captureCurrentScenario() });
+        showToast(`저장됨: ${saved.name}`, 'success');
+        await refreshScenarioList();
+      } catch (err) {
+        showToast(`저장 실패: ${err.message}`, 'error');
+      }
+    }
+
+    async function refreshScenarioList() {
+      const sel = document.getElementById('presetSelect');
+      if (!sel) return;
+      // Built-ins first
+      sel.innerHTML = '';
+      const builtinGroup = document.createElement('optgroup');
+      builtinGroup.label = '내장 프리셋';
+      BUILTIN_PRESETS.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = `builtin:${p.id}`;
+        opt.textContent = p.name;
+        opt.title = p.description || '';
+        builtinGroup.appendChild(opt);
+      });
+      sel.appendChild(builtinGroup);
+      // User saved (from API)
+      try {
+        const userScenarios = await apiListScenarios();
+        if (userScenarios.length) {
+          const userGroup = document.createElement('optgroup');
+          userGroup.label = '저장된 시나리오 (DB)';
+          userScenarios.forEach(sc => {
+            const opt = document.createElement('option');
+            opt.value = `db:${sc.id}`;
+            const date = sc.updatedAt ? new Date(sc.updatedAt).toISOString().slice(0, 10) : '';
+            opt.textContent = `${sc.name} (${date}) — F${sc.furnitureCount}/R${sc.robotCount}`;
+            opt.title = sc.description || '';
+            userGroup.appendChild(opt);
+          });
+          sel.appendChild(userGroup);
+        }
+      } catch (err) {
+        // Backend not reachable — that's OK, built-ins still work
+        console.warn('[cloid-sim] DB scenario list unavailable:', err.message);
+      }
+    }
+
+    async function loadSelectedPreset() {
+      const sel = document.getElementById('presetSelect');
+      if (!sel || !sel.value) return;
+      const [kind, id] = sel.value.split(':');
+      if (kind === 'builtin') {
+        if (state.furniture.length || state.robots.length) {
+          if (!confirm('현재 배치가 초기화됩니다. 계속하시겠어요?')) return;
+        }
+        loadBuiltinPreset(id);
+        showToast(`프리셋 로드됨`, 'success');
+      } else if (kind === 'db') {
+        if (state.furniture.length || state.robots.length) {
+          if (!confirm('현재 배치가 초기화됩니다. 계속하시겠어요?')) return;
+        }
+        try {
+          const sc = await apiLoadScenario(id);
+          applyScenarioState(sc.data);
+          showToast(`로드됨: ${sc.name}`, 'success');
+        } catch (err) {
+          showToast(`로드 실패: ${err.message}`, 'error');
+        }
+      }
+    }
+
+    async function deleteSelectedPreset() {
+      const sel = document.getElementById('presetSelect');
+      if (!sel || !sel.value) return;
+      const [kind, id] = sel.value.split(':');
+      if (kind !== 'db') {
+        showToast('내장 프리셋은 삭제할 수 없습니다', 'error');
+        return;
+      }
+      const opt = sel.options[sel.selectedIndex];
+      if (!confirm(`"${opt.textContent}" 시나리오를 삭제하시겠어요? (복구 불가)`)) return;
+      try {
+        await apiDeleteScenario(id);
+        showToast('삭제됨', 'success');
+        await refreshScenarioList();
+      } catch (err) {
+        showToast(`삭제 실패: ${err.message}`, 'error');
+      }
     }
 
     /* ============ INIT ============ */
@@ -7023,9 +7367,10 @@
       renderProperties();
       renderBuildSpecPreview();
       tick();
-      // Auto-load LG AI Home booth preset on first open
-      loadLGBoothPreset();
-      showToast('LG AI Home 부스 프리셋 로드됨 — Tab 키로 모드 전환', 'success');
+      // Build preset selector then auto-load LG AI Home (3-zone) on first open
+      refreshScenarioList();
+      loadBuiltinPreset('lg_ai_home');
+      showToast('LG AI Home 3-Zone 부스 로드됨 — 사이드바에서 다른 프리셋 선택 가능', 'success');
     }
 
     if (window.THREE) {

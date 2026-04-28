@@ -1908,3 +1908,27 @@ export const complianceChecklistRelations = relations(complianceChecklist, ({ on
 export const complianceProgressLogsRelations = relations(complianceProgressLogs, ({ one }) => ({
   checklistItem: one(complianceChecklist, { fields: [complianceProgressLogs.checklistItemId], references: [complianceChecklist.id] }),
 }));
+
+// ============ CLOiD Exhibition Simulator Scenarios ============
+// User-saved booth layouts + robot choreography. The full simulator state is
+// stored as a single JSON blob — easier than normalizing each furniture/robot
+// row, and the simulator already serializes its state shape internally.
+export const cloidScenarios = pgTable('cloid_scenarios', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: varchar('name', { length: 200 }).notNull(),
+  description: text('description'),
+  category: varchar('category', { length: 50 }).default('user'), // 'preset' (built-in like LG_AI_HOME) | 'user'
+  thumbnailUrl: varchar('thumbnail_url', { length: 500 }),
+  data: jsonb('data').$type<{
+    booth: { widthFt: number; depthFt: number };
+    duration?: number;
+    furniture: any[];
+    robots: any[];
+  }>().notNull(),
+  createdBy: varchar('created_by', { length: 100 }).default('anonymous'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  categoryIdx: index('cloid_scenarios_category_idx').on(table.category),
+  nameIdx: index('cloid_scenarios_name_idx').on(table.name),
+}));
