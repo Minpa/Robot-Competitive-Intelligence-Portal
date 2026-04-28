@@ -1038,6 +1038,10 @@
           </div>
         </div>
         <div class="action-grid">
+          <button class="btn-secondary" id="propRobotFocus">🔍 포커스</button>
+          <button class="btn-secondary" id="propRobotFocusClose">🔬 클로즈업</button>
+        </div>
+        <div class="action-grid">
           <button class="btn-secondary" id="propRobotClearWaypoints">경로 초기화</button>
           <button class="btn-secondary danger" id="propRobotDelete">삭제</button>
         </div>
@@ -1525,6 +1529,74 @@
       state.cam.distance = p.distance;
       state.cam.target.set(0, p.targetY, 0);
       updateCamera();
+    }
+
+    // ============ CAMERA FOCUS ANIMATION ============
+    let camAnim = null; // { startTime, duration, from, to } — null when idle
+
+    function easeInOutCubic(t) {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    function animateCameraTo(target, opts = {}) {
+      const duration = opts.duration ?? 0.6;
+      camAnim = {
+        startTime: performance.now() / 1000,
+        duration,
+        from: {
+          yaw: state.cam.yaw,
+          pitch: state.cam.pitch,
+          distance: state.cam.distance,
+          tx: state.cam.target.x,
+          ty: state.cam.target.y,
+          tz: state.cam.target.z,
+        },
+        to: {
+          yaw: target.yaw ?? state.cam.yaw,
+          pitch: target.pitch ?? state.cam.pitch,
+          distance: target.distance ?? state.cam.distance,
+          tx: target.tx ?? state.cam.target.x,
+          ty: target.ty ?? state.cam.target.y,
+          tz: target.tz ?? state.cam.target.z,
+        },
+      };
+    }
+
+    function tickCameraAnim(now) {
+      if (!camAnim) return;
+      const elapsed = now / 1000 - camAnim.startTime;
+      const a = clamp(elapsed / camAnim.duration, 0, 1);
+      const e = easeInOutCubic(a);
+      const f = camAnim.from, t = camAnim.to;
+      state.cam.yaw = f.yaw + (t.yaw - f.yaw) * e;
+      state.cam.pitch = f.pitch + (t.pitch - f.pitch) * e;
+      state.cam.distance = f.distance + (t.distance - f.distance) * e;
+      state.cam.target.set(
+        f.tx + (t.tx - f.tx) * e,
+        f.ty + (t.ty - f.ty) * e,
+        f.tz + (t.tz - f.tz) * e,
+      );
+      updateCamera();
+      if (a >= 1) camAnim = null;
+    }
+
+    function focusOnRobot(robotId, mode = 'normal') {
+      const r = state.robots.find(x => x.id === robotId);
+      if (!r) return;
+      // Look at the robot at body height (~0.6 of its height for humanoids,
+      // arm/sensor height for short robots)
+      const lookY = Math.max(0.30, r.height * 0.6);
+      // Distance scales with robot height; closer = clearer joint detail
+      const dist = mode === 'closeup'
+        ? Math.max(1.4, r.height * 1.6)
+        : Math.max(2.6, r.height * 3.0);
+      const pitch = mode === 'closeup' ? Math.PI * 0.10 : Math.PI * 0.18;
+      animateCameraTo({
+        tx: r.x ?? 0, ty: lookY, tz: r.z ?? 0,
+        distance: dist,
+        pitch,
+        // keep current yaw so user's chosen orientation persists
+      }, { duration: 0.55 });
     }
 
     /* ============ BOOTH ============ */
@@ -2885,8 +2957,11 @@
     }
 
     function buildCloidBipedal(color, height) {
-      // Bipedal CLOiD — same head/torso/arm language as the wheeled CLOiD,
-      // but with two legs instead of a wheeled drum base.
+      // Bipedal CLOiD — fully-articulated humanoid with kinematic chains:
+      //   leg:  hip → thigh → knee → shin → ankle → foot   (each joint is a Group)
+      //   arm:  shoulder → upper → elbow → fore → wrist → hand (4-finger gripper)
+      // Visual detail: pelvis battery pack, chest panel + service door, side
+      // vents, hip plates, knee/elbow covers, ankle band, finger knuckles.
       const root = new THREE.Group();
       const parts = {};
       const H = height;
@@ -2898,75 +2973,166 @@
       const matJoint  = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.55, metalness: 0.55 });
       const matAccent = new THREE.MeshStandardMaterial({ color: new THREE.Color(color), emissive: new THREE.Color(color), emissiveIntensity: 0.6 });
       const matEye    = new THREE.MeshStandardMaterial({ color: 0x00D9FF, emissive: 0x00D9FF, emissiveIntensity: 1.4 });
+      const matLens   = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.15, metalness: 0.9 });
+      const matLed    = new THREE.MeshStandardMaterial({ color: 0x22ff66, emissive: 0x22ff66, emissiveIntensity: 1.4 });
+      const matBattery = new THREE.MeshStandardMaterial({ color: 0x1f1f1f, roughness: 0.4, metalness: 0.5 });
 
-      // ============ LEGS ============
+      // ============ LEG (kinematic chain: hip → knee → ankle → foot) ============
       const hipY = H * 0.50;
       const legsGroup = new THREE.Group();
       legsGroup.name = 'legs';
       root.add(legsGroup);
       parts.legs = legsGroup;
 
+      const thighLen = H * 0.24;
+      const shinLen  = H * 0.22;
+
       function makeLeg(side) {
-        const g = new THREE.Group();
-        g.name = side === 1 ? 'legR' : 'legL';
-        g.position.set(side * 0.075, hipY, 0);
+        // hip group (gesture target — "legL"/"legR" controls forward swing)
+        const hip = new THREE.Group();
+        hip.name = side === 1 ? 'legR' : 'legL';
+        hip.position.set(side * 0.085, hipY, 0);
 
-        // Hip joint (dark sleeve)
-        const hipSleeve = new THREE.Mesh(
-          new THREE.SphereGeometry(0.06, 16, 12),
-          matJoint
-        );
-        g.add(hipSleeve);
-
-        // Thigh
-        const thigh = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.052, 0.046, H * 0.24, 16),
+        // Hip dome (motor housing)
+        const hipDome = new THREE.Mesh(
+          new THREE.SphereGeometry(0.075, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.6),
           matWhite
         );
-        thigh.position.y = -H * 0.12;
-        thigh.castShadow = true;
-        g.add(thigh);
-
-        // Knee joint
-        const knee = new THREE.Mesh(
-          new THREE.SphereGeometry(0.055, 14, 10),
+        hipDome.castShadow = true;
+        hip.add(hipDome);
+        // Hip side plate (mech detail)
+        const hipPlate = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.062, 0.062, 0.04, 18),
           matJoint
         );
-        knee.position.y = -H * 0.24;
-        g.add(knee);
+        hipPlate.rotation.z = Math.PI / 2;
+        hipPlate.position.x = side * 0.04;
+        hip.add(hipPlate);
+        const hipBolts = [0, Math.PI * 0.4, Math.PI * 0.8, Math.PI * 1.2, Math.PI * 1.6];
+        hipBolts.forEach(a => {
+          const bolt = new THREE.Mesh(new THREE.SphereGeometry(0.005, 8, 6), matSilver);
+          bolt.position.set(side * 0.062, Math.cos(a) * 0.045, Math.sin(a) * 0.045);
+          hip.add(bolt);
+        });
+
+        // Thigh (rigid, attaches under hip) — visible servo cable runs along
+        const thigh = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.054, 0.046, thighLen, 18),
+          matWhite
+        );
+        thigh.position.y = -thighLen / 2 - 0.015;
+        thigh.castShadow = true;
+        hip.add(thigh);
+        // Thigh servo cable (front-running stripe)
+        const cable = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.005, 0.005, thighLen * 0.85, 6),
+          matDark
+        );
+        cable.position.set(0, -thighLen / 2 - 0.015, 0.046);
+        hip.add(cable);
+        // Thigh side panel (subtle line break)
+        const thighStripe = new THREE.Mesh(
+          new THREE.BoxGeometry(0.005, thighLen * 0.85, 0.02),
+          matAccent
+        );
+        thighStripe.position.set(side * 0.054, -thighLen / 2 - 0.015, 0);
+        hip.add(thighStripe);
+
+        // ============ KNEE (sub-pivot — gesture target "legL_knee"/"legR_knee") ============
+        const knee = new THREE.Group();
+        knee.name = (side === 1 ? 'legR' : 'legL') + '_knee';
+        knee.position.y = -thighLen - 0.015;
+        hip.add(knee);
+
+        // Knee cover (front cap)
+        const kneeCap = new THREE.Mesh(
+          new THREE.SphereGeometry(0.06, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.55),
+          matWhite
+        );
+        kneeCap.rotation.x = Math.PI;
+        knee.add(kneeCap);
+        // Knee dark sleeve (mechanical pivot visible from sides)
+        const kneeSleeve = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.052, 0.052, 0.06, 18),
+          matJoint
+        );
+        kneeSleeve.rotation.z = Math.PI / 2;
+        knee.add(kneeSleeve);
 
         // Shin
         const shin = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.045, 0.038, H * 0.22, 16),
+          new THREE.CylinderGeometry(0.045, 0.038, shinLen, 18),
           matShell
         );
-        shin.position.y = -H * 0.36;
+        shin.position.y = -shinLen / 2 - 0.01;
         shin.castShadow = true;
-        g.add(shin);
+        knee.add(shin);
+        // Shin front plate (visual line)
+        const shinPlate = new THREE.Mesh(
+          new THREE.BoxGeometry(0.06, shinLen * 0.7, 0.005),
+          matWhite
+        );
+        shinPlate.position.set(0, -shinLen / 2 - 0.01, 0.041);
+        knee.add(shinPlate);
+        // Status LED on shin
+        const shinLed = new THREE.Mesh(
+          new THREE.CircleGeometry(0.004, 8),
+          matLed
+        );
+        shinLed.position.set(0, -shinLen * 0.25, 0.044);
+        knee.add(shinLed);
 
-        // Ankle
-        const ankle = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.04, 0.04, 0.025, 14),
+        // ============ ANKLE (sub-pivot) ============
+        const ankle = new THREE.Group();
+        ankle.name = (side === 1 ? 'legR' : 'legL') + '_ankle';
+        ankle.position.y = -shinLen - 0.01;
+        knee.add(ankle);
+
+        const ankleSleeve = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.038, 0.038, 0.04, 16),
           matJoint
         );
-        ankle.position.y = -H * 0.475;
-        g.add(ankle);
+        ankle.add(ankleSleeve);
+        const ankleBand = new THREE.Mesh(
+          new THREE.TorusGeometry(0.041, 0.004, 6, 18),
+          matSilver
+        );
+        ankleBand.rotation.x = Math.PI / 2;
+        ankle.add(ankleBand);
 
         // Foot
         const foot = new THREE.Mesh(
-          new THREE.BoxGeometry(0.075, 0.03, 0.13),
+          new THREE.BoxGeometry(0.085, 0.028, 0.14),
           matDark
         );
-        foot.position.set(0, -H * 0.495, 0.018);
+        foot.position.set(0, -0.028, 0.022);
         foot.castShadow = true;
-        g.add(foot);
+        ankle.add(foot);
+        // Foot toe cap
+        const toeCap = new THREE.Mesh(
+          new THREE.BoxGeometry(0.08, 0.022, 0.025),
+          matSilver
+        );
+        toeCap.position.set(0, -0.029, 0.082);
+        ankle.add(toeCap);
+        // Sole grip pattern (3 small ribs)
+        [-0.04, 0, 0.04].forEach(z => {
+          const grip = new THREE.Mesh(
+            new THREE.BoxGeometry(0.07, 0.005, 0.008),
+            matJoint
+          );
+          grip.position.set(0, -0.043, z);
+          ankle.add(grip);
+        });
 
-        return g;
+        return { hip, knee, ankle };
       }
-      const legL = makeLeg(-1);
-      const legR = makeLeg(1);
-      legsGroup.add(legL); legsGroup.add(legR);
-      parts.legL = legL; parts.legR = legR;
+      const legLChain = makeLeg(-1);
+      const legRChain = makeLeg(1);
+      legsGroup.add(legLChain.hip); legsGroup.add(legRChain.hip);
+      parts.legL = legLChain.hip;        parts.legR = legRChain.hip;
+      parts.legL_knee = legLChain.knee;  parts.legR_knee = legRChain.knee;
+      parts.legL_ankle = legLChain.ankle; parts.legR_ankle = legRChain.ankle;
 
       // ============ TORSO ============
       const bodyY = hipY + H * 0.07;
@@ -2976,16 +3142,50 @@
       root.add(body);
       parts.root_body = body;
 
-      // Pelvis
+      // Pelvis (with battery pack on back)
       const pelvis = new THREE.Mesh(
-        new THREE.BoxGeometry(0.22, H * 0.06, 0.18),
+        new THREE.BoxGeometry(0.24, H * 0.07, 0.20),
         matShell
       );
-      pelvis.position.y = -H * 0.10;
+      pelvis.position.y = -H * 0.105;
       pelvis.castShadow = true;
       body.add(pelvis);
+      // Belt accent
+      const belt = new THREE.Mesh(
+        new THREE.BoxGeometry(0.245, 0.008, 0.205),
+        matJoint
+      );
+      belt.position.y = -H * 0.078;
+      body.add(belt);
+      // Battery pack (rear)
+      const battery = new THREE.Mesh(
+        new THREE.BoxGeometry(0.16, H * 0.10, 0.04),
+        matBattery
+      );
+      battery.position.set(0, -H * 0.06, -0.115);
+      battery.castShadow = true;
+      body.add(battery);
+      // Battery vent slits
+      [-0.04, 0, 0.04].forEach(x => {
+        const slit = new THREE.Mesh(
+          new THREE.BoxGeometry(0.012, H * 0.06, 0.002),
+          matJoint
+        );
+        slit.position.set(x, -H * 0.06, -0.135);
+        body.add(slit);
+      });
+      // Battery status LEDs
+      [-0.05, -0.025, 0, 0.025, 0.05].forEach((x, i) => {
+        const led = new THREE.Mesh(
+          new THREE.CircleGeometry(0.003, 8),
+          i < 4 ? matLed : new THREE.MeshStandardMaterial({ color: 0xff5555, emissive: 0xff5555, emissiveIntensity: 1.0 })
+        );
+        led.position.set(x, -H * 0.025, -0.094);
+        led.rotation.y = Math.PI;
+        body.add(led);
+      });
 
-      // Main torso (slim, slight shoulder flare)
+      // Main torso
       const torso = new THREE.Mesh(
         new THREE.BoxGeometry(0.28, H * 0.22, 0.20),
         matWhite
@@ -2993,158 +3193,361 @@
       torso.position.y = H * 0.04;
       torso.castShadow = true;
       body.add(torso);
+      // Torso side vents
+      [-1, 1].forEach(s => {
+        const vent = new THREE.Mesh(
+          new THREE.BoxGeometry(0.008, H * 0.10, 0.16),
+          matJoint
+        );
+        vent.position.set(s * 0.140, H * 0.04, 0);
+        body.add(vent);
+        // Slat detail
+        for (let i = 0; i < 5; i++) {
+          const slat = new THREE.Mesh(
+            new THREE.BoxGeometry(0.003, 0.012, 0.13),
+            matSilver
+          );
+          slat.position.set(s * 0.144, H * 0.04 - H * 0.045 + i * H * 0.018, 0);
+          body.add(slat);
+        }
+      });
+      // Torso back panel (service door with screws)
+      const backPanel = new THREE.Mesh(
+        new THREE.BoxGeometry(0.16, H * 0.13, 0.005),
+        matShell
+      );
+      backPanel.position.set(0, H * 0.04, -0.103);
+      body.add(backPanel);
+      [-0.06, 0.06].forEach(x => [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([sx, sy]) => {
+        const screw = new THREE.Mesh(new THREE.SphereGeometry(0.003, 6, 4), matSilver);
+        screw.position.set(x * sx * 0.5, H * 0.04 + sy * H * 0.055, -0.106);
+        body.add(screw);
+      }));
 
-      // Chest cam housing
+      // Chest cam (high-res housing with iris)
       const camHousing = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.045, 0.045, 0.035, 24),
+        new THREE.CylinderGeometry(0.05, 0.05, 0.04, 28),
         matDark
       );
       camHousing.rotation.x = Math.PI / 2;
       camHousing.position.set(0, H * 0.02, 0.105);
       body.add(camHousing);
-      const camLens = new THREE.Mesh(
-        new THREE.CircleGeometry(0.03, 24),
-        new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.15, metalness: 0.9 })
+      const camRim = new THREE.Mesh(
+        new THREE.TorusGeometry(0.05, 0.006, 8, 28),
+        matSilver
       );
-      camLens.position.set(0, H * 0.02, 0.124);
+      camRim.position.set(0, H * 0.02, 0.125);
+      body.add(camRim);
+      const camLens = new THREE.Mesh(
+        new THREE.CircleGeometry(0.034, 28),
+        matLens
+      );
+      camLens.position.set(0, H * 0.02, 0.126);
       body.add(camLens);
       const camGlint = new THREE.Mesh(
         new THREE.CircleGeometry(0.005, 12),
         new THREE.MeshStandardMaterial({ color: 0xE63950, emissive: 0xE63950, emissiveIntensity: 1.2 })
       );
-      camGlint.position.set(0.011, H * 0.025, 0.125);
+      camGlint.position.set(0.011, H * 0.025, 0.127);
       body.add(camGlint);
+
+      // Chest indicator strip (5 status LEDs)
+      [-0.04, -0.02, 0, 0.02, 0.04].forEach((x, i) => {
+        const led = new THREE.Mesh(
+          new THREE.CircleGeometry(0.003, 8),
+          i % 2 === 0 ? matLed : matAccent
+        );
+        led.position.set(x, H * 0.075, 0.101);
+        body.add(led);
+      });
+
+      // LG logo plate
+      const logoCanvas = document.createElement('canvas');
+      logoCanvas.width = 128; logoCanvas.height = 64;
+      const lctx = logoCanvas.getContext('2d');
+      lctx.fillStyle = '#f4f4f4'; lctx.fillRect(0, 0, 128, 64);
+      lctx.fillStyle = '#A50034';
+      lctx.font = 'bold 42px IBM Plex Sans, sans-serif';
+      lctx.textAlign = 'center'; lctx.textBaseline = 'middle';
+      lctx.fillText('LG', 64, 34);
+      const logoTex = new THREE.CanvasTexture(logoCanvas);
+      const logoMat = new THREE.MeshStandardMaterial({ map: logoTex, roughness: 0.6 });
+      const logo = new THREE.Mesh(new THREE.PlaneGeometry(0.045, 0.022), logoMat);
+      logo.position.set(0, H * 0.13, 0.101);
+      body.add(logo);
 
       // Shoulder yoke
       const shoulderYoke = new THREE.Mesh(
-        new THREE.BoxGeometry(0.32, H * 0.05, 0.19),
+        new THREE.BoxGeometry(0.34, H * 0.06, 0.20),
         matWhite
       );
-      shoulderYoke.position.y = H * 0.17;
+      shoulderYoke.position.y = H * 0.175;
       shoulderYoke.castShadow = true;
       body.add(shoulderYoke);
 
       // ============ HEAD ============
       const head = new THREE.Group();
       head.name = 'head';
-      head.position.y = H * 0.23;
+      head.position.y = H * 0.24;
       body.add(head);
       parts.head = head;
 
+      // Neck (with subtle joint segments)
       const neck = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.035, 0.04, H * 0.04, 16),
+        new THREE.CylinderGeometry(0.035, 0.04, H * 0.045, 18),
         matDark
       );
-      neck.position.y = 0.01;
+      neck.position.y = -0.005;
       head.add(neck);
+      [0.005, 0.020].forEach(y => {
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.038, 0.003, 6, 18), matSilver);
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = y;
+        head.add(ring);
+      });
 
       // Tablet display
-      const displayW = H * 0.13;
-      const displayHh = H * 0.10;
-      const displayD = H * 0.05;
+      const displayW = H * 0.14;
+      const displayHh = H * 0.105;
+      const displayD = H * 0.055;
       const bracket = new THREE.Mesh(
-        new THREE.BoxGeometry(displayW + 0.012, displayHh + 0.012, displayD + 0.008),
+        new THREE.BoxGeometry(displayW + 0.014, displayHh + 0.014, displayD + 0.008),
         matWhite
       );
-      bracket.position.y = H * 0.07;
+      bracket.position.y = H * 0.075;
       bracket.castShadow = true;
       head.add(bracket);
       const displayBody = new THREE.Mesh(
         new THREE.BoxGeometry(displayW, displayHh, displayD),
         matDark
       );
-      displayBody.position.y = H * 0.07;
+      displayBody.position.y = H * 0.075;
       head.add(displayBody);
-      [-0.022, 0.022].forEach(x => {
-        const eye = new THREE.Mesh(new THREE.CircleGeometry(0.009, 14), matEye);
-        eye.position.set(x, H * 0.07, displayD / 2 + 0.003);
+      const glass = new THREE.Mesh(
+        new THREE.BoxGeometry(displayW - 0.008, displayHh - 0.008, 0.004),
+        new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.1, metalness: 0.95 })
+      );
+      glass.position.set(0, H * 0.075, displayD / 2 + 0.0025);
+      head.add(glass);
+      // Eyes
+      [-0.024, 0.024].forEach(x => {
+        const eye = new THREE.Mesh(new THREE.CircleGeometry(0.010, 14), matEye);
+        eye.position.set(x, H * 0.077, displayD / 2 + 0.004);
         head.add(eye);
       });
+      // Sensor array (4 dots above eyes)
+      [-0.030, -0.010, 0.010, 0.030].forEach(x => {
+        const dot = new THREE.Mesh(new THREE.CircleGeometry(0.0045, 10), matSilver);
+        dot.position.set(x, H * 0.099, displayD / 2 + 0.003);
+        head.add(dot);
+      });
+      // Cheek mic dot
+      const mic = new THREE.Mesh(new THREE.CircleGeometry(0.004, 10), matAccent);
+      mic.position.set(0, H * 0.052, displayD / 2 + 0.003);
+      head.add(mic);
+      // Side panel screws
+      [-1, 1].forEach(s => {
+        for (let i = 0; i < 3; i++) {
+          const screw = new THREE.Mesh(new THREE.SphereGeometry(0.0025, 6, 4), matSilver);
+          screw.position.set(s * (displayW / 2 + 0.005), H * 0.075 - 0.025 + i * 0.025, displayD / 2 + 0.001);
+          head.add(screw);
+        }
+      });
 
-      // ============ ARMS ============
+      // ============ ARM (kinematic chain: shoulder → elbow → wrist → hand) ============
       function makeArm(side) {
-        const g = new THREE.Group();
-        g.name = side === 1 ? 'armR' : 'armL';
-        g.position.set(side * 0.165, H * 0.17, 0);
+        // shoulder group (gesture target — outer "armR/armL")
+        const shoulder = new THREE.Group();
+        shoulder.name = side === 1 ? 'armR' : 'armL';
+        shoulder.position.set(side * 0.175, H * 0.18, 0);
 
-        const shoulder = new THREE.Mesh(
-          new THREE.SphereGeometry(0.055, 16, 12),
+        // Shoulder dome/sleeve
+        const shSleeve = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.058, 0.058, 0.06, 22),
           matJoint
         );
-        g.add(shoulder);
+        shSleeve.rotation.z = Math.PI / 2;
+        shoulder.add(shSleeve);
+        const shCap = new THREE.Mesh(
+          new THREE.SphereGeometry(0.062, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.55),
+          matWhite
+        );
+        shCap.rotation.x = side === 1 ? -Math.PI / 2 : Math.PI / 2;
+        shCap.position.x = side * 0.025;
+        shoulder.add(shCap);
+        // Shoulder armor pad
+        const shPad = new THREE.Mesh(
+          new THREE.SphereGeometry(0.072, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.45),
+          matWhite
+        );
+        shPad.position.y = 0.02;
+        shoulder.add(shPad);
 
+        // Upper arm — slim tapered cylinder
+        const upperLen = H * 0.22;
         const upper = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.04, 0.034, H * 0.22, 14),
+          new THREE.CylinderGeometry(0.044, 0.036, upperLen, 18),
           matWhite
         );
-        upper.position.y = -H * 0.11;
+        upper.position.y = -upperLen / 2 - 0.02;
         upper.castShadow = true;
-        g.add(upper);
+        shoulder.add(upper);
+        // Bicep accent stripe
+        const bicepStripe = new THREE.Mesh(
+          new THREE.BoxGeometry(0.005, upperLen * 0.7, 0.04),
+          matAccent
+        );
+        bicepStripe.position.set(side * 0.043, -upperLen / 2 - 0.02, 0);
+        shoulder.add(bicepStripe);
+        // Servo cable along inner side
+        const upperCable = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.004, 0.004, upperLen * 0.85, 6),
+          matDark
+        );
+        upperCable.position.set(-side * 0.04, -upperLen / 2 - 0.02, 0);
+        shoulder.add(upperCable);
 
-        const elbow = new THREE.Mesh(
-          new THREE.SphereGeometry(0.045, 14, 10),
+        // ============ ELBOW (sub-pivot — "armR_elbow"/"armL_elbow") ============
+        const elbow = new THREE.Group();
+        elbow.name = (side === 1 ? 'armR' : 'armL') + '_elbow';
+        elbow.position.y = -upperLen - 0.025;
+        shoulder.add(elbow);
+
+        // Elbow sleeve (visible mechanical hinge)
+        const elbowSleeve = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.046, 0.046, 0.058, 20),
           matJoint
         );
-        elbow.position.y = -H * 0.225;
-        g.add(elbow);
-
-        const fore = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.034, 0.03, H * 0.20, 14),
+        elbowSleeve.rotation.z = Math.PI / 2;
+        elbow.add(elbowSleeve);
+        const elbowCap = new THREE.Mesh(
+          new THREE.SphereGeometry(0.05, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.55),
           matWhite
         );
-        fore.position.y = -H * 0.33;
+        elbowCap.rotation.x = Math.PI;
+        elbow.add(elbowCap);
+
+        // Forearm
+        const foreLen = H * 0.20;
+        const fore = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.036, 0.030, foreLen, 16),
+          matWhite
+        );
+        fore.position.y = -foreLen / 2 - 0.015;
         fore.castShadow = true;
-        g.add(fore);
+        elbow.add(fore);
+        // Forearm silver band
+        const foreBand = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.037, 0.037, 0.012, 20),
+          matSilver
+        );
+        foreBand.position.y = -foreLen * 0.4 - 0.015;
+        elbow.add(foreBand);
+
+        // ============ WRIST (sub-pivot — "armR_wrist"/"armL_wrist") ============
+        const wrist = new THREE.Group();
+        wrist.name = (side === 1 ? 'armR' : 'armL') + '_wrist';
+        wrist.position.y = -foreLen - 0.025;
+        elbow.add(wrist);
+
+        const wristSleeve = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.032, 0.032, 0.04, 18),
+          matJoint
+        );
+        wrist.add(wristSleeve);
+
+        // Hand group (palm + 4 fingers; hand itself can rotate slightly via parts.armR_hand)
+        const hand = new THREE.Group();
+        hand.name = (side === 1 ? 'armR' : 'armL') + '_hand';
+        hand.position.y = -0.025;
+        wrist.add(hand);
 
         const palm = new THREE.Mesh(
-          new THREE.BoxGeometry(0.05, 0.045, 0.045),
+          new THREE.BoxGeometry(0.052, 0.05, 0.05),
           matDark
         );
-        palm.position.y = -H * 0.46;
         palm.castShadow = true;
-        g.add(palm);
+        hand.add(palm);
+        // Palm soft pad
+        const palmPad = new THREE.Mesh(
+          new THREE.BoxGeometry(0.038, 0.005, 0.038),
+          matSilver
+        );
+        palmPad.position.set(0, -0.026, 0);
+        hand.add(palmPad);
 
-        // 3-finger gripper
-        [-0.012, 0.012].forEach(x => {
-          const f = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.007, 0.006, 0.07, 8),
+        // 4-finger gripper (3 forward + 1 opposing thumb), each with 2 segments
+        const fingerSpecs = [
+          { x:  0.015, z:  0.018, isThumb: false },
+          { x: -0.015, z:  0.018, isThumb: false },
+          { x:  0.000, z:  0.022, isThumb: false },
+          { x:  0.000, z: -0.020, isThumb: true  },
+        ];
+        fingerSpecs.forEach(spec => {
+          const fGroup = new THREE.Group();
+          fGroup.position.set(spec.x, -0.030, spec.z);
+          fGroup.rotation.x = spec.isThumb ? 0.5 : -0.25;
+          // Proximal segment
+          const prox = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.0065, 0.0058, 0.034, 8),
             matDark
           );
-          f.position.set(x, -H * 0.50, 0.015);
-          f.rotation.x = -0.25;
-          g.add(f);
+          prox.position.y = -0.017;
+          fGroup.add(prox);
+          // Knuckle joint
+          const knuckle = new THREE.Mesh(new THREE.SphereGeometry(0.007, 10, 8), matSilver);
+          knuckle.position.y = -0.034;
+          fGroup.add(knuckle);
+          // Distal segment (slightly bent for grip)
+          const distGroup = new THREE.Group();
+          distGroup.position.y = -0.034;
+          distGroup.rotation.x = spec.isThumb ? 0.4 : 0.35;
+          const distal = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.0058, 0.0048, 0.030, 8),
+            matDark
+          );
+          distal.position.y = -0.015;
+          distGroup.add(distal);
+          // Fingertip pad
+          const tip = new THREE.Mesh(new THREE.SphereGeometry(0.006, 10, 8), matSilver);
+          tip.position.y = -0.030;
+          distGroup.add(tip);
+          fGroup.add(distGroup);
+          hand.add(fGroup);
         });
-        const thumb = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.007, 0.006, 0.06, 8),
-          matDark
-        );
-        thumb.position.set(0, -H * 0.495, -0.018);
-        thumb.rotation.x = 0.3;
-        g.add(thumb);
 
-        return g;
+        return { shoulder, elbow, wrist, hand };
       }
-      const armL = makeArm(-1);
-      const armR = makeArm(1);
-      body.add(armL); body.add(armR);
-      parts.armL = armL; parts.armR = armR;
-
-      // Suppress unused-material warning
-      void matSilver; void matAccent;
+      const armLChain = makeArm(-1);
+      const armRChain = makeArm(1);
+      body.add(armLChain.shoulder); body.add(armRChain.shoulder);
+      parts.armL = armLChain.shoulder;        parts.armR = armRChain.shoulder;
+      parts.armL_elbow = armLChain.elbow;     parts.armR_elbow = armRChain.elbow;
+      parts.armL_wrist = armLChain.wrist;     parts.armR_wrist = armRChain.wrist;
+      parts.armL_hand = armLChain.hand;       parts.armR_hand = armRChain.hand;
 
       // ============ CLOID BIPEDAL-SPECIFIC GESTURE IMPLS ============
       const impls = {
-        // Kneel: legs sweep forward at hip (stylized knee bend) and torso lowers.
-        // Approximation since the leg is a single hip-pivoted group (no separate
-        // shin), so we fake the kneel by combining a leg-forward rotation with a
-        // torso drop along Y.
+        // Kneel: hip rotates back, knee bends forward (proper 2-joint knee
+        // bend now that we have a separate knee pivot), ankle compensates,
+        // and torso lowers to roughly child eye-level.
         KNEEL: (p, localT) => {
-          const legFrames  = [[0.0, 0.0], [0.8, 0.55], [2.5, 0.55], [3.3, 0.0]];
-          const bodyYFrames = [[0.0, 0.0], [0.8, -0.18], [2.5, -0.18], [3.3, 0.0]];
-          const v = lerpKeyframes(legFrames, localT);
-          if (p.legL) p.legL.rotation.x = v;
-          if (p.legR) p.legR.rotation.x = v;
+          const hipFrames   = [[0.0, 0.0], [0.8,  0.45], [2.5,  0.45], [3.3, 0.0]];
+          const kneeFrames  = [[0.0, 0.0], [0.8,  1.10], [2.5,  1.10], [3.3, 0.0]];
+          const ankleFrames = [[0.0, 0.0], [0.8, -0.55], [2.5, -0.55], [3.3, 0.0]];
+          const bodyYFrames = [[0.0, 0.0], [0.8, -0.30], [2.5, -0.30], [3.3, 0.0]];
+          const bodyXFrames = [[0.0, 0.0], [0.8,  0.15], [2.5,  0.15], [3.3, 0.0]];
+          const hip = lerpKeyframes(hipFrames, localT);
+          const knee = lerpKeyframes(kneeFrames, localT);
+          const ankle = lerpKeyframes(ankleFrames, localT);
+          if (p.legL) p.legL.rotation.x = hip;
+          if (p.legR) p.legR.rotation.x = hip;
+          if (p.legL_knee) p.legL_knee.rotation.x = knee;
+          if (p.legR_knee) p.legR_knee.rotation.x = knee;
+          if (p.legL_ankle) p.legL_ankle.rotation.x = ankle;
+          if (p.legR_ankle) p.legR_ankle.rotation.x = ankle;
           if (p.root_body) {
+            p.root_body.rotation.x = lerpKeyframes(bodyXFrames, localT);
             const baseY = p.root_body.userData.baseY ?? p.root_body.position.y;
             p.root_body.position.y = baseY + lerpKeyframes(bodyYFrames, localT);
           }
@@ -3985,6 +4388,11 @@
         ];
         parts.armR.rotation.z = lerpKeyframes(zFrames, localT);
         parts.armR.rotation.x = lerpKeyframes(xFrames, localT);
+        // Elbow bend during wave (natural ~90° forearm flex toward face)
+        if (parts.armR_elbow) {
+          const eFrames = [[0.0, 0.0], [0.4, -1.2], [2.6, -1.2], [3.0, 0.0]];
+          parts.armR_elbow.rotation.x = lerpKeyframes(eFrames, localT);
+        }
       },
       POINT: (parts, localT, params) => {
         if (!parts.armR) return;
@@ -3993,6 +4401,11 @@
         const yFrames = [[0.0, 0.0], [1.0, dir], [2.0, dir], [2.5, 0.0]];
         parts.armR.rotation.z = lerpKeyframes(zFrames, localT);
         parts.armR.rotation.y = lerpKeyframes(yFrames, localT);
+        // Slight elbow extension (straighten arm to point clearly)
+        if (parts.armR_elbow) {
+          const eFrames = [[0.0, 0.0], [1.0, -0.2], [2.0, -0.2], [2.5, 0.0]];
+          parts.armR_elbow.rotation.x = lerpKeyframes(eFrames, localT);
+        }
       },
       PICKUP: (parts, localT) => {
         if (parts.root_body) {
@@ -4002,6 +4415,18 @@
         if (parts.armR) {
           const frames = [[0.0, 0.0], [1.5, -0.5], [2.5, -0.5], [3.5, -1.8], [4.0, 0.0]];
           parts.armR.rotation.z = lerpKeyframes(frames, localT);
+        }
+        // Elbow bend during reach + grip phase
+        if (parts.armR_elbow) {
+          const eFrames = [[0.0, 0.0], [1.5, -0.6], [2.5, -1.0], [3.5, -0.3], [4.0, 0.0]];
+          parts.armR_elbow.rotation.x = lerpKeyframes(eFrames, localT);
+        }
+        // Knees bend slightly when bowing for pickup (natural squat)
+        if (parts.legL_knee && parts.legR_knee) {
+          const kFrames = [[0.0, 0.0], [1.5, 0.35], [2.5, 0.35], [3.5, 0.0]];
+          const v = lerpKeyframes(kFrames, localT);
+          parts.legL_knee.rotation.x = v;
+          parts.legR_knee.rotation.x = v;
         }
       },
       BOW: (parts, localT) => {
@@ -4013,10 +4438,17 @@
       WALK: (parts, globalT) => {
         const T = 0.8;
         const phase = (globalT / T) * Math.PI * 2;
-        if (parts.legL) parts.legL.rotation.x = Math.sin(phase) * 0.4;
-        if (parts.legR) parts.legR.rotation.x = -Math.sin(phase) * 0.4;
-        if (parts.armL) parts.armL.rotation.x = -Math.sin(phase) * 0.3;
-        if (parts.armR) parts.armR.rotation.x = Math.sin(phase) * 0.3;
+        const legSwing = Math.sin(phase) * 0.4;
+        if (parts.legL) parts.legL.rotation.x = legSwing;
+        if (parts.legR) parts.legR.rotation.x = -legSwing;
+        if (parts.armL) parts.armL.rotation.x = -legSwing * 0.75;
+        if (parts.armR) parts.armR.rotation.x = legSwing * 0.75;
+        // Knee bends only during forward swing phase (when leg is in front)
+        if (parts.legL_knee) parts.legL_knee.rotation.x = Math.max(0, -legSwing) * 0.6;
+        if (parts.legR_knee) parts.legR_knee.rotation.x = Math.max(0, legSwing) * 0.6;
+        // Counter-swinging arm has slight elbow bend
+        if (parts.armL_elbow) parts.armL_elbow.rotation.x = -0.25 - Math.max(0, legSwing) * 0.3;
+        if (parts.armR_elbow) parts.armR_elbow.rotation.x = -0.25 - Math.max(0, -legSwing) * 0.3;
       },
       SCAN: (parts, localT) => {
         if (!parts.head) return;
@@ -4037,6 +4469,11 @@
         ];
         parts.armR.rotation.z = lerpKeyframes(zFrames, localT);
         parts.armR.rotation.x = lerpKeyframes(xFrames, localT);
+        // Elbow slight bend (forearm horizontal, hand chest-height)
+        if (parts.armR_elbow) {
+          const eFrames = [[0.0, 0.0], [0.6, -0.45], [2.8, -0.45], [3.5, 0.0]];
+          parts.armR_elbow.rotation.x = lerpKeyframes(eFrames, localT);
+        }
       },
     };
 
@@ -5819,6 +6256,12 @@
     document.getElementById('propRobotDelete').addEventListener('click', () => {
       if (state.selectedType === 'robot') deleteRobot(state.selectedId);
     });
+    document.getElementById('propRobotFocus').addEventListener('click', () => {
+      if (state.selectedType === 'robot') focusOnRobot(state.selectedId, 'normal');
+    });
+    document.getElementById('propRobotFocusClose').addEventListener('click', () => {
+      if (state.selectedType === 'robot') focusOnRobot(state.selectedId, 'closeup');
+    });
 
     // Gesture
     document.getElementById('propGestureType').addEventListener('change', e => {
@@ -6025,6 +6468,8 @@
         }
         updatePlayhead();
       }
+
+      if (camAnim) tickCameraAnim(performance.now());
 
       if (state.mode === 'choreo' || state.robots.length > 0) {
         applyGestures(state.currentTime);
