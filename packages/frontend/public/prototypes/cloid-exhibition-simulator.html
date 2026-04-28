@@ -1306,7 +1306,11 @@
       midManipulator: { height: 1.30, color: '#22C55E' },
     };
 
-    const GESTURE_TYPES = ['IDLE', 'WAVE', 'POINT', 'PICKUP', 'BOW', 'WALK', 'SCAN', 'SIT', 'JUMP', 'TILT', 'DUAL_PICKUP'];
+    const GESTURE_TYPES = [
+      'IDLE', 'WAVE', 'POINT', 'PICKUP', 'BOW', 'WALK', 'SCAN',
+      'SIT', 'JUMP', 'TILT', 'DUAL_PICKUP',
+      'HANDSHAKE', 'KNEEL', 'LIE_DOWN', 'STRETCH', 'HANDOVER'
+    ];
     const GESTURE_LABELS = {
       IDLE:        '대기',
       WAVE:        '손 흔들기',
@@ -1319,6 +1323,11 @@
       JUMP:        '점프',
       TILT:        '몸체 기울이기',
       DUAL_PICKUP: '양손 픽업',
+      HANDSHAKE:   '악수',
+      KNEEL:       '무릎 굽혀 낮추기',
+      LIE_DOWN:    '엎드리기',
+      STRETCH:     '스트레칭',
+      HANDOVER:    '양손 전달',
     };
     const GESTURE_DESCRIPTIONS = {
       IDLE:        '대기 / 호흡 (자동)',
@@ -1332,11 +1341,17 @@
       JUMP:        '제자리 점프 (4족)',
       TILT:        '몸체 앞으로 기울임 (인사 대용)',
       DUAL_PICKUP: '양 팔로 동시에 집기',
+      HANDSHAKE:   '팔 앞으로 내밀고 흔들기',
+      KNEEL:       '무릎 굽혀 어린이 눈높이로',
+      LIE_DOWN:    '4 다리 모두 접고 엎드림',
+      STRETCH:     '플레이바우 스트레칭 (앞다리 앞으로, 상체 숙임)',
+      HANDOVER:    '한 팔 → 다른 팔로 물건 전달',
     };
     const GESTURE_DURATIONS = {
       IDLE: Infinity, WAVE: 3.0, POINT: 2.5, PICKUP: 4.0,
       BOW: 2.0, WALK: Infinity, SCAN: 4.0,
       SIT: 3.0, JUMP: 1.2, TILT: 1.8, DUAL_PICKUP: 4.5,
+      HANDSHAKE: 3.5, KNEEL: 3.3, LIE_DOWN: 3.5, STRETCH: 3.5, HANDOVER: 4.5,
     };
     const GESTURE_ROBOT_APPLIES = {
       IDLE: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator'],
@@ -1350,6 +1365,11 @@
       JUMP: ['quadruped'],
       TILT: ['quadruped'],
       DUAL_PICKUP: ['midManipulator'],
+      HANDSHAKE: ['cloidWheel', 'cloidBipedal', 'midManipulator'],
+      KNEEL: ['cloidBipedal'],
+      LIE_DOWN: ['quadruped'],
+      STRETCH: ['quadruped'],
+      HANDOVER: ['midManipulator'],
     };
 
     /* ============ STATE ============ */
@@ -3112,7 +3132,26 @@
       // Suppress unused-material warning
       void matSilver; void matAccent;
 
-      return { root, parts };
+      // ============ CLOID BIPEDAL-SPECIFIC GESTURE IMPLS ============
+      const impls = {
+        // Kneel: legs sweep forward at hip (stylized knee bend) and torso lowers.
+        // Approximation since the leg is a single hip-pivoted group (no separate
+        // shin), so we fake the kneel by combining a leg-forward rotation with a
+        // torso drop along Y.
+        KNEEL: (p, localT) => {
+          const legFrames  = [[0.0, 0.0], [0.8, 0.55], [2.5, 0.55], [3.3, 0.0]];
+          const bodyYFrames = [[0.0, 0.0], [0.8, -0.18], [2.5, -0.18], [3.3, 0.0]];
+          const v = lerpKeyframes(legFrames, localT);
+          if (p.legL) p.legL.rotation.x = v;
+          if (p.legR) p.legR.rotation.x = v;
+          if (p.root_body) {
+            const baseY = p.root_body.userData.baseY ?? p.root_body.position.y;
+            p.root_body.position.y = baseY + lerpKeyframes(bodyYFrames, localT);
+          }
+        },
+      };
+
+      return { root, parts, impls };
     }
 
     function buildQuadruped(color, height) {
@@ -3316,6 +3355,35 @@
           const xFrames = [[0.0, 0.0], [0.5, 0.4], [1.3, 0.4], [1.8, 0.0]];
           if (p.root_body) {
             p.root_body.rotation.x = lerpKeyframes(xFrames, localT);
+          }
+        },
+        // Lie down: all 4 legs fold under (front +x, rear -x for symmetry),
+        // body drops to near-floor.
+        LIE_DOWN: (p, localT) => {
+          const frontFrames = [[0.0, 0.0], [0.9, 0.95], [3.5, 0.95]];
+          const rearFrames  = [[0.0, 0.0], [0.9, -0.95], [3.5, -0.95]];
+          const bodyYFrames = [[0.0, 0.0], [0.9, -0.18], [3.5, -0.18]];
+          if (p.legFL) p.legFL.rotation.x = lerpKeyframes(frontFrames, localT);
+          if (p.legFR) p.legFR.rotation.x = lerpKeyframes(frontFrames, localT);
+          if (p.legRL) p.legRL.rotation.x = lerpKeyframes(rearFrames, localT);
+          if (p.legRR) p.legRR.rotation.x = lerpKeyframes(rearFrames, localT);
+          if (p.root_body) {
+            const baseY = p.root_body.userData.baseY ?? p.root_body.position.y;
+            p.root_body.position.y = baseY + lerpKeyframes(bodyYFrames, localT);
+          }
+        },
+        // Stretch (play-bow): front legs reach forward, body tilts forward,
+        // body drops slightly. Rear legs stay in place.
+        STRETCH: (p, localT) => {
+          const frontFrames = [[0.0, 0.0], [0.8, -0.65], [2.5, -0.65], [3.5, 0.0]];
+          const bodyXFrames = [[0.0, 0.0], [0.8, 0.40], [2.5, 0.40], [3.5, 0.0]];
+          const bodyYFrames = [[0.0, 0.0], [0.8, -0.05], [2.5, -0.05], [3.5, 0.0]];
+          if (p.legFL) p.legFL.rotation.x = lerpKeyframes(frontFrames, localT);
+          if (p.legFR) p.legFR.rotation.x = lerpKeyframes(frontFrames, localT);
+          if (p.root_body) {
+            p.root_body.rotation.x = lerpKeyframes(bodyXFrames, localT);
+            const baseY = p.root_body.userData.baseY ?? p.root_body.position.y;
+            p.root_body.position.y = baseY + lerpKeyframes(bodyYFrames, localT);
           }
         },
       };
@@ -3778,6 +3846,29 @@
             p.root_body.rotation.x = lerpKeyframes(bowFrames, localT);
           }
         },
+        // Handover: R arm reaches inward to chest center holding object, L arm
+        // moves up to meet it, then R retracts and L holds → drops back. Uses
+        // rotation.z opposite signs so both arms swing toward center.
+        HANDOVER: (p, localT) => {
+          // R arm: starts down → swings inward (positive z) → returns
+          const rZFrames = [
+            [0.0, 0.0], [1.5, 0.85], [2.3, 0.85], [3.0, 0.50], [4.0, 0.0], [4.5, 0.0]
+          ];
+          // L arm: starts down → swings inward (negative z, mirrored) → holds
+          // longer (receiving the object) → returns later
+          const lZFrames = [
+            [0.0, 0.0], [1.5, -0.30], [2.3, -0.85], [3.5, -0.85], [4.5, 0.0]
+          ];
+          // Slight forward bow during the transfer phase
+          const bowFrames = [
+            [0.0, 0.0], [1.5, 0.10], [3.0, 0.10], [4.5, 0.0]
+          ];
+          if (p.armR) p.armR.rotation.z = lerpKeyframes(rZFrames, localT);
+          if (p.armL) p.armL.rotation.z = lerpKeyframes(lZFrames, localT);
+          if (p.root_body) {
+            p.root_body.rotation.x = lerpKeyframes(bowFrames, localT);
+          }
+        },
       };
 
       return { root, parts, impls };
@@ -3931,6 +4022,21 @@
         if (!parts.head) return;
         const frames = [[0.0, 0.0], [1.0, 1.05], [2.0, 0.0], [3.0, -1.05], [4.0, 0.0]];
         parts.head.rotation.y = lerpKeyframes(frames, localT);
+      },
+      HANDSHAKE: (parts, localT) => {
+        if (!parts.armR) return;
+        // Reach forward at chest height, hold, shake up-down 3 times, return.
+        const zFrames = [
+          [0.0, 0.0], [0.6, -1.5], [2.8, -1.5], [3.5, 0.0]
+        ];
+        const xFrames = [
+          [0.0, 0.0], [0.6, 0.0],
+          [1.0, 0.25], [1.3, -0.20], [1.6, 0.25],
+          [1.9, -0.20], [2.2, 0.25], [2.5, -0.10],
+          [2.8, 0.0], [3.5, 0.0]
+        ];
+        parts.armR.rotation.z = lerpKeyframes(zFrames, localT);
+        parts.armR.rotation.x = lerpKeyframes(xFrames, localT);
       },
     };
 
