@@ -160,8 +160,9 @@ export default function RobotEvolutionTimeline() {
 
     const currentYear = new Date().getFullYear();
     const minYear = currentYear - recentYears + 1;
+    const maxYear = currentYear + 2;
     const years: number[] = [];
-    for (let y = minYear; y <= currentYear; y++) years.push(y);
+    for (let y = minYear; y <= maxYear; y++) years.push(y);
 
     const totalQuarters = years.length * 4;
     const minContentW = totalQuarters * 50;
@@ -172,7 +173,7 @@ export default function RobotEvolutionTimeline() {
     const filtered = companies
       .map((c: any) => ({
         ...c,
-        robots: c.robots.filter((r: any) => r.year != null && r.year >= minYear),
+        robots: c.robots.filter((r: any) => r.year != null && r.year >= minYear && r.year <= maxYear),
       }))
       .filter((c: any) => c.robots.length > 0);
 
@@ -194,7 +195,7 @@ export default function RobotEvolutionTimeline() {
     const svgW = availableW <= fittedW ? containerWidth : COMPANY_COL_W + availableW + 20;
     const svgH = cumY + 8;
 
-    return { companies: sorted, years, rowHeights, rowYOffsets, svgW, svgH, minYear, quarterW, totalQuarters };
+    return { companies: sorted, years, rowHeights, rowYOffsets, svgW, svgH, minYear, currentYear, quarterW, totalQuarters };
   }, [data, containerWidth, recentYears]);
 
   const yqToX = useCallback((year: number, quarter: number) => {
@@ -242,7 +243,7 @@ export default function RobotEvolutionTimeline() {
     );
   }
 
-  const { companies, years, rowHeights, rowYOffsets, svgW, svgH, minYear, quarterW } = chart;
+  const { companies, years, rowHeights, rowYOffsets, svgW, svgH, minYear, currentYear, quarterW } = chart;
 
   return (
     <div className="space-y-3">
@@ -251,7 +252,7 @@ export default function RobotEvolutionTimeline() {
         <div>
           <h2 className="text-lg font-bold text-ink-900">제품 진화 타임라인</h2>
           <p className="text-xs text-ink-500">
-            최근 {recentYears}년 ({years[0]}–{years[years.length - 1]}) · {companies.length}개 기업 · 최신순
+            최근 {recentYears}년 + 향후 2년 ({years[0]}–{years[years.length - 1]}) · {companies.length}개 기업 · 최신순
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -310,16 +311,18 @@ export default function RobotEvolutionTimeline() {
             const yearWidth = 4 * quarterW;
             return (
               <g key={year}>
-                {/* Year background stripe (alternate) */}
-                {yi % 2 === 0 && (
+                {/* Future-year tinted background */}
+                {year > currentYear ? (
+                  <rect x={yearX} y={0} width={yearWidth} height={svgH} fill="#dbeafe" opacity={0.35} />
+                ) : yi % 2 === 0 ? (
                   <rect x={yearX} y={0} width={yearWidth} height={svgH} fill={SVG_BG_ALT} opacity={0.6} />
-                )}
+                ) : null}
                 {/* Year label */}
                 <text
                   x={yearX + yearWidth / 2}
                   y={18}
                   textAnchor="middle"
-                  fill={SVG_INK}
+                  fill={year > currentYear ? '#3b82f6' : SVG_INK}
                   fontSize={14}
                   fontWeight={700}
                 >
