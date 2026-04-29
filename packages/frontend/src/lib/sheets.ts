@@ -38,7 +38,7 @@ function parseRow(row: string[], index: number): RobotAIEvent | null {
   }
 }
 
-export async function fetchEventsFromSheets(): Promise<RobotAIEvent[]> {
+export async function fetchEventsFromSheets(refresh = false): Promise<RobotAIEvent[]> {
   const sheetId = process.env.GOOGLE_SHEETS_ID;
   const apiKey = process.env.GOOGLE_API_KEY;
 
@@ -50,7 +50,7 @@ export async function fetchEventsFromSheets(): Promise<RobotAIEvent[]> {
   const url =
     `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
 
-  const res = await fetch(url, { next: { revalidate: 3600 } });
+  const res = await fetch(url, refresh ? { cache: 'no-store' } : { next: { revalidate: 3600 } });
 
   if (!res.ok) {
     throw new Error(`Sheets API ${res.status}: ${res.statusText}`);
