@@ -73,15 +73,15 @@
   },
   {
     "id": "7",
-    "name": "RoboCup 2026",
+    "name": "RoboCup 2026 INCHEON",
     "type": "학회",
-    "date_start": "2026-07-14",
-    "date_end": "2026-07-20",
-    "location": "TBD, Europe",
-    "country": "유럽(EU)",
+    "date_start": "2026-06-30",
+    "date_end": "2026-07-06",
+    "location": "Incheon",
+    "country": "한국",
     "url": "https://www.robocup.org",
     "tags": ["자율로봇", "축구로봇", "교육", "경진대회"],
-    "relevance_score": 3
+    "relevance_score": 4
   },
   {
     "id": "8",

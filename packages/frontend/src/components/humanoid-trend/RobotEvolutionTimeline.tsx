@@ -124,7 +124,7 @@ function nodeWidth(name: string, showTBD: boolean): number {
 
 export default function RobotEvolutionTimeline() {
   const [regionFilter, setRegionFilter] = useState('');
-  const [recentYears, setRecentYears] = useState(2);
+  const [recentYears, setRecentYears] = useState(3);
   const [hoveredRobot, setHoveredRobot] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<{
     x: number; y: number; robot: Robot; companyName: string;

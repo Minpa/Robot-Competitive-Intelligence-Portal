@@ -7,12 +7,22 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { EventCalendar } from '@/components/event-calendar/EventCalendar';
 import type { RobotAIEvent } from '@/types/event-calendar';
 
+type DataSource = 'claude' | 'cache' | 'cache-stale' | 'mock' | null;
+
+const SOURCE_LABELS: Record<string, string> = {
+  claude: 'AI 웹 검색',
+  cache: '캐시',
+  'cache-stale': '캐시 (만료)',
+  mock: '기본 데이터',
+};
+
 function EventCalendarContent() {
   const [events, setEvents] = useState<RobotAIEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [dataSource, setDataSource] = useState<DataSource>(null);
 
   const fetchEvents = useCallback(async (refresh = false) => {
     if (refresh) {
@@ -29,6 +39,7 @@ function EventCalendarContent() {
       setEvents(data);
       setError(null);
       setLastUpdated(new Date());
+      setDataSource((res.headers.get('X-Data-Source') as DataSource) || null);
     } catch (err) {
       console.error('[event-calendar] fetch failed:', err);
       setError('데이터를 불러오는 중 문제가 발생했습니다');
@@ -57,6 +68,11 @@ function EventCalendarContent() {
                   hour: '2-digit',
                   minute: '2-digit',
                 })} 업데이트
+                {dataSource && (
+                  <span className="ml-1.5 text-blue-500">
+                    ({SOURCE_LABELS[dataSource] || dataSource})
+                  </span>
+                )}
               </span>
             )}
             <button
