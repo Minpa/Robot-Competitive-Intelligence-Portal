@@ -553,6 +553,14 @@
       transition: all 0.15s;
     }
     .timeline-playback button:hover { border-color: var(--cyan); color: var(--cyan); }
+    .speed-btn {
+      width: 32px !important; font-size: 11px !important;
+      font-family: 'IBM Plex Mono', monospace; font-weight: 600;
+    }
+    .speed-btn.active {
+      background: var(--cyan) !important; color: var(--bg-1) !important;
+      border-color: var(--cyan) !important;
+    }
     .timeline-time {
       font-family: 'IBM Plex Mono', monospace;
       font-size: 12px; color: var(--text-secondary);
@@ -1143,6 +1151,11 @@
         <div class="timeline-time">
           <span class="current" id="timeCurrent">0.0</span> / <span id="timeTotal">180.0</span>s
         </div>
+        <div class="timeline-playback" id="speedControls" style="margin-left: 12px; gap: 2px;">
+          <button class="speed-btn active" data-speed="1" title="1× speed">1×</button>
+          <button class="speed-btn" data-speed="2" title="2× speed">2×</button>
+          <button class="speed-btn" data-speed="3" title="3× speed">3×</button>
+        </div>
         <div class="timeline-playback" style="margin-left: auto;">
           <div class="gesture-menu-wrapper" style="display: inline-block;">
             <button id="btnAddGesture" title="현재 시점에 동작 추가" style="width: auto; padding: 0 10px; font-size: 11px;">+ 동작 ▾</button>
@@ -1515,6 +1528,7 @@
       duration: 180,
       currentTime: 0,
       playing: false,
+      playSpeed: 1, // 1× / 2× / 3× playback multiplier (applied in tick)
       furniture: [],
       robots: [],
       selectedType: null,  // 'furniture' | 'robot' | 'gesture' | 'waypoint'
@@ -8346,6 +8360,16 @@
 
     /* ============ PLAYBACK ============ */
     document.getElementById('btnPlayPause').addEventListener('click', togglePlayback);
+
+    // Playback speed buttons (1× / 2× / 3×) — applied as multiplier in tick().
+    document.querySelectorAll('#speedControls .speed-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const speed = parseFloat(btn.dataset.speed) || 1;
+        state.playSpeed = speed;
+        document.querySelectorAll('#speedControls .speed-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
     document.getElementById('btnRewind').addEventListener('click', () => {
       state.currentTime = 0;
       updatePlayhead();
@@ -8914,7 +8938,7 @@
     function tick() {
       requestAnimationFrame(tick);
       if (state.playing) {
-        state.currentTime += 1 / 60;
+        state.currentTime += (1 / 60) * (state.playSpeed || 1);
         if (state.currentTime > state.duration) {
           state.currentTime = 0;
         }
