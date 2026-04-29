@@ -6966,49 +6966,62 @@
       if (migrated) showToast('Migrated from v0.1', 'warn');
     }
 
-    document.getElementById('saveBtn').addEventListener('click', () => {
-      const data = serializeScenario();
-      localStorage.setItem('cloid_scenario_v0_5', JSON.stringify(data));
-      showToast('Saved to browser', 'success');
-    });
+    // ============ TOPBAR SAVE / LOAD (DB-backed) ============
+    // SAVE: persists current state to /api/cloid-simulator/scenarios.
+    // LOAD: opens a modal listing built-in presets + DB-saved scenarios; the
+    //       user picks one and it's applied. (Local file picker was removed —
+    //       use EXPORT for offline backup or sidebar 'Scenario / Preset' for
+    //       browsing via dropdown.)
+    document.getElementById('saveBtn').addEventListener('click', saveCurrentScenario);
 
-    document.getElementById('loadBtn').addEventListener('click', () => {
-      // Attempt to load from input file; fallback to localStorage
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.json,application/json';
-      input.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          try {
-            const data = JSON.parse(ev.target.result);
-            deserializeScenario(data);
-            document.getElementById('scenarioName').value = data.name || 'Untitled';
-            showToast(`Loaded ${data.name || 'scenario'}`, 'success');
-          } catch (err) {
-            showToast('Load failed: ' + err.message, 'error');
-          }
-        };
-        reader.readAsText(file);
-      };
-      input.click();
-
-      // Also offer localStorage if empty
-      setTimeout(() => {
-        if (state.furniture.length === 0 && state.robots.length === 0) {
-          const saved = localStorage.getItem('cloid_scenario_v0_5');
-          if (saved) {
-            try {
-              const data = JSON.parse(saved);
-              deserializeScenario(data);
-              document.getElementById('scenarioName').value = data.name || 'Untitled';
-              showToast(`Restored from browser`, 'success');
-            } catch (e) {}
-          }
+    document.getElementById('loadBtn').addEventListener('click', async () => {
+      // Build a quick list and let the user pick via prompt; fall back to
+      // sidebar dropdown for richer browsing. This avoids any local-file UI.
+      let userScenarios = [];
+      try {
+        userScenarios = await apiListScenarios();
+      } catch (err) {
+        console.warn('[cloid-sim] DB list unavailable:', err.message);
+      }
+      const items = [
+        ...BUILTIN_PRESETS.map((p, i) => ({ idx: i + 1, kind: 'builtin', id: p.id, label: `[Preset] ${p.name}` })),
+        ...userScenarios.map((sc, i) => {
+          const date = sc.updatedAt ? new Date(sc.updatedAt).toISOString().slice(0, 10) : '';
+          return {
+            idx: BUILTIN_PRESETS.length + i + 1,
+            kind: 'db', id: sc.id,
+            label: `[DB] ${sc.name} (${date}) — F${sc.furnitureCount}/R${sc.robotCount}`,
+          };
+        }),
+      ];
+      if (!items.length) {
+        showToast('로드 가능한 시나리오가 없습니다', 'warn');
+        return;
+      }
+      const menu = items.map(it => `${it.idx}. ${it.label}`).join('\n');
+      const ans = prompt(`로드할 항목 번호 입력:\n\n${menu}`, '1');
+      if (!ans) return;
+      const pick = items.find(it => String(it.idx) === ans.trim());
+      if (!pick) {
+        showToast('잘못된 번호', 'error');
+        return;
+      }
+      if (state.furniture.length || state.robots.length) {
+        if (!confirm('현재 배치가 초기화됩니다. 계속하시겠어요?')) return;
+      }
+      try {
+        if (pick.kind === 'builtin') {
+          loadBuiltinPreset(pick.id);
+          showToast(`프리셋 로드됨: ${pick.label}`, 'success');
+        } else {
+          const sc = await apiLoadScenario(pick.id);
+          applyScenarioState(sc.data);
+          document.getElementById('scenarioName').value = sc.name || 'Untitled';
+          showToast(`로드됨: ${sc.name}`, 'success');
         }
-      }, 200);
+      } catch (err) {
+        showToast(`로드 실패: ${err.message}`, 'error');
+      }
     });
 
     document.getElementById('exportBtn').addEventListener('click', () => {
