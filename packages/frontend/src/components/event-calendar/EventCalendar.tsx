@@ -7,11 +7,12 @@ import {
   Star,
   ExternalLink,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   X,
   Clock,
   FileText,
   Tag,
-  ArrowRight,
   AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -24,18 +25,14 @@ const TYPE_META: Record<EventType, { label: string; badge: string; color: string
   '정책': { label: '정책', badge: 'POLICY', color: 'bg-amber-500/15 text-amber-500 border-amber-500/30', dot: 'bg-amber-500' },
 };
 
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
-function monthKey(d: string) {
-  const dt = new Date(d);
-  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function monthLabel(key: string) {
-  const [y, m] = key.split('-');
-  return `${y}년 ${parseInt(m)}월`;
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
 function isOngoing(event: RobotAIEvent, now: Date) {
@@ -56,6 +53,29 @@ function getDDayInfo(event: RobotAIEvent, now: Date): { label: string; className
   if (diff <= 7) return { label: `D-${diff}`, className: 'bg-red-50 text-red-600 border-red-200 font-bold' };
   if (diff <= 30) return { label: `D-${diff}`, className: 'bg-orange-50 text-orange-500 border-orange-200' };
   return { label: `D-${diff}`, className: 'bg-yellow-50 text-yellow-600 border-yellow-200' };
+}
+
+function getCalendarDays(year: number, month: number) {
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startOffset = firstDay.getDay();
+  const totalDays = lastDay.getDate();
+
+  const days: (Date | null)[] = [];
+  for (let i = 0; i < startOffset; i++) days.push(null);
+  for (let d = 1; d <= totalDays; d++) days.push(new Date(year, month, d));
+  while (days.length % 7 !== 0) days.push(null);
+  return days;
+}
+
+function getEventsForDay(events: RobotAIEvent[], day: Date): RobotAIEvent[] {
+  const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+  const dayEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 23, 59, 59);
+  return events.filter(e => {
+    const eStart = new Date(e.date_start);
+    const eEnd = new Date(e.date_end);
+    return eStart <= dayEnd && eEnd >= dayStart;
+  });
 }
 
 // ---------- Dropdown for multi-select ----------
@@ -183,150 +203,221 @@ function RelevanceSlider({
   );
 }
 
-// ---------- Event Card ----------
+// ---------- Day Cell Popover ----------
 
-function EventCard({
-  event,
+function DayCellPopover({
+  events,
   now,
-  onClick,
+  onSelect,
+  onClose,
 }: {
-  event: RobotAIEvent;
+  events: RobotAIEvent[];
   now: Date;
-  onClick: () => void;
+  onSelect: (e: RobotAIEvent) => void;
+  onClose: () => void;
 }) {
-  const meta = TYPE_META[event.type];
-  const ongoing = isOngoing(event, now);
-  const past = isPast(event, now);
-  const dday = getDDayInfo(event, now);
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  return (
+    <>
+      <div className="fixed inset-0 z-30" onClick={onClose} />
+      <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-40 bg-white border border-ink-200 rounded-lg shadow-xl p-2 min-w-[220px] max-w-[280px]">
+        <div className="space-y-1">
+          {events.map(event => {
+            const meta = TYPE_META[event.type];
+            const ongoing = isOngoing(event, now);
+            return (
+              <button
+                key={event.id}
+                onClick={() => onSelect(event)}
+                className={cn(
+                  'w-full text-left px-2.5 py-2 rounded-md hover:bg-ink-50 transition-colors',
+                  ongoing && 'bg-green-50/50',
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${meta.dot}`} />
+                  <span className="text-xs font-medium text-ink-800 truncate">{event.name}</span>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5 ml-4">
+                  <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${meta.color}`}>
+                    {meta.badge}
+                  </span>
+                  {ongoing && (
+                    <span className="text-[9px] font-mono font-semibold text-green-600 bg-green-100 px-1.5 py-0.5 rounded">
+                      LIVE
+                    </span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ---------- Calendar Day Cell ----------
+
+function CalendarDayCell({
+  day,
+  events,
+  now,
+  isCurrentMonth,
+  onSelectEvent,
+}: {
+  day: Date;
+  events: RobotAIEvent[];
+  now: Date;
+  isCurrentMonth: boolean;
+  onSelectEvent: (e: RobotAIEvent) => void;
+}) {
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const isToday = isSameDay(day, now);
+  const hasEvents = events.length > 0;
+  const maxVisible = 3;
 
   return (
     <div
-      onClick={onClick}
       className={cn(
-        'relative bg-white rounded-xl border p-4 transition-all hover:shadow-md group cursor-pointer',
-        ongoing
-          ? 'border-green-400/50 ring-1 ring-green-400/20'
-          : past
-            ? 'border-ink-150 opacity-60'
-            : 'border-ink-200 hover:border-blue-300/50',
+        'relative min-h-[100px] border-b border-r border-ink-100 p-1.5 transition-colors',
+        !isCurrentMonth && 'bg-ink-50/50',
+        hasEvents && isCurrentMonth && 'hover:bg-blue-50/30',
       )}
     >
-      {ongoing && (
-        <span className="absolute -top-2.5 left-4 text-[10px] font-mono font-semibold bg-green-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">
-          Live Now
-        </span>
-      )}
-
-      {dday && (
-        <span className={cn(
-          'absolute -top-2.5 right-4 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border',
-          dday.className,
-        )}>
-          {dday.label}
-        </span>
-      )}
-
-      <div className="flex items-start gap-3">
-        {/* date block */}
-        <div
+      <div className="flex items-center justify-between mb-1">
+        <span
           className={cn(
-            'shrink-0 w-14 h-14 rounded-lg flex flex-col items-center justify-center text-center',
-            ongoing ? 'bg-green-50 border border-green-200' : 'bg-ink-50 border border-ink-150',
+            'text-xs font-mono w-6 h-6 flex items-center justify-center rounded-full',
+            isToday
+              ? 'bg-blue-500 text-white font-bold'
+              : isCurrentMonth
+                ? 'text-ink-700'
+                : 'text-ink-300',
           )}
         >
-          <span className={cn('text-[10px] font-mono uppercase', ongoing ? 'text-green-600' : 'text-ink-400')}>
-            {new Date(event.date_start).toLocaleDateString('en', { month: 'short' })}
-          </span>
-          <span className={cn('text-lg font-bold leading-none', ongoing ? 'text-green-700' : 'text-ink-800')}>
-            {new Date(event.date_start).getDate()}
-          </span>
-        </div>
-
-        {/* content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border ${meta.color}`}>
-              {meta.badge}
-            </span>
-            <span className="text-[11px] text-ink-400">{event.country}</span>
-            <div className="flex items-center gap-px ml-auto">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  className={cn(
-                    'w-2.5 h-2.5',
-                    i < event.relevance_score ? 'text-amber-400 fill-amber-400' : 'text-ink-200',
-                  )}
-                />
-              ))}
-            </div>
-          </div>
-
-          <h3 className="text-sm font-semibold text-ink-900 leading-snug mb-1.5 truncate">
-            {event.name}
-          </h3>
-
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-ink-500">
-            <span className="flex items-center gap-1">
-              <Calendar className="w-3 h-3 text-ink-400" />
-              {fmtDate(event.date_start)}
-              {event.date_start !== event.date_end && ` – ${fmtDate(event.date_end)}`}
-            </span>
-            <span className="flex items-center gap-1">
-              <MapPin className="w-3 h-3 text-ink-400" />
-              <span className="truncate max-w-[180px]">{event.location}</span>
-            </span>
-          </div>
-        </div>
-
-        {/* link */}
-        <a
-          href={event.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={e => e.stopPropagation()}
-          className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-ink-50"
-        >
-          <ExternalLink className="w-3.5 h-3.5 text-blue-400" />
-        </a>
+          {day.getDate()}
+        </span>
+        {day.getDay() === 0 && isCurrentMonth && (
+          <span className="text-[9px] text-red-400 font-mono">SUN</span>
+        )}
       </div>
+
+      <div className="space-y-0.5">
+        {events.slice(0, maxVisible).map(event => {
+          const meta = TYPE_META[event.type];
+          const ongoing = isOngoing(event, now);
+          const past = isPast(event, now);
+          return (
+            <button
+              key={event.id}
+              onClick={() => onSelectEvent(event)}
+              className={cn(
+                'w-full text-left px-1.5 py-0.5 rounded text-[10px] leading-tight truncate transition-colors',
+                ongoing
+                  ? 'bg-green-100 text-green-800 hover:bg-green-200 border-l-2 border-green-500'
+                  : past
+                    ? 'bg-ink-50 text-ink-400 hover:bg-ink-100'
+                    : `${meta.color} hover:opacity-80`,
+              )}
+              title={event.name}
+            >
+              {event.name}
+            </button>
+          );
+        })}
+        {events.length > maxVisible && (
+          <button
+            onClick={() => setPopoverOpen(true)}
+            className="w-full text-[10px] text-blue-500 hover:text-blue-600 font-medium text-left px-1.5 py-0.5 hover:bg-blue-50 rounded transition-colors"
+          >
+            +{events.length - maxVisible}건 더보기
+          </button>
+        )}
+      </div>
+
+      {popoverOpen && (
+        <DayCellPopover
+          events={events}
+          now={now}
+          onSelect={e => {
+            onSelectEvent(e);
+            setPopoverOpen(false);
+          }}
+          onClose={() => setPopoverOpen(false)}
+        />
+      )}
     </div>
   );
 }
 
-// ---------- Summary Card ----------
+// ---------- Month Summary Bar ----------
 
-function SummaryCard({
-  thisMonthCount,
-  d30Count,
-  onScrollToMonth,
+function MonthSummaryBar({
+  year,
+  month,
+  filtered,
+  now,
 }: {
-  thisMonthCount: number;
-  d30Count: number;
-  onScrollToMonth: () => void;
+  year: number;
+  month: number;
+  filtered: RobotAIEvent[];
+  now: Date;
 }) {
+  const thisMonthEvents = useMemo(() => {
+    return filtered.filter(e => {
+      const s = new Date(e.date_start);
+      return s.getFullYear() === year && s.getMonth() === month;
+    });
+  }, [filtered, year, month]);
+
+  const d30Count = useMemo(() => {
+    const limit = new Date(now);
+    limit.setDate(limit.getDate() + 30);
+    return filtered.filter(e => {
+      const start = new Date(e.date_start);
+      return start >= now && start <= limit;
+    }).length;
+  }, [filtered, now]);
+
+  const nowMonth = now.getFullYear() === year && now.getMonth() === month;
+
   return (
-    <button
-      onClick={onScrollToMonth}
-      className="w-full bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200/50 p-4 hover:shadow-sm transition-shadow text-left"
-    >
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-blue-500" />
-          <span className="text-sm text-ink-700">
-            이번 달 주목 이벤트 <span className="font-bold text-blue-600">{thisMonthCount}</span>건
-          </span>
-        </div>
-        <span className="text-ink-300">|</span>
-        <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-orange-500" />
-          <span className="text-sm text-ink-700">
-            D-30 이내 이벤트 <span className="font-bold text-orange-600">{d30Count}</span>건
-          </span>
-        </div>
-        <ArrowRight className="w-4 h-4 text-ink-300 ml-auto" />
+    <div className="flex items-center gap-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200/50 p-3 px-4">
+      <div className="flex items-center gap-2">
+        <Calendar className="w-4 h-4 text-blue-500" />
+        <span className="text-sm text-ink-700">
+          {nowMonth ? '이번 달' : `${month + 1}월`} 이벤트{' '}
+          <span className="font-bold text-blue-600">{thisMonthEvents.length}</span>건
+        </span>
       </div>
-    </button>
+      {nowMonth && (
+        <>
+          <span className="text-ink-300">|</span>
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-orange-500" />
+            <span className="text-sm text-ink-700">
+              D-30 이내 <span className="font-bold text-orange-600">{d30Count}</span>건
+            </span>
+          </div>
+        </>
+      )}
+      <div className="ml-auto flex items-center gap-3 text-[10px] text-ink-500">
+        {ALL_TYPES.map(t => (
+          <span key={t} className="flex items-center gap-1">
+            <span className={`w-2 h-2 rounded-full ${TYPE_META[t].dot}`} />
+            {TYPE_META[t].label}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -374,7 +465,6 @@ function EventSidePanel({
         )}
       >
         <div className="p-6 space-y-6">
-          {/* Header */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2">
@@ -402,7 +492,6 @@ function EventSidePanel({
             </button>
           </div>
 
-          {/* Details */}
           <div className="space-y-3 bg-ink-50/50 rounded-lg p-4">
             <div className="flex items-center gap-2.5 text-sm text-ink-600">
               <Calendar className="w-4 h-4 text-ink-400 shrink-0" />
@@ -441,7 +530,6 @@ function EventSidePanel({
             </a>
           </div>
 
-          {/* Tags */}
           <div>
             <h3 className="text-[11px] font-semibold text-ink-400 uppercase tracking-wider mb-2.5">태그</h3>
             <div className="flex flex-wrap gap-1.5">
@@ -457,7 +545,6 @@ function EventSidePanel({
             </div>
           </div>
 
-          {/* Related Reports — placeholder */}
           <div>
             <h3 className="text-[11px] font-semibold text-ink-400 uppercase tracking-wider mb-3">관련 리포트</h3>
             <div className="space-y-2">
@@ -484,30 +571,36 @@ function EventSidePanel({
   );
 }
 
-// ---------- Main Component ----------
+// ---------- Skeleton ----------
 
-// ---------- Skeleton Card ----------
-
-function SkeletonCard() {
+function CalendarSkeleton() {
   return (
-    <div className="relative bg-white rounded-xl border border-ink-200 p-4 animate-pulse">
-      <div className="flex items-start gap-3">
-        <div className="shrink-0 w-14 h-14 rounded-lg bg-ink-100" />
-        <div className="flex-1 min-w-0 space-y-2.5">
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-12 bg-ink-100 rounded-full" />
-            <div className="h-3 w-10 bg-ink-50 rounded" />
-          </div>
-          <div className="h-4 w-3/4 bg-ink-100 rounded" />
-          <div className="flex gap-3">
-            <div className="h-3 w-28 bg-ink-50 rounded" />
-            <div className="h-3 w-24 bg-ink-50 rounded" />
-          </div>
+    <div className="space-y-4">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200/50 p-3 animate-pulse">
+        <div className="h-5 w-64 bg-blue-100 rounded" />
+      </div>
+      <div className="bg-white rounded-xl border border-ink-200 overflow-hidden animate-pulse">
+        <div className="grid grid-cols-7 border-b border-ink-100">
+          {WEEKDAYS.map(d => (
+            <div key={d} className="p-2 text-center">
+              <div className="h-4 w-6 bg-ink-100 rounded mx-auto" />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7">
+          {Array.from({ length: 35 }).map((_, i) => (
+            <div key={i} className="min-h-[100px] border-b border-r border-ink-100 p-1.5">
+              <div className="h-4 w-4 bg-ink-100 rounded-full mb-2" />
+              {i % 5 === 0 && <div className="h-3 w-full bg-ink-50 rounded mb-1" />}
+            </div>
+          ))}
         </div>
       </div>
     </div>
   );
 }
+
+// ---------- Main Component ----------
 
 interface EventCalendarProps {
   events: RobotAIEvent[];
@@ -519,12 +612,12 @@ export function EventCalendar({ events, loading, error }: EventCalendarProps) {
   const now = useMemo(() => new Date(), []);
   const countries = useMemo(() => Array.from(new Set(events.map(e => e.country))).sort(), [events]);
 
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+  const [viewMonth, setViewMonth] = useState(now.getMonth());
   const [selectedTypes, setSelectedTypes] = useState<Set<EventType>>(new Set(ALL_TYPES));
   const [country, setCountry] = useState('전체');
   const [minRelevance, setMinRelevance] = useState(1);
   const [selectedEvent, setSelectedEvent] = useState<RobotAIEvent | null>(null);
-
-  const monthRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const filtered = useMemo(() => {
     return events.filter(e => {
@@ -535,39 +628,34 @@ export function EventCalendar({ events, loading, error }: EventCalendarProps) {
     });
   }, [events, selectedTypes, country, minRelevance]);
 
-  const grouped = useMemo(() => {
+  const calendarDays = useMemo(() => getCalendarDays(viewYear, viewMonth), [viewYear, viewMonth]);
+
+  const eventsMap = useMemo(() => {
     const map = new Map<string, RobotAIEvent[]>();
-    for (const e of filtered) {
-      const key = monthKey(e.date_start);
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(e);
+    for (const day of calendarDays) {
+      if (!day) continue;
+      const key = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
+      map.set(key, getEventsForDay(filtered, day));
     }
-    const sorted = [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
-    return sorted;
-  }, [filtered]);
+    return map;
+  }, [calendarDays, filtered]);
 
-  const currentMonth = monthKey(now.toISOString());
+  const goToday = useCallback(() => {
+    setViewYear(now.getFullYear());
+    setViewMonth(now.getMonth());
+  }, [now]);
 
-  const thisMonthCount = useMemo(
-    () => filtered.filter(e => monthKey(e.date_start) === currentMonth).length,
-    [filtered, currentMonth],
-  );
+  const goPrev = () => {
+    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
+    else setViewMonth(m => m - 1);
+  };
 
-  const d30Count = useMemo(() => {
-    const limit = new Date(now);
-    limit.setDate(limit.getDate() + 30);
-    return filtered.filter(e => {
-      const start = new Date(e.date_start);
-      return start >= now && start <= limit;
-    }).length;
-  }, [filtered, now]);
+  const goNext = () => {
+    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); }
+    else setViewMonth(m => m + 1);
+  };
 
-  const scrollToCurrentMonth = useCallback(() => {
-    const el = monthRefs.current.get(currentMonth);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [currentMonth]);
+  const isCurrentView = viewYear === now.getFullYear() && viewMonth === now.getMonth();
 
   const activeFilters = (selectedTypes.size < ALL_TYPES.length && selectedTypes.size > 0)
     || country !== '전체'
@@ -580,7 +668,7 @@ export function EventCalendar({ events, loading, error }: EventCalendarProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* ===== Filter Bar ===== */}
       <div className="bg-white rounded-xl border border-ink-200 p-4">
         <div className="flex flex-wrap items-center gap-3">
@@ -602,7 +690,7 @@ export function EventCalendar({ events, loading, error }: EventCalendarProps) {
           {activeFilters && (
             <button
               onClick={resetFilters}
-              className="flex items-center gap-1 text-xs text-ink-400 hover:text-ink-600 transition-colors ml-auto"
+              className="flex items-center gap-1 text-xs text-ink-400 hover:text-ink-600 transition-colors"
             >
               <X className="w-3 h-3" />
               필터 초기화
@@ -617,29 +705,7 @@ export function EventCalendar({ events, loading, error }: EventCalendarProps) {
       </div>
 
       {/* ===== Loading ===== */}
-      {loading && (
-        <div className="space-y-6">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200/50 p-4 animate-pulse">
-            <div className="h-5 w-64 bg-blue-100 rounded" />
-          </div>
-          <div className="relative">
-            <div className="absolute left-[23px] top-0 bottom-0 w-px bg-ink-150" />
-            <div className="space-y-8">
-              {[1, 2, 3].map(g => (
-                <div key={g} className="relative">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="relative z-10 w-[47px] h-7 rounded-full bg-ink-100" />
-                    <div className="h-4 w-20 bg-ink-100 rounded" />
-                  </div>
-                  <div className="ml-[47px] pl-4 space-y-3">
-                    <SkeletonCard />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {loading && <CalendarSkeleton />}
 
       {/* ===== Error ===== */}
       {!loading && error && (
@@ -649,87 +715,98 @@ export function EventCalendar({ events, loading, error }: EventCalendarProps) {
         </div>
       )}
 
-      {/* ===== Summary Card ===== */}
+      {/* ===== Calendar ===== */}
       {!loading && !error && (
-        <SummaryCard
-          thisMonthCount={thisMonthCount}
-          d30Count={d30Count}
-          onScrollToMonth={scrollToCurrentMonth}
-        />
-      )}
+        <>
+          <MonthSummaryBar year={viewYear} month={viewMonth} filtered={filtered} now={now} />
 
-      {/* ===== Timeline ===== */}
-      <div className="relative">
-        {/* vertical line */}
-        <div className="absolute left-[23px] top-0 bottom-0 w-px bg-ink-150" />
+          {/* Month Navigation */}
+          <div className="flex items-center justify-between bg-white rounded-xl border border-ink-200 px-4 py-3">
+            <button
+              onClick={goPrev}
+              className="p-1.5 rounded-lg hover:bg-ink-50 transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5 text-ink-600" />
+            </button>
 
-        <div className="space-y-8">
-          {grouped.map(([month, items]) => {
-            const isCurrent = month === currentMonth;
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-bold text-ink-900 font-mono">
+                {viewYear}년 {viewMonth + 1}월
+              </h2>
+              {!isCurrentView && (
+                <button
+                  onClick={goToday}
+                  className="text-[11px] font-mono font-semibold bg-blue-100 text-blue-600 px-2.5 py-1 rounded-full hover:bg-blue-200 transition-colors"
+                >
+                  오늘
+                </button>
+              )}
+            </div>
 
-            return (
-              <div
-                key={month}
-                ref={el => {
-                  if (el) monthRefs.current.set(month, el);
-                  else monthRefs.current.delete(month);
-                }}
-                className="relative"
-              >
-                {/* month header */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div
-                    className={cn(
-                      'relative z-10 w-[47px] h-7 rounded-full flex items-center justify-center text-[11px] font-mono font-semibold border',
-                      isCurrent
-                        ? 'bg-blue-500 text-white border-blue-500'
-                        : 'bg-white text-ink-600 border-ink-200',
-                    )}
-                  >
-                    {month.split('-')[1]}월
-                  </div>
-                  <span className={cn(
-                    'text-sm font-semibold',
-                    isCurrent ? 'text-blue-600' : 'text-ink-700',
-                  )}>
-                    {monthLabel(month)}
-                  </span>
-                  <span className="text-[11px] text-ink-400 font-mono">{items.length}건</span>
-                  {isCurrent && (
-                    <span className="text-[10px] font-mono font-semibold bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
-                      NOW
-                    </span>
-                  )}
-                </div>
-
-                {/* cards */}
-                <div className="ml-[47px] pl-4 space-y-3">
-                  {items
-                    .sort((a, b) => a.date_start.localeCompare(b.date_start))
-                    .map(event => (
-                      <EventCard
-                        key={event.id}
-                        event={event}
-                        now={now}
-                        onClick={() => setSelectedEvent(event)}
-                      />
-                    ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {grouped.length === 0 && (
-          <div className="text-center py-20 text-ink-400">
-            <Calendar className="w-10 h-10 mx-auto mb-3 text-ink-200" />
-            <p className="text-sm">조건에 맞는 이벤트가 없습니다</p>
-            <button onClick={resetFilters} className="mt-2 text-xs text-blue-500 hover:underline">
-              필터 초기화
+            <button
+              onClick={goNext}
+              className="p-1.5 rounded-lg hover:bg-ink-50 transition-colors"
+            >
+              <ChevronRight className="w-5 h-5 text-ink-600" />
             </button>
           </div>
-        )}
-      </div>
+
+          {/* Calendar Grid */}
+          <div className="bg-white rounded-xl border border-ink-200 overflow-hidden">
+            {/* Weekday Header */}
+            <div className="grid grid-cols-7 border-b border-ink-200 bg-ink-50/80">
+              {WEEKDAYS.map((d, i) => (
+                <div
+                  key={d}
+                  className={cn(
+                    'text-center py-2.5 text-xs font-semibold tracking-wider',
+                    i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-ink-500',
+                  )}
+                >
+                  {d}
+                </div>
+              ))}
+            </div>
+
+            {/* Day Grid */}
+            <div className="grid grid-cols-7">
+              {calendarDays.map((day, idx) => {
+                if (!day) {
+                  return (
+                    <div key={`empty-${idx}`} className="min-h-[100px] border-b border-r border-ink-100 bg-ink-50/30" />
+                  );
+                }
+
+                const key = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
+                const dayEvents = eventsMap.get(key) || [];
+                const isCurrentMonth = day.getMonth() === viewMonth;
+
+                return (
+                  <CalendarDayCell
+                    key={key}
+                    day={day}
+                    events={dayEvents}
+                    now={now}
+                    isCurrentMonth={isCurrentMonth}
+                    onSelectEvent={setSelectedEvent}
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Empty state */}
+          {filtered.length === 0 && (
+            <div className="text-center py-12 text-ink-400">
+              <Calendar className="w-10 h-10 mx-auto mb-3 text-ink-200" />
+              <p className="text-sm">조건에 맞는 이벤트가 없습니다</p>
+              <button onClick={resetFilters} className="mt-2 text-xs text-blue-500 hover:underline">
+                필터 초기화
+              </button>
+            </div>
+          )}
+        </>
+      )}
 
       {/* ===== Side Panel ===== */}
       {selectedEvent && (
