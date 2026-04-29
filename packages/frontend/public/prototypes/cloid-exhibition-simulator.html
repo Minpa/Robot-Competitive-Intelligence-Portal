@@ -1187,6 +1187,7 @@
       'FLOOR_SPEAKER', 'BOOKSHELF_SPEAKER', 'SOUNDBAR', 'SUBWOOFER', 'SPEAKER_PEDESTAL',
       // APPLIANCE
       'REFRIGERATOR', 'WASHING_MACHINE', 'DRYER', 'WASHER_DRYER_TOWER', 'KITCHEN_WALL',
+      'AIR_CONDITIONER', 'AIR_PURIFIER', 'STYLER',
       // FURNITURE
       'SOFA_3SEAT', 'SOFA_2SEAT', 'COFFEE_TABLE', 'SIDE_TABLE', 'CURIO_SHELF', 'RUG', 'PHOTO_RUG',
       'LAUNDRY_BASKET', 'MEDIA_CABINET',
@@ -1208,6 +1209,7 @@
       SUBWOOFER: 'AUDIO', SPEAKER_PEDESTAL: 'AUDIO',
       REFRIGERATOR: 'APPLIANCE', WASHING_MACHINE: 'APPLIANCE', DRYER: 'APPLIANCE',
       WASHER_DRYER_TOWER: 'APPLIANCE', KITCHEN_WALL: 'APPLIANCE',
+      AIR_CONDITIONER: 'APPLIANCE', AIR_PURIFIER: 'APPLIANCE', STYLER: 'APPLIANCE',
       SOFA_3SEAT: 'FURNITURE', SOFA_2SEAT: 'FURNITURE', COFFEE_TABLE: 'FURNITURE',
       SIDE_TABLE: 'FURNITURE', CURIO_SHELF: 'FURNITURE', RUG: 'FURNITURE',
       PHOTO_RUG: 'FURNITURE', LAUNDRY_BASKET: 'FURNITURE', MEDIA_CABINET: 'FURNITURE',
@@ -1242,6 +1244,9 @@
       DRYER: { width: 0.60, depth: 0.62, height: 0.85 },
       WASHER_DRYER_TOWER: { width: 0.70, depth: 0.70, height: 1.85 },
       KITCHEN_WALL: { width: 3.20, depth: 0.65, height: 2.40 },
+      AIR_CONDITIONER: { width: 0.42, depth: 0.42, height: 1.85 },
+      AIR_PURIFIER: { width: 0.42, depth: 0.42, height: 1.05 },
+      STYLER: { width: 0.60, depth: 0.62, height: 1.85 },
       SOFA_3SEAT: { width: 2.10, depth: 0.95, height: 0.85 },
       SOFA_2SEAT: { width: 1.55, depth: 0.95, height: 0.85 },
       COFFEE_TABLE: { width: 1.20, depth: 0.60, height: 0.40 },
@@ -1278,6 +1283,7 @@
       SUBWOOFER: 'free', SPEAKER_PEDESTAL: 'free',
       REFRIGERATOR: 'wall', WASHING_MACHINE: 'wall', DRYER: 'wall',
       WASHER_DRYER_TOWER: 'wall', KITCHEN_WALL: 'wall',
+      AIR_CONDITIONER: 'wall', AIR_PURIFIER: 'free', STYLER: 'wall',
       SOFA_3SEAT: 'free', SOFA_2SEAT: 'free', COFFEE_TABLE: 'free',
       SIDE_TABLE: 'free', CURIO_SHELF: 'wall', RUG: 'free', PHOTO_RUG: 'free',
       LAUNDRY_BASKET: 'free', MEDIA_CABINET: 'wall',
@@ -1297,6 +1303,7 @@
       SUBWOOFER: 0x202020, SPEAKER_PEDESTAL: 0xc0c0c0,
       REFRIGERATOR: 0xe5e5e5, WASHING_MACHINE: 0xf5f5f5, DRYER: 0xf5f5f5,
       WASHER_DRYER_TOWER: 0x4a4f55, KITCHEN_WALL: 0x8a6a4a,
+      AIR_CONDITIONER: 0xf5f5f5, AIR_PURIFIER: 0xeeeeee, STYLER: 0x3a3a3e,
       SOFA_3SEAT: 0xd6c9b8, SOFA_2SEAT: 0xd6c9b8, COFFEE_TABLE: 0x6b5544,
       SIDE_TABLE: 0xd0d0d0, CURIO_SHELF: 0xf5f5f5, RUG: 0xc0b8a8,
       PHOTO_RUG: 0xf2efe9, LAUNDRY_BASKET: 0xb8a07a, MEDIA_CABINET: 0x8a6a4a,
@@ -1319,6 +1326,8 @@
       SOUNDBAR: 'Soundbar', SUBWOOFER: 'Subwoofer', SPEAKER_PEDESTAL: 'Speaker Pedestal',
       REFRIGERATOR: 'Refrigerator', WASHING_MACHINE: 'Washing Machine', DRYER: 'Dryer',
       WASHER_DRYER_TOWER: 'Washer/Dryer Tower', KITCHEN_WALL: 'Kitchen Wall',
+      AIR_CONDITIONER: 'Air Conditioner (standing)', AIR_PURIFIER: 'Air Purifier (tower)',
+      STYLER: 'LG Styler (clothing care)',
       SOFA_3SEAT: 'Sofa (3-seat)', SOFA_2SEAT: 'Sofa (2-seat)', COFFEE_TABLE: 'Coffee Table',
       SIDE_TABLE: 'Side Table', CURIO_SHELF: 'Curio Shelf', RUG: 'Rug', PHOTO_RUG: 'Photo Zone Rug',
       LAUNDRY_BASKET: 'Laundry Basket', MEDIA_CABINET: 'Media Cabinet (with display)',
@@ -1355,6 +1364,9 @@
       DRYER: { h: 0.80, weight: 0.3, label: 'control panel' },
       WASHER_DRYER_TOWER: { h: 0.55, weight: 0.4, label: 'washer porthole' },
       KITCHEN_WALL: { h: 0.95, weight: 0.5, label: 'counter top' },
+      AIR_CONDITIONER: { h: 1.50, weight: 0.0, label: 'control panel' },
+      AIR_PURIFIER: { h: 0.90, weight: 0.0, label: 'top dial' },
+      STYLER: { h: 1.10, weight: 0.3, label: 'door handle' },
       SOFA_3SEAT: { h: 0.45, weight: 0.2, label: 'seat (deliver)' },
       SOFA_2SEAT: { h: 0.45, weight: 0.2, label: 'seat (deliver)' },
       COFFEE_TABLE: { h: 0.40, weight: 0.4, label: 'table top' },
@@ -2833,6 +2845,216 @@
       return group;
     }
 
+    // ============ HOME APPLIANCE BUILDERS (additional retail items) ============
+
+    function buildAirConditioner() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.AIR_CONDITIONER;
+      const bodyMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.AIR_CONDITIONER, roughness: 0.4, metalness: 0.25 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4, metalness: 0.4 });
+      const accentMat = new THREE.MeshStandardMaterial({ color: 0xE63950, emissive: 0xE63950, emissiveIntensity: 0.5 });
+      const ledMat = new THREE.MeshStandardMaterial({ color: 0x22ff66, emissive: 0x22ff66, emissiveIntensity: 1.2 });
+      const screenMat = new THREE.MeshStandardMaterial({ color: 0x0a1a3a, emissive: 0x4a90ff, emissiveIntensity: 0.55 });
+      // Main body — slim tall white tower
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        bodyMat
+      );
+      body.position.y = dims.height / 2;
+      body.castShadow = true; body.receiveShadow = true;
+      group.add(body);
+      // Top cap (slightly inset darker plate where outlet vent is)
+      const topCap = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.04, 0.04, dims.depth - 0.04),
+        darkMat
+      );
+      topCap.position.y = dims.height + 0.005;
+      group.add(topCap);
+      // Top louver vent (output) — angled fins
+      for (let i = 0; i < 4; i++) {
+        const fin = new THREE.Mesh(
+          new THREE.BoxGeometry(dims.width - 0.10, 0.005, 0.018),
+          new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.5 })
+        );
+        fin.position.set(0, dims.height + 0.022, -0.10 + i * 0.05);
+        fin.rotation.x = -0.2;
+        group.add(fin);
+      }
+      // Display panel (front-top with capacitive screen)
+      const displayBezel = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.06, 0.16, 0.015),
+        darkMat
+      );
+      displayBezel.position.set(0, dims.height - 0.20, dims.depth / 2 + 0.001);
+      group.add(displayBezel);
+      const display = new THREE.Mesh(
+        new THREE.PlaneGeometry(dims.width - 0.10, 0.13),
+        screenMat
+      );
+      display.position.set(0, dims.height - 0.20, dims.depth / 2 + 0.010);
+      group.add(display);
+      // Front horizontal louver (large air output flap)
+      const louver = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.04, 0.42, 0.04),
+        bodyMat
+      );
+      louver.position.set(0, dims.height * 0.62, dims.depth / 2 + 0.018);
+      louver.rotation.x = 0.20; // slight tilt open
+      group.add(louver);
+      // Lower vertical vent slits (intake side panels)
+      [-1, 1].forEach(s => {
+        for (let i = 0; i < 6; i++) {
+          const slit = new THREE.Mesh(
+            new THREE.BoxGeometry(0.005, 0.18, 0.012),
+            darkMat
+          );
+          slit.position.set(s * (dims.width / 2 + 0.001), dims.height * 0.30 - i * 0.022, dims.depth * 0.10);
+          group.add(slit);
+        }
+      });
+      // Status LED indicator (front bottom right)
+      const led = new THREE.Mesh(
+        new THREE.SphereGeometry(0.008, 10, 8),
+        ledMat
+      );
+      led.position.set(dims.width / 2 - 0.05, dims.height * 0.10, dims.depth / 2 + 0.003);
+      group.add(led);
+      // LG brand stripe across top
+      const stripe = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.04, 0.012, 0.003),
+        accentMat
+      );
+      stripe.position.set(0, dims.height - 0.05, dims.depth / 2 + 0.003);
+      group.add(stripe);
+      return group;
+    }
+
+    function buildAirPurifier() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.AIR_PURIFIER;
+      const bodyMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.AIR_PURIFIER, roughness: 0.5, metalness: 0.15 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.4 });
+      const ringMat = new THREE.MeshStandardMaterial({ color: 0x9a9a9a, metalness: 0.7, roughness: 0.3 });
+      const ledMat = new THREE.MeshStandardMaterial({ color: 0x22ddff, emissive: 0x22ddff, emissiveIntensity: 1.0 });
+      // Cylindrical body (slightly tapered, slim tower)
+      const body = new THREE.Mesh(
+        new THREE.CylinderGeometry(dims.width / 2 - 0.005, dims.width / 2, dims.height, 28),
+        bodyMat
+      );
+      body.position.y = dims.height / 2;
+      body.castShadow = true;
+      group.add(body);
+      // Mid-height intake mesh ring (perforated band, dark)
+      const intake = new THREE.Mesh(
+        new THREE.CylinderGeometry(dims.width / 2 + 0.002, dims.width / 2 + 0.002, 0.40, 28),
+        darkMat
+      );
+      intake.position.y = dims.height * 0.40;
+      group.add(intake);
+      // Top output — dome with center dial
+      const dome = new THREE.Mesh(
+        new THREE.SphereGeometry(dims.width / 2 - 0.005, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.4),
+        bodyMat
+      );
+      dome.position.y = dims.height;
+      group.add(dome);
+      // Top dial / display (recessed)
+      const dial = new THREE.Mesh(
+        new THREE.CylinderGeometry(dims.width / 2 - 0.04, dims.width / 2 - 0.04, 0.012, 24),
+        darkMat
+      );
+      dial.position.y = dims.height + 0.06;
+      group.add(dial);
+      // Glowing PM2.5 indicator ring
+      const indicator = new THREE.Mesh(
+        new THREE.TorusGeometry(dims.width / 2 - 0.06, 0.005, 6, 28),
+        ledMat
+      );
+      indicator.rotation.x = Math.PI / 2;
+      indicator.position.y = dims.height + 0.067;
+      group.add(indicator);
+      // Two horizontal accent rings on body (mid + lower)
+      [dims.height * 0.62, dims.height * 0.20].forEach(y => {
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(dims.width / 2 + 0.003, 0.003, 6, 24),
+          ringMat
+        );
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = y;
+        group.add(ring);
+      });
+      return group;
+    }
+
+    function buildStyler() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.STYLER;
+      const bodyMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.STYLER, roughness: 0.45, metalness: 0.5 });
+      const glassMat = new THREE.MeshStandardMaterial({ color: 0x202028, transparent: true, opacity: 0.55, roughness: 0.1, metalness: 0.5 });
+      const handleMat = new THREE.MeshStandardMaterial({ color: 0x808080, metalness: 0.8, roughness: 0.3 });
+      const screenMat = new THREE.MeshStandardMaterial({ color: 0x102a55, emissive: 0x4a90ff, emissiveIntensity: 0.55 });
+      const ledMat = new THREE.MeshStandardMaterial({ color: 0x22ddff, emissive: 0x22ddff, emissiveIntensity: 1.0 });
+      // Main cabinet body (dark closet)
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        bodyMat
+      );
+      body.position.y = dims.height / 2;
+      body.castShadow = true; body.receiveShadow = true;
+      group.add(body);
+      // Glass door (front-facing, mirror-tinted)
+      const door = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.04, dims.height - 0.10, 0.012),
+        glassMat
+      );
+      door.position.set(0, dims.height / 2, dims.depth / 2 + 0.004);
+      group.add(door);
+      // Door frame (subtle outline)
+      const frameTop = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.02, 0.012, 0.006),
+        bodyMat
+      );
+      frameTop.position.set(0, dims.height - 0.06, dims.depth / 2 + 0.011);
+      group.add(frameTop);
+      const frameBottom = frameTop.clone(); frameBottom.position.y = 0.05; group.add(frameBottom);
+      // Vertical recessed handle (right side)
+      const handle = new THREE.Mesh(
+        new THREE.BoxGeometry(0.018, 0.42, 0.014),
+        handleMat
+      );
+      handle.position.set(dims.width / 2 - 0.07, dims.height * 0.50, dims.depth / 2 + 0.014);
+      group.add(handle);
+      // Touch panel (top-front)
+      const panel = new THREE.Mesh(
+        new THREE.BoxGeometry(0.20, 0.10, 0.015),
+        new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.3 })
+      );
+      panel.position.set(-dims.width / 2 + 0.20, dims.height - 0.20, dims.depth / 2 + 0.011);
+      group.add(panel);
+      const screen = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.17, 0.07),
+        screenMat
+      );
+      screen.position.set(-dims.width / 2 + 0.20, dims.height - 0.20, dims.depth / 2 + 0.020);
+      group.add(screen);
+      // LG branding strip at top
+      const lgStripe = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.04, 0.012, 0.003),
+        ledMat
+      );
+      lgStripe.position.set(0, dims.height - 0.04, dims.depth / 2 + 0.003);
+      group.add(lgStripe);
+      // Hint of clothes hanger silhouette inside (faint)
+      const hangerBar = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.005, 0.005, dims.width - 0.20, 8),
+        new THREE.MeshStandardMaterial({ color: 0x9a9a9a, metalness: 0.6, roughness: 0.4 })
+      );
+      hangerBar.rotation.z = Math.PI / 2;
+      hangerBar.position.set(0, dims.height - 0.18, dims.depth / 2 - 0.18);
+      group.add(hangerBar);
+      return group;
+    }
+
     // Sub-zone banner: backlit text panel mounted overhead. The label string
     // is read from instance.label (defaults to "ZONE"); rendered via canvas.
     function buildZoneBanner(instance) {
@@ -3925,6 +4147,9 @@
       DRYER: buildDryer,
       WASHER_DRYER_TOWER: buildWasherDryerTower,
       KITCHEN_WALL: buildKitchenWall,
+      AIR_CONDITIONER: buildAirConditioner,
+      AIR_PURIFIER: buildAirPurifier,
+      STYLER: buildStyler,
       SOFA_3SEAT: buildSofa3,
       SOFA_2SEAT: buildSofa2,
       COFFEE_TABLE: buildCoffeeTable,
@@ -8154,62 +8379,82 @@
     // HiPlaza (LG Best Shop) — large premium retail showroom based on photos:
     //   ceiling: pink/red emissive light panel (signature HiPlaza ambience)
     //   back wall: 'Life's Good' LED video wall + TV wall grid (LG OLED zone)
-    //   center 'Working' zone: 4 mirrored display islands with laptops
-    //   right zone: 2 massage chairs (demo) + audio (soundbar)
-    //   left zone: TV wall grid + consultation desk + chairs
-    //   floor signs: 'NEW' / 'WORKING' / 'TV' as zone markers
-    //   1 CLOiD Wheel guide robot
+    //   center 'Working' zone: mirrored display islands with laptops
+    //   right side wall: HOME APPLIANCES row (refrigerators, washers, ACs, styler)
+    //   right-front: massage chair demo (wellness)
+    //   left zone: consultation desk + lounge corner + CLOiD demo
+    //   floor signs: zone markers
+    //   robots: greeter cloidWheel + NR cleaner demo
     function presetHiPlaza() {
-      const s = { booth: { widthFt: 60, depthFt: 40 }, furniture: [], robots: [] };
+      const s = { booth: { widthFt: 70, depthFt: 45 }, furniture: [], robots: [] };
       const { m, r } = presetHelpers(s);
-      const Z_BACK = -5.80;
+      const Z_BACK = -6.50;
+      const X_RIGHT = 9.40; // right wall — facing -X
+      const X_LEFT  = -9.40; // left wall — facing +X
 
       // ── Signature ceiling: large pink/red light panel above center ──
-      m('CEILING_LIGHT_PANEL', 0, -1.50, 0, '천장 LED 패널');
+      m('CEILING_LIGHT_PANEL', -1.0, -2.00, 0, '천장 LED 패널');
 
-      // ── Back wall: 'Life's Good' LED video wall (right side) + TV wall grid (left) ──
-      m('LED_VIDEO_WALL', 4.30, Z_BACK, 0, "Life's Good 사이니지");
-      m('TV_WALL_GRID', -3.60, Z_BACK + 0.08, 0, 'OLED TV 월그리드 좌측');
-      m('TV_WALL_GRID',  0.00, Z_BACK + 0.08, 0, 'OLED TV 월그리드 중앙');
+      // ── Back wall: 'Life's Good' LED video wall (left of center) +
+      //              TV wall grid (right of center) ──
+      m('LED_VIDEO_WALL', -3.50, Z_BACK, 0, "Life's Good 사이니지");
+      m('TV_WALL_GRID',    1.50, Z_BACK + 0.08, 0, 'OLED TV 월그리드');
+      m('TV_WALL_GRID',    5.00, Z_BACK + 0.08, 0, 'OLED TV 월그리드 2');
+      m('SOUNDBAR',        1.50, Z_BACK + 0.30, 0, '사운드바');
 
-      // ── Working Zone (center, 4 mirrored display islands with laptops) ──
-      m('DISPLAY_ISLAND', -2.00, -1.30, 0, '워킹 아일랜드 1');
-      m('DISPLAY_ISLAND',  0.00, -1.30, 0, '워킹 아일랜드 2');
-      m('DISPLAY_ISLAND',  2.00, -1.30, 0, '워킹 아일랜드 3');
-      m('DISPLAY_ISLAND', -1.00,  0.50, Math.PI, '워킹 아일랜드 4');
-      m('DISPLAY_ISLAND',  1.00,  0.50, Math.PI, '워킹 아일랜드 5');
-      m('ZONE_FLOOR_SIGN', -3.40, -1.30, 0, 'WORKING 사이니지', { label: 'WORKING' });
+      // ── Working Zone (center, 5 mirrored display islands with laptops) ──
+      m('DISPLAY_ISLAND', -3.00, -2.00, 0, '워킹 아일랜드 1');
+      m('DISPLAY_ISLAND', -1.00, -2.00, 0, '워킹 아일랜드 2');
+      m('DISPLAY_ISLAND',  1.00, -2.00, 0, '워킹 아일랜드 3');
+      m('DISPLAY_ISLAND', -2.00, -0.20, Math.PI, '워킹 아일랜드 4');
+      m('DISPLAY_ISLAND',  0.00, -0.20, Math.PI, '워킹 아일랜드 5');
+      m('ZONE_FLOOR_SIGN', -4.40, -2.00, 0, 'WORKING 사이니지', { label: 'WORKING' });
 
-      // ── TV / OLED Demo Zone (right) ──
-      // Wall behind TVs already on back; add audio + viewing seat
-      m('SOUNDBAR', 4.30, Z_BACK + 0.30, 0, '사운드바');
-      m('SOFA_2SEAT', 5.50, -2.20, -Math.PI / 2, 'TV 시청 소파');
-      m('COFFEE_TABLE', 4.30, -2.20, 0, '시청 테이블');
-      m('ZONE_FLOOR_SIGN', 6.50, -3.40, 0, 'TV 사이니지', { label: 'TV' });
+      // ── HOME APPLIANCES Zone (right wall, facing -X) ──
+      // Refrigerators (back-right corner)
+      m('REFRIGERATOR',     X_RIGHT - 0.40, Z_BACK + 0.55, -Math.PI / 2, '냉장고 1 (4-Door)');
+      m('REFRIGERATOR',     X_RIGHT - 0.40, Z_BACK + 1.50, -Math.PI / 2, '냉장고 2 (4-Door)');
+      m('STYLER',           X_RIGHT - 0.40, Z_BACK + 2.55, -Math.PI / 2, 'LG 스타일러');
+      // Washer/dryer towers
+      m('WASHER_DRYER_TOWER', X_RIGHT - 0.40, Z_BACK + 3.45, -Math.PI / 2, 'WashTower 1');
+      m('WASHER_DRYER_TOWER', X_RIGHT - 0.40, Z_BACK + 4.30, -Math.PI / 2, 'WashTower 2');
+      // Standalone washer + dryer pair (front-load horizontal)
+      m('WASHING_MACHINE',  X_RIGHT - 0.45, Z_BACK + 5.30, -Math.PI / 2, '드럼 세탁기');
+      m('DRYER',            X_RIGHT - 0.45, Z_BACK + 6.10, -Math.PI / 2, '건조기');
+      // Air conditioners — 3 standing units lined up
+      m('AIR_CONDITIONER',  X_RIGHT - 0.30, Z_BACK + 7.30, -Math.PI / 2, '에어컨 1');
+      m('AIR_CONDITIONER',  X_RIGHT - 0.30, Z_BACK + 8.00, -Math.PI / 2, '에어컨 2');
+      m('AIR_CONDITIONER',  X_RIGHT - 0.30, Z_BACK + 8.70, -Math.PI / 2, '에어컨 3');
+      // Air purifier (small tower) at front of appliances row
+      m('AIR_PURIFIER',     X_RIGHT - 0.50, Z_BACK + 9.50, 0, '공기청정기');
+      // Zone signage
+      m('ZONE_FLOOR_SIGN',  X_RIGHT - 1.40, Z_BACK + 0.50, 0, 'HOME 사이니지', { label: 'HOME' });
+      m('ZONE_FLOOR_SIGN',  X_RIGHT - 1.40, Z_BACK + 5.30, 0, 'WASH 사이니지', { label: 'WASH' });
+      m('ZONE_FLOOR_SIGN',  X_RIGHT - 1.40, Z_BACK + 8.00, 0, 'AIR 사이니지', { label: 'AIR' });
 
-      // ── Massage Chair Demo Zone (front-right) ──
-      m('MASSAGE_CHAIR', 5.40, 2.80, -Math.PI / 4, '마사지 체어 1');
-      m('MASSAGE_CHAIR', 6.80, 3.80, -Math.PI / 4, '마사지 체어 2');
-      m('ZONE_FLOOR_SIGN', 4.50, 4.40, 0, 'WELLNESS 사이니지', { label: 'WELLNESS' });
+      // ── Massage Chair Demo Zone (front, near appliances zone) ──
+      m('MASSAGE_CHAIR', 5.50, 4.30, -Math.PI / 4, '마사지 체어 1');
+      m('MASSAGE_CHAIR', 7.20, 5.20, -Math.PI / 4, '마사지 체어 2');
+      m('ZONE_FLOOR_SIGN', 4.30, 5.50, 0, 'WELLNESS 사이니지', { label: 'WELLNESS' });
 
-      // ── Consultation Desk (front-left) ──
-      m('OFFICE_DESK', -5.80, 2.50, 0, '상담 데스크');
-      m('OFFICE_CHAIR', -5.80, 1.95, 0, '상담 직원석');
-      m('OFFICE_CHAIR', -5.80, 3.30, Math.PI, '상담 고객석');
-      m('ZONE_FLOOR_SIGN', -7.40, 2.50, 0, 'NEW 사이니지', { label: 'NEW' });
+      // ── Consultation Desk (front-left center) ──
+      m('OFFICE_DESK', -5.80, 3.50, 0, '상담 데스크');
+      m('OFFICE_CHAIR', -5.80, 2.95, 0, '상담 직원석');
+      m('OFFICE_CHAIR', -5.80, 4.30, Math.PI, '상담 고객석');
+      m('ZONE_FLOOR_SIGN', -7.20, 3.50, 0, 'NEW 사이니지', { label: 'NEW' });
 
       // ── Lounge corner (front-far-left) ──
-      m('SOFA_3SEAT', -7.20, 4.50, 0, '라운지 소파');
-      m('FLOOR_LAMP', -8.30, 4.50, 0, '라운지 램프');
-      m('RUG', -7.00, 4.50, 0, '라운지 러그');
+      m('SOFA_3SEAT', X_LEFT + 1.80, 5.50, 0, '라운지 소파');
+      m('FLOOR_LAMP', X_LEFT + 0.50, 5.50, 0, '라운지 램프');
+      m('RUG',        X_LEFT + 1.80, 5.50, 0, '라운지 러그');
 
-      // ── Roomba/cleaner demo at left wall (floor display) ──
-      m('ZONE_FLOOR_SIGN', -7.40, 0.00, 0, 'CLOiD 사이니지', { label: 'CLOiD' });
+      // ── Roomba/cleaner demo (left wall, near greet area) ──
+      m('ZONE_FLOOR_SIGN', X_LEFT + 1.20, 0.00, 0, 'CLOiD 사이니지', { label: 'CLOiD' });
 
       // ── Greeter robot near entrance (front-center) ──
-      r('cloidWheel', 0.00, 4.50, Math.PI, '안내 로봇');
-      // Cleaner demo (NR) on display
-      r('cleaner', -7.40, -0.80, Math.PI, 'NR 데모');
+      r('cloidWheel', -1.00, 5.50, Math.PI, '안내 로봇');
+      // Cleaner demo (NR) on left side
+      r('cleaner', X_LEFT + 1.50, -0.80, Math.PI, 'NR 데모');
 
       return s;
     }
