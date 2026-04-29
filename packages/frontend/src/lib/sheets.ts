@@ -1,6 +1,6 @@
 import type { RobotAIEvent, EventType } from '@/types/event-calendar';
 
-const VALID_TYPES: EventType[] = ['전시', '학회', '정책'];
+const VALID_TYPES: EventType[] = ['전시', '학회', '세미나'];
 
 function parseRow(row: string[], index: number): RobotAIEvent | null {
   try {

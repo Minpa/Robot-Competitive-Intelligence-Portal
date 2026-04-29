@@ -48,7 +48,7 @@ function EventCalendarContent() {
         module="INTELLIGENCE FEED V4.2"
         titleKo="이벤트 캘린더"
         titleEn="EVENT CALENDAR"
-        description="로봇·AI 글로벌 전시, 학술대회, 정책·규제 이벤트 일정"
+        description="로봇·AI 글로벌 전시, 학회, 세미나 이벤트 일정"
         actions={
           <div className="flex items-center gap-3">
             {lastUpdated && (

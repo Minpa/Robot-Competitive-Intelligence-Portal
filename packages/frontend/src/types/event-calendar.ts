@@ -1,4 +1,4 @@
-export type EventType = '전시' | '학회' | '정책';
+export type EventType = '전시' | '학회' | '세미나';
 
 export interface RobotAIEvent {
   id: string;

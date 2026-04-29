@@ -18,11 +18,11 @@ import {
 import { cn } from '@/lib/utils';
 import type { RobotAIEvent, EventType } from '@/types/event-calendar';
 
-const ALL_TYPES: EventType[] = ['전시', '학회', '정책'];
+const ALL_TYPES: EventType[] = ['전시', '학회', '세미나'];
 const TYPE_META: Record<EventType, { label: string; badge: string; color: string; dot: string }> = {
   '전시': { label: '전시', badge: 'EXPO', color: 'bg-blue-500/15 text-blue-500 border-blue-500/30', dot: 'bg-blue-500' },
   '학회': { label: '학회', badge: 'CONF', color: 'bg-purple-500/15 text-purple-500 border-purple-500/30', dot: 'bg-purple-500' },
-  '정책': { label: '정책', badge: 'POLICY', color: 'bg-amber-500/15 text-amber-500 border-amber-500/30', dot: 'bg-amber-500' },
+  '세미나': { label: '세미나', badge: 'SEMINAR', color: 'bg-amber-500/15 text-amber-500 border-amber-500/30', dot: 'bg-amber-500' },
 };
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
