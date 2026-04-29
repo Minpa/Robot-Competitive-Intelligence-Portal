@@ -1197,6 +1197,9 @@
       // RETAIL (LG Best Shop / HiPlaza)
       'DISPLAY_ISLAND', 'TV_WALL_GRID', 'MASSAGE_CHAIR', 'ZONE_FLOOR_SIGN',
       'CEILING_LIGHT_PANEL',
+      // MANUFACTURING / LOGISTICS
+      'CONVEYOR_BELT', 'INDUSTRIAL_ROBOT_ARM', 'CARDBOARD_BOX', 'CNC_MACHINE',
+      'CONTROL_PANEL', 'PALLET', 'SAFETY_FENCE',
       // ARCHITECTURE
       'WALL_PANEL', 'DOORWAY', 'FIREPLACE', 'FLOOR_LAMP', 'SLAT_PANEL', 'LED_STRIP',
     ];
@@ -1217,10 +1220,13 @@
       ATM_KIOSK: 'BANK', NUMBERED_SIGN: 'BANK', TICKET_KIOSK: 'BANK', OFFICE_DESK: 'BANK',
       DISPLAY_ISLAND: 'RETAIL', TV_WALL_GRID: 'RETAIL', MASSAGE_CHAIR: 'RETAIL',
       ZONE_FLOOR_SIGN: 'RETAIL', CEILING_LIGHT_PANEL: 'RETAIL',
+      CONVEYOR_BELT: 'MANUFACTURING', INDUSTRIAL_ROBOT_ARM: 'MANUFACTURING',
+      CARDBOARD_BOX: 'MANUFACTURING', CNC_MACHINE: 'MANUFACTURING',
+      CONTROL_PANEL: 'MANUFACTURING', PALLET: 'MANUFACTURING', SAFETY_FENCE: 'MANUFACTURING',
       WALL_PANEL: 'ARCHITECTURE', DOORWAY: 'ARCHITECTURE', FIREPLACE: 'ARCHITECTURE',
       FLOOR_LAMP: 'ARCHITECTURE', SLAT_PANEL: 'ARCHITECTURE', LED_STRIP: 'ARCHITECTURE',
     };
-    const FURNITURE_CATEGORY_ORDER = ['STAGING', 'DISPLAY', 'AUDIO', 'APPLIANCE', 'FURNITURE', 'BANK', 'RETAIL', 'ARCHITECTURE'];
+    const FURNITURE_CATEGORY_ORDER = ['STAGING', 'DISPLAY', 'AUDIO', 'APPLIANCE', 'FURNITURE', 'BANK', 'RETAIL', 'MANUFACTURING', 'ARCHITECTURE'];
     const FURNITURE_DIMS = {
       MAIN_STAGE: { width: 4.0, depth: 3.0, height: 0.4 },
       CIRCULAR_PODIUM: { width: 2.4, depth: 2.4, height: 0.35 },
@@ -1268,6 +1274,13 @@
       MASSAGE_CHAIR: { width: 0.85, depth: 1.55, height: 1.20 },
       ZONE_FLOOR_SIGN: { width: 0.50, depth: 0.40, height: 1.10 },
       CEILING_LIGHT_PANEL: { width: 4.00, depth: 2.80, height: 0.20 },
+      CONVEYOR_BELT: { width: 3.00, depth: 0.65, height: 0.55 },
+      INDUSTRIAL_ROBOT_ARM: { width: 0.70, depth: 0.70, height: 1.80 },
+      CARDBOARD_BOX: { width: 0.45, depth: 0.35, height: 0.30 },
+      CNC_MACHINE: { width: 1.50, depth: 1.00, height: 1.40 },
+      CONTROL_PANEL: { width: 0.65, depth: 0.45, height: 1.45 },
+      PALLET: { width: 1.20, depth: 1.00, height: 0.15 },
+      SAFETY_FENCE: { width: 2.00, depth: 0.05, height: 1.10 },
       WALL_PANEL: { width: 3.00, depth: 0.10, height: 2.50 },
       DOORWAY: { width: 1.20, depth: 0.10, height: 2.10 },
       FIREPLACE: { width: 1.00, depth: 0.30, height: 0.60 },
@@ -1291,6 +1304,8 @@
       ATM_KIOSK: 'wall', NUMBERED_SIGN: 'wall', TICKET_KIOSK: 'free', OFFICE_DESK: 'free',
       DISPLAY_ISLAND: 'free', TV_WALL_GRID: 'wall', MASSAGE_CHAIR: 'free',
       ZONE_FLOOR_SIGN: 'free', CEILING_LIGHT_PANEL: 'free',
+      CONVEYOR_BELT: 'free', INDUSTRIAL_ROBOT_ARM: 'free', CARDBOARD_BOX: 'free',
+      CNC_MACHINE: 'free', CONTROL_PANEL: 'free', PALLET: 'free', SAFETY_FENCE: 'free',
       WALL_PANEL: 'wall', DOORWAY: 'wall', FIREPLACE: 'wall',
       FLOOR_LAMP: 'free', SLAT_PANEL: 'wall', LED_STRIP: 'wall',
     };
@@ -1312,6 +1327,8 @@
       OFFICE_DESK: 0xb89a78,
       DISPLAY_ISLAND: 0xc8c8d0, TV_WALL_GRID: 0x0a0a0a, MASSAGE_CHAIR: 0x2a2a2e,
       ZONE_FLOOR_SIGN: 0xE63950, CEILING_LIGHT_PANEL: 0xff5588,
+      CONVEYOR_BELT: 0x808080, INDUSTRIAL_ROBOT_ARM: 0xffd000, CARDBOARD_BOX: 0xb89060,
+      CNC_MACHINE: 0xa8a8a8, CONTROL_PANEL: 0xc0c0c0, PALLET: 0x8a6a48, SAFETY_FENCE: 0xffd000,
       WALL_PANEL: 0xc0bbb0, DOORWAY: 0xc0bbb0, FIREPLACE: 0x222222,
       FLOOR_LAMP: 0xc0c0c0, SLAT_PANEL: 0x8a6a4a, LED_STRIP: 0xff6688,
     };
@@ -1337,6 +1354,10 @@
       DISPLAY_ISLAND: 'Display Island (mirror)', TV_WALL_GRID: 'TV Wall Grid (2×3)',
       MASSAGE_CHAIR: 'Massage Chair', ZONE_FLOOR_SIGN: 'Zone Floor Sign',
       CEILING_LIGHT_PANEL: 'Ceiling Light Panel',
+      CONVEYOR_BELT: 'Conveyor Belt', INDUSTRIAL_ROBOT_ARM: 'Industrial Robot Arm (6-axis)',
+      CARDBOARD_BOX: 'Cardboard Box', CNC_MACHINE: 'CNC Machine',
+      CONTROL_PANEL: 'Control Panel (operator)', PALLET: 'Wooden Pallet',
+      SAFETY_FENCE: 'Safety Fence',
       WALL_PANEL: 'Wall Panel', DOORWAY: 'Doorway', FIREPLACE: 'Fireplace',
       FLOOR_LAMP: 'Floor Lamp', SLAT_PANEL: 'Slat Panel', LED_STRIP: 'LED Strip',
     };
@@ -1388,6 +1409,13 @@
       MASSAGE_CHAIR: { h: 0.50, weight: 0.0, label: 'chair seat' },
       ZONE_FLOOR_SIGN: { h: 1.10, weight: 0.0, label: 'sign panel' },
       CEILING_LIGHT_PANEL: { h: 2.80, weight: 0.0, label: 'ceiling light' },
+      CONVEYOR_BELT: { h: 0.55, weight: 0.5, label: 'belt surface' },
+      INDUSTRIAL_ROBOT_ARM: { h: 1.20, weight: 0.0, label: 'arm tool' },
+      CARDBOARD_BOX: { h: 0.30, weight: 2.0, label: 'box top' },
+      CNC_MACHINE: { h: 1.40, weight: 0.0, label: 'machine top' },
+      CONTROL_PANEL: { h: 1.10, weight: 0.0, label: 'control screen' },
+      PALLET: { h: 0.15, weight: 0.0, label: 'pallet surface' },
+      SAFETY_FENCE: { h: 1.10, weight: 0.0, label: 'fence top' },
       WALL_PANEL: { h: 1.50, weight: 0.0, label: 'wall' },
       DOORWAY: { h: 1.05, weight: 0.0, label: 'door handle' },
       FIREPLACE: { h: 0.60, weight: 0.0, label: 'mantel' },
@@ -1396,13 +1424,14 @@
       LED_STRIP: { h: 0.04, weight: 0.0, label: 'strip' },
     };
 
-    const ROBOT_TYPES = ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator'];
+    const ROBOT_TYPES = ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator', 'amrServi'];
     const ROBOT_LABELS = {
       cloidWheel:     'CLOiD Wheel',
       cloidBipedal:   'CLOiD Bipedal',
       quadruped:      '4족 로봇',
       cleaner:        'NR',
       midManipulator: '중간형 로봇',
+      amrServi:       'Bear AMR (Servi)',
     };
     const ROBOT_DEFAULTS = {
       cloidWheel:     { height: 1.70, color: '#E63950' },
@@ -1410,6 +1439,7 @@
       quadruped:      { height: 0.55, color: '#F59E0B' },
       cleaner:        { height: 0.12, color: '#00D9FF' },
       midManipulator: { height: 1.30, color: '#22C55E' },
+      amrServi:       { height: 1.35, color: '#8B5CF6' },
     };
 
     const GESTURE_TYPES = [
@@ -1460,13 +1490,13 @@
       HANDSHAKE: 3.5, KNEEL: 3.3, LIE_DOWN: 3.5, STRETCH: 3.5, HANDOVER: 4.5,
     };
     const GESTURE_ROBOT_APPLIES = {
-      IDLE: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator'],
+      IDLE: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator', 'amrServi'],
       WAVE: ['cloidWheel', 'cloidBipedal', 'midManipulator', 'cleaner'],
       POINT: ['cloidWheel', 'cloidBipedal', 'midManipulator', 'cleaner'],
       PICKUP: ['cloidWheel', 'cloidBipedal', 'midManipulator', 'cleaner'],
       BOW: ['cloidWheel', 'cloidBipedal', 'midManipulator'],
       WALK: ['cloidBipedal', 'quadruped'],
-      SCAN: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator'],
+      SCAN: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator', 'amrServi'],
       SIT: ['quadruped'],
       JUMP: ['quadruped'],
       TILT: ['quadruped'],
@@ -4124,6 +4154,482 @@
       return group;
     }
 
+    // ============ MANUFACTURING / LOGISTICS BUILDERS ============
+
+    function buildConveyorBelt() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.CONVEYOR_BELT;
+      const frameMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.CONVEYOR_BELT, roughness: 0.5, metalness: 0.55 });
+      const beltMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8, metalness: 0.2 });
+      const rollerMat = new THREE.MeshStandardMaterial({ color: 0xb0b0b0, roughness: 0.4, metalness: 0.7 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.5 });
+      const yellowMat = new THREE.MeshStandardMaterial({ color: 0xffd000, roughness: 0.5 });
+      // Side frames (2 sides)
+      [-1, 1].forEach(s => {
+        const frame = new THREE.Mesh(
+          new THREE.BoxGeometry(dims.width, 0.18, 0.04),
+          frameMat
+        );
+        frame.position.set(0, dims.height - 0.10, s * (dims.depth / 2 - 0.02));
+        frame.castShadow = true; frame.receiveShadow = true;
+        group.add(frame);
+      });
+      // Belt slab top
+      const belt = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.08, 0.02, dims.depth - 0.10),
+        beltMat
+      );
+      belt.position.y = dims.height;
+      belt.castShadow = true;
+      group.add(belt);
+      // End rollers (rounded ends visible)
+      [-1, 1].forEach(s => {
+        const roller = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.10, 0.10, dims.depth - 0.06, 18),
+          rollerMat
+        );
+        roller.rotation.x = Math.PI / 2;
+        roller.position.set(s * (dims.width / 2 - 0.10), dims.height - 0.10, 0);
+        group.add(roller);
+        // End cap
+        const cap = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.11, 0.11, 0.04, 18),
+          darkMat
+        );
+        cap.rotation.x = Math.PI / 2;
+        cap.position.set(s * (dims.width / 2 - 0.10), dims.height - 0.10, dims.depth / 2 - 0.02);
+        group.add(cap);
+      });
+      // Inter-roller pattern (3 visible internal rollers along belt underside)
+      [-0.6, 0, 0.6].forEach(x => {
+        const ir = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.04, 0.04, dims.depth - 0.10, 12),
+          rollerMat
+        );
+        ir.rotation.x = Math.PI / 2;
+        ir.position.set(x, dims.height - 0.13, 0);
+        group.add(ir);
+      });
+      // Support legs (4 corners)
+      [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx, sz]) => {
+        const leg = new THREE.Mesh(
+          new THREE.BoxGeometry(0.06, dims.height - 0.20, 0.06),
+          darkMat
+        );
+        leg.position.set(sx * (dims.width / 2 - 0.20), (dims.height - 0.20) / 2, sz * (dims.depth / 2 - 0.04));
+        leg.castShadow = true;
+        group.add(leg);
+      });
+      // Yellow safety stripe on side (industrial caution band)
+      const stripe = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.10, 0.025, 0.005),
+        yellowMat
+      );
+      stripe.position.set(0, dims.height - 0.18, dims.depth / 2 + 0.015);
+      group.add(stripe);
+      return group;
+    }
+
+    function buildIndustrialRobotArm() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.INDUSTRIAL_ROBOT_ARM;
+      const yellowMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.INDUSTRIAL_ROBOT_ARM, roughness: 0.45, metalness: 0.4 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 });
+      const jointMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.55, metalness: 0.5 });
+      const accentMat = new THREE.MeshStandardMaterial({ color: 0xE63950, emissive: 0xE63950, emissiveIntensity: 0.5 });
+      // Base plate (square dark anchor)
+      const baseAnchor = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, 0.04, dims.depth),
+        darkMat
+      );
+      baseAnchor.position.y = 0.02;
+      baseAnchor.castShadow = true; baseAnchor.receiveShadow = true;
+      group.add(baseAnchor);
+      // Bolts on base anchor
+      [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx, sz]) => {
+        const bolt = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.025, 0.025, 0.02, 8),
+          jointMat
+        );
+        bolt.position.set(sx * (dims.width / 2 - 0.05), 0.04, sz * (dims.depth / 2 - 0.05));
+        group.add(bolt);
+      });
+      // Yellow base column (rotating shoulder)
+      const baseCol = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.20, 0.24, 0.30, 22),
+        yellowMat
+      );
+      baseCol.position.y = 0.19;
+      baseCol.castShadow = true;
+      group.add(baseCol);
+      // Shoulder joint sleeve (dark horizontal cylinder)
+      const shoulder = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.14, 0.14, 0.32, 18),
+        jointMat
+      );
+      shoulder.rotation.z = Math.PI / 2;
+      shoulder.position.y = 0.42;
+      group.add(shoulder);
+      // Upper arm — angled forward+up (~50° from vertical)
+      const upperGroup = new THREE.Group();
+      upperGroup.position.set(0, 0.42, 0);
+      upperGroup.rotation.x = -0.35; // tilt forward
+      upperGroup.rotation.z = -0.15;
+      group.add(upperGroup);
+      const upperArm = new THREE.Mesh(
+        new THREE.BoxGeometry(0.18, 0.80, 0.22),
+        yellowMat
+      );
+      upperArm.position.y = 0.40;
+      upperArm.castShadow = true;
+      upperGroup.add(upperArm);
+      // Cable channel along upper arm
+      const cable = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.012, 0.012, 0.70, 8),
+        darkMat
+      );
+      cable.position.set(0, 0.40, 0.115);
+      upperGroup.add(cable);
+      // Elbow joint
+      const elbowGroup = new THREE.Group();
+      elbowGroup.position.y = 0.80;
+      elbowGroup.rotation.x = -0.85; // bend back down
+      upperGroup.add(elbowGroup);
+      const elbow = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.11, 0.11, 0.26, 18),
+        jointMat
+      );
+      elbow.rotation.z = Math.PI / 2;
+      elbowGroup.add(elbow);
+      // Forearm
+      const forearm = new THREE.Mesh(
+        new THREE.BoxGeometry(0.14, 0.60, 0.16),
+        yellowMat
+      );
+      forearm.position.y = 0.30;
+      forearm.castShadow = true;
+      elbowGroup.add(forearm);
+      // Wrist sleeve
+      const wrist = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.08, 0.16, 14),
+        jointMat
+      );
+      wrist.rotation.z = Math.PI / 2;
+      wrist.position.y = 0.62;
+      elbowGroup.add(wrist);
+      // End effector (gripper / tool)
+      const tool = new THREE.Group();
+      tool.position.y = 0.72;
+      elbowGroup.add(tool);
+      const toolBody = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.10, 0.10),
+        darkMat
+      );
+      tool.add(toolBody);
+      // 2-finger pneumatic gripper jaws
+      [-0.025, 0.025].forEach(x => {
+        const jaw = new THREE.Mesh(
+          new THREE.BoxGeometry(0.012, 0.10, 0.04),
+          jointMat
+        );
+        jaw.position.set(x, 0.10, 0);
+        tool.add(jaw);
+      });
+      // Status indicator on base
+      const led = new THREE.Mesh(
+        new THREE.SphereGeometry(0.012, 10, 8),
+        accentMat
+      );
+      led.position.set(0.18, 0.20, 0.20);
+      group.add(led);
+      return group;
+    }
+
+    function buildCardboardBox() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.CARDBOARD_BOX;
+      const cardboardMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.CARDBOARD_BOX, roughness: 0.85 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x6a4a30, roughness: 0.7 });
+      // Box body
+      const box = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        cardboardMat
+      );
+      box.position.y = dims.height / 2;
+      box.castShadow = true;
+      group.add(box);
+      // Tape line (top, parallel to width)
+      const tape = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width + 0.005, 0.002, 0.06),
+        new THREE.MeshStandardMaterial({ color: 0xc8b89a, roughness: 0.5 })
+      );
+      tape.position.y = dims.height + 0.001;
+      group.add(tape);
+      // Shipping label (small white square)
+      const label = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.16, 0.10),
+        new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.5 })
+      );
+      label.position.set(0.05, dims.height * 0.55, dims.depth / 2 + 0.001);
+      group.add(label);
+      // Edge fold lines
+      [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(([sx, sz]) => {
+        const edge = new THREE.Mesh(
+          new THREE.BoxGeometry(0.003, dims.height, 0.003),
+          darkMat
+        );
+        edge.position.set(sx * dims.width / 2, dims.height / 2, sz * dims.depth / 2);
+        group.add(edge);
+      });
+      return group;
+    }
+
+    function buildCNCMachine() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.CNC_MACHINE;
+      const bodyMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.CNC_MACHINE, roughness: 0.5, metalness: 0.5 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.5 });
+      const yellowMat = new THREE.MeshStandardMaterial({ color: 0xffd000, roughness: 0.5 });
+      const ledMat = new THREE.MeshStandardMaterial({ color: 0xff5555, emissive: 0xff5555, emissiveIntensity: 0.8 });
+      // Main cabinet body
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        bodyMat
+      );
+      body.position.y = dims.height / 2;
+      body.castShadow = true; body.receiveShadow = true;
+      group.add(body);
+      // Yellow top cap (decoration / hopper-like top)
+      const topCap = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.20, 0.18, dims.depth - 0.20),
+        yellowMat
+      );
+      topCap.position.y = dims.height + 0.09;
+      topCap.castShadow = true;
+      group.add(topCap);
+      // Two top "feed" cylinders (industrial silos)
+      [-0.30, 0.30].forEach(x => {
+        const silo = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.08, 0.08, 0.20, 14),
+          bodyMat
+        );
+        silo.position.set(x, dims.height + 0.28, 0);
+        group.add(silo);
+      });
+      // Side vent grille (slats)
+      [-1, 1].forEach(s => {
+        for (let i = 0; i < 5; i++) {
+          const slat = new THREE.Mesh(
+            new THREE.BoxGeometry(0.005, 0.03, dims.depth * 0.4),
+            darkMat
+          );
+          slat.position.set(s * (dims.width / 2 + 0.001), dims.height * 0.30 + i * 0.06, 0);
+          group.add(slat);
+        }
+      });
+      // Front door panel (recessed)
+      const door = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width * 0.55, dims.height * 0.55, 0.012),
+        darkMat
+      );
+      door.position.set(0, dims.height * 0.42, dims.depth / 2 + 0.001);
+      group.add(door);
+      // Hazard sign (yellow triangle on door)
+      const hazardCanvas = document.createElement('canvas');
+      hazardCanvas.width = 128; hazardCanvas.height = 128;
+      const hctx = hazardCanvas.getContext('2d');
+      hctx.fillStyle = '#ffd000'; hctx.fillRect(0, 0, 128, 128);
+      hctx.strokeStyle = '#1a1a1a'; hctx.lineWidth = 6;
+      hctx.beginPath(); hctx.moveTo(64, 22); hctx.lineTo(108, 100); hctx.lineTo(20, 100); hctx.closePath(); hctx.stroke();
+      hctx.fillStyle = '#1a1a1a';
+      hctx.font = 'bold 48px IBM Plex Sans, sans-serif';
+      hctx.textAlign = 'center'; hctx.textBaseline = 'middle';
+      hctx.fillText('!', 64, 76);
+      const hazardTex = new THREE.CanvasTexture(hazardCanvas);
+      hazardTex.colorSpace = THREE.SRGBColorSpace;
+      const hazard = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.18, 0.18),
+        new THREE.MeshStandardMaterial({ map: hazardTex, roughness: 0.5 })
+      );
+      hazard.position.set(-dims.width * 0.30, dims.height * 0.20, dims.depth / 2 + 0.012);
+      group.add(hazard);
+      // Status LED on top
+      const led = new THREE.Mesh(
+        new THREE.SphereGeometry(0.025, 12, 10),
+        ledMat
+      );
+      led.position.set(dims.width * 0.40, dims.height + 0.20, 0);
+      group.add(led);
+      return group;
+    }
+
+    function buildControlPanel() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.CONTROL_PANEL;
+      const bodyMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.CONTROL_PANEL, roughness: 0.4, metalness: 0.5 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 });
+      const screenMat = new THREE.MeshStandardMaterial({ color: 0x102a55, emissive: 0x4a90ff, emissiveIntensity: 0.7 });
+      const ledRed = new THREE.MeshStandardMaterial({ color: 0xff3344, emissive: 0xff3344, emissiveIntensity: 1.0 });
+      const ledGreen = new THREE.MeshStandardMaterial({ color: 0x22ff66, emissive: 0x22ff66, emissiveIntensity: 1.0 });
+      const yellowMat = new THREE.MeshStandardMaterial({ color: 0xffd000, roughness: 0.5 });
+      // Main pedestal column
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        bodyMat
+      );
+      body.position.y = dims.height / 2;
+      body.castShadow = true;
+      group.add(body);
+      // Top-front HMI screen panel (angled)
+      const angledTop = new THREE.Group();
+      angledTop.position.set(0, dims.height - 0.05, dims.depth / 2);
+      angledTop.rotation.x = -0.35;
+      group.add(angledTop);
+      const screenBezel = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.06, 0.42, 0.04),
+        darkMat
+      );
+      screenBezel.position.y = -0.21;
+      angledTop.add(screenBezel);
+      const screen = new THREE.Mesh(
+        new THREE.PlaneGeometry(dims.width - 0.12, 0.36),
+        screenMat
+      );
+      screen.position.set(0, -0.21, 0.022);
+      angledTop.add(screen);
+      // Indicator LEDs (3 stacked) — top-right
+      const tower = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.04, 0.04, 0.30, 12),
+        darkMat
+      );
+      tower.position.set(dims.width / 2 - 0.10, dims.height + 0.15, dims.depth / 2 - 0.10);
+      group.add(tower);
+      [
+        { y: dims.height + 0.06, mat: ledGreen },
+        { y: dims.height + 0.16, mat: yellowMat },
+        { y: dims.height + 0.26, mat: ledRed },
+      ].forEach(({ y, mat }) => {
+        const cap = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.045, 0.045, 0.06, 14),
+          mat
+        );
+        cap.position.set(dims.width / 2 - 0.10, y, dims.depth / 2 - 0.10);
+        group.add(cap);
+      });
+      // Emergency stop button (front, large red)
+      const eStop = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.045, 0.045, 0.025, 18),
+        new THREE.MeshStandardMaterial({ color: 0xcc1122, roughness: 0.4 })
+      );
+      eStop.rotation.x = Math.PI / 2;
+      eStop.position.set(-dims.width * 0.30, dims.height * 0.55, dims.depth / 2 + 0.005);
+      group.add(eStop);
+      const eStopRing = new THREE.Mesh(
+        new THREE.TorusGeometry(0.055, 0.005, 6, 18),
+        yellowMat
+      );
+      eStopRing.rotation.y = 0;
+      eStopRing.position.set(-dims.width * 0.30, dims.height * 0.55, dims.depth / 2 + 0.005);
+      group.add(eStopRing);
+      // 3 control buttons (column)
+      [-0.10, 0.05, 0.20].forEach(z => {
+        const btn = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.018, 0.018, 0.012, 12),
+          new THREE.MeshStandardMaterial({ color: 0x404040, metalness: 0.5 })
+        );
+        btn.rotation.x = Math.PI / 2;
+        btn.position.set(dims.width * 0.20, dims.height * 0.40, dims.depth / 2 + 0.003);
+        btn.position.y += z;
+        group.add(btn);
+      });
+      return group;
+    }
+
+    function buildPallet() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.PALLET;
+      const woodMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.PALLET, roughness: 0.85 });
+      const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x5a4028, roughness: 0.85 });
+      // Top deck — 5 boards
+      for (let i = 0; i < 5; i++) {
+        const plank = new THREE.Mesh(
+          new THREE.BoxGeometry(dims.width, 0.020, dims.depth / 5.5),
+          woodMat
+        );
+        plank.position.set(0, dims.height - 0.02, -dims.depth / 2 + (dims.depth / 5.5) * (i + 0.5) + 0.02);
+        plank.castShadow = true; plank.receiveShadow = true;
+        group.add(plank);
+      }
+      // Middle stringers (3, perpendicular)
+      [-1, 0, 1].forEach(s => {
+        const stringer = new THREE.Mesh(
+          new THREE.BoxGeometry(0.10, dims.height - 0.04, dims.depth),
+          darkWoodMat
+        );
+        stringer.position.set(s * (dims.width / 2 - 0.10), (dims.height - 0.04) / 2 + 0.02, 0);
+        group.add(stringer);
+      });
+      // Bottom deck — 3 boards
+      [-1, 0, 1].forEach(s => {
+        const plank = new THREE.Mesh(
+          new THREE.BoxGeometry(dims.width, 0.020, dims.depth / 4.5),
+          woodMat
+        );
+        plank.position.set(0, 0.01, s * (dims.depth / 3.2));
+        group.add(plank);
+      });
+      return group;
+    }
+
+    function buildSafetyFence() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.SAFETY_FENCE;
+      const yellowMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.SAFETY_FENCE, roughness: 0.6 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 });
+      const meshMat = new THREE.MeshStandardMaterial({ color: 0x606060, roughness: 0.5, metalness: 0.5, transparent: true, opacity: 0.65 });
+      // Yellow vertical posts (4 along length)
+      const postCount = 4;
+      for (let i = 0; i < postCount; i++) {
+        const x = -dims.width / 2 + (dims.width / (postCount - 1)) * i;
+        const post = new THREE.Mesh(
+          new THREE.BoxGeometry(0.05, dims.height, dims.depth),
+          yellowMat
+        );
+        post.position.set(x, dims.height / 2, 0);
+        post.castShadow = true;
+        group.add(post);
+        // Post cap
+        const cap = new THREE.Mesh(
+          new THREE.BoxGeometry(0.06, 0.02, 0.06),
+          darkMat
+        );
+        cap.position.set(x, dims.height + 0.01, 0);
+        group.add(cap);
+      }
+      // Mesh panels between posts (3 panels)
+      for (let i = 0; i < postCount - 1; i++) {
+        const x = -dims.width / 2 + (dims.width / (postCount - 1)) * (i + 0.5);
+        const segWidth = dims.width / (postCount - 1) - 0.06;
+        // Mesh panel (semi-transparent thin plate)
+        const panel = new THREE.Mesh(
+          new THREE.BoxGeometry(segWidth, dims.height - 0.20, 0.012),
+          meshMat
+        );
+        panel.position.set(x, dims.height / 2 + 0.05, 0);
+        group.add(panel);
+        // Black-yellow caution stripes at base
+        for (let j = 0; j < 5; j++) {
+          const stripe = new THREE.Mesh(
+            new THREE.BoxGeometry(segWidth * 0.18, 0.06, 0.020),
+            j % 2 === 0 ? yellowMat : darkMat
+          );
+          stripe.position.set(x - segWidth / 2 + segWidth * 0.18 * (j + 0.5), 0.04, 0);
+          group.add(stripe);
+        }
+      }
+      return group;
+    }
+
     const FURNITURE_BUILDERS = {
       MAIN_STAGE: buildMainStage,
       CIRCULAR_PODIUM: buildCircularPodium,
@@ -4171,6 +4677,13 @@
       MASSAGE_CHAIR: buildMassageChair,
       ZONE_FLOOR_SIGN: buildZoneFloorSign,
       CEILING_LIGHT_PANEL: buildCeilingLightPanel,
+      CONVEYOR_BELT: buildConveyorBelt,
+      INDUSTRIAL_ROBOT_ARM: buildIndustrialRobotArm,
+      CARDBOARD_BOX: buildCardboardBox,
+      CNC_MACHINE: buildCNCMachine,
+      CONTROL_PANEL: buildControlPanel,
+      PALLET: buildPallet,
+      SAFETY_FENCE: buildSafetyFence,
       WALL_PANEL: buildWallPanel,
       DOORWAY: buildDoorway,
       FIREPLACE: buildFireplace,
@@ -5986,12 +6499,184 @@
       return { root, parts, impls };
     }
 
+    function buildAmrServi(color, height) {
+      // Bear Robotics Servi-style AMR — wheeled mobile robot with 3-tier open
+      // tray shelves for material handling and delivery. Used in restaurants
+      // (Bear's main market) but also factory/logistics environments.
+      const root = new THREE.Group();
+      const parts = {};
+      const H = height; // total robot height
+      const col = new THREE.Color(color);
+      const matMain  = new THREE.MeshStandardMaterial({ color: 0xf4f4f4, roughness: 0.45, metalness: 0.30 });
+      const matAccent = new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.45 });
+      const matDark  = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.45, metalness: 0.40 });
+      const matSilver = new THREE.MeshStandardMaterial({ color: 0x9a9a9a, roughness: 0.35, metalness: 0.7 });
+      const matLed   = new THREE.MeshStandardMaterial({ color: 0x22ff66, emissive: 0x22ff66, emissiveIntensity: 1.0 });
+      const matEye   = new THREE.MeshStandardMaterial({ color: 0x00d9ff, emissive: 0x00d9ff, emissiveIntensity: 1.4 });
+      const matTray  = new THREE.MeshStandardMaterial({ color: 0x202020, roughness: 0.7 });
+
+      // ============ MOBILE BASE ============
+      const baseW = 0.55, baseD = 0.50, baseH = 0.18;
+      const base = new THREE.Mesh(
+        new THREE.BoxGeometry(baseW, baseH, baseD),
+        matMain
+      );
+      base.position.y = baseH / 2;
+      base.castShadow = true; base.receiveShadow = true;
+      root.add(base);
+      // Bottom dark band (tire/sensor housing)
+      const bottomBand = new THREE.Mesh(
+        new THREE.BoxGeometry(baseW + 0.005, 0.04, baseD + 0.005),
+        matDark
+      );
+      bottomBand.position.y = 0.04;
+      root.add(bottomBand);
+      // Front lidar puck
+      const lidar = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.045, 0.045, 0.025, 18),
+        matDark
+      );
+      lidar.position.set(0, baseH + 0.012, baseD / 2 - 0.05);
+      root.add(lidar);
+      const lidarLed = new THREE.Mesh(
+        new THREE.TorusGeometry(0.038, 0.003, 6, 18),
+        matEye
+      );
+      lidarLed.rotation.x = Math.PI / 2;
+      lidarLed.position.set(0, baseH + 0.020, baseD / 2 - 0.05);
+      root.add(lidarLed);
+      // Wheels (visible on sides)
+      [-1, 1].forEach(s => {
+        const wheel = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.060, 0.060, 0.025, 16),
+          matDark
+        );
+        wheel.rotation.z = Math.PI / 2;
+        wheel.position.set(s * (baseW / 2 - 0.012), 0.058, 0);
+        root.add(wheel);
+      });
+
+      // ============ TRAY COLUMN (3 open shelves) ============
+      // Vertical support posts (4 corners, slim aluminum)
+      const colTop = H - 0.10; // top of trays
+      [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx, sz]) => {
+        const post = new THREE.Mesh(
+          new THREE.BoxGeometry(0.025, colTop - baseH, 0.025),
+          matSilver
+        );
+        post.position.set(sx * (baseW / 2 - 0.04), baseH + (colTop - baseH) / 2, sz * (baseD / 2 - 0.04));
+        post.castShadow = true;
+        root.add(post);
+      });
+      // 3 trays (bottom, middle, top) — open shelf style
+      const trayHeights = [
+        baseH + 0.30,
+        baseH + 0.60,
+        baseH + 0.90,
+      ];
+      trayHeights.forEach((y, i) => {
+        const tray = new THREE.Mesh(
+          new THREE.BoxGeometry(baseW - 0.04, 0.018, baseD - 0.04),
+          matTray
+        );
+        tray.position.y = y;
+        tray.castShadow = true;
+        root.add(tray);
+        // Tray rim (slim raised lip)
+        [-1, 1].forEach(sx => {
+          const rim = new THREE.Mesh(
+            new THREE.BoxGeometry(0.012, 0.025, baseD - 0.04),
+            matMain
+          );
+          rim.position.set(sx * (baseW / 2 - 0.025), y + 0.015, 0);
+          root.add(rim);
+        });
+        // Color accent stripe on tray edge
+        const accent = new THREE.Mesh(
+          new THREE.BoxGeometry(baseW - 0.06, 0.005, 0.005),
+          matAccent
+        );
+        accent.position.set(0, y + 0.003, baseD / 2 - 0.025);
+        root.add(accent);
+      });
+
+      // ============ TOP HEAD UNIT (sensor + display) ============
+      const head = new THREE.Group();
+      head.name = 'head';
+      head.position.y = colTop + 0.08;
+      root.add(head);
+      parts.head = head;
+
+      // Head body (rounded white pod)
+      const headBody = new THREE.Mesh(
+        new THREE.BoxGeometry(0.42, 0.16, 0.32),
+        matMain
+      );
+      headBody.castShadow = true;
+      head.add(headBody);
+      // Front display screen (cute robot face)
+      const screenCnv = document.createElement('canvas');
+      screenCnv.width = 256; screenCnv.height = 96;
+      const sctx = screenCnv.getContext('2d');
+      sctx.fillStyle = '#0a0a0a'; sctx.fillRect(0, 0, 256, 96);
+      sctx.fillStyle = '#00d9ff';
+      // Two simple eye dots
+      sctx.beginPath(); sctx.arc(96, 48, 14, 0, Math.PI * 2); sctx.fill();
+      sctx.beginPath(); sctx.arc(160, 48, 14, 0, Math.PI * 2); sctx.fill();
+      // Tiny mouth/smile
+      sctx.strokeStyle = '#00d9ff'; sctx.lineWidth = 4;
+      sctx.beginPath(); sctx.arc(128, 70, 18, 0, Math.PI); sctx.stroke();
+      const screenTex = new THREE.CanvasTexture(screenCnv);
+      screenTex.colorSpace = THREE.SRGBColorSpace;
+      const faceMat = new THREE.MeshStandardMaterial({
+        map: screenTex, emissive: 0xffffff, emissiveMap: screenTex, emissiveIntensity: 0.7,
+      });
+      const face = new THREE.Mesh(new THREE.PlaneGeometry(0.35, 0.13), faceMat);
+      face.position.set(0, 0, 0.161);
+      head.add(face);
+      // Top status LED bar (color-coded indicator)
+      const ledBar = new THREE.Mesh(
+        new THREE.BoxGeometry(0.30, 0.012, 0.018),
+        matAccent
+      );
+      ledBar.position.set(0, 0.085, 0.10);
+      head.add(ledBar);
+      // 360° lidar dome on top
+      const dome = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.06, 0.07, 0.04, 18),
+        matDark
+      );
+      dome.position.y = 0.10;
+      head.add(dome);
+      const domeRing = new THREE.Mesh(
+        new THREE.TorusGeometry(0.058, 0.003, 6, 24),
+        matLed
+      );
+      domeRing.rotation.x = Math.PI / 2;
+      domeRing.position.y = 0.115;
+      head.add(domeRing);
+
+      // ============ ROOT_BODY (just the head pod for IDLE breathing) ============
+      const body = new THREE.Group();
+      body.name = 'root_body';
+      body.position.y = colTop;
+      root.add(body);
+      parts.root_body = body;
+
+      // Empty arm/leg stubs for resetRobotPose compatibility
+      const armL = new THREE.Group(); armL.name = 'armL'; root.add(armL); parts.armL = armL;
+      const armR = new THREE.Group(); armR.name = 'armR'; root.add(armR); parts.armR = armR;
+
+      return { root, parts };
+    }
+
     const ROBOT_BUILDERS = {
       cloidWheel:     buildHumanoid,
       cloidBipedal:   buildCloidBipedal,
       quadruped:      buildQuadruped,
       cleaner:        buildCleaner,
       midManipulator: buildMidManipulator,
+      amrServi:       buildAmrServi,
     };
 
     function rebuildRobots() {
@@ -8459,6 +9144,90 @@
       return s;
     }
 
+    // Manufacturing Line — based on isometric factory illustration:
+    //   2 parallel conveyor lines (back: longer cardboard line, front: PCB line)
+    //   Industrial robot arms at junction points (3 yellow 6-axis arms)
+    //   CNC machine at line entry (heavy machinery start)
+    //   Operator control panel between lines
+    //   Pallets & cardboard boxes in staging zones
+    //   Safety fence around heavy equipment
+    //   Bear AMR robots ferrying material between lines (2)
+    //   1 quadruped for facility patrol/inspection
+    function presetManufacturingLine() {
+      const s = { booth: { widthFt: 70, depthFt: 50 }, furniture: [], robots: [] };
+      const { m, r } = presetHelpers(s);
+
+      // ── BACK CONVEYOR LINE (cardboard packaging — back of facility) ──
+      // CNC machine starts the back line (left side)
+      m('CNC_MACHINE', -7.50, -4.20, Math.PI / 2, 'CNC 1');
+      m('SAFETY_FENCE', -7.50, -2.80, 0, '안전 펜스 (CNC)');
+      m('SAFETY_FENCE', -7.50, -5.60, 0, '안전 펜스 (CNC 후방)');
+      // Conveyor segments along back (z = -3.50)
+      m('CONVEYOR_BELT', -4.00, -3.50, 0, '컨베이어 1A');
+      m('CONVEYOR_BELT', -1.00, -3.50, 0, '컨베이어 1B');
+      m('CONVEYOR_BELT',  2.00, -3.50, 0, '컨베이어 1C');
+      m('CONVEYOR_BELT',  5.00, -3.50, 0, '컨베이어 1D');
+      // Industrial robot arm picking from back conveyor → front conveyor
+      m('INDUSTRIAL_ROBOT_ARM', -2.50, -2.60, 0, '6축 로봇암 1');
+      m('INDUSTRIAL_ROBOT_ARM',  3.50, -2.60, 0, '6축 로봇암 2');
+      // Cardboard boxes traveling on back conveyor
+      m('CARDBOARD_BOX', -4.20, -3.50, 0, '박스 1');
+      m('CARDBOARD_BOX', -1.30, -3.50, 0.2, '박스 2');
+      m('CARDBOARD_BOX',  4.80, -3.50, -0.1, '박스 3');
+
+      // ── CONTROL STATION (operator panel between the two lines) ──
+      m('CONTROL_PANEL', 0.00, -1.20, 0, '오퍼레이터 콘솔');
+      m('OFFICE_CHAIR', 0.00, -0.60, Math.PI, '오퍼레이터 의자');
+
+      // ── FRONT CONVEYOR LINE (PCB/electronics — front of facility) ──
+      m('CONVEYOR_BELT', -5.50, 1.00, 0, '컨베이어 2A');
+      m('CONVEYOR_BELT', -2.50, 1.00, 0, '컨베이어 2B');
+      m('CONVEYOR_BELT',  0.50, 1.00, 0, '컨베이어 2C');
+      m('CONVEYOR_BELT',  3.50, 1.00, 0, '컨베이어 2D');
+      m('CONVEYOR_BELT',  6.50, 1.00, 0, '컨베이어 2E');
+      // 3rd robot arm at front line
+      m('INDUSTRIAL_ROBOT_ARM', -4.00, 1.90, 0, '6축 로봇암 3 (PCB 픽업)');
+      m('INDUSTRIAL_ROBOT_ARM',  5.00, 1.90, 0, '6축 로봇암 4 (PCB 적재)');
+      // PCB boxes / cardboard prop on front line
+      m('CARDBOARD_BOX', -5.50, 1.00, 0.0, 'PCB 트레이 1');
+      m('CARDBOARD_BOX', -2.50, 1.00, 0.1, 'PCB 트레이 2');
+      m('CARDBOARD_BOX',  0.50, 1.00, -0.1, 'PCB 트레이 3');
+      m('CARDBOARD_BOX',  3.50, 1.00, 0.05, 'PCB 트레이 4');
+
+      // ── STAGING / PALLET AREA (front-right corner) ──
+      m('PALLET',  6.20, 4.50, 0, '팔레트 1');
+      m('PALLET',  7.80, 4.50, 0, '팔레트 2');
+      m('PALLET',  6.20, 6.20, 0, '팔레트 3');
+      // Stacked cardboard boxes on pallets
+      m('CARDBOARD_BOX',  6.05, 4.65, 0.0, '적재 박스 1A');
+      m('CARDBOARD_BOX',  6.40, 4.65, 0.1, '적재 박스 1B');
+      m('CARDBOARD_BOX',  7.65, 4.65, 0.0, '적재 박스 2A');
+      m('CARDBOARD_BOX',  6.05, 6.35, 0.0, '적재 박스 3A');
+      m('CARDBOARD_BOX',  6.40, 6.35, -0.1, '적재 박스 3B');
+      m('ZONE_FLOOR_SIGN',  4.40, 5.50, 0, 'STAGING 사이니지', { label: 'STAGING' });
+
+      // ── INPUT MATERIAL AREA (front-left corner) ──
+      m('PALLET', -7.80, 4.50, 0, '입고 팔레트 1');
+      m('PALLET', -6.20, 4.50, 0, '입고 팔레트 2');
+      m('CARDBOARD_BOX', -7.65, 4.65, 0.0, '입고 박스 1');
+      m('CARDBOARD_BOX', -7.30, 4.65, 0.1, '입고 박스 2');
+      m('CARDBOARD_BOX', -6.05, 4.65, 0.0, '입고 박스 3');
+      m('ZONE_FLOOR_SIGN', -4.40, 5.50, 0, 'INPUT 사이니지', { label: 'INPUT' });
+
+      // ── ZONE SIGNAGE for the 2 production lines ──
+      m('ZONE_FLOOR_SIGN', -8.00, -3.50, Math.PI / 2, 'LINE 1 사이니지', { label: 'LINE 1' });
+      m('ZONE_FLOOR_SIGN', -8.00,  1.00, Math.PI / 2, 'LINE 2 사이니지', { label: 'LINE 2' });
+
+      // ── ROBOTS ──
+      // 2 Bear AMR Servi robots — material delivery between input pallets and conveyor lines
+      r('amrServi', -5.50, -1.30, 0, 'AMR 1 (자재 운반)');
+      r('amrServi',  5.20,  3.00, Math.PI, 'AMR 2 (완제품 운반)');
+      // 1 quadruped for facility inspection patrol
+      r('quadruped', 0.00, 5.00, Math.PI, '점검 로봇');
+
+      return s;
+    }
+
     // Empty booth presets (just a clean canvas at common booth sizes).
     function presetBlank30x20() {
       return { booth: { widthFt: 30, depthFt: 20 }, furniture: [], robots: [] };
@@ -8479,6 +9248,8 @@
         description: '60×40 ft 은행 영업점 — 창구 6개 + ATM 3대 + 대기석 + 상담 데스크 + 코지 코너 + 안내 로봇' },
       { id: 'hiplaza',      name: '하이프라자 매장',       factory: presetHiPlaza,
         description: '60×40 ft LG 베스트샵/하이프라자 — 천장 LED 패널 + TV 월그리드 + 미러 디스플레이 아일랜드 + 마사지 체어 + 안내·NR 로봇' },
+      { id: 'manufacturing', name: '제조라인',            factory: presetManufacturingLine,
+        description: '70×50 ft 공장 — 컨베이어 2개 라인 + 6축 로봇암 4대 + CNC + 안전펜스 + 팔레트 + Bear AMR 2대 + 점검용 4족' },
       { id: 'blank_30x20',  name: 'Blank · 30×20 ft',  factory: presetBlank30x20,
         description: '소형 빈 부스' },
       { id: 'blank_50x35',  name: 'Blank · 50×35 ft',  factory: presetBlank50x35,
