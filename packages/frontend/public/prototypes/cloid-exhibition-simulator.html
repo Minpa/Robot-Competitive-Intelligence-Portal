@@ -6920,7 +6920,29 @@
       return Math.sqrt(dx * dx + dz * dz) / (dt * 2);
     }
 
+    // Track which furniture is currently held by which robot (gestureId -> furnitureId)
+    const _pickupBindings = {};   // gestureId -> { furnitureId, originX, originZ, originRotY }
+
+    function findNearestPickableFurniture(robotPos, robotRotY, maxRange) {
+      const fwd = { x: -Math.sin(robotRotY), z: -Math.cos(robotRotY) };
+      let best = null, bestDist = Infinity;
+      state.furniture.forEach(f => {
+        const dx = f.x - robotPos.x, dz = f.z - robotPos.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist > maxRange || dist < 0.05) return;
+        // must be roughly in front of the robot (dot product > 0)
+        const dot = dx * fwd.x + dz * fwd.z;
+        if (dot < 0) return;
+        // prefer closest
+        if (dist < bestDist) { bestDist = dist; best = f; }
+      });
+      return best;
+    }
+
     function applyGestures(t) {
+      // Reset all furniture to original positions first, then let active pickups override
+      const heldFurnitureIds = new Set();
+
       state.robots.forEach(r => {
         const meshData = robotMeshes[r.id];
         if (!meshData) return;
@@ -6961,6 +6983,81 @@
         meshData.group.position.x = pos.x;
         meshData.group.position.z = pos.z;
         meshData.group.rotation.y = pos.rotY;
+
+        // ===== PICKUP: attach nearest furniture to robot =====
+        const pickupGestures = active.filter(g => g.type === 'PICKUP' || g.type === 'DUAL_PICKUP');
+        pickupGestures.forEach(g => {
+          const gKey = r.id + '_' + g.id;
+          const localT = t - g.t;
+          const dur = g.duration || GESTURE_DURATIONS[g.type] || 4.0;
+          const grabT = dur * 0.40;   // ~1.6s of 4s: arm reaches object
+          const liftT = dur * 0.60;   // ~2.4s: arm starts lifting
+          const holdEnd = dur;        // gesture end: object stays with robot
+
+          // Bind furniture on first frame past grabT
+          if (localT >= grabT && !_pickupBindings[gKey]) {
+            const maxRange = r.height * 1.5 + 0.5;
+            const target = findNearestPickableFurniture(pos, pos.rotY, maxRange);
+            if (target) {
+              _pickupBindings[gKey] = {
+                furnitureId: target.id,
+                originX: target.x,
+                originZ: target.z,
+                originRotY: target.rotY,
+              };
+            }
+          }
+
+          const binding = _pickupBindings[gKey];
+          if (!binding) return;
+
+          const fMesh = furnitureMeshes[binding.furnitureId];
+          if (!fMesh) return;
+
+          heldFurnitureIds.add(binding.furnitureId);
+
+          // Compute lift progress: 0 at grabT → 1 at liftT
+          const liftAlpha = clamp((localT - grabT) / (liftT - grabT), 0, 1);
+          // After liftT, object follows robot fully
+          const followAlpha = clamp((localT - grabT) / (liftT - grabT), 0, 1);
+
+          const dims = FURNITURE_DIMS[fMesh.instance.type] || { height: 0.3 };
+          const liftHeight = r.height * 0.45;
+          const fwd = { x: -Math.sin(pos.rotY), z: -Math.cos(pos.rotY) };
+          const holdDist = r.height * 0.35;
+
+          // Target position: in front of robot, lifted
+          const targetX = pos.x + fwd.x * holdDist;
+          const targetZ = pos.z + fwd.z * holdDist;
+          const targetY = liftHeight * liftAlpha;
+
+          // Interpolate from origin to target
+          const fx = lerp(binding.originX, targetX, followAlpha);
+          const fz = lerp(binding.originZ, targetZ, followAlpha);
+
+          fMesh.group.position.set(fx, targetY, fz);
+          fMesh.group.rotation.y = pos.rotY;
+        });
+
+        // Clean up bindings for gestures that are no longer active
+        Object.keys(_pickupBindings).forEach(gKey => {
+          if (!gKey.startsWith(r.id + '_')) return;
+          const gId = gKey.split('_').slice(1).join('_');
+          const stillActive = active.some(g => (r.id + '_' + g.id) === gKey);
+          if (!stillActive) {
+            // Gesture ended — furniture stays at last held position (dropped)
+            delete _pickupBindings[gKey];
+          }
+        });
+      });
+
+      // Reset non-held furniture to their data positions
+      state.furniture.forEach(f => {
+        if (heldFurnitureIds.has(f.id)) return;
+        const fMesh = furnitureMeshes[f.id];
+        if (!fMesh) return;
+        fMesh.group.position.set(f.x, 0, f.z);
+        fMesh.group.rotation.y = f.rotY;
       });
     }
 
