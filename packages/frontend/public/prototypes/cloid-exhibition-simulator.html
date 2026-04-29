@@ -1458,7 +1458,8 @@
     const GESTURE_TYPES = [
       'IDLE', 'WAVE', 'POINT', 'PICKUP', 'BOW', 'WALK', 'SCAN',
       'SIT', 'JUMP', 'TILT', 'DUAL_PICKUP',
-      'HANDSHAKE', 'KNEEL', 'LIE_DOWN', 'STRETCH', 'HANDOVER'
+      'HANDSHAKE', 'KNEEL', 'LIE_DOWN', 'STRETCH', 'HANDOVER',
+      'ATTACH', 'DETACH'
     ];
     const GESTURE_LABELS = {
       IDLE:        '대기',
@@ -1477,6 +1478,8 @@
       LIE_DOWN:    '엎드리기',
       STRETCH:     '스트레칭',
       HANDOVER:    '양손 전달',
+      ATTACH:      '들기 시작',
+      DETACH:      '놓기',
     };
     const GESTURE_DESCRIPTIONS = {
       IDLE:        '대기 / 호흡 (자동)',
@@ -1495,12 +1498,15 @@
       LIE_DOWN:    '4 다리 모두 접고 엎드림',
       STRETCH:     '플레이바우 스트레칭 (앞다리 앞으로, 상체 숙임)',
       HANDOVER:    '한 팔 → 다른 팔로 물건 전달',
+      ATTACH:      '선택한 가구를 손에 부착 (이후 로봇과 함께 이동)',
+      DETACH:      '들고 있던 가구를 현재 위치에 놓음',
     };
     const GESTURE_DURATIONS = {
       IDLE: Infinity, WAVE: 3.0, POINT: 2.5, PICKUP: 4.0,
       BOW: 2.0, WALK: Infinity, SCAN: 4.0,
       SIT: 3.0, JUMP: 1.2, TILT: 1.8, DUAL_PICKUP: 4.5,
       HANDSHAKE: 3.5, KNEEL: 3.3, LIE_DOWN: 3.5, STRETCH: 3.5, HANDOVER: 4.5,
+      ATTACH: 0.5, DETACH: 0.5,
     };
     const GESTURE_ROBOT_APPLIES = {
       IDLE: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator', 'amrServi'],
@@ -1519,6 +1525,9 @@
       LIE_DOWN: ['quadruped'],
       STRETCH: ['quadruped'],
       HANDOVER: ['midManipulator'],
+      // ATTACH/DETACH — robots that have a hand/gripper part to carry items.
+      ATTACH: ['cloidWheel', 'cloidBipedal', 'midManipulator', 'cleaner'],
+      DETACH: ['cloidWheel', 'cloidBipedal', 'midManipulator', 'cleaner'],
     };
 
     /* ============ STATE ============ */
@@ -7059,6 +7068,80 @@
         fMesh.group.position.set(f.x, 0, f.z);
         fMesh.group.rotation.y = f.rotY;
       });
+
+      // After all robot poses/positions are applied, sync attached furniture
+      // to follow each robot's hand. Detached furniture returns to placement
+      // (or to the location where it was last dropped).
+      applyAttachments(t);
+    }
+
+    /* ============ FURNITURE ATTACHMENTS ============ */
+    // For each piece of furniture, walk all gestureTracks chronologically and
+    // determine its render state at time t:
+    //   - 'attached': follow a specific robot's hand
+    //   - 'detached_at_drop': stay at where the carrying robot was when DETACH fired
+    //   - 'idle': original placement (f.x, f.z, f.rotY)
+    function computeFurnitureRenderState(furniture, t) {
+      const events = [];
+      for (const r of state.robots) {
+        for (const g of (r.gestureTrack || [])) {
+          if ((g.type !== 'ATTACH' && g.type !== 'DETACH') || !g.params) continue;
+          if (g.params.furnitureId !== furniture.id) continue;
+          if (g.t > t) continue;
+          events.push({ ...g, robotId: r.id });
+        }
+      }
+      if (events.length === 0) return { kind: 'idle' };
+      events.sort((a, b) => a.t - b.t);
+      const last = events[events.length - 1];
+      if (last.type === 'ATTACH') {
+        return { kind: 'attached', robotId: last.robotId };
+      }
+      // DETACH — drop at robot's position at the detach moment, slightly
+      // forward of its facing direction so the basket isn't inside the robot.
+      const robot = state.robots.find(r => r.id === last.robotId);
+      if (!robot) return { kind: 'idle' };
+      const robotPos = computeRobotPosition(robot, last.t);
+      const fwd = 0.55; // forward offset in metres
+      const dropX = robotPos.x + Math.sin(robotPos.rotY) * fwd;
+      const dropZ = robotPos.z + Math.cos(robotPos.rotY) * fwd;
+      return { kind: 'detached_at_drop', dropX, dropZ, dropRotY: robotPos.rotY };
+    }
+
+    const _carryWorldPos = new THREE.Vector3();
+    const _carryWorldQuat = new THREE.Quaternion();
+    function applyAttachments(t) {
+      state.furniture.forEach(f => {
+        const mesh = furnitureMeshes[f.id];
+        if (!mesh) return;
+        const rs = computeFurnitureRenderState(f, t);
+        if (rs.kind === 'attached') {
+          // Follow the carrying robot's hand. Prefer the most distal hand part.
+          const md = robotMeshes[rs.robotId];
+          if (!md) return;
+          const handPart =
+            md.parts.armR_hand || md.parts.armR_wrist || md.parts.armR ||
+            md.parts.armL_hand || md.parts.armL_wrist || md.parts.armL;
+          if (!handPart) return;
+          handPart.getWorldPosition(_carryWorldPos);
+          handPart.getWorldQuaternion(_carryWorldQuat);
+          // Carry offset — small bias below + forward of hand so the basket
+          // visually hangs from the gripper rather than intersecting it.
+          mesh.group.position.set(
+            _carryWorldPos.x,
+            Math.max(0.02, _carryWorldPos.y - 0.18),
+            _carryWorldPos.z,
+          );
+          mesh.group.rotation.set(0, f.rotY, 0); // keep upright; only follow xz
+        } else if (rs.kind === 'detached_at_drop') {
+          mesh.group.position.set(rs.dropX, 0, rs.dropZ);
+          mesh.group.rotation.y = rs.dropRotY ?? f.rotY;
+        } else {
+          // idle: original placement
+          mesh.group.position.set(f.x, 0, f.z);
+          mesh.group.rotation.y = f.rotY;
+        }
+      });
     }
 
     /* ============ SELECTION VISUALS ============ */
@@ -7314,6 +7397,32 @@
         row.querySelector('#propGestureDirection').addEventListener('change', e => {
           g.params = g.params || {};
           g.params.direction = parseFloat(e.target.value) * Math.PI / 180;
+        });
+      } else if (g.type === 'ATTACH' || g.type === 'DETACH') {
+        // Furniture picker — which item to attach/detach.
+        const row = document.createElement('div');
+        row.className = 'form-row';
+        const currentId = g.params?.furnitureId || '';
+        const options = state.furniture
+          .map(f => `<option value="${f.id}" ${f.id === currentId ? 'selected' : ''}>${f.name} (${FURNITURE_LABELS[f.type] || f.type})</option>`)
+          .join('');
+        row.innerHTML = `
+          <label>대상 가구</label>
+          <select class="form-select" id="propGestureFurniture">
+            <option value="">— 선택하세요 —</option>
+            ${options}
+          </select>
+          <div style="font-size:10px; color:var(--text-secondary); margin-top:4px;">
+            ${g.type === 'ATTACH' ? '이 시점부터 선택한 가구가 로봇 손을 따라 이동합니다.' : '들고 있던 가구를 이 시점의 로봇 위치에 놓습니다.'}
+          </div>
+        `;
+        el.appendChild(row);
+        row.querySelector('#propGestureFurniture').addEventListener('change', e => {
+          g.params = g.params || {};
+          g.params.furnitureId = e.target.value || undefined;
+          if (!g.params.furnitureId) {
+            showToast('가구를 선택하세요', 'warn');
+          }
         });
       }
     }
