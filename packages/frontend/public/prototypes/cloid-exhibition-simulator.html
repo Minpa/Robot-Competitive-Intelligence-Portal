@@ -1190,6 +1190,9 @@
       // FURNITURE
       'SOFA_3SEAT', 'SOFA_2SEAT', 'COFFEE_TABLE', 'SIDE_TABLE', 'CURIO_SHELF', 'RUG', 'PHOTO_RUG',
       'LAUNDRY_BASKET', 'MEDIA_CABINET',
+      // BANK
+      'TELLER_COUNTER', 'WAITING_BENCH', 'OFFICE_CHAIR', 'ATM_KIOSK',
+      'NUMBERED_SIGN', 'TICKET_KIOSK', 'OFFICE_DESK',
       // ARCHITECTURE
       'WALL_PANEL', 'DOORWAY', 'FIREPLACE', 'FLOOR_LAMP', 'SLAT_PANEL', 'LED_STRIP',
     ];
@@ -1205,10 +1208,12 @@
       SOFA_3SEAT: 'FURNITURE', SOFA_2SEAT: 'FURNITURE', COFFEE_TABLE: 'FURNITURE',
       SIDE_TABLE: 'FURNITURE', CURIO_SHELF: 'FURNITURE', RUG: 'FURNITURE',
       PHOTO_RUG: 'FURNITURE', LAUNDRY_BASKET: 'FURNITURE', MEDIA_CABINET: 'FURNITURE',
+      TELLER_COUNTER: 'BANK', WAITING_BENCH: 'BANK', OFFICE_CHAIR: 'BANK',
+      ATM_KIOSK: 'BANK', NUMBERED_SIGN: 'BANK', TICKET_KIOSK: 'BANK', OFFICE_DESK: 'BANK',
       WALL_PANEL: 'ARCHITECTURE', DOORWAY: 'ARCHITECTURE', FIREPLACE: 'ARCHITECTURE',
       FLOOR_LAMP: 'ARCHITECTURE', SLAT_PANEL: 'ARCHITECTURE', LED_STRIP: 'ARCHITECTURE',
     };
-    const FURNITURE_CATEGORY_ORDER = ['STAGING', 'DISPLAY', 'AUDIO', 'APPLIANCE', 'FURNITURE', 'ARCHITECTURE'];
+    const FURNITURE_CATEGORY_ORDER = ['STAGING', 'DISPLAY', 'AUDIO', 'APPLIANCE', 'FURNITURE', 'BANK', 'ARCHITECTURE'];
     const FURNITURE_DIMS = {
       MAIN_STAGE: { width: 4.0, depth: 3.0, height: 0.4 },
       CIRCULAR_PODIUM: { width: 2.4, depth: 2.4, height: 0.35 },
@@ -1241,6 +1246,13 @@
       PHOTO_RUG: { width: 2.20, depth: 1.40, height: 0.02 },
       LAUNDRY_BASKET: { width: 0.46, depth: 0.36, height: 0.30 },
       MEDIA_CABINET: { width: 1.80, depth: 0.45, height: 1.20 },
+      TELLER_COUNTER: { width: 1.40, depth: 0.95, height: 1.10 },
+      WAITING_BENCH: { width: 1.80, depth: 0.55, height: 0.45 },
+      OFFICE_CHAIR: { width: 0.55, depth: 0.55, height: 0.85 },
+      ATM_KIOSK: { width: 0.65, depth: 0.55, height: 1.85 },
+      NUMBERED_SIGN: { width: 0.40, depth: 0.06, height: 0.30 },
+      TICKET_KIOSK: { width: 0.45, depth: 0.45, height: 1.20 },
+      OFFICE_DESK: { width: 1.40, depth: 0.70, height: 0.75 },
       WALL_PANEL: { width: 3.00, depth: 0.10, height: 2.50 },
       DOORWAY: { width: 1.20, depth: 0.10, height: 2.10 },
       FIREPLACE: { width: 1.00, depth: 0.30, height: 0.60 },
@@ -1259,6 +1271,8 @@
       SOFA_3SEAT: 'free', SOFA_2SEAT: 'free', COFFEE_TABLE: 'free',
       SIDE_TABLE: 'free', CURIO_SHELF: 'wall', RUG: 'free', PHOTO_RUG: 'free',
       LAUNDRY_BASKET: 'free', MEDIA_CABINET: 'wall',
+      TELLER_COUNTER: 'free', WAITING_BENCH: 'free', OFFICE_CHAIR: 'free',
+      ATM_KIOSK: 'wall', NUMBERED_SIGN: 'wall', TICKET_KIOSK: 'free', OFFICE_DESK: 'free',
       WALL_PANEL: 'wall', DOORWAY: 'wall', FIREPLACE: 'wall',
       FLOOR_LAMP: 'free', SLAT_PANEL: 'wall', LED_STRIP: 'wall',
     };
@@ -1274,6 +1288,9 @@
       SOFA_3SEAT: 0xd6c9b8, SOFA_2SEAT: 0xd6c9b8, COFFEE_TABLE: 0x6b5544,
       SIDE_TABLE: 0xd0d0d0, CURIO_SHELF: 0xf5f5f5, RUG: 0xc0b8a8,
       PHOTO_RUG: 0xf2efe9, LAUNDRY_BASKET: 0xb8a07a, MEDIA_CABINET: 0x8a6a4a,
+      TELLER_COUNTER: 0xc8a574, WAITING_BENCH: 0xd6c4a8, OFFICE_CHAIR: 0xb59980,
+      ATM_KIOSK: 0x2a3848, NUMBERED_SIGN: 0xf5f5f5, TICKET_KIOSK: 0x3a4250,
+      OFFICE_DESK: 0xb89a78,
       WALL_PANEL: 0xc0bbb0, DOORWAY: 0xc0bbb0, FIREPLACE: 0x222222,
       FLOOR_LAMP: 0xc0c0c0, SLAT_PANEL: 0x8a6a4a, LED_STRIP: 0xff6688,
     };
@@ -1291,6 +1308,9 @@
       SOFA_3SEAT: 'Sofa (3-seat)', SOFA_2SEAT: 'Sofa (2-seat)', COFFEE_TABLE: 'Coffee Table',
       SIDE_TABLE: 'Side Table', CURIO_SHELF: 'Curio Shelf', RUG: 'Rug', PHOTO_RUG: 'Photo Zone Rug',
       LAUNDRY_BASKET: 'Laundry Basket', MEDIA_CABINET: 'Media Cabinet (with display)',
+      TELLER_COUNTER: 'Teller Counter', WAITING_BENCH: 'Waiting Bench',
+      OFFICE_CHAIR: 'Office Chair', ATM_KIOSK: 'ATM Kiosk',
+      NUMBERED_SIGN: 'Numbered Sign', TICKET_KIOSK: 'Ticket Kiosk', OFFICE_DESK: 'Office Desk',
       WALL_PANEL: 'Wall Panel', DOORWAY: 'Doorway', FIREPLACE: 'Fireplace',
       FLOOR_LAMP: 'Floor Lamp', SLAT_PANEL: 'Slat Panel', LED_STRIP: 'LED Strip',
     };
@@ -1327,6 +1347,13 @@
       PHOTO_RUG: { h: 0.02, weight: 0.0, label: 'photo rug' },
       LAUNDRY_BASKET: { h: 0.30, weight: 1.5, label: 'basket rim' },
       MEDIA_CABINET: { h: 1.00, weight: 0.4, label: 'cabinet display' },
+      TELLER_COUNTER: { h: 1.10, weight: 0.3, label: 'counter top' },
+      WAITING_BENCH: { h: 0.45, weight: 0.2, label: 'bench seat' },
+      OFFICE_CHAIR: { h: 0.50, weight: 0.2, label: 'chair seat' },
+      ATM_KIOSK: { h: 1.20, weight: 0.0, label: 'screen / card slot' },
+      NUMBERED_SIGN: { h: 2.30, weight: 0.0, label: 'number sign' },
+      TICKET_KIOSK: { h: 1.20, weight: 0.0, label: 'ticket dispenser' },
+      OFFICE_DESK: { h: 0.75, weight: 0.5, label: 'desk top' },
       WALL_PANEL: { h: 1.50, weight: 0.0, label: 'wall' },
       DOORWAY: { h: 1.05, weight: 0.0, label: 'door handle' },
       FIREPLACE: { h: 0.60, weight: 0.0, label: 'mantel' },
@@ -3003,6 +3030,495 @@
       return group;
     }
 
+    // ============ BANK FURNITURE BUILDERS ============
+
+    function buildTellerCounter(instance) {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.TELLER_COUNTER;
+      const woodMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.TELLER_COUNTER, roughness: 0.6, metalness: 0.05 });
+      const topMat  = new THREE.MeshStandardMaterial({ color: 0xa07a4a, roughness: 0.4, metalness: 0.2 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.45, metalness: 0.4 });
+      const glassMat = new THREE.MeshStandardMaterial({ color: 0xeaf4ff, transparent: true, opacity: 0.18, roughness: 0.05, metalness: 0.1 });
+      const ledMat   = new THREE.MeshStandardMaterial({ color: 0x00d9ff, emissive: 0x00d9ff, emissiveIntensity: 0.8 });
+      // Counter base (front-facing customer side)
+      const base = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, 0.95, dims.depth),
+        woodMat
+      );
+      base.position.y = 0.475;
+      base.castShadow = true; base.receiveShadow = true;
+      group.add(base);
+      // Counter top slab (slightly oversize, darker tone)
+      const top = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width + 0.04, 0.04, dims.depth + 0.04),
+        topMat
+      );
+      top.position.y = 0.95 + 0.02;
+      group.add(top);
+      // Front kick panel groove (decorative line)
+      const groove = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.06, 0.012, 0.005),
+        darkMat
+      );
+      groove.position.set(0, 0.30, dims.depth / 2 + 0.002);
+      group.add(groove);
+      // Glass partition above counter (small clear panel)
+      const glass = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.10, 0.45, 0.008),
+        glassMat
+      );
+      glass.position.set(0, 0.95 + 0.04 + 0.225, -dims.depth / 2 + 0.10);
+      group.add(glass);
+      // Glass frame (top + sides, thin)
+      const frameTop = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.08, 0.018, 0.020),
+        darkMat
+      );
+      frameTop.position.set(0, 0.95 + 0.04 + 0.45, -dims.depth / 2 + 0.10);
+      group.add(frameTop);
+      // Teller-side monitor on counter
+      const monBase = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.07, 0.04, 12),
+        darkMat
+      );
+      monBase.position.set(0.20, 0.95 + 0.04 + 0.02, -dims.depth / 2 + 0.20);
+      group.add(monBase);
+      const monStem = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.10, 8), darkMat);
+      monStem.position.set(0.20, 0.95 + 0.04 + 0.09, -dims.depth / 2 + 0.20);
+      group.add(monStem);
+      const monitor = new THREE.Mesh(
+        new THREE.BoxGeometry(0.34, 0.22, 0.02),
+        darkMat
+      );
+      monitor.position.set(0.20, 0.95 + 0.04 + 0.24, -dims.depth / 2 + 0.20);
+      monitor.rotation.y = -0.25;
+      group.add(monitor);
+      const monScreen = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.31, 0.19),
+        new THREE.MeshStandardMaterial({ color: 0x152a44, emissive: 0x4a7ed8, emissiveIntensity: 0.5 })
+      );
+      monScreen.position.set(0.20, 0.95 + 0.04 + 0.24, -dims.depth / 2 + 0.20 + 0.011);
+      monScreen.rotation.y = -0.25;
+      group.add(monScreen);
+      // Customer-side document tray + small LED indicator (green = available)
+      const tray = new THREE.Mesh(
+        new THREE.BoxGeometry(0.22, 0.012, 0.16),
+        topMat
+      );
+      tray.position.set(-0.30, 0.95 + 0.05, dims.depth / 2 - 0.20);
+      group.add(tray);
+      const indicator = new THREE.Mesh(
+        new THREE.SphereGeometry(0.012, 10, 8),
+        new THREE.MeshStandardMaterial({ color: 0x22ff66, emissive: 0x22ff66, emissiveIntensity: 1.2 })
+      );
+      indicator.position.set(0.55, 0.95 + 0.06, dims.depth / 2 - 0.04);
+      group.add(indicator);
+      // Counter-front accent strip (LG bank brand could go here)
+      const accent = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width * 0.7, 0.005, 0.003),
+        ledMat
+      );
+      accent.position.set(0, 0.05, dims.depth / 2 + 0.002);
+      group.add(accent);
+      return group;
+    }
+
+    function buildWaitingBench() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.WAITING_BENCH;
+      const cushionMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.WAITING_BENCH, roughness: 0.85 });
+      const legMat = new THREE.MeshStandardMaterial({ color: 0x6a5a44, roughness: 0.6, metalness: 0.2 });
+      // Seat cushion (slightly rounded with two cushion segments visible)
+      const seat = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, 0.16, dims.depth),
+        cushionMat
+      );
+      seat.position.y = 0.36;
+      seat.castShadow = true;
+      group.add(seat);
+      // Cushion division line (subtle middle seam)
+      const seam = new THREE.Mesh(
+        new THREE.BoxGeometry(0.005, 0.165, dims.depth - 0.04),
+        new THREE.MeshStandardMaterial({ color: 0xb0a288, roughness: 0.85 })
+      );
+      seam.position.y = 0.36;
+      group.add(seam);
+      // Wooden frame under seat
+      const frame = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.05, 0.05, dims.depth - 0.05),
+        legMat
+      );
+      frame.position.y = 0.27;
+      group.add(frame);
+      // Four legs
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
+        const leg = new THREE.Mesh(
+          new THREE.BoxGeometry(0.05, 0.25, 0.05),
+          legMat
+        );
+        leg.position.set(sx * (dims.width / 2 - 0.10), 0.125, sz * (dims.depth / 2 - 0.08));
+        leg.castShadow = true;
+        group.add(leg);
+      });
+      return group;
+    }
+
+    function buildOfficeChair() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.OFFICE_CHAIR;
+      const cushionMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.OFFICE_CHAIR, roughness: 0.85 });
+      const woodMat = new THREE.MeshStandardMaterial({ color: 0x8a6a48, roughness: 0.6, metalness: 0.1 });
+      const metalMat = new THREE.MeshStandardMaterial({ color: 0x404040, metalness: 0.6, roughness: 0.4 });
+      // Seat cushion
+      const seat = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.26, 0.26, 0.10, 24),
+        cushionMat
+      );
+      seat.position.y = 0.46;
+      seat.castShadow = true;
+      group.add(seat);
+      // Wood seat ring (mid-century style)
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.27, 0.012, 8, 24),
+        woodMat
+      );
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = 0.41;
+      group.add(ring);
+      // Curved backrest (cushion on top + wood frame)
+      const back = new THREE.Mesh(
+        new THREE.BoxGeometry(0.40, 0.32, 0.10),
+        cushionMat
+      );
+      back.position.set(0, 0.66, -0.18);
+      back.castShadow = true;
+      group.add(back);
+      // Backrest frame (thin wood vertical strut)
+      [-1, 1].forEach(sx => {
+        const strut = new THREE.Mesh(
+          new THREE.BoxGeometry(0.022, 0.36, 0.022),
+          woodMat
+        );
+        strut.position.set(sx * 0.18, 0.65, -0.225);
+        group.add(strut);
+      });
+      // 4 wooden splayed legs
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
+        const leg = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.018, 0.014, 0.42, 10),
+          woodMat
+        );
+        leg.position.set(sx * 0.16, 0.21, sz * 0.16);
+        leg.rotation.z = sx * 0.08;
+        leg.rotation.x = -sz * 0.08;
+        leg.castShadow = true;
+        group.add(leg);
+      });
+      // Floor glide caps
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
+        const cap = new THREE.Mesh(
+          new THREE.SphereGeometry(0.014, 8, 6),
+          metalMat
+        );
+        cap.position.set(sx * 0.18, 0.012, sz * 0.18);
+        group.add(cap);
+      });
+      return group;
+    }
+
+    function buildAtmKiosk() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.ATM_KIOSK;
+      const bodyMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.ATM_KIOSK, roughness: 0.5, metalness: 0.4 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.5, metalness: 0.4 });
+      const screenMat = new THREE.MeshStandardMaterial({ color: 0x0a1a3a, emissive: 0x4a90ff, emissiveIntensity: 0.7 });
+      const ledMat = new THREE.MeshStandardMaterial({ color: 0x22ff66, emissive: 0x22ff66, emissiveIntensity: 1.2 });
+      const accentMat = new THREE.MeshStandardMaterial({ color: 0xE63950, emissive: 0xE63950, emissiveIntensity: 0.6 });
+      // Main body
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        bodyMat
+      );
+      body.position.y = dims.height / 2;
+      body.castShadow = true; body.receiveShadow = true;
+      group.add(body);
+      // Top screen panel (slightly recessed dark)
+      const screenBg = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.04, 0.45, 0.025),
+        darkMat
+      );
+      screenBg.position.set(0, 1.45, dims.depth / 2 + 0.001);
+      group.add(screenBg);
+      // Active screen (emissive)
+      const screen = new THREE.Mesh(
+        new THREE.PlaneGeometry(dims.width - 0.10, 0.40),
+        screenMat
+      );
+      screen.position.set(0, 1.45, dims.depth / 2 + 0.014);
+      group.add(screen);
+      // Card slot (horizontal slit)
+      const cardSlot = new THREE.Mesh(
+        new THREE.BoxGeometry(0.20, 0.018, 0.012),
+        darkMat
+      );
+      cardSlot.position.set(-0.15, 1.10, dims.depth / 2 + 0.003);
+      group.add(cardSlot);
+      // Cash dispenser slot
+      const cashSlot = new THREE.Mesh(
+        new THREE.BoxGeometry(0.22, 0.025, 0.012),
+        darkMat
+      );
+      cashSlot.position.set(0, 0.78, dims.depth / 2 + 0.003);
+      group.add(cashSlot);
+      // Receipt slot
+      const recSlot = new THREE.Mesh(
+        new THREE.BoxGeometry(0.10, 0.012, 0.008),
+        darkMat
+      );
+      recSlot.position.set(0.18, 1.10, dims.depth / 2 + 0.003);
+      group.add(recSlot);
+      // Keypad (recessed)
+      const keypad = new THREE.Mesh(
+        new THREE.BoxGeometry(0.22, 0.18, 0.02),
+        darkMat
+      );
+      keypad.position.set(0, 0.95, dims.depth / 2 + 0.002);
+      group.add(keypad);
+      // Keypad buttons (4×3 grid)
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 3; c++) {
+          const btn = new THREE.Mesh(
+            new THREE.BoxGeometry(0.040, 0.030, 0.005),
+            new THREE.MeshStandardMaterial({ color: 0x808080, roughness: 0.4 })
+          );
+          btn.position.set(-0.06 + c * 0.06, 1.02 - r * 0.038, dims.depth / 2 + 0.013);
+          group.add(btn);
+        }
+      }
+      // Status LED (top-right)
+      const led = new THREE.Mesh(
+        new THREE.SphereGeometry(0.012, 10, 8),
+        ledMat
+      );
+      led.position.set(dims.width / 2 - 0.05, dims.height - 0.10, dims.depth / 2 + 0.005);
+      group.add(led);
+      // Brand stripe along the top edge (red accent)
+      const stripe = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.04, 0.02, 0.005),
+        accentMat
+      );
+      stripe.position.set(0, dims.height - 0.06, dims.depth / 2 + 0.002);
+      group.add(stripe);
+      return group;
+    }
+
+    function buildNumberedSign(instance) {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.NUMBERED_SIGN;
+      const liftY = 2.30;
+      const num = (instance && instance.label) ? String(instance.label) : '1';
+      // Sign body (white panel)
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.4 })
+      );
+      body.position.y = liftY + dims.height / 2;
+      body.castShadow = true;
+      group.add(body);
+      // Number face (canvas texture, both sides)
+      const cnv = document.createElement('canvas');
+      cnv.width = 256; cnv.height = 192;
+      const ctx = cnv.getContext('2d');
+      ctx.fillStyle = '#fafafa'; ctx.fillRect(0, 0, 256, 192);
+      ctx.fillStyle = '#1a1a1a';
+      ctx.font = 'bold 140px IBM Plex Sans, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(num, 128, 96);
+      // Small label "창구" under number
+      ctx.fillStyle = '#888';
+      ctx.font = '20px IBM Plex Sans, sans-serif';
+      ctx.fillText('창구', 128, 175);
+      const tex = new THREE.CanvasTexture(cnv);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      const faceMat = new THREE.MeshStandardMaterial({
+        map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.45, roughness: 0.5,
+      });
+      // Front face
+      const front = new THREE.Mesh(new THREE.PlaneGeometry(dims.width - 0.02, dims.height - 0.02), faceMat);
+      front.position.set(0, liftY + dims.height / 2, dims.depth / 2 + 0.001);
+      group.add(front);
+      // Back face (mirrored)
+      const back = new THREE.Mesh(new THREE.PlaneGeometry(dims.width - 0.02, dims.height - 0.02), faceMat);
+      back.position.set(0, liftY + dims.height / 2, -dims.depth / 2 - 0.001);
+      back.rotation.y = Math.PI;
+      group.add(back);
+      // Suspension wires
+      [-1, 1].forEach(s => {
+        const wire = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.003, 0.003, 0.4, 6),
+          new THREE.MeshStandardMaterial({ color: 0x1a1a1a })
+        );
+        wire.position.set(s * (dims.width / 2 - 0.05), liftY + dims.height + 0.20, 0);
+        group.add(wire);
+      });
+      return group;
+    }
+
+    function buildTicketKiosk() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.TICKET_KIOSK;
+      const bodyMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.TICKET_KIOSK, roughness: 0.5, metalness: 0.4 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.5 });
+      const screenMat = new THREE.MeshStandardMaterial({ color: 0x102a55, emissive: 0x4a90ff, emissiveIntensity: 0.6 });
+      // Main pedestal
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        bodyMat
+      );
+      body.position.y = dims.height / 2;
+      body.castShadow = true;
+      group.add(body);
+      // Angled top face (touchscreen)
+      const topAngled = new THREE.Group();
+      topAngled.rotation.x = -Math.PI / 6;
+      topAngled.position.set(0, dims.height + 0.04, 0);
+      group.add(topAngled);
+      const topPanel = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.06, 0.012, dims.depth - 0.06),
+        darkMat
+      );
+      topAngled.add(topPanel);
+      const screen = new THREE.Mesh(
+        new THREE.PlaneGeometry(dims.width - 0.10, dims.depth - 0.10),
+        screenMat
+      );
+      screen.rotation.x = -Math.PI / 2;
+      screen.position.y = 0.007;
+      topAngled.add(screen);
+      // Paper slot (front face)
+      const paperSlot = new THREE.Mesh(
+        new THREE.BoxGeometry(0.18, 0.018, 0.012),
+        darkMat
+      );
+      paperSlot.position.set(0, dims.height * 0.50, dims.depth / 2 + 0.003);
+      group.add(paperSlot);
+      // Korean label "번호표" via canvas text
+      const cnv = document.createElement('canvas');
+      cnv.width = 256; cnv.height = 64;
+      const ctx = cnv.getContext('2d');
+      ctx.fillStyle = '#3a4250'; ctx.fillRect(0, 0, 256, 64);
+      ctx.fillStyle = '#f0f0f0';
+      ctx.font = 'bold 32px IBM Plex Sans, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('번호표', 128, 36);
+      const tex = new THREE.CanvasTexture(cnv);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      const labelFace = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.30, 0.07),
+        new THREE.MeshStandardMaterial({ map: tex, roughness: 0.5 })
+      );
+      labelFace.position.set(0, dims.height * 0.30, dims.depth / 2 + 0.003);
+      group.add(labelFace);
+      return group;
+    }
+
+    function buildOfficeDesk() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.OFFICE_DESK;
+      const woodMat = new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.OFFICE_DESK, roughness: 0.55, metalness: 0.1 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 });
+      const metalMat = new THREE.MeshStandardMaterial({ color: 0x606060, metalness: 0.6, roughness: 0.4 });
+      const screenMat = new THREE.MeshStandardMaterial({ color: 0x152a44, emissive: 0x4a7ed8, emissiveIntensity: 0.45 });
+      // Desk top
+      const top = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, 0.04, dims.depth),
+        woodMat
+      );
+      top.position.y = dims.height;
+      top.castShadow = true;
+      group.add(top);
+      // Modesty panel (front)
+      const modesty = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width - 0.10, dims.height * 0.65, 0.015),
+        woodMat
+      );
+      modesty.position.set(0, dims.height * 0.55, -dims.depth / 2 + 0.05);
+      group.add(modesty);
+      // Side drawer cabinet (right side)
+      const drawer = new THREE.Mesh(
+        new THREE.BoxGeometry(0.40, dims.height - 0.10, dims.depth - 0.10),
+        woodMat
+      );
+      drawer.position.set(dims.width / 2 - 0.22, (dims.height - 0.10) / 2, 0);
+      drawer.castShadow = true;
+      group.add(drawer);
+      // 3 drawer fronts (lines)
+      [0.18, 0.36, 0.54].forEach(y => {
+        const line = new THREE.Mesh(
+          new THREE.BoxGeometry(0.36, 0.005, 0.005),
+          darkMat
+        );
+        line.position.set(dims.width / 2 - 0.22, y, dims.depth / 2 - 0.05 + 0.003);
+        group.add(line);
+        const handle = new THREE.Mesh(
+          new THREE.BoxGeometry(0.10, 0.012, 0.008),
+          metalMat
+        );
+        handle.position.set(dims.width / 2 - 0.22, y - 0.04, dims.depth / 2 - 0.05 + 0.008);
+        group.add(handle);
+      });
+      // Left leg
+      const leg = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, dims.height - 0.05, 0.04),
+        metalMat
+      );
+      leg.position.set(-dims.width / 2 + 0.04, (dims.height - 0.05) / 2, dims.depth / 2 - 0.04);
+      group.add(leg);
+      const leg2 = leg.clone();
+      leg2.position.z = -dims.depth / 2 + 0.04;
+      group.add(leg2);
+      // Monitor on desk
+      const monStem = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.012, 0.012, 0.12, 8),
+        darkMat
+      );
+      monStem.position.set(-0.20, dims.height + 0.10, -0.18);
+      group.add(monStem);
+      const monBase = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.10, 0.12, 0.018, 14),
+        darkMat
+      );
+      monBase.position.set(-0.20, dims.height + 0.025, -0.18);
+      group.add(monBase);
+      const monitor = new THREE.Mesh(
+        new THREE.BoxGeometry(0.42, 0.27, 0.025),
+        darkMat
+      );
+      monitor.position.set(-0.20, dims.height + 0.30, -0.18);
+      group.add(monitor);
+      const monScreen = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.39, 0.24),
+        screenMat
+      );
+      monScreen.position.set(-0.20, dims.height + 0.30, -0.18 + 0.014);
+      group.add(monScreen);
+      // Keyboard
+      const kb = new THREE.Mesh(
+        new THREE.BoxGeometry(0.34, 0.018, 0.13),
+        new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.5 })
+      );
+      kb.position.set(-0.20, dims.height + 0.011, 0.03);
+      group.add(kb);
+      // Document tray on desk
+      const tray = new THREE.Mesh(
+        new THREE.BoxGeometry(0.22, 0.025, 0.16),
+        darkMat
+      );
+      tray.position.set(0.10, dims.height + 0.022, -0.10);
+      group.add(tray);
+      return group;
+    }
+
     const FURNITURE_BUILDERS = {
       MAIN_STAGE: buildMainStage,
       CIRCULAR_PODIUM: buildCircularPodium,
@@ -3035,6 +3551,13 @@
       PHOTO_RUG: buildPhotoRug,
       LAUNDRY_BASKET: buildLaundryBasket,
       MEDIA_CABINET: buildMediaCabinet,
+      TELLER_COUNTER: buildTellerCounter,
+      WAITING_BENCH: buildWaitingBench,
+      OFFICE_CHAIR: buildOfficeChair,
+      ATM_KIOSK: buildAtmKiosk,
+      NUMBERED_SIGN: buildNumberedSign,
+      TICKET_KIOSK: buildTicketKiosk,
+      OFFICE_DESK: buildOfficeDesk,
       WALL_PANEL: buildWallPanel,
       DOORWAY: buildDoorway,
       FIREPLACE: buildFireplace,
@@ -7168,6 +7691,78 @@
       return s;
     }
 
+    // Bank Branch — typical retail bank floor plan based on reference photos:
+    //   back wall: 6 numbered teller counters in a row (tellers + customer chairs)
+    //   left wall: ATM kiosks (3) + ticket dispenser kiosk near entrance
+    //   center: waiting bench rows facing the tellers
+    //   right side: cozy lounge corner (sofa + coffee table)
+    //   front: long info desk + office chairs for consultations
+    //   1 CLOiD Wheel guide robot (greeter) near entrance
+    function presetBankBranch() {
+      const s = { booth: { widthFt: 60, depthFt: 40 }, furniture: [], robots: [] };
+      const { m, r } = presetHelpers(s);
+      const Z_BACK = -5.80; // back wall (teller line)
+
+      // ── Teller line (6 counters, x-spaced along back wall) ──
+      const tellerXs = [-4.5, -2.7, -0.9, 0.9, 2.7, 4.5];
+      tellerXs.forEach((x, i) => {
+        const num = String(i + 4); // numbers 4..9 like the photo
+        m('TELLER_COUNTER', x, Z_BACK + 0.50, 0, `창구 ${num}`);
+        // Numbered sign hanging above each counter
+        m('NUMBERED_SIGN', x, Z_BACK + 0.10, 0, `번호 ${num}`, { label: num });
+        // Teller chair behind counter (tucked back toward wall)
+        m('OFFICE_CHAIR', x, Z_BACK + 0.05, 0, `창구 ${num} 직원석`);
+        // Customer chair in front of counter
+        m('OFFICE_CHAIR', x, Z_BACK + 1.30, Math.PI, `창구 ${num} 고객석`);
+      });
+
+      // ── Wall signage (back wall above tellers — bank brand strip) ──
+      m('LED_VIDEO_WALL', 0, Z_BACK - 0.05, 0, '은행 브랜드 사이니지');
+
+      // ── Left wall: ATM kiosks + ticket kiosk ──
+      m('ATM_KIOSK', -8.20, Z_BACK + 1.00, Math.PI / 2, 'ATM 1');
+      m('ATM_KIOSK', -8.20, Z_BACK + 2.40, Math.PI / 2, 'ATM 2');
+      m('ATM_KIOSK', -8.20, Z_BACK + 3.80, Math.PI / 2, 'ATM 3');
+      m('TICKET_KIOSK', -7.60, 4.20, Math.PI / 2, '번호표 발권기');
+
+      // ── Center: waiting area (3 rows of benches facing tellers) ──
+      // First row (closest to tellers)
+      m('WAITING_BENCH', -2.50, -2.20, 0, '대기석 1A');
+      m('WAITING_BENCH', -0.50, -2.20, 0, '대기석 1B');
+      m('WAITING_BENCH',  1.50, -2.20, 0, '대기석 1C');
+      m('WAITING_BENCH',  3.50, -2.20, 0, '대기석 1D');
+      // Second row
+      m('WAITING_BENCH', -2.50, -0.80, 0, '대기석 2A');
+      m('WAITING_BENCH', -0.50, -0.80, 0, '대기석 2B');
+      m('WAITING_BENCH',  1.50, -0.80, 0, '대기석 2C');
+      m('WAITING_BENCH',  3.50, -0.80, 0, '대기석 2D');
+      // Magazine racks/side tables between rows
+      m('SIDE_TABLE', -3.60, -1.50, 0, '브로셔 사이드 테이블 1');
+      m('SIDE_TABLE',  4.60, -1.50, 0, '브로셔 사이드 테이블 2');
+
+      // ── Front: consultation desks (3 individual desks for staff/customer pairs) ──
+      m('OFFICE_DESK', -3.50, 2.30, Math.PI, '상담 데스크 1');
+      m('OFFICE_CHAIR', -3.50, 1.70, Math.PI, '상담 1 직원석');
+      m('OFFICE_CHAIR', -3.50, 2.90, 0, '상담 1 고객석');
+      m('OFFICE_DESK',  0.00, 2.30, Math.PI, '상담 데스크 2');
+      m('OFFICE_CHAIR',  0.00, 1.70, Math.PI, '상담 2 직원석');
+      m('OFFICE_CHAIR',  0.00, 2.90, 0, '상담 2 고객석');
+      m('OFFICE_DESK',  3.50, 2.30, Math.PI, '상담 데스크 3');
+      m('OFFICE_CHAIR',  3.50, 1.70, Math.PI, '상담 3 직원석');
+      m('OFFICE_CHAIR',  3.50, 2.90, 0, '상담 3 고객석');
+
+      // ── Right corner: cozy lounge ──
+      m('SOFA_2SEAT', 7.20, 3.40, -Math.PI / 2, '코지 코너 소파');
+      m('COFFEE_TABLE', 6.10, 3.40, 0, '코지 코너 테이블');
+      m('FLOOR_LAMP', 7.50, 1.80, 0, '코지 코너 램프');
+      m('RUG', 6.50, 3.20, 0, '코지 코너 러그');
+
+      // ── Greeter robot near entrance (front-left), facing entrance ──
+      r('cloidWheel', -5.50, 4.50, -Math.PI / 4, '안내 로봇');
+
+      return s;
+    }
+
     // Empty booth presets (just a clean canvas at common booth sizes).
     function presetBlank30x20() {
       return { booth: { widthFt: 30, depthFt: 20 }, furniture: [], robots: [] };
@@ -7184,6 +7779,8 @@
     const BUILTIN_PRESETS = [
       { id: 'lg_ai_home',   name: 'LG AI Home (3-zone)', factory: presetLGAIHome,
         description: 'CES LG 부스 — Living / Laundry / Photo 3-존 구성, 로봇 3대' },
+      { id: 'bank_branch',  name: '은행 영업점',          factory: presetBankBranch,
+        description: '60×40 ft 은행 영업점 — 창구 6개 + ATM 3대 + 대기석 + 상담 데스크 + 코지 코너 + 안내 로봇' },
       { id: 'blank_30x20',  name: 'Blank · 30×20 ft',  factory: presetBlank30x20,
         description: '소형 빈 부스' },
       { id: 'blank_50x35',  name: 'Blank · 50×35 ft',  factory: presetBlank50x35,
