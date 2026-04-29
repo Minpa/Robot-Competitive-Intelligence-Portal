@@ -7656,6 +7656,21 @@
           }
         } else if (hit.type === 'robot') {
           selectRobot(hit.id);
+          // Start robot drag — works in both BUILD and CHOREO. Drags the home
+          // (t=0) waypoint as well as r.x/r.z so the start position moves.
+          const floor = screenToFloor(e.clientX, e.clientY);
+          const robotInst = state.robots.find(x => x.id === hit.id);
+          if (robotInst) {
+            const home = robotInst.positionTrack && robotInst.positionTrack.find(w => w.t === 0);
+            state.drag = {
+              type: 'robot',
+              id: hit.id,
+              startFloorX: floor.x, startFloorZ: floor.z,
+              origX: robotInst.x ?? 0, origZ: robotInst.z ?? 0,
+              origHomeX: home ? home.x : (robotInst.x ?? 0),
+              origHomeZ: home ? home.z : (robotInst.z ?? 0),
+            };
+          }
           return;
         } else if (hit.type === 'waypoint') {
           selectWaypoint(hit.robotId, hit.waypointId);
@@ -7760,6 +7775,28 @@
           if (marker) marker.position.set(wp.x, 0.12, wp.z);
           renderProperties();
         }
+      } else if (d.type === 'robot') {
+        const robotInst = state.robots.find(x => x.id === d.id);
+        if (robotInst) {
+          const hw = ftToM(state.booth.widthFt) / 2;
+          const hd = ftToM(state.booth.depthFt) / 2;
+          const dx = floor.x - d.startFloorX;
+          const dz = floor.z - d.startFloorZ;
+          robotInst.x = clamp(d.origX + dx, -hw + 0.4, hw - 0.4);
+          robotInst.z = clamp(d.origZ + dz, -hd + 0.4, hd - 0.4);
+          // Move the t=0 home waypoint too — applyGestures derives the visual
+          // position from positionTrack at the current time, so r.x/r.z alone
+          // wouldn't move the visible robot at t=0.
+          const home = robotInst.positionTrack && robotInst.positionTrack.find(w => w.t === 0);
+          if (home) {
+            home.x = clamp(d.origHomeX + dx, -hw + 0.4, hw - 0.4);
+            home.z = clamp(d.origHomeZ + dz, -hd + 0.4, hd - 0.4);
+            // Also update the waypoint marker if it exists in CHOREO mode
+            const marker = waypointMarkers[home.id];
+            if (marker) marker.position.set(home.x, 0.12, home.z);
+          }
+          renderProperties();
+        }
       }
     });
 
@@ -7770,6 +7807,11 @@
       if (state.drag && state.drag.type === 'scene-waypoint') {
         const r = state.robots.find(x => x.id === state.drag.robotId);
         if (r) rebuildRobotPath(r);
+      }
+      if (state.drag && state.drag.type === 'robot') {
+        const r = state.robots.find(x => x.id === state.drag.id);
+        if (r) rebuildRobotPath(r);
+        renderRobotList();
       }
       state.drag = null;
       canvas.style.cursor = 'grab';
