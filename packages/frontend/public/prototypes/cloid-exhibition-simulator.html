@@ -784,6 +784,17 @@
 
     <!-- SIDEBAR LEFT -->
     <div class="sidebar-left" id="sidebarLeft">
+      <!-- ALWAYS-VISIBLE: Scenario / Preset (works in BUILD / CHOREO / SPEC) -->
+      <div class="sidebar-section sidebar-section-sticky" style="background: #161620; border-bottom: 2px solid #00D9FF22;">
+        <div class="sidebar-section-title">📚 Scenario / Preset</div>
+        <select class="form-select" id="presetSelect" style="width:100%; margin-bottom: 6px"></select>
+        <div class="action-grid" style="margin-bottom: 6px">
+          <button class="btn-secondary" id="loadPresetBtn">📂 로드</button>
+          <button class="btn-secondary" id="deletePresetBtn">🗑️ 삭제</button>
+        </div>
+        <button class="btn-secondary" id="saveScenarioBtn" style="width:100%">💾 현재 상태 저장 (DB)</button>
+      </div>
+
       <!-- BUILD MODE -->
       <div id="buildMode" style="display: block;">
         <div class="sidebar-section sidebar-section-sticky">
@@ -810,15 +821,6 @@
             <button class="btn-mini zoom-btn" data-zoom="in">+ ZOOM</button>
           </div>
           <button class="btn-secondary" id="cameraFitBtn" style="width:100%; margin-top: 4px">FIT TO ITEMS</button>
-        </div>
-        <div class="sidebar-section">
-          <div class="sidebar-section-title">Scenario / Preset</div>
-          <select class="form-select" id="presetSelect" style="width:100%; margin-bottom: 6px"></select>
-          <div class="action-grid" style="margin-bottom: 6px">
-            <button class="btn-secondary" id="loadPresetBtn">📂 로드</button>
-            <button class="btn-secondary" id="deletePresetBtn">🗑️ 삭제</button>
-          </div>
-          <button class="btn-secondary" id="saveScenarioBtn" style="width:100%">💾 현재 상태 저장 (DB)</button>
         </div>
       </div>
 
