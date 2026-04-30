@@ -20,7 +20,8 @@ export default function AdminDataPanel() {
   const [tab, setTab] = useState<Tab>('poc');
 
   // Only show for admin-like users (simple check)
-  const isAdmin = user?.role === 'admin' || user?.email?.toLowerCase() === 'somewhere010@gmail.com';
+  const SUPER_ADMIN_EMAILS = ['somewhere010@gmail.com', 'yongsun.lee@lge.com', 'nikamu.lee2@lge.com'];
+  const isAdmin = user?.role === 'admin' || SUPER_ADMIN_EMAILS.includes(user?.email?.toLowerCase() ?? '');
   if (!isAdmin) return null;
 
   return (

@@ -186,7 +186,8 @@ export default function AdminPage() {
     queryFn: () => api.getAllowedEmails(),
   });
 
-  const isSuperAdmin = currentUser?.email?.toLowerCase() === 'somewhere010@gmail.com';
+  const SUPER_ADMIN_EMAILS = ['somewhere010@gmail.com', 'yongsun.lee@lge.com', 'nikamu.lee2@lge.com'];
+  const isSuperAdmin = SUPER_ADMIN_EMAILS.includes(currentUser?.email?.toLowerCase() ?? '');
 
   const { data: aiUsageSummary } = useQuery({
     queryKey: ['ai-usage-summary'],
@@ -1013,20 +1014,22 @@ export default function AdminPage() {
                 </div>
                 
                 {/* 슈퍼 관리자 (삭제 불가) */}
-                <div className="px-4 py-3 grid grid-cols-12 gap-4 items-center bg-indigo-500/10">
-                  <div className="col-span-5 flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-indigo-400" />
-                    <span className="font-medium text-ink-900">somewhere010@gmail.com</span>
-                    <span className="px-2 py-0.5 text-xs bg-indigo-600 text-ink-900 rounded">슈퍼 관리자</span>
+                {SUPER_ADMIN_EMAILS.map((superEmail) => (
+                  <div key={superEmail} className="px-4 py-3 grid grid-cols-12 gap-4 items-center bg-indigo-500/10">
+                    <div className="col-span-5 flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-indigo-400" />
+                      <span className="font-medium text-ink-900">{superEmail}</span>
+                      <span className="px-2 py-0.5 text-xs bg-indigo-600 text-ink-900 rounded">슈퍼 관리자</span>
+                    </div>
+                    <div className="col-span-4 text-ink-400 text-sm">-</div>
+                    <div className="col-span-2 text-ink-400 text-sm">-</div>
+                    <div className="col-span-1"></div>
                   </div>
-                  <div className="col-span-4 text-ink-400 text-sm">-</div>
-                  <div className="col-span-2 text-ink-400 text-sm">-</div>
-                  <div className="col-span-1"></div>
-                </div>
+                ))}
 
                 {/* DB에서 가져온 이메일 목록 */}
                 {allowedEmailsData?.emails
-                  ?.filter(e => e.email !== 'somewhere010@gmail.com')
+                  ?.filter(e => !SUPER_ADMIN_EMAILS.includes(e.email))
                   .map((item) => (
                     <div key={item.id} className="px-4 py-3 grid grid-cols-12 gap-4 items-center hover:bg-paper transition-colors">
                       <div className="col-span-5 flex items-center gap-2">
@@ -1050,7 +1053,7 @@ export default function AdminPage() {
                     </div>
                   ))}
 
-                {(!allowedEmailsData?.emails || allowedEmailsData.emails.filter(e => e.email !== 'somewhere010@gmail.com').length === 0) && (
+                {(!allowedEmailsData?.emails || allowedEmailsData.emails.filter(e => !SUPER_ADMIN_EMAILS.includes(e.email)).length === 0) && (
                   <div className="px-4 py-6 text-center text-ink-400 text-sm">
                     추가된 이메일이 없습니다.
                   </div>

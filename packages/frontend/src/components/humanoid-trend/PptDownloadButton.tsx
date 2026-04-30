@@ -11,7 +11,8 @@ export default function PptDownloadButton() {
   const [error, setError] = useState<string | null>(null);
 
   const isViewer = user?.role === 'viewer';
-  const canExport = user?.role === 'admin' || user?.role === 'analyst' || user?.email?.toLowerCase() === 'somewhere010@gmail.com';
+  const SUPER_ADMIN_EMAILS = ['somewhere010@gmail.com', 'yongsun.lee@lge.com', 'nikamu.lee2@lge.com'];
+  const canExport = user?.role === 'admin' || user?.role === 'analyst' || SUPER_ADMIN_EMAILS.includes(user?.email?.toLowerCase() ?? '');
 
   if (!canExport) {
     if (isViewer) {

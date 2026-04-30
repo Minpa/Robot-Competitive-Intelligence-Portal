@@ -4,9 +4,17 @@ import { db, users, auditLogs, allowedEmails } from '../db/index.js';
 import type { User, UserRole, Permission } from '../types/index.js';
 
 /**
- * 슈퍼 관리자 이메일 (하드코딩 - 이 이메일은 항상 허용)
+ * 슈퍼 관리자 이메일 목록 (하드코딩 - 이 이메일들은 항상 허용)
  */
-const SUPER_ADMIN_EMAIL = 'somewhere010@gmail.com';
+const SUPER_ADMIN_EMAILS = [
+  'somewhere010@gmail.com',
+  'yongsun.lee@lge.com',
+  'nikamu.lee2@lge.com',
+];
+
+function isSuperAdminEmail(email: string): boolean {
+  return SUPER_ADMIN_EMAILS.includes(email.toLowerCase());
+}
 
 export interface LoginCredentials {
   email: string;
@@ -104,7 +112,7 @@ export class AuthService {
     const normalizedEmail = email.toLowerCase();
     
     // 슈퍼 관리자는 항상 허용
-    if (normalizedEmail === SUPER_ADMIN_EMAIL) {
+    if (isSuperAdminEmail(normalizedEmail)) {
       return true;
     }
     
@@ -140,7 +148,7 @@ export class AuthService {
    */
   async addAllowedEmail(adminEmail: string, newEmail: string, note?: string): Promise<{ success: boolean; message: string }> {
     // 슈퍼 관리자 확인
-    if (adminEmail.toLowerCase() !== SUPER_ADMIN_EMAIL) {
+    if (!isSuperAdminEmail(adminEmail)) {
       return { success: false, message: '권한이 없습니다. 슈퍼 관리자만 이메일을 추가할 수 있습니다.' };
     }
     
@@ -177,14 +185,14 @@ export class AuthService {
    */
   async removeAllowedEmail(adminEmail: string, emailToRemove: string): Promise<{ success: boolean; message: string }> {
     // 슈퍼 관리자 확인
-    if (adminEmail.toLowerCase() !== SUPER_ADMIN_EMAIL) {
+    if (!isSuperAdminEmail(adminEmail)) {
       return { success: false, message: '권한이 없습니다. 슈퍼 관리자만 이메일을 삭제할 수 있습니다.' };
     }
-    
+
     const normalizedEmail = emailToRemove.toLowerCase();
-    
+
     // 슈퍼 관리자 이메일은 삭제 불가
-    if (normalizedEmail === SUPER_ADMIN_EMAIL) {
+    if (isSuperAdminEmail(normalizedEmail)) {
       return { success: false, message: '슈퍼 관리자 이메일은 삭제할 수 없습니다.' };
     }
     
