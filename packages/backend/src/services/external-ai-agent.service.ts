@@ -352,17 +352,21 @@ confidence는 정보의 신뢰도를 나타냅니다 (0.9+: 확실, 0.7~0.9: 높
 
     const response = await anthropic.messages.create({
       model: 'claude-opus-4-7',
-      max_tokens: 3000,
+      max_tokens: 4096,
       messages: [
         { role: 'user', content: `${prompt}\n\n반드시 유효한 JSON으로만 응답하세요. 다른 텍스트는 포함하지 마세요.` },
       ],
     });
 
-    const textBlock = response.content.find(block => block.type === 'text');
-    if (!textBlock || textBlock.type !== 'text') {
+    // Concatenate all text blocks for safety (Opus 4.7 may emit multiple).
+    let combined = '';
+    for (const block of response.content) {
+      if (block.type === 'text') combined += block.text + '\n';
+    }
+    if (!combined.trim()) {
       throw new Error('Claude 응답이 비어있습니다.');
     }
-    return textBlock.text;
+    return combined;
   }
 
   /**
@@ -394,7 +398,7 @@ confidence는 정보의 신뢰도를 나타냅니다 (0.9+: 확실, 0.7~0.9: 높
 
     const response = await anthropic.messages.create({
       model: 'claude-opus-4-7',
-      max_tokens: 3000,
+      max_tokens: 6000,
       tools: [{
         type: 'web_search_20250305' as any,
         name: 'web_search',
@@ -405,12 +409,18 @@ confidence는 정보의 신뢰도를 나타냅니다 (0.9+: 확실, 0.7~0.9: 높
       ],
     });
 
-    // web_search 응답에서 text 블록 추출
-    const textBlock = response.content.find(block => block.type === 'text');
-    if (!textBlock || textBlock.type !== 'text') {
+    // Opus + web_search returns interleaved blocks: text(preamble) → tool_use →
+    // text(more thinking) → tool_use → text(final JSON). Concatenating ALL text
+    // blocks ensures the parser sees the full output, including the trailing
+    // JSON which is often in the LAST text block, not the first.
+    let combined = '';
+    for (const block of response.content) {
+      if (block.type === 'text') combined += block.text + '\n';
+    }
+    if (!combined.trim()) {
       throw new Error('Claude 웹 검색 응답이 비어있습니다.');
     }
-    return textBlock.text;
+    return combined;
   }
 
   /**

@@ -278,16 +278,19 @@ Format your response as JSON:
 
     const response = await anthropic.messages.create({
       model: 'claude-opus-4-7',
-      max_tokens: 1000,
+      max_tokens: 2048,
       system: systemPrompt,
       messages: [
         { role: 'user', content: userPrompt },
       ],
     });
 
-    const textBlock = response.content.find(block => block.type === 'text');
-    const result = textBlock?.type === 'text' ? textBlock.text : '{}';
-    return this.parseAIResponse(result);
+    // Concatenate all text blocks (Opus 4.7 may emit multiple)
+    let combined = '';
+    for (const block of response.content) {
+      if (block.type === 'text') combined += block.text + '\n';
+    }
+    return this.parseAIResponse(combined.trim() || '{}');
   }
 
   /**
