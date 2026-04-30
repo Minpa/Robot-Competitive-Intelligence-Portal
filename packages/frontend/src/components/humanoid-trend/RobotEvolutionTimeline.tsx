@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -130,9 +130,33 @@ export default function RobotEvolutionTimeline() {
     x: number; y: number; robot: Robot; companyName: string;
   } | null>(null);
   const [modalRobot, setModalRobot] = useState<{ robot: Robot; companyName: string } | null>(null);
+  const [updating, setUpdating] = useState(false);
+  const [updateResult, setUpdateResult] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const handleUpdate = useCallback(async () => {
+    setUpdating(true);
+    setUpdateResult(null);
+    try {
+      const result = await api.generateDataForTopic({
+        query: '2025-2029 신규 휴머노이드 로봇 출시 계획, 발표, 프로토타입, 양산 일정 (Tesla Optimus, Boston Dynamics Atlas, Figure AI, Unitree, Agibot, UBTECH, 현대, 삼성, 두산 등)',
+        targetTypes: ['product'],
+        provider: 'claude',
+        webSearch: true,
+      });
+      await queryClient.invalidateQueries({ queryKey: ['evolution-timeline'] });
+      const count = (result.productsSaved ?? 0);
+      setUpdateResult(count > 0 ? `${count}개 로봇 정보 업데이트됨` : '새로운 정보 없음');
+    } catch (e) {
+      setUpdateResult('업데이트 실패: ' + (e as Error).message);
+    } finally {
+      setUpdating(false);
+      setTimeout(() => setUpdateResult(null), 5000);
+    }
+  }, [queryClient]);
 
   useEffect(() => {
     const measure = () => {
@@ -256,6 +280,21 @@ export default function RobotEvolutionTimeline() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {updateResult && (
+            <span className={`text-xs px-2 py-1 rounded ${updateResult.includes('실패') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+              {updateResult}
+            </span>
+          )}
+          <button
+            onClick={handleUpdate}
+            disabled={updating}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <svg className={`w-3.5 h-3.5 ${updating ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {updating ? '업데이트 중...' : '데이터 업데이트'}
+          </button>
           <select
             value={recentYears}
             onChange={e => setRecentYears(Number(e.target.value))}
