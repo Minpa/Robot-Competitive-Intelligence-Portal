@@ -103,7 +103,7 @@ export async function eventRoutes(fastify: FastifyInstance) {
     try {
       const anthropic = new Anthropic({ apiKey });
       const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-opus-4-7',
         max_tokens: 4096,
         system: SYSTEM_PROMPT,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

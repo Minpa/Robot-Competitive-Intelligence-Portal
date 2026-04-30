@@ -515,7 +515,7 @@ export class PPTGeneratorService {
 - 총 200자 이내로 간결하게`;
 
       const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-opus-4-7',
         max_tokens: 500,
         messages: [{ role: 'user', content: prompt }],
       });
@@ -526,7 +526,7 @@ export class PPTGeneratorService {
       // 사용량 기록
       aiUsageService.logUsage({
         provider: 'claude',
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-opus-4-7',
         webSearch: false,
         inputTokens: Math.ceil(prompt.length / 3),
         outputTokens: Math.ceil(commentary.length / 3),

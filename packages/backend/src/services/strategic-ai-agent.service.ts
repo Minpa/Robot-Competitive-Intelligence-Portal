@@ -50,7 +50,7 @@ export interface StrategicBriefingResult {
 }
 
 const MONTHLY_COST_LIMIT_USD = 7.0;
-const AI_MODEL = 'claude-sonnet-4-6-20250514';
+const AI_MODEL = 'claude-opus-4-7';
 
 class StrategicAIAgentService {
 

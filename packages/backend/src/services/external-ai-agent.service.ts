@@ -219,7 +219,7 @@ export class ExternalAIAgentService {
     }
 
     // 사용량 기록 (비동기, 실패해도 무시)
-    const model = request.provider === 'chatgpt' ? 'gpt-4o-mini' : 'claude-sonnet-4-20250514';
+    const model = request.provider === 'chatgpt' ? 'gpt-4o-mini' : 'claude-opus-4-7';
     const estimatedInputTokens = Math.ceil(prompt.length / 3);
     const estimatedOutputTokens = Math.ceil(raw.length / 3);
     aiUsageService.logUsage({
@@ -351,7 +351,7 @@ confidence는 정보의 신뢰도를 나타냅니다 (0.9+: 확실, 0.7~0.9: 높
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-opus-4-7',
       max_tokens: 3000,
       messages: [
         { role: 'user', content: `${prompt}\n\n반드시 유효한 JSON으로만 응답하세요. 다른 텍스트는 포함하지 마세요.` },
@@ -393,7 +393,7 @@ confidence는 정보의 신뢰도를 나타냅니다 (0.9+: 확실, 0.7~0.9: 높
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-opus-4-7',
       max_tokens: 3000,
       tools: [{
         type: 'web_search_20250305' as any,

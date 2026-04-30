@@ -60,7 +60,7 @@ export async function searchEventsWithClaude(): Promise<RobotAIEvent[]> {
   const today = new Date().toISOString().slice(0, 10);
 
   const response = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-opus-4-7',
     max_tokens: 8000,
     tools: [
       {

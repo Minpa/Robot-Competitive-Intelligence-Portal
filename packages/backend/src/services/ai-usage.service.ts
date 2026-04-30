@@ -11,6 +11,7 @@ const PRICING: Record<string, { input: number; output: number; webSearchPerQuery
   'gpt-4o-mini': { input: 0.15, output: 0.60 },
   'gpt-4o-mini-search': { input: 0.15, output: 0.60 },
   'claude-sonnet-4-20250514': { input: 3.0, output: 15.0, webSearchPerQuery: 0.01 },
+  'claude-opus-4-7': { input: 15.0, output: 75.0, webSearchPerQuery: 0.01 },
 };
 
 export interface AIUsageLogEntry {
