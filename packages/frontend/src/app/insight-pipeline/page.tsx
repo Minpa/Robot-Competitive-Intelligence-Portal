@@ -288,7 +288,7 @@ export default function InsightPipelinePage() {
 
     const startTime = Date.now();
     const runTimestamp = new Date().toISOString();
-    addLog('> Claude Sonnet 4 연결 중...');
+    addLog('> Claude Opus 4.7 연결 중...');
     addLog('> 웹 검색 활성화 (실시간 데이터)');
 
     try {
