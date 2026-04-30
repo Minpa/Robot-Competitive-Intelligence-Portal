@@ -23,6 +23,9 @@ import {
   UserPlus,
   DollarSign,
   Cpu,
+  Zap,
+  Loader2,
+  Circle,
 } from 'lucide-react';
 import { PageHeader, ArgosCard, SectionTitle, PrimaryButton } from '@/components/layout/PageHeader';
 
@@ -50,6 +53,106 @@ export default function AdminPage() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<any>(null);
   const [importUpdateExisting, setImportUpdateExisting] = useState(true);
+
+  // ── Master Refresh: 데이터 수집 → 점수 → 인사이트 → 감사 체이닝 ──
+  type MasterStepStatus = 'pending' | 'running' | 'done' | 'failed' | 'skipped';
+  interface MasterStep {
+    id: string;
+    name: string;
+    description: string;
+    status: MasterStepStatus;
+    detail?: string;
+    startedAt?: number;
+    finishedAt?: number;
+  }
+  const [masterRunning, setMasterRunning] = useState(false);
+  const [masterSteps, setMasterSteps] = useState<MasterStep[]>([]);
+  const [masterError, setMasterError] = useState<string | null>(null);
+
+  const updateStep = (id: string, patch: Partial<MasterStep>) => {
+    setMasterSteps(prev => prev.map(s => (s.id === id ? { ...s, ...patch } : s)));
+  };
+
+  async function runMasterRefresh() {
+    if (masterRunning) return;
+    if (!confirm('전체 파이프라인을 순차 실행합니다 (예상 5~10분). 계속하시겠어요?')) return;
+
+    setMasterRunning(true);
+    setMasterError(null);
+    const initial: MasterStep[] = [
+      { id: 'data',     name: '1. 데이터 수집',           description: 'Claude + 웹검색으로 회사·제품·기사·로봇 갱신', status: 'pending' },
+      { id: 'scoring',  name: '2. 점수 파이프라인',         description: 'PoC / RFM / Positioning 재채점',              status: 'pending' },
+      { id: 'briefing', name: '3. 월간 브리핑·인사이트',     description: '인사이트 카드 + 월간 요약 재생성',            status: 'pending' },
+      { id: 'audit',    name: '4. 데이터 감사',            description: '엔티티 일관성·이상치 검증',                   status: 'pending' },
+    ];
+    setMasterSteps(initial);
+
+    // ── Step 1: 데이터 수집 (poll until completed) ──
+    updateStep('data', { status: 'running', startedAt: Date.now() });
+    try {
+      const { jobId } = await api.startDataBatch('claude', true);
+      // Poll every 3s, 10 min max
+      const POLL_MAX = 200; // 200 × 3s = 600s
+      let i = 0;
+      while (i < POLL_MAX) {
+        await new Promise(r => setTimeout(r, 3000));
+        const st = await api.getDataBatchStatus(jobId);
+        const progress = `${st.completed}/${st.totalTopics} 완료 (${st.currentStep ?? '진행 중'})`;
+        updateStep('data', { detail: progress });
+        if (st.status === 'completed') {
+          updateStep('data', { status: 'done', detail: `${st.completed}개 주제 완료`, finishedAt: Date.now() });
+          break;
+        }
+        if (st.status === 'failed') {
+          updateStep('data', { status: 'failed', detail: st.error || 'unknown error', finishedAt: Date.now() });
+          throw new Error(`데이터 수집 실패: ${st.error}`);
+        }
+        i++;
+      }
+      if (i >= POLL_MAX) {
+        updateStep('data', { status: 'failed', detail: '폴링 타임아웃', finishedAt: Date.now() });
+        throw new Error('데이터 수집 타임아웃 (10분 초과)');
+      }
+    } catch (err: any) {
+      setMasterError(`Step 1: ${err?.message ?? '데이터 수집 실패'}`);
+      setMasterRunning(false);
+      return;
+    }
+
+    // ── Step 2: 점수 파이프라인 ──
+    updateStep('scoring', { status: 'running', startedAt: Date.now() });
+    try {
+      const result = await api.runScoringPipeline();
+      const summary = result?.summary || result?.message || '완료';
+      updateStep('scoring', { status: 'done', detail: typeof summary === 'string' ? summary : '재채점 완료', finishedAt: Date.now() });
+    } catch (err: any) {
+      updateStep('scoring', { status: 'failed', detail: err?.message ?? '실패', finishedAt: Date.now() });
+      // 계속 진행 (점수 실패해도 다음 단계는 가능)
+    }
+
+    // ── Step 3: 월간 브리핑·인사이트 ──
+    updateStep('briefing', { status: 'running', startedAt: Date.now() });
+    try {
+      await api.generateMonthlyBrief();
+      updateStep('briefing', { status: 'done', detail: '인사이트 카드·월간 요약 재생성 완료', finishedAt: Date.now() });
+    } catch (err: any) {
+      updateStep('briefing', { status: 'failed', detail: err?.message ?? '실패', finishedAt: Date.now() });
+    }
+
+    // ── Step 4: 데이터 감사 ──
+    updateStep('audit', { status: 'running', startedAt: Date.now() });
+    try {
+      const auditResult = await api.runDataAudit();
+      const issueCount = auditResult?.totalIssues ?? auditResult?.issues?.length ?? 0;
+      updateStep('audit', { status: 'done', detail: issueCount > 0 ? `${issueCount}개 이슈 발견` : '이슈 없음', finishedAt: Date.now() });
+    } catch (err: any) {
+      updateStep('audit', { status: 'failed', detail: err?.message ?? '실패', finishedAt: Date.now() });
+    }
+
+    // 캐시 무효화 — 다른 페이지가 새 데이터를 즉시 보도록
+    queryClient.invalidateQueries();
+    setMasterRunning(false);
+  }
 
   const { data: summary } = useQuery({
     queryKey: ['dashboard-summary'],
@@ -629,6 +732,101 @@ export default function AdminPage() {
             )}
           </div>
         </div>
+
+        {/* 마스터 리프레시 (슈퍼 관리자만) */}
+        {isSuperAdmin && (
+          <div className="bg-white border border-ink-200 rounded-xl shadow-report">
+            <div className="p-6 border-b border-ink-200 flex items-center gap-2">
+              <Zap className="w-5 h-5 text-violet-500" />
+              <h2 className="text-[15px] font-bold text-ink-900">마스터 리프레시</h2>
+              <span className="ml-2 text-[11px] text-ink-500 font-mono">전체 파이프라인 일괄 재실행</span>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="text-sm text-ink-600 leading-relaxed">
+                데이터 수집 → 점수 파이프라인 → 인사이트 생성 → 데이터 감사를 순차 실행합니다.
+                예상 소요 <span className="font-medium text-ink-800">5~10분</span>. 첫 단계(Claude + 웹검색)에서 가장 시간이 많이 소요됩니다.
+              </div>
+
+              <button
+                onClick={runMasterRefresh}
+                disabled={masterRunning}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-mono text-[12px] font-semibold uppercase tracking-[0.12em] rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {masterRunning ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    실행 중…
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4" />
+                    전체 파이프라인 실행
+                  </>
+                )}
+              </button>
+
+              {masterSteps.length > 0 && (
+                <div className="border border-ink-200 rounded-lg overflow-hidden">
+                  {masterSteps.map((step, idx) => {
+                    const isLast = idx === masterSteps.length - 1;
+                    const dur = step.startedAt && step.finishedAt
+                      ? `${((step.finishedAt - step.startedAt) / 1000).toFixed(1)}s`
+                      : step.startedAt && !step.finishedAt
+                      ? `${((Date.now() - step.startedAt) / 1000).toFixed(0)}s…`
+                      : '';
+                    const statusColor =
+                      step.status === 'done' ? 'text-emerald-600' :
+                      step.status === 'running' ? 'text-violet-600' :
+                      step.status === 'failed' ? 'text-red-600' :
+                      'text-ink-400';
+                    const Icon =
+                      step.status === 'done' ? CheckCircle :
+                      step.status === 'running' ? Loader2 :
+                      step.status === 'failed' ? XCircle :
+                      Circle;
+                    return (
+                      <div
+                        key={step.id}
+                        className={`flex items-start gap-3 p-3 ${isLast ? '' : 'border-b border-ink-200'} ${
+                          step.status === 'running' ? 'bg-violet-50' : 'bg-white'
+                        }`}
+                      >
+                        <Icon className={`w-5 h-5 mt-0.5 ${statusColor} ${step.status === 'running' ? 'animate-spin' : ''}`} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-medium text-ink-900">{step.name}</span>
+                            {dur && <span className="text-xs font-mono text-ink-500">{dur}</span>}
+                          </div>
+                          <div className="text-xs text-ink-500 mt-0.5">{step.description}</div>
+                          {step.detail && (
+                            <div className={`text-xs mt-1 font-mono ${
+                              step.status === 'failed' ? 'text-red-600' :
+                              step.status === 'done' ? 'text-emerald-700' :
+                              'text-violet-700'
+                            }`}>
+                              → {step.detail}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {masterError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                  중단됨: {masterError}
+                </div>
+              )}
+
+              <div className="text-[11px] text-ink-500 leading-relaxed border-t border-ink-200 pt-3">
+                ⚠️ 한 번 실행하면 Anthropic API 비용이 약 <span className="font-mono">$0.50~$2.00</span> 발생할 수 있습니다 (OPUS 4.7 + 웹검색).
+                실행 후 모든 페이지 캐시가 자동 무효화됩니다.
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* AI API 사용량 (슈퍼 관리자만) */}
         {isSuperAdmin && (
