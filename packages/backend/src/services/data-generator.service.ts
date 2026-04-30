@@ -359,14 +359,44 @@ function buildConfirmedTopics(): GenerationTopic[] {
   const todayStr = today.toISOString().split('T')[0];
   const sinceStr = since.toISOString().split('T')[0];
 
+  // Each topic asks for **min 10, max 30 facts** to prevent the model from
+  // returning just 2-3 items, and to avoid blowing past max_tokens with 100+.
+  const COUNT_HINT = `\n\n**필수 — 결과 개수:** 가능한 한 **최소 10건, 최대 30건**의 fact를 포함해주세요. 정보가 부족하면 최소를 채우지 못해도 됩니다만, 단순히 출력을 줄이지 마세요.`;
+
   return [
     {
-      query: `오늘은 ${todayStr}입니다. ${sinceStr} 이후 (최근 30일 이내) 발표된 휴머노이드 로봇 업계 뉴스를 분석해주세요. 새로 공개된 제품, 신규 런칭, 시리즈 펀딩 클로징, 파트너십, 고용/채용 공고, 대량 배치 계약 등에 초점을 맞춰주세요. **반드시 ${sinceStr} 이후의 신규 발표만** 포함하세요. 모든 fact는 dataType="confirmed"여야 합니다 (예측 금지).`,
+      query: `오늘은 ${todayStr}입니다. ${sinceStr} 이후 (최근 30일 이내) 발표된 휴머노이드 로봇 업계 뉴스를 분석해주세요. 새로 공개된 제품, 신규 런칭, 시리즈 펀딩 클로징, 파트너십, 고용/채용 공고, 대량 배치 계약 등에 초점을 맞춰주세요. **반드시 ${sinceStr} 이후의 신규 발표만** 포함하세요. 모든 fact는 dataType="confirmed"여야 합니다 (예측 금지).${COUNT_HINT}`,
       targetTypes: ['company', 'product', 'market', 'technology'],
     },
     {
-      query: `오늘은 ${todayStr}입니다. ${sinceStr} 이후 (최근 30일 이내) 휴머노이드 로봇 실제 배치·적용 사례, 신규 PoC, 파일럿 확장, 상용 계약을 분석해주세요. 물류·제조·건설·의료·서비스 분야에서 진짜로 새롭게 발표된 케이스만 포함해주세요. 모든 fact는 dataType="confirmed"여야 합니다.`,
+      query: `오늘은 ${todayStr}입니다. ${sinceStr} 이후 (최근 30일 이내) 휴머노이드 로봇 실제 배치·적용 사례, 신규 PoC, 파일럿 확장, 상용 계약을 분석해주세요. 물류·제조·건설·의료·서비스 분야에서 진짜로 새롭게 발표된 케이스만 포함해주세요. 모든 fact는 dataType="confirmed"여야 합니다.${COUNT_HINT}`,
       targetTypes: ['application', 'company', 'market'],
+    },
+    {
+      query: `오늘은 ${todayStr}입니다. ${sinceStr} 이후 (최근 30일 이내) **휴머노이드/AI 로봇 업계의 M&A·자본 활동·구조조정·파산** 뉴스를 분석해주세요. 인수합병, 지분 매각, IPO·SPAC 합병 발표, 사업 분할, 파산·청산, CEO/CTO 등 핵심 임원 교체. 각 fact는 거래 규모(USD)와 거래 일자를 포함해주세요. 모든 fact는 dataType="confirmed".${COUNT_HINT}`,
+      targetTypes: ['company', 'market'],
+    },
+    {
+      query: `오늘은 ${todayStr}입니다. ${sinceStr} 이후 (최근 30일 이내) **휴머노이드/AI 로봇 관련 규제·표준·인증** 동향을 분석해주세요. 한국 산업통상자원부·과기정통부·로봇산업진흥원, 미국 OSHA·NIST, EU AI Act/Machinery Regulation, ISO 13482·15066, RIA TR R15.806, KC 인증, 안전 표준 발표·개정·업계 가이드라인. 모든 fact는 dataType="confirmed".${COUNT_HINT}`,
+      targetTypes: ['technology', 'market'],
+    },
+    {
+      query: `오늘은 ${todayStr}입니다. ${sinceStr} 이후 (최근 30일 이내) **휴머노이드/로봇 핵심 컴포넌트·SoC·액추에이터·센서·배터리 공급망** 뉴스를 분석해주세요. NVIDIA Jetson Thor·Orin, Qualcomm Robotics, 하모닉 드라이브, Maxon·Robodrive 액추에이터, LiDAR(Velodyne/Ouster), Tactile sensor 신제품·MOU·양산 일정·가격 변동. 어떤 로봇 회사가 어떤 부품을 채택했는지 명확히 기재. 모든 fact는 dataType="confirmed".${COUNT_HINT}`,
+      targetTypes: ['component', 'company', 'technology'],
+    },
+    {
+      query: `오늘은 ${todayStr}입니다. ${sinceStr} 이후 (최근 30일 이내) **휴머노이드/AI 로봇 학술·기술 논문·연구 발표·특허** 동향을 분석해주세요. NeurIPS·ICRA·IROS·CoRL·RSS의 새 논문, arXiv 공개, 미국·한국 특허 등록, 대학 랩(스탠퍼드 IRIS, MIT CSAIL, KAIST, 서울대 등)의 베스트 페이퍼·신규 데모 영상. 모델명·기술명·저자/소속 명시. 모든 fact는 dataType="confirmed".${COUNT_HINT}`,
+      targetTypes: ['technology', 'company'],
+    },
+    {
+      query: `오늘은 ${todayStr}입니다. ${sinceStr} 이후 (최근 30일 이내) **한국 로봇·AI 업계** 1차 보도를 분석해주세요. 한국어 매체(전자신문, 디지털타임스, 더벨, 서울경제, 한국경제, 매일경제, 머니투데이, 디일렉) 기준으로 LG·삼성·현대·두산·로보스타·로보티즈·뉴빌리티·플라이업 등 한국 기업의 신제품·투자·사업 확장·정부 과제 수주 보도. **한국 시장 단독 발표 우선** (글로벌 영문 보도 제외). 모든 fact는 dataType="confirmed".${COUNT_HINT}`,
+      targetTypes: ['company', 'product', 'market'],
+      region: 'Korea',
+    },
+    {
+      query: `오늘은 ${todayStr}입니다. ${sinceStr} 이후 (최근 30일 이내) **일본/중국 로봇·AI 업계** 1차 보도를 분석해주세요. 일본 닛케이/Robot Watch, 중국 36Kr/PingWest 기준 Toyota·SoftBank·Honda·Preferred Networks, Unitree·UBTECH·Fourier·EX-Robots·Agibot·Galbot 등의 발표. 영문 보도가 아닌 현지 1차 소스 우선. 모든 fact는 dataType="confirmed".${COUNT_HINT}`,
+      targetTypes: ['company', 'product', 'market'],
+      region: 'APAC',
     },
   ];
 }
@@ -488,6 +518,10 @@ class DataGeneratorService {
     }
 
     // timeRange.start: topic.timeRangeStart > confirmed 모드 기본(오늘-30) > defaultStart 하한
+    // 갭 처리: 마지막 수집이 30일 이상 과거면 윈도우를 자동 확장하여 누락 방지.
+    //   - 직전 수집 < 23일 전: 오늘-30일 윈도우 (기본)
+    //   - 직전 수집 23~150일 전: lastCollectedAt-7일 (버퍼링) — 그동안 새로 보도된 것 모두 커버
+    //   - 직전 수집 150일 이상 전 또는 첫 실행: 오늘-150일 (5개월 backfill)
     let timeRangeStart: string;
     if (topic.timeRangeStart) {
       timeRangeStart = topic.timeRangeStart;
@@ -495,11 +529,26 @@ class DataGeneratorService {
       const thirty = new Date(today);
       thirty.setDate(today.getDate() - 30);
       timeRangeStart = thirty.toISOString().split('T')[0]!;
+
       if (context?.lastCollectedAt) {
-        const buffered = new Date(context.lastCollectedAt);
-        buffered.setDate(buffered.getDate() - 7);
-        const bufferedStr = buffered.toISOString().split('T')[0]!;
-        if (bufferedStr > timeRangeStart) timeRangeStart = bufferedStr;
+        const daysSinceLast = Math.floor((today.getTime() - context.lastCollectedAt.getTime()) / 86400000);
+        if (daysSinceLast >= 150) {
+          // Long gap: backfill 5 months from today
+          const wide = new Date(today);
+          wide.setDate(today.getDate() - 150);
+          timeRangeStart = wide.toISOString().split('T')[0]!;
+        } else if (daysSinceLast >= 23) {
+          // Stretch window back to lastCollectedAt - 7d so nothing in the gap is missed
+          const buffered = new Date(context.lastCollectedAt);
+          buffered.setDate(buffered.getDate() - 7);
+          const bufferedStr = buffered.toISOString().split('T')[0]!;
+          if (bufferedStr < timeRangeStart) timeRangeStart = bufferedStr;
+        }
+      } else {
+        // First run ever: backfill 5 months
+        const wide = new Date(today);
+        wide.setDate(today.getDate() - 150);
+        timeRangeStart = wide.toISOString().split('T')[0]!;
       }
     } else {
       // Forecast — fallback: 5년 백워드
@@ -651,12 +700,36 @@ class DataGeneratorService {
         })
         .where(eq(dataGeneratorJobs.id, jobId));
 
-      const result = await this.generateForTopic(topic, provider, webSearch, context, mode);
+      // Run topic with one retry on hard failure (transient API/parse errors).
+      // A "hard failure" = errors AND zero saves; a partial success (some
+      // saves with parse warnings) does not retry.
+      let result = await this.generateForTopic(topic, provider, webSearch, context, mode);
+      const isHardFailure = (r: GenerationResult) =>
+        r.errors.length > 0 && r.companiesSaved === 0 && r.productsSaved === 0;
+      if (isHardFailure(result)) {
+        console.warn(`[DataGenerator] Job ${jobId} topic ${i + 1} failed (1/2): ${result.errors[0]}. Retrying after 5s backoff…`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        await db
+          .update(dataGeneratorJobs)
+          .set({ currentStep: 'ai_call_retry', updatedAt: new Date() })
+          .where(eq(dataGeneratorJobs.id, jobId));
+        const retryResult = await this.generateForTopic(topic, provider, webSearch, context, mode);
+        // Merge: keep the better outcome
+        if (!isHardFailure(retryResult)) {
+          result = retryResult;
+        } else {
+          // Both failed — concat errors for visibility
+          result = {
+            ...retryResult,
+            errors: [...result.errors.map(e => `[try1] ${e}`), ...retryResult.errors.map(e => `[try2] ${e}`)],
+          };
+        }
+      }
       results.push(result);
 
-      if (result.errors.length > 0 && result.companiesSaved === 0 && result.productsSaved === 0) {
+      if (isHardFailure(result)) {
         failed++;
-        console.error(`[DataGenerator] Job ${jobId} topic ${i + 1} failed: ${result.errors[0]}`);
+        console.error(`[DataGenerator] Job ${jobId} topic ${i + 1} failed (after retry): ${result.errors[0]}`);
       } else {
         completed++;
         console.log(`[DataGenerator] Job ${jobId} topic ${i + 1} saved: ${result.companiesSaved} companies, ${result.productsSaved} products, ${result.keywordsSaved} keywords`);

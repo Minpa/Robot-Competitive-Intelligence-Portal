@@ -75,15 +75,16 @@ export default function AdminPage() {
 
   async function runMasterRefresh() {
     if (masterRunning) return;
-    if (!confirm('전체 파이프라인을 순차 실행합니다 (예상 5~10분). 계속하시겠어요?')) return;
+    if (!confirm('전체 파이프라인을 순차 실행합니다 (8개 주제 + 이벤트 + 채점 + 인사이트 + 감사 ≈ 10~20분, $2~$8). 계속하시겠어요?')) return;
 
     setMasterRunning(true);
     setMasterError(null);
     const initial: MasterStep[] = [
-      { id: 'data',     name: '1. 데이터 수집',           description: 'Claude + 웹검색으로 회사·제품·기사·로봇 갱신', status: 'pending' },
-      { id: 'scoring',  name: '2. 점수 파이프라인',         description: 'PoC / RFM / Positioning 재채점',              status: 'pending' },
-      { id: 'briefing', name: '3. 월간 브리핑·인사이트',     description: '인사이트 카드 + 월간 요약 재생성',            status: 'pending' },
-      { id: 'audit',    name: '4. 데이터 감사',            description: '엔티티 일관성·이상치 검증',                   status: 'pending' },
+      { id: 'data',     name: '1. 데이터 수집',           description: 'Claude + 웹검색으로 회사·제품·기사·로봇 갱신 (8개 주제)', status: 'pending' },
+      { id: 'events',   name: '2. 이벤트 캘린더',          description: 'CES/ICRA/IROS 등 글로벌 로봇·AI 이벤트 발견',  status: 'pending' },
+      { id: 'scoring',  name: '3. 점수 파이프라인',         description: 'PoC / RFM / Positioning 재채점',              status: 'pending' },
+      { id: 'briefing', name: '4. 월간 브리핑·인사이트',     description: '인사이트 카드 + 월간 요약 재생성',            status: 'pending' },
+      { id: 'audit',    name: '5. 데이터 감사',            description: '엔티티 일관성·이상치 검증',                   status: 'pending' },
     ];
     setMasterSteps(initial);
 
@@ -119,7 +120,17 @@ export default function AdminPage() {
       return;
     }
 
-    // ── Step 2: 점수 파이프라인 ──
+    // ── Step 2: 이벤트 캘린더 (Claude web_search) ──
+    updateStep('events', { status: 'running', startedAt: Date.now() });
+    try {
+      const res = await api.refreshEvents();
+      const cachedNote = res.cached ? ' (캐시 적중)' : '';
+      updateStep('events', { status: 'done', detail: `${res.count}건 발견${cachedNote}`, finishedAt: Date.now() });
+    } catch (err: any) {
+      updateStep('events', { status: 'failed', detail: err?.message ?? '실패', finishedAt: Date.now() });
+    }
+
+    // ── Step 3: 점수 파이프라인 ──
     updateStep('scoring', { status: 'running', startedAt: Date.now() });
     try {
       const result = await api.runScoringPipeline();
@@ -743,8 +754,8 @@ export default function AdminPage() {
             </div>
             <div className="p-6 space-y-4">
               <div className="text-sm text-ink-600 leading-relaxed">
-                데이터 수집 → 점수 파이프라인 → 인사이트 생성 → 데이터 감사를 순차 실행합니다.
-                예상 소요 <span className="font-medium text-ink-800">5~10분</span>. 첫 단계(Claude + 웹검색)에서 가장 시간이 많이 소요됩니다.
+                데이터 수집(8개 주제: 신제품·배치·M&A·규제·공급망·학술·한국·아시아) → 이벤트 캘린더 → 점수 파이프라인 → 인사이트 생성 → 데이터 감사를 순차 실행합니다.
+                예상 소요 <span className="font-medium text-ink-800">10~20분</span>. 첫 단계가 대부분의 시간 차지.
               </div>
 
               <button
@@ -821,7 +832,7 @@ export default function AdminPage() {
               )}
 
               <div className="text-[11px] text-ink-500 leading-relaxed border-t border-ink-200 pt-3">
-                ⚠️ 한 번 실행하면 Anthropic API 비용이 약 <span className="font-mono">$0.50~$2.00</span> 발생할 수 있습니다 (OPUS 4.7 + 웹검색).
+                ⚠️ 한 번 실행하면 Anthropic API 비용이 약 <span className="font-mono">$2.00~$8.00</span> 발생할 수 있습니다 (OPUS 4.7 + 웹검색 × 8개 주제 + 이벤트). 토픽 실패 시 자동 1회 재시도.
                 실행 후 모든 페이지 캐시가 자동 무효화됩니다.
               </div>
             </div>

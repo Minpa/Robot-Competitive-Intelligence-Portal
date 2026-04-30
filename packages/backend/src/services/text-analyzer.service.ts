@@ -3,6 +3,48 @@ import { db, companies, products, articles, keywords, productSpecs } from '../db
 import { eq, and } from 'drizzle-orm';
 import { createHash } from 'crypto';
 
+/**
+ * Normalize a company name for fuzzy duplicate detection.
+ *   - Lowercase
+ *   - Strip common legal suffixes (Inc, Ltd, Corp, Co., GmbH, AG, etc.)
+ *   - Strip parenthetical suffixes "(USA)", "(은하범용로봇)" etc.
+ *   - Collapse whitespace, strip punctuation
+ * "Boston Dynamics, Inc." → "boston dynamics"
+ * "Samsung Electronics Co., Ltd" → "samsung electronics"
+ * "Tesla (USA)" → "tesla"
+ */
+export function normalizeCompanyName(raw: string): string {
+  if (!raw) return '';
+  let s = raw.trim().toLowerCase();
+  // Strip parenthetical content (translations, country codes)
+  s = s.replace(/\([^)]*\)/g, '');
+  // Strip common legal suffixes
+  const suffixes = [
+    ', inc\\.?', ' inc\\.?',
+    ', ltd\\.?', ' ltd\\.?',
+    ', llc\\.?', ' llc\\.?',
+    ', corp\\.?', ' corp\\.?',
+    ', corporation', ' corporation',
+    ', co\\.?', ' co\\.?',
+    ', plc\\.?', ' plc\\.?',
+    ', s\\.a\\.?', ' s\\.a\\.?',
+    ', gmbh', ' gmbh',
+    ', ag', ' ag',
+    ', kk', ' kk',
+    ', limited', ' limited',
+    ', company', ' company',
+    ' 주식회사', '주식회사',
+    ' 유한회사', '유한회사',
+    ' 株式会社', '株式会社',
+  ];
+  for (const sfx of suffixes) {
+    s = s.replace(new RegExp(sfx + '\\s*$', 'i'), '');
+  }
+  // Collapse multiple spaces, strip leading/trailing punctuation
+  s = s.replace(/\s+/g, ' ').replace(/^[\s.,;:!?-]+|[\s.,;:!?-]+$/g, '').trim();
+  return s;
+}
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -217,18 +259,35 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
 
   const companyIdMap = new Map<string, string>();
 
-  // 1. 회사 저장
+  // 1. 회사 저장 (퍼지 매칭으로 중복 검출)
+  // Pre-load all existing companies for normalized comparison. With ~1000 rows
+  // this is cheap and avoids per-iteration round trips.
+  const allCompanies = await db.select({ id: companies.id, name: companies.name }).from(companies);
+  const normalizedIndex = new Map<string, { id: string; name: string }>();
+  for (const c of allCompanies) {
+    normalizedIndex.set(normalizeCompanyName(c.name), c);
+  }
+
   for (const company of data.companies) {
     try {
-      // 중복 체크 — 기존 회사는 나라 정보가 없어도 매핑은 유지
-      const existing = await db.select().from(companies)
+      // 1) Exact name match (legacy fast path)
+      const existingExact = await db.select().from(companies)
         .where(eq(companies.name, company.name))
         .limit(1);
-
-      const existingCompany = existing[0];
-      if (existingCompany) {
-        companyIdMap.set(company.name, existingCompany.id);
+      if (existingExact[0]) {
+        companyIdMap.set(company.name, existingExact[0].id);
         continue;
+      }
+      // 2) Fuzzy match by normalized name — handles "Boston Dynamics" vs
+      //    "Boston Dynamics, Inc." or "Tesla" vs "Tesla (USA)".
+      const fuzzyKey = normalizeCompanyName(company.name);
+      if (fuzzyKey) {
+        const fuzzyHit = normalizedIndex.get(fuzzyKey);
+        if (fuzzyHit) {
+          companyIdMap.set(company.name, fuzzyHit.id);
+          result.skipped.push({ category: 'company', name: company.name, reason: `fuzzy_dup_of:${fuzzyHit.name}` });
+          continue;
+        }
       }
 
       // 게이트: country가 'Unknown'이거나 비어 있으면 새 회사를 만들지 않음.
@@ -247,6 +306,10 @@ export async function saveAnalyzedData(data: AnalyzedData): Promise<SaveResult> 
 
       if (inserted) {
         companyIdMap.set(company.name, inserted.id);
+        // Also register in normalized index so later items in this same batch
+        // dedup against the just-inserted row.
+        const fuzzyKey = normalizeCompanyName(company.name);
+        if (fuzzyKey) normalizedIndex.set(fuzzyKey, { id: inserted.id, name: company.name });
         result.companiesSaved++;
         result.companyNames.push(company.name);
       }

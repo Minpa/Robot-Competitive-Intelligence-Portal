@@ -1495,6 +1495,11 @@ class ApiClient {
   async getInsightCards() { return this.request<any>('/insights/cards'); }
   async generateMonthlyBrief() { return this.request<any>('/insights/monthly-brief', { method: 'POST' }); }
 
+  // ── Event calendar refresh (Claude + web_search via backend) ──
+  async refreshEvents(): Promise<{ events: unknown[]; cached: boolean; count: number }> {
+    return this.request('/events/refresh', { method: 'POST' });
+  }
+
   // ── 휴머노이드 동향 대시보드 ──
   async getHumanoidTrendPocScores() { return this.request<any>('/humanoid-trend/poc-scores'); }
   async getHumanoidTrendRfmScores() { return this.request<any>('/humanoid-trend/rfm-scores'); }
