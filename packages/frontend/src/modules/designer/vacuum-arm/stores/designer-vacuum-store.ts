@@ -47,6 +47,9 @@ const INITIAL_PRODUCT: ProductConfig = {
 interface DesignerVacuumState {
   product: ProductConfig;
 
+  /** Payload weight at end-effector (kg). REQ-4. */
+  payloadKg: number;
+
   // viewport options
   viewportAutoRotate: boolean;
   showLabels: boolean;
@@ -65,6 +68,9 @@ interface DesignerVacuumState {
   updateArm: (index: number, patch: Partial<ManipulatorArmSpec>) => void;
   setArmMount: (index: number, mount: ArmMountPosition) => void;
 
+  // payload (REQ-4)
+  setPayloadKg: (kg: number) => void;
+
   // viewport mutators
   toggleAutoRotate: () => void;
   toggleLabels: () => void;
@@ -78,6 +84,7 @@ const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(ma
 
 export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   product: INITIAL_PRODUCT,
+  payloadKg: 0.2,
   viewportAutoRotate: false,
   showLabels: false,
   showWorkspaceMesh: true,
@@ -168,6 +175,8 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
 
   setProductName: (name) => set((s) => ({ product: { ...s.product, name } })),
 
+  setPayloadKg: (kg) => set({ payloadKg: clamp(kg, 0, 5) }),
+
   toggleAutoRotate: () => set((s) => ({ viewportAutoRotate: !s.viewportAutoRotate })),
   toggleLabels: () => set((s) => ({ showLabels: !s.showLabels })),
   toggleWorkspaceMesh: () => set((s) => ({ showWorkspaceMesh: !s.showWorkspaceMesh })),
@@ -175,6 +184,7 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   reset: () =>
     set({
       product: INITIAL_PRODUCT,
+      payloadKg: 0.2,
       viewportAutoRotate: false,
       showLabels: false,
       showWorkspaceMesh: true,

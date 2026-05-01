@@ -7,6 +7,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { endEffectorService, kinematicsService } from '../../services/designer/vacuum-arm/index.js';
+import {
+  shoulderTorqueNm,
+  elbowTorqueNm,
+  evaluateArmStatics,
+  payloadReachCurve,
+} from '../../services/designer/vacuum-arm/statics.service.js';
 import { actuatorService } from '../../services/designer/index.js';
 import { vacuumArmRoutes } from '../../routes/designer/vacuum-arm/index.js';
 import type {
@@ -149,6 +155,64 @@ describe('REQ-3 · kinematics envelope', () => {
   });
 });
 
+// ─── REQ-4: statics torque + payload-reach curve ──────────────────────────
+
+describe('REQ-4 · joint torques', () => {
+  it('shoulder torque grows monotonically with payload', () => {
+    const t0 = shoulderTorqueNm(25, 22, 0, 0.4);
+    const t2 = shoulderTorqueNm(25, 22, 2, 0.4);
+    expect(t2).toBeGreaterThan(t0);
+  });
+
+  it('shoulder torque > elbow torque (longer lever)', () => {
+    const sh = shoulderTorqueNm(30, 20, 1, 0.3);
+    const el = elbowTorqueNm(20, 1, 0.3);
+    expect(sh).toBeGreaterThan(el);
+  });
+
+  it('hand-calc: 1kg at 50cm extended ≈ 4.9 Nm payload moment, ±15%', () => {
+    // 1 kg * 9.81 m/s² * 0.50 m = 4.905 Nm — payload component only.
+    // Total shoulder torque adds limb moments, so will be larger; we verify
+    // it's at least the payload-only contribution.
+    const t = shoulderTorqueNm(25, 25, 1, 0); // total reach = 50 cm
+    expect(t).toBeGreaterThanOrEqual(4.9 * 0.85);
+  });
+
+  it('evaluateArmStatics returns shoulder + elbow records', () => {
+    const result = evaluateArmStatics(SAMPLE_ARM, 0.5, 0.3, 0);
+    expect(result.joints).toHaveLength(2);
+    expect(result.joints[0].jointName).toBe('shoulder');
+    expect(result.joints[1].jointName).toBe('elbow');
+    for (const j of result.joints) {
+      expect(j.requiredPeakTorqueNm).toBeGreaterThan(0);
+      expect(j.actuatorPeakTorqueNm).toBeGreaterThan(0);
+    }
+  });
+
+  it('over-limit flag set when required > actuator peak', () => {
+    // Use a tiny servo for shoulder + heavy payload + long arm
+    const overloaded = {
+      ...SAMPLE_ARM,
+      upperArmLengthCm: 40,
+      forearmLengthCm: 40,
+      shoulderActuatorSku: 'GENERIC-MOCK-SERVO-S', // 2.5 Nm peak
+    };
+    const r = evaluateArmStatics(overloaded, 5, 1, 0);
+    const sh = r.joints.find((j) => j.jointName === 'shoulder')!;
+    expect(sh.overLimit).toBe(true);
+    expect(sh.marginPct).toBeLessThan(0);
+  });
+
+  it('payloadReachCurve: longer reach → smaller payload (monotonic-ish)', () => {
+    const curve = payloadReachCurve(SAMPLE_ARM, 0.4, 10);
+    expect(curve).toHaveLength(10);
+    // First 3 points should be monotonically decreasing (or close to it)
+    for (let i = 1; i < curve.length; i++) {
+      expect(curve[i].maxPayloadKg).toBeLessThanOrEqual(curve[i - 1].maxPayloadKg + 0.01);
+    }
+  });
+});
+
 // ─── HTTP-level: routes mounted under /api/designer/vacuum-arm ────────────
 
 describe('REQ-1 · vacuum-arm HTTP routes', () => {
@@ -245,5 +309,47 @@ describe('REQ-1 · vacuum-arm HTTP routes', () => {
     const body = res.json() as { endEffector: EndEffectorSpec };
     expect(body.endEffector.type).toBe('suction');
     expect(body.endEffector.maxPayloadKg).toBeCloseTo(1.0, 2);
+  });
+
+  it('POST /analyze/ returns per-arm envelope + statics + curve', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/designer/vacuum-arm/analyze/',
+      payload: {
+        product: { name: 'test', base: SAMPLE_BASE, arms: [SAMPLE_ARM] },
+        payloadKg: 0.5,
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      arms: Array<{ envelope: { outerRadiusM: number }; statics: { joints: unknown[] }; payloadCurve: unknown[] }>;
+      isMock: true;
+    };
+    expect(body.isMock).toBe(true);
+    expect(body.arms).toHaveLength(1);
+    expect(body.arms[0].envelope.outerRadiusM).toBeGreaterThan(0);
+    expect(body.arms[0].statics.joints).toHaveLength(2);
+    expect(body.arms[0].payloadCurve.length).toBeGreaterThan(0);
+  });
+
+  it('POST /analyze/ with no arms still returns empty arms array', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/designer/vacuum-arm/analyze/',
+      payload: { product: { name: 't', base: SAMPLE_BASE, arms: [] }, payloadKg: 0 },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { arms: unknown[]; armCount: number };
+    expect(body.armCount).toBe(0);
+    expect(body.arms).toHaveLength(0);
+  });
+
+  it('POST /analyze/ requires product.base', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/designer/vacuum-arm/analyze/',
+      payload: {},
+    });
+    expect(res.statusCode).toBe(400);
   });
 });

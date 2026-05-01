@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useDesignerVacuumStore } from '../stores/designer-vacuum-store';
 import { designerVacuumApi } from '../api/designer-vacuum-api';
 import { SpecParametersPanel } from './panels/SpecParametersPanel';
+import { EngineeringAnalysisPanel } from './panels/EngineeringAnalysisPanel';
 
 const RobotViewport = dynamic(
   () => import('./viewport3d/RobotViewport').then((m) => m.RobotViewport),
@@ -39,6 +40,7 @@ function useDebounced<T>(value: T, delayMs: number): T {
 
 export function DesignerVacuumWorkbench() {
   const product = useDesignerVacuumStore((s) => s.product);
+  const payloadKg = useDesignerVacuumStore((s) => s.payloadKg);
   const autoRotate = useDesignerVacuumStore((s) => s.viewportAutoRotate);
   const showLabels = useDesignerVacuumStore((s) => s.showLabels);
   const showWorkspaceMesh = useDesignerVacuumStore((s) => s.showWorkspaceMesh);
@@ -48,6 +50,15 @@ export function DesignerVacuumWorkbench() {
 
   // Viewport debounce — slider-induced rebuilds settle before scene rebuilds.
   const debouncedProduct = useDebounced(product, 200);
+  const debouncedPayload = useDebounced(payloadKg, 250);
+
+  // REQ-4: analyze whenever product or payload changes (debounced)
+  const analyzeQ = useQuery({
+    queryKey: ['vacuum-arm', 'analyze', debouncedProduct, debouncedPayload],
+    queryFn: () => designerVacuumApi.analyze(debouncedProduct, debouncedPayload),
+    enabled: debouncedProduct.arms.length > 0,
+    staleTime: 2_000,
+  });
 
   // End-effector catalog so the viewport can adapt tip scale to payload.
   const endEffectorsQ = useQuery({
@@ -145,53 +156,20 @@ export function DesignerVacuumWorkbench() {
           </div>
         </section>
 
-        {/* Right: AnalysisPanel placeholder */}
+        {/* Right: EngineeringAnalysisPanel (REQ-4) */}
         <aside
           className="col-span-3 overflow-y-auto bg-[#0a0a0a] p-5"
           style={{ maxHeight: '100%' }}
         >
-          <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/40">
-            Engineering Analysis · REQ-3
-          </span>
-          <p className="mt-3 text-[11px] text-white/55 leading-relaxed">
-            REQ-4부터 관절 토크, ZMP 마진, 환경 적합성이 추가됩니다.
-          </p>
-
-          <div className="mt-5 space-y-2">
-            <Stat label="베이스 풋프린트" value={baseFootprintLabel(base.shape, base.diameterOrWidthCm)} />
-            <Stat
-              label="총 높이"
-              value={`${(base.heightCm + (base.hasLiftColumn ? base.liftColumnMaxExtensionCm : 0)).toFixed(1)} cm`}
-            />
-            <Stat label="베이스 무게" value={`${base.weightKg.toFixed(1)} kg`} />
-            <Stat
-              label="리프트 컬럼"
-              value={base.hasLiftColumn ? `${base.liftColumnMaxExtensionCm.toFixed(0)} cm 스트로크` : '없음'}
-            />
-            <Stat label="팔 개수" value={`${armCount}개`} />
-            {arms.map((arm, i) => {
-              const totalReach = arm.upperArmLengthCm + arm.forearmLengthCm;
-              const maxHeight =
-                base.heightCm +
-                (base.hasLiftColumn ? base.liftColumnMaxExtensionCm : 0) +
-                arm.shoulderHeightAboveBaseCm +
-                totalReach;
-              return (
-                <div key={i} className="space-y-1.5 border-l-2 pl-2 mt-3" style={{ borderColor: i === 0 ? '#E63950' : '#3a8dde' }}>
-                  <span className="block font-mono text-[9px] uppercase tracking-[0.18em] text-white/55">
-                    팔 {i + 1} · {arm.mountPosition}
-                  </span>
-                  <Stat label="총 리치 (L1+L2)" value={`${totalReach.toFixed(0)} cm`} />
-                  <Stat label="최대 도달 높이" value={`${maxHeight.toFixed(0)} cm`} />
-                  <Stat
-                    label="최대 수평 도달"
-                    value={`${(totalReach - base.diameterOrWidthCm / 2).toFixed(0)} cm`}
-                  />
-                  <Stat label="손목 DOF" value={`${arm.wristDof}`} />
-                </div>
-              );
-            })}
-          </div>
+          <EngineeringAnalysisPanel
+            base={base}
+            arms={arms}
+            analysis={analyzeQ.data?.arms ?? []}
+            payloadKg={debouncedPayload}
+            isLoading={analyzeQ.isFetching}
+            isError={analyzeQ.isError}
+            errorMessage={(analyzeQ.error as Error | null)?.message}
+          />
         </aside>
       </div>
 
@@ -208,16 +186,3 @@ export function DesignerVacuumWorkbench() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between border-b border-white/5 pb-1.5">
-      <span className="text-[10.5px] text-white/55">{label}</span>
-      <span className="font-mono text-[10.5px] tabular-nums text-white text-right max-w-[60%] truncate">{value}</span>
-    </div>
-  );
-}
-
-function baseFootprintLabel(shape: string, diameterOrWidth: number): string {
-  if (shape === 'square') return `${diameterOrWidth.toFixed(0)} × ${diameterOrWidth.toFixed(0)} cm`;
-  return `Ø ${diameterOrWidth.toFixed(0)} cm`;
-}

@@ -281,12 +281,29 @@ export function SpecParametersPanel() {
         />
       ))}
 
-      {/* 페이로드 placeholder */}
-      <Section title="페이로드 / 타겟" defaultOpen={false} badge="REQ-4 예정">
-        <p className="text-[10.5px] text-white/45 leading-relaxed">
-          페이로드 무게·grip 변수는 REQ-4에서 추가.
-        </p>
-      </Section>
+      {/* 페이로드 — REQ-4 */}
+      <PayloadSection />
     </div>
+  );
+}
+
+function PayloadSection() {
+  const payloadKg = useDesignerVacuumStore((s) => s.payloadKg);
+  const setPayloadKg = useDesignerVacuumStore((s) => s.setPayloadKg);
+  return (
+    <Section title="페이로드" badge={`${payloadKg.toFixed(1)} kg`}>
+      <SliderRow
+        label="끝점 페이로드"
+        value={payloadKg}
+        unit="kg"
+        min={0}
+        max={5}
+        step={0.05}
+        onChange={setPayloadKg}
+      />
+      <p className="mt-1 text-[10px] text-white/45 leading-relaxed">
+        worst-case (팔 수평 뻗음) 자세에서 끝점에 매달리는 무게. 토크·도달성 분석에 사용됩니다.
+      </p>
+    </Section>
   );
 }

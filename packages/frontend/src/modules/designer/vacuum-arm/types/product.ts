@@ -69,3 +69,57 @@ export const BASE_BOUNDS = {
   weightKg: { min: 3, max: 8, step: 0.1 },
   liftColumnMaxExtensionCm: { min: 0, max: 30, step: 1 },
 } as const;
+
+// ─── REQ-4 analyze response ────────────────────────────────────────────────
+
+export interface JointAnalysis {
+  jointName: 'shoulder' | 'elbow';
+  requiredPeakTorqueNm: number;
+  actuatorPeakTorqueNm: number;
+  marginPct: number;
+  overLimit: boolean;
+  actuatorSku: string;
+}
+
+export interface PayloadCurvePoint {
+  reachCm: number;
+  maxPayloadKg: number;
+}
+
+export interface WorkspaceEnvelope {
+  shoulderOriginM: [number, number, number];
+  innerRadiusM: number;
+  outerRadiusM: number;
+  totalReachCm: number;
+  maxHeightCm: number;
+  maxHorizontalReachCm: number;
+}
+
+export interface ArmAnalysisResult {
+  armIndex: number;
+  envelope: WorkspaceEnvelope;
+  statics: {
+    armIndex: number;
+    joints: JointAnalysis[];
+    estimatedLimbMassKg: number;
+  };
+  payloadCurve: PayloadCurvePoint[];
+  endEffector: {
+    sku: string;
+    name: string;
+    type: EndEffectorType;
+    maxPayloadKg: number;
+    weightG: number;
+  } | null;
+  endEffectorPayloadOverLimit: boolean;
+  endEffectorMaxPayloadKg: number;
+}
+
+export interface AnalyzeResponse {
+  base: VacuumBaseSpec;
+  armCount: number;
+  payloadKg: number;
+  arms: ArmAnalysisResult[];
+  isMock: true;
+  generatedAt: string;
+}

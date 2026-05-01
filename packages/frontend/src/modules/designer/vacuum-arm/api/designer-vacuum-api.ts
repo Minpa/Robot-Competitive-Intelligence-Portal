@@ -10,6 +10,8 @@ import type {
   EndEffectorSpec,
   EndEffectorListResponse,
   EndEffectorType,
+  ProductConfig,
+  AnalyzeResponse,
 } from '../types/product';
 
 const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -52,5 +54,13 @@ export const designerVacuumApi = {
 
   getEndEffector(sku: string): Promise<{ endEffector: EndEffectorSpec; isMock: true }> {
     return fetchJson(`/end-effectors/${encodeURIComponent(sku)}`);
+  },
+
+  // REQ-4
+  analyze(product: ProductConfig, payloadKg: number): Promise<AnalyzeResponse> {
+    return fetchJson('/analyze/', {
+      method: 'POST',
+      body: JSON.stringify({ product, payloadKg }),
+    });
   },
 };
