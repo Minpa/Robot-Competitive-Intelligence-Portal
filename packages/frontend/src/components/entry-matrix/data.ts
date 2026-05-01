@@ -169,6 +169,135 @@ export const LV_DETAILS_BY_KEY: Record<string, LvDetail[]> = {
 };
 
 // ─────────────────────────────────────────────────────────────────
+// 자동 생성 — 점수 → 4Lv 등급 분포 (Top 5 외 셀의 fallback)
+//
+// 점수 = (Lv1+Lv2+Lv3+Lv4) / 12 × 10  →  sum = round(score × 1.2)
+// 일반 패턴: 난이도 高(Lv4)일수록 등급 낮음.
+
+const SUM_TO_GRADES: Record<number, [0|1|2|3, 0|1|2|3, 0|1|2|3, 0|1|2|3]> = {
+  0:  [0, 0, 0, 0],
+  1:  [1, 0, 0, 0],
+  2:  [1, 1, 0, 0],
+  3:  [1, 1, 1, 0],
+  4:  [2, 1, 1, 0],
+  5:  [2, 2, 1, 0],
+  6:  [2, 2, 1, 1],
+  7:  [3, 2, 1, 1],
+  8:  [3, 2, 2, 1],
+  9:  [3, 3, 2, 1],
+  10: [3, 3, 2, 2],
+  11: [3, 3, 3, 2],
+  12: [3, 3, 3, 3],
+};
+
+// task별 Lv 작업 라벨 (Lv1 → Lv4)
+const TASK_LV_LABELS: Record<number, [string, string, string, string]> = {
+  0:  ['정형 부품 Picking',     '다종 SKU 혼재',       '비정형 SKU·동적',     '협소 공간 진입'],
+  1:  ['단일 SKU 분류',         'Mixed-SKU Kit',       '다 SKU·동선 변동',    '실시간 주문 변경'],
+  2:  ['단일 머신 Tending',     '다중 라인 순회',      '라인 변경·재구성',    '비표준 라인 대응'],
+  3:  ['평면 외관 검사',        '3D 형상 검사',        '미세 결함 검출',      '종합 품질 검수'],
+  4:  ['동일 위치 체결',        '다종 위치 체결',      '협소 위치 체결',      '비표준 체결'],
+  5:  ['표준 커넥터 체결',      '다 모델 체결',        'Pack 다종·고압',      '예외·신규 모델'],
+  6:  ['직선 라우팅',           '굴곡 라우팅',         '협소 진입 라우팅',    '복합 다발 라우팅'],
+  7:  ['AMR Tote 정형 이송',    '다 라인 순회',        '계단·다층 이송',      '협소 랙 진입'],
+  8:  ['단일 단 적재',          '다단 적재',           '적재 패턴 변경',      '비표준 적재'],
+  9:  ['표준 테이프 마감',      '다 SKU 박스 마감',    '비표준 포장',         '예외 처리'],
+  10: ['개방 위치 용접',        '다 위치 용접',        '협소 블록 용접',      '특수 환경 용접'],
+  11: ['평면 측정',             '3D 점검',             '시설 진단',           '종합 점검'],
+};
+
+const TASK_LV_ROBOTS: [RobotKind[], RobotKind[], RobotKind[], RobotKind[]] = [
+  ['IR', 'CR'],
+  ['CR', 'MoMa'],
+  ['MoMa', 'Hum'],
+  ['Hum'],
+];
+
+const TASK_LV_GRIPPERS: Record<number, [GripperKind[], GripperKind[], GripperKind[], GripperKind[]]> = {
+  0:  [['Vac'],         ['Vac', 'Jaw'],   ['Multi'],         ['Multi']],
+  1:  [['Vac'],         ['Vac', 'Multi'], ['Multi'],         ['Multi']],
+  2:  [['Jaw'],         ['Jaw', 'Multi'], ['Multi'],         ['Multi']],
+  3:  [[],              [],               [],                []],
+  4:  [['Jaw'],         ['Jaw'],          ['Multi'],         ['Multi']],
+  5:  [['Jaw'],         ['Jaw', 'Multi'], ['Multi'],         ['Multi']],
+  6:  [['Jaw'],         ['Multi'],        ['Multi'],         ['Multi']],
+  7:  [['Vac'],         ['Vac'],          ['Multi'],         ['Multi']],
+  8:  [['Vac'],         ['Vac', 'Multi'], ['Multi'],         ['Multi']],
+  9:  [['Vac'],         ['Vac'],          ['Multi'],         ['Multi']],
+  10: [['Mag'],         ['Mag'],          ['Mag', 'Multi'],  ['Multi']],
+  11: [[],              [],               [],                []],
+};
+
+const TASK_LV_LINEUP: Record<number, [LineupKind[], LineupKind[], LineupKind[], LineupKind[]]> = {
+  0:  [['IR'],            ['CR', 'MoMa'], ['MoMa', 'CLOiD'], ['CLOiD']],
+  1:  [['AMR'],           ['MoMa'],       ['MoMa', 'CLOiD'], ['CLOiD']],
+  2:  [['IR'],            ['CR', 'MoMa'], ['MoMa', 'CLOiD'], ['CLOiD']],
+  3:  [['IR'],            ['MoMa'],       ['MoMa', 'CLOiD'], ['CLOiD']],
+  4:  [['CR'],            ['CR'],         ['CLOiD'],         ['CLOiD']],
+  5:  [['CR'],            ['CR', 'CLOiD'], ['CLOiD'],         ['CLOiD']],
+  6:  [['CR'],            ['CR'],         ['CLOiD'],         ['CLOiD']],
+  7:  [['AMR'],           ['AMR', 'MoMa'], ['CLOiD'],         ['CLOiD']],
+  8:  [['MoMa'],          ['MoMa'],       ['CLOiD'],         ['CLOiD']],
+  9:  [['MoMa'],          ['MoMa'],       ['CLOiD'],         ['CLOiD']],
+  10: [['IR'],            ['IR'],         ['CLOiD'],         ['CLOiD']],
+  11: [['MoMa'],          ['MoMa'],       ['CLOiD'],         ['CLOiD']],
+};
+
+const SHARE_BY_GRADE: Record<0 | 1 | 2 | 3, 0 | 1 | 2 | 3 | 4 | 5> = {
+  3: 4,
+  2: 3,
+  1: 2,
+  0: 0,
+};
+
+// 일반 진입 장벽 풀이 (✗ 등급에서 표시)
+const GENERIC_BARRIER_BY_TASK: Record<number, string> = {
+  0:  '비정형 SKU 다양도 高 + 협소 공간 진입 — 슬림 휴머노이드 부재',
+  1:  '실시간 주문 변경 알고리즘 안정성 + 다 SKU 데이터셋 부재',
+  2:  '비표준 라인 통합 + MES/ERP 인터페이스 비용',
+  3:  '미세 결함 데이터셋 부재 + 검사 사이클 타임 압박',
+  4:  '비표준 체결 위치 + 토크 정밀도 + 안전 인증',
+  5:  '예외 모델 적응 비용 + 고압 커넥터 안전 인증',
+  6:  '복합 다발 라우팅 — 휴머노이드 양손 협응 데이터셋 부재',
+  7:  '협소 랙 — 슬림 휴머노이드 부재 (CLOiD-2026 예상)',
+  8:  '비표준 적재 패턴 + 페이로드 한계',
+  9:  '비표준 포장 다양도 + 사례 데이터 부재',
+  10: '특수 환경 (고온·고압·유독) + 용접 자격 인증',
+  11: '종합 점검 — 시설별 비표준 진단 항목',
+};
+
+export function deriveLvDetails(taskIdx: number, sectorIdx: number): LvDetail[] {
+  const score = SCORES[taskIdx][sectorIdx];
+  const sum = Math.max(0, Math.min(12, Math.round(score * 1.2)));
+  const grades = SUM_TO_GRADES[sum];
+  const labels = TASK_LV_LABELS[taskIdx];
+  const grippers = TASK_LV_GRIPPERS[taskIdx];
+  const lineups = TASK_LV_LINEUP[taskIdx];
+
+  return grades.map((g, i) => ({
+    grade: g,
+    task: labels[i],
+    robots: TASK_LV_ROBOTS[i],
+    grippers: grippers[i],
+    share: SHARE_BY_GRADE[g],
+    lineup: lineups[i],
+    tags: [],                       // 자동 생성에는 사례 태그 비움 (PPT 원본 필요)
+    barriers: g === 0 ? GENERIC_BARRIER_BY_TASK[taskIdx] : '',
+  }));
+}
+
+// 통합 조회 — Top 5 hand-curated가 있으면 우선, 없으면 자동 생성
+export function getLvDetails(taskIdx: number, sectorIdx: number): LvDetail[] {
+  const key = `${taskIdx}-${sectorIdx}`;
+  return LV_DETAILS_BY_KEY[key] ?? deriveLvDetails(taskIdx, sectorIdx);
+}
+
+// 셀이 hand-curated인지 자동 생성인지 표시 (UI 신뢰도 표시용)
+export function isLvDetailsHandCurated(taskIdx: number, sectorIdx: number): boolean {
+  return Boolean(LV_DETAILS_BY_KEY[`${taskIdx}-${sectorIdx}`]);
+}
+
+// ─────────────────────────────────────────────────────────────────
 // Top 5 Deep Dive 콘텐츠
 export interface DeepDiveItem { name: string; tag?: string; }
 export interface DeepDive {

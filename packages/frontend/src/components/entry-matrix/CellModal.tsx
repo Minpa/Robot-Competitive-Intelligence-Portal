@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import {
-  TASKS, SECTORS, SCORES, LV_DETAILS_BY_KEY,
+  TASKS, SECTORS, SCORES, getLvDetails, isLvDetailsHandCurated,
   scoreToColor, scoreToVerdict, isTop5Cell, getTop5Rank,
   type LvDetail,
 } from './data';
@@ -22,7 +22,8 @@ export default function CellModal({ taskIdx, sectorIdx, onClose }: Props) {
   const sector = SECTORS[sectorIdx];
   const isTop = isTop5Cell(taskIdx, sectorIdx);
   const rank = getTop5Rank(taskIdx, sectorIdx);
-  const lvDetails = LV_DETAILS_BY_KEY[`${taskIdx}-${sectorIdx}`];
+  const lvDetails = getLvDetails(taskIdx, sectorIdx);
+  const handCurated = isLvDetailsHandCurated(taskIdx, sectorIdx);
   const proc = task && getProc(taskIdx);
 
   // ESC to close
@@ -111,17 +112,15 @@ export default function CellModal({ taskIdx, sectorIdx, onClose }: Props) {
 
         {/* Body */}
         <div className="px-6 py-5">
-          {lvDetails ? (
-            <Lv4Table details={lvDetails} />
-          ) : (
-            <Lv4Placeholder />
-          )}
+          <Lv4Table details={lvDetails} />
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-[#E8E6DD] px-6 py-4 bg-[#FAFAF8]">
           <span className="font-mono text-[10.5px] text-[#888780] uppercase tracking-[0.14em]">
-            등급 = ★★★ / ★★ / ★ / ✗ · 점유 = 산업로봇 점유율
+            {handCurated
+              ? '등급 = ★★★ / ★★ / ★ / ✗ · 점유 = 산업로봇 점유율'
+              : '등급 = 점수 역산 (PPT 원본 텍스트는 추후 교체) · 점유 = 산업로봇 점유율'}
           </span>
           <div className="flex items-center gap-2">
             {isTop && (
@@ -331,20 +330,6 @@ function ChipRow({ items, kind }: { items: string[]; kind: 'robot' | 'gripper' |
           </span>
         );
       })}
-    </div>
-  );
-}
-
-function Lv4Placeholder() {
-  return (
-    <div className="border border-dashed border-[#D3D1C7] bg-[#FAFAF8] p-8 text-center">
-      <p className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.18em] mb-2">
-        Lv 상세 미입력
-      </p>
-      <p className="text-[12.5px] text-[#5F5E5A] leading-relaxed">
-        4Lv 상세 데이터는 Top 5 진입 적합 셀을 우선 입력 중입니다.<br />
-        Phase 1.5 Deep Dive 세션에서 전체 144셀로 확장합니다.
-      </p>
     </div>
   );
 }
