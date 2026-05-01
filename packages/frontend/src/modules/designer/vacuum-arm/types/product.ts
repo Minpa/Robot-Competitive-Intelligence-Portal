@@ -288,3 +288,31 @@ export interface ReviewResult {
   generatedAt: string;
   isMock: boolean;
 }
+
+export interface SpecSheetRevisionEntry {
+  parameterName: string;
+  oldValue: unknown;
+  newValue: unknown;
+  changedAt: string;
+}
+
+export interface SpecSheetMetadata {
+  candidateName: string;
+  authorName: string;
+  generatedAt: string;
+}
+
+export interface SpecSheetPayload {
+  meta: SpecSheetMetadata;
+  product: ProductConfig;
+  payloadKg: number;
+  room: RoomConfig | null;
+  analysis: {
+    arms: ArmAnalysisResult[];
+    stability: StabilityResult | null;
+    environment: EnvironmentResult | null;
+  };
+  review: ReviewResult;
+  revisions: SpecSheetRevisionEntry[];
+  isMock: true;
+}

@@ -19,6 +19,12 @@ import type {
   ScenarioSpec,
   RoomConfig,
   ReviewResult,
+  SpecSheetPayload,
+  SpecSheetRevisionEntry,
+  ReviewIssue,
+  ArmAnalysisResult,
+  StabilityResult,
+  EnvironmentResult,
 } from '../types/product';
 
 const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -111,6 +117,42 @@ export const designerVacuumApi = {
           })),
           stability: analysis.stability,
           environment: analysis.environment,
+        },
+      }),
+    });
+  },
+
+  // REQ-10 Phase B — assemble PDF spec sheet payload
+  specSheet(input: {
+    product: ProductConfig;
+    payloadKg: number;
+    room?: RoomConfig | null;
+    analysis: AnalyzeResponse;
+    candidateName: string;
+    authorName?: string;
+    revisions?: SpecSheetRevisionEntry[];
+    review?: ReviewResult;
+  }): Promise<SpecSheetPayload> {
+    return fetchJson<SpecSheetPayload>('/spec-sheet/', {
+      method: 'POST',
+      body: JSON.stringify({
+        product: input.product,
+        payloadKg: input.payloadKg,
+        room: input.room ?? null,
+        candidateName: input.candidateName,
+        authorName: input.authorName ?? '민파',
+        revisions: input.revisions ?? [],
+        review: input.review,
+        analysis: {
+          arms: input.analysis.arms.map((a) => ({
+            armIndex: a.armIndex,
+            statics: a.statics,
+            payloadCurve: a.payloadCurve,
+            endEffectorMaxPayloadKg: a.endEffectorMaxPayloadKg,
+            endEffectorPayloadOverLimit: a.endEffectorPayloadOverLimit,
+          })),
+          stability: input.analysis.stability,
+          environment: input.analysis.environment,
         },
       }),
     });

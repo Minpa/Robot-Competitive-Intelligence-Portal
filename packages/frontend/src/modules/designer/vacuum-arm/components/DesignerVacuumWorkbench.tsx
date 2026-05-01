@@ -129,6 +129,7 @@ export function DesignerVacuumWorkbench() {
         <div className="flex flex-wrap gap-1.5">
           {candidates.map((c) => {
             const selected = selectedForCompareIds.includes(c.id);
+            const hasAnalysis = !!c.analysis;
             return (
               <div key={c.id} className="flex items-center border border-white/15 px-2 py-1 gap-1.5">
                 <input
@@ -139,6 +140,20 @@ export function DesignerVacuumWorkbench() {
                   aria-label={`비교 ${c.name}`}
                 />
                 <span className="text-[11px] text-white/85 truncate max-w-[8rem]">{c.name}</span>
+                <button
+                  type="button"
+                  disabled={!hasAnalysis}
+                  onClick={() => {
+                    window.open(
+                      `/argos-designer/vacuum-arm/spec-sheet?candidateId=${encodeURIComponent(c.id)}`,
+                      '_blank'
+                    );
+                  }}
+                  className="font-mono text-[8.5px] uppercase tracking-[0.18em] text-gold/80 hover:text-gold disabled:opacity-30 disabled:cursor-not-allowed"
+                  title={hasAnalysis ? '사양서 PDF 출력' : '분석 데이터 없음 — 워크벤치에서 다시 저장'}
+                >
+                  PDF
+                </button>
                 <button
                   type="button"
                   onClick={() => removeCandidate(c.id)}

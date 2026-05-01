@@ -457,6 +457,59 @@ describe('REQ-1 · vacuum-arm HTTP routes', () => {
     });
     expect(res.statusCode).toBe(400);
   });
+
+  it('POST /spec-sheet/ assembles a 6-section payload', async () => {
+    const analyze = await app.inject({
+      method: 'POST',
+      url: '/api/designer/vacuum-arm/analyze/',
+      payload: { product: { name: 't', base: SAMPLE_BASE, arms: [SAMPLE_ARM] }, payloadKg: 0.3 },
+    });
+    const analysis = analyze.json();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/designer/vacuum-arm/spec-sheet/',
+      payload: {
+        product: { name: '청소기-PoC', base: SAMPLE_BASE, arms: [SAMPLE_ARM] },
+        payloadKg: 0.3,
+        analysis,
+        candidateName: '후보 A',
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      meta: { candidateName: string; authorName: string; generatedAt: string };
+      product: { arms: unknown[] };
+      review: { issues: unknown[]; source: string };
+      revisions: unknown[];
+      isMock: boolean;
+    };
+    expect(body.meta.candidateName).toBe('후보 A');
+    expect(typeof body.meta.authorName).toBe('string');
+    expect(body.product.arms).toHaveLength(1);
+    expect(Array.isArray(body.review.issues)).toBe(true);
+    expect(body.review.source).toBe('heuristic');
+    expect(Array.isArray(body.revisions)).toBe(true);
+    expect(body.isMock).toBe(true);
+  });
+
+  it('POST /spec-sheet/ requires candidateName', async () => {
+    const analyze = await app.inject({
+      method: 'POST',
+      url: '/api/designer/vacuum-arm/analyze/',
+      payload: { product: { name: 't', base: SAMPLE_BASE, arms: [] }, payloadKg: 0 },
+    });
+    const analysis = analyze.json();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/designer/vacuum-arm/spec-sheet/',
+      payload: {
+        product: { name: 't', base: SAMPLE_BASE, arms: [] },
+        payloadKg: 0,
+        analysis,
+      },
+    });
+    expect(res.statusCode).toBe(400);
+  });
 });
 
 // ─── REQ-10 heuristic review ──────────────────────────────────────────────
