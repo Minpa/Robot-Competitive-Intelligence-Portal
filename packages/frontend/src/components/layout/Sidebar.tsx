@@ -25,6 +25,7 @@ import {
   CalendarDays,
   Wrench,
   Briefcase,
+  Grid3x3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -65,6 +66,7 @@ const navigationGroups: NavGroup[] = [
     subtitle: 'Business Strategy',
     items: [
       { name: 'ARGOS 도메인 확장', href: '/business-strategy', icon: Briefcase },
+      { name: '진입 매트릭스 v9.3', href: '/business-strategy/matrix', icon: Grid3x3 },
     ],
   },
   {
