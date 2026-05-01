@@ -24,6 +24,7 @@ import {
   Boxes,
   CalendarDays,
   Wrench,
+  Briefcase,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -57,6 +58,13 @@ const navigationGroups: NavGroup[] = [
       { name: '항목별 비교', href: '/compare/matrix', icon: Table2 },
       { name: 'Perfect 대비 분석', href: '/compare/benchmark', icon: Target },
       { name: '전략 제언 / Action', href: '/action-items', icon: Zap },
+    ],
+  },
+  {
+    title: '사업 전략',
+    subtitle: 'Business Strategy',
+    items: [
+      { name: 'ARGOS 도메인 확장', href: '/business-strategy', icon: Briefcase },
     ],
   },
   {
