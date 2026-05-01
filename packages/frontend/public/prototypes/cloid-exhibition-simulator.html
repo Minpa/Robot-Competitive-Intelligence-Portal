@@ -9209,7 +9209,21 @@
         s.robots.push(inst);
         return inst;
       };
-      return { m, r };
+      // Append a waypoint to a robot's positionTrack at time t (seconds).
+      const wp = (robot, t, x, z, rotY = 0) => {
+        const point = { id: generateId('p'), t, x, z, rotY };
+        robot.positionTrack.push(point);
+        return point;
+      };
+      // Append a gesture to a robot's gestureTrack at time t with auto duration.
+      const g = (robot, t, type, params = {}) => {
+        const rawDur = GESTURE_DURATIONS[type];
+        const duration = isFinite(rawDur) ? rawDur : 3.0;
+        const gst = { id: generateId('g'), t, duration, type, params };
+        robot.gestureTrack.push(gst);
+        return gst;
+      };
+      return { m, r, wp, g };
     }
 
     // LG AI Home — three-zone booth (Living, Laundry, Photo).
@@ -9501,6 +9515,114 @@
     }
 
     // Empty booth presets (just a clean canvas at common booth sizes).
+    // ─────────────────────────────────────────────────────────────────
+    // 거실 데모 — LG 가전 + 청소·세탁·응대 동작 시퀀스
+    //
+    // 30 × 22 ft 가정용 거실 1실. 좌측 = 리빙 영역 (소파·TV·러그),
+    // 우측 = 세탁 코너 (WashTower + 바스켓 + 스타일러),
+    // 후면 = 주방·정리장. 로봇 3대가 12초 루프로 일상 시연.
+    function presetLivingRoomDemo() {
+      const s = { booth: { widthFt: 30, depthFt: 22 }, furniture: [], robots: [], duration: 14 };
+      const { m, r, wp, g } = presetHelpers(s);
+      const Z_BACK = -3.20;
+
+      // ── Living Zone (좌측, x ~ -4.5 ~ -1) ──
+      m('SOFA_3SEAT',     -3.20, -1.10, 0,             '거실 소파');
+      m('COFFEE_TABLE',   -3.20,  0.20, 0,             '거실 커피 테이블');
+      m('SIDE_TABLE',     -4.80, -1.10, 0,             '사이드 테이블');
+      m('FLOOR_LAMP',     -4.80, -2.00, 0,             '플로어 램프');
+      m('RUG',            -3.20,  0.40, 0,             '거실 러그');
+      m('OLED_TV_77',     -3.20, Z_BACK + 0.05, 0,     '거실 OLED TV');
+      m('MEDIA_CABINET',  -3.20, Z_BACK + 0.55, 0,     '미디어 캐비닛');
+      m('BOOKSHELF_SPEAKER', -4.80, Z_BACK + 0.30, 0,  '북쉘프 좌');
+      m('BOOKSHELF_SPEAKER', -1.60, Z_BACK + 0.30, 0,  '북쉘프 우');
+      m('AIR_PURIFIER',   -1.20, Z_BACK + 0.40, 0,     '공기청정기');
+
+      // ── Laundry Zone (우측, x ~ 2 ~ 5) ──
+      m('WASHER_DRYER_TOWER', 3.20, Z_BACK + 0.40, 0,  'WashTower');
+      m('STYLER',             4.50, Z_BACK + 0.40, 0,  '스타일러');
+      m('LAUNDRY_BASKET',     2.40, -0.50, 0.2,        '세탁 바구니');
+      m('PHOTO_RUG',          3.40, -0.20, 0,          '세탁 코너 러그');
+
+      // ── Kitchenette (후면 중앙, x ~ -0.5 ~ 1.5) ──
+      m('REFRIGERATOR',   1.50, Z_BACK + 0.40, 0,      '냉장고');
+      m('AIR_CONDITIONER', 0.10, Z_BACK + 0.30, 0,     '에어컨');
+
+      // ── Robots & Motion Sequences ──
+
+      // [1] 도우미 (cloidBipedal) — 세탁 시퀀스: 바구니 PICKUP → 세탁기 → DETACH → 복귀
+      const helper = r('cloidBipedal', 2.40, 1.40, Math.PI, '도우미');
+      // t=0    바구니 옆 시작 (이미 자동 추가됨)
+      g(helper, 0.5, 'SCAN');                         // 0.5~4.5s 둘러봄
+      wp(helper, 5.0, 2.40, -0.20, 0);                // 5s 바구니 앞으로
+      g(helper, 5.2, 'PICKUP', { targetId: null });   // PICKUP 4s
+      wp(helper, 9.5, 3.20, -1.50, 0);                // 9.5s 세탁기 앞
+      g(helper, 9.7, 'HANDOVER');                     // HANDOVER 4.5s
+      wp(helper, 13.5, 2.40, 1.40, Math.PI);          // 13.5s 복귀
+
+      // [2] NR 청소기 — 거실 패턴 청소 (12s 루프)
+      const cleaner = r('cleaner', -1.50, 1.50, 0, 'NR 청소기');
+      wp(cleaner,  3.0, -3.50, 1.50, 0);              // 거실 우측
+      wp(cleaner,  6.0, -4.80, -0.20, Math.PI / 2);   // 좌측 코너
+      wp(cleaner,  9.0, -3.20, -1.80, 0);             // 소파 옆
+      wp(cleaner, 12.0, -1.50, -0.50, -Math.PI / 2);  // 출발점 근처
+      wp(cleaner, 14.0, -1.50, 1.50, 0);              // 출발점 복귀
+
+      // [3] 안내 로봇 (cloidWheel) — 소파 옆 응대 시퀀스
+      const concierge = r('cloidWheel', -1.50, 0.40, -Math.PI / 2, '안내 도우미');
+      g(concierge, 1.0, 'WAVE');                      // 1~4s 손 흔들기
+      g(concierge, 4.5, 'POINT');                     // 4.5~7s TV 가리키기
+      g(concierge, 7.5, 'BOW');                       // 7.5~9.5s 인사
+      g(concierge, 10.0, 'SCAN');                     // 10~14s 둘러보기
+
+      return s;
+    }
+
+    // 침실 + 서재 — 옷 정리·바닥 청소 동작 시퀀스
+    //
+    // 25 × 18 ft 1인실 컨셉. 좌측 = 침실 (침대 대용 SOFA_2SEAT + 협탁 + 옷장),
+    // 우측 = 책상 영역. 로봇 2대가 옷 정리 + 청소 시연.
+    function presetBedroomStudy() {
+      const s = { booth: { widthFt: 25, depthFt: 18 }, furniture: [], robots: [], duration: 12 };
+      const { m, r, wp, g } = presetHelpers(s);
+      const Z_BACK = -2.60;
+
+      // ── Bedroom Zone (좌측, x ~ -3.5 ~ -1) ──
+      m('SOFA_2SEAT',  -2.60, Z_BACK + 0.60, 0,       '침대 (SOFA_2SEAT 대용)');
+      m('SIDE_TABLE',  -4.20, Z_BACK + 0.40, 0,       '협탁');
+      m('FLOOR_LAMP',  -4.20, Z_BACK + 1.30, 0,       '침실 램프');
+      m('CURIO_SHELF', -1.20, Z_BACK + 0.40, -Math.PI / 2, '옷장');
+      m('STYLER',       0.00, Z_BACK + 0.40, 0,       '스타일러');
+      m('AIR_PURIFIER', 0.90, Z_BACK + 0.40, 0,       '침실 공기청정기');
+
+      // ── Study Zone (우측, x ~ 1.5 ~ 4) ──
+      m('COFFEE_TABLE', 2.50,  0.30, 0,               '책상 (COFFEE_TABLE 대용)');
+      m('OFFICE_CHAIR', 2.50,  1.30, Math.PI,         '책상 의자');
+      m('SIDE_TABLE',   3.80, -0.30, 0,               '책상 옆 수납');
+      m('SMART_PANEL',  2.50, -0.30, 0,               '스마트 패널');
+      m('RUG',          2.80,  0.50, 0,               '서재 러그');
+
+      // ── Robots ──
+
+      // [1] 도우미 (cloidBipedal) — 옷장 → STYLER 의류 케어 시퀀스
+      const dresser = r('cloidBipedal', -1.20, -0.80, 0, '의류 도우미');
+      g(dresser, 0.5, 'SCAN');                        // 0.5~4.5 둘러봄
+      wp(dresser, 5.0, -1.20, -1.40, 0);              // 옷장 앞
+      g(dresser, 5.2, 'PICKUP');                      // 옷 집기
+      wp(dresser, 9.5,  0.00, -1.40, 0);              // STYLER 앞
+      g(dresser, 9.7, 'HANDOVER');                    // 옷 걸기
+      wp(dresser, 12.0, -1.20, -0.80, 0);             // 복귀
+
+      // [2] NR 청소기 — 침실·서재 W 패턴
+      const cleaner = r('cleaner', -3.80, 0.50, 0, 'NR 청소기');
+      wp(cleaner,  3.0, -3.80, -1.40, 0);             // 침대 옆
+      wp(cleaner,  6.0, -1.50,  0.30, Math.PI / 2);   // 가운데
+      wp(cleaner,  9.0,  3.80,  1.30, 0);             // 책상 의자 뒤
+      wp(cleaner, 12.0, -3.80,  0.50, Math.PI);       // 출발점 복귀
+
+      return s;
+    }
+
     function presetBlank30x20() {
       return { booth: { widthFt: 30, depthFt: 20 }, furniture: [], robots: [] };
     }
@@ -9516,6 +9638,10 @@
     const BUILTIN_PRESETS = [
       { id: 'lg_ai_home',   name: 'LG AI Home (3-zone)', factory: presetLGAIHome,
         description: 'CES LG 부스 — Living / Laundry / Photo 3-존 구성, 로봇 3대' },
+      { id: 'living_room_demo', name: '거실 데모 (가전·청소·세탁)', factory: presetLivingRoomDemo,
+        description: '30×22 ft 가정용 거실 — 소파·TV·세탁 코너·주방 + 로봇 3대 (도우미·NR 청소기·안내) 14초 동작 시퀀스' },
+      { id: 'bedroom_study', name: '침실+서재 (옷정리·청소)', factory: presetBedroomStudy,
+        description: '25×18 ft 1인실 — 침대·옷장·STYLER·책상 + 로봇 2대 (의류 도우미·NR 청소기) 12초 동작 시퀀스' },
       { id: 'bank_branch',  name: '은행 영업점',          factory: presetBankBranch,
         description: '60×40 ft 은행 영업점 — 창구 6개 + ATM 3대 + 대기석 + 상담 데스크 + 코지 코너 + 안내 로봇' },
       { id: 'hiplaza',      name: '하이프라자 매장',       factory: presetHiPlaza,
