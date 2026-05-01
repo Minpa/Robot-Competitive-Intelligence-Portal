@@ -5,6 +5,7 @@ import { AuthGuard } from '@/components/auth/AuthGuard';
 import MatrixHeader from '@/components/entry-matrix/MatrixHeader';
 import MatrixGrid from '@/components/entry-matrix/MatrixGrid';
 import MatrixLegend from '@/components/entry-matrix/MatrixLegend';
+import EntryRadar from '@/components/entry-matrix/EntryRadar';
 import CellModal from '@/components/entry-matrix/CellModal';
 import type { EmphasisMode } from '@/components/entry-matrix/data';
 
@@ -18,6 +19,7 @@ function EntryMatrixContent() {
         <MatrixHeader mode={mode} onModeChange={setMode} />
         <MatrixGrid mode={mode} onCellClick={(t, s) => setSelected({ t, s })} />
         <MatrixLegend />
+        <EntryRadar />
       </div>
 
       {selected && (
