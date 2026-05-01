@@ -15,6 +15,7 @@ import { useDesignerVacuumStore } from '../stores/designer-vacuum-store';
 import { designerVacuumApi } from '../api/designer-vacuum-api';
 import { SpecParametersPanel } from './panels/SpecParametersPanel';
 import { EngineeringAnalysisPanel } from './panels/EngineeringAnalysisPanel';
+import { EnvironmentPanel } from './panels/EnvironmentPanel';
 
 const RobotViewport = dynamic(
   () => import('./viewport3d/RobotViewport').then((m) => m.RobotViewport),
@@ -68,12 +69,18 @@ export function DesignerVacuumWorkbench() {
   // Viewport debounce — slider-induced rebuilds settle before scene rebuilds.
   const debouncedProduct = useDebounced(product, 200);
   const debouncedPayload = useDebounced(payloadKg, 250);
+  const debouncedRoom = useDebounced(room, 250);
 
-  // REQ-4: analyze whenever product or payload changes (debounced)
+  // REQ-4 + REQ-7: analyze whenever product/payload/room changes (debounced)
   const analyzeQ = useQuery({
-    queryKey: ['vacuum-arm', 'analyze', debouncedProduct, debouncedPayload],
-    queryFn: () => designerVacuumApi.analyze(debouncedProduct, debouncedPayload),
-    enabled: debouncedProduct.arms.length > 0,
+    queryKey: ['vacuum-arm', 'analyze', debouncedProduct, debouncedPayload, debouncedRoom],
+    queryFn: () =>
+      designerVacuumApi.analyze(
+        debouncedProduct,
+        debouncedPayload,
+        debouncedRoom.targets.length > 0 || debouncedRoom.obstacles.length > 0 ? debouncedRoom : undefined
+      ),
+    enabled: debouncedProduct.arms.length > 0 || debouncedRoom.targets.length > 0,
     staleTime: 2_000,
   });
 
@@ -236,6 +243,11 @@ export function DesignerVacuumWorkbench() {
             isLoading={analyzeQ.isFetching}
             isError={analyzeQ.isError}
             errorMessage={(analyzeQ.error as Error | null)?.message}
+          />
+          <EnvironmentPanel
+            room={room}
+            environment={analyzeQ.data?.environment ?? null}
+            isLoading={analyzeQ.isFetching}
           />
         </aside>
       </div>

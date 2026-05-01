@@ -213,12 +213,44 @@ export interface StabilityResult {
   marginToEdgeCm: number;
 }
 
+export type ReachabilityReason =
+  | 'OK'
+  | 'BASE_BLOCKED'
+  | 'HEIGHT_OUT_OF_REACH'
+  | 'HORIZONTAL_OUT_OF_REACH'
+  | 'ZMP_LIMIT'
+  | 'TORQUE_LIMIT'
+  | 'PAYLOAD_LIMIT'
+  | 'NO_ARM';
+
+export interface TargetReachabilityResult {
+  targetMarkerIndex: number;
+  canReach: boolean;
+  reason: ReachabilityReason;
+  reasonText: string;
+  payloadMarginKg: number;
+  armUsed: number | null;
+}
+
+export interface TraversabilityResult {
+  reachableFloorAreaCm2: number;
+  blockedObstacleIndices: number[];
+  coveragePct: number;
+  groundClearanceCm: number;
+}
+
+export interface EnvironmentResult {
+  targets: TargetReachabilityResult[];
+  traversability: TraversabilityResult;
+}
+
 export interface AnalyzeResponse {
   base: VacuumBaseSpec;
   armCount: number;
   payloadKg: number;
   arms: ArmAnalysisResult[];
   stability: StabilityResult;
+  environment: EnvironmentResult | null;
   isMock: true;
   generatedAt: string;
 }

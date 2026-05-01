@@ -17,16 +17,18 @@ import {
   payloadReachCurve,
 } from '../../../services/designer/vacuum-arm/statics.service.js';
 import { computeStaticZmp } from '../../../services/designer/vacuum-arm/stability.service.js';
-import type { ProductConfig } from '../../../services/designer/vacuum-arm/index.js';
+import { evaluateTargets } from '../../../services/designer/vacuum-arm/reachability.service.js';
+import type { ProductConfig, RoomConfig } from '../../../services/designer/vacuum-arm/index.js';
 
 interface AnalyzeBody {
   product: ProductConfig;
+  room?: RoomConfig;
   payloadKg?: number;
 }
 
 export async function analyzeRoutes(fastify: FastifyInstance) {
   fastify.post<{ Body: AnalyzeBody }>('/', async (request, reply) => {
-    const { product, payloadKg = 0 } = request.body ?? ({} as AnalyzeBody);
+    const { product, room, payloadKg = 0 } = request.body ?? ({} as AnalyzeBody);
     if (!product || !product.base) {
       return reply.code(400).send({ error: 'product.base is required' });
     }
@@ -61,12 +63,18 @@ export async function analyzeRoutes(fastify: FastifyInstance) {
     // REQ-5: ZMP at worst-case pose (arms fully extended horizontally)
     const stability = computeStaticZmp(product.base, product.arms, payloadKg);
 
+    // REQ-7: environment reachability + traversability (only when room provided)
+    const environment = room
+      ? evaluateTargets({ base: product.base, arms: product.arms, room, payloadKg })
+      : null;
+
     return reply.send({
       base: product.base,
       armCount: product.arms.length,
       payloadKg,
       arms: armResults,
       stability,
+      environment,
       isMock: true,
       generatedAt: new Date().toISOString(),
     });

@@ -17,6 +17,7 @@ import type {
   TargetObjectSpec,
   RoomPresetSpec,
   ScenarioSpec,
+  RoomConfig,
 } from '../types/product';
 
 const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -61,11 +62,11 @@ export const designerVacuumApi = {
     return fetchJson(`/end-effectors/${encodeURIComponent(sku)}`);
   },
 
-  // REQ-4
-  analyze(product: ProductConfig, payloadKg: number): Promise<AnalyzeResponse> {
+  // REQ-4 + REQ-7 (room optional)
+  analyze(product: ProductConfig, payloadKg: number, room?: RoomConfig): Promise<AnalyzeResponse> {
     return fetchJson('/analyze/', {
       method: 'POST',
-      body: JSON.stringify({ product, payloadKg }),
+      body: JSON.stringify({ product, payloadKg, ...(room ? { room } : {}) }),
     });
   },
 

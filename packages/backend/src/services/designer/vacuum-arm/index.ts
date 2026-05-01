@@ -14,6 +14,12 @@ export type { JointAnalysis, ArmStaticsResult, PayloadCurvePoint } from './stati
 export { stabilityService, computeStaticZmp, footprintPolygon } from './stability.service.js';
 export type { StabilityResult } from './stability.service.js';
 export { environmentService } from './environment.service.js';
+export { reachabilityService, evaluateTargets } from './reachability.service.js';
+export type {
+  TargetReachabilityResult,
+  TraversabilityResult,
+  ReachabilityReason,
+} from './reachability.service.js';
 export type {
   FurnitureType,
   FurnitureSpec,
