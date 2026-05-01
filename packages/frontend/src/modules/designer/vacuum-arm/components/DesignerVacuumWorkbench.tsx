@@ -16,6 +16,9 @@ import { designerVacuumApi } from '../api/designer-vacuum-api';
 import { SpecParametersPanel } from './panels/SpecParametersPanel';
 import { EngineeringAnalysisPanel } from './panels/EngineeringAnalysisPanel';
 import { EnvironmentPanel } from './panels/EnvironmentPanel';
+import { CandidateComparisonPanel } from './panels/CandidateComparisonPanel';
+import { RevisionLog } from './panels/RevisionLog';
+import { useCandidatesStore } from '../stores/candidates-store';
 
 const RobotViewport = dynamic(
   () => import('./viewport3d/RobotViewport').then((m) => m.RobotViewport),
@@ -52,11 +55,20 @@ function useDebounced<T>(value: T, delayMs: number): T {
 }
 
 export function DesignerVacuumWorkbench() {
+  const [compareOpen, setCompareOpen] = useState(false);
+
   const product = useDesignerVacuumStore((s) => s.product);
   const payloadKg = useDesignerVacuumStore((s) => s.payloadKg);
   const mode = useDesignerVacuumStore((s) => s.mode);
   const setMode = useDesignerVacuumStore((s) => s.setMode);
   const room = useDesignerVacuumStore((s) => s.room);
+
+  // REQ-8 candidates
+  const candidates = useCandidatesStore((s) => s.candidates);
+  const selectedForCompareIds = useCandidatesStore((s) => s.selectedForCompareIds);
+  const saveCandidate = useCandidatesStore((s) => s.saveCandidate);
+  const removeCandidate = useCandidatesStore((s) => s.removeCandidate);
+  const toggleCompareSelection = useCandidatesStore((s) => s.toggleCompareSelection);
   const autoRotate = useDesignerVacuumStore((s) => s.viewportAutoRotate);
   const showLabels = useDesignerVacuumStore((s) => s.showLabels);
   const showWorkspaceMesh = useDesignerVacuumStore((s) => s.showWorkspaceMesh);
@@ -97,13 +109,65 @@ export function DesignerVacuumWorkbench() {
 
   return (
     <>
+      {/* Candidate toolbar */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-white/10 bg-[#0f0f0f] px-4 py-2">
+        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/45">
+          후보안 ({candidates.length})
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            const name = window.prompt('후보 이름 입력', `후보 ${String.fromCharCode(65 + candidates.length)}`);
+            if (!name) return;
+            saveCandidate(name, product, room, payloadKg, analyzeQ.data ?? null);
+          }}
+          className="border border-gold/40 bg-[#1a1408] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-gold hover:bg-[#231a0c] transition-colors"
+        >
+          + 후보 저장
+        </button>
+        <div className="flex flex-wrap gap-1.5">
+          {candidates.map((c) => {
+            const selected = selectedForCompareIds.includes(c.id);
+            return (
+              <div key={c.id} className="flex items-center border border-white/15 px-2 py-1 gap-1.5">
+                <input
+                  type="checkbox"
+                  checked={selected}
+                  onChange={() => toggleCompareSelection(c.id)}
+                  className="cursor-pointer"
+                  aria-label={`비교 ${c.name}`}
+                />
+                <span className="text-[11px] text-white/85 truncate max-w-[8rem]">{c.name}</span>
+                <button
+                  type="button"
+                  onClick={() => removeCandidate(c.id)}
+                  className="text-[10px] text-white/35 hover:text-[#E63950]"
+                  title="삭제"
+                >
+                  ×
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          disabled={selectedForCompareIds.length < 2}
+          onClick={() => setCompareOpen(true)}
+          className="ml-auto border border-white/15 bg-black/40 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/65 disabled:opacity-30 disabled:cursor-not-allowed hover:border-gold hover:text-gold transition-colors"
+        >
+          비교 ({selectedForCompareIds.length})
+        </button>
+      </div>
+
       <div className="grid flex-1 grid-cols-12 gap-px bg-white/5 p-px min-h-[640px]">
-        {/* Left: SpecParametersPanel */}
+        {/* Left: SpecParametersPanel + RevisionLog */}
         <aside
           className="col-span-3 overflow-y-auto bg-[#0a0a0a] p-5"
           style={{ maxHeight: '100%' }}
         >
           <SpecParametersPanel />
+          <RevisionLog />
         </aside>
 
         {/* Center: 3D Viewport or 2D Room Editor */}
@@ -261,6 +325,14 @@ export function DesignerVacuumWorkbench() {
           Claude API 기반 검토 의견 + PDF 사양서 출력은 REQ-10에서 추가됩니다.
         </p>
       </div>
+
+      {/* Comparison modal */}
+      {compareOpen ? (
+        <CandidateComparisonPanel
+          candidates={candidates.filter((c) => selectedForCompareIds.includes(c.id))}
+          onClose={() => setCompareOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

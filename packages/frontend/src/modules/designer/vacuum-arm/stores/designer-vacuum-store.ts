@@ -18,6 +18,20 @@ import type {
   ObstaclePlacement,
   TargetMarker,
 } from '../types/product';
+import { useCandidatesStore } from './candidates-store';
+
+/** Tap into the candidates store from Zustand setters without a hook. */
+function logRev(parameterName: string, oldValue: unknown, newValue: unknown) {
+  if (oldValue === newValue) return;
+  if (
+    typeof oldValue === 'object' &&
+    typeof newValue === 'object' &&
+    JSON.stringify(oldValue) === JSON.stringify(newValue)
+  ) {
+    return;
+  }
+  useCandidatesStore.getState().logRevision(parameterName, oldValue, newValue);
+}
 
 const DEFAULT_ROOM: RoomConfig = {
   preset: null,
@@ -133,56 +147,76 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   showZmp: true,
 
   setBaseShape: (shape) =>
-    set((s) => ({ product: { ...s.product, base: { ...s.product.base, shape } } })),
+    set((s) => {
+      logRev('base.shape', s.product.base.shape, shape);
+      return { product: { ...s.product, base: { ...s.product.base, shape } } };
+    }),
 
   setBaseHeightCm: (cm) =>
-    set((s) => ({
-      product: { ...s.product, base: { ...s.product.base, heightCm: clamp(cm, 8, 30) } },
-    })),
+    set((s) => {
+      const v = clamp(cm, 8, 30);
+      logRev('base.heightCm', s.product.base.heightCm, v);
+      return {
+        product: { ...s.product, base: { ...s.product.base, heightCm: v } },
+      };
+    }),
 
   setBaseDiameterOrWidthCm: (cm) =>
-    set((s) => ({
-      product: {
-        ...s.product,
-        base: { ...s.product.base, diameterOrWidthCm: clamp(cm, 25, 40) },
-      },
-    })),
+    set((s) => {
+      const v = clamp(cm, 25, 40);
+      logRev('base.diameterOrWidthCm', s.product.base.diameterOrWidthCm, v);
+      return {
+        product: {
+          ...s.product,
+          base: { ...s.product.base, diameterOrWidthCm: v },
+        },
+      };
+    }),
 
   setBaseWeightKg: (kg) =>
-    set((s) => ({
-      product: { ...s.product, base: { ...s.product.base, weightKg: clamp(kg, 3, 8) } },
-    })),
+    set((s) => {
+      const v = clamp(kg, 3, 8);
+      logRev('base.weightKg', s.product.base.weightKg, v);
+      return { product: { ...s.product, base: { ...s.product.base, weightKg: v } } };
+    }),
 
   setHasLiftColumn: (yes) =>
-    set((s) => ({
-      product: {
-        ...s.product,
-        base: {
-          ...s.product.base,
-          hasLiftColumn: yes,
-          liftColumnMaxExtensionCm: yes ? Math.max(s.product.base.liftColumnMaxExtensionCm, 1) : 0,
+    set((s) => {
+      logRev('base.hasLiftColumn', s.product.base.hasLiftColumn, yes);
+      return {
+        product: {
+          ...s.product,
+          base: {
+            ...s.product.base,
+            hasLiftColumn: yes,
+            liftColumnMaxExtensionCm: yes ? Math.max(s.product.base.liftColumnMaxExtensionCm, 1) : 0,
+          },
         },
-      },
-    })),
+      };
+    }),
 
   setLiftColumnMaxExtensionCm: (cm) =>
-    set((s) => ({
-      product: {
-        ...s.product,
-        base: { ...s.product.base, liftColumnMaxExtensionCm: clamp(cm, 0, 30) },
-      },
-    })),
+    set((s) => {
+      const v = clamp(cm, 0, 30);
+      logRev('base.liftColumnMaxExtensionCm', s.product.base.liftColumnMaxExtensionCm, v);
+      return {
+        product: {
+          ...s.product,
+          base: { ...s.product.base, liftColumnMaxExtensionCm: v },
+        },
+      };
+    }),
 
   setArmCount: (n) =>
     set((s) => {
       const current = s.product.arms;
+      logRev('product.armCount', current.length, n);
       if (n === 0) return { product: { ...s.product, arms: [] } };
       if (n === 1) {
         return {
           product: { ...s.product, arms: [current[0] ?? { ...DEFAULT_ARM_LEFT, mountPosition: 'center' }] },
         };
       }
-      // n === 2
       return {
         product: {
           ...s.product,
@@ -194,9 +228,9 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   updateArm: (index, patch) =>
     set((s) => {
       if (!s.product.arms[index]) return s;
+      const before = s.product.arms[index];
       const next = [...s.product.arms];
-      next[index] = { ...next[index], ...patch };
-      // clamp lengths to [15, 40] cm and DOF to [0, 3] (spec §4.2)
+      next[index] = { ...before, ...patch };
       if (patch.upperArmLengthCm !== undefined)
         next[index].upperArmLengthCm = clamp(patch.upperArmLengthCm, 15, 40);
       if (patch.forearmLengthCm !== undefined)
@@ -205,12 +239,21 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
         next[index].shoulderHeightAboveBaseCm = clamp(patch.shoulderHeightAboveBaseCm, 0, 20);
       if (patch.wristDof !== undefined)
         next[index].wristDof = Math.max(0, Math.min(3, Math.round(patch.wristDof)));
+      // Log only the changed keys
+      for (const k of Object.keys(patch) as Array<keyof typeof patch>) {
+        logRev(
+          `arm[${index}].${k}`,
+          (before as unknown as Record<string, unknown>)[k],
+          (next[index] as unknown as Record<string, unknown>)[k]
+        );
+      }
       return { product: { ...s.product, arms: next } };
     }),
 
   setArmMount: (index, mount) =>
     set((s) => {
       if (!s.product.arms[index]) return s;
+      logRev(`arm[${index}].mountPosition`, s.product.arms[index].mountPosition, mount);
       const next = [...s.product.arms];
       next[index] = { ...next[index], mountPosition: mount };
       return { product: { ...s.product, arms: next } };
@@ -218,7 +261,12 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
 
   setProductName: (name) => set((s) => ({ product: { ...s.product, name } })),
 
-  setPayloadKg: (kg) => set({ payloadKg: clamp(kg, 0, 5) }),
+  setPayloadKg: (kg) =>
+    set((s) => {
+      const v = clamp(kg, 0, 5);
+      logRev('payloadKg', s.payloadKg, v);
+      return { payloadKg: v };
+    }),
 
   toggleAutoRotate: () => set((s) => ({ viewportAutoRotate: !s.viewportAutoRotate })),
   toggleLabels: () => set((s) => ({ showLabels: !s.showLabels })),
