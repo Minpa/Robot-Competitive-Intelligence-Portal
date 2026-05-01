@@ -283,7 +283,62 @@ export function SpecParametersPanel() {
 
       {/* 페이로드 — REQ-4 */}
       <PayloadSection />
+
+      {/* 시각 자세 제어 (분석 무관) */}
+      {armCount > 0 ? <PoseSection /> : null}
     </div>
+  );
+}
+
+function PoseSection() {
+  const armPose = useDesignerVacuumStore((s) => s.armPose);
+  const setArmPose = useDesignerVacuumStore((s) => s.setArmPose);
+  const applyPosePreset = useDesignerVacuumStore((s) => s.applyPosePreset);
+
+  return (
+    <Section title="자세 (시각용)" defaultOpen badge="3D 표시">
+      <div className="mb-3 flex flex-wrap gap-1">
+        {(
+          [
+            { id: 'folded', label: '접힘' },
+            { id: 'reach', label: '리치' },
+            { id: 'upright', label: '직립' },
+            { id: 'worstCase', label: '수평 (분석용)' },
+          ] as const
+        ).map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => applyPosePreset(p.id)}
+            className="border border-white/15 bg-[#0a0a0a] px-2 py-1 font-mono text-[9.5px] uppercase tracking-[0.16em] text-white/65 hover:border-gold hover:text-gold transition-colors"
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      <SliderRow
+        label="어깨 피치 (수직→수평)"
+        value={armPose.shoulderPitchDeg}
+        unit="°"
+        min={-10}
+        max={110}
+        step={1}
+        onChange={(v) => setArmPose({ shoulderPitchDeg: v })}
+      />
+      <SliderRow
+        label="팔꿈치 각도"
+        value={armPose.elbowDeg}
+        unit="°"
+        min={0}
+        max={180}
+        step={1}
+        onChange={(v) => setArmPose({ elbowDeg: v })}
+      />
+      <p className="mt-1 text-[10px] text-white/45 leading-relaxed">
+        3D 미리보기 자세만 변경 — 토크·ZMP 분석은 항상 worst-case (수평 뻗음) 기준입니다.
+      </p>
+    </Section>
   );
 }
 

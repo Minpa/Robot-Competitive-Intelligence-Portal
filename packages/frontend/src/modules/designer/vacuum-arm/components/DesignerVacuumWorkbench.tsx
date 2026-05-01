@@ -20,6 +20,8 @@ import { CandidateComparisonPanel } from './panels/CandidateComparisonPanel';
 import { RevisionLog } from './panels/RevisionLog';
 import { EngineeringReviewPanel } from './panels/EngineeringReviewPanel';
 import { useCandidatesStore } from '../stores/candidates-store';
+import { computeArmStatics, computeStability } from '../lib/client-statics';
+import type { AnalyzeResponse } from '../types/product';
 
 const RobotViewport = dynamic(
   () => import('./viewport3d/RobotViewport').then((m) => m.RobotViewport),
@@ -80,30 +82,75 @@ export function DesignerVacuumWorkbench() {
   const toggleZmp = useDesignerVacuumStore((s) => s.toggleZmp);
 
   // Viewport debounce — slider-induced rebuilds settle before scene rebuilds.
-  const debouncedProduct = useDebounced(product, 200);
-  const debouncedPayload = useDebounced(payloadKg, 250);
+  const debouncedProduct = useDebounced(product, 100);
+  const debouncedPayload = useDebounced(payloadKg, 100);
   const debouncedRoom = useDebounced(room, 250);
 
-  // REQ-4 + REQ-7: analyze whenever product/payload/room changes (debounced)
-  const analyzeQ = useQuery({
-    queryKey: ['vacuum-arm', 'analyze', debouncedProduct, debouncedPayload, debouncedRoom],
-    queryFn: () =>
-      designerVacuumApi.analyze(
-        debouncedProduct,
-        debouncedPayload,
-        debouncedRoom.targets.length > 0 || debouncedRoom.obstacles.length > 0 ? debouncedRoom : undefined
-      ),
-    enabled: debouncedProduct.arms.length > 0 || debouncedRoom.targets.length > 0,
-    staleTime: 2_000,
+  // Catalog fetches — required as inputs to client-side statics.
+  const actuatorsQ = useQuery({
+    queryKey: ['vacuum-arm', 'actuators'],
+    queryFn: () => designerVacuumApi.listActuators(),
+    staleTime: 5 * 60_000,
   });
-
-  // End-effector catalog so the viewport can adapt tip scale to payload.
   const endEffectorsQ = useQuery({
     queryKey: ['vacuum-arm', 'end-effectors'],
     queryFn: () => designerVacuumApi.listEndEffectors(),
     staleTime: 5 * 60_000,
   });
   const endEffectors = endEffectorsQ.data?.endEffectors ?? [];
+  const actuators = actuatorsQ.data?.actuators ?? [];
+
+  // REQ-7 (environment) — still backend-only since it depends on room geometry.
+  const analyzeQ = useQuery({
+    queryKey: ['vacuum-arm', 'analyze-env', debouncedProduct, debouncedPayload, debouncedRoom],
+    queryFn: () =>
+      designerVacuumApi.analyze(
+        debouncedProduct,
+        debouncedPayload,
+        debouncedRoom.targets.length > 0 || debouncedRoom.obstacles.length > 0 ? debouncedRoom : undefined,
+      ),
+    enabled:
+      (debouncedRoom.targets.length > 0 || debouncedRoom.obstacles.length > 0) &&
+      debouncedProduct.arms.length > 0,
+    staleTime: 2_000,
+  });
+
+  // ─── Client-side statics + ZMP — instant updates on slider changes ───
+  // 백엔드 의존을 끊어 슬라이더 입력에 즉시 반응. (Phase 1 PoC 보호 가드레일에 부합)
+  const clientAnalysis: AnalyzeResponse | null = (() => {
+    if (debouncedProduct.arms.length === 0) return null;
+    const eeKgByArm = debouncedProduct.arms.map((a) => {
+      const ee = endEffectors.find((e) => e.sku === a.endEffectorSku);
+      return ee ? ee.weightG / 1000 : 0.05;
+    });
+    const armResults = debouncedProduct.arms.map((arm, i) => {
+      const ee = endEffectors.find((e) => e.sku === arm.endEffectorSku);
+      const eeKg = eeKgByArm[i];
+      const result = computeArmStatics(arm, debouncedPayload, eeKg, i, actuators);
+      if (ee) {
+        result.endEffector = {
+          sku: ee.sku,
+          name: ee.name,
+          type: ee.type,
+          maxPayloadKg: ee.maxPayloadKg,
+          weightG: ee.weightG,
+        };
+        result.endEffectorMaxPayloadKg = ee.maxPayloadKg;
+        result.endEffectorPayloadOverLimit = debouncedPayload > ee.maxPayloadKg;
+      }
+      return result;
+    });
+    return {
+      base: debouncedProduct.base,
+      armCount: debouncedProduct.arms.length,
+      payloadKg: debouncedPayload,
+      arms: armResults,
+      stability: computeStability(debouncedProduct.base, debouncedProduct.arms, debouncedPayload, eeKgByArm),
+      environment: analyzeQ.data?.environment ?? null,
+      isMock: true,
+      generatedAt: new Date().toISOString(),
+    };
+  })();
 
   const { base, arms, name } = debouncedProduct;
   const armCount = arms.length;
@@ -120,7 +167,7 @@ export function DesignerVacuumWorkbench() {
           onClick={() => {
             const name = window.prompt('후보 이름 입력', `후보 ${String.fromCharCode(65 + candidates.length)}`);
             if (!name) return;
-            saveCandidate(name, product, room, payloadKg, analyzeQ.data ?? null);
+            saveCandidate(name, product, room, payloadKg, clientAnalysis ?? analyzeQ.data ?? null);
           }}
           className="border border-gold/40 bg-[#1a1408] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-gold hover:bg-[#231a0c] transition-colors"
         >
@@ -297,7 +344,7 @@ export function DesignerVacuumWorkbench() {
                 base={base}
                 arms={arms}
                 endEffectors={endEffectors}
-                stability={analyzeQ.data?.stability ?? null}
+                stability={clientAnalysis?.stability ?? null}
                 autoRotate={autoRotate}
                 showLabels={showLabels}
                 showWorkspaceMesh={showWorkspaceMesh}
@@ -317,12 +364,11 @@ export function DesignerVacuumWorkbench() {
           <EngineeringAnalysisPanel
             base={base}
             arms={arms}
-            analysis={analyzeQ.data?.arms ?? []}
-            stability={analyzeQ.data?.stability ?? null}
+            analysis={clientAnalysis?.arms ?? []}
+            stability={clientAnalysis?.stability ?? null}
             payloadKg={debouncedPayload}
-            isLoading={analyzeQ.isFetching}
-            isError={analyzeQ.isError}
-            errorMessage={(analyzeQ.error as Error | null)?.message}
+            isLoading={false}
+            isError={false}
           />
           <EnvironmentPanel
             room={room}
@@ -333,7 +379,10 @@ export function DesignerVacuumWorkbench() {
       </div>
 
       {/* Bottom: REQ-10 engineering review */}
-      <EngineeringReviewPanel analysis={analyzeQ.data} isAnalyzing={analyzeQ.isFetching} />
+      <EngineeringReviewPanel
+        analysis={clientAnalysis ?? analyzeQ.data}
+        isAnalyzing={analyzeQ.isFetching}
+      />
 
       {/* Comparison modal */}
       {compareOpen ? (

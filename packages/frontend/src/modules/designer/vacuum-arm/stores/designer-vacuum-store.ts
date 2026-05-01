@@ -44,6 +44,24 @@ const DEFAULT_ROOM: RoomConfig = {
 
 export type WorkbenchMode = 'product3d' | 'roomEditor';
 
+/** Pose for the 3D rendering only — does not affect engineering analysis. */
+export interface ArmPose {
+  shoulderPitchDeg: number; // 0 = vertical up, 90 = horizontal forward
+  elbowDeg: number;         // 180 = straight, 0 = fully folded back
+}
+
+export const DEFAULT_POSE: ArmPose = {
+  shoulderPitchDeg: 25,
+  elbowDeg: 110,
+};
+
+export const POSE_PRESETS: Record<string, ArmPose> = {
+  folded:    { shoulderPitchDeg: 25, elbowDeg: 110 },
+  upright:   { shoulderPitchDeg: 0,  elbowDeg: 180 },
+  worstCase: { shoulderPitchDeg: 90, elbowDeg: 180 }, // 수평 뻗음 — 분석 자세
+  reach:     { shoulderPitchDeg: 60, elbowDeg: 150 },
+};
+
 const DEFAULT_BASE: VacuumBaseSpec = {
   shape: 'disc',
   heightCm: 10, // ~ LG 로보킹 envelope
@@ -98,6 +116,9 @@ interface DesignerVacuumState {
   showWorkspaceMesh: boolean;
   showZmp: boolean;
 
+  /** Visual pose of the rendered arm (does not affect analysis). */
+  armPose: ArmPose;
+
   // base mutators (REQ-1)
   setBaseShape: (shape: VacuumBaseSpec['shape']) => void;
   setBaseHeightCm: (cm: number) => void;
@@ -120,6 +141,10 @@ interface DesignerVacuumState {
   toggleWorkspaceMesh: () => void;
   toggleZmp: () => void;
   setMode: (m: WorkbenchMode) => void;
+
+  // arm pose (visual only)
+  setArmPose: (pose: Partial<ArmPose>) => void;
+  applyPosePreset: (presetId: keyof typeof POSE_PRESETS) => void;
 
   // room mutators (REQ-6)
   setRoomSize: (widthCm: number, depthCm: number) => void;
@@ -151,6 +176,7 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   showLabels: false,
   showWorkspaceMesh: true,
   showZmp: true,
+  armPose: { ...DEFAULT_POSE },
 
   setBaseShape: (shape) =>
     set((s) => {
@@ -280,6 +306,22 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   toggleZmp: () => set((s) => ({ showZmp: !s.showZmp })),
   setMode: (m) => set({ mode: m }),
 
+  setArmPose: (pose) =>
+    set((s) => ({
+      armPose: {
+        shoulderPitchDeg: clamp(
+          pose.shoulderPitchDeg ?? s.armPose.shoulderPitchDeg,
+          -10,
+          110,
+        ),
+        elbowDeg: clamp(pose.elbowDeg ?? s.armPose.elbowDeg, 0, 180),
+      },
+    })),
+  applyPosePreset: (presetId) =>
+    set(() => ({
+      armPose: { ...POSE_PRESETS[presetId] },
+    })),
+
   // ─── room (REQ-6) ────────────────────────────────────────────────────────
   setRoomSize: (widthCm, depthCm) =>
     set((s) => ({
@@ -359,5 +401,6 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
       showLabels: false,
       showWorkspaceMesh: true,
       showZmp: true,
+      armPose: { ...DEFAULT_POSE },
     }),
 }));

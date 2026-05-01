@@ -23,6 +23,7 @@
 import { Edges } from '@react-three/drei';
 import * as THREE from 'three';
 import type { ManipulatorArmSpec, VacuumBaseSpec, EndEffectorSpec } from '../../types/product';
+import { useDesignerVacuumStore } from '../../stores/designer-vacuum-store';
 
 const CM_TO_M = 0.01;
 
@@ -34,6 +35,7 @@ interface ManipulatorArmProps {
 }
 
 export function ManipulatorArm({ arm, base, endEffector, color = '#E63950' }: ManipulatorArmProps) {
+  const armPose = useDesignerVacuumStore((s) => s.armPose);
   const baseHeightM = base.heightCm * CM_TO_M;
   const liftM = base.hasLiftColumn ? base.liftColumnMaxExtensionCm * CM_TO_M : 0;
   const baseRadiusM = (base.diameterOrWidthCm / 2) * CM_TO_M;
@@ -69,13 +71,12 @@ export function ManipulatorArm({ arm, base, endEffector, color = '#E63950' }: Ma
   const L1 = arm.upperArmLengthCm * CM_TO_M;
   const L2 = arm.forearmLengthCm * CM_TO_M;
 
-  // ─── Folded/stowed pose ────────────────────────────────────────────
-  // Upper arm rises from shoulder at ~25° forward of vertical.
-  // Forearm folds back at the elbow with ~110° elbow angle so the
-  // end-effector ends up above and slightly in front of the shoulder.
-  const upperPitch = (Math.PI / 180) * 25; // forward tilt from vertical
-  const elbowAngle = (Math.PI / 180) * 110; // elbow flex
-  const forearmPitch = upperPitch - (Math.PI - elbowAngle); // back-fold
+  // ─── Pose from store (visual only) ─────────────────────────────────
+  // shoulderPitchDeg: 0 = vertical up, 90 = horizontal forward
+  // elbowDeg: 180 = straight (extended), 110 = folded back
+  const upperPitch = (Math.PI / 180) * armPose.shoulderPitchDeg;
+  const elbowAngle = (Math.PI / 180) * armPose.elbowDeg;
+  const forearmPitch = upperPitch - (Math.PI - elbowAngle);
 
   // Outward direction in horizontal plane: prefer +Z (forward) for center
   // mount; for side mounts, fold is in the radial direction.
