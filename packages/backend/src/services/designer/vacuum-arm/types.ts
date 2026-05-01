@@ -91,3 +91,99 @@ export interface EndEffectorListResponse {
   isMock: true;
   generatedAt: string;
 }
+
+// ─── REQ-6: environment catalogs ───────────────────────────────────────────
+
+export type FurnitureType = 'sofa' | 'dining_table' | 'sink_counter' | 'desk' | 'chair';
+
+export interface FurnitureSpec {
+  id: number;
+  type: FurnitureType;
+  name: string;
+  widthCm: number;
+  depthCm: number;
+  /** Top surface height (cm). For chairs/sofas this is the seat height. */
+  surfaceHeightCm: number;
+  weightKg: number;
+  isMock: true;
+}
+
+export type ObstacleType = 'rug' | 'threshold' | 'cable' | 'toy';
+
+export interface ObstacleSpec {
+  id: number;
+  type: ObstacleType;
+  name: string;
+  heightCm: number;
+  widthCm: number;
+  isMock: true;
+}
+
+export interface TargetObjectSpec {
+  id: number;
+  name: string;
+  weightKg: number;
+  /** Grip width hint (mm). Optional for shapes that aren't graspable by jaws. */
+  gripWidthMm?: number;
+  isMock: true;
+}
+
+// ─── REQ-6: room configuration (project's environment_config_json) ─────────
+
+export type RoomPreset = 'living_room' | 'kitchen' | 'bedroom';
+
+export interface FurniturePlacement {
+  furnitureId: number;
+  xCm: number;
+  yCm: number;
+  rotationDeg: number;
+}
+
+export interface ObstaclePlacement {
+  obstacleId: number;
+  xCm: number;
+  yCm: number;
+  rotationDeg: number;
+}
+
+export interface TargetMarker {
+  targetObjectId: number;
+  /** Index into FurniturePlacement[] when placed on a furniture surface. */
+  onFurnitureIndex: number | null;
+  xCm: number;
+  yCm: number;
+  zCm: number;
+}
+
+export interface RoomConfig {
+  preset: RoomPreset | null;
+  widthCm: number;
+  depthCm: number;
+  furniture: FurniturePlacement[];
+  obstacles: ObstaclePlacement[];
+  targets: TargetMarker[];
+}
+
+export interface RoomPresetSpec {
+  id: RoomPreset;
+  name: string;
+  widthCm: number;
+  depthCm: number;
+  furniture: FurniturePlacement[];
+  obstacles: ObstaclePlacement[];
+  targets: TargetMarker[];
+  description: string;
+  isMock: true;
+}
+
+export interface ScenarioSpec {
+  id: 'A' | 'B' | 'C' | 'D' | 'E';
+  name: string;
+  description: string;
+  presetRoomId: RoomPreset;
+  /** Furniture/obstacle/target additions/overrides applied on top of the preset. */
+  furniture: FurniturePlacement[];
+  obstacles: ObstaclePlacement[];
+  targets: TargetMarker[];
+  isMock: true;
+}

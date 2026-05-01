@@ -70,6 +70,96 @@ export const BASE_BOUNDS = {
   liftColumnMaxExtensionCm: { min: 0, max: 30, step: 1 },
 } as const;
 
+// ─── REQ-6 environment ─────────────────────────────────────────────────────
+
+export type FurnitureType = 'sofa' | 'dining_table' | 'sink_counter' | 'desk' | 'chair';
+
+export interface FurnitureSpec {
+  id: number;
+  type: FurnitureType;
+  name: string;
+  widthCm: number;
+  depthCm: number;
+  surfaceHeightCm: number;
+  weightKg: number;
+  isMock: true;
+}
+
+export type ObstacleType = 'rug' | 'threshold' | 'cable' | 'toy';
+
+export interface ObstacleSpec {
+  id: number;
+  type: ObstacleType;
+  name: string;
+  heightCm: number;
+  widthCm: number;
+  isMock: true;
+}
+
+export interface TargetObjectSpec {
+  id: number;
+  name: string;
+  weightKg: number;
+  gripWidthMm?: number;
+  isMock: true;
+}
+
+export type RoomPreset = 'living_room' | 'kitchen' | 'bedroom';
+
+export interface FurniturePlacement {
+  furnitureId: number;
+  xCm: number;
+  yCm: number;
+  rotationDeg: number;
+}
+
+export interface ObstaclePlacement {
+  obstacleId: number;
+  xCm: number;
+  yCm: number;
+  rotationDeg: number;
+}
+
+export interface TargetMarker {
+  targetObjectId: number;
+  onFurnitureIndex: number | null;
+  xCm: number;
+  yCm: number;
+  zCm: number;
+}
+
+export interface RoomConfig {
+  preset: RoomPreset | null;
+  widthCm: number;
+  depthCm: number;
+  furniture: FurniturePlacement[];
+  obstacles: ObstaclePlacement[];
+  targets: TargetMarker[];
+}
+
+export interface RoomPresetSpec {
+  id: RoomPreset;
+  name: string;
+  widthCm: number;
+  depthCm: number;
+  furniture: FurniturePlacement[];
+  obstacles: ObstaclePlacement[];
+  targets: TargetMarker[];
+  description: string;
+  isMock: true;
+}
+
+export interface ScenarioSpec {
+  id: 'A' | 'B' | 'C' | 'D' | 'E';
+  name: string;
+  description: string;
+  presetRoomId: RoomPreset;
+  furniture: FurniturePlacement[];
+  obstacles: ObstaclePlacement[];
+  targets: TargetMarker[];
+  isMock: true;
+}
+
 // ─── REQ-4 analyze response ────────────────────────────────────────────────
 
 export interface JointAnalysis {

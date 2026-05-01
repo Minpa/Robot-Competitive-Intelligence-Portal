@@ -12,6 +12,11 @@ import type {
   EndEffectorType,
   ProductConfig,
   AnalyzeResponse,
+  FurnitureSpec,
+  ObstacleSpec,
+  TargetObjectSpec,
+  RoomPresetSpec,
+  ScenarioSpec,
 } from '../types/product';
 
 const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -62,5 +67,22 @@ export const designerVacuumApi = {
       method: 'POST',
       body: JSON.stringify({ product, payloadKg }),
     });
+  },
+
+  // REQ-6
+  listFurniture(): Promise<{ furniture: FurnitureSpec[]; isMock: true }> {
+    return fetchJson('/furniture');
+  },
+  listObstacles(): Promise<{ obstacles: ObstacleSpec[]; isMock: true }> {
+    return fetchJson('/obstacles');
+  },
+  listTargetObjects(): Promise<{ targetObjects: TargetObjectSpec[]; isMock: true }> {
+    return fetchJson('/target-objects');
+  },
+  listRoomPresets(): Promise<{ roomPresets: RoomPresetSpec[]; isMock: true }> {
+    return fetchJson('/room-presets');
+  },
+  listScenarios(): Promise<{ scenarios: ScenarioSpec[]; isMock: true }> {
+    return fetchJson('/scenarios');
   },
 };

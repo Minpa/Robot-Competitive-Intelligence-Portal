@@ -11,7 +11,24 @@ import type {
   VacuumBaseSpec,
   ManipulatorArmSpec,
   ArmMountPosition,
+  RoomConfig,
+  RoomPresetSpec,
+  ScenarioSpec,
+  FurniturePlacement,
+  ObstaclePlacement,
+  TargetMarker,
 } from '../types/product';
+
+const DEFAULT_ROOM: RoomConfig = {
+  preset: null,
+  widthCm: 500,
+  depthCm: 400,
+  furniture: [],
+  obstacles: [],
+  targets: [],
+};
+
+export type WorkbenchMode = 'product3d' | 'roomEditor';
 
 const DEFAULT_BASE: VacuumBaseSpec = {
   shape: 'disc',
@@ -46,9 +63,14 @@ const INITIAL_PRODUCT: ProductConfig = {
 
 interface DesignerVacuumState {
   product: ProductConfig;
+  /** Environment (room) configuration. REQ-6. */
+  room: RoomConfig;
 
   /** Payload weight at end-effector (kg). REQ-4. */
   payloadKg: number;
+
+  /** Center pane mode: 3D viewport or 2D room editor. REQ-6. */
+  mode: WorkbenchMode;
 
   // viewport options
   viewportAutoRotate: boolean;
@@ -77,6 +99,22 @@ interface DesignerVacuumState {
   toggleLabels: () => void;
   toggleWorkspaceMesh: () => void;
   toggleZmp: () => void;
+  setMode: (m: WorkbenchMode) => void;
+
+  // room mutators (REQ-6)
+  setRoomSize: (widthCm: number, depthCm: number) => void;
+  loadRoomPreset: (preset: RoomPresetSpec) => void;
+  loadScenario: (scenario: ScenarioSpec, presetByPreset: RoomPresetSpec | null) => void;
+  resetRoom: () => void;
+  addFurniture: (placement: FurniturePlacement) => void;
+  updateFurniture: (idx: number, patch: Partial<FurniturePlacement>) => void;
+  removeFurniture: (idx: number) => void;
+  addObstacle: (placement: ObstaclePlacement) => void;
+  updateObstacle: (idx: number, patch: Partial<ObstaclePlacement>) => void;
+  removeObstacle: (idx: number) => void;
+  addTarget: (target: TargetMarker) => void;
+  updateTarget: (idx: number, patch: Partial<TargetMarker>) => void;
+  removeTarget: (idx: number) => void;
 
   setProductName: (name: string) => void;
   reset: () => void;
@@ -86,7 +124,9 @@ const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(ma
 
 export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   product: INITIAL_PRODUCT,
+  room: DEFAULT_ROOM,
   payloadKg: 0.2,
+  mode: 'product3d',
   viewportAutoRotate: false,
   showLabels: false,
   showWorkspaceMesh: true,
@@ -184,11 +224,83 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   toggleLabels: () => set((s) => ({ showLabels: !s.showLabels })),
   toggleWorkspaceMesh: () => set((s) => ({ showWorkspaceMesh: !s.showWorkspaceMesh })),
   toggleZmp: () => set((s) => ({ showZmp: !s.showZmp })),
+  setMode: (m) => set({ mode: m }),
+
+  // ─── room (REQ-6) ────────────────────────────────────────────────────────
+  setRoomSize: (widthCm, depthCm) =>
+    set((s) => ({
+      room: {
+        ...s.room,
+        widthCm: clamp(widthCm, 200, 1000),
+        depthCm: clamp(depthCm, 200, 1000),
+      },
+    })),
+  loadRoomPreset: (preset) =>
+    set({
+      room: {
+        preset: preset.id,
+        widthCm: preset.widthCm,
+        depthCm: preset.depthCm,
+        furniture: [...preset.furniture],
+        obstacles: [...preset.obstacles],
+        targets: [...preset.targets],
+      },
+    }),
+  loadScenario: (scenario, presetSpec) => {
+    const baseFurniture = presetSpec?.furniture ?? [];
+    const baseObstacles = presetSpec?.obstacles ?? [];
+    set({
+      room: {
+        preset: scenario.presetRoomId,
+        widthCm: presetSpec?.widthCm ?? 500,
+        depthCm: presetSpec?.depthCm ?? 400,
+        furniture: [...baseFurniture, ...scenario.furniture],
+        obstacles: [...baseObstacles, ...scenario.obstacles],
+        targets: [...scenario.targets],
+      },
+    });
+  },
+  resetRoom: () => set({ room: DEFAULT_ROOM }),
+  addFurniture: (placement) =>
+    set((s) => ({ room: { ...s.room, furniture: [...s.room.furniture, placement] } })),
+  updateFurniture: (idx, patch) =>
+    set((s) => {
+      if (!s.room.furniture[idx]) return s;
+      const next = [...s.room.furniture];
+      next[idx] = { ...next[idx], ...patch };
+      return { room: { ...s.room, furniture: next } };
+    }),
+  removeFurniture: (idx) =>
+    set((s) => ({ room: { ...s.room, furniture: s.room.furniture.filter((_, i) => i !== idx) } })),
+  addObstacle: (placement) =>
+    set((s) => ({ room: { ...s.room, obstacles: [...s.room.obstacles, placement] } })),
+  updateObstacle: (idx, patch) =>
+    set((s) => {
+      if (!s.room.obstacles[idx]) return s;
+      const next = [...s.room.obstacles];
+      next[idx] = { ...next[idx], ...patch };
+      return { room: { ...s.room, obstacles: next } };
+    }),
+  removeObstacle: (idx) =>
+    set((s) => ({ room: { ...s.room, obstacles: s.room.obstacles.filter((_, i) => i !== idx) } })),
+  addTarget: (target) =>
+    set((s) => ({ room: { ...s.room, targets: [...s.room.targets, target] } })),
+  updateTarget: (idx, patch) =>
+    set((s) => {
+      if (!s.room.targets[idx]) return s;
+      const next = [...s.room.targets];
+      next[idx] = { ...next[idx], ...patch };
+      return { room: { ...s.room, targets: next } };
+    }),
+  removeTarget: (idx) =>
+    set((s) => ({ room: { ...s.room, targets: s.room.targets.filter((_, i) => i !== idx) } })),
 
   reset: () =>
     set({
       product: INITIAL_PRODUCT,
+      room: DEFAULT_ROOM,
       payloadKg: 0.2,
+      mode: 'product3d',
       viewportAutoRotate: false,
       showLabels: false,
       showWorkspaceMesh: true,

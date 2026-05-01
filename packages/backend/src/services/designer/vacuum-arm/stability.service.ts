@@ -20,10 +20,9 @@
 import { actuatorService } from '../actuator.service.js';
 import { endEffectorService } from './end-effector.service.js';
 import { limbMassKg } from './statics.service.js';
-import type { ManipulatorArmSpec, VacuumBaseSpec, BaseShape } from './types.js';
+import type { ManipulatorArmSpec, VacuumBaseSpec } from './types.js';
 
 const CM_TO_M = 0.01;
-const G = 9.81;
 
 const UPPER_ARM_RADIUS_M = 0.018;
 const FOREARM_RADIUS_M = 0.014;
@@ -152,7 +151,9 @@ export function computeStaticZmp(
     return {
       zmpXCm: 0,
       zmpYCm: 0,
-      footprintPolygonCm: footprintPolygon(base).map(([x, y]) => [x / CM_TO_M, y / CM_TO_M]),
+      footprintPolygonCm: footprintPolygon(base).map(
+        ([x, y]) => [x / CM_TO_M, y / CM_TO_M] as [number, number]
+      ),
       isStable: true,
       marginToEdgeCm: 0,
     };
@@ -161,8 +162,10 @@ export function computeStaticZmp(
   let zmpX = 0;
   let zmpZ = 0;
   for (let i = 0; i < masses.length; i++) {
-    zmpX += masses[i] * positions[i][0];
-    zmpZ += masses[i] * positions[i][1];
+    const m = masses[i] as number;
+    const pos = positions[i] as [number, number];
+    zmpX += m * pos[0];
+    zmpZ += m * pos[1];
   }
   zmpX /= totalM;
   zmpZ /= totalM;
@@ -175,10 +178,13 @@ export function computeStaticZmp(
   return {
     zmpXCm: Number((zmpX / CM_TO_M).toFixed(2)),
     zmpYCm: Number((zmpZ / CM_TO_M).toFixed(2)),
-    footprintPolygonCm: footM.map(([x, y]) => [
-      Number((x / CM_TO_M).toFixed(2)),
-      Number((y / CM_TO_M).toFixed(2)),
-    ]),
+    footprintPolygonCm: footM.map(
+      ([x, y]) =>
+        [
+          Number((x / CM_TO_M).toFixed(2)),
+          Number((y / CM_TO_M).toFixed(2)),
+        ] as [number, number]
+    ),
     isStable: insidePoly,
     marginToEdgeCm: Number((signedDistM / CM_TO_M).toFixed(2)),
   };
@@ -190,8 +196,12 @@ export function computeStaticZmp(
 function pointInPolygon(p: [number, number], poly: Array<[number, number]>): boolean {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const [xi, yi] = poly[i];
-    const [xj, yj] = poly[j];
+    const pi = poly[i] as [number, number];
+    const pj = poly[j] as [number, number];
+    const xi = pi[0];
+    const yi = pi[1];
+    const xj = pj[0];
+    const yj = pj[1];
     const intersect =
       yi > p[1] !== yj > p[1] &&
       p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi + 1e-12) + xi;
@@ -204,7 +214,9 @@ function pointInPolygon(p: [number, number], poly: Array<[number, number]>): boo
 function distanceToPolygonEdge(p: [number, number], poly: Array<[number, number]>): number {
   let min = Infinity;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const d = pointToSegment(p, poly[j], poly[i]);
+    const a = poly[j] as [number, number];
+    const b = poly[i] as [number, number];
+    const d = pointToSegment(p, a, b);
     if (d < min) min = d;
   }
   return min;

@@ -28,6 +28,18 @@ const RobotViewport = dynamic(
   }
 );
 
+const RoomCanvas = dynamic(
+  () => import('./room-editor/RoomCanvas').then((m) => m.RoomCanvas),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center font-mono text-[10px] uppercase tracking-[0.22em] text-white/35">
+        Loading room editor…
+      </div>
+    ),
+  }
+);
+
 /** Light debounce hook (no extra deps). */
 function useDebounced<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -41,6 +53,9 @@ function useDebounced<T>(value: T, delayMs: number): T {
 export function DesignerVacuumWorkbench() {
   const product = useDesignerVacuumStore((s) => s.product);
   const payloadKg = useDesignerVacuumStore((s) => s.payloadKg);
+  const mode = useDesignerVacuumStore((s) => s.mode);
+  const setMode = useDesignerVacuumStore((s) => s.setMode);
+  const room = useDesignerVacuumStore((s) => s.room);
   const autoRotate = useDesignerVacuumStore((s) => s.viewportAutoRotate);
   const showLabels = useDesignerVacuumStore((s) => s.showLabels);
   const showWorkspaceMesh = useDesignerVacuumStore((s) => s.showWorkspaceMesh);
@@ -84,11 +99,38 @@ export function DesignerVacuumWorkbench() {
           <SpecParametersPanel />
         </aside>
 
-        {/* Center: 3D Viewport */}
+        {/* Center: 3D Viewport or 2D Room Editor */}
         <section className="col-span-6 relative bg-[#050505]">
-          <div className="absolute left-3 top-3 z-10 font-mono text-[9px] uppercase tracking-[0.22em] text-white/40">
-            Three.js Viewport · OrbitControls
+          {/* Mode toggle */}
+          <div className="absolute left-3 top-3 z-10 flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setMode('product3d')}
+              className={[
+                'font-mono text-[9px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
+                mode === 'product3d'
+                  ? 'border-gold text-gold'
+                  : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
+              ].join(' ')}
+              aria-pressed={mode === 'product3d'}
+            >
+              3D 뷰
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('roomEditor')}
+              className={[
+                'font-mono text-[9px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
+                mode === 'roomEditor'
+                  ? 'border-gold text-gold'
+                  : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
+              ].join(' ')}
+              aria-pressed={mode === 'roomEditor'}
+            >
+              방 에디터
+            </button>
           </div>
+
           <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
             <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/55 px-2 py-1 border border-white/15 bg-black/40">
               {base.shape} · {base.diameterOrWidthCm.toFixed(0)}×{base.heightCm.toFixed(0)} cm · {base.weightKg.toFixed(1)}kg
@@ -163,16 +205,20 @@ export function DesignerVacuumWorkbench() {
             {name}
           </div>
           <div className="absolute inset-0">
-            <RobotViewport
-              base={base}
-              arms={arms}
-              endEffectors={endEffectors}
-              stability={analyzeQ.data?.stability ?? null}
-              autoRotate={autoRotate}
-              showLabels={showLabels}
-              showWorkspaceMesh={showWorkspaceMesh}
-              showZmp={showZmp}
-            />
+            {mode === 'product3d' ? (
+              <RobotViewport
+                base={base}
+                arms={arms}
+                endEffectors={endEffectors}
+                stability={analyzeQ.data?.stability ?? null}
+                autoRotate={autoRotate}
+                showLabels={showLabels}
+                showWorkspaceMesh={showWorkspaceMesh}
+                showZmp={showZmp}
+              />
+            ) : (
+              <RoomCanvas heightPx={640} />
+            )}
           </div>
         </section>
 

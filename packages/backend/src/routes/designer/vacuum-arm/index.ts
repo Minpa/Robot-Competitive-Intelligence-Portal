@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { actuatorRoutes } from './actuators.js';
 import { endEffectorRoutes } from './end-effectors.js';
 import { analyzeRoutes } from './analyze.js';
+import { environmentRoutes } from './environment.js';
 
 /**
  * ARGOS-Designer · vacuum-arm routes (Phase 1 PoC v1.2).
@@ -15,4 +16,5 @@ export async function vacuumArmRoutes(fastify: FastifyInstance) {
   fastify.register(actuatorRoutes, { prefix: '/actuators' });
   fastify.register(endEffectorRoutes, { prefix: '/end-effectors' });
   fastify.register(analyzeRoutes, { prefix: '/analyze' });
+  fastify.register(environmentRoutes); // /furniture, /obstacles, /target-objects, /room-presets, /scenarios
 }

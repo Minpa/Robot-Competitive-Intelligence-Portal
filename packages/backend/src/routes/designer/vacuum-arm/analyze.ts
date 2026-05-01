@@ -17,11 +17,7 @@ import {
   payloadReachCurve,
 } from '../../../services/designer/vacuum-arm/statics.service.js';
 import { computeStaticZmp } from '../../../services/designer/vacuum-arm/stability.service.js';
-import type {
-  ManipulatorArmSpec,
-  VacuumBaseSpec,
-  ProductConfig,
-} from '../../../services/designer/vacuum-arm/index.js';
+import type { ProductConfig } from '../../../services/designer/vacuum-arm/index.js';
 
 interface AnalyzeBody {
   product: ProductConfig;

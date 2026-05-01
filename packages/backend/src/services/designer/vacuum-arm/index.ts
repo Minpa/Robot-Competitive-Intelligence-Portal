@@ -13,6 +13,21 @@ export { staticsService, payloadReachCurve, evaluateArmStatics } from './statics
 export type { JointAnalysis, ArmStaticsResult, PayloadCurvePoint } from './statics.service.js';
 export { stabilityService, computeStaticZmp, footprintPolygon } from './stability.service.js';
 export type { StabilityResult } from './stability.service.js';
+export { environmentService } from './environment.service.js';
+export type {
+  FurnitureType,
+  FurnitureSpec,
+  ObstacleType,
+  ObstacleSpec,
+  TargetObjectSpec,
+  RoomPreset,
+  RoomConfig,
+  RoomPresetSpec,
+  FurniturePlacement,
+  ObstaclePlacement,
+  TargetMarker,
+  ScenarioSpec,
+} from './types.js';
 export type {
   BaseShape,
   EndEffectorType,
