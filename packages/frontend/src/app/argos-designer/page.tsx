@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
+import { AlertTriangle, ArrowRight } from 'lucide-react';
 import { DesignerWorkbench } from '@/modules/designer';
 
 const REQUIREMENTS = [
@@ -35,9 +36,19 @@ export default function ArgosDesignerPage() {
             ARGOS-Designer · Robot Configuration Sandbox
           </span>
         </div>
-        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/50 px-3 py-1.5 border border-white/15">
-          Spec v1.0 · 2026-04-28
-        </span>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/argos-designer/vacuum-arm"
+            className="flex items-center gap-1.5 border border-gold/40 bg-[#1a1408] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-gold hover:bg-[#231a0c] transition-colors"
+            title="v1.2 청소기+팔 PoC로 이동"
+          >
+            v1.2 청소기+팔 PoC
+            <ArrowRight className="h-3 w-3" strokeWidth={2.2} />
+          </Link>
+          <span className="border border-white/15 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-white/50">
+            Spec v1.0 · 2026-04-28
+          </span>
+        </div>
       </div>
 
       {/* Mock Data Warning (Spec §10) */}

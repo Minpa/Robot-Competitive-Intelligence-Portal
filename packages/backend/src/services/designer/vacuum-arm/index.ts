@@ -1,0 +1,19 @@
+/**
+ * ARGOS-Designer · vacuum-arm public surface (Phase 1 PoC v1.2)
+ *
+ * Single import boundary for the vacuum-arm sub-namespace. Cross-module
+ * consumers should hit the REST endpoints under /api/designer/vacuum-arm
+ * rather than importing services directly.
+ */
+
+export { endEffectorService } from './end-effector.service.js';
+export type {
+  BaseShape,
+  EndEffectorType,
+  ArmMountPosition,
+  EndEffectorSpec,
+  VacuumBaseSpec,
+  ManipulatorArmSpec,
+  ProductConfig,
+  EndEffectorListResponse,
+} from './types.js';

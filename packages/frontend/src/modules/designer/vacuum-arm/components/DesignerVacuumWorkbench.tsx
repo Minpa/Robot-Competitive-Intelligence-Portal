@@ -1,0 +1,157 @@
+'use client';
+
+/**
+ * DesignerVacuumWorkbench · REQ-1
+ *
+ * 3-pane shell. Left: SpecParametersPanel. Center: 3D viewport (REQ-1).
+ * Right: placeholder for EngineeringAnalysisPanel (REQ-4) and EnvironmentPanel
+ * (REQ-7). Bottom: placeholder for EngineeringReviewPanel (REQ-10).
+ */
+
+import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+import { useDesignerVacuumStore } from '../stores/designer-vacuum-store';
+import { SpecParametersPanel } from './panels/SpecParametersPanel';
+
+const RobotViewport = dynamic(
+  () => import('./viewport3d/RobotViewport').then((m) => m.RobotViewport),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center font-mono text-[10px] uppercase tracking-[0.22em] text-white/35">
+        Loading viewport…
+      </div>
+    ),
+  }
+);
+
+/** Light debounce hook (no extra deps). */
+function useDebounced<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(id);
+  }, [value, delayMs]);
+  return debounced;
+}
+
+export function DesignerVacuumWorkbench() {
+  const base = useDesignerVacuumStore((s) => s.product.base);
+  const productName = useDesignerVacuumStore((s) => s.product.name);
+  const autoRotate = useDesignerVacuumStore((s) => s.viewportAutoRotate);
+  const showLabels = useDesignerVacuumStore((s) => s.showLabels);
+  const toggleAutoRotate = useDesignerVacuumStore((s) => s.toggleAutoRotate);
+  const toggleLabels = useDesignerVacuumStore((s) => s.toggleLabels);
+
+  // Spec §6.1 — debounce viewport updates so dragging a slider doesn't
+  // rebuild the scene on every input event. 200ms feels live without flicker.
+  const debouncedBase = useDebounced(base, 200);
+
+  return (
+    <>
+      <div className="grid flex-1 grid-cols-12 gap-px bg-white/5 p-px min-h-[640px]">
+        {/* Left: SpecParametersPanel */}
+        <aside
+          className="col-span-3 overflow-y-auto bg-[#0a0a0a] p-5"
+          style={{ maxHeight: '100%' }}
+        >
+          <SpecParametersPanel />
+        </aside>
+
+        {/* Center: 3D Viewport */}
+        <section className="col-span-6 relative bg-[#050505]">
+          <div className="absolute left-3 top-3 z-10 font-mono text-[9px] uppercase tracking-[0.22em] text-white/40">
+            Three.js Viewport · OrbitControls
+          </div>
+          <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
+            <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/55 px-2 py-1 border border-white/15 bg-black/40">
+              {base.shape} · {base.diameterOrWidthCm.toFixed(0)}×{base.heightCm.toFixed(0)} cm · {base.weightKg.toFixed(1)}kg
+            </span>
+            <button
+              type="button"
+              onClick={toggleAutoRotate}
+              className={[
+                'font-mono text-[9px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
+                autoRotate
+                  ? 'border-gold/60 text-gold'
+                  : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
+              ].join(' ')}
+              aria-pressed={autoRotate}
+              title="Auto-rotate"
+            >
+              ⟳ rotate
+            </button>
+            <button
+              type="button"
+              onClick={toggleLabels}
+              className={[
+                'font-mono text-[9px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
+                showLabels
+                  ? 'border-gold/60 text-gold'
+                  : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
+              ].join(' ')}
+              aria-pressed={showLabels}
+              title="Toggle labels"
+            >
+              labels
+            </button>
+          </div>
+          <div className="absolute left-3 bottom-3 z-10 font-mono text-[9px] uppercase tracking-[0.22em] text-white/30">
+            {productName}
+          </div>
+          <div className="absolute inset-0">
+            <RobotViewport base={debouncedBase} autoRotate={autoRotate} showLabels={showLabels} />
+          </div>
+        </section>
+
+        {/* Right: AnalysisPanel placeholder */}
+        <aside
+          className="col-span-3 overflow-y-auto bg-[#0a0a0a] p-5"
+          style={{ maxHeight: '100%' }}
+        >
+          <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/40">
+            Engineering Analysis · REQ-4 / REQ-5 / REQ-7
+          </span>
+          <p className="mt-3 text-[11px] text-white/55 leading-relaxed">
+            REQ-2부터 팔이 추가되면 여기에 도달 영역, 관절 토크, ZMP 마진,
+            환경 적합성이 표시됩니다.
+          </p>
+
+          <div className="mt-5 space-y-2">
+            <Stat label="베이스 풋프린트" value={baseFootprintLabel(base.shape, base.diameterOrWidthCm)} />
+            <Stat label="총 높이" value={`${(base.heightCm + (base.hasLiftColumn ? base.liftColumnMaxExtensionCm : 0)).toFixed(1)} cm`} />
+            <Stat label="베이스 무게" value={`${base.weightKg.toFixed(1)} kg`} />
+            <Stat label="리프트 컬럼" value={base.hasLiftColumn ? `${base.liftColumnMaxExtensionCm.toFixed(0)} cm 스트로크` : '없음'} />
+          </div>
+        </aside>
+      </div>
+
+      {/* Bottom: review panel placeholder (REQ-10) */}
+      <div className="border-t border-white/10 bg-[#0a0a0a] px-6 py-3">
+        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/40">
+          Engineering Review · REQ-10 예정
+        </span>
+        <p className="mt-1 text-[11px] text-white/45">
+          Claude API 기반 검토 의견 + PDF 사양서 출력은 REQ-10에서 추가됩니다.
+        </p>
+      </div>
+    </>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between border-b border-white/5 pb-1.5">
+      <span className="text-[10.5px] text-white/55">{label}</span>
+      <span className="font-mono text-[11px] tabular-nums text-white">{value}</span>
+    </div>
+  );
+}
+
+function baseFootprintLabel(shape: string, diameterOrWidth: number): string {
+  if (shape === 'square') {
+    const d = diameterOrWidth;
+    return `${d.toFixed(0)} × ${d.toFixed(0)} cm`;
+  }
+  return `Ø ${diameterOrWidth.toFixed(0)} cm`;
+}
