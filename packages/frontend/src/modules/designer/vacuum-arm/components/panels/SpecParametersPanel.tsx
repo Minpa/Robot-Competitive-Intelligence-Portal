@@ -1,22 +1,28 @@
 'use client';
 
 /**
- * SpecParametersPanel · REQ-1 (베이스 5변수 + 빈 팔 섹션)
- *
- * 좌측 패널. 슬라이더/드롭다운 변경 → store 즉시 갱신 → 3D 뷰포트 자동 반영.
- * 팔 섹션은 REQ-2에서 채움.
+ * SpecParametersPanel · REQ-1 (베이스 5변수) + REQ-2 (팔 0/1/2개 + 9변수)
  */
 
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useDesignerVacuumStore } from '../../stores/designer-vacuum-store';
+import { designerVacuumApi } from '../../api/designer-vacuum-api';
 import { BASE_BOUNDS } from '../../types/product';
 import type { BaseShape } from '../../types/product';
+import { ArmSpecSection } from './ArmSpecSection';
 
 const SHAPE_OPTIONS: Array<{ value: BaseShape; label: string; hint: string }> = [
   { value: 'disc', label: '디스크', hint: '원형 (LG 로보킹 형태)' },
   { value: 'square', label: '사각', hint: '직사각 베이스' },
   { value: 'tall_cylinder', label: '톨 실린더', hint: '높이가 직경보다 큰 형태' },
+];
+
+const ARM_COUNT_OPTIONS: Array<{ value: 0 | 1 | 2; label: string }> = [
+  { value: 0, label: '0' },
+  { value: 1, label: '1' },
+  { value: 2, label: '2' },
 ];
 
 interface SectionProps {
@@ -105,15 +111,32 @@ export function SpecParametersPanel() {
   const setHasLiftColumn = useDesignerVacuumStore((s) => s.setHasLiftColumn);
   const setLiftColumnMaxExtensionCm = useDesignerVacuumStore((s) => s.setLiftColumnMaxExtensionCm);
   const setProductName = useDesignerVacuumStore((s) => s.setProductName);
+  const setArmCount = useDesignerVacuumStore((s) => s.setArmCount);
 
-  const { base } = product;
+  const { base, arms } = product;
+  const armCount = arms.length;
+
+  // REQ-2 catalogs
+  const actuatorsQ = useQuery({
+    queryKey: ['vacuum-arm', 'actuators'],
+    queryFn: () => designerVacuumApi.listActuators(),
+    staleTime: 5 * 60_000,
+  });
+  const endEffectorsQ = useQuery({
+    queryKey: ['vacuum-arm', 'end-effectors'],
+    queryFn: () => designerVacuumApi.listEndEffectors(),
+    staleTime: 5 * 60_000,
+  });
+
+  const actuators = actuatorsQ.data?.actuators ?? [];
+  const endEffectors = endEffectorsQ.data?.endEffectors ?? [];
+  const catalogLoadError = actuatorsQ.error || endEffectorsQ.error;
 
   return (
     <div className="space-y-1">
-      {/* Header */}
       <div className="pb-3">
         <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/40">
-          Spec Variables · REQ-1
+          Spec Variables · REQ-1 + REQ-2
         </span>
         <input
           type="text"
@@ -123,11 +146,15 @@ export function SpecParametersPanel() {
           placeholder="후보 이름"
           aria-label="후보 이름"
         />
+        {catalogLoadError ? (
+          <p className="mt-2 text-[10px] text-[#E63950]">
+            카탈로그 로드 실패: {(catalogLoadError as Error).message}
+          </p>
+        ) : null}
       </div>
 
-      {/* 베이스 — 5 spec variables */}
+      {/* 베이스 */}
       <Section title="베이스 (Vacuum Base)" badge="5 vars">
-        {/* shape (1/5) */}
         <div>
           <span className="text-[11px] text-white/70">폼 (Shape)</span>
           <div className="mt-1.5 grid grid-cols-3 gap-1">
@@ -155,7 +182,6 @@ export function SpecParametersPanel() {
           </div>
         </div>
 
-        {/* heightCm (2/5) */}
         <SliderRow
           label="높이"
           value={base.heightCm}
@@ -166,7 +192,6 @@ export function SpecParametersPanel() {
           onChange={setBaseHeightCm}
         />
 
-        {/* diameterOrWidthCm (3/5) */}
         <SliderRow
           label={base.shape === 'disc' ? '직경' : '폭'}
           value={base.diameterOrWidthCm}
@@ -177,7 +202,6 @@ export function SpecParametersPanel() {
           onChange={setBaseDiameterOrWidthCm}
         />
 
-        {/* weightKg (4/5) */}
         <SliderRow
           label="무게"
           value={base.weightKg}
@@ -188,7 +212,6 @@ export function SpecParametersPanel() {
           onChange={setBaseWeightKg}
         />
 
-        {/* hasLiftColumn (5/5 toggle + dependent slider) */}
         <div>
           <label className="flex items-center justify-between cursor-pointer">
             <span className="text-[11px] text-white/70">리프트 컬럼</span>
@@ -209,7 +232,7 @@ export function SpecParametersPanel() {
                 label="최대 스트로크"
                 value={base.liftColumnMaxExtensionCm}
                 unit="cm"
-                min={BASE_BOUNDS.liftColumnMaxExtensionCm.min === 0 ? 1 : BASE_BOUNDS.liftColumnMaxExtensionCm.min}
+                min={1}
                 max={BASE_BOUNDS.liftColumnMaxExtensionCm.max}
                 step={BASE_BOUNDS.liftColumnMaxExtensionCm.step}
                 onChange={setLiftColumnMaxExtensionCm}
@@ -219,20 +242,46 @@ export function SpecParametersPanel() {
         </div>
       </Section>
 
-      {/* 팔 1 (REQ-2 자리) */}
-      <Section title="팔 1 (Manipulator Arm)" defaultOpen={false} badge="REQ-2 예정">
-        <p className="text-[10.5px] text-white/45 leading-relaxed">
-          REQ-2에서 팔 사양 9변수(어깨 위치, L1/L2, DOF, 액추에이터×2, 엔드이펙터)를 추가합니다.
-          현재는 베이스만 입력 가능합니다.
-        </p>
+      {/* 팔 개수 토글 (REQ-2) */}
+      <Section title="매니퓰레이터" badge={`${armCount}개`}>
+        <div>
+          <span className="text-[11px] text-white/70">팔 개수</span>
+          <div className="mt-1.5 grid grid-cols-3 gap-1">
+            {ARM_COUNT_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setArmCount(opt.value)}
+                className={[
+                  'border py-2 text-center transition-colors font-mono text-[10px] uppercase tracking-[0.18em]',
+                  armCount === opt.value
+                    ? 'border-gold bg-[#1a1408] text-white'
+                    : 'border-white/10 bg-[#0a0a0a] text-white/55 hover:border-white/30 hover:text-white',
+                ].join(' ')}
+                aria-pressed={armCount === opt.value}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-[10px] text-white/45 leading-relaxed">
+            팔 0/1/2개 토글. 각 팔은 9개 사양 변수 (마운트 위치, 어깨 높이, L1, L2, 손목 DOF, 액추에이터×2, 엔드이펙터).
+          </p>
+        </div>
       </Section>
 
-      {/* 팔 2 (REQ-2 자리) */}
-      <Section title="팔 2 (Manipulator Arm)" defaultOpen={false} badge="REQ-2 예정">
-        <p className="text-[10.5px] text-white/45 leading-relaxed">두 번째 팔. REQ-2에서 추가.</p>
-      </Section>
+      {/* 팔 각각 (있을 때만) */}
+      {arms.map((_, i) => (
+        <ArmSpecSection
+          key={i}
+          index={i}
+          defaultOpen={i === 0}
+          actuators={actuators}
+          endEffectors={endEffectors}
+        />
+      ))}
 
-      {/* 페이로드 (REQ-4 자리) */}
+      {/* 페이로드 placeholder */}
       <Section title="페이로드 / 타겟" defaultOpen={false} badge="REQ-4 예정">
         <p className="text-[10.5px] text-white/45 leading-relaxed">
           페이로드 무게·grip 변수는 REQ-4에서 추가.

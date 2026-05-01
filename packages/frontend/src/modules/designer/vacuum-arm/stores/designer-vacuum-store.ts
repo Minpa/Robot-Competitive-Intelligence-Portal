@@ -6,7 +6,12 @@
  */
 
 import { create } from 'zustand';
-import type { ProductConfig, VacuumBaseSpec, ManipulatorArmSpec } from '../types/product';
+import type {
+  ProductConfig,
+  VacuumBaseSpec,
+  ManipulatorArmSpec,
+  ArmMountPosition,
+} from '../types/product';
 
 const DEFAULT_BASE: VacuumBaseSpec = {
   shape: 'disc',
@@ -15,6 +20,22 @@ const DEFAULT_BASE: VacuumBaseSpec = {
   weightKg: 4.0,
   hasLiftColumn: false,
   liftColumnMaxExtensionCm: 0,
+};
+
+const DEFAULT_ARM_LEFT: ManipulatorArmSpec = {
+  mountPosition: 'left',
+  shoulderHeightAboveBaseCm: 5,
+  shoulderActuatorSku: 'TMOTOR-MOCK-AK60-6',
+  upperArmLengthCm: 25,
+  elbowActuatorSku: 'GENERIC-MOCK-SERVO-M',
+  forearmLengthCm: 22,
+  wristDof: 1,
+  endEffectorSku: 'EE-MOCK-2FINGER',
+};
+
+const DEFAULT_ARM_RIGHT: ManipulatorArmSpec = {
+  ...DEFAULT_ARM_LEFT,
+  mountPosition: 'right',
 };
 
 const INITIAL_PRODUCT: ProductConfig = {
@@ -38,8 +59,10 @@ interface DesignerVacuumState {
   setHasLiftColumn: (yes: boolean) => void;
   setLiftColumnMaxExtensionCm: (cm: number) => void;
 
-  // arm mutators (placeholder for REQ-2)
-  setArms: (arms: ManipulatorArmSpec[]) => void;
+  // arm mutators (REQ-2)
+  setArmCount: (n: 0 | 1 | 2) => void;
+  updateArm: (index: number, patch: Partial<ManipulatorArmSpec>) => void;
+  setArmMount: (index: number, mount: ArmMountPosition) => void;
 
   // viewport mutators
   toggleAutoRotate: () => void;
@@ -97,8 +120,48 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
       },
     })),
 
-  setArms: (arms) =>
-    set((s) => ({ product: { ...s.product, arms: arms.slice(0, 2) } })),
+  setArmCount: (n) =>
+    set((s) => {
+      const current = s.product.arms;
+      if (n === 0) return { product: { ...s.product, arms: [] } };
+      if (n === 1) {
+        return {
+          product: { ...s.product, arms: [current[0] ?? { ...DEFAULT_ARM_LEFT, mountPosition: 'center' }] },
+        };
+      }
+      // n === 2
+      return {
+        product: {
+          ...s.product,
+          arms: [current[0] ?? DEFAULT_ARM_LEFT, current[1] ?? DEFAULT_ARM_RIGHT],
+        },
+      };
+    }),
+
+  updateArm: (index, patch) =>
+    set((s) => {
+      if (!s.product.arms[index]) return s;
+      const next = [...s.product.arms];
+      next[index] = { ...next[index], ...patch };
+      // clamp lengths to [15, 40] cm and DOF to [0, 3] (spec §4.2)
+      if (patch.upperArmLengthCm !== undefined)
+        next[index].upperArmLengthCm = clamp(patch.upperArmLengthCm, 15, 40);
+      if (patch.forearmLengthCm !== undefined)
+        next[index].forearmLengthCm = clamp(patch.forearmLengthCm, 15, 40);
+      if (patch.shoulderHeightAboveBaseCm !== undefined)
+        next[index].shoulderHeightAboveBaseCm = clamp(patch.shoulderHeightAboveBaseCm, 0, 20);
+      if (patch.wristDof !== undefined)
+        next[index].wristDof = Math.max(0, Math.min(3, Math.round(patch.wristDof)));
+      return { product: { ...s.product, arms: next } };
+    }),
+
+  setArmMount: (index, mount) =>
+    set((s) => {
+      if (!s.product.arms[index]) return s;
+      const next = [...s.product.arms];
+      next[index] = { ...next[index], mountPosition: mount };
+      return { product: { ...s.product, arms: next } };
+    }),
 
   setProductName: (name) => set((s) => ({ product: { ...s.product, name } })),
 

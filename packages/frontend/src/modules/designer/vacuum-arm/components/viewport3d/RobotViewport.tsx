@@ -1,36 +1,57 @@
 'use client';
 
 /**
- * RobotViewport · REQ-1
+ * RobotViewport · REQ-1 + REQ-2
  *
- * Three.js canvas hosting the vacuum base. OrbitControls + grid + lighting.
- * Auto-fits camera framing to the current base envelope.
+ * Three.js canvas hosting the vacuum base + 0/1/2 manipulator arms.
+ * OrbitControls + grid + lighting. Auto-fits camera framing.
  */
 
 import { Suspense, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, Environment } from '@react-three/drei';
 import { VacuumBase } from './VacuumBase';
-import type { VacuumBaseSpec } from '../../types/product';
+import { ManipulatorArm } from './ManipulatorArm';
+import type { ManipulatorArmSpec, VacuumBaseSpec, EndEffectorSpec } from '../../types/product';
 
 interface RobotViewportProps {
   base: VacuumBaseSpec;
+  arms: ManipulatorArmSpec[];
+  endEffectors?: EndEffectorSpec[];
   autoRotate?: boolean;
   showLabels?: boolean;
 }
 
 const CM_TO_M = 0.01;
 
-export function RobotViewport({ base, autoRotate = false, showLabels = false }: RobotViewportProps) {
-  // Total visual height: base + lift column (if present)
+const ARM_COLORS = ['#E63950', '#3a8dde'] as const;
+
+export function RobotViewport({
+  base,
+  arms,
+  endEffectors = [],
+  autoRotate = false,
+  showLabels = false,
+}: RobotViewportProps) {
+  // Total visual height: base + lift column + max arm reach (vertical envelope).
   const totalHeightM = useMemo(() => {
     const lift = base.hasLiftColumn ? base.liftColumnMaxExtensionCm * CM_TO_M : 0;
-    return base.heightCm * CM_TO_M + lift;
-  }, [base.heightCm, base.hasLiftColumn, base.liftColumnMaxExtensionCm]);
+    const baseM = base.heightCm * CM_TO_M;
+    const armEnvelope = arms.reduce((max, a) => {
+      const shoulder = a.shoulderHeightAboveBaseCm * CM_TO_M;
+      const reach = (a.upperArmLengthCm + a.forearmLengthCm) * CM_TO_M;
+      return Math.max(max, baseM + lift + shoulder + reach * 0.3);
+    }, baseM + lift);
+    return armEnvelope;
+  }, [base, arms]);
 
   const widthM = base.diameterOrWidthCm * CM_TO_M;
-  const camRadius = Math.max(0.9, widthM * 2.5, totalHeightM * 1.8);
-  const camHeight = Math.max(0.5, totalHeightM * 1.2);
+  const maxArmReachM = arms.reduce(
+    (m, a) => Math.max(m, (a.upperArmLengthCm + a.forearmLengthCm) * CM_TO_M),
+    0
+  );
+  const camRadius = Math.max(0.9, widthM * 2.5, totalHeightM * 1.8, maxArmReachM * 1.6);
+  const camHeight = Math.max(0.5, totalHeightM * 1.0);
   const target = [0, totalHeightM / 2, 0] as [number, number, number];
 
   return (
@@ -50,6 +71,15 @@ export function RobotViewport({ base, autoRotate = false, showLabels = false }: 
 
       <Suspense fallback={null}>
         <VacuumBase base={base} showLabels={showLabels} />
+        {arms.map((arm, i) => (
+          <ManipulatorArm
+            key={i}
+            arm={arm}
+            base={base}
+            endEffector={endEffectors.find((e) => e.sku === arm.endEffectorSku)}
+            color={ARM_COLORS[i] ?? '#E63950'}
+          />
+        ))}
         <Environment preset="warehouse" />
       </Suspense>
 
