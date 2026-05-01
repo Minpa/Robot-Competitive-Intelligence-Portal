@@ -51,6 +51,115 @@ export const SECTORS = [
 ] as const;
 
 // ─────────────────────────────────────────────────────────────────
+// 로봇 카테고리 상세 — IR / CR / MoMa / Hum / AMR / CLOiD
+// PPT 원본 + 외부 시장 정보를 합산. 이미지 경로는 public/images/robots/{code}.jpg
+
+export interface RobotInfoEntry {
+  code: string;            // 'IR'
+  nameKr: string;          // '산업용 로봇'
+  nameEn: string;          // 'Industrial Robot'
+  tagline: string;         // 한 줄 정의
+  description: string;     // 상세 설명 (~200자)
+  examples: string[];      // 실제 제품/회사명
+  useCases: string[];      // 대표 작업
+  payload: string;         // 페이로드 범위
+  reach: string;           // 작업 범위
+  pricing: string;         // 단가 / 추정
+  isLgLineup: boolean;     // LG 자사 라인업 여부 (red border 표시)
+  imagePath?: string;      // public/images/robots/{code}.jpg
+}
+
+export const ROBOT_INFO: Record<string, RobotInfoEntry> = {
+  IR: {
+    code: 'IR',
+    nameKr: '산업용 로봇',
+    nameEn: 'Industrial Robot',
+    tagline: '6축 다관절 로봇암 — 펜스 안에서 정형 반복 작업',
+    description: '대형 6축 다관절 머니퓰레이터. 안전 펜스 내부에서 운영되며 정형화된 위치·자세의 반복 작업에서 가장 빠르고 정확함. 자동차·조선·반도체 라인의 표준. 비정형 환경·인간 협업에는 부적합.',
+    examples: ['Fanuc M-시리즈', 'ABB IRB', 'KUKA KR', 'Yaskawa Motoman', '두산 H 시리즈'],
+    useCases: ['차체 용접·도장', '대형 부품 핸들링', '정형 Bin Picking', '머신 Tending (대형)'],
+    payload: '5kg ~ 1,000kg+',
+    reach: '0.5m ~ 3.5m',
+    pricing: '$30K ~ $200K (단가)',
+    isLgLineup: false,
+    imagePath: '/images/robots/ir.jpg',
+  },
+  CR: {
+    code: 'CR',
+    nameKr: '협동로봇',
+    nameEn: 'Collaborative Robot',
+    tagline: '인간 옆에서 안전하게 작동하는 경량 로봇암',
+    description: '안전 인증(ISO/TS 15066)을 받은 저속·저토크 로봇암. 펜스 없이 작업자 옆에서 운영 가능. 다종 SKU·다 모델 적응에 강하지만 cycle time과 페이로드는 IR 대비 열세.',
+    examples: ['Universal Robots UR', 'Doosan Robotics M', 'Techman TM', 'Rethink Sawyer (단종)', 'Franka Emika'],
+    useCases: ['커넥터 체결', '나사 체결', 'PCB 조립', '소형 Kitting', '검사·계측 보조'],
+    payload: '3kg ~ 30kg',
+    reach: '0.5m ~ 1.8m',
+    pricing: '$25K ~ $80K (단가)',
+    isLgLineup: false,
+    imagePath: '/images/robots/cr.jpg',
+  },
+  MoMa: {
+    code: 'MoMa',
+    nameKr: '모바일 매니퓰레이터',
+    nameEn: 'Mobile Manipulator',
+    tagline: 'AMR 베이스 + 로봇암 — 라인 사이를 이동하며 작업',
+    description: 'AMR 위에 로봇암을 결합한 형태. 고정형 IR/CR과 달리 다중 작업 위치를 순회. Mixed-SKU Kitting / Tote 이송 / 다 라인 Tending에 강점. LG 보유.',
+    examples: ['Fetch Freight (Zebra)', 'MiR Hook + Arm', 'Boston Dynamics Stretch', 'Robotnik RB-1', 'LG MoMa (보유)'],
+    useCases: ['Mixed-SKU Kit', 'Tote 이송', '다 라인 Tending 순회', '재고 점검'],
+    payload: '5kg ~ 25kg (arm) / 100kg+ (base)',
+    reach: '0.8m ~ 1.2m + 무한 이동',
+    pricing: '$80K ~ $250K (단가)',
+    isLgLineup: true,
+    imagePath: '/images/robots/moma.jpg',
+  },
+  Hum: {
+    code: 'Hum',
+    nameKr: '휴머노이드',
+    nameEn: 'Humanoid',
+    tagline: '인간 형태 양손 양다리 로봇 — 비정형·계단·협소 영역',
+    description: '인간형 골격으로 인간 작업 환경(계단·협소·비표준)을 그대로 수용. 양손 협응이 강점. 양산 검증은 2025~2026에 본격 시작. 대당 단가 압박이 가장 큰 채택 장벽.',
+    examples: ['Agility Digit', 'Apptronik Apollo', 'Boston Dynamics Atlas', 'Figure 02', 'Tesla Optimus', 'Unitree H1', 'CATL Xiaomo'],
+    useCases: ['계단·다층 Tote 이송', '협소 랙 진입', '비정형 Kitting', '특수 위치 용접', 'Pack 다종 체결'],
+    payload: '15kg ~ 25kg',
+    reach: '인간 키 (약 1.7m)',
+    pricing: '$150K ~ $300K (양산가, 2026 기준)',
+    isLgLineup: false,
+    imagePath: '/images/robots/hum.jpg',
+  },
+  AMR: {
+    code: 'AMR',
+    nameKr: '자율주행로봇',
+    nameEn: 'Autonomous Mobile Robot',
+    tagline: 'SLAM 기반 자율주행 운반 로봇 — Tote / 박스 이송',
+    description: 'LiDAR + SLAM 기반 자율주행으로 동선을 스스로 계획. 정형 환경의 Tote / 카트 이송에 압도적 ROI. LG 베어로보틱스 인수 (2024) 후 자사 라인업.',
+    examples: ['LG 베어로보틱스 Servi', 'MiR (Mobile Industrial Robots)', 'Geek+ EVE', 'Locus Origin', 'Otto Motors'],
+    useCases: ['창고 Tote 이송', 'DC 단일 SKU 분류', '카트 견인', '재고 보충 운반'],
+    payload: '50kg ~ 1,500kg',
+    reach: '무제한 (이동)',
+    pricing: '$30K ~ $80K (단가)',
+    isLgLineup: true,
+    imagePath: '/images/robots/amr.jpg',
+  },
+  CLOiD: {
+    code: 'CLOiD',
+    nameKr: 'LG CLOiD 휴머노이드',
+    nameEn: 'LG CLOiD',
+    tagline: 'LG 자체 휴머노이드 — 양산 2026 예정, 가정·산업 양면',
+    description: 'LG의 자체 휴머노이드 라인업. 가정용 (HS 부문) + 산업용 (BS 부문) 양면 적용 목표. 슬림 폼팩터로 협소 진입 강점. 2026 양산 출시 예정 — 현재 PoC 단계.',
+    examples: ['LG CLOiD (개발 중 — 2026 양산 예정)'],
+    useCases: ['가정 청소·정리·돌봄', '산업 협소 작업·다 모델 체결', 'LG 가전 매장 응대', 'LGE 라인 Pack 다종 체결'],
+    payload: '15kg ~ 20kg (목표)',
+    reach: '인간 키 (1.65m ± )',
+    pricing: 'TBD — 2026 출시 시 공개',
+    isLgLineup: true,
+    imagePath: '/images/robots/cloid.jpg',
+  },
+};
+
+// 라인업 칩에서 LG 자사 표시할 코드들
+export const LG_LINEUP_CODES = new Set(['MoMa', 'AMR', 'CLOiD']);
+
+// ─────────────────────────────────────────────────────────────────
 // 144셀 점수 행렬 (행=task, 열=sector)
 // 점수 산출: 4Lv 등급 합산을 가설 → 10점 환산
 const SCORES: number[][] = [

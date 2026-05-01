@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import {
   TASKS, SECTORS, SCORES, getLvDetails, isLvDetailsHandCurated,
   scoreToColor, scoreToVerdict, isTop5Cell, getTop5Rank,
+  ROBOT_INFO, LG_LINEUP_CODES,
   type LvDetail,
 } from './data';
+import RobotInfoModal from './RobotInfoModal';
 
 interface Props {
   taskIdx: number;
@@ -17,6 +19,7 @@ interface Props {
 
 export default function CellModal({ taskIdx, sectorIdx, onClose }: Props) {
   const router = useRouter();
+  const [robotInfoCode, setRobotInfoCode] = useState<string | null>(null);
   const score = SCORES[taskIdx][sectorIdx];
   const task = TASKS[taskIdx];
   const sector = SECTORS[sectorIdx];
@@ -112,7 +115,7 @@ export default function CellModal({ taskIdx, sectorIdx, onClose }: Props) {
 
         {/* Body */}
         <div className="px-6 py-5">
-          <Lv4Table details={lvDetails} />
+          <Lv4Table details={lvDetails} onRobotClick={setRobotInfoCode} />
         </div>
 
         {/* Footer */}
@@ -153,12 +156,22 @@ export default function CellModal({ taskIdx, sectorIdx, onClose }: Props) {
           to   { transform: translateY(0); opacity: 1; }
         }
       `}</style>
+
+      {robotInfoCode && (
+        <RobotInfoModal code={robotInfoCode} onClose={() => setRobotInfoCode(null)} />
+      )}
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────
-function Lv4Table({ details }: { details: LvDetail[] }) {
+function Lv4Table({
+  details,
+  onRobotClick,
+}: {
+  details: LvDetail[];
+  onRobotClick: (code: string) => void;
+}) {
   return (
     <>
       <div className="hidden md:block overflow-x-auto">
@@ -177,7 +190,7 @@ function Lv4Table({ details }: { details: LvDetail[] }) {
           </thead>
           <tbody>
             {details.map((lv, i) => (
-              <Lv4Row key={i} lvNum={i + 1} lv={lv} />
+              <Lv4Row key={i} lvNum={i + 1} lv={lv} onRobotClick={onRobotClick} />
             ))}
           </tbody>
         </table>
@@ -186,14 +199,26 @@ function Lv4Table({ details }: { details: LvDetail[] }) {
       {/* Mobile: stacked cards */}
       <div className="md:hidden space-y-3">
         {details.map((lv, i) => (
-          <Lv4Card key={i} lvNum={i + 1} lv={lv} />
+          <Lv4Card key={i} lvNum={i + 1} lv={lv} onRobotClick={onRobotClick} />
         ))}
       </div>
+
+      <p className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.18em] mt-4 pt-3 border-t border-[#E8E6DD]">
+        산업R / 라인업 칩 클릭 시 로봇 상세 정보 · 빨간 테두리 = LG 자사 라인업
+      </p>
     </>
   );
 }
 
-function Lv4Row({ lvNum, lv }: { lvNum: number; lv: LvDetail }) {
+function Lv4Row({
+  lvNum,
+  lv,
+  onRobotClick,
+}: {
+  lvNum: number;
+  lv: LvDetail;
+  onRobotClick: (code: string) => void;
+}) {
   const failed = lv.grade === 0;
   return (
     <>
@@ -210,7 +235,7 @@ function Lv4Row({ lvNum, lv }: { lvNum: number; lv: LvDetail }) {
           {lv.task}
         </td>
         <td className="px-3 py-2.5 border-b border-[#E8E6DD] align-top">
-          <ChipRow items={lv.robots} kind="robot" />
+          <ChipRow items={lv.robots} kind="robot" onRobotClick={onRobotClick} />
         </td>
         <td className="px-3 py-2.5 border-b border-[#E8E6DD] align-top">
           {lv.grippers.length > 0 ? <ChipRow items={lv.grippers} kind="gripper" /> : <span className="text-[#B8B6AE]">—</span>}
@@ -219,7 +244,7 @@ function Lv4Row({ lvNum, lv }: { lvNum: number; lv: LvDetail }) {
           <ShareDots filled={lv.share} />
         </td>
         <td className="px-3 py-2.5 border-b border-[#E8E6DD] align-top">
-          <ChipRow items={lv.lineup} kind="lineup" />
+          <ChipRow items={lv.lineup} kind="lineup" onRobotClick={onRobotClick} />
         </td>
         <td className="px-3 py-2.5 border-b border-[#E8E6DD] align-top">
           {lv.tags.length > 0 ? <ChipRow items={lv.tags} kind="tag" /> : <span className="text-[#B8B6AE]">—</span>}
@@ -232,7 +257,15 @@ function Lv4Row({ lvNum, lv }: { lvNum: number; lv: LvDetail }) {
   );
 }
 
-function Lv4Card({ lvNum, lv }: { lvNum: number; lv: LvDetail }) {
+function Lv4Card({
+  lvNum,
+  lv,
+  onRobotClick,
+}: {
+  lvNum: number;
+  lv: LvDetail;
+  onRobotClick: (code: string) => void;
+}) {
   const failed = lv.grade === 0;
   return (
     <div
@@ -245,10 +278,10 @@ function Lv4Card({ lvNum, lv }: { lvNum: number; lv: LvDetail }) {
       </div>
       <p className="font-medium text-[14px] text-[#2C2C2A] mb-3">{lv.task}</p>
       <div className="grid grid-cols-2 gap-3 text-[11.5px]">
-        <Field label="산업R">  <ChipRow items={lv.robots} kind="robot" /></Field>
+        <Field label="산업R">  <ChipRow items={lv.robots} kind="robot" onRobotClick={onRobotClick} /></Field>
         <Field label="그립">    {lv.grippers.length ? <ChipRow items={lv.grippers} kind="gripper" /> : <span className="text-[#B8B6AE]">—</span>}</Field>
         <Field label="점유율">  <ShareDots filled={lv.share} /></Field>
-        <Field label="라인업">  <ChipRow items={lv.lineup} kind="lineup" /></Field>
+        <Field label="라인업">  <ChipRow items={lv.lineup} kind="lineup" onRobotClick={onRobotClick} /></Field>
         <Field label="사례">    {lv.tags.length ? <ChipRow items={lv.tags} kind="tag" /> : <span className="text-[#B8B6AE]">—</span>}</Field>
       </div>
       {lv.barriers && (
@@ -310,22 +343,53 @@ const CHIP_STYLES: Record<string, { bg: string; fg: string }> = {
   tag:      { bg: '#FAEAE7', fg: '#8B1538' },
 };
 
-function ChipRow({ items, kind }: { items: string[]; kind: 'robot' | 'gripper' | 'lineup' | 'tag' }) {
+function ChipRow({
+  items,
+  kind,
+  onRobotClick,
+}: {
+  items: string[];
+  kind: 'robot' | 'gripper' | 'lineup' | 'tag';
+  onRobotClick?: (code: string) => void;
+}) {
   const s = CHIP_STYLES[kind];
+  const clickable = (kind === 'robot' || kind === 'lineup') && Boolean(onRobotClick);
+
   return (
     <div className="flex flex-wrap gap-1">
       {items.map((it) => {
         const isHalt = kind === 'tag' && it.endsWith('-X');
+        const isLgLineup = kind === 'lineup' && LG_LINEUP_CODES.has(it);
+        const hasInfo = ROBOT_INFO[it] !== undefined;
+        const canClick = clickable && hasInfo;
+
+        const baseStyle: React.CSSProperties = {
+          backgroundColor: isHalt ? '#F0EEE8' : s.bg,
+          color: isHalt ? '#888780' : s.fg,
+          letterSpacing: '0.04em',
+          border: isLgLineup ? '1.5px solid #8B1538' : '1.5px solid transparent',
+        };
+
+        const className = `font-mono text-[9.5px] font-medium px-1.5 py-0.5 transition-colors ${
+          canClick ? 'cursor-pointer hover:brightness-95' : ''
+        }`;
+
+        if (canClick) {
+          return (
+            <button
+              key={it}
+              onClick={() => onRobotClick!(it)}
+              className={className}
+              style={baseStyle}
+              title={`${it} 상세 보기`}
+            >
+              {it}
+            </button>
+          );
+        }
+
         return (
-          <span
-            key={it}
-            className="font-mono text-[9.5px] font-medium px-1.5 py-0.5"
-            style={{
-              backgroundColor: isHalt ? '#F0EEE8' : s.bg,
-              color: isHalt ? '#888780' : s.fg,
-              letterSpacing: '0.04em',
-            }}
-          >
+          <span key={it} className={className} style={baseStyle}>
             {it}
           </span>
         );
