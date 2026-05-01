@@ -1,23 +1,21 @@
 'use client';
 
 /**
- * ManipulatorArm · REQ-2 3D primitive
+ * ManipulatorArm · REQ-2 3D primitive (LG FlexiArm Riser 스타일)
  *
- * Renders a 2-link arm (upper arm + forearm) + end-effector tip from
- * the current `ManipulatorArmSpec`. The "worst-case" pose used by the
- * statics calculation (REQ-4) is horizontal extension; we render that
- * pose here so the visual matches the analysis.
+ * Renders a 2-link arm rising from the base in a "folded/stowed" pose
+ * matching the LG 로보킹 + FlexiArm Riser silhouette: shoulder rises,
+ * upper arm tilts back+up, elbow folds the forearm forward+up, end
+ * effector is a small camera/grabber tip.
+ *
+ * The folded pose is for visual presentation only — engineering analysis
+ * (REQ-4) still uses worst-case horizontal extension internally.
  *
  * Mount position offsets (relative to base center, top surface):
  *   - center: [0, 0]
- *   - front:  [0, +radius * 0.65]
- *   - left:   [-radius * 0.65, 0]
- *   - right:  [+radius * 0.65, 0]
- *
- * Outward direction (the arm extends from the shoulder to the +Z/+X axis):
- *   - center / front: +Z
- *   - left:           -X
- *   - right:          +X
+ *   - front:  [0, +radius * 0.45]
+ *   - left:   [-radius * 0.45, 0]
+ *   - right:  [+radius * 0.45, 0]
  *
  * Units: cm in spec, m in scene.
  */
@@ -31,9 +29,7 @@ const CM_TO_M = 0.01;
 interface ManipulatorArmProps {
   arm: ManipulatorArmSpec;
   base: VacuumBaseSpec;
-  /** Lookup for end-effector → tip color/scale hints. Optional. */
   endEffector?: EndEffectorSpec;
-  /** Color accent (hex). */
   color?: string;
 }
 
@@ -43,113 +39,179 @@ export function ManipulatorArm({ arm, base, endEffector, color = '#E63950' }: Ma
   const baseRadiusM = (base.diameterOrWidthCm / 2) * CM_TO_M;
   const shoulderUpM = arm.shoulderHeightAboveBaseCm * CM_TO_M;
 
-  // Mount XZ offset (m). Use 65% of the radius so the shoulder is on the
-  // top surface but inset from the rim — looks anchored.
-  const offset = baseRadiusM * 0.65;
+  // Mount XZ offset — closer to center (45% of radius) since FlexiArm
+  // typically rises from a central pedestal.
+  const offset = baseRadiusM * 0.45;
   let mountX = 0;
   let mountZ = 0;
-  /** Outward unit vector along which the arm extends in worst-case pose. */
-  let outX = 0;
-  let outZ = 1;
   switch (arm.mountPosition) {
     case 'center':
       mountX = 0;
       mountZ = 0;
-      outX = 0;
-      outZ = 1;
       break;
     case 'front':
       mountX = 0;
       mountZ = offset;
-      outX = 0;
-      outZ = 1;
       break;
     case 'left':
       mountX = -offset;
       mountZ = 0;
-      outX = -1;
-      outZ = 0;
       break;
     case 'right':
       mountX = offset;
       mountZ = 0;
-      outX = 1;
-      outZ = 0;
       break;
   }
 
-  const shoulderY = baseHeightM + liftM + shoulderUpM;
-  const shoulderPos = new THREE.Vector3(mountX, shoulderY, mountZ);
+  const pedestalY = baseHeightM + liftM;
+  const shoulderY = pedestalY + shoulderUpM;
 
   const L1 = arm.upperArmLengthCm * CM_TO_M;
   const L2 = arm.forearmLengthCm * CM_TO_M;
-  const out = new THREE.Vector3(outX, 0, outZ).normalize();
 
-  const elbowPos = shoulderPos.clone().addScaledVector(out, L1);
-  const tipPos = elbowPos.clone().addScaledVector(out, L2);
+  // ─── Folded/stowed pose ────────────────────────────────────────────
+  // Upper arm rises from shoulder at ~25° forward of vertical.
+  // Forearm folds back at the elbow with ~110° elbow angle so the
+  // end-effector ends up above and slightly in front of the shoulder.
+  const upperPitch = (Math.PI / 180) * 25; // forward tilt from vertical
+  const elbowAngle = (Math.PI / 180) * 110; // elbow flex
+  const forearmPitch = upperPitch - (Math.PI - elbowAngle); // back-fold
 
-  // Limb cylinders use length = link length, axis along Y by default.
-  // We need to orient the cylinder along `out`. Rotation from +Y to `out`:
+  // Outward direction in horizontal plane: prefer +Z (forward) for center
+  // mount; for side mounts, fold is in the radial direction.
+  let dirX = 0;
+  let dirZ = 1;
+  if (arm.mountPosition === 'left') { dirX = -1; dirZ = 0; }
+  else if (arm.mountPosition === 'right') { dirX = 1; dirZ = 0; }
+
+  // Vector from shoulder to elbow (along upper arm)
+  const upperVec = new THREE.Vector3(
+    Math.sin(upperPitch) * dirX,
+    Math.cos(upperPitch),
+    Math.sin(upperPitch) * dirZ,
+  ).multiplyScalar(L1);
+
+  // Vector from elbow to wrist (along forearm)
+  const forearmVec = new THREE.Vector3(
+    Math.sin(forearmPitch) * dirX,
+    Math.cos(forearmPitch),
+    Math.sin(forearmPitch) * dirZ,
+  ).multiplyScalar(L2);
+
+  const shoulderPos = new THREE.Vector3(mountX, shoulderY, mountZ);
+  const elbowPos = shoulderPos.clone().add(upperVec);
+  const tipPos = elbowPos.clone().add(forearmVec);
+
+  // Cylinder orientation for limbs
   const yAxis = new THREE.Vector3(0, 1, 0);
-  const limbQuat = new THREE.Quaternion().setFromUnitVectors(yAxis, out);
-  const limbEuler = new THREE.Euler().setFromQuaternion(limbQuat);
+  const upperDir = upperVec.clone().normalize();
+  const forearmDir = forearmVec.clone().normalize();
+  const upperQuat = new THREE.Quaternion().setFromUnitVectors(yAxis, upperDir);
+  const forearmQuat = new THREE.Quaternion().setFromUnitVectors(yAxis, forearmDir);
+  const upperEuler = new THREE.Euler().setFromQuaternion(upperQuat);
+  const forearmEuler = new THREE.Euler().setFromQuaternion(forearmQuat);
 
-  // Limb radii — stylistic, not real.
-  const upperArmRadiusM = 0.018;
-  const forearmRadiusM = 0.014;
-  const jointRadiusM = 0.024;
+  // Limb radii — thicker than before, matching FlexiArm proportions
+  const upperArmRadiusM = 0.024;
+  const forearmRadiusM = 0.020;
+  const jointRadiusM = 0.032;
+  const wristRadiusM = 0.022;
 
-  // Mid-points of each limb (cylinder is centered at its origin).
-  const upperMid = shoulderPos.clone().addScaledVector(out, L1 / 2);
-  const forearmMid = elbowPos.clone().addScaledVector(out, L2 / 2);
+  // Mid-points
+  const upperMid = shoulderPos.clone().add(upperVec.clone().multiplyScalar(0.5));
+  const forearmMid = elbowPos.clone().add(forearmVec.clone().multiplyScalar(0.5));
 
-  const tipScale = endEffector ? Math.min(0.05, 0.025 + endEffector.maxPayloadKg * 0.012) : 0.03;
+  // End-effector tip dimensions
+  const tipScale = endEffector ? Math.min(0.05, 0.025 + endEffector.maxPayloadKg * 0.012) : 0.032;
+
+  // Pedestal disc — small flat platform on top of base where the arm mounts
+  const pedestalRadiusM = 0.045;
+  const pedestalHeightM = 0.012;
 
   return (
     <group>
-      {/* shoulder joint */}
+      {/* Pedestal (FlexiArm Riser mount platform) */}
+      <mesh
+        position={[mountX, pedestalY + pedestalHeightM / 2, mountZ]}
+        castShadow
+        receiveShadow
+      >
+        <cylinderGeometry args={[pedestalRadiusM, pedestalRadiusM * 1.1, pedestalHeightM, 32]} />
+        <meshStandardMaterial color="#0a0a0a" metalness={0.65} roughness={0.25} />
+      </mesh>
+
+      {/* Shoulder joint (large black sphere) */}
       <mesh position={shoulderPos.toArray()} castShadow>
-        <sphereGeometry args={[jointRadiusM, 24, 16]} />
-        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.4} />
+        <sphereGeometry args={[jointRadiusM, 32, 24]} />
+        <meshStandardMaterial color="#0a0a0a" metalness={0.6} roughness={0.3} />
+      </mesh>
+      {/* Shoulder accent ring */}
+      <mesh
+        position={shoulderPos.toArray()}
+        rotation={upperEuler.toArray() as [number, number, number]}
+      >
+        <torusGeometry args={[jointRadiusM * 0.85, jointRadiusM * 0.18, 8, 32]} />
+        <meshStandardMaterial color="#3a3a3a" metalness={0.7} roughness={0.3} />
       </mesh>
 
-      {/* upper arm (L1) */}
-      <mesh position={upperMid.toArray()} rotation={limbEuler.toArray() as [number, number, number]} castShadow>
-        <cylinderGeometry args={[upperArmRadiusM, upperArmRadiusM, L1, 24]} />
-        <meshStandardMaterial color="#262626" metalness={0.3} roughness={0.55} />
+      {/* Upper arm — thicker cylinder w/ subtle edge highlight */}
+      <mesh
+        position={upperMid.toArray()}
+        rotation={upperEuler.toArray() as [number, number, number]}
+        castShadow
+      >
+        <cylinderGeometry args={[upperArmRadiusM, upperArmRadiusM, L1, 32]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.45} roughness={0.4} />
         <Edges color={color} threshold={15} />
       </mesh>
 
-      {/* elbow joint */}
+      {/* Elbow joint */}
       <mesh position={elbowPos.toArray()} castShadow>
-        <sphereGeometry args={[jointRadiusM * 0.85, 24, 16]} />
-        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.4} />
+        <sphereGeometry args={[jointRadiusM * 0.85, 28, 20]} />
+        <meshStandardMaterial color="#0a0a0a" metalness={0.6} roughness={0.3} />
       </mesh>
 
-      {/* forearm (L2) */}
-      <mesh position={forearmMid.toArray()} rotation={limbEuler.toArray() as [number, number, number]} castShadow>
-        <cylinderGeometry args={[forearmRadiusM, forearmRadiusM, L2, 24]} />
-        <meshStandardMaterial color="#262626" metalness={0.3} roughness={0.55} />
+      {/* Forearm */}
+      <mesh
+        position={forearmMid.toArray()}
+        rotation={forearmEuler.toArray() as [number, number, number]}
+        castShadow
+      >
+        <cylinderGeometry args={[forearmRadiusM, forearmRadiusM, L2, 32]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.45} roughness={0.4} />
         <Edges color={color} threshold={15} />
       </mesh>
 
-      {/* end-effector tip — color accents the arm */}
+      {/* Wrist (smaller joint) */}
       <mesh position={tipPos.toArray()} castShadow>
-        <boxGeometry args={[tipScale, tipScale * 0.7, tipScale]} />
-        <meshStandardMaterial color={color} metalness={0.4} roughness={0.5} emissive={color} emissiveIntensity={0.15} />
+        <sphereGeometry args={[wristRadiusM, 24, 18]} />
+        <meshStandardMaterial color="#0a0a0a" metalness={0.6} roughness={0.3} />
       </mesh>
 
-      {/* wrist DOF visual cue: extra rings near tip */}
+      {/* End-effector tip — camera-like capsule */}
+      <mesh
+        position={tipPos
+          .clone()
+          .add(forearmDir.clone().multiplyScalar(tipScale * 1.2))
+          .toArray()}
+        rotation={forearmEuler.toArray() as [number, number, number]}
+        castShadow
+      >
+        <cylinderGeometry args={[tipScale * 0.55, tipScale * 0.65, tipScale * 1.4, 24]} />
+        <meshStandardMaterial color={color} metalness={0.5} roughness={0.45} emissive={color} emissiveIntensity={0.18} />
+      </mesh>
+
+      {/* Wrist DOF rings */}
       {Array.from({ length: arm.wristDof }).map((_, i) => {
-        const t = 1 - 0.06 * (i + 1);
-        const ringPos = shoulderPos.clone().lerp(tipPos, t);
+        const t = 1 - 0.08 * (i + 1);
+        const ringPos = elbowPos.clone().lerp(tipPos, t);
         return (
           <mesh
             key={i}
             position={ringPos.toArray()}
-            rotation={limbEuler.toArray() as [number, number, number]}
+            rotation={forearmEuler.toArray() as [number, number, number]}
           >
-            <torusGeometry args={[forearmRadiusM * 1.4, forearmRadiusM * 0.35, 8, 24]} />
+            <torusGeometry args={[forearmRadiusM * 1.5, forearmRadiusM * 0.32, 8, 24]} />
             <meshBasicMaterial color={color} />
           </mesh>
         );

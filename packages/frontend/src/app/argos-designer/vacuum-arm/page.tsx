@@ -34,7 +34,7 @@ export default function ArgosDesignerVacuumArmPage() {
       <div className="flex items-center justify-between border-b border-white/10 bg-[#0f0f0f] px-6 py-3">
         <div className="flex items-center gap-4">
           <Link
-            href="/argos-designer"
+            href="/argos-designer/v1"
             className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/45 hover:text-white flex items-center gap-1"
           >
             <ArrowLeft className="h-3 w-3" strokeWidth={2.2} />

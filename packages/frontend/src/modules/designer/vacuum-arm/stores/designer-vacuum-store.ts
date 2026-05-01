@@ -69,10 +69,16 @@ const DEFAULT_ARM_RIGHT: ManipulatorArmSpec = {
   mountPosition: 'right',
 };
 
+// 기본 1개 팔 (LG 로보킹 + FlexiArm Riser 형태)
+const DEFAULT_ARM_CENTER: ManipulatorArmSpec = {
+  ...DEFAULT_ARM_LEFT,
+  mountPosition: 'center',
+};
+
 const INITIAL_PRODUCT: ProductConfig = {
   name: '후보 A',
   base: DEFAULT_BASE,
-  arms: [],
+  arms: [DEFAULT_ARM_CENTER],
 };
 
 interface DesignerVacuumState {
@@ -345,7 +351,7 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
 
   reset: () =>
     set({
-      product: INITIAL_PRODUCT,
+      product: { ...INITIAL_PRODUCT, arms: [DEFAULT_ARM_CENTER] },
       room: DEFAULT_ROOM,
       payloadKg: 0.2,
       mode: 'product3d',
