@@ -16,6 +16,7 @@ import {
   staticsService,
   payloadReachCurve,
 } from '../../../services/designer/vacuum-arm/statics.service.js';
+import { computeStaticZmp } from '../../../services/designer/vacuum-arm/stability.service.js';
 import type {
   ManipulatorArmSpec,
   VacuumBaseSpec,
@@ -61,11 +62,15 @@ export async function analyzeRoutes(fastify: FastifyInstance) {
       };
     });
 
+    // REQ-5: ZMP at worst-case pose (arms fully extended horizontally)
+    const stability = computeStaticZmp(product.base, product.arms, payloadKg);
+
     return reply.send({
       base: product.base,
       armCount: product.arms.length,
       payloadKg,
       arms: armResults,
+      stability,
       isMock: true,
       generatedAt: new Date().toISOString(),
     });

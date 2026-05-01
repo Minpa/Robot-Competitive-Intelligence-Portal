@@ -54,6 +54,7 @@ interface DesignerVacuumState {
   viewportAutoRotate: boolean;
   showLabels: boolean;
   showWorkspaceMesh: boolean;
+  showZmp: boolean;
 
   // base mutators (REQ-1)
   setBaseShape: (shape: VacuumBaseSpec['shape']) => void;
@@ -75,6 +76,7 @@ interface DesignerVacuumState {
   toggleAutoRotate: () => void;
   toggleLabels: () => void;
   toggleWorkspaceMesh: () => void;
+  toggleZmp: () => void;
 
   setProductName: (name: string) => void;
   reset: () => void;
@@ -88,6 +90,7 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   viewportAutoRotate: false,
   showLabels: false,
   showWorkspaceMesh: true,
+  showZmp: true,
 
   setBaseShape: (shape) =>
     set((s) => ({ product: { ...s.product, base: { ...s.product.base, shape } } })),
@@ -180,6 +183,7 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   toggleAutoRotate: () => set((s) => ({ viewportAutoRotate: !s.viewportAutoRotate })),
   toggleLabels: () => set((s) => ({ showLabels: !s.showLabels })),
   toggleWorkspaceMesh: () => set((s) => ({ showWorkspaceMesh: !s.showWorkspaceMesh })),
+  toggleZmp: () => set((s) => ({ showZmp: !s.showZmp })),
 
   reset: () =>
     set({
@@ -188,5 +192,6 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
       viewportAutoRotate: false,
       showLabels: false,
       showWorkspaceMesh: true,
+      showZmp: true,
     }),
 }));

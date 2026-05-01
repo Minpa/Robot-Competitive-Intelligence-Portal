@@ -13,6 +13,10 @@ import {
   evaluateArmStatics,
   payloadReachCurve,
 } from '../../services/designer/vacuum-arm/statics.service.js';
+import {
+  computeStaticZmp,
+  footprintPolygon,
+} from '../../services/designer/vacuum-arm/stability.service.js';
 import { actuatorService } from '../../services/designer/index.js';
 import { vacuumArmRoutes } from '../../routes/designer/vacuum-arm/index.js';
 import type {
@@ -210,6 +214,62 @@ describe('REQ-4 · joint torques', () => {
     for (let i = 1; i < curve.length; i++) {
       expect(curve[i].maxPayloadKg).toBeLessThanOrEqual(curve[i - 1].maxPayloadKg + 0.01);
     }
+  });
+});
+
+// ─── REQ-5: ZMP stability ─────────────────────────────────────────────────
+
+describe('REQ-5 · ZMP stability', () => {
+  it('disc base footprint has 32 vertices around the circle', () => {
+    const poly = footprintPolygon(SAMPLE_BASE);
+    expect(poly).toHaveLength(32);
+    // first vertex on +X axis at radius
+    expect(poly[0][0]).toBeCloseTo(0.175, 3);
+    expect(poly[0][1]).toBeCloseTo(0, 3);
+  });
+
+  it('square base has 4 vertices', () => {
+    const poly = footprintPolygon({ ...SAMPLE_BASE, shape: 'square' });
+    expect(poly).toHaveLength(4);
+  });
+
+  it('no arms: ZMP at origin, stable', () => {
+    const r = computeStaticZmp(SAMPLE_BASE, [], 0);
+    expect(r.zmpXCm).toBeCloseTo(0, 4);
+    expect(r.zmpYCm).toBeCloseTo(0, 4);
+    expect(r.isStable).toBe(true);
+  });
+
+  it('center-mounted arm extending +Z shifts ZMP toward +Z', () => {
+    const r = computeStaticZmp(SAMPLE_BASE, [SAMPLE_ARM], 1);
+    expect(r.zmpYCm).toBeGreaterThan(0); // Y in spec = Z in scene
+  });
+
+  it('left-mounted arm shifts ZMP to -X', () => {
+    const arm = { ...SAMPLE_ARM, mountPosition: 'left' as const };
+    const r = computeStaticZmp(SAMPLE_BASE, [arm], 1);
+    expect(r.zmpXCm).toBeLessThan(0);
+  });
+
+  it('overloaded long arm pushes ZMP outside footprint = unstable', () => {
+    // Tiny base + long heavy arm + heavy payload = should tip
+    const tinyBase = { ...SAMPLE_BASE, diameterOrWidthCm: 25, weightKg: 3 };
+    const longArm = {
+      ...SAMPLE_ARM,
+      mountPosition: 'front' as const,
+      upperArmLengthCm: 40,
+      forearmLengthCm: 40,
+    };
+    const r = computeStaticZmp(tinyBase, [longArm], 5);
+    expect(r.isStable).toBe(false);
+    expect(r.marginToEdgeCm).toBeLessThan(0);
+  });
+
+  it('symmetric two-arm (left + right) keeps ZMP near center', () => {
+    const left = { ...SAMPLE_ARM, mountPosition: 'left' as const };
+    const right = { ...SAMPLE_ARM, mountPosition: 'right' as const };
+    const r = computeStaticZmp(SAMPLE_BASE, [left, right], 0.3);
+    expect(Math.abs(r.zmpXCm)).toBeLessThan(0.5); // near center on X
   });
 });
 

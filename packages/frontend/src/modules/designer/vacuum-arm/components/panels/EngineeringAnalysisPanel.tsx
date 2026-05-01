@@ -22,7 +22,12 @@ import {
   LineChart,
   Line,
 } from 'recharts';
-import type { ArmAnalysisResult, VacuumBaseSpec, ManipulatorArmSpec } from '../../types/product';
+import type {
+  ArmAnalysisResult,
+  VacuumBaseSpec,
+  ManipulatorArmSpec,
+  StabilityResult,
+} from '../../types/product';
 
 const ARM_COLORS = ['#E63950', '#3a8dde'];
 
@@ -30,6 +35,7 @@ interface EngineeringAnalysisPanelProps {
   base: VacuumBaseSpec;
   arms: ManipulatorArmSpec[];
   analysis: ArmAnalysisResult[];
+  stability: StabilityResult | null;
   payloadKg: number;
   isLoading: boolean;
   isError: boolean;
@@ -40,6 +46,7 @@ export function EngineeringAnalysisPanel({
   base,
   arms,
   analysis,
+  stability,
   payloadKg,
   isLoading,
   isError,
@@ -84,6 +91,8 @@ export function EngineeringAnalysisPanel({
         <p className="text-[10.5px] text-[#E63950]">분석 실패: {errorMessage}</p>
       ) : null}
 
+      {stability ? <StabilityCard stability={stability} /> : null}
+
       {analysis.map((armResult, i) => (
         <ArmAnalysisCard
           key={i}
@@ -95,6 +104,43 @@ export function EngineeringAnalysisPanel({
       ))}
     </div>
   );
+}
+
+function StabilityCard({ stability }: { stability: StabilityResult }) {
+  const status = stabilityStatus(stability);
+  const color = status.color;
+  return (
+    <div className="border-l-2 pl-3 space-y-2" style={{ borderColor: color }}>
+      <div className="flex items-baseline justify-between">
+        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white">
+          ZMP · 전복 안정성
+        </span>
+        <span
+          className="font-mono text-[9px] uppercase tracking-[0.18em] px-1.5 py-0.5 border"
+          style={{ color, borderColor: color }}
+        >
+          {status.label}
+        </span>
+      </div>
+      <div className="grid grid-cols-3 gap-1.5">
+        <Stat label="ZMP X" value={`${stability.zmpXCm.toFixed(1)} cm`} />
+        <Stat label="ZMP Z" value={`${stability.zmpYCm.toFixed(1)} cm`} />
+        <Stat
+          label="모서리 마진"
+          value={`${stability.marginToEdgeCm > 0 ? '+' : ''}${stability.marginToEdgeCm.toFixed(1)} cm`}
+        />
+      </div>
+      <p className="text-[10px] text-white/45 leading-snug">
+        worst-case 자세(팔 수평 뻗음)에서 무게중심 floor projection이 베이스 풋프린트 안에 있어야 안정. 음수 마진 = 전복 위험.
+      </p>
+    </div>
+  );
+}
+
+function stabilityStatus(s: StabilityResult): { label: string; color: string } {
+  if (!s.isStable) return { label: '전복 위험', color: '#E63950' };
+  if (s.marginToEdgeCm <= 5) return { label: '주의 (마진 ≤ 5cm)', color: '#F2A93B' };
+  return { label: '안정', color: '#3acc6f' };
 }
 
 function ArmAnalysisCard({

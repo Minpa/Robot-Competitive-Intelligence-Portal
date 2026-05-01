@@ -44,9 +44,11 @@ export function DesignerVacuumWorkbench() {
   const autoRotate = useDesignerVacuumStore((s) => s.viewportAutoRotate);
   const showLabels = useDesignerVacuumStore((s) => s.showLabels);
   const showWorkspaceMesh = useDesignerVacuumStore((s) => s.showWorkspaceMesh);
+  const showZmp = useDesignerVacuumStore((s) => s.showZmp);
   const toggleAutoRotate = useDesignerVacuumStore((s) => s.toggleAutoRotate);
   const toggleLabels = useDesignerVacuumStore((s) => s.toggleLabels);
   const toggleWorkspaceMesh = useDesignerVacuumStore((s) => s.toggleWorkspaceMesh);
+  const toggleZmp = useDesignerVacuumStore((s) => s.toggleZmp);
 
   // Viewport debounce — slider-induced rebuilds settle before scene rebuilds.
   const debouncedProduct = useDebounced(product, 200);
@@ -97,20 +99,36 @@ export function DesignerVacuumWorkbench() {
               </span>
             ) : null}
             {armCount > 0 ? (
-              <button
-                type="button"
-                onClick={toggleWorkspaceMesh}
-                className={[
-                  'font-mono text-[9px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
-                  showWorkspaceMesh
-                    ? 'border-gold/60 text-gold'
-                    : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
-                ].join(' ')}
-                aria-pressed={showWorkspaceMesh}
-                title="Toggle workspace mesh (REQ-3)"
-              >
-                ◑ workspace
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={toggleWorkspaceMesh}
+                  className={[
+                    'font-mono text-[9px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
+                    showWorkspaceMesh
+                      ? 'border-gold/60 text-gold'
+                      : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
+                  ].join(' ')}
+                  aria-pressed={showWorkspaceMesh}
+                  title="Toggle workspace mesh (REQ-3)"
+                >
+                  ◑ workspace
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleZmp}
+                  className={[
+                    'font-mono text-[9px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
+                    showZmp
+                      ? 'border-gold/60 text-gold'
+                      : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
+                  ].join(' ')}
+                  aria-pressed={showZmp}
+                  title="Toggle ZMP overlay (REQ-5)"
+                >
+                  ◎ ZMP
+                </button>
+              </>
             ) : null}
             <button
               type="button"
@@ -149,9 +167,11 @@ export function DesignerVacuumWorkbench() {
               base={base}
               arms={arms}
               endEffectors={endEffectors}
+              stability={analyzeQ.data?.stability ?? null}
               autoRotate={autoRotate}
               showLabels={showLabels}
               showWorkspaceMesh={showWorkspaceMesh}
+              showZmp={showZmp}
             />
           </div>
         </section>
@@ -165,6 +185,7 @@ export function DesignerVacuumWorkbench() {
             base={base}
             arms={arms}
             analysis={analyzeQ.data?.arms ?? []}
+            stability={analyzeQ.data?.stability ?? null}
             payloadKg={debouncedPayload}
             isLoading={analyzeQ.isFetching}
             isError={analyzeQ.isError}

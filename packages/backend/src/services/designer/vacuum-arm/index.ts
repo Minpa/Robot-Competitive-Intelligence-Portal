@@ -11,6 +11,8 @@ export { kinematicsService } from './kinematics.service.js';
 export type { WorkspaceEnvelope } from './kinematics.service.js';
 export { staticsService, payloadReachCurve, evaluateArmStatics } from './statics.service.js';
 export type { JointAnalysis, ArmStaticsResult, PayloadCurvePoint } from './statics.service.js';
+export { stabilityService, computeStaticZmp, footprintPolygon } from './stability.service.js';
+export type { StabilityResult } from './stability.service.js';
 export type {
   BaseShape,
   EndEffectorType,

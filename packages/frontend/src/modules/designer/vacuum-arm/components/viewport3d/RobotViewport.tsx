@@ -13,15 +13,23 @@ import { OrbitControls, Grid, Environment } from '@react-three/drei';
 import { VacuumBase } from './VacuumBase';
 import { ManipulatorArm } from './ManipulatorArm';
 import { WorkspaceMesh } from './WorkspaceMesh';
-import type { ManipulatorArmSpec, VacuumBaseSpec, EndEffectorSpec } from '../../types/product';
+import { ZMPOverlay } from './ZMPOverlay';
+import type {
+  ManipulatorArmSpec,
+  VacuumBaseSpec,
+  EndEffectorSpec,
+  StabilityResult,
+} from '../../types/product';
 
 interface RobotViewportProps {
   base: VacuumBaseSpec;
   arms: ManipulatorArmSpec[];
   endEffectors?: EndEffectorSpec[];
+  stability?: StabilityResult | null;
   autoRotate?: boolean;
   showLabels?: boolean;
   showWorkspaceMesh?: boolean;
+  showZmp?: boolean;
 }
 
 const CM_TO_M = 0.01;
@@ -32,9 +40,11 @@ export function RobotViewport({
   base,
   arms,
   endEffectors = [],
+  stability = null,
   autoRotate = false,
   showLabels = false,
   showWorkspaceMesh = true,
+  showZmp = true,
 }: RobotViewportProps) {
   // Total visual height: base + lift column + max arm reach (vertical envelope).
   const totalHeightM = useMemo(() => {
@@ -85,6 +95,9 @@ export function RobotViewport({
         ))}
         {arms.length > 0 ? (
           <WorkspaceMesh arms={arms} base={base} visible={showWorkspaceMesh} />
+        ) : null}
+        {arms.length > 0 && stability ? (
+          <ZMPOverlay stability={stability} visible={showZmp} />
         ) : null}
         <Environment preset="warehouse" />
       </Suspense>

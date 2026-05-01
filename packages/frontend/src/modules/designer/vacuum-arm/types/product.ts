@@ -115,11 +115,20 @@ export interface ArmAnalysisResult {
   endEffectorMaxPayloadKg: number;
 }
 
+export interface StabilityResult {
+  zmpXCm: number;
+  zmpYCm: number;
+  footprintPolygonCm: Array<[number, number]>;
+  isStable: boolean;
+  marginToEdgeCm: number;
+}
+
 export interface AnalyzeResponse {
   base: VacuumBaseSpec;
   armCount: number;
   payloadKg: number;
   arms: ArmAnalysisResult[];
+  stability: StabilityResult;
   isMock: true;
   generatedAt: string;
 }
