@@ -41,8 +41,10 @@ export function DesignerVacuumWorkbench() {
   const product = useDesignerVacuumStore((s) => s.product);
   const autoRotate = useDesignerVacuumStore((s) => s.viewportAutoRotate);
   const showLabels = useDesignerVacuumStore((s) => s.showLabels);
+  const showWorkspaceMesh = useDesignerVacuumStore((s) => s.showWorkspaceMesh);
   const toggleAutoRotate = useDesignerVacuumStore((s) => s.toggleAutoRotate);
   const toggleLabels = useDesignerVacuumStore((s) => s.toggleLabels);
+  const toggleWorkspaceMesh = useDesignerVacuumStore((s) => s.toggleWorkspaceMesh);
 
   // Viewport debounce — slider-induced rebuilds settle before scene rebuilds.
   const debouncedProduct = useDebounced(product, 200);
@@ -83,6 +85,22 @@ export function DesignerVacuumWorkbench() {
                 팔 {armCount}개
               </span>
             ) : null}
+            {armCount > 0 ? (
+              <button
+                type="button"
+                onClick={toggleWorkspaceMesh}
+                className={[
+                  'font-mono text-[9px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
+                  showWorkspaceMesh
+                    ? 'border-gold/60 text-gold'
+                    : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
+                ].join(' ')}
+                aria-pressed={showWorkspaceMesh}
+                title="Toggle workspace mesh (REQ-3)"
+              >
+                ◑ workspace
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={toggleAutoRotate}
@@ -122,6 +140,7 @@ export function DesignerVacuumWorkbench() {
               endEffectors={endEffectors}
               autoRotate={autoRotate}
               showLabels={showLabels}
+              showWorkspaceMesh={showWorkspaceMesh}
             />
           </div>
         </section>
@@ -132,25 +151,46 @@ export function DesignerVacuumWorkbench() {
           style={{ maxHeight: '100%' }}
         >
           <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/40">
-            Engineering Analysis · REQ-4 / REQ-5 / REQ-7
+            Engineering Analysis · REQ-3
           </span>
           <p className="mt-3 text-[11px] text-white/55 leading-relaxed">
-            REQ-4부터 도달 영역, 관절 토크, ZMP 마진, 환경 적합성이 표시됩니다.
+            REQ-4부터 관절 토크, ZMP 마진, 환경 적합성이 추가됩니다.
           </p>
 
           <div className="mt-5 space-y-2">
             <Stat label="베이스 풋프린트" value={baseFootprintLabel(base.shape, base.diameterOrWidthCm)} />
-            <Stat label="총 높이" value={`${(base.heightCm + (base.hasLiftColumn ? base.liftColumnMaxExtensionCm : 0)).toFixed(1)} cm`} />
+            <Stat
+              label="총 높이"
+              value={`${(base.heightCm + (base.hasLiftColumn ? base.liftColumnMaxExtensionCm : 0)).toFixed(1)} cm`}
+            />
             <Stat label="베이스 무게" value={`${base.weightKg.toFixed(1)} kg`} />
-            <Stat label="리프트 컬럼" value={base.hasLiftColumn ? `${base.liftColumnMaxExtensionCm.toFixed(0)} cm 스트로크` : '없음'} />
+            <Stat
+              label="리프트 컬럼"
+              value={base.hasLiftColumn ? `${base.liftColumnMaxExtensionCm.toFixed(0)} cm 스트로크` : '없음'}
+            />
             <Stat label="팔 개수" value={`${armCount}개`} />
-            {arms.map((arm, i) => (
-              <Stat
-                key={i}
-                label={`팔 ${i + 1} (${arm.mountPosition})`}
-                value={`L1 ${arm.upperArmLengthCm}cm · L2 ${arm.forearmLengthCm}cm · ${arm.wristDof}DOF`}
-              />
-            ))}
+            {arms.map((arm, i) => {
+              const totalReach = arm.upperArmLengthCm + arm.forearmLengthCm;
+              const maxHeight =
+                base.heightCm +
+                (base.hasLiftColumn ? base.liftColumnMaxExtensionCm : 0) +
+                arm.shoulderHeightAboveBaseCm +
+                totalReach;
+              return (
+                <div key={i} className="space-y-1.5 border-l-2 pl-2 mt-3" style={{ borderColor: i === 0 ? '#E63950' : '#3a8dde' }}>
+                  <span className="block font-mono text-[9px] uppercase tracking-[0.18em] text-white/55">
+                    팔 {i + 1} · {arm.mountPosition}
+                  </span>
+                  <Stat label="총 리치 (L1+L2)" value={`${totalReach.toFixed(0)} cm`} />
+                  <Stat label="최대 도달 높이" value={`${maxHeight.toFixed(0)} cm`} />
+                  <Stat
+                    label="최대 수평 도달"
+                    value={`${(totalReach - base.diameterOrWidthCm / 2).toFixed(0)} cm`}
+                  />
+                  <Stat label="손목 DOF" value={`${arm.wristDof}`} />
+                </div>
+              );
+            })}
           </div>
         </aside>
       </div>

@@ -12,6 +12,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, Environment } from '@react-three/drei';
 import { VacuumBase } from './VacuumBase';
 import { ManipulatorArm } from './ManipulatorArm';
+import { WorkspaceMesh } from './WorkspaceMesh';
 import type { ManipulatorArmSpec, VacuumBaseSpec, EndEffectorSpec } from '../../types/product';
 
 interface RobotViewportProps {
@@ -20,6 +21,7 @@ interface RobotViewportProps {
   endEffectors?: EndEffectorSpec[];
   autoRotate?: boolean;
   showLabels?: boolean;
+  showWorkspaceMesh?: boolean;
 }
 
 const CM_TO_M = 0.01;
@@ -32,6 +34,7 @@ export function RobotViewport({
   endEffectors = [],
   autoRotate = false,
   showLabels = false,
+  showWorkspaceMesh = true,
 }: RobotViewportProps) {
   // Total visual height: base + lift column + max arm reach (vertical envelope).
   const totalHeightM = useMemo(() => {
@@ -80,6 +83,9 @@ export function RobotViewport({
             color={ARM_COLORS[i] ?? '#E63950'}
           />
         ))}
+        {arms.length > 0 ? (
+          <WorkspaceMesh arms={arms} base={base} visible={showWorkspaceMesh} />
+        ) : null}
         <Environment preset="warehouse" />
       </Suspense>
 

@@ -7,6 +7,8 @@
  */
 
 export { endEffectorService } from './end-effector.service.js';
+export { kinematicsService } from './kinematics.service.js';
+export type { WorkspaceEnvelope } from './kinematics.service.js';
 export type {
   BaseShape,
   EndEffectorType,
