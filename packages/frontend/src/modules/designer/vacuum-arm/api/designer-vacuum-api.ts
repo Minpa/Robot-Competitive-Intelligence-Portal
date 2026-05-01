@@ -18,6 +18,7 @@ import type {
   RoomPresetSpec,
   ScenarioSpec,
   RoomConfig,
+  ReviewResult,
 } from '../types/product';
 
 const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -85,5 +86,33 @@ export const designerVacuumApi = {
   },
   listScenarios(): Promise<{ scenarios: ScenarioSpec[]; isMock: true }> {
     return fetchJson('/scenarios');
+  },
+
+  // REQ-10 — engineering review (Claude API + heuristic fallback in backend)
+  review(
+    product: ProductConfig,
+    payloadKg: number,
+    analysis: AnalyzeResponse,
+    room?: RoomConfig | null
+  ): Promise<ReviewResult> {
+    return fetchJson<ReviewResult>('/review/', {
+      method: 'POST',
+      body: JSON.stringify({
+        product,
+        payloadKg,
+        room: room ?? null,
+        analysis: {
+          arms: analysis.arms.map((a) => ({
+            armIndex: a.armIndex,
+            statics: a.statics,
+            payloadCurve: a.payloadCurve,
+            endEffectorMaxPayloadKg: a.endEffectorMaxPayloadKg,
+            endEffectorPayloadOverLimit: a.endEffectorPayloadOverLimit,
+          })),
+          stability: analysis.stability,
+          environment: analysis.environment,
+        },
+      }),
+    });
   },
 };

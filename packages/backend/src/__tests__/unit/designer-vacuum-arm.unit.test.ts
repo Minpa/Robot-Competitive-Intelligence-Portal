@@ -19,6 +19,11 @@ import {
 } from '../../services/designer/vacuum-arm/stability.service.js';
 import { actuatorService } from '../../services/designer/index.js';
 import { vacuumArmRoutes } from '../../routes/designer/vacuum-arm/index.js';
+import {
+  generateHeuristicReview,
+  type AnalysisSnapshot,
+  type ReviewInput,
+} from '../../services/designer/vacuum-arm/review.service.js';
 import type {
   EndEffectorSpec,
   EndEffectorListResponse,
@@ -411,5 +416,136 @@ describe('REQ-1 · vacuum-arm HTTP routes', () => {
       payload: {},
     });
     expect(res.statusCode).toBe(400);
+  });
+
+  it('POST /review/ returns review with summary + issues + source', async () => {
+    const analyze = await app.inject({
+      method: 'POST',
+      url: '/api/designer/vacuum-arm/analyze/',
+      payload: { product: { name: 't', base: SAMPLE_BASE, arms: [SAMPLE_ARM] }, payloadKg: 0.3 },
+    });
+    const analysis = analyze.json();
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/designer/vacuum-arm/review/',
+      payload: {
+        product: { name: 't', base: SAMPLE_BASE, arms: [SAMPLE_ARM] },
+        payloadKg: 0.3,
+        analysis,
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      summary: string;
+      issues: Array<{ severity: string; title: string; recommendations: unknown[] }>;
+      source: 'claude' | 'heuristic';
+      isMock: boolean;
+    };
+    expect(typeof body.summary).toBe('string');
+    expect(Array.isArray(body.issues)).toBe(true);
+    expect(body.issues.length).toBeLessThanOrEqual(3);
+    // Without ANTHROPIC_API_KEY in test env, must fall back to heuristic
+    expect(body.source).toBe('heuristic');
+    expect(body.isMock).toBe(true);
+  });
+
+  it('POST /review/ rejects missing analysis', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/designer/vacuum-arm/review/',
+      payload: { product: { name: 't', base: SAMPLE_BASE, arms: [] }, payloadKg: 0 },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+});
+
+// ─── REQ-10 heuristic review ──────────────────────────────────────────────
+
+function buildAnalysisFor(arm: ManipulatorArmSpec, payloadKg: number, eeMassKg: number): AnalysisSnapshot {
+  const statics = evaluateArmStatics(arm, payloadKg, eeMassKg, 0);
+  const stability = computeStaticZmp(SAMPLE_BASE, [arm], payloadKg);
+  return {
+    arms: [
+      {
+        armIndex: 0,
+        statics,
+        payloadCurve: payloadReachCurve(arm, eeMassKg),
+        endEffectorMaxPayloadKg: 0.8,
+        endEffectorPayloadOverLimit: payloadKg > 0.8,
+      },
+    ],
+    stability,
+    environment: null,
+  };
+}
+
+describe('REQ-10 · heuristic review', () => {
+  it('returns no issues for a balanced spec at zero payload', () => {
+    const arm: ManipulatorArmSpec = { ...SAMPLE_ARM, upperArmLengthCm: 20, forearmLengthCm: 18 };
+    const analysis = buildAnalysisFor(arm, 0, 0.05);
+    const input: ReviewInput = {
+      product: { name: 't', base: { ...SAMPLE_BASE, weightKg: 6 }, arms: [arm] },
+      room: null,
+      payloadKg: 0,
+      analysis,
+    };
+    const review = generateHeuristicReview(input);
+    expect(review.source).toBe('heuristic');
+    expect(review.isMock).toBe(true);
+    expect(review.issues.length).toBeLessThanOrEqual(3);
+    expect(typeof review.summary).toBe('string');
+    expect(review.summary.length).toBeGreaterThan(0);
+  });
+
+  it('flags torque overload when payload pushes shoulder past peak', () => {
+    // High payload + long forearm → shoulder torque exceeds AK60-6 peak (12 Nm)
+    const arm: ManipulatorArmSpec = { ...SAMPLE_ARM, upperArmLengthCm: 35, forearmLengthCm: 38 };
+    const analysis = buildAnalysisFor(arm, 3.0, 0.05);
+    const input: ReviewInput = {
+      product: { name: 't', base: SAMPLE_BASE, arms: [arm] },
+      room: null,
+      payloadKg: 3.0,
+      analysis,
+    };
+    const review = generateHeuristicReview(input);
+    const titles = review.issues.map((i) => i.title).join('|');
+    expect(titles).toMatch(/토크 부족|마진 협소|페이로드/);
+    // Severities sorted high → low
+    const severities = review.issues.map((i) => i.severity);
+    if (severities.length >= 2) {
+      const rank = { high: 3, medium: 2, low: 1 } as const;
+      expect(rank[severities[0]]).toBeGreaterThanOrEqual(rank[severities[1]]);
+    }
+  });
+
+  it('flags ZMP instability and emits a base.weightKg apply patch', () => {
+    // Light base + long arm → ZMP outside footprint
+    const arm: ManipulatorArmSpec = { ...SAMPLE_ARM, upperArmLengthCm: 38, forearmLengthCm: 38 };
+    const analysis = buildAnalysisFor(arm, 1.0, 0.05);
+    const input: ReviewInput = {
+      product: { name: 't', base: { ...SAMPLE_BASE, weightKg: 3.0 }, arms: [arm] },
+      room: null,
+      payloadKg: 1.0,
+      analysis,
+    };
+    const review = generateHeuristicReview(input);
+    const zmpIssue = review.issues.find((i) => /ZMP/.test(i.title));
+    expect(zmpIssue).toBeDefined();
+    const applies = zmpIssue!.recommendations.flatMap((r) => (r.apply ? [r.apply] : []));
+    expect(applies.some((p) => p.kind === 'base.weightKg')).toBe(true);
+  });
+
+  it('caps issue list at 3', () => {
+    // Pathological config — many issues at once
+    const arm: ManipulatorArmSpec = { ...SAMPLE_ARM, upperArmLengthCm: 38, forearmLengthCm: 38 };
+    const analysis = buildAnalysisFor(arm, 4.0, 0.05);
+    const input: ReviewInput = {
+      product: { name: 't', base: { ...SAMPLE_BASE, weightKg: 3.0 }, arms: [arm, arm] },
+      room: null,
+      payloadKg: 4.0,
+      analysis: { ...analysis, arms: [analysis.arms[0]!, { ...analysis.arms[0]!, armIndex: 1 }] },
+    };
+    const review = generateHeuristicReview(input);
+    expect(review.issues.length).toBeLessThanOrEqual(3);
   });
 });

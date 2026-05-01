@@ -254,3 +254,37 @@ export interface AnalyzeResponse {
   isMock: true;
   generatedAt: string;
 }
+
+// ─── REQ-10 review ─────────────────────────────────────────────────────────
+
+export type Severity = 'high' | 'medium' | 'low';
+
+export type ReviewApplyPatch =
+  | { kind: 'base.weightKg'; value: number }
+  | { kind: 'base.diameterOrWidthCm'; value: number }
+  | { kind: 'base.hasLiftColumn'; value: boolean }
+  | { kind: 'base.heightCm'; value: number }
+  | { kind: 'arm.upperArmLengthCm'; armIndex: number; value: number }
+  | { kind: 'arm.forearmLengthCm'; armIndex: number; value: number }
+  | { kind: 'payloadKg'; value: number };
+
+export interface ReviewRecommendation {
+  action: string;
+  expected_effect: string;
+  apply?: ReviewApplyPatch;
+}
+
+export interface ReviewIssue {
+  severity: Severity;
+  title: string;
+  explanation: string;
+  recommendations: ReviewRecommendation[];
+}
+
+export interface ReviewResult {
+  summary: string;
+  issues: ReviewIssue[];
+  source: 'claude' | 'heuristic';
+  generatedAt: string;
+  isMock: boolean;
+}

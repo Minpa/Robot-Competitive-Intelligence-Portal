@@ -18,6 +18,7 @@ import { EngineeringAnalysisPanel } from './panels/EngineeringAnalysisPanel';
 import { EnvironmentPanel } from './panels/EnvironmentPanel';
 import { CandidateComparisonPanel } from './panels/CandidateComparisonPanel';
 import { RevisionLog } from './panels/RevisionLog';
+import { EngineeringReviewPanel } from './panels/EngineeringReviewPanel';
 import { useCandidatesStore } from '../stores/candidates-store';
 
 const RobotViewport = dynamic(
@@ -316,15 +317,8 @@ export function DesignerVacuumWorkbench() {
         </aside>
       </div>
 
-      {/* Bottom: review panel placeholder */}
-      <div className="border-t border-white/10 bg-[#0a0a0a] px-6 py-3">
-        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/40">
-          Engineering Review · REQ-10 예정
-        </span>
-        <p className="mt-1 text-[11px] text-white/45">
-          Claude API 기반 검토 의견 + PDF 사양서 출력은 REQ-10에서 추가됩니다.
-        </p>
-      </div>
+      {/* Bottom: REQ-10 engineering review */}
+      <EngineeringReviewPanel analysis={analyzeQ.data} isAnalyzing={analyzeQ.isFetching} />
 
       {/* Comparison modal */}
       {compareOpen ? (
