@@ -18,10 +18,9 @@ import { Suspense, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, Environment, Html } from '@react-three/drei';
 import { useQuery } from '@tanstack/react-query';
-import { VacuumBase } from './VacuumBase';
-import { ManipulatorArm } from './ManipulatorArm';
 import { WorkspaceMesh } from './WorkspaceMesh';
 import { ZMPOverlay } from './ZMPOverlay';
+import { KinematicRobot } from './RobotViewport';
 import { designerVacuumApi } from '../../api/designer-vacuum-api';
 import { useDesignerVacuumStore } from '../../stores/designer-vacuum-store';
 import type {
@@ -215,17 +214,8 @@ export function Room3DViewport({
           );
         })}
 
-        {/* 로봇 (룸 중앙) */}
-        <VacuumBase base={base} showLabels={showLabels} />
-        {arms.map((arm, i) => (
-          <ManipulatorArm
-            key={`arm-${i}`}
-            arm={arm}
-            base={base}
-            endEffector={endEffectors.find((e) => e.sku === arm.endEffectorSku)}
-            color={i === 0 ? '#E63950' : '#3a8dde'}
-          />
-        ))}
+        {/* 로봇 (룸 중앙) — 새 kinematic tree 기반 렌더 */}
+        <KinematicRobot base={base} arms={arms} endEffectors={endEffectors} />
 
         {arms.length > 0 ? (
           <WorkspaceMesh arms={arms} base={base} visible={showWorkspaceMesh} />

@@ -10,10 +10,11 @@
 import { Suspense, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, Environment } from '@react-three/drei';
-import { VacuumBase } from './VacuumBase';
-import { ManipulatorArm } from './ManipulatorArm';
 import { WorkspaceMesh } from './WorkspaceMesh';
 import { ZMPOverlay } from './ZMPOverlay';
+import { RobotRenderer } from '../../kinematics/RobotRenderer';
+import { buildRobotTree, armPoseToJointState } from '../../kinematics/robot-tree';
+import { useDesignerVacuumStore } from '../../stores/designer-vacuum-store';
 import type {
   ManipulatorArmSpec,
   VacuumBaseSpec,
@@ -87,16 +88,7 @@ export function RobotViewport({
       <directionalLight position={[0, 2, -3]} intensity={0.30} color="#ffb088" />
 
       <Suspense fallback={null}>
-        <VacuumBase base={base} showLabels={showLabels} />
-        {arms.map((arm, i) => (
-          <ManipulatorArm
-            key={i}
-            arm={arm}
-            base={base}
-            endEffector={endEffectors.find((e) => e.sku === arm.endEffectorSku)}
-            color={ARM_COLORS[i] ?? '#E63950'}
-          />
-        ))}
+        <KinematicRobot base={base} arms={arms} endEffectors={endEffectors} />
         {arms.length > 0 ? (
           <WorkspaceMesh arms={arms} base={base} visible={showWorkspaceMesh} />
         ) : null}
@@ -130,4 +122,30 @@ export function RobotViewport({
       />
     </Canvas>
   );
+}
+
+/* ─── KinematicRobot — spec → tree → renderer ────────────────────────────
+ * 모든 viewport에서 공유하는 로봇 렌더링 로직. armPose store를 jointState로
+ * 변환하고, ARM_COLORS를 트리 빌더에 전달.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+interface KinematicRobotProps {
+  base: VacuumBaseSpec;
+  arms: ManipulatorArmSpec[];
+  endEffectors: EndEffectorSpec[];
+}
+
+export function KinematicRobot({ base, arms, endEffectors }: KinematicRobotProps) {
+  const armPose = useDesignerVacuumStore((s) => s.armPose);
+
+  const tree = useMemo(
+    () => buildRobotTree({ base, arms, endEffectors, armColors: [...ARM_COLORS] }),
+    [base, arms, endEffectors]
+  );
+
+  // Day 1: armPose 슬라이더를 직접 jointState에 매핑.
+  // Day 2부터: 다중 팔 지원, IK 결과 주입.
+  const jointState = useMemo(() => armPoseToJointState(tree, armPose), [tree, armPose]);
+
+  return <RobotRenderer tree={tree} jointState={jointState} />;
 }
