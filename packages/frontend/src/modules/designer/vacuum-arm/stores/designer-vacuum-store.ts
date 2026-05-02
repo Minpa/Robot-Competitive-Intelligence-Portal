@@ -42,7 +42,7 @@ const DEFAULT_ROOM: RoomConfig = {
   targets: [],
 };
 
-export type WorkbenchMode = 'product3d' | 'roomEditor';
+export type WorkbenchMode = 'product3d' | 'roomEditor' | 'room3d';
 
 /** Pose for the 3D rendering only — does not affect engineering analysis. */
 export interface ArmPose {

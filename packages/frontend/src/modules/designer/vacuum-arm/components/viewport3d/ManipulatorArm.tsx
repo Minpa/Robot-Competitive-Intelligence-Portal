@@ -189,20 +189,29 @@ export function ManipulatorArm({ arm, base, endEffector, color = '#E63950' }: Ma
         <meshStandardMaterial color="#0a0a0a" metalness={0.6} roughness={0.3} />
       </mesh>
 
-      {/* End-effector tip — camera-like capsule */}
-      <mesh
-        position={tipPos
-          .clone()
-          .add(forearmDir.clone().multiplyScalar(tipScale * 1.2))
-          .toArray()}
-        rotation={forearmEuler.toArray() as [number, number, number]}
-        castShadow
-      >
-        <cylinderGeometry args={[tipScale * 0.55, tipScale * 0.65, tipScale * 1.4, 24]} />
-        <meshStandardMaterial color={color} metalness={0.5} roughness={0.45} emissive={color} emissiveIntensity={0.18} />
-      </mesh>
+      {/* End-effector — wrist re-orients gripper to hang DOWN from the wrist
+          (parked / gravity-aligned). Without this, the tip follows forearmDir
+          and points back-up in folded poses. Taper: narrow at the wrist coupling,
+          wider at the gripping face — reads as a gripper/tool, not a backwards pencil. */}
+      <group position={tipPos.toArray()}>
+        {/* Coupling collar (where wrist meets end-effector body) */}
+        <mesh position={[0, -tipScale * 0.35, 0]} castShadow>
+          <cylinderGeometry args={[tipScale * 0.5, tipScale * 0.45, tipScale * 0.25, 20]} />
+          <meshStandardMaterial color="#2a2a2a" metalness={0.7} roughness={0.3} />
+        </mesh>
+        {/* End-effector body — wider at the bottom (gripping face) */}
+        <mesh position={[0, -tipScale * 1.05, 0]} castShadow>
+          <cylinderGeometry args={[tipScale * 0.85, tipScale * 0.55, tipScale * 1.0, 24]} />
+          <meshStandardMaterial color={color} metalness={0.4} roughness={0.5} emissive={color} emissiveIntensity={0.12} />
+        </mesh>
+        {/* Gripping face plate */}
+        <mesh position={[0, -tipScale * 1.58, 0]} castShadow>
+          <cylinderGeometry args={[tipScale * 0.88, tipScale * 0.88, tipScale * 0.06, 28]} />
+          <meshStandardMaterial color="#0a0a0a" metalness={0.5} roughness={0.4} />
+        </mesh>
+      </group>
 
-      {/* Wrist DOF rings */}
+      {/* Wrist DOF rings — stacked on the forearm just above the wrist (not on the tip) */}
       {Array.from({ length: arm.wristDof }).map((_, i) => {
         const t = 1 - 0.08 * (i + 1);
         const ringPos = elbowPos.clone().lerp(tipPos, t);

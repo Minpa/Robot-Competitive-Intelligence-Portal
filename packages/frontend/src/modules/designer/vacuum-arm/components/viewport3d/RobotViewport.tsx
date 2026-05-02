@@ -71,16 +71,20 @@ export function RobotViewport({
     <Canvas
       shadows
       camera={{ position: [camRadius, camHeight, camRadius], fov: 38 }}
-      style={{ background: '#050505' }}
+      style={{ background: '#1f242c' }}
     >
-      <ambientLight intensity={0.5} />
+      {/* Studio-style 3-point lighting + hemisphere fill so dark robot bodies
+          read clearly against a mid-tone neutral background. */}
+      <hemisphereLight args={['#dfe6f0', '#2a2f38', 0.55]} />
+      <ambientLight intensity={0.35} />
       <directionalLight
         position={[3, 4, 2]}
-        intensity={0.9}
+        intensity={1.1}
         castShadow
-        shadow-mapSize={[1024, 1024]}
+        shadow-mapSize={[2048, 2048]}
       />
-      <directionalLight position={[-2, 3, -1.5]} intensity={0.25} />
+      <directionalLight position={[-2.5, 3, -1.5]} intensity={0.45} color="#a8c0e8" />
+      <directionalLight position={[0, 2, -3]} intensity={0.30} color="#ffb088" />
 
       <Suspense fallback={null}>
         <VacuumBase base={base} showLabels={showLabels} />
@@ -104,11 +108,11 @@ export function RobotViewport({
 
       <Grid
         args={[6, 6]}
-        cellColor="#1a1a1a"
-        sectionColor="#3a2a18"
+        cellColor="#3d4452"
+        sectionColor="#7a6238"
         cellSize={0.1}
         sectionSize={0.5}
-        fadeDistance={6}
+        fadeDistance={8}
         fadeStrength={1}
         infiniteGrid
         position={[0, 0, 0]}

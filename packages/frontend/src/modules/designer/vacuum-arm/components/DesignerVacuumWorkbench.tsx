@@ -35,6 +35,18 @@ const RobotViewport = dynamic(
   }
 );
 
+const Room3DViewport = dynamic(
+  () => import('./viewport3d/Room3DViewport').then((m) => m.Room3DViewport),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center font-mono text-[10px] uppercase tracking-[0.22em] text-white/35">
+        Loading 3D room…
+      </div>
+    ),
+  }
+);
+
 const RoomCanvas = dynamic(
   () => import('./room-editor/RoomCanvas').then((m) => m.RoomCanvas),
   {
@@ -233,8 +245,8 @@ export function DesignerVacuumWorkbench() {
           <RevisionLog />
         </aside>
 
-        {/* Center: 3D Viewport or 2D Room Editor */}
-        <section className="col-span-6 relative bg-[#050505]">
+        {/* Center: 3D Viewport or 2D Room Editor — mid-tone neutral so dark robots / overlays read clearly */}
+        <section className="col-span-6 relative bg-[#171c24]">
           {/* Mode toggle */}
           <div className="absolute left-3 top-3 z-10 flex items-center gap-1">
             <button
@@ -248,7 +260,7 @@ export function DesignerVacuumWorkbench() {
               ].join(' ')}
               aria-pressed={mode === 'product3d'}
             >
-              3D 뷰
+              로봇 3D
             </button>
             <button
               type="button"
@@ -261,7 +273,21 @@ export function DesignerVacuumWorkbench() {
               ].join(' ')}
               aria-pressed={mode === 'roomEditor'}
             >
-              방 에디터
+              방 에디터 (2D)
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('room3d')}
+              className={[
+                'font-mono text-[9px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
+                mode === 'room3d'
+                  ? 'border-gold text-gold'
+                  : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
+              ].join(' ')}
+              aria-pressed={mode === 'room3d'}
+              title="방 + 로봇을 3D로 (옵션 A)"
+            >
+              방 3D
             </button>
           </div>
 
@@ -341,6 +367,17 @@ export function DesignerVacuumWorkbench() {
           <div className="absolute inset-0">
             {mode === 'product3d' ? (
               <RobotViewport
+                base={base}
+                arms={arms}
+                endEffectors={endEffectors}
+                stability={clientAnalysis?.stability ?? null}
+                autoRotate={autoRotate}
+                showLabels={showLabels}
+                showWorkspaceMesh={showWorkspaceMesh}
+                showZmp={showZmp}
+              />
+            ) : mode === 'room3d' ? (
+              <Room3DViewport
                 base={base}
                 arms={arms}
                 endEffectors={endEffectors}

@@ -289,15 +289,15 @@ export function RoomCanvas({ heightPx = 500 }: { heightPx?: number }) {
         <div className="flex-1 overflow-hidden bg-[#050505]" ref={containerRef}>
           <Stage width={stageWidth} height={stageHeight} onMouseDown={() => setSelection({ type: null, index: -1 })}>
             <Layer>
-              {/* Floor outline */}
+              {/* Floor outline — mid-tone neutral so furniture / overlays read clearly */}
               <Rect
                 x={offsetX}
                 y={offsetY}
                 width={room.widthCm * scale}
                 height={room.depthCm * scale}
-                stroke="rgba(255,255,255,0.18)"
-                strokeWidth={1}
-                fill="#0a0a0a"
+                stroke="rgba(255,255,255,0.32)"
+                strokeWidth={1.2}
+                fill="#1a1f27"
               />
               {/* Grid lines every 50 cm */}
               <GridLines
@@ -488,7 +488,7 @@ function GridLines({
       <Line
         key={`vx-${x}`}
         points={[offsetX + x * scale, offsetY, offsetX + x * scale, offsetY + depthCm * scale]}
-        stroke="rgba(255,255,255,0.06)"
+        stroke="rgba(255,255,255,0.16)"
         strokeWidth={1}
       />
     );
@@ -498,7 +498,7 @@ function GridLines({
       <Line
         key={`hy-${y}`}
         points={[offsetX, offsetY + y * scale, offsetX + widthCm * scale, offsetY + y * scale]}
-        stroke="rgba(255,255,255,0.06)"
+        stroke="rgba(255,255,255,0.16)"
         strokeWidth={1}
       />
     );
