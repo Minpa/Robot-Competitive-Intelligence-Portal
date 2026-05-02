@@ -312,6 +312,13 @@ export function defaultJointState(tree: LinkSpec[]): JointState {
 /**
  * Apply armPose (DesignerVacuumStore의 시각 제어) → joint state.
  * 향후 IK가 제어할 때는 이 함수 대신 IK 결과를 직접 jointState에 씀.
+ *
+ * 기존 ManipulatorArm.tsx 의 운동학과 일치시키는 규약:
+ *   - shoulder: shoulderPitchDeg 그대로 라디안 (0=수직 위, +π/2=수평 forward)
+ *   - elbow: elbowDeg=180 → 0 (곧게 폄), elbowDeg=110 → -1.22 rad (접힘)
+ *     원래 코드: forearmPitch = upperPitch - (π - elbowAngle)
+ *     URDF 등가: elbowJointState = -(π - elbowRad) = elbowRad - π
+ *     이 음수 부호가 forearm을 "위-뒤" 방향(folded)로 접히게 만듦.
  */
 export function armPoseToJointState(
   tree: LinkSpec[],
@@ -319,11 +326,8 @@ export function armPoseToJointState(
 ): JointState {
   const state = defaultJointState(tree);
   const shoulderRad = armPose.shoulderPitchDeg * DEG_TO_RAD;
-  // 기존 코드 규약: elbowDeg=180 = 곧게 펴짐, 110 = 접힘
-  // URDF revolute joint state: 0 = 곧게 펴짐(부모 +Y와 정렬), +값 = 접힘
-  // 변환: jointState = π - elbowRad
   const elbowRad = armPose.elbowDeg * DEG_TO_RAD;
-  const elbowJointVal = Math.PI - elbowRad;
+  const elbowJointVal = elbowRad - Math.PI; // 음수가 자연스러운 접힘
   for (const link of tree) {
     const key = link.joint.jointStateKey;
     if (!key) continue;

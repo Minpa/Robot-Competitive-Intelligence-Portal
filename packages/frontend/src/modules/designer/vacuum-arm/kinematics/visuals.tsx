@@ -232,23 +232,15 @@ function LinkCylinderVisual({
   );
 }
 
-/* ─── WristJoint: 손목 visual (작은 sleeve + sphere) ─────────────────── */
+/* ─── WristJoint: 손목 visual — 오리진에 sphere만 (offset 없음, 그리퍼와 충돌 방지) */
 
 function WristJointVisual({ params }: { params: Record<string, number | string> }) {
   const radiusM = params.radiusM as number;
   return (
-    <group>
-      {/* 짧은 sleeve */}
-      <mesh position={[0, 0, 0]} castShadow>
-        <cylinderGeometry args={[radiusM * 1.2, radiusM * 1.2, radiusM * 1.5, 16]} />
-        <meshStandardMaterial color="#222222" metalness={0.55} roughness={0.4} />
-      </mesh>
-      {/* 손목 sphere */}
-      <mesh position={[0, radiusM * 0.75, 0]} castShadow>
-        <sphereGeometry args={[radiusM, 24, 18]} />
-        <meshStandardMaterial color="#0a0a0a" metalness={0.6} roughness={0.3} />
-      </mesh>
-    </group>
+    <mesh position={[0, 0, 0]} castShadow>
+      <sphereGeometry args={[radiusM, 24, 18]} />
+      <meshStandardMaterial color="#0a0a0a" metalness={0.6} roughness={0.3} />
+    </mesh>
   );
 }
 

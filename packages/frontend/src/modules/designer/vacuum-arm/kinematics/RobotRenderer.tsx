@@ -14,7 +14,7 @@
 
 import { Fragment, useMemo } from 'react';
 import * as THREE from 'three';
-import type { LinkSpec, JointSpec, JointState, VisualSpec } from './robot-tree';
+import type { LinkSpec, JointSpec, JointState } from './robot-tree';
 import { LinkVisual } from './visuals';
 
 interface RobotRendererProps {
@@ -31,55 +31,54 @@ interface NodeProps {
   showFrameTriads: boolean;
 }
 
-/** Joint offset → THREE rotation/position 적용 */
-function applyJointOriginToGroupProps(joint: JointSpec): {
-  position: [number, number, number];
-  rotation: [number, number, number];
-} {
+/**
+ * Origin transform + joint state → 단일 (position, quaternion) 쌍.
+ * R3F group props로 직접 전달 (ref callback 사용 안 함 — 그래야 R3F가
+ * 안정적으로 자식 transform 갱신).
+ *
+ * URDF 컨벤션: child_frame = origin_translate × origin_rotate × joint_rotate(state)
+ *   - revolute: rotate around axis by state
+ *   - prismatic: translate along axis by state
+ *   - fixed: 그냥 origin
+ */
+function computeJointTransform(
+  joint: JointSpec,
+  state: number,
+): { position: [number, number, number]; quaternion: [number, number, number, number] } {
+  const pos = new THREE.Vector3(...joint.originXyz);
+  const quat = new THREE.Quaternion().setFromEuler(
+    new THREE.Euler(joint.originRpy[0], joint.originRpy[1], joint.originRpy[2], 'XYZ'),
+  );
+
+  if (joint.type === 'revolute' && joint.axis) {
+    const axis = new THREE.Vector3(joint.axis[0], joint.axis[1], joint.axis[2]).normalize();
+    const stateQuat = new THREE.Quaternion().setFromAxisAngle(axis, state);
+    quat.multiply(stateQuat); // origin × joint_state (오른쪽 곱 = local frame에서 적용)
+  } else if (joint.type === 'prismatic' && joint.axis) {
+    const axis = new THREE.Vector3(joint.axis[0], joint.axis[1], joint.axis[2]).normalize();
+    // Translate in CHILD frame (after origin rotation)
+    const localTranslate = axis.multiplyScalar(state).applyQuaternion(quat);
+    pos.add(localTranslate);
+  }
+
   return {
-    position: joint.originXyz,
-    rotation: joint.originRpy,
+    position: [pos.x, pos.y, pos.z],
+    quaternion: [quat.x, quat.y, quat.z, quat.w],
   };
 }
 
-/** Joint state (각도/이동량) → 추가 transform 적용 (revolute/prismatic) */
-function applyJointStateToObject(
-  joint: JointSpec,
-  state: number,
-  obj: THREE.Object3D,
-): void {
-  if (joint.type === 'revolute' && joint.axis) {
-    const axis = new THREE.Vector3(...joint.axis).normalize();
-    obj.rotateOnAxis(axis, state);
-  } else if (joint.type === 'prismatic' && joint.axis) {
-    const axis = new THREE.Vector3(...joint.axis).normalize();
-    obj.position.add(axis.multiplyScalar(state));
-  }
-}
-
 function RobotNode({ link, childrenMap, jointState, showFrameTriads }: NodeProps) {
-  const { position, rotation } = applyJointOriginToGroupProps(link.joint);
-  const children = childrenMap.get(link.name) ?? [];
   const stateValue = link.joint.jointStateKey ? jointState[link.joint.jointStateKey] ?? 0 : 0;
+  const children = childrenMap.get(link.name) ?? [];
 
-  // joint state가 있는 경우 (revolute/prismatic), origin transform 위에 추가로 적용.
-  // R3F의 ref callback으로 joint state transform을 적용 — origin은 group props,
-  // joint state는 ref에서 obj.rotateOnAxis 호출.
+  // Memoize transform (link spec rarely changes; jointState changes on slider drag)
+  const { position, quaternion } = useMemo(
+    () => computeJointTransform(link.joint, stateValue),
+    [link.joint, stateValue],
+  );
+
   return (
-    <group
-      position={position}
-      rotation={rotation}
-      ref={(node) => {
-        if (!node) return;
-        // Reset to origin pose on every render
-        node.position.set(...position);
-        node.rotation.set(...rotation);
-        // Then apply joint state delta
-        if (link.joint.jointStateKey) {
-          applyJointStateToObject(link.joint, stateValue, node);
-        }
-      }}
-    >
+    <group position={position} quaternion={quaternion}>
       {/* Visual for this link */}
       {link.visual ? <LinkVisual visual={link.visual} /> : null}
 
