@@ -22,7 +22,7 @@
 
 import { Edges } from '@react-three/drei';
 import * as THREE from 'three';
-import type { ManipulatorArmSpec, VacuumBaseSpec, EndEffectorSpec } from '../../types/product';
+import type { ManipulatorArmSpec, VacuumBaseSpec, EndEffectorSpec, EndEffectorType } from '../../types/product';
 import { useDesignerVacuumStore } from '../../stores/designer-vacuum-store';
 
 const CM_TO_M = 0.01;
@@ -189,27 +189,20 @@ export function ManipulatorArm({ arm, base, endEffector, color = '#E63950' }: Ma
         <meshStandardMaterial color="#0a0a0a" metalness={0.6} roughness={0.3} />
       </mesh>
 
-      {/* End-effector — wrist re-orients gripper to hang DOWN from the wrist
-          (parked / gravity-aligned). Without this, the tip follows forearmDir
-          and points back-up in folded poses. Taper: narrow at the wrist coupling,
-          wider at the gripping face — reads as a gripper/tool, not a backwards pencil. */}
-      <group position={tipPos.toArray()}>
-        {/* Coupling collar (where wrist meets end-effector body) */}
-        <mesh position={[0, -tipScale * 0.35, 0]} castShadow>
-          <cylinderGeometry args={[tipScale * 0.5, tipScale * 0.45, tipScale * 0.25, 20]} />
-          <meshStandardMaterial color="#2a2a2a" metalness={0.7} roughness={0.3} />
-        </mesh>
-        {/* End-effector body — wider at the bottom (gripping face) */}
-        <mesh position={[0, -tipScale * 1.05, 0]} castShadow>
-          <cylinderGeometry args={[tipScale * 0.85, tipScale * 0.55, tipScale * 1.0, 24]} />
-          <meshStandardMaterial color={color} metalness={0.4} roughness={0.5} emissive={color} emissiveIntensity={0.12} />
-        </mesh>
-        {/* Gripping face plate */}
-        <mesh position={[0, -tipScale * 1.58, 0]} castShadow>
-          <cylinderGeometry args={[tipScale * 0.88, tipScale * 0.88, tipScale * 0.06, 28]} />
-          <meshStandardMaterial color="#0a0a0a" metalness={0.5} roughness={0.4} />
-        </mesh>
-      </group>
+      {/* End-effector — parent group is positioned AT the wrist and rotated
+          to match the forearm direction (URDF "fixed joint" equivalent).
+          All children extend in +y local = +forearmDir world, so the gripper
+          continues past the wrist along the arm direction regardless of pose.
+
+          Geometry routes by endEffector.type — falls back to a generic
+          coupling+body+face plate for unknown / no end-effector. */}
+      <EndEffectorAssembly
+        wristPos={tipPos}
+        forearmEuler={forearmEuler}
+        type={endEffector?.type}
+        color={color}
+        tipScale={tipScale}
+      />
 
       {/* Wrist DOF rings — stacked on the forearm just above the wrist (not on the tip) */}
       {Array.from({ length: arm.wristDof }).map((_, i) => {
@@ -226,6 +219,115 @@ export function ManipulatorArm({ arm, base, endEffector, color = '#E63950' }: Ma
           </mesh>
         );
       })}
+    </group>
+  );
+}
+
+/* ─── End-effector assembly ─────────────────────────────────────────────────
+ * The parent group is positioned at the wrist with rotation = forearmEuler.
+ * Inside this group, +y local = +forearmDir world, so all geometry extends
+ * AWAY from the elbow along the arm's tool axis. This is how URDFs attach
+ * end-effectors: a fixed joint with a transform offset from the wrist link.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+interface EndEffectorAssemblyProps {
+  wristPos: THREE.Vector3;
+  forearmEuler: THREE.Euler;
+  type: EndEffectorType | undefined;
+  color: string;
+  tipScale: number;
+}
+
+function EndEffectorAssembly({ wristPos, forearmEuler, type, color, tipScale }: EndEffectorAssemblyProps) {
+  return (
+    <group
+      position={wristPos.toArray()}
+      rotation={forearmEuler.toArray() as [number, number, number]}
+    >
+      {/* Coupling collar — at the wrist face, narrows toward the body */}
+      <mesh position={[0, tipScale * 0.18, 0]} castShadow>
+        <cylinderGeometry args={[tipScale * 0.45, tipScale * 0.55, tipScale * 0.30, 20]} />
+        <meshStandardMaterial color="#2a2a2a" metalness={0.7} roughness={0.3} />
+      </mesh>
+
+      {type === 'suction' ? (
+        <>
+          {/* Suction stem */}
+          <mesh position={[0, tipScale * 0.55, 0]} castShadow>
+            <cylinderGeometry args={[tipScale * 0.18, tipScale * 0.30, tipScale * 0.40, 16]} />
+            <meshStandardMaterial color={color} metalness={0.4} roughness={0.5} emissive={color} emissiveIntensity={0.12} />
+          </mesh>
+          {/* Suction cup — flared, wider at the gripping face (radiusTop > radiusBottom) */}
+          <mesh position={[0, tipScale * 0.95, 0]} castShadow>
+            <cylinderGeometry args={[tipScale * 0.85, tipScale * 0.18, tipScale * 0.40, 24]} />
+            <meshStandardMaterial color={color} metalness={0.4} roughness={0.5} emissive={color} emissiveIntensity={0.12} />
+          </mesh>
+          {/* Suction face (rubber) */}
+          <mesh position={[0, tipScale * 1.18, 0]} castShadow>
+            <cylinderGeometry args={[tipScale * 0.85, tipScale * 0.85, tipScale * 0.04, 28]} />
+            <meshStandardMaterial color="#1a1a1a" roughness={0.85} />
+          </mesh>
+        </>
+      ) : type === '2finger' || type === 'simple_gripper' ? (
+        <>
+          {/* Gripper body — short box for the actuator housing */}
+          <mesh position={[0, tipScale * 0.55, 0]} castShadow>
+            <boxGeometry args={[tipScale * 1.10, tipScale * 0.35, tipScale * 0.55]} />
+            <meshStandardMaterial color={color} metalness={0.4} roughness={0.5} emissive={color} emissiveIntensity={0.12} />
+          </mesh>
+          {/* Two parallel jaws extending outward (along +y local) */}
+          {[-1, 1].map((sign) => (
+            <group key={sign} position={[sign * tipScale * 0.30, tipScale * 0.95, 0]}>
+              <mesh castShadow>
+                <boxGeometry args={[tipScale * 0.16, tipScale * 0.55, tipScale * 0.45]} />
+                <meshStandardMaterial color="#1a1a1a" metalness={0.55} roughness={0.4} />
+              </mesh>
+              {/* Inner pad (gripping surface) */}
+              <mesh position={[-sign * tipScale * 0.085, 0, 0]}>
+                <boxGeometry args={[tipScale * 0.02, tipScale * 0.50, tipScale * 0.40]} />
+                <meshStandardMaterial color="#3a3a3a" roughness={0.6} />
+              </mesh>
+            </group>
+          ))}
+        </>
+      ) : type === '3finger' ? (
+        <>
+          {/* Gripper body */}
+          <mesh position={[0, tipScale * 0.55, 0]} castShadow>
+            <cylinderGeometry args={[tipScale * 0.55, tipScale * 0.55, tipScale * 0.45, 24]} />
+            <meshStandardMaterial color={color} metalness={0.4} roughness={0.5} emissive={color} emissiveIntensity={0.12} />
+          </mesh>
+          {/* 3 fingers in 120° arrangement, angled inward */}
+          {[0, (2 * Math.PI) / 3, (4 * Math.PI) / 3].map((angle, i) => {
+            const fx = Math.cos(angle) * tipScale * 0.30;
+            const fz = Math.sin(angle) * tipScale * 0.30;
+            return (
+              <group
+                key={i}
+                position={[fx, tipScale * 1.05, fz]}
+                rotation={[0, -angle, -0.25]}
+              >
+                <mesh castShadow>
+                  <boxGeometry args={[tipScale * 0.14, tipScale * 0.55, tipScale * 0.18]} />
+                  <meshStandardMaterial color="#1a1a1a" metalness={0.55} roughness={0.4} />
+                </mesh>
+              </group>
+            );
+          })}
+        </>
+      ) : (
+        // Fallback: generic end-effector (body + face plate)
+        <>
+          <mesh position={[0, tipScale * 0.85, 0]} castShadow>
+            <cylinderGeometry args={[tipScale * 0.55, tipScale * 0.85, tipScale * 1.0, 24]} />
+            <meshStandardMaterial color={color} metalness={0.4} roughness={0.5} emissive={color} emissiveIntensity={0.12} />
+          </mesh>
+          <mesh position={[0, tipScale * 1.40, 0]} castShadow>
+            <cylinderGeometry args={[tipScale * 0.88, tipScale * 0.88, tipScale * 0.06, 28]} />
+            <meshStandardMaterial color="#0a0a0a" metalness={0.5} roughness={0.4} />
+          </mesh>
+        </>
+      )}
     </group>
   );
 }
