@@ -23,6 +23,8 @@ import {
   CuboidCollider,
   type RapierRigidBody,
 } from '@react-three/rapier';
+import { useDesignerVacuumStore } from '../stores/designer-vacuum-store';
+import { computeWristWorldPosition, getHeldTargetAtTime } from './grasp-engine';
 
 interface PhysicsSceneProps {
   /** 시각 디버그용 collider wireframe */
@@ -312,6 +314,168 @@ export function KinematicRobotBody({
           <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <ringGeometry args={[0.10, 0.13, 24]} />
             <meshBasicMaterial color={dragging ? '#ffd86b' : '#a8a8a8'} transparent opacity={0.7} />
+          </mesh>
+        ) : null}
+        {children}
+      </group>
+    </RigidBody>
+  );
+}
+
+/* ─── GrabbableTarget ─────────────────────────────────────────────────────
+ * 타겟 wrapper. PhysicalDraggableObject와 비슷하지만 추가로:
+ *   - useFrame에서 store의 timeline.currentTime + gestures를 읽어 자기가 잡혔는지 검사
+ *   - 잡혀 있으면 매 프레임 손목 위치로 setTranslation (gravity 무시 효과)
+ *   - 자유 상태면 dynamic body로 정상 동작 (중력 + 충돌)
+ *
+ * targetIndex = room.targets 배열에서의 인덱스.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+interface GrabbableTargetProps {
+  targetIndex: number;
+  initialX: number;
+  initialZ: number;
+  rotationY: number;
+  sizeM: [number, number, number];
+  massKg: number;
+  /** 방 좌표(cm) → 월드(m) 변환에 필요 */
+  halfWCm: number;
+  halfDCm: number;
+  onPositionChange: (worldX: number, worldZ: number) => void;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
+  children: ReactNode;
+}
+
+export function GrabbableTarget({
+  targetIndex,
+  initialX,
+  initialZ,
+  rotationY,
+  sizeM,
+  massKg,
+  halfWCm,
+  halfDCm,
+  onPositionChange,
+  onDragStart,
+  onDragEnd,
+  children,
+}: GrabbableTargetProps) {
+  const bodyRef = useRef<RapierRigidBody | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [isHeldVisual, setIsHeldVisual] = useState(false);
+
+  // 외부 위치 변경(드래그/2D 에디터)을 body에 반영
+  useEffect(() => {
+    if (dragging) return;
+    const body = bodyRef.current;
+    if (!body) return;
+    body.setTranslation({ x: initialX, y: sizeM[1] / 2, z: initialZ }, true);
+    body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialX, initialZ]);
+
+  // 매 프레임: held? → 손목 위치로 이동
+  useFrame(() => {
+    const body = bodyRef.current;
+    if (!body) return;
+    const state = useDesignerVacuumStore.getState();
+    const heldIdx = getHeldTargetAtTime(state.timeline.gestures, state.timeline.currentTime);
+    const beingHeld = heldIdx === targetIndex;
+
+    if (beingHeld !== isHeldVisual) setIsHeldVisual(beingHeld);
+    if (!beingHeld) return;
+
+    const arm = state.product.arms[0];
+    if (!arm) return;
+
+    const robotXM = ((state.robotXCm ?? halfWCm) - halfWCm) * 0.01;
+    const robotZM = ((state.robotYCm ?? halfDCm) - halfDCm) * 0.01;
+    const gripPos = computeWristWorldPosition(
+      state.product.base,
+      arm,
+      state.armPose,
+      robotXM,
+      robotZM,
+    );
+    body.setTranslation({ x: gripPos.x, y: gripPos.y, z: gripPos.z }, true);
+    body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+  });
+
+  return (
+    <RigidBody
+      ref={bodyRef}
+      type="dynamic"
+      position={[initialX, sizeM[1] / 2, initialZ]}
+      rotation={[0, rotationY, 0]}
+      colliders={false}
+      enabledRotations={[true, true, true]}
+      linearDamping={2.5}
+      angularDamping={3.0}
+      mass={Math.max(0.05, massKg)}
+    >
+      <CuboidCollider
+        args={[sizeM[0] / 2, sizeM[1] / 2, sizeM[2] / 2]}
+        friction={0.7}
+        restitution={0.2}
+      />
+      <group
+        position={[0, -sizeM[1] / 2, 0]}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setHovered(true);
+          document.body.style.cursor = 'grab';
+        }}
+        onPointerOut={() => {
+          setHovered(false);
+          if (!dragging) document.body.style.cursor = 'auto';
+        }}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          (e.target as Element).setPointerCapture(e.pointerId);
+          setDragging(true);
+          onDragStart?.();
+          document.body.style.cursor = 'grabbing';
+        }}
+        onPointerUp={(e) => {
+          if (!dragging) return;
+          try {
+            (e.target as Element).releasePointerCapture(e.pointerId);
+          } catch {
+            // ignore
+          }
+          setDragging(false);
+          onDragEnd?.();
+          document.body.style.cursor = hovered ? 'grab' : 'auto';
+        }}
+        onPointerMove={(e) => {
+          if (!dragging) return;
+          const dy = e.ray.direction.y;
+          if (Math.abs(dy) < 1e-6) return;
+          const t = -e.ray.origin.y / dy;
+          if (t <= 0) return;
+          const wx = e.ray.origin.x + e.ray.direction.x * t;
+          const wz = e.ray.origin.z + e.ray.direction.z * t;
+          const body = bodyRef.current;
+          if (body) {
+            body.setTranslation({ x: wx, y: sizeM[1] / 2, z: wz }, true);
+            body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+            body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+          }
+          onPositionChange(wx, wz);
+        }}
+      >
+        {(hovered || dragging || isHeldVisual) ? (
+          <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.08, 0.11, 24]} />
+            <meshBasicMaterial
+              color={isHeldVisual ? '#ffd86b' : '#a8a8a8'}
+              transparent
+              opacity={0.85}
+            />
           </mesh>
         ) : null}
         {children}

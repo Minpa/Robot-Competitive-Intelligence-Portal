@@ -28,6 +28,7 @@ import {
   PhysicsWalls,
   PhysicalDraggableObject,
   KinematicRobotBody,
+  GrabbableTarget,
 } from '../../kinematics/physics-bodies';
 import { designerVacuumApi } from '../../api/designer-vacuum-api';
 import { useDesignerVacuumStore } from '../../stores/designer-vacuum-store';
@@ -279,23 +280,24 @@ export function Room3DViewport({
             );
           })}
 
-          {/* 타겟 — physics dynamic body, 회전 자유 (작은 물체는 굴러가도 OK) */}
+          {/* 타겟 — GrabbableTarget: 잡혀있을 땐 손목 따라가고, 자유면 dynamic */}
           {room.targets.map((t, i) => {
             const spec = findTarget(t.targetObjectId);
             if (!spec) return null;
             const wx = (t.xCm - halfWCm) * CM_TO_M;
             const wz = (t.yCm - halfDCm) * CM_TO_M;
-            // 타겟은 spec에 width 정보가 없어서 작은 큐브로 표현 (8cm). zCm은 위에 놓여있는 표면 높이.
             const tSize = 0.06;
             return (
-              <PhysicalDraggableObject
+              <GrabbableTarget
                 key={`t-${i}-${t.targetObjectId}-${i}`}
+                targetIndex={i}
                 initialX={wx}
                 initialZ={wz}
                 rotationY={0}
                 sizeM={[tSize, tSize, tSize]}
                 massKg={Math.max(0.05, spec.weightKg)}
-                enabledRotations={[true, true, true]}
+                halfWCm={halfWCm}
+                halfDCm={halfDCm}
                 onDragStart={() => setDragging(true)}
                 onDragEnd={() => setDragging(false)}
                 onPositionChange={(nx, nz) => {
@@ -310,7 +312,7 @@ export function Room3DViewport({
                   halfDCm={halfDCm}
                   showLabel={showLabels}
                 />
-              </PhysicalDraggableObject>
+              </GrabbableTarget>
             );
           })}
 

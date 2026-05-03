@@ -54,14 +54,27 @@ export interface TimelineWaypoint {
   yCm: number;
 }
 
-export type GestureType = 'IDLE' | 'PICKUP' | 'WAVE' | 'POINT' | 'SCAN' | 'BOW' | 'HANDSHAKE';
+export type GestureType =
+  | 'IDLE'
+  | 'PICKUP'
+  | 'WAVE'
+  | 'POINT'
+  | 'SCAN'
+  | 'BOW'
+  | 'HANDSHAKE'
+  | 'GRAB'      // 타겟 잡기 (targetId 필요)
+  | 'RELEASE';  // 잡고 있던 것 놓기 (targetId 불필요)
 
-/** 시간 t에 시작해서 durationSec 동안 지속되는 동작. */
+/** 시간 t에 시작해서 durationSec 동안 지속되는 동작.
+ *  GRAB의 경우 targetId가 필요 (어떤 타겟을 잡을지 — TargetMarker.targetObjectId의 해당 인덱스).
+ *  RELEASE는 현재 잡고 있는 것을 놓으므로 targetId 불필요. */
 export interface TimelineGesture {
   id: string;
   t: number; // start seconds
   durationSec: number;
   type: GestureType;
+  /** GRAB일 때만 사용 — room.targets 배열의 인덱스 */
+  targetIndex?: number;
 }
 
 export interface TimelineState {
@@ -215,6 +228,18 @@ const GESTURE_PROFILES: Record<GestureType, GestureKeyframeDef[]> = {
     { tNorm: 0.70, shoulderPitchDeg: 70, elbowDeg: 145 }, // shake up
     { tNorm: 0.85, shoulderPitchDeg: 70, elbowDeg: 130 },
     { tNorm: 1.0, shoulderPitchDeg: 25, elbowDeg: 110 },
+  ],
+  // GRAB: 팔을 앞-아래로 뻗어 그리퍼 face가 타겟에 닿게. 끝 시점에 grasp 발동.
+  GRAB: [
+    { tNorm: 0.0, shoulderPitchDeg: 25, elbowDeg: 110 }, // rest
+    { tNorm: 0.5, shoulderPitchDeg: 75, elbowDeg: 165 }, // reach down toward target
+    { tNorm: 1.0, shoulderPitchDeg: 75, elbowDeg: 165 }, // hold (target now attached at end)
+  ],
+  // RELEASE: hold 자세 → 살짝 들어올림 → rest.
+  RELEASE: [
+    { tNorm: 0.0, shoulderPitchDeg: 75, elbowDeg: 165 }, // hold
+    { tNorm: 0.4, shoulderPitchDeg: 75, elbowDeg: 165 }, // (target detaches at start → falls)
+    { tNorm: 1.0, shoulderPitchDeg: 25, elbowDeg: 110 }, // rest
   ],
 };
 
