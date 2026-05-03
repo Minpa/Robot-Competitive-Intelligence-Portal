@@ -13,6 +13,7 @@ import type {
   StabilityResult,
   PayloadCurvePoint,
 } from '../types/product';
+import { MOUNT_OFFSET_RATIO } from '../types/product';
 
 const G = 9.81;
 const UPPER_ARM_RADIUS_M = 0.018;
@@ -160,10 +161,10 @@ export function computeStability(
     const mF = limbMassKg(FOREARM_RADIUS_M, L2);
     const totalArm = mU + mF + payloadKg + eeKg;
 
-    // Mount offset on base (cm)
+    // Mount offset on base (cm) — MOUNT_OFFSET_RATIO는 시각 렌더와 공유
     let mountX = 0;
     let mountZ = 0;
-    const offsetCm = baseRadiusCm * 0.45;
+    const offsetCm = baseRadiusCm * MOUNT_OFFSET_RATIO;
     let dirX = 0;
     let dirZ = 1;
     switch (arm.mountPosition) {

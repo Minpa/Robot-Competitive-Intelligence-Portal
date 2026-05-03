@@ -21,6 +21,7 @@ import { useQuery } from '@tanstack/react-query';
 import { WorkspaceMesh } from './WorkspaceMesh';
 import { ZMPOverlay } from './ZMPOverlay';
 import { KinematicRobot } from './RobotViewport';
+import { FurnitureVisual } from '../../kinematics/furniture-visuals';
 import { designerVacuumApi } from '../../api/designer-vacuum-api';
 import { useDesignerVacuumStore } from '../../stores/designer-vacuum-store';
 import type {
@@ -31,7 +32,6 @@ import type {
   FurnitureSpec,
   ObstacleSpec,
   TargetObjectSpec,
-  FurnitureType,
   ObstacleType,
 } from '../../types/product';
 
@@ -49,13 +49,8 @@ interface Room3DViewportProps {
 const CM_TO_M = 0.01;
 const DEG_TO_RAD = Math.PI / 180;
 
-const FURNITURE_COLOR: Record<FurnitureType, string> = {
-  sofa: '#3a8dde',
-  dining_table: '#a07238',
-  sink_counter: '#7a7a7a',
-  desk: '#a07238',
-  chair: '#5a5a5a',
-};
+// 가구 색상은 furniture-visuals.tsx의 각 컴포넌트가 자체 정의 (sofa = blue,
+// table = wood 등). 더이상 외부에서 mapping 안 함.
 
 const OBSTACLE_COLOR: Record<ObstacleType, string> = {
   rug: '#7a4a2a',
@@ -309,23 +304,13 @@ function Furniture3D({
   const h = spec.surfaceHeightCm * CM_TO_M;
   const rotY = -placement.rotationDeg * DEG_TO_RAD; // 2D rotationDeg 시계방향 → 3D Y축 반시계
 
-  const color = FURNITURE_COLOR[spec.type] ?? '#5a5a5a';
-
   return (
     <group position={[x, 0, z]} rotation={[0, rotY, 0]}>
-      {/* 본체 박스 */}
-      <mesh position={[0, h / 2, 0]} castShadow receiveShadow>
-        <boxGeometry args={[w, h, d]} />
-        <meshStandardMaterial color={color} roughness={0.7} metalness={0.05} transparent opacity={0.85} />
-      </mesh>
-      {/* 윗면 가장자리 — surface 높이를 강조 */}
-      <mesh position={[0, h + 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[w, d]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.18} />
-      </mesh>
+      {/* 가구 type별 사실적인 형상 (sofa/table/desk/sink/chair) */}
+      <FurnitureVisual type={spec.type} widthM={w} depthM={d} heightM={h} />
       {showLabel ? (
         <Html
-          position={[0, h + 0.08, 0]}
+          position={[0, h + 0.10, 0]}
           center
           distanceFactor={8}
           occlude={false}

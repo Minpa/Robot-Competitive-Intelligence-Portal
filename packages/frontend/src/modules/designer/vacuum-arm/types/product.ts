@@ -70,6 +70,16 @@ export const BASE_BOUNDS = {
   liftColumnMaxExtensionCm: { min: 0, max: 30, step: 1 },
 } as const;
 
+/**
+ * Non-center mount(front/left/right)의 페데스탈 위치 — base 반지름 대비 비율.
+ * 시각 렌더링(robot-tree)과 분석 코드(client-statics)와 백엔드(stability.service)가
+ * 모두 같은 값을 써야 시각과 ZMP 결과가 일치한다.
+ *
+ * 0.65 = 베이스 가장자리에 가까움 (실제 콤보 로봇이 팔을 mount하는 위치와 유사).
+ * 백엔드 stability.service.ts와 동기화 필요. 변경 시 양쪽 동시에 수정할 것.
+ */
+export const MOUNT_OFFSET_RATIO = 0.65;
+
 // ─── REQ-6 environment ─────────────────────────────────────────────────────
 
 export type FurnitureType = 'sofa' | 'dining_table' | 'sink_counter' | 'desk' | 'chair';

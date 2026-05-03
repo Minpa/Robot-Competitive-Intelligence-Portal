@@ -22,6 +22,7 @@ import type {
   EndEffectorType,
   ArmMountPosition,
 } from '../types/product';
+import { MOUNT_OFFSET_RATIO } from '../types/product';
 
 const CM_TO_M = 0.01;
 const DEG_TO_RAD = Math.PI / 180;
@@ -96,12 +97,11 @@ const DEFAULT_ARM_COLORS = ['#E63950', '#3a8dde'];
 
 /**
  * Mount 위치 → 베이스 윗면에서의 (x, z) offset.
- * 페데스탈이 베이스 가장자리 쪽에 충분히 가깝도록 70% 사용 (기존 45% → 가운데
- * 같이 보여서 사용자 혼동).
+ * MOUNT_OFFSET_RATIO는 시각/분석/백엔드 모두 공유 (types/product.ts).
  */
 function computeMountOffset(arm: ManipulatorArmSpec, base: VacuumBaseSpec): { x: number; z: number } {
   const radiusM = (base.diameterOrWidthCm / 2) * CM_TO_M;
-  const offset = radiusM * 0.70;
+  const offset = radiusM * MOUNT_OFFSET_RATIO;
   switch (arm.mountPosition) {
     case 'center': return { x: 0, z: 0 };
     case 'front':  return { x: 0, z: offset };
