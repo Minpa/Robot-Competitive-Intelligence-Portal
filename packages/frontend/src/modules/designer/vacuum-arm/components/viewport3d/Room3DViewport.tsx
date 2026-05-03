@@ -14,8 +14,8 @@
  *   surfaceHeightCm / zCm           * 0.01   (worldY, 위)
  */
 
-import { Suspense, useMemo } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Suspense, useMemo, useState, type ReactNode } from 'react';
+import { Canvas, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Grid, Environment, Html } from '@react-three/drei';
 import { useQuery } from '@tanstack/react-query';
 import { WorkspaceMesh } from './WorkspaceMesh';
@@ -48,6 +48,7 @@ interface Room3DViewportProps {
 
 const CM_TO_M = 0.01;
 const DEG_TO_RAD = Math.PI / 180;
+const clamp = (v: number, min: number, max: number): number => Math.max(min, Math.min(max, v));
 
 // 가구 색상은 furniture-visuals.tsx의 각 컴포넌트가 자체 정의 (sofa = blue,
 // table = wood 등). 더이상 외부에서 mapping 안 함.
@@ -74,6 +75,15 @@ export function Room3DViewport({
 }: Room3DViewportProps) {
   const room = useDesignerVacuumStore((s) => s.room);
   const loadRoomPreset = useDesignerVacuumStore((s) => s.loadRoomPreset);
+  const updateFurniture = useDesignerVacuumStore((s) => s.updateFurniture);
+  const updateObstacle = useDesignerVacuumStore((s) => s.updateObstacle);
+  const updateTarget = useDesignerVacuumStore((s) => s.updateTarget);
+  const robotXCm = useDesignerVacuumStore((s) => s.robotXCm);
+  const robotYCm = useDesignerVacuumStore((s) => s.robotYCm);
+  const setRobotPosition = useDesignerVacuumStore((s) => s.setRobotPosition);
+
+  // 드래그 진행 중이면 OrbitControls 비활성화 (카메라 패닝과 충돌 방지)
+  const [isDragging, setDragging] = useState(false);
 
   // 카탈로그 fetch (RoomCanvas와 동일 패턴, queryKey 공유로 캐시 재사용)
   const furnitureQ = useQuery({
@@ -112,11 +122,23 @@ export function Room3DViewport({
   const findObstacle = (id: number) => obstacleCatalog.find((o) => o.id === id);
   const findTarget = (id: number) => targetCatalog.find((t) => t.id === id);
 
-  // 룸 중앙이 월드 원점(로봇이 여기 위치). 2D 좌표(xCm,yCm) → 3D (worldX, worldZ)
+  // 룸 중앙이 월드 원점. 2D 좌표(xCm,yCm) → 3D (worldX, worldZ)
   const roomWidthM = room.widthCm * CM_TO_M;
   const roomDepthM = room.depthCm * CM_TO_M;
   const halfWCm = room.widthCm / 2;
   const halfDCm = room.depthCm / 2;
+
+  // 로봇 위치: store 값 또는 방 중앙 (default). 월드 좌표로 변환.
+  const robotXEffectiveCm = robotXCm ?? halfWCm;
+  const robotYEffectiveCm = robotYCm ?? halfDCm;
+  const robotWorldX = (robotXEffectiveCm - halfWCm) * CM_TO_M;
+  const robotWorldZ = (robotYEffectiveCm - halfDCm) * CM_TO_M;
+
+  // 좌표 변환 헬퍼: 월드 (X, Z) → 방 (xCm, yCm), 방 경계 안으로 clamp.
+  const worldToRoomCm = (wx: number, wz: number): { xCm: number; yCm: number } => ({
+    xCm: clamp(wx / CM_TO_M + halfWCm, 0, room.widthCm),
+    yCm: clamp(wz / CM_TO_M + halfDCm, 0, room.depthCm),
+  });
 
   // 카메라 — 룸 전체가 한 화면에 들어오도록
   const totalHeightM = useMemo(() => {
@@ -175,56 +197,106 @@ export function Room3DViewport({
         {/* 룸 경계선 */}
         <RoomBoundary widthM={roomWidthM} depthM={roomDepthM} />
 
-        {/* 가구 */}
+        {/* 가구 — 드래그로 이동 가능 */}
         {room.furniture.map((p, i) => {
           const spec = findFurniture(p.furnitureId);
           if (!spec) return null;
+          const wx = (p.xCm - halfWCm) * CM_TO_M;
+          const wz = (p.yCm - halfDCm) * CM_TO_M;
           return (
-            <Furniture3D
+            <DraggableOnFloor
               key={`f-${i}-${p.furnitureId}`}
-              placement={p}
-              spec={spec}
-              halfWCm={halfWCm}
-              halfDCm={halfDCm}
-              showLabel={showLabels}
-            />
+              x={wx}
+              z={wz}
+              onDragStart={() => setDragging(true)}
+              onDragEnd={() => setDragging(false)}
+              onMove={(nx, nz) => {
+                const r = worldToRoomCm(nx, nz);
+                updateFurniture(i, { xCm: r.xCm, yCm: r.yCm });
+              }}
+            >
+              <Furniture3D
+                placement={p}
+                spec={spec}
+                halfWCm={halfWCm}
+                halfDCm={halfDCm}
+                showLabel={showLabels}
+              />
+            </DraggableOnFloor>
           );
         })}
 
-        {/* 장애물 */}
+        {/* 장애물 — 드래그로 이동 가능 */}
         {room.obstacles.map((p, i) => {
           const spec = findObstacle(p.obstacleId);
           if (!spec) return null;
+          const wx = (p.xCm - halfWCm) * CM_TO_M;
+          const wz = (p.yCm - halfDCm) * CM_TO_M;
           return (
-            <Obstacle3D
+            <DraggableOnFloor
               key={`o-${i}-${p.obstacleId}`}
-              placement={p}
-              spec={spec}
-              halfWCm={halfWCm}
-              halfDCm={halfDCm}
-              showLabel={showLabels}
-            />
+              x={wx}
+              z={wz}
+              onDragStart={() => setDragging(true)}
+              onDragEnd={() => setDragging(false)}
+              onMove={(nx, nz) => {
+                const r = worldToRoomCm(nx, nz);
+                updateObstacle(i, { xCm: r.xCm, yCm: r.yCm });
+              }}
+            >
+              <Obstacle3D
+                placement={p}
+                spec={spec}
+                halfWCm={halfWCm}
+                halfDCm={halfDCm}
+                showLabel={showLabels}
+              />
+            </DraggableOnFloor>
           );
         })}
 
-        {/* 타겟 */}
+        {/* 타겟 — 드래그로 이동 가능 */}
         {room.targets.map((t, i) => {
           const spec = findTarget(t.targetObjectId);
           if (!spec) return null;
+          const wx = (t.xCm - halfWCm) * CM_TO_M;
+          const wz = (t.yCm - halfDCm) * CM_TO_M;
           return (
-            <Target3D
+            <DraggableOnFloor
               key={`t-${i}-${t.targetObjectId}-${i}`}
-              target={t}
-              spec={spec}
-              halfWCm={halfWCm}
-              halfDCm={halfDCm}
-              showLabel={showLabels}
-            />
+              x={wx}
+              z={wz}
+              onDragStart={() => setDragging(true)}
+              onDragEnd={() => setDragging(false)}
+              onMove={(nx, nz) => {
+                const r = worldToRoomCm(nx, nz);
+                updateTarget(i, { xCm: r.xCm, yCm: r.yCm });
+              }}
+            >
+              <Target3D
+                target={t}
+                spec={spec}
+                halfWCm={halfWCm}
+                halfDCm={halfDCm}
+                showLabel={showLabels}
+              />
+            </DraggableOnFloor>
           );
         })}
 
-        {/* 로봇 (룸 중앙) — 새 kinematic tree 기반 렌더 */}
-        <KinematicRobot base={base} arms={arms} endEffectors={endEffectors} />
+        {/* 로봇 — 드래그로 위치 이동 가능 (방 좌표 기반, 기본은 방 중앙) */}
+        <DraggableOnFloor
+          x={robotWorldX}
+          z={robotWorldZ}
+          onDragStart={() => setDragging(true)}
+          onDragEnd={() => setDragging(false)}
+          onMove={(nx, nz) => {
+            const r = worldToRoomCm(nx, nz);
+            setRobotPosition(r.xCm, r.yCm);
+          }}
+        >
+          <KinematicRobot base={base} arms={arms} endEffectors={endEffectors} />
+        </DraggableOnFloor>
 
         {arms.length > 0 ? (
           <WorkspaceMesh arms={arms} base={base} visible={showWorkspaceMesh} />
@@ -251,6 +323,7 @@ export function Room3DViewport({
       <OrbitControls
         autoRotate={autoRotate}
         autoRotateSpeed={0.6}
+        enabled={!isDragging}
         enablePan
         enableZoom
         enableRotate
@@ -335,8 +408,8 @@ function RoomBoundary({ widthM, depthM }: { widthM: number; depthM: number }) {
 function Furniture3D({
   placement,
   spec,
-  halfWCm,
-  halfDCm,
+  // halfWCm/halfDCm는 더 이상 내부 position에 사용 안 함 — DraggableOnFloor가 처리.
+  // 시그니처 호환성을 위해 prop은 유지하되 unused로 둠.
   showLabel,
 }: {
   placement: { xCm: number; yCm: number; rotationDeg: number };
@@ -345,15 +418,13 @@ function Furniture3D({
   halfDCm: number;
   showLabel: boolean;
 }) {
-  const x = (placement.xCm - halfWCm) * CM_TO_M;
-  const z = (placement.yCm - halfDCm) * CM_TO_M;
   const w = spec.widthCm * CM_TO_M;
   const d = spec.depthCm * CM_TO_M;
   const h = spec.surfaceHeightCm * CM_TO_M;
   const rotY = -placement.rotationDeg * DEG_TO_RAD; // 2D rotationDeg 시계방향 → 3D Y축 반시계
 
   return (
-    <group position={[x, 0, z]} rotation={[0, rotY, 0]}>
+    <group rotation={[0, rotY, 0]}>
       {/* 가구 type별 사실적인 형상 (sofa/table/desk/sink/chair) */}
       <FurnitureVisual type={spec.type} widthM={w} depthM={d} heightM={h} />
       {showLabel ? (
@@ -385,8 +456,6 @@ function Furniture3D({
 function Obstacle3D({
   placement,
   spec,
-  halfWCm,
-  halfDCm,
   showLabel,
 }: {
   placement: { xCm: number; yCm: number; rotationDeg: number };
@@ -395,21 +464,18 @@ function Obstacle3D({
   halfDCm: number;
   showLabel: boolean;
 }) {
-  const x = (placement.xCm - halfWCm) * CM_TO_M;
-  const z = (placement.yCm - halfDCm) * CM_TO_M;
-
   // 2D 에디터와 동일 규약: rug/toy는 정사각, 그 외(threshold/cable)는 width × 30cm
   const wCm = spec.widthCm;
   const dCm = spec.type === 'rug' || spec.type === 'toy' ? spec.widthCm : OBSTACLE_DEFAULT_DEPTH_CM;
   const w = wCm * CM_TO_M;
   const d = dCm * CM_TO_M;
-  const h = Math.max(spec.heightCm, 0.3) * CM_TO_M; // 너무 얇아서 안 보이는 경우 최소 0.3cm
+  const h = Math.max(spec.heightCm, 0.3) * CM_TO_M;
 
   const rotY = -placement.rotationDeg * DEG_TO_RAD;
   const color = OBSTACLE_COLOR[spec.type] ?? '#5a5a5a';
 
   return (
-    <group position={[x, 0, z]} rotation={[0, rotY, 0]}>
+    <group rotation={[0, rotY, 0]}>
       <mesh position={[0, h / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[w, h, d]} />
         <meshStandardMaterial color={color} roughness={0.7} metalness={0.1} transparent opacity={0.75} />
@@ -443,8 +509,6 @@ function Obstacle3D({
 function Target3D({
   target,
   spec,
-  halfWCm,
-  halfDCm,
   showLabel,
 }: {
   target: { xCm: number; yCm: number; zCm: number; targetObjectId: number };
@@ -453,12 +517,10 @@ function Target3D({
   halfDCm: number;
   showLabel: boolean;
 }) {
-  const x = (target.xCm - halfWCm) * CM_TO_M;
-  const z = (target.yCm - halfDCm) * CM_TO_M;
   const y = Math.max(target.zCm, 0.5) * CM_TO_M; // 바닥 아래로 박히지 않게
 
   return (
-    <group position={[x, y, z]}>
+    <group position={[0, y, 0]}>
       {/* 발광 구체 */}
       <mesh castShadow>
         <sphereGeometry args={[0.03, 16, 12]} />
@@ -492,6 +554,85 @@ function Target3D({
           {target.zCm > 0 ? ` · z${target.zCm}` : ''}
         </Html>
       ) : null}
+    </group>
+  );
+}
+
+/* ─── DraggableOnFloor ─────────────────────────────────────────────────────
+ * 자식을 (x, 0, z) 위치의 그룹에 배치하고, pointer drag로 X-Z 평면 위에서 이동.
+ * pointer capture로 빠른 드래그도 안정적. onDragStart/End는 OrbitControls 토글용.
+ * onMove(worldX, worldZ): 새 월드 좌표 (Y는 0 고정).
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+interface DraggableOnFloorProps {
+  x: number;
+  z: number;
+  onMove: (worldX: number, worldZ: number) => void;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
+  children: ReactNode;
+}
+
+function DraggableOnFloor({ x, z, onMove, onDragStart, onDragEnd, children }: DraggableOnFloorProps) {
+  const [dragging, setDraggingLocal] = useState(false);
+  const [hovered, setHovered] = useState(false);
+
+  const projectRayToFloor = (e: ThreeEvent<PointerEvent>): { x: number; z: number } | null => {
+    // floor plane y = 0. ray intersection: t = -origin.y / direction.y
+    const dir = e.ray.direction;
+    if (Math.abs(dir.y) < 1e-6) return null;
+    const t = -e.ray.origin.y / dir.y;
+    if (t <= 0) return null;
+    return {
+      x: e.ray.origin.x + dir.x * t,
+      z: e.ray.origin.z + dir.z * t,
+    };
+  };
+
+  return (
+    <group
+      position={[x, 0, z]}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        setHovered(true);
+        document.body.style.cursor = 'grab';
+      }}
+      onPointerOut={() => {
+        setHovered(false);
+        if (!dragging) document.body.style.cursor = 'auto';
+      }}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        (e.target as Element).setPointerCapture(e.pointerId);
+        setDraggingLocal(true);
+        onDragStart?.();
+        document.body.style.cursor = 'grabbing';
+      }}
+      onPointerUp={(e) => {
+        if (!dragging) return;
+        try {
+          (e.target as Element).releasePointerCapture(e.pointerId);
+        } catch {
+          // already released
+        }
+        setDraggingLocal(false);
+        onDragEnd?.();
+        document.body.style.cursor = hovered ? 'grab' : 'auto';
+      }}
+      onPointerMove={(e) => {
+        if (!dragging) return;
+        const hit = projectRayToFloor(e);
+        if (hit) onMove(hit.x, hit.z);
+      }}
+    >
+      {/* Hover/drag 시각 단서 — 바닥에 작은 ring */}
+      {(hovered || dragging) ? (
+        <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.10, 0.13, 24]} />
+          <meshBasicMaterial color={dragging ? '#ffd86b' : '#a8a8a8'} transparent opacity={0.7} />
+        </mesh>
+      ) : null}
+      {children}
     </group>
   );
 }

@@ -119,6 +119,11 @@ interface DesignerVacuumState {
   /** Visual pose of the rendered arm (does not affect analysis). */
   armPose: ArmPose;
 
+  /** 로봇 위치 (방 좌표 cm). null = 방 중앙(기본). 방 3D 모드에서 드래그 가능.
+   *  좌표계: 2D 룸 에디터와 동일 (xCm/yCm = 방 좌상단부터 +오른쪽/+아래) */
+  robotXCm: number | null;
+  robotYCm: number | null;
+
   // base mutators (REQ-1)
   setBaseShape: (shape: VacuumBaseSpec['shape']) => void;
   setBaseHeightCm: (cm: number) => void;
@@ -161,6 +166,8 @@ interface DesignerVacuumState {
   updateTarget: (idx: number, patch: Partial<TargetMarker>) => void;
   removeTarget: (idx: number) => void;
 
+  setRobotPosition: (xCm: number | null, yCm: number | null) => void;
+
   setProductName: (name: string) => void;
   reset: () => void;
 }
@@ -177,6 +184,8 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   showWorkspaceMesh: true,
   showZmp: true,
   armPose: { ...DEFAULT_POSE },
+  robotXCm: null,
+  robotYCm: null,
 
   setBaseShape: (shape) =>
     set((s) => {
@@ -391,6 +400,8 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   removeTarget: (idx) =>
     set((s) => ({ room: { ...s.room, targets: s.room.targets.filter((_, i) => i !== idx) } })),
 
+  setRobotPosition: (xCm, yCm) => set({ robotXCm: xCm, robotYCm: yCm }),
+
   reset: () =>
     set({
       product: { ...INITIAL_PRODUCT, arms: [DEFAULT_ARM_CENTER] },
@@ -402,5 +413,7 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
       showWorkspaceMesh: true,
       showZmp: true,
       armPose: { ...DEFAULT_POSE },
+      robotXCm: null,
+      robotYCm: null,
     }),
 }));
