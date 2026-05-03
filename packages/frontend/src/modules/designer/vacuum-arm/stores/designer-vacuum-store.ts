@@ -46,12 +46,14 @@ export type WorkbenchMode = 'product3d' | 'roomEditor' | 'room3d';
 
 // ─── Timeline types (옵션 X: 모션 시퀀스) ─────────────────────────────────────
 
-/** 단일 로봇이 시간 t (초)에 어디 있어야 하는지. 인접 waypoints 사이는 보간. */
+/** 단일 로봇이 시간 t (초)에 어디 있어야 하는지. 인접 waypoints 사이는 보간.
+ *  yawDeg는 optional — 미지정이면 이전 yaw 유지 (rotation lerp 안 함). */
 export interface TimelineWaypoint {
   id: string;
   t: number; // seconds
-  xCm: number; // 방 좌표
+  xCm: number;
   yCm: number;
+  yawDeg?: number;
 }
 
 export type GestureType =
@@ -103,57 +105,82 @@ function makeTimelineId(): string {
 }
 
 /**
- * 새 timeline 상태를 받아서, 그 시점의 (robotXCm, robotYCm, armPose)를 함께 갱신해
- * Zustand에 적용할 partial state를 반환.
+ * 새 timeline 상태를 받아서, 그 시점의 (robotXCm, robotYCm, robotYawDeg, armPose)를 함께
+ * 갱신해 Zustand에 적용할 partial state를 반환.
  *
  * 모든 timeline mutation (waypoint 추가/삭제/편집, 스크럽, 재생 진행)에서 사용 →
- * timeline 변경 시 visual이 즉시 반영됨. 이 함수가 핵심.
+ * timeline 변경 시 visual이 즉시 반영됨.
  */
 function deriveCurrentFrame(
   partial: { timeline: TimelineState },
-): { timeline: TimelineState; robotXCm?: number; robotYCm?: number; armPose?: ArmPose } {
+): {
+  timeline: TimelineState;
+  robotXCm?: number;
+  robotYCm?: number;
+  robotYawDeg?: number;
+  armPose?: ArmPose;
+} {
   const tl = partial.timeline;
   const pos = positionAtTimeInline(tl.waypoints, tl.currentTime);
   const pose = poseAtTimeInline(tl.gestures, tl.currentTime);
   return {
     timeline: tl,
     ...(pos ? { robotXCm: pos.xCm, robotYCm: pos.yCm } : {}),
+    ...(pos && pos.yawDeg !== undefined ? { robotYawDeg: pos.yawDeg } : {}),
     ...(pose ? { armPose: pose } : {}),
   };
 }
 
-/** 시간 t에 로봇이 어디 있어야 하는지 — 인접 waypoints 사이 lerp.
- *  waypoints는 t 오름차순으로 정렬됐다고 가정 (store actions에서 보장).
+/** 시간 t에 로봇이 어디 있어야 하는지 — 인접 waypoints 사이 lerp (위치 + yaw).
+ *  yaw는 angular shortest-path lerp (예: 350° → 10° = 20° 회전, not -340°).
  *  결과 null = waypoint 없음 → 위치 갱신 안 함. */
 function positionAtTimeInline(
   waypoints: TimelineWaypoint[],
   t: number,
-): { xCm: number; yCm: number } | null {
+): { xCm: number; yCm: number; yawDeg?: number } | null {
   if (waypoints.length === 0) return null;
-  if (waypoints.length === 1) return { xCm: waypoints[0].xCm, yCm: waypoints[0].yCm };
-  if (t <= waypoints[0].t) return { xCm: waypoints[0].xCm, yCm: waypoints[0].yCm };
+  const single = (w: TimelineWaypoint) => ({ xCm: w.xCm, yCm: w.yCm, yawDeg: w.yawDeg });
+  if (waypoints.length === 1) return single(waypoints[0]);
+  if (t <= waypoints[0].t) return single(waypoints[0]);
   const last = waypoints[waypoints.length - 1];
-  if (t >= last.t) return { xCm: last.xCm, yCm: last.yCm };
+  if (t >= last.t) return single(last);
   for (let i = 0; i < waypoints.length - 1; i++) {
     const a = waypoints[i];
     const b = waypoints[i + 1];
     if (t >= a.t && t <= b.t) {
       const span = b.t - a.t || 1;
       const r = (t - a.t) / span;
-      return { xCm: a.xCm + (b.xCm - a.xCm) * r, yCm: a.yCm + (b.yCm - a.yCm) * r };
+      const xCm = a.xCm + (b.xCm - a.xCm) * r;
+      const yCm = a.yCm + (b.yCm - a.yCm) * r;
+      // yaw lerp: 둘 다 정의돼 있을 때만, shortest-path
+      let yawDeg: number | undefined;
+      if (a.yawDeg !== undefined && b.yawDeg !== undefined) {
+        const da = a.yawDeg;
+        const db = b.yawDeg;
+        let diff = ((db - da + 540) % 360) - 180; // [-180, 180]
+        yawDeg = ((da + diff * r) % 360 + 360) % 360;
+      } else if (a.yawDeg !== undefined) {
+        yawDeg = a.yawDeg;
+      } else if (b.yawDeg !== undefined) {
+        yawDeg = b.yawDeg;
+      }
+      return { xCm, yCm, yawDeg };
     }
   }
-  return { xCm: last.xCm, yCm: last.yCm };
+  return single(last);
 }
 
-/** 시간 t에 활성 gesture의 armPose. 활성 gesture 없으면 null (현재 armPose 유지). */
+/** 시간 t에 활성 자세 gesture의 armPose. GRAB/RELEASE는 포함 안 함 (순수 그리퍼 동작).
+ *  활성 자세 gesture 없으면 null (현재 armPose 유지). */
 function poseAtTimeInline(
   gestures: TimelineGesture[],
   t: number,
 ): { shoulderPitchDeg: number; elbowDeg: number } | null {
-  const active = gestures.filter((g) => t >= g.t && t <= g.t + g.durationSec);
-  if (active.length === 0) return null; // pose 갱신 안 함 → 슬라이더 값 보존
-  const g = active[active.length - 1]; // 가장 최근 시작한 gesture
+  const active = gestures.filter(
+    (g) => t >= g.t && t <= g.t + g.durationSec && g.type !== 'GRAB' && g.type !== 'RELEASE',
+  );
+  if (active.length === 0) return null; // pose 갱신 안 함 → 슬라이더/이전 자세 유지
+  const g = active[active.length - 1];
   const localT = t - g.t;
   return interpolateGesturePose(g.type, localT, g.durationSec);
 }
@@ -229,18 +256,10 @@ const GESTURE_PROFILES: Record<GestureType, GestureKeyframeDef[]> = {
     { tNorm: 0.85, shoulderPitchDeg: 70, elbowDeg: 130 },
     { tNorm: 1.0, shoulderPitchDeg: 25, elbowDeg: 110 },
   ],
-  // GRAB: 팔을 앞-아래로 뻗어 그리퍼 face가 타겟에 닿게. 끝 시점에 grasp 발동.
-  GRAB: [
-    { tNorm: 0.0, shoulderPitchDeg: 25, elbowDeg: 110 }, // rest
-    { tNorm: 0.5, shoulderPitchDeg: 75, elbowDeg: 165 }, // reach down toward target
-    { tNorm: 1.0, shoulderPitchDeg: 75, elbowDeg: 165 }, // hold (target now attached at end)
-  ],
-  // RELEASE: hold 자세 → 살짝 들어올림 → rest.
-  RELEASE: [
-    { tNorm: 0.0, shoulderPitchDeg: 75, elbowDeg: 165 }, // hold
-    { tNorm: 0.4, shoulderPitchDeg: 75, elbowDeg: 165 }, // (target detaches at start → falls)
-    { tNorm: 1.0, shoulderPitchDeg: 25, elbowDeg: 110 }, // rest
-  ],
+  // GRAB / RELEASE는 순수 그리퍼 동작 — armPose 변경 안 함.
+  // 자세를 바꾸려면 PICKUP 같은 자세 gesture와 함께 사용 (예: t=2 PICKUP + t=3 GRAB).
+  GRAB: [{ tNorm: 0, shoulderPitchDeg: 25, elbowDeg: 110 }],
+  RELEASE: [{ tNorm: 0, shoulderPitchDeg: 25, elbowDeg: 110 }],
 };
 
 /** Pose for the 3D rendering only — does not affect engineering analysis. */
@@ -322,6 +341,8 @@ interface DesignerVacuumState {
    *  좌표계: 2D 룸 에디터와 동일 (xCm/yCm = 방 좌상단부터 +오른쪽/+아래) */
   robotXCm: number | null;
   robotYCm: number | null;
+  /** 로봇 yaw 회전 (도). 0 = 기본 방향(+Z 바라봄). +값 = 반시계 회전 (위에서 봤을 때). */
+  robotYawDeg: number;
 
   /** 모션 타임라인 — 시간 진행에 따라 로봇이 자동으로 이동·동작 (옵션 X). */
   timeline: TimelineState;
@@ -369,6 +390,7 @@ interface DesignerVacuumState {
   removeTarget: (idx: number) => void;
 
   setRobotPosition: (xCm: number | null, yCm: number | null) => void;
+  setRobotYawDeg: (deg: number) => void;
 
   // ─── Timeline (옵션 X: 모션 시퀀스) ───────────────────────────────────────
   addWaypoint: (waypoint: Omit<TimelineWaypoint, 'id'>) => void;
@@ -403,6 +425,7 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   armPose: { ...DEFAULT_POSE },
   robotXCm: null,
   robotYCm: null,
+  robotYawDeg: 0,
   timeline: { ...DEFAULT_TIMELINE },
 
   setBaseShape: (shape) =>
@@ -538,8 +561,8 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
       armPose: {
         shoulderPitchDeg: clamp(
           pose.shoulderPitchDeg ?? s.armPose.shoulderPitchDeg,
-          -10,
-          110,
+          -30,
+          180,
         ),
         elbowDeg: clamp(pose.elbowDeg ?? s.armPose.elbowDeg, 0, 180),
       },
@@ -619,6 +642,7 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
     set((s) => ({ room: { ...s.room, targets: s.room.targets.filter((_, i) => i !== idx) } })),
 
   setRobotPosition: (xCm, yCm) => set({ robotXCm: xCm, robotYCm: yCm }),
+  setRobotYawDeg: (deg) => set({ robotYawDeg: ((deg % 360) + 360) % 360 }),
 
   // ─── Timeline actions ───────────────────────────────────────────────────
   // 모든 mutation은 deriveCurrentFrame로 visual 즉시 반영 (waypoint 추가/편집/스크럽 시
@@ -713,6 +737,7 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
       armPose: { ...DEFAULT_POSE },
       robotXCm: null,
       robotYCm: null,
+      robotYawDeg: 0,
       timeline: { ...DEFAULT_TIMELINE },
     }),
 }));

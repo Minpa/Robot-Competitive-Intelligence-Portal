@@ -59,6 +59,8 @@ export function TimelinePanel() {
   const room = useDesignerVacuumStore((s) => s.room);
   const robotXCm = useDesignerVacuumStore((s) => s.robotXCm);
   const robotYCm = useDesignerVacuumStore((s) => s.robotYCm);
+  const robotYawDeg = useDesignerVacuumStore((s) => s.robotYawDeg);
+  const setRobotYawDeg = useDesignerVacuumStore((s) => s.setRobotYawDeg);
   const addWaypoint = useDesignerVacuumStore((s) => s.addWaypoint);
   const removeWaypoint = useDesignerVacuumStore((s) => s.removeWaypoint);
   const addGesture = useDesignerVacuumStore((s) => s.addGestureKeyframe);
@@ -239,6 +241,34 @@ export function TimelinePanel() {
         aria-label="시간 스크럽"
       />
 
+      {/* 로봇 회전 슬라이더 — 위치와 별도로 yaw 제어 */}
+      <div className="flex items-center gap-2 mb-2">
+        <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/55 w-16">
+          로봇 yaw
+        </span>
+        <input
+          type="range"
+          min={0}
+          max={359}
+          step={1}
+          value={robotYawDeg}
+          onChange={(e) => setRobotYawDeg(Number(e.target.value))}
+          className="flex-1 accent-gold cursor-pointer"
+          aria-label="로봇 회전 (yaw)"
+        />
+        <span className="font-mono text-[10px] tabular-nums text-white w-10 text-right">
+          {robotYawDeg.toFixed(0)}°
+        </span>
+        <button
+          type="button"
+          onClick={() => setRobotYawDeg(0)}
+          className="border border-white/15 bg-[#0a0a0a] hover:border-white/30 text-white/55 hover:text-white px-2 py-1 font-mono text-[9px] uppercase"
+          title="회전 초기화"
+        >
+          ↺
+        </button>
+      </div>
+
       {/* 추가 컨트롤 */}
       <div className="flex flex-wrap items-center gap-2 text-[11px]">
         <button
@@ -248,15 +278,16 @@ export function TimelinePanel() {
               t: timeline.currentTime,
               xCm: robotXCm ?? halfWCm,
               yCm: robotYCm ?? halfDCm,
+              yawDeg: robotYawDeg,
             })
           }
           className="border border-gold/40 bg-[#1a1408] hover:bg-[#231a0c] text-gold px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em]"
-          title="현재 시점·로봇 위치를 웨이포인트로 추가"
+          title="현재 시점·위치·회전을 웨이포인트로 추가"
         >
           + 웨이포인트
         </button>
         <span className="text-[10px] text-white/40 font-mono">
-          현재 위치: ({(robotXCm ?? halfWCm).toFixed(0)}, {(robotYCm ?? halfDCm).toFixed(0)})cm
+          현재: ({(robotXCm ?? halfWCm).toFixed(0)}, {(robotYCm ?? halfDCm).toFixed(0)})cm · {robotYawDeg.toFixed(0)}°
         </span>
 
         <span className="mx-2 h-4 w-px bg-white/15" />
@@ -364,7 +395,7 @@ function WaypointList({ waypoints }: { waypoints: TimelineWaypoint[] }) {
   return (
     <div>
       <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/55 mb-1">
-        웨이포인트 ({waypoints.length}) — t / x / y (cm) 직접 편집 가능
+        웨이포인트 ({waypoints.length}) — t / x / y / yaw 편집 가능
       </div>
       <div className="space-y-1 max-h-32 overflow-y-auto">
         {waypoints.map((w) => (
@@ -389,8 +420,8 @@ function WaypointList({ waypoints }: { waypoints: TimelineWaypoint[] }) {
               step={1}
               value={w.xCm.toFixed(0)}
               onChange={(e) => updateWaypoint(w.id, { xCm: Number(e.target.value) })}
-              className="w-12 bg-[#0a0a0a] border border-white/15 text-white/85 px-1 text-[10px]"
-              title="X 위치 (cm, 방 좌상단 기준)"
+              className="w-11 bg-[#0a0a0a] border border-white/15 text-white/85 px-1 text-[10px]"
+              title="X 위치 (cm)"
             />
             <span className="text-white/45 text-[9px]">y</span>
             <input
@@ -399,8 +430,19 @@ function WaypointList({ waypoints }: { waypoints: TimelineWaypoint[] }) {
               step={1}
               value={w.yCm.toFixed(0)}
               onChange={(e) => updateWaypoint(w.id, { yCm: Number(e.target.value) })}
-              className="w-12 bg-[#0a0a0a] border border-white/15 text-white/85 px-1 text-[10px]"
+              className="w-11 bg-[#0a0a0a] border border-white/15 text-white/85 px-1 text-[10px]"
               title="Y 위치 (cm)"
+            />
+            <span className="text-white/45 text-[9px]">yaw</span>
+            <input
+              type="number"
+              min={0}
+              max={359}
+              step={5}
+              value={(w.yawDeg ?? 0).toFixed(0)}
+              onChange={(e) => updateWaypoint(w.id, { yawDeg: Number(e.target.value) })}
+              className="w-11 bg-[#0a0a0a] border border-white/15 text-white/85 px-1 text-[10px]"
+              title="회전 yaw (도). 인접 waypoint와 lerp."
             />
             <button
               type="button"

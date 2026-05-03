@@ -225,6 +225,8 @@ export function PhysicalDraggableObject({
 interface KinematicRobotBodyProps {
   targetX: number;
   targetZ: number;
+  /** Robot yaw 회전 (라디안) — Y축 회전. 0 = +Z 방향. */
+  targetYawRad: number;
   diameterM: number;
   heightM: number;
   onDragMove?: (worldX: number, worldZ: number) => void;
@@ -236,6 +238,7 @@ interface KinematicRobotBodyProps {
 export function KinematicRobotBody({
   targetX,
   targetZ,
+  targetYawRad,
   diameterM,
   heightM,
   onDragMove,
@@ -248,16 +251,21 @@ export function KinematicRobotBody({
   const [hovered, setHovered] = useState(false);
 
   useFrame(() => {
-    bodyRef.current?.setNextKinematicTranslation({
-      x: targetX,
-      y: heightM / 2,
-      z: targetZ,
-    });
+    const body = bodyRef.current;
+    if (!body) return;
+    body.setNextKinematicTranslation({ x: targetX, y: heightM / 2, z: targetZ });
+    // Yaw quaternion (Y축 회전)
+    const half = targetYawRad / 2;
+    body.setNextKinematicRotation({ x: 0, y: Math.sin(half), z: 0, w: Math.cos(half) });
   });
 
-  // 초기 위치 동기화
+  // 초기 위치/회전 동기화
   useEffect(() => {
-    bodyRef.current?.setTranslation({ x: targetX, y: heightM / 2, z: targetZ }, true);
+    const body = bodyRef.current;
+    if (!body) return;
+    body.setTranslation({ x: targetX, y: heightM / 2, z: targetZ }, true);
+    const half = targetYawRad / 2;
+    body.setRotation({ x: 0, y: Math.sin(half), z: 0, w: Math.cos(half) }, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -266,7 +274,7 @@ export function KinematicRobotBody({
       ref={bodyRef}
       type="kinematicPosition"
       colliders={false}
-      enabledRotations={[false, false, false]}
+      enabledRotations={[false, true, false]}
     >
       <CuboidCollider args={[diameterM / 2, heightM / 2, diameterM / 2]} friction={0.5} />
       <group
@@ -393,12 +401,14 @@ export function GrabbableTarget({
 
     const robotXM = ((state.robotXCm ?? halfWCm) - halfWCm) * 0.01;
     const robotZM = ((state.robotYCm ?? halfDCm) - halfDCm) * 0.01;
+    const robotYawRad = (state.robotYawDeg * Math.PI) / 180;
     const gripPos = computeWristWorldPosition(
       state.product.base,
       arm,
       state.armPose,
       robotXM,
       robotZM,
+      robotYawRad,
     );
     body.setTranslation({ x: gripPos.x, y: gripPos.y, z: gripPos.z }, true);
     body.setLinvel({ x: 0, y: 0, z: 0 }, true);

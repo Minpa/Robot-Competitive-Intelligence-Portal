@@ -80,9 +80,11 @@ function shoulderPitchAxis(mount: ArmMountPosition): [number, number, number] {
  * 손목 (gripper attachment point) world 위치.
  * robot-tree의 transform 누적과 동일한 결과 — JS에서 직접 계산.
  *
- * 체인: base(robot world) → pedestal(mount offset, base top) → shoulder(stem +
+ * 체인: base(robot world + yaw) → pedestal(mount offset, base top) → shoulder(stem +
  * height, pitch rotation) → upper arm(L1) → elbow(pitch rotation) → forearm(L2)
  * → wrist(여기 = end-effector attach point)
+ *
+ * robotYawRad: 로봇 base의 Y축 yaw 회전. mount offset과 모든 child link가 회전 따라감.
  */
 export function computeWristWorldPosition(
   base: VacuumBaseSpec,
@@ -90,14 +92,19 @@ export function computeWristWorldPosition(
   armPose: { shoulderPitchDeg: number; elbowDeg: number },
   robotXM: number,
   robotZM: number,
+  robotYawRad = 0,
 ): THREE.Vector3 {
   const m = new THREE.Matrix4();
   const tmp = new THREE.Matrix4();
 
-  // base_link world: robot 위치 (로봇 베이스 바닥)
+  // base_link world: robot 위치 (로봇 베이스 바닥) + yaw 회전
   m.makeTranslation(robotXM, 0, robotZM);
+  if (robotYawRad !== 0) {
+    tmp.makeRotationY(robotYawRad);
+    m.multiply(tmp);
+  }
 
-  // pedestal: 베이스 윗면(높이) + mount offset
+  // pedestal: 베이스 윗면(높이) + mount offset (robot local frame)
   const mount = computeMountOffset(arm, base);
   tmp.makeTranslation(mount.x, base.heightCm * CM_TO_M, mount.z);
   m.multiply(tmp);
@@ -152,6 +159,7 @@ export function computeGripWorldPosition(
   armPose: { shoulderPitchDeg: number; elbowDeg: number },
   robotXM: number,
   robotZM: number,
+  robotYawRad = 0,
 ): THREE.Vector3 {
-  return computeWristWorldPosition(base, arm, armPose, robotXM, robotZM);
+  return computeWristWorldPosition(base, arm, armPose, robotXM, robotZM, robotYawRad);
 }

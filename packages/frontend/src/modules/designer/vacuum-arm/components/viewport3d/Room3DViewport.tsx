@@ -88,6 +88,7 @@ export function Room3DViewport({
   const updateTarget = useDesignerVacuumStore((s) => s.updateTarget);
   const robotXCm = useDesignerVacuumStore((s) => s.robotXCm);
   const robotYCm = useDesignerVacuumStore((s) => s.robotYCm);
+  const robotYawDeg = useDesignerVacuumStore((s) => s.robotYawDeg);
   const setRobotPosition = useDesignerVacuumStore((s) => s.setRobotPosition);
 
   // 드래그 진행 중이면 OrbitControls 비활성화 (카메라 패닝과 충돌 방지)
@@ -316,10 +317,11 @@ export function Room3DViewport({
             );
           })}
 
-          {/* 로봇 — kinematic body, store position 추종 + 드래그 가능. 가구를 자동 push */}
+          {/* 로봇 — kinematic body, store position+yaw 추종 + 드래그 가능. 가구를 자동 push */}
           <KinematicRobotBody
             targetX={robotWorldX}
             targetZ={robotWorldZ}
+            targetYawRad={(robotYawDeg * Math.PI) / 180}
             diameterM={base.diameterOrWidthCm * CM_TO_M}
             heightM={base.heightCm * CM_TO_M}
             onDragStart={() => setDragging(true)}

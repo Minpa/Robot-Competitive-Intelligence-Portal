@@ -318,11 +318,11 @@ function PoseSection() {
       </div>
 
       <SliderRow
-        label="어깨 피치 (수직→수평)"
+        label="어깨 피치 (0=위, 90=앞 수평, 180=아래)"
         value={armPose.shoulderPitchDeg}
         unit="°"
-        min={-10}
-        max={110}
+        min={-30}
+        max={180}
         step={1}
         onChange={(v) => setArmPose({ shoulderPitchDeg: v })}
       />
