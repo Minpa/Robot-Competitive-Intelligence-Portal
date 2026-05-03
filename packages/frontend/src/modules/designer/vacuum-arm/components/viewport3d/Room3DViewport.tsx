@@ -73,6 +73,7 @@ export function Room3DViewport({
   showZmp = true,
 }: Room3DViewportProps) {
   const room = useDesignerVacuumStore((s) => s.room);
+  const loadRoomPreset = useDesignerVacuumStore((s) => s.loadRoomPreset);
 
   // 카탈로그 fetch (RoomCanvas와 동일 패턴, queryKey 공유로 캐시 재사용)
   const furnitureQ = useQuery({
@@ -90,10 +91,22 @@ export function Room3DViewport({
     queryFn: () => designerVacuumApi.listTargetObjects(),
     staleTime: 5 * 60_000,
   });
+  const presetsQ = useQuery({
+    queryKey: ['vacuum-arm', 'room-presets'],
+    queryFn: () => designerVacuumApi.listRoomPresets(),
+    staleTime: 5 * 60_000,
+  });
 
   const furnitureCatalog = furnitureQ.data?.furniture ?? [];
   const obstacleCatalog = obstaclesQ.data?.obstacles ?? [];
   const targetCatalog = targetsQ.data?.targetObjects ?? [];
+  const roomPresets = presetsQ.data?.roomPresets ?? [];
+
+  // 빈 방 검사 — 가구/장애물/타겟 모두 없으면 hint 표시
+  const isEmpty =
+    room.furniture.length === 0 &&
+    room.obstacles.length === 0 &&
+    room.targets.length === 0;
 
   const findFurniture = (id: number) => furnitureCatalog.find((f) => f.id === id);
   const findObstacle = (id: number) => obstacleCatalog.find((o) => o.id === id);
@@ -122,11 +135,12 @@ export function Room3DViewport({
   const target = [0, totalHeightM / 2, 0] as [number, number, number];
 
   return (
-    <Canvas
-      shadows
-      camera={{ position: [camRadius, camHeight, camRadius], fov: 42 }}
-      style={{ background: '#1f242c' }}
-    >
+    <div className="relative w-full h-full">
+      <Canvas
+        shadows
+        camera={{ position: [camRadius, camHeight, camRadius], fov: 42 }}
+        style={{ background: '#1f242c' }}
+      >
       {/* Studio 라이팅 (RobotViewport와 동일 톤) */}
       <hemisphereLight args={['#dfe6f0', '#2a2f38', 0.55]} />
       <ambientLight intensity={0.35} />
@@ -244,7 +258,41 @@ export function Room3DViewport({
         minDistance={0.8}
         maxDistance={Math.max(roomWidthM, roomDepthM) * 2}
       />
-    </Canvas>
+      </Canvas>
+
+      {/* 빈 방 hint — 방 에디터로 안내 + 원클릭 프리셋 로드 */}
+      {isEmpty ? (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="pointer-events-auto bg-black/75 border border-gold/40 px-6 py-5 max-w-md backdrop-blur">
+            <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-gold mb-2">
+              빈 방 — 가구를 추가하세요
+            </div>
+            <p className="text-[12px] text-white/75 leading-relaxed mb-4">
+              가구·장애물·타겟이 아직 없어서 로봇만 보입니다. 좌상단에서{' '}
+              <span className="text-gold">방 에디터 (2D)</span>로 전환해서 직접 배치하거나, 아래
+              프리셋을 로드해서 시작하세요.
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {roomPresets.length === 0 ? (
+                <span className="text-[10px] text-white/45 font-mono">프리셋 로딩 중…</span>
+              ) : (
+                roomPresets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => loadRoomPreset(preset)}
+                    className="border border-white/20 bg-[#1a1a1a] hover:border-gold hover:text-gold transition-colors px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-white/80"
+                    title={preset.description}
+                  >
+                    {preset.name}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
