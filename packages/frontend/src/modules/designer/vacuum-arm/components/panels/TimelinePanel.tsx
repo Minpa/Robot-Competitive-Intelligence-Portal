@@ -245,26 +245,10 @@ export function TimelinePanel() {
           <button
             key={gType}
             type="button"
-            onClick={() => {
-              // 1) gesture 추가
-              addGesture({ t: timeline.currentTime, durationSec: 3, type: gType });
-              // 2) 같은 시점에 waypoint도 자동 추가 (현재 로봇 위치) — 단, 가까운 waypoint가
-              //    이미 있으면 중복 추가 안 함 (0.1초 이내). 이게 없으면 동작은 보이지만
-              //    로봇이 이동을 안 함 (사용자 혼동 방지).
-              const nearby = timeline.waypoints.find(
-                (w) => Math.abs(w.t - timeline.currentTime) < 0.1,
-              );
-              if (!nearby) {
-                addWaypoint({
-                  t: timeline.currentTime,
-                  xCm: robotXCm ?? halfWCm,
-                  yCm: robotYCm ?? halfDCm,
-                });
-              }
-            }}
+            onClick={() => addGesture({ t: timeline.currentTime, durationSec: 3, type: gType })}
             className="border border-white/20 bg-[#0a0a0a] hover:border-white/40 text-white/70 hover:text-white px-2 py-1 font-mono text-[9.5px] uppercase tracking-[0.18em]"
             style={{ borderColor: `${GESTURE_COLORS[gType]}60` }}
-            title={`현재 시점에 ${gType} 동작(3초) + 현재 위치 웨이포인트 자동 추가`}
+            title={`현재 시점에 ${gType} 동작 추가 (3초). 위치는 별도 웨이포인트로 관리.`}
           >
             + {GESTURE_LABELS[gType]}
           </button>
@@ -286,13 +270,20 @@ export function TimelinePanel() {
           <GestureList gestures={timeline.gestures} />
         </div>
       ) : (
-        <p className="mt-2 text-[10px] text-white/35 leading-relaxed">
-          시작하려면: <span className="text-gold">방 3D 뷰에서 로봇을 위치 A로 드래그</span> → 시간축
-          0초에서 <span className="text-gold">+ 웨이포인트</span> → 스크럽바를 5초로 →
-          <span className="text-gold"> 로봇을 위치 B로 드래그</span> →
-          <span className="text-gold"> + 웨이포인트</span> → ▶ 재생. 동작(+ PICKUP/WAVE)은 클릭 시 현재
-          위치도 자동으로 웨이포인트로 캡쳐됩니다.
-        </p>
+        <div className="mt-2 text-[10px] text-white/45 leading-relaxed space-y-1">
+          <p>
+            <strong className="text-gold">위치(웨이포인트)</strong>와{' '}
+            <strong className="text-gold">동작(제스처)</strong>는 독립 트랙입니다.
+          </p>
+          <p>
+            <strong>위치 시퀀스</strong>: 로봇을 A로 드래그 → 시간축 0초 → + 웨이포인트 → 스크럽
+            5초로 → B로 드래그 → + 웨이포인트 → 재생 시 0~5초 동안 A→B 이동.
+          </p>
+          <p>
+            <strong>동작 시퀀스</strong>: 어떤 시점에든 + PICKUP/WAVE 등 클릭 → 동작 블록 추가.
+            위치는 별도(웨이포인트가 결정).
+          </p>
+        </div>
       )}
     </div>
   );
@@ -304,30 +295,48 @@ function WaypointList({ waypoints }: { waypoints: TimelineWaypoint[] }) {
   return (
     <div>
       <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/55 mb-1">
-        웨이포인트 ({waypoints.length})
+        웨이포인트 ({waypoints.length}) — t / x / y (cm) 직접 편집 가능
       </div>
       <div className="space-y-1 max-h-32 overflow-y-auto">
         {waypoints.map((w) => (
           <div
             key={w.id}
-            className="flex items-center gap-2 bg-[#0f0f0f] border border-white/10 px-2 py-1 font-mono text-[10px]"
+            className="flex items-center gap-1 bg-[#0f0f0f] border border-white/10 px-2 py-1 font-mono text-[10px]"
           >
-            <span className="text-gold w-12">t={w.t.toFixed(1)}s</span>
-            <span className="text-white/55 flex-1 truncate">
-              ({w.xCm.toFixed(0)}, {w.yCm.toFixed(0)}) cm
-            </span>
+            <span className="text-gold/80 text-[9px]">t</span>
             <input
               type="number"
               min={0}
               step={0.1}
               value={w.t.toFixed(1)}
               onChange={(e) => updateWaypoint(w.id, { t: Number(e.target.value) })}
-              className="w-12 bg-[#0a0a0a] border border-white/15 text-white/80 px-1 text-[10px]"
+              className="w-12 bg-[#0a0a0a] border border-white/15 text-white/85 px-1 text-[10px]"
+              title="시점 (초)"
+            />
+            <span className="text-white/45 text-[9px] ml-1">x</span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={w.xCm.toFixed(0)}
+              onChange={(e) => updateWaypoint(w.id, { xCm: Number(e.target.value) })}
+              className="w-12 bg-[#0a0a0a] border border-white/15 text-white/85 px-1 text-[10px]"
+              title="X 위치 (cm, 방 좌상단 기준)"
+            />
+            <span className="text-white/45 text-[9px]">y</span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={w.yCm.toFixed(0)}
+              onChange={(e) => updateWaypoint(w.id, { yCm: Number(e.target.value) })}
+              className="w-12 bg-[#0a0a0a] border border-white/15 text-white/85 px-1 text-[10px]"
+              title="Y 위치 (cm)"
             />
             <button
               type="button"
               onClick={() => removeWaypoint(w.id)}
-              className="text-white/35 hover:text-error"
+              className="text-white/35 hover:text-error ml-auto"
               title="삭제"
             >
               ×
