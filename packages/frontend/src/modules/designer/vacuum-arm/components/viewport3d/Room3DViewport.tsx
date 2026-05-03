@@ -22,6 +22,13 @@ import { WorkspaceMesh } from './WorkspaceMesh';
 import { ZMPOverlay } from './ZMPOverlay';
 import { KinematicRobot } from './RobotViewport';
 import { FurnitureVisual } from '../../kinematics/furniture-visuals';
+import {
+  PhysicsScene,
+  PhysicsFloor,
+  PhysicsWalls,
+  PhysicalDraggableObject,
+  KinematicRobotBody,
+} from '../../kinematics/physics-bodies';
 import { designerVacuumApi } from '../../api/designer-vacuum-api';
 import { useDesignerVacuumStore } from '../../stores/designer-vacuum-store';
 import type {
@@ -184,119 +191,145 @@ export function Room3DViewport({
       <directionalLight position={[0, 2, -roomDepthM * 0.6]} intensity={0.30} color="#ffb088" />
 
       <Suspense fallback={null}>
-        {/* 룸 바닥 */}
-        <mesh
-          rotation={[-Math.PI / 2, 0, 0]}
-          position={[0, 0, 0]}
-          receiveShadow
-        >
-          <planeGeometry args={[roomWidthM, roomDepthM]} />
-          <meshStandardMaterial color="#252b34" roughness={0.85} metalness={0.05} />
-        </mesh>
+        <PhysicsScene>
+          {/* 룸 바닥 — visual mesh + physics floor (둘 다 필요) */}
+          <mesh
+            rotation={[-Math.PI / 2, 0, 0]}
+            position={[0, 0, 0]}
+            receiveShadow
+          >
+            <planeGeometry args={[roomWidthM, roomDepthM]} />
+            <meshStandardMaterial color="#252b34" roughness={0.85} metalness={0.05} />
+          </mesh>
+          <PhysicsFloor widthM={roomWidthM} depthM={roomDepthM} />
 
-        {/* 룸 경계선 */}
-        <RoomBoundary widthM={roomWidthM} depthM={roomDepthM} />
+          {/* 방 경계 — visual outline + physics walls */}
+          <RoomBoundary widthM={roomWidthM} depthM={roomDepthM} />
+          <PhysicsWalls widthM={roomWidthM} depthM={roomDepthM} />
 
-        {/* 가구 — 드래그로 이동 가능 */}
-        {room.furniture.map((p, i) => {
-          const spec = findFurniture(p.furnitureId);
-          if (!spec) return null;
-          const wx = (p.xCm - halfWCm) * CM_TO_M;
-          const wz = (p.yCm - halfDCm) * CM_TO_M;
-          return (
-            <DraggableOnFloor
-              key={`f-${i}-${p.furnitureId}`}
-              x={wx}
-              z={wz}
-              onDragStart={() => setDragging(true)}
-              onDragEnd={() => setDragging(false)}
-              onMove={(nx, nz) => {
-                const r = worldToRoomCm(nx, nz);
-                updateFurniture(i, { xCm: r.xCm, yCm: r.yCm });
-              }}
-            >
-              <Furniture3D
-                placement={p}
-                spec={spec}
-                halfWCm={halfWCm}
-                halfDCm={halfDCm}
-                showLabel={showLabels}
-              />
-            </DraggableOnFloor>
-          );
-        })}
+          {/* 가구 — physics dynamic body (로봇이 밀어냄) + 드래그로 배치 */}
+          {room.furniture.map((p, i) => {
+            const spec = findFurniture(p.furnitureId);
+            if (!spec) return null;
+            const wx = (p.xCm - halfWCm) * CM_TO_M;
+            const wz = (p.yCm - halfDCm) * CM_TO_M;
+            const w = spec.widthCm * CM_TO_M;
+            const d = spec.depthCm * CM_TO_M;
+            const h = spec.surfaceHeightCm * CM_TO_M;
+            return (
+              <PhysicalDraggableObject
+                key={`f-${i}-${p.furnitureId}`}
+                initialX={wx}
+                initialZ={wz}
+                rotationY={-p.rotationDeg * DEG_TO_RAD}
+                sizeM={[w, h, d]}
+                massKg={spec.weightKg}
+                onDragStart={() => setDragging(true)}
+                onDragEnd={() => setDragging(false)}
+                onPositionChange={(nx, nz) => {
+                  const r = worldToRoomCm(nx, nz);
+                  updateFurniture(i, { xCm: r.xCm, yCm: r.yCm });
+                }}
+              >
+                <Furniture3D
+                  placement={p}
+                  spec={spec}
+                  halfWCm={halfWCm}
+                  halfDCm={halfDCm}
+                  showLabel={showLabels}
+                />
+              </PhysicalDraggableObject>
+            );
+          })}
 
-        {/* 장애물 — 드래그로 이동 가능 */}
-        {room.obstacles.map((p, i) => {
-          const spec = findObstacle(p.obstacleId);
-          if (!spec) return null;
-          const wx = (p.xCm - halfWCm) * CM_TO_M;
-          const wz = (p.yCm - halfDCm) * CM_TO_M;
-          return (
-            <DraggableOnFloor
-              key={`o-${i}-${p.obstacleId}`}
-              x={wx}
-              z={wz}
-              onDragStart={() => setDragging(true)}
-              onDragEnd={() => setDragging(false)}
-              onMove={(nx, nz) => {
-                const r = worldToRoomCm(nx, nz);
-                updateObstacle(i, { xCm: r.xCm, yCm: r.yCm });
-              }}
-            >
-              <Obstacle3D
-                placement={p}
-                spec={spec}
-                halfWCm={halfWCm}
-                halfDCm={halfDCm}
-                showLabel={showLabels}
-              />
-            </DraggableOnFloor>
-          );
-        })}
+          {/* 장애물 — physics dynamic body */}
+          {room.obstacles.map((p, i) => {
+            const spec = findObstacle(p.obstacleId);
+            if (!spec) return null;
+            const wx = (p.xCm - halfWCm) * CM_TO_M;
+            const wz = (p.yCm - halfDCm) * CM_TO_M;
+            const wCm = spec.widthCm;
+            const dCm = spec.type === 'rug' || spec.type === 'toy' ? spec.widthCm : 30;
+            const w = wCm * CM_TO_M;
+            const d = dCm * CM_TO_M;
+            const h = Math.max(spec.heightCm, 0.3) * CM_TO_M;
+            return (
+              <PhysicalDraggableObject
+                key={`o-${i}-${p.obstacleId}`}
+                initialX={wx}
+                initialZ={wz}
+                rotationY={-p.rotationDeg * DEG_TO_RAD}
+                sizeM={[w, h, d]}
+                massKg={spec.type === 'threshold' ? 50 : 2}
+                onDragStart={() => setDragging(true)}
+                onDragEnd={() => setDragging(false)}
+                onPositionChange={(nx, nz) => {
+                  const r = worldToRoomCm(nx, nz);
+                  updateObstacle(i, { xCm: r.xCm, yCm: r.yCm });
+                }}
+              >
+                <Obstacle3D
+                  placement={p}
+                  spec={spec}
+                  halfWCm={halfWCm}
+                  halfDCm={halfDCm}
+                  showLabel={showLabels}
+                />
+              </PhysicalDraggableObject>
+            );
+          })}
 
-        {/* 타겟 — 드래그로 이동 가능 */}
-        {room.targets.map((t, i) => {
-          const spec = findTarget(t.targetObjectId);
-          if (!spec) return null;
-          const wx = (t.xCm - halfWCm) * CM_TO_M;
-          const wz = (t.yCm - halfDCm) * CM_TO_M;
-          return (
-            <DraggableOnFloor
-              key={`t-${i}-${t.targetObjectId}-${i}`}
-              x={wx}
-              z={wz}
-              onDragStart={() => setDragging(true)}
-              onDragEnd={() => setDragging(false)}
-              onMove={(nx, nz) => {
-                const r = worldToRoomCm(nx, nz);
-                updateTarget(i, { xCm: r.xCm, yCm: r.yCm });
-              }}
-            >
-              <Target3D
-                target={t}
-                spec={spec}
-                halfWCm={halfWCm}
-                halfDCm={halfDCm}
-                showLabel={showLabels}
-              />
-            </DraggableOnFloor>
-          );
-        })}
+          {/* 타겟 — physics dynamic body, 회전 자유 (작은 물체는 굴러가도 OK) */}
+          {room.targets.map((t, i) => {
+            const spec = findTarget(t.targetObjectId);
+            if (!spec) return null;
+            const wx = (t.xCm - halfWCm) * CM_TO_M;
+            const wz = (t.yCm - halfDCm) * CM_TO_M;
+            // 타겟은 spec에 width 정보가 없어서 작은 큐브로 표현 (8cm). zCm은 위에 놓여있는 표면 높이.
+            const tSize = 0.06;
+            return (
+              <PhysicalDraggableObject
+                key={`t-${i}-${t.targetObjectId}-${i}`}
+                initialX={wx}
+                initialZ={wz}
+                rotationY={0}
+                sizeM={[tSize, tSize, tSize]}
+                massKg={Math.max(0.05, spec.weightKg)}
+                enabledRotations={[true, true, true]}
+                onDragStart={() => setDragging(true)}
+                onDragEnd={() => setDragging(false)}
+                onPositionChange={(nx, nz) => {
+                  const r = worldToRoomCm(nx, nz);
+                  updateTarget(i, { xCm: r.xCm, yCm: r.yCm });
+                }}
+              >
+                <Target3D
+                  target={t}
+                  spec={spec}
+                  halfWCm={halfWCm}
+                  halfDCm={halfDCm}
+                  showLabel={showLabels}
+                />
+              </PhysicalDraggableObject>
+            );
+          })}
 
-        {/* 로봇 — 드래그로 위치 이동 가능 (방 좌표 기반, 기본은 방 중앙) */}
-        <DraggableOnFloor
-          x={robotWorldX}
-          z={robotWorldZ}
-          onDragStart={() => setDragging(true)}
-          onDragEnd={() => setDragging(false)}
-          onMove={(nx, nz) => {
-            const r = worldToRoomCm(nx, nz);
-            setRobotPosition(r.xCm, r.yCm);
-          }}
-        >
-          <KinematicRobot base={base} arms={arms} endEffectors={endEffectors} />
-        </DraggableOnFloor>
+          {/* 로봇 — kinematic body, store position 추종 + 드래그 가능. 가구를 자동 push */}
+          <KinematicRobotBody
+            targetX={robotWorldX}
+            targetZ={robotWorldZ}
+            diameterM={base.diameterOrWidthCm * CM_TO_M}
+            heightM={base.heightCm * CM_TO_M}
+            onDragStart={() => setDragging(true)}
+            onDragEnd={() => setDragging(false)}
+            onDragMove={(nx, nz) => {
+              const r = worldToRoomCm(nx, nz);
+              setRobotPosition(r.xCm, r.yCm);
+            }}
+          >
+            <KinematicRobot base={base} arms={arms} endEffectors={endEffectors} />
+          </KinematicRobotBody>
+        </PhysicsScene>
 
         {arms.length > 0 ? (
           <WorkspaceMesh arms={arms} base={base} visible={showWorkspaceMesh} />
