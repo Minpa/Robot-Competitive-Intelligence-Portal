@@ -245,17 +245,39 @@ export function TimelinePanel() {
           <button
             key={gType}
             type="button"
-            onClick={() =>
-              addGesture({ t: timeline.currentTime, durationSec: 3, type: gType })
-            }
+            onClick={() => {
+              // 1) gesture 추가
+              addGesture({ t: timeline.currentTime, durationSec: 3, type: gType });
+              // 2) 같은 시점에 waypoint도 자동 추가 (현재 로봇 위치) — 단, 가까운 waypoint가
+              //    이미 있으면 중복 추가 안 함 (0.1초 이내). 이게 없으면 동작은 보이지만
+              //    로봇이 이동을 안 함 (사용자 혼동 방지).
+              const nearby = timeline.waypoints.find(
+                (w) => Math.abs(w.t - timeline.currentTime) < 0.1,
+              );
+              if (!nearby) {
+                addWaypoint({
+                  t: timeline.currentTime,
+                  xCm: robotXCm ?? halfWCm,
+                  yCm: robotYCm ?? halfDCm,
+                });
+              }
+            }}
             className="border border-white/20 bg-[#0a0a0a] hover:border-white/40 text-white/70 hover:text-white px-2 py-1 font-mono text-[9.5px] uppercase tracking-[0.18em]"
             style={{ borderColor: `${GESTURE_COLORS[gType]}60` }}
-            title={`현재 시점에 ${gType} 동작 추가 (3초)`}
+            title={`현재 시점에 ${gType} 동작(3초) + 현재 위치 웨이포인트 자동 추가`}
           >
             + {GESTURE_LABELS[gType]}
           </button>
         ))}
       </div>
+
+      {/* Gestures 있는데 waypoints 없으면 경고 — 로봇이 이동 안 하는 흔한 케이스 */}
+      {timeline.gestures.length > 0 && timeline.waypoints.length === 0 ? (
+        <div className="mt-2 px-3 py-2 border border-amber-500/40 bg-amber-500/10 text-[10.5px] text-amber-200/90 leading-relaxed">
+          ⚠️ 동작은 있지만 <strong>웨이포인트가 없어서</strong> 로봇이 이동하지 않습니다.
+          로봇을 원하는 위치로 드래그한 뒤 시간축에서 + 웨이포인트로 위치를 캡쳐하세요.
+        </div>
+      ) : null}
 
       {/* 웨이포인트/제스처 리스트 (편집용) */}
       {(timeline.waypoints.length > 0 || timeline.gestures.length > 0) ? (
@@ -265,8 +287,11 @@ export function TimelinePanel() {
         </div>
       ) : (
         <p className="mt-2 text-[10px] text-white/35 leading-relaxed">
-          시작하려면: 방 3D 뷰에서 로봇을 원하는 위치로 드래그 → 시간축 위에서 스크럽 → +
-          웨이포인트 클릭. 동작은 + PICKUP/WAVE 등으로 추가. ▶ 재생.
+          시작하려면: <span className="text-gold">방 3D 뷰에서 로봇을 위치 A로 드래그</span> → 시간축
+          0초에서 <span className="text-gold">+ 웨이포인트</span> → 스크럽바를 5초로 →
+          <span className="text-gold"> 로봇을 위치 B로 드래그</span> →
+          <span className="text-gold"> + 웨이포인트</span> → ▶ 재생. 동작(+ PICKUP/WAVE)은 클릭 시 현재
+          위치도 자동으로 웨이포인트로 캡쳐됩니다.
         </p>
       )}
     </div>
