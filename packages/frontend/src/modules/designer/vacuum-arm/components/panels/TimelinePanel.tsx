@@ -21,11 +21,8 @@
  * 단일 로봇 시나리오 전용. 룸 3D 모드에서만 표시.
  */
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useDesignerVacuumStore } from '../../stores/designer-vacuum-store';
 import type { GestureType, TimelineWaypoint, TimelineGesture } from '../../stores/designer-vacuum-store';
-import { designerVacuumApi } from '../../api/designer-vacuum-api';
 
 const GESTURE_COLORS: Record<GestureType, string> = {
   IDLE: '#4a4a4a',
@@ -70,18 +67,6 @@ export function TimelinePanel() {
   const setPlaying = useDesignerVacuumStore((s) => s.setTimelinePlaying);
   const setPlaySpeed = useDesignerVacuumStore((s) => s.setTimelinePlaySpeed);
   const resetTimeline = useDesignerVacuumStore((s) => s.resetTimeline);
-
-  // GRAB의 target 선택용 — 타겟 카탈로그 (이름 lookup)
-  const targetsQ = useQuery({
-    queryKey: ['vacuum-arm', 'target-objects'],
-    queryFn: () => designerVacuumApi.listTargetObjects(),
-    staleTime: 5 * 60_000,
-  });
-  const targetCatalog = targetsQ.data?.targetObjects ?? [];
-  const findTargetSpec = (id: number) => targetCatalog.find((tt) => tt.id === id);
-
-  // GRAB 버튼 옆 dropdown — 어떤 타겟을 잡을지 선택
-  const [grabTargetIdx, setGrabTargetIdx] = useState<number>(0);
 
   const halfWCm = room.widthCm / 2;
   const halfDCm = room.depthCm / 2;
@@ -305,53 +290,23 @@ export function TimelinePanel() {
           </button>
         ))}
 
-        {/* 그리퍼 잡기/놓기 — Phase II 물리 grasp 메커니즘 */}
+        {/* 그리퍼 닫기/열기 — proximity-based auto grab */}
         <span className="mx-1 h-4 w-px bg-white/15" />
-        {room.targets.length > 0 ? (
-          <>
-            <select
-              value={grabTargetIdx}
-              onChange={(e) => setGrabTargetIdx(Number(e.target.value))}
-              className="bg-[#0a0a0a] border border-green-500/40 text-white/85 px-2 py-1 font-mono text-[10px]"
-              title="잡을 타겟 선택"
-            >
-              {room.targets.map((t, i) => {
-                const spec = findTargetSpec(t.targetObjectId);
-                return (
-                  <option key={i} value={i}>
-                    #{i} {spec?.name ?? `target${t.targetObjectId}`}
-                  </option>
-                );
-              })}
-            </select>
-            <button
-              type="button"
-              onClick={() =>
-                addGesture({
-                  t: timeline.currentTime,
-                  durationSec: 2,
-                  type: 'GRAB',
-                  targetIndex: grabTargetIdx,
-                })
-              }
-              className="border border-green-500/60 bg-green-500/10 hover:bg-green-500/20 text-green-200 px-2 py-1 font-mono text-[9.5px] uppercase tracking-[0.18em]"
-              title="현재 시점에 선택한 타겟 GRAB (2초). gesture 시작 시점부터 attached."
-            >
-              + GRAB
-            </button>
-          </>
-        ) : (
-          <span className="text-[10px] text-white/35 font-mono italic px-1">
-            (타겟 추가 후 GRAB 가능)
-          </span>
-        )}
         <button
           type="button"
-          onClick={() => addGesture({ t: timeline.currentTime, durationSec: 2, type: 'RELEASE' })}
-          className="border border-orange-500/60 bg-orange-500/10 hover:bg-orange-500/20 text-orange-200 px-2 py-1 font-mono text-[9.5px] uppercase tracking-[0.18em]"
-          title="현재 시점에 RELEASE (2초). 잡고 있던 게 있으면 즉시 detach (떨어짐)."
+          onClick={() => addGesture({ t: timeline.currentTime, durationSec: 0.5, type: 'GRAB' })}
+          className="border border-green-500/60 bg-green-500/10 hover:bg-green-500/20 text-green-200 px-2 py-1 font-mono text-[9.5px] uppercase tracking-[0.18em]"
+          title="그리퍼 닫기 — 반경 18cm 안에 가장 가까운 타겟 자동 잡음"
         >
-          + RELEASE
+          + GRAB (그리퍼 닫기)
+        </button>
+        <button
+          type="button"
+          onClick={() => addGesture({ t: timeline.currentTime, durationSec: 0.5, type: 'RELEASE' })}
+          className="border border-orange-500/60 bg-orange-500/10 hover:bg-orange-500/20 text-orange-200 px-2 py-1 font-mono text-[9.5px] uppercase tracking-[0.18em]"
+          title="그리퍼 열기 — 잡고 있던 거 떨어짐"
+        >
+          + RELEASE (열기)
         </button>
       </div>
 
@@ -477,10 +432,7 @@ function GestureList({ gestures }: { gestures: TimelineGesture[] }) {
               className="w-1.5 h-1.5 rounded-sm"
               style={{ background: GESTURE_COLORS[g.type] }}
             />
-            <span className="text-white/80 w-20 truncate">
-              {GESTURE_LABELS[g.type]}
-              {g.type === 'GRAB' && g.targetIndex !== undefined ? `#${g.targetIndex}` : ''}
-            </span>
+            <span className="text-white/80 w-20 truncate">{GESTURE_LABELS[g.type]}</span>
             <span className="text-white/45 text-[9px]">@</span>
             <input
               type="number"

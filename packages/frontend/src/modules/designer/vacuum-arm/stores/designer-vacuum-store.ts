@@ -344,6 +344,10 @@ interface DesignerVacuumState {
   /** 로봇 yaw 회전 (도). 0 = 기본 방향(+Z 바라봄). +값 = 반시계 회전 (위에서 봤을 때). */
   robotYawDeg: number;
 
+  /** 현재 그리퍼에 잡혀있는 타겟의 room.targets 인덱스. null = 아무것도 안 잡힘.
+   *  GrabController가 매 프레임 갱신 (gripper 상태 + 반경 내 closest target). */
+  heldTargetIndex: number | null;
+
   /** 모션 타임라인 — 시간 진행에 따라 로봇이 자동으로 이동·동작 (옵션 X). */
   timeline: TimelineState;
 
@@ -391,6 +395,7 @@ interface DesignerVacuumState {
 
   setRobotPosition: (xCm: number | null, yCm: number | null) => void;
   setRobotYawDeg: (deg: number) => void;
+  setHeldTargetIndex: (idx: number | null) => void;
 
   // ─── Timeline (옵션 X: 모션 시퀀스) ───────────────────────────────────────
   addWaypoint: (waypoint: Omit<TimelineWaypoint, 'id'>) => void;
@@ -426,6 +431,7 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   robotXCm: null,
   robotYCm: null,
   robotYawDeg: 0,
+  heldTargetIndex: null,
   timeline: { ...DEFAULT_TIMELINE },
 
   setBaseShape: (shape) =>
@@ -643,6 +649,7 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
 
   setRobotPosition: (xCm, yCm) => set({ robotXCm: xCm, robotYCm: yCm }),
   setRobotYawDeg: (deg) => set({ robotYawDeg: ((deg % 360) + 360) % 360 }),
+  setHeldTargetIndex: (idx) => set({ heldTargetIndex: idx }),
 
   // ─── Timeline actions ───────────────────────────────────────────────────
   // 모든 mutation은 deriveCurrentFrame로 visual 즉시 반영 (waypoint 추가/편집/스크럽 시
@@ -738,6 +745,7 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
       robotXCm: null,
       robotYCm: null,
       robotYawDeg: 0,
+      heldTargetIndex: null,
       timeline: { ...DEFAULT_TIMELINE },
     }),
 }));

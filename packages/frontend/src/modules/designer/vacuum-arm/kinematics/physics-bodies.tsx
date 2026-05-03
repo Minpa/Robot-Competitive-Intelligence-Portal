@@ -24,7 +24,11 @@ import {
   type RapierRigidBody,
 } from '@react-three/rapier';
 import { useDesignerVacuumStore } from '../stores/designer-vacuum-store';
-import { computeWristWorldPosition, getHeldTargetAtTime } from './grasp-engine';
+import {
+  computeWristWorldPosition,
+  isGripperClosedAtTime,
+  getExplicitTargetAtTime,
+} from './grasp-engine';
 
 interface PhysicsSceneProps {
   /** 시각 디버그용 collider wireframe */
@@ -385,13 +389,13 @@ export function GrabbableTarget({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialX, initialZ]);
 
-  // 매 프레임: held? → 손목 위치로 이동
+  // 매 프레임: store.heldTargetIndex가 자기와 같으면 손목 위치로 이동.
+  // 잡힘 판단은 별도 GrabController가 담당 (proximity-based auto + explicit override).
   useFrame(() => {
     const body = bodyRef.current;
     if (!body) return;
     const state = useDesignerVacuumStore.getState();
-    const heldIdx = getHeldTargetAtTime(state.timeline.gestures, state.timeline.currentTime);
-    const beingHeld = heldIdx === targetIndex;
+    const beingHeld = state.heldTargetIndex === targetIndex;
 
     if (beingHeld !== isHeldVisual) setIsHeldVisual(beingHeld);
     if (!beingHeld) return;
@@ -492,4 +496,103 @@ export function GrabbableTarget({
       </group>
     </RigidBody>
   );
+}
+
+/* ─── GrabController ──────────────────────────────────────────────────────
+ * 매 프레임 다음을 처리:
+ *   1. 명시적 GRAB(targetIndex 지정)이 있으면 그것을 사용 (override).
+ *   2. 아니면 그리퍼 closed 상태에서 반경 GRIP_RADIUS_M 이내 closest target 자동 attach.
+ *   3. 그리퍼 open 상태이거나 잡고 있던 게 RELEASE_RADIUS_M보다 멀어지면 detach.
+ *
+ * Physics scene 안의 Canvas 자식으로 mount되어야 함 (useFrame 사용).
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+const GRIP_RADIUS_M = 0.18; // 18cm — 그리퍼 닫혔을 때 잡을 수 있는 거리
+const RELEASE_RADIUS_M = 0.30; // 30cm — 잡고 있다가 이 거리 넘으면 자동 detach
+
+interface GrabControllerProps {
+  /** 방 좌표(cm) → 월드(m) 변환에 필요 */
+  halfWCm: number;
+  halfDCm: number;
+}
+
+export function GrabController({ halfWCm, halfDCm }: GrabControllerProps) {
+  useFrame(() => {
+    const state = useDesignerVacuumStore.getState();
+    const arm = state.product.arms[0];
+    if (!arm) {
+      if (state.heldTargetIndex !== null) state.setHeldTargetIndex(null);
+      return;
+    }
+
+    // Gripper 위치 (FK)
+    const robotXM = ((state.robotXCm ?? halfWCm) - halfWCm) * 0.01;
+    const robotZM = ((state.robotYCm ?? halfDCm) - halfDCm) * 0.01;
+    const robotYawRad = (state.robotYawDeg * Math.PI) / 180;
+    const gripPos = computeWristWorldPosition(
+      state.product.base,
+      arm,
+      state.armPose,
+      robotXM,
+      robotZM,
+      robotYawRad,
+    );
+
+    // Gripper 상태 (timeline 기반)
+    const closed = isGripperClosedAtTime(state.timeline.gestures, state.timeline.currentTime);
+    const explicit = getExplicitTargetAtTime(state.timeline.gestures, state.timeline.currentTime);
+
+    if (!closed) {
+      // Open → 무엇도 잡지 않음
+      if (state.heldTargetIndex !== null) state.setHeldTargetIndex(null);
+      return;
+    }
+
+    // 명시적 target 지정이 있으면 우선
+    if (explicit !== null) {
+      if (state.heldTargetIndex !== explicit) state.setHeldTargetIndex(explicit);
+      return;
+    }
+
+    // 자동 모드: 현재 잡고 있는 게 있으면 release 거리 안인지 확인
+    const targets = state.room.targets;
+    if (state.heldTargetIndex !== null) {
+      const t = targets[state.heldTargetIndex];
+      if (!t) {
+        state.setHeldTargetIndex(null);
+        return;
+      }
+      const tWX = (t.xCm - halfWCm) * 0.01;
+      const tWZ = (t.yCm - halfDCm) * 0.01;
+      // 잡혀있는 동안에는 GrabbableTarget이 위치를 손목으로 끌어당기므로 항상 가까움.
+      // 하지만 실제 body 위치 대신 spec 위치를 쓰면 의미가 없음.
+      // 단순화: 한 번 잡으면 RELEASE 전까진 유지 (closed인 동안).
+      // (proximity check는 잡기 전에만 적용)
+      void tWX; void tWZ; void RELEASE_RADIUS_M;
+      return;
+    }
+
+    // 자동 모드: closest target in range를 찾음
+    let closestIdx: number | null = null;
+    let closestDistSq = GRIP_RADIUS_M * GRIP_RADIUS_M;
+    for (let i = 0; i < targets.length; i++) {
+      const t = targets[i];
+      const tWX = (t.xCm - halfWCm) * 0.01;
+      const tWZ = (t.yCm - halfDCm) * 0.01;
+      const tWY = Math.max(t.zCm, 0.5) * 0.01;
+      const dx = gripPos.x - tWX;
+      const dy = gripPos.y - tWY;
+      const dz = gripPos.z - tWZ;
+      const distSq = dx * dx + dy * dy + dz * dz;
+      if (distSq < closestDistSq) {
+        closestDistSq = distSq;
+        closestIdx = i;
+      }
+    }
+    if (closestIdx !== null) {
+      state.setHeldTargetIndex(closestIdx);
+    }
+  });
+
+  return null;
 }

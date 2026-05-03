@@ -19,29 +19,52 @@ const CM_TO_M = 0.01;
 const DEG_TO_RAD = Math.PI / 180;
 
 /**
- * 시간 t에 잡혀 있는 타겟 인덱스. 없으면 null.
+ * 시간 t에 그리퍼가 닫혀(close)있는지. true = 닫힘, false = 열림.
  *
- * 규칙:
- *   - GRAB이 시작되는 시점부터 holding 상태 (즉시 attach — 시각적으로 GRAB 자세
- *     중 잡고 있음 표현). 정확히는 gesture START.
- *   - RELEASE이 시작되는 시점부터 released (즉시 detach — RELEASE 자세 중 떨어짐).
- *   - 가장 최근 이벤트가 우선.
+ * GRAB은 "그리퍼 닫기" 이벤트, RELEASE는 "열기" 이벤트.
+ * 시작 시점부터 즉시 상태 변화. 가장 최근 이벤트가 우선.
+ *
+ * 닫힌 동안에는 GrabController가 반경 내 closest target을 자동으로 attach.
  */
+export function isGripperClosedAtTime(
+  gestures: TimelineGesture[],
+  t: number,
+): boolean {
+  let closed = false;
+  for (const g of gestures) {
+    if (g.t > t) break;
+    if (g.type === 'GRAB') closed = true;
+    else if (g.type === 'RELEASE') closed = false;
+  }
+  return closed;
+}
+
+/**
+ * 시간 t에 명시적으로 지정된 target index (GRAB의 targetIndex). 없으면 null.
+ * 자동 grab 모드와 별도로, 사용자가 특정 타겟을 강제로 지정한 경우용 (override).
+ */
+export function getExplicitTargetAtTime(
+  gestures: TimelineGesture[],
+  t: number,
+): number | null {
+  let target: number | null = null;
+  for (const g of gestures) {
+    if (g.t > t) break;
+    if (g.type === 'GRAB' && g.targetIndex !== undefined) {
+      target = g.targetIndex;
+    } else if (g.type === 'RELEASE') {
+      target = null;
+    }
+  }
+  return target;
+}
+
+/** @deprecated 이전 API — 호환성을 위해 유지. 새 코드는 store.heldTargetIndex 사용. */
 export function getHeldTargetAtTime(
   gestures: TimelineGesture[],
   t: number,
 ): number | null {
-  let held: number | null = null;
-  // gestures는 store에서 t 오름차순 정렬됨
-  for (const g of gestures) {
-    if (g.t > t) break;
-    if (g.type === 'GRAB' && g.targetIndex !== undefined) {
-      held = g.targetIndex;
-    } else if (g.type === 'RELEASE') {
-      held = null;
-    }
-  }
-  return held;
+  return getExplicitTargetAtTime(gestures, t);
 }
 
 /* ─── 손목 World Position FK ─────────────────────────────────────────────── */

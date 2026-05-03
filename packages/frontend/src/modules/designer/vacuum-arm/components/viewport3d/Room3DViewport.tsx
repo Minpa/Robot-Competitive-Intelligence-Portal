@@ -29,6 +29,7 @@ import {
   PhysicalDraggableObject,
   KinematicRobotBody,
   GrabbableTarget,
+  GrabController,
 } from '../../kinematics/physics-bodies';
 import { designerVacuumApi } from '../../api/designer-vacuum-api';
 import { useDesignerVacuumStore } from '../../stores/designer-vacuum-store';
@@ -194,6 +195,9 @@ export function Room3DViewport({
 
       <Suspense fallback={null}>
         <PhysicsScene>
+          {/* Grasp 자동 컨트롤러 — 매 프레임 closest target in range 검사 */}
+          <GrabController halfWCm={halfWCm} halfDCm={halfDCm} />
+
           {/* 룸 바닥 — visual mesh + physics floor (둘 다 필요) */}
           <mesh
             rotation={[-Math.PI / 2, 0, 0]}
