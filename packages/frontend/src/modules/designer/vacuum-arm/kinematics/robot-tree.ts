@@ -96,11 +96,12 @@ const DEFAULT_ARM_COLORS = ['#E63950', '#3a8dde'];
 
 /**
  * Mount 위치 → 베이스 윗면에서의 (x, z) offset.
- * 기존 ManipulatorArm.tsx와 동일 규약.
+ * 페데스탈이 베이스 가장자리 쪽에 충분히 가깝도록 70% 사용 (기존 45% → 가운데
+ * 같이 보여서 사용자 혼동).
  */
 function computeMountOffset(arm: ManipulatorArmSpec, base: VacuumBaseSpec): { x: number; z: number } {
   const radiusM = (base.diameterOrWidthCm / 2) * CM_TO_M;
-  const offset = radiusM * 0.45;
+  const offset = radiusM * 0.70;
   switch (arm.mountPosition) {
     case 'center': return { x: 0, z: 0 };
     case 'front':  return { x: 0, z: offset };

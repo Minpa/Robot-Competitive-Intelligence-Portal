@@ -98,22 +98,11 @@ function VacuumBaseVisual({ params }: { params: Record<string, number | string> 
         </mesh>
       )}
 
-      {/* LiDAR 터릿 — 팔이 있으면 페데스탈 stem과 시각 충돌해서 숨김.
-          팔이 없는 순수 진공 모드일 때만 표시. */}
-      {isDisc && !hasArm && (
-        <group>
-          {/* 본체 (cylinder) */}
-          <mesh position={[0, heightM + heightM * 0.18, 0]} castShadow>
-            <cylinderGeometry args={[radiusM * 0.18, radiusM * 0.2, heightM * 0.4, 32]} />
-            <meshStandardMaterial color="#0d0d0d" metalness={0.5} roughness={0.4} />
-          </mesh>
-          {/* 투명 돔 (LiDAR 인지를 위한 시각 단서) */}
-          <mesh position={[0, heightM + heightM * 0.42, 0]} castShadow>
-            <sphereGeometry args={[radiusM * 0.18, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
-            <meshStandardMaterial color="#3a8dde" transparent opacity={0.55} metalness={0.3} roughness={0.1} />
-          </mesh>
-        </group>
-      )}
+      {/* LiDAR 터릿 — 디자인 툴 컨텍스트에서 essential 아니고 사용자 혼동
+          (페데스탈 stem과 비슷한 visual)을 야기해서 항상 숨김.
+          향후 baseDecor toggle 같은 옵션으로 노출 가능. */}
+      {/* hasArm 무시하고 항상 안 그림 — hasArm 변수는 미래 분기를 위해 유지 */}
+      {false && isDisc && !hasArm ? <group /> : null}
 
       {/* 사이드 모프 윙 */}
       {isDisc && (
