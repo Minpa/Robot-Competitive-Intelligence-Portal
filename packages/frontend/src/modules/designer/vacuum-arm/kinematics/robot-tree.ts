@@ -189,10 +189,15 @@ export function buildRobotTree(opts: BuildOptions): LinkSpec[] {
 
     const ee = endEffectors.find((e) => e.sku === arm.endEffectorSku);
     const eeType: EndEffectorType = ee?.type ?? 'simple_gripper';
-    // tipScale은 기존 ManipulatorArm 규약 유지 (페이로드 비례)
-    const tipScale = ee ? Math.min(0.05, 0.025 + ee.maxPayloadKg * 0.012) : 0.032;
+    // tipScale: 페이로드 비례 + 카메라 거리에서 보이도록 floor 0.06 (기존 0.025~0.05 너무 작아서 안 보였음)
+    const tipScale = ee
+      ? Math.max(0.06, Math.min(0.10, 0.05 + ee.maxPayloadKg * 0.015))
+      : 0.07;
 
-    // pedestal — 팔 마운트 (fixed)
+    // pedestal — 팔 마운트. 디스크 + stem(쇼울더까지 올라오는 기둥) 합본 visual.
+    // shoulderUpM 만큼 솟아서 어깨와 본체 사이 빈 공간을 채움.
+    const pedestalDiscHeightM = 0.012;
+    const stemHeightM = Math.max(0, shoulderUpM - pedestalDiscHeightM);
     links.push({
       name: armPrefix + 'pedestal',
       parent: armParent,
@@ -201,17 +206,25 @@ export function buildRobotTree(opts: BuildOptions): LinkSpec[] {
         originXyz: [mount.x, pedestalY, mount.z],
         originRpy: [0, 0, 0],
       },
-      visual: { kind: 'pedestal', params: { radiusM: 0.045, heightM: 0.012 } },
+      visual: {
+        kind: 'pedestal',
+        params: {
+          discRadiusM: 0.045,
+          discHeightM: pedestalDiscHeightM,
+          stemHeightM: stemHeightM,
+          stemRadiusM: 0.018,
+        },
+      },
     });
 
-    // shoulder — revolute joint (pitch). pedestal 위에 위치, jointStateKey로 각도 제어.
+    // shoulder — revolute joint (pitch). 페데스탈 stem 끝 (= base top + shoulderUpM)에 위치.
     links.push({
       name: armPrefix + 'shoulder',
       parent: armPrefix + 'pedestal',
       joint: {
         type: 'revolute',
         axis: shoulderPitchAxis(arm.mountPosition),
-        originXyz: [0, shoulderUpM + 0.012 /* pedestal height */, 0],
+        originXyz: [0, shoulderUpM, 0], // base top 위로 정확히 shoulderUpM
         originRpy: [0, 0, 0],
         limits: { lower: -10 * DEG_TO_RAD, upper: 110 * DEG_TO_RAD },
         jointStateKey: armPrefix + 'shoulderPitch',

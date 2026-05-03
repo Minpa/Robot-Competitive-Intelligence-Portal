@@ -168,16 +168,29 @@ function LiftColumnVisual({
   );
 }
 
-/* ─── Pedestal: 팔 마운트 작은 디스크 ─────────────────────────────────── */
+/* ─── Pedestal: 팔 마운트 디스크 + 어깨까지 올라오는 stem ──────────────── */
 
 function PedestalVisual({ params }: { params: Record<string, number | string> }) {
-  const radiusM = params.radiusM as number;
-  const heightM = params.heightM as number;
+  const discRadiusM = (params.discRadiusM as number) ?? 0.045;
+  const discHeightM = (params.discHeightM as number) ?? 0.012;
+  const stemHeightM = (params.stemHeightM as number) ?? 0;
+  const stemRadiusM = (params.stemRadiusM as number) ?? 0.018;
+
   return (
-    <mesh position={[0, heightM / 2, 0]} castShadow receiveShadow>
-      <cylinderGeometry args={[radiusM, radiusM * 1.1, heightM, 32]} />
-      <meshStandardMaterial color="#0a0a0a" metalness={0.65} roughness={0.25} />
-    </mesh>
+    <group>
+      {/* 마운트 디스크 (베이스 위) */}
+      <mesh position={[0, discHeightM / 2, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[discRadiusM, discRadiusM * 1.1, discHeightM, 32]} />
+        <meshStandardMaterial color="#0a0a0a" metalness={0.65} roughness={0.25} />
+      </mesh>
+      {/* Stem: 디스크 위에서 어깨 origin까지 솟는 기둥 */}
+      {stemHeightM > 0.005 ? (
+        <mesh position={[0, discHeightM + stemHeightM / 2, 0]} castShadow receiveShadow>
+          <cylinderGeometry args={[stemRadiusM * 0.9, stemRadiusM, stemHeightM, 24]} />
+          <meshStandardMaterial color="#1a1a1a" metalness={0.55} roughness={0.35} />
+        </mesh>
+      ) : null}
+    </group>
   );
 }
 
