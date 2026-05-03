@@ -136,6 +136,8 @@ export function buildRobotTree(opts: BuildOptions): LinkSpec[] {
   const liftMaxM = base.hasLiftColumn ? base.liftColumnMaxExtensionCm * CM_TO_M : 0;
 
   // ─── base_link (root) ────────────────────────────────────────────────────
+  // hasArm: 팔이 있으면 베이스 위 중앙 LiDAR 터릿을 숨김 (페데스탈과 시각 충돌).
+  // 실제 팔 달린 콤보 로봇에서는 중앙 컬럼을 팔이 차지하므로 LiDAR는 별도 위치로 빠짐.
   links.push({
     name: 'base_link',
     parent: null,
@@ -146,6 +148,7 @@ export function buildRobotTree(opts: BuildOptions): LinkSpec[] {
         shape: base.shape,
         diameterM: base.diameterOrWidthCm * CM_TO_M,
         heightM: baseHeightM,
+        hasArm: arms.length > 0 ? 1 : 0,
       },
     },
     collisionAabbHalf: [baseRadiusM, baseHeightM / 2, baseRadiusM],

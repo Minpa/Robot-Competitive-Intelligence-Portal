@@ -51,6 +51,7 @@ function VacuumBaseVisual({ params }: { params: Record<string, number | string> 
   const shape = params.shape as string;
   const diameterM = params.diameterM as number;
   const heightM = params.heightM as number;
+  const hasArm = (params.hasArm as number) === 1;
   const radiusM = diameterM / 2;
   const isDisc = shape !== 'square';
   const yCenter = heightM / 2;
@@ -97,12 +98,21 @@ function VacuumBaseVisual({ params }: { params: Record<string, number | string> 
         </mesh>
       )}
 
-      {/* LiDAR 터릿 */}
-      {isDisc && (
-        <mesh position={[0, heightM + heightM * 0.18, 0]} castShadow>
-          <cylinderGeometry args={[radiusM * 0.18, radiusM * 0.2, heightM * 0.4, 32]} />
-          <meshStandardMaterial color="#0d0d0d" metalness={0.5} roughness={0.4} />
-        </mesh>
+      {/* LiDAR 터릿 — 팔이 있으면 페데스탈 stem과 시각 충돌해서 숨김.
+          팔이 없는 순수 진공 모드일 때만 표시. */}
+      {isDisc && !hasArm && (
+        <group>
+          {/* 본체 (cylinder) */}
+          <mesh position={[0, heightM + heightM * 0.18, 0]} castShadow>
+            <cylinderGeometry args={[radiusM * 0.18, radiusM * 0.2, heightM * 0.4, 32]} />
+            <meshStandardMaterial color="#0d0d0d" metalness={0.5} roughness={0.4} />
+          </mesh>
+          {/* 투명 돔 (LiDAR 인지를 위한 시각 단서) */}
+          <mesh position={[0, heightM + heightM * 0.42, 0]} castShadow>
+            <sphereGeometry args={[radiusM * 0.18, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
+            <meshStandardMaterial color="#3a8dde" transparent opacity={0.55} metalness={0.3} roughness={0.1} />
+          </mesh>
+        </group>
       )}
 
       {/* 사이드 모프 윙 */}
