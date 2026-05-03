@@ -20,9 +20,11 @@ import { CandidateComparisonPanel } from './panels/CandidateComparisonPanel';
 import { RevisionLog } from './panels/RevisionLog';
 import { EngineeringReviewPanel } from './panels/EngineeringReviewPanel';
 import { TimelinePanel } from './panels/TimelinePanel';
+import { ScenarioPanel } from './panels/ScenarioPanel';
 import { useCandidatesStore } from '../stores/candidates-store';
 import { computeArmStatics, computeStability } from '../lib/client-statics';
 import { useTimelinePlayback } from '../lib/use-timeline-playback';
+import { useEvalEngine } from '../lib/use-eval-engine';
 import type { AnalyzeResponse } from '../types/product';
 
 const RobotViewport = dynamic(
@@ -420,8 +422,14 @@ export function DesignerVacuumWorkbench() {
         </aside>
       </div>
 
-      {/* Motion timeline — 룸 3D 모드에서만 표시 (로봇이 방 안에서 시퀀스 수행) */}
-      {mode === 'room3d' ? <TimelinePanel /> : null}
+      {/* Motion timeline + 시나리오 평가 — 룸 3D 모드에서만 표시 */}
+      {mode === 'room3d' ? (
+        <>
+          <ScenarioPanel />
+          <TimelinePanel />
+          <EvalEngineMount />
+        </>
+      ) : null}
 
       {/* Bottom: REQ-10 engineering review */}
       <EngineeringReviewPanel
@@ -440,3 +448,23 @@ export function DesignerVacuumWorkbench() {
   );
 }
 
+
+/* EvalEngineMount — useEvalEngine를 actuator/endEffector 카탈로그와 함께 mount.
+   workbench 안에서 카탈로그가 있으므로 별도 컴포넌트로 분리. */
+function EvalEngineMount() {
+  const actuatorsQ = useQuery({
+    queryKey: ['vacuum-arm', 'actuators'],
+    queryFn: () => designerVacuumApi.listActuators(),
+    staleTime: 5 * 60_000,
+  });
+  const endEffectorsQ = useQuery({
+    queryKey: ['vacuum-arm', 'end-effectors'],
+    queryFn: () => designerVacuumApi.listEndEffectors(),
+    staleTime: 5 * 60_000,
+  });
+  useEvalEngine({
+    actuators: actuatorsQ.data?.actuators ?? [],
+    endEffectors: endEffectorsQ.data?.endEffectors ?? [],
+  });
+  return null;
+}

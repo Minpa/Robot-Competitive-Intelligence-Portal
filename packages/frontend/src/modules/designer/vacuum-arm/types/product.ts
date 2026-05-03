@@ -80,6 +80,73 @@ export const BASE_BOUNDS = {
  */
 export const MOUNT_OFFSET_RATIO = 0.65;
 
+// ─── Task Scenarios (Path A: 가사업무 시나리오 + 자동 평가) ──────────────────
+
+/** 시나리오의 성공 조건 — 재생 끝나고 자동 평가 */
+export type SuccessCriterion =
+  | {
+      kind: 'targetNearPosition';
+      description: string;
+      targetIndex: number;
+      positionCm: { xCm: number; yCm: number };
+      radiusCm: number;
+    }
+  | {
+      kind: 'noFailures';
+      description: string;
+    };
+
+/** 사전 정의된 가사업무 시나리오. 룸/로봇 시작/타임라인/성공조건이 한 셋. */
+export interface TaskScenario {
+  id: string;
+  name: string;
+  description: string;
+  category: '청소' | '정리정돈' | '서빙' | '기타';
+  /** 룸 프리셋 ID — null이면 빈 방. 시나리오 로드 시 이 프리셋 적용. */
+  basePresetId: RoomPreset | null;
+  /** 추가 타겟 (preset에 없는 것). targetObjectId는 백엔드 카탈로그 참조. */
+  extraTargets: Array<{ targetObjectId: number; xCm: number; yCm: number; zCm: number }>;
+  /** 추가 가구. */
+  extraFurniture: Array<{ furnitureId: number; xCm: number; yCm: number; rotationDeg: number }>;
+  /** 로봇 시작 위치/회전 */
+  robotStart: { xCm: number; yCm: number; yawDeg: number };
+  /** Timeline */
+  durationSec: number;
+  waypoints: Array<{ t: number; xCm: number; yCm: number; yawDeg?: number }>;
+  gestures: Array<{ t: number; durationSec: number; type: import('../stores/designer-vacuum-store').GestureType }>;
+  /** 성공 조건 (모두 만족해야 pass) */
+  successCriteria: SuccessCriterion[];
+}
+
+/** 평가 엔진이 발견한 이슈 (재생 중 누적) */
+export type EvalSeverity = 'info' | 'warning' | 'fail';
+
+export interface EvalIssue {
+  severity: EvalSeverity;
+  /** 발생 시점 (재생 t 초) */
+  timeSec: number;
+  /** 분류 — UI 색상/그룹화에 사용 */
+  category: 'reach' | 'torque' | 'stability' | 'goal' | 'collision' | 'other';
+  message: string;
+  /** Spec 변경 권장 (있으면) */
+  recommendation?: string;
+}
+
+/** 한 번의 시나리오 재생 결과 */
+export interface EvalResult {
+  scenarioId: string;
+  scenarioName: string;
+  passed: boolean;
+  passedCriteriaCount: number;
+  totalCriteriaCount: number;
+  issues: EvalIssue[];
+  /** 재생 길이 (초) */
+  durationSec: number;
+  /** 어떤 spec으로 돌렸는지 (부품 교체 비교용) */
+  specSummary: string;
+  ranAt: string; // ISO timestamp
+}
+
 // ─── REQ-6 environment ─────────────────────────────────────────────────────
 
 export type FurnitureType = 'sofa' | 'dining_table' | 'sink_counter' | 'desk' | 'chair';

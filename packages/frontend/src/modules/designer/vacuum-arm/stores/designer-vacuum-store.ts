@@ -17,6 +17,9 @@ import type {
   FurniturePlacement,
   ObstaclePlacement,
   TargetMarker,
+  TaskScenario,
+  EvalIssue,
+  EvalResult,
 } from '../types/product';
 import { useCandidatesStore } from './candidates-store';
 
@@ -370,6 +373,14 @@ interface DesignerVacuumState {
   /** 모션 타임라인 — 시간 진행에 따라 로봇이 자동으로 이동·동작 (옵션 X). */
   timeline: TimelineState;
 
+  // ─── Task scenarios + 평가 (Path A) ──────────────────────────────────────
+  /** 현재 로드된 시나리오 ID. null = 시나리오 모드 아님 (수동 timeline 편집). */
+  activeScenarioId: string | null;
+  /** 마지막 재생 결과. 다음 재생 시작 시 reset. */
+  evalResult: EvalResult | null;
+  /** 재생 중 누적되는 이슈 (재생 끝나면 evalResult로 finalize). */
+  evalIssuesInProgress: EvalIssue[];
+
   // base mutators (REQ-1)
   setBaseShape: (shape: VacuumBaseSpec['shape']) => void;
   setBaseHeightCm: (cm: number) => void;
@@ -416,6 +427,18 @@ interface DesignerVacuumState {
   setRobotYawDeg: (deg: number) => void;
   setHeldTargetIndex: (idx: number | null) => void;
 
+  // ─── Scenarios + 평가 ──────────────────────────────────────────────────
+  /** 시나리오 로드 — 룸 프리셋 + 추가 타겟/가구 + 로봇 시작 + timeline + 성공조건 */
+  loadTaskScenario: (scenario: TaskScenario, roomPreset: RoomPresetSpec | null) => void;
+  /** 평가 시작 (재생 시작 시 호출) */
+  startEval: () => void;
+  /** 평가 중 이슈 추가 */
+  addEvalIssue: (issue: EvalIssue) => void;
+  /** 평가 종료 (재생 끝/중단 시 호출, evalResult finalize) */
+  finalizeEval: (currentTimeSec: number, specSummary: string) => void;
+  /** 평가 결과 클리어 */
+  clearEvalResult: () => void;
+
   // ─── Timeline (옵션 X: 모션 시퀀스) ───────────────────────────────────────
   addWaypoint: (waypoint: Omit<TimelineWaypoint, 'id'>) => void;
   updateWaypoint: (id: string, patch: Partial<Omit<TimelineWaypoint, 'id'>>) => void;
@@ -452,6 +475,9 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   robotYawDeg: 0,
   heldTargetIndex: null,
   timeline: { ...DEFAULT_TIMELINE },
+  activeScenarioId: null,
+  evalResult: null,
+  evalIssuesInProgress: [],
 
   setBaseShape: (shape) =>
     set((s) => {
@@ -670,6 +696,105 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   setRobotYawDeg: (deg) => set({ robotYawDeg: ((deg % 360) + 360) % 360 }),
   setHeldTargetIndex: (idx) => set({ heldTargetIndex: idx }),
 
+  // ─── Scenarios + 평가 actions ───────────────────────────────────────────
+  loadTaskScenario: (scenario, preset) =>
+    set((s) => {
+      // 1. 룸 = preset (있으면) 그 위에 시나리오의 추가 가구/타겟 더하기
+      const baseFurniture = preset?.furniture ?? [];
+      const baseObstacles = preset?.obstacles ?? [];
+      const basePresetTargets = preset?.targets ?? [];
+      const newRoom: RoomConfig = {
+        preset: preset?.id ?? null,
+        widthCm: preset?.widthCm ?? 500,
+        depthCm: preset?.depthCm ?? 400,
+        furniture: [
+          ...baseFurniture,
+          ...scenario.extraFurniture.map((f) => ({
+            furnitureId: f.furnitureId,
+            xCm: f.xCm,
+            yCm: f.yCm,
+            rotationDeg: f.rotationDeg,
+          })),
+        ],
+        obstacles: [...baseObstacles],
+        targets: [
+          ...basePresetTargets,
+          ...scenario.extraTargets.map((t) => ({
+            targetObjectId: t.targetObjectId,
+            onFurnitureIndex: null,
+            xCm: t.xCm,
+            yCm: t.yCm,
+            zCm: t.zCm,
+          })),
+        ],
+      };
+
+      // 2. Timeline 교체 (waypoints/gestures 새 ID 부여)
+      const newWaypoints = scenario.waypoints.map((w) => ({
+        ...w,
+        id: makeTimelineId(),
+      }));
+      const newGestures = scenario.gestures.map((g) => ({
+        ...g,
+        id: makeTimelineId(),
+      }));
+
+      const newTimeline: TimelineState = {
+        duration: scenario.durationSec,
+        waypoints: newWaypoints.sort((a, b) => a.t - b.t),
+        gestures: newGestures.sort((a, b) => a.t - b.t),
+        currentTime: 0,
+        isPlaying: false,
+        playSpeed: 1,
+      };
+
+      // 3. 로봇 시작 위치/회전
+      return {
+        room: newRoom,
+        timeline: newTimeline,
+        robotXCm: scenario.robotStart.xCm,
+        robotYCm: scenario.robotStart.yCm,
+        robotYawDeg: scenario.robotStart.yawDeg,
+        activeScenarioId: scenario.id,
+        heldTargetIndex: null,
+        evalResult: null,
+        evalIssuesInProgress: [],
+        // armPose는 default로
+        armPose: { ...DEFAULT_POSE },
+      };
+    }),
+
+  startEval: () => set({ evalIssuesInProgress: [], evalResult: null }),
+
+  addEvalIssue: (issue) =>
+    set((s) => ({ evalIssuesInProgress: [...s.evalIssuesInProgress, issue] })),
+
+  finalizeEval: (currentTimeSec, specSummary) =>
+    set((s) => {
+      if (!s.activeScenarioId) {
+        return { evalIssuesInProgress: [] };
+      }
+      // import scenario inline to avoid circular dep
+      const failureCount = s.evalIssuesInProgress.filter((i) => i.severity === 'fail').length;
+      const passed = failureCount === 0;
+      return {
+        evalResult: {
+          scenarioId: s.activeScenarioId,
+          scenarioName: s.activeScenarioId, // UI에서 lookup
+          passed,
+          passedCriteriaCount: passed ? 1 : 0,
+          totalCriteriaCount: 1,
+          issues: [...s.evalIssuesInProgress],
+          durationSec: currentTimeSec,
+          specSummary,
+          ranAt: new Date().toISOString(),
+        },
+        evalIssuesInProgress: [],
+      };
+    }),
+
+  clearEvalResult: () => set({ evalResult: null, evalIssuesInProgress: [] }),
+
   // ─── Timeline actions ───────────────────────────────────────────────────
   // 모든 mutation은 deriveCurrentFrame로 visual 즉시 반영 (waypoint 추가/편집/스크럽 시
   // 로봇 위치·자세가 새 timeline 상태에 맞춰 갱신됨).
@@ -766,5 +891,8 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
       robotYawDeg: 0,
       heldTargetIndex: null,
       timeline: { ...DEFAULT_TIMELINE },
+      activeScenarioId: null,
+      evalResult: null,
+      evalIssuesInProgress: [],
     }),
 }));
