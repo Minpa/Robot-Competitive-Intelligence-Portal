@@ -44,6 +44,165 @@ const DEFAULT_ROOM: RoomConfig = {
 
 export type WorkbenchMode = 'product3d' | 'roomEditor' | 'room3d';
 
+// ─── Timeline types (옵션 X: 모션 시퀀스) ─────────────────────────────────────
+
+/** 단일 로봇이 시간 t (초)에 어디 있어야 하는지. 인접 waypoints 사이는 보간. */
+export interface TimelineWaypoint {
+  id: string;
+  t: number; // seconds
+  xCm: number; // 방 좌표
+  yCm: number;
+}
+
+export type GestureType = 'IDLE' | 'PICKUP' | 'WAVE' | 'POINT' | 'SCAN' | 'BOW' | 'HANDSHAKE';
+
+/** 시간 t에 시작해서 durationSec 동안 지속되는 동작. */
+export interface TimelineGesture {
+  id: string;
+  t: number; // start seconds
+  durationSec: number;
+  type: GestureType;
+}
+
+export interface TimelineState {
+  /** 총 길이 (초). */
+  duration: number;
+  waypoints: TimelineWaypoint[];
+  gestures: TimelineGesture[];
+  /** 현재 재생 시점 (초). 0 ~ duration. */
+  currentTime: number;
+  isPlaying: boolean;
+  playSpeed: 1 | 2 | 3;
+}
+
+const DEFAULT_TIMELINE: TimelineState = {
+  duration: 14,
+  waypoints: [],
+  gestures: [],
+  currentTime: 0,
+  isPlaying: false,
+  playSpeed: 1,
+};
+
+let timelineIdCounter = 1;
+function makeTimelineId(): string {
+  return `tl${Date.now()}_${timelineIdCounter++}`;
+}
+
+/** 시간 t에 로봇이 어디 있어야 하는지 — 인접 waypoints 사이 lerp.
+ *  waypoints는 t 오름차순으로 정렬됐다고 가정 (store actions에서 보장).
+ *  결과 null = waypoint 없음 → 위치 갱신 안 함. */
+function positionAtTimeInline(
+  waypoints: TimelineWaypoint[],
+  t: number,
+): { xCm: number; yCm: number } | null {
+  if (waypoints.length === 0) return null;
+  if (waypoints.length === 1) return { xCm: waypoints[0].xCm, yCm: waypoints[0].yCm };
+  if (t <= waypoints[0].t) return { xCm: waypoints[0].xCm, yCm: waypoints[0].yCm };
+  const last = waypoints[waypoints.length - 1];
+  if (t >= last.t) return { xCm: last.xCm, yCm: last.yCm };
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const a = waypoints[i];
+    const b = waypoints[i + 1];
+    if (t >= a.t && t <= b.t) {
+      const span = b.t - a.t || 1;
+      const r = (t - a.t) / span;
+      return { xCm: a.xCm + (b.xCm - a.xCm) * r, yCm: a.yCm + (b.yCm - a.yCm) * r };
+    }
+  }
+  return { xCm: last.xCm, yCm: last.yCm };
+}
+
+/** 시간 t에 활성 gesture의 armPose. 없으면 default(folded). */
+function poseAtTimeInline(
+  gestures: TimelineGesture[],
+  t: number,
+): { shoulderPitchDeg: number; elbowDeg: number } | null {
+  // 활성 gesture: t in [g.t, g.t + g.durationSec]
+  const active = gestures.filter((g) => t >= g.t && t <= g.t + g.durationSec);
+  if (active.length === 0) {
+    // No active gesture → default folded pose
+    return { ...DEFAULT_POSE };
+  }
+  // 가장 최근 시작한 gesture 우선
+  const g = active[active.length - 1];
+  const localT = t - g.t;
+  return interpolateGesturePose(g.type, localT, g.durationSec);
+}
+
+/** Gesture별 (shoulderPitchDeg, elbowDeg) keyframes — duration에 비례해 정규화. */
+function interpolateGesturePose(
+  type: GestureType,
+  localT: number,
+  durationSec: number,
+): { shoulderPitchDeg: number; elbowDeg: number } {
+  const profile = GESTURE_PROFILES[type] ?? GESTURE_PROFILES.IDLE;
+  const tNorm = durationSec > 0 ? localT / durationSec : 0;
+  // Find adjacent keyframes
+  for (let i = 0; i < profile.length - 1; i++) {
+    const a = profile[i];
+    const b = profile[i + 1];
+    if (tNorm >= a.tNorm && tNorm <= b.tNorm) {
+      const span = b.tNorm - a.tNorm || 1;
+      const r = (tNorm - a.tNorm) / span;
+      return {
+        shoulderPitchDeg: a.shoulderPitchDeg + (b.shoulderPitchDeg - a.shoulderPitchDeg) * r,
+        elbowDeg: a.elbowDeg + (b.elbowDeg - a.elbowDeg) * r,
+      };
+    }
+  }
+  const last = profile[profile.length - 1];
+  return { shoulderPitchDeg: last.shoulderPitchDeg, elbowDeg: last.elbowDeg };
+}
+
+/** Gesture 정의: tNorm = 0~1 정규화 시간. 각도는 deg. */
+interface GestureKeyframeDef {
+  tNorm: number;
+  shoulderPitchDeg: number;
+  elbowDeg: number;
+}
+
+const GESTURE_PROFILES: Record<GestureType, GestureKeyframeDef[]> = {
+  IDLE: [{ tNorm: 0, shoulderPitchDeg: 25, elbowDeg: 110 }],
+  PICKUP: [
+    { tNorm: 0.0, shoulderPitchDeg: 25, elbowDeg: 110 },
+    { tNorm: 0.4, shoulderPitchDeg: 90, elbowDeg: 180 }, // reach forward
+    { tNorm: 0.7, shoulderPitchDeg: 90, elbowDeg: 180 }, // hold
+    { tNorm: 1.0, shoulderPitchDeg: 25, elbowDeg: 110 }, // return
+  ],
+  WAVE: [
+    { tNorm: 0.0, shoulderPitchDeg: 25, elbowDeg: 110 },
+    { tNorm: 0.15, shoulderPitchDeg: -10, elbowDeg: 60 }, // raise + bend
+    { tNorm: 0.85, shoulderPitchDeg: -10, elbowDeg: 60 },
+    { tNorm: 1.0, shoulderPitchDeg: 25, elbowDeg: 110 },
+  ],
+  POINT: [
+    { tNorm: 0.0, shoulderPitchDeg: 25, elbowDeg: 110 },
+    { tNorm: 0.3, shoulderPitchDeg: 60, elbowDeg: 175 }, // extend toward target
+    { tNorm: 0.8, shoulderPitchDeg: 60, elbowDeg: 175 },
+    { tNorm: 1.0, shoulderPitchDeg: 25, elbowDeg: 110 },
+  ],
+  SCAN: [
+    { tNorm: 0.0, shoulderPitchDeg: 25, elbowDeg: 110 },
+    { tNorm: 1.0, shoulderPitchDeg: 25, elbowDeg: 110 }, // SCAN은 head 회전이 주 — 우리 모델엔 없음
+  ],
+  BOW: [
+    { tNorm: 0.0, shoulderPitchDeg: 25, elbowDeg: 110 },
+    { tNorm: 0.3, shoulderPitchDeg: 45, elbowDeg: 110 }, // 살짝 숙임 (proxy)
+    { tNorm: 0.7, shoulderPitchDeg: 45, elbowDeg: 110 },
+    { tNorm: 1.0, shoulderPitchDeg: 25, elbowDeg: 110 },
+  ],
+  HANDSHAKE: [
+    { tNorm: 0.0, shoulderPitchDeg: 25, elbowDeg: 110 },
+    { tNorm: 0.25, shoulderPitchDeg: 70, elbowDeg: 130 }, // reach forward, slight bend
+    { tNorm: 0.40, shoulderPitchDeg: 70, elbowDeg: 145 }, // shake up
+    { tNorm: 0.55, shoulderPitchDeg: 70, elbowDeg: 115 }, // shake down
+    { tNorm: 0.70, shoulderPitchDeg: 70, elbowDeg: 145 }, // shake up
+    { tNorm: 0.85, shoulderPitchDeg: 70, elbowDeg: 130 },
+    { tNorm: 1.0, shoulderPitchDeg: 25, elbowDeg: 110 },
+  ],
+};
+
 /** Pose for the 3D rendering only — does not affect engineering analysis. */
 export interface ArmPose {
   shoulderPitchDeg: number; // 0 = vertical up, 90 = horizontal forward
@@ -124,6 +283,9 @@ interface DesignerVacuumState {
   robotXCm: number | null;
   robotYCm: number | null;
 
+  /** 모션 타임라인 — 시간 진행에 따라 로봇이 자동으로 이동·동작 (옵션 X). */
+  timeline: TimelineState;
+
   // base mutators (REQ-1)
   setBaseShape: (shape: VacuumBaseSpec['shape']) => void;
   setBaseHeightCm: (cm: number) => void;
@@ -168,6 +330,21 @@ interface DesignerVacuumState {
 
   setRobotPosition: (xCm: number | null, yCm: number | null) => void;
 
+  // ─── Timeline (옵션 X: 모션 시퀀스) ───────────────────────────────────────
+  addWaypoint: (waypoint: Omit<TimelineWaypoint, 'id'>) => void;
+  updateWaypoint: (id: string, patch: Partial<Omit<TimelineWaypoint, 'id'>>) => void;
+  removeWaypoint: (id: string) => void;
+  addGestureKeyframe: (gesture: Omit<TimelineGesture, 'id'>) => void;
+  updateGestureKeyframe: (id: string, patch: Partial<Omit<TimelineGesture, 'id'>>) => void;
+  removeGestureKeyframe: (id: string) => void;
+  setTimelineDuration: (seconds: number) => void;
+  setTimelineCurrentTime: (seconds: number) => void;
+  setTimelinePlaying: (playing: boolean) => void;
+  setTimelinePlaySpeed: (speed: 1 | 2 | 3) => void;
+  /** Playback hook이 매 프레임 호출 — currentTime 진행 + 파생 상태 (robotXCm, armPose) 갱신. */
+  advanceTimeline: (deltaSec: number) => void;
+  resetTimeline: () => void;
+
   setProductName: (name: string) => void;
   reset: () => void;
 }
@@ -186,6 +363,7 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   armPose: { ...DEFAULT_POSE },
   robotXCm: null,
   robotYCm: null,
+  timeline: { ...DEFAULT_TIMELINE },
 
   setBaseShape: (shape) =>
     set((s) => {
@@ -402,6 +580,78 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
 
   setRobotPosition: (xCm, yCm) => set({ robotXCm: xCm, robotYCm: yCm }),
 
+  // ─── Timeline actions ───────────────────────────────────────────────────
+  addWaypoint: (wp) =>
+    set((s) => ({
+      timeline: {
+        ...s.timeline,
+        waypoints: [...s.timeline.waypoints, { ...wp, id: makeTimelineId() }].sort(
+          (a, b) => a.t - b.t,
+        ),
+      },
+    })),
+  updateWaypoint: (id, patch) =>
+    set((s) => ({
+      timeline: {
+        ...s.timeline,
+        waypoints: s.timeline.waypoints
+          .map((w) => (w.id === id ? { ...w, ...patch } : w))
+          .sort((a, b) => a.t - b.t),
+      },
+    })),
+  removeWaypoint: (id) =>
+    set((s) => ({
+      timeline: { ...s.timeline, waypoints: s.timeline.waypoints.filter((w) => w.id !== id) },
+    })),
+  addGestureKeyframe: (g) =>
+    set((s) => ({
+      timeline: {
+        ...s.timeline,
+        gestures: [...s.timeline.gestures, { ...g, id: makeTimelineId() }].sort(
+          (a, b) => a.t - b.t,
+        ),
+      },
+    })),
+  updateGestureKeyframe: (id, patch) =>
+    set((s) => ({
+      timeline: {
+        ...s.timeline,
+        gestures: s.timeline.gestures
+          .map((g) => (g.id === id ? { ...g, ...patch } : g))
+          .sort((a, b) => a.t - b.t),
+      },
+    })),
+  removeGestureKeyframe: (id) =>
+    set((s) => ({
+      timeline: { ...s.timeline, gestures: s.timeline.gestures.filter((g) => g.id !== id) },
+    })),
+  setTimelineDuration: (sec) =>
+    set((s) => ({ timeline: { ...s.timeline, duration: clamp(sec, 1, 300) } })),
+  setTimelineCurrentTime: (sec) =>
+    set((s) => ({ timeline: { ...s.timeline, currentTime: clamp(sec, 0, s.timeline.duration) } })),
+  setTimelinePlaying: (playing) =>
+    set((s) => ({ timeline: { ...s.timeline, isPlaying: playing } })),
+  setTimelinePlaySpeed: (sp) => set((s) => ({ timeline: { ...s.timeline, playSpeed: sp } })),
+  advanceTimeline: (deltaSec) =>
+    set((s) => {
+      const tl = s.timeline;
+      let nextT = tl.currentTime + deltaSec * tl.playSpeed;
+      if (nextT >= tl.duration) {
+        nextT = nextT % tl.duration; // loop
+      }
+      // Position from waypoints (lerp), pose from gestures.
+      // 순환 import 피하려고 inline 구현 — 간단한 lerp + active gesture lookup.
+      const pos = positionAtTimeInline(tl.waypoints, nextT);
+      const pose = poseAtTimeInline(tl.gestures, nextT);
+      return {
+        timeline: { ...tl, currentTime: nextT },
+        ...(pos ? { robotXCm: pos.xCm, robotYCm: pos.yCm } : {}),
+        ...(pose ? { armPose: pose } : {}),
+      };
+    }),
+  resetTimeline: () =>
+    set((s) => ({ timeline: { ...DEFAULT_TIMELINE, duration: s.timeline.duration } })),
+
   reset: () =>
     set({
       product: { ...INITIAL_PRODUCT, arms: [DEFAULT_ARM_CENTER] },
@@ -415,5 +665,6 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
       armPose: { ...DEFAULT_POSE },
       robotXCm: null,
       robotYCm: null,
+      timeline: { ...DEFAULT_TIMELINE },
     }),
 }));

@@ -19,8 +19,10 @@ import { EnvironmentPanel } from './panels/EnvironmentPanel';
 import { CandidateComparisonPanel } from './panels/CandidateComparisonPanel';
 import { RevisionLog } from './panels/RevisionLog';
 import { EngineeringReviewPanel } from './panels/EngineeringReviewPanel';
+import { TimelinePanel } from './panels/TimelinePanel';
 import { useCandidatesStore } from '../stores/candidates-store';
 import { computeArmStatics, computeStability } from '../lib/client-statics';
+import { useTimelinePlayback } from '../lib/use-timeline-playback';
 import type { AnalyzeResponse } from '../types/product';
 
 const RobotViewport = dynamic(
@@ -71,6 +73,9 @@ function useDebounced<T>(value: T, delayMs: number): T {
 
 export function DesignerVacuumWorkbench() {
   const [compareOpen, setCompareOpen] = useState(false);
+
+  // Timeline rAF playback loop — workbench level이라 한 번만 mount.
+  useTimelinePlayback();
 
   const product = useDesignerVacuumStore((s) => s.product);
   const payloadKg = useDesignerVacuumStore((s) => s.payloadKg);
@@ -414,6 +419,9 @@ export function DesignerVacuumWorkbench() {
           />
         </aside>
       </div>
+
+      {/* Motion timeline — 룸 3D 모드에서만 표시 (로봇이 방 안에서 시퀀스 수행) */}
+      {mode === 'room3d' ? <TimelinePanel /> : null}
 
       {/* Bottom: REQ-10 engineering review */}
       <EngineeringReviewPanel
