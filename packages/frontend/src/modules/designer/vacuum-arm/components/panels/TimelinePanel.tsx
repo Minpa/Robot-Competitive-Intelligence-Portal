@@ -294,19 +294,19 @@ export function TimelinePanel() {
         <span className="mx-1 h-4 w-px bg-white/15" />
         <button
           type="button"
-          onClick={() => addGesture({ t: timeline.currentTime, durationSec: 0.5, type: 'GRAB' })}
+          onClick={() => addGesture({ t: timeline.currentTime, durationSec: 2, type: 'GRAB' })}
           className="border border-green-500/60 bg-green-500/10 hover:bg-green-500/20 text-green-200 px-2 py-1 font-mono text-[9.5px] uppercase tracking-[0.18em]"
-          title="그리퍼 닫기 — 반경 18cm 안에 가장 가까운 타겟 자동 잡음"
+          title="팔이 자동 reach + 끝에서 그리퍼 닫음 — 반경 안 closest target 잡음. 자세 동작(PICKUP 등)이 동시에 있으면 그게 우선."
         >
-          + GRAB (그리퍼 닫기)
+          + GRAB (자동 reach + 잡기)
         </button>
         <button
           type="button"
-          onClick={() => addGesture({ t: timeline.currentTime, durationSec: 0.5, type: 'RELEASE' })}
+          onClick={() => addGesture({ t: timeline.currentTime, durationSec: 2, type: 'RELEASE' })}
           className="border border-orange-500/60 bg-orange-500/10 hover:bg-orange-500/20 text-orange-200 px-2 py-1 font-mono text-[9.5px] uppercase tracking-[0.18em]"
-          title="그리퍼 열기 — 잡고 있던 거 떨어짐"
+          title="시작 시점에 그리퍼 열어 target 떨어뜨리고 팔 retract"
         >
-          + RELEASE (열기)
+          + RELEASE (놓기 + retract)
         </button>
       </div>
 

@@ -170,19 +170,28 @@ function positionAtTimeInline(
   return single(last);
 }
 
-/** 시간 t에 활성 자세 gesture의 armPose. GRAB/RELEASE는 포함 안 함 (순수 그리퍼 동작).
- *  활성 자세 gesture 없으면 null (현재 armPose 유지). */
+/** 시간 t에 활성 자세 gesture의 armPose.
+ *
+ * 우선순위:
+ *   1. PICKUP/WAVE/POINT/SCAN/BOW/HANDSHAKE 같은 "자세 전용" gesture가 활성이면 그것
+ *   2. 없으면 GRAB/RELEASE의 reach-down 기본 pose (자동 motion)
+ *   3. 둘 다 없으면 null (슬라이더/이전 자세 유지)
+ *
+ * 즉 user가 PICKUP + GRAB 동시에 추가하면 PICKUP 자세를 따름 (manual override).
+ * GRAB만 추가하면 GRAB의 reach-down 자동 동작.
+ */
 function poseAtTimeInline(
   gestures: TimelineGesture[],
   t: number,
 ): { shoulderPitchDeg: number; elbowDeg: number } | null {
-  const active = gestures.filter(
-    (g) => t >= g.t && t <= g.t + g.durationSec && g.type !== 'GRAB' && g.type !== 'RELEASE',
-  );
-  if (active.length === 0) return null; // pose 갱신 안 함 → 슬라이더/이전 자세 유지
-  const g = active[active.length - 1];
-  const localT = t - g.t;
-  return interpolateGesturePose(g.type, localT, g.durationSec);
+  const allActive = gestures.filter((g) => t >= g.t && t <= g.t + g.durationSec);
+  if (allActive.length === 0) return null;
+
+  // 자세 전용 gesture (PICKUP/WAVE 등) 우선
+  const poseOnly = allActive.filter((g) => g.type !== 'GRAB' && g.type !== 'RELEASE');
+  const usable = poseOnly.length > 0 ? poseOnly : allActive;
+  const g = usable[usable.length - 1];
+  return interpolateGesturePose(g.type, t - g.t, g.durationSec);
 }
 
 /** Gesture별 (shoulderPitchDeg, elbowDeg) keyframes — duration에 비례해 정규화. */
@@ -256,10 +265,20 @@ const GESTURE_PROFILES: Record<GestureType, GestureKeyframeDef[]> = {
     { tNorm: 0.85, shoulderPitchDeg: 70, elbowDeg: 130 },
     { tNorm: 1.0, shoulderPitchDeg: 25, elbowDeg: 110 },
   ],
-  // GRAB / RELEASE는 순수 그리퍼 동작 — armPose 변경 안 함.
-  // 자세를 바꾸려면 PICKUP 같은 자세 gesture와 함께 사용 (예: t=2 PICKUP + t=3 GRAB).
-  GRAB: [{ tNorm: 0, shoulderPitchDeg: 25, elbowDeg: 110 }],
-  RELEASE: [{ tNorm: 0, shoulderPitchDeg: 25, elbowDeg: 110 }],
+  // GRAB: rest → reach-down (앞-아래로 뻗어 floor reach) → hold.
+  // 그리퍼는 gesture END 시점에 닫힘 → reach 동작 끝난 후 잡음.
+  // PICKUP 같은 자세 gesture가 동시에 활성이면 그게 우선 (poseAtTimeInline 분기).
+  GRAB: [
+    { tNorm: 0.0, shoulderPitchDeg: 25, elbowDeg: 110 }, // rest
+    { tNorm: 0.6, shoulderPitchDeg: 110, elbowDeg: 165 }, // reach down toward floor
+    { tNorm: 1.0, shoulderPitchDeg: 110, elbowDeg: 165 }, // hold (gripper closes at end)
+  ],
+  // RELEASE: hold pose → 살짝 retract → rest. 그리퍼는 gesture START 시점에 열림.
+  RELEASE: [
+    { tNorm: 0.0, shoulderPitchDeg: 110, elbowDeg: 165 }, // hold (gripper opens here, target falls)
+    { tNorm: 0.4, shoulderPitchDeg: 100, elbowDeg: 160 }, // slight retract
+    { tNorm: 1.0, shoulderPitchDeg: 25, elbowDeg: 110 }, // rest
+  ],
 };
 
 /** Pose for the 3D rendering only — does not affect engineering analysis. */

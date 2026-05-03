@@ -21,20 +21,32 @@ const DEG_TO_RAD = Math.PI / 180;
 /**
  * 시간 t에 그리퍼가 닫혀(close)있는지. true = 닫힘, false = 열림.
  *
- * GRAB은 "그리퍼 닫기" 이벤트, RELEASE는 "열기" 이벤트.
- * 시작 시점부터 즉시 상태 변화. 가장 최근 이벤트가 우선.
+ * Timing:
+ *   - GRAB: gesture END에 닫힘 (reach 동작 끝낸 후 잡음)
+ *   - RELEASE: gesture START에 열림 (target 즉시 떨어짐, 그 후 팔 retract)
  *
- * 닫힌 동안에는 GrabController가 반경 내 closest target을 자동으로 attach.
+ * 시간 순서대로 transitions를 적용 → 가장 최근 transition 결과.
+ * 닫힌 동안에는 GrabController가 반경 내 closest target을 자동 attach.
  */
 export function isGripperClosedAtTime(
   gestures: TimelineGesture[],
   t: number,
 ): boolean {
   let closed = false;
+  // gestures는 t 오름차순. transition 시점이 다르므로 effective time을 비교.
+  // GRAB의 close transition: t = g.t + g.durationSec
+  // RELEASE의 open transition: t = g.t
+  // 두 transition 시점 모두 t에 도달했는지 보고, 그 중 가장 늦은 transition이 결과.
+  type Transition = { effT: number; close: boolean };
+  const trs: Transition[] = [];
   for (const g of gestures) {
-    if (g.t > t) break;
-    if (g.type === 'GRAB') closed = true;
-    else if (g.type === 'RELEASE') closed = false;
+    if (g.type === 'GRAB') trs.push({ effT: g.t + g.durationSec, close: true });
+    else if (g.type === 'RELEASE') trs.push({ effT: g.t, close: false });
+  }
+  trs.sort((a, b) => a.effT - b.effT);
+  for (const tr of trs) {
+    if (tr.effT > t) break;
+    closed = tr.close;
   }
   return closed;
 }
