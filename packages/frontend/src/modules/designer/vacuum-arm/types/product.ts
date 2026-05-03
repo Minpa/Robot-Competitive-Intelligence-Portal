@@ -134,6 +134,8 @@ export interface EvalIssue {
 
 /** 한 번의 시나리오 재생 결과 */
 export interface EvalResult {
+  /** Unique id, history에서 삭제할 때 사용 */
+  id: string;
   scenarioId: string;
   scenarioName: string;
   passed: boolean;
@@ -144,6 +146,8 @@ export interface EvalResult {
   durationSec: number;
   /** 어떤 spec으로 돌렸는지 (부품 교체 비교용) */
   specSummary: string;
+  /** 짧은 spec 라벨 (matrix 컬럼 헤더용) */
+  specLabel: string;
   ranAt: string; // ISO timestamp
 }
 

@@ -391,12 +391,17 @@ export function GrabbableTarget({
 
   // 매 프레임: store.heldTargetIndex가 자기와 같으면 손목 위치로 이동.
   // 잡힘 판단은 별도 GrabController가 담당 (proximity-based auto + explicit override).
+  // 또한 매 프레임 자기 world 위치를 store에 push (평가 엔진의 'targetNearPosition' 검사용).
   useFrame(() => {
     const body = bodyRef.current;
     if (!body) return;
     const state = useDesignerVacuumStore.getState();
-    const beingHeld = state.heldTargetIndex === targetIndex;
 
+    // Target world 위치 push (eval engine이 finalize 시 사용)
+    const trans = body.translation();
+    state.setTargetWorldPosition(targetIndex, [trans.x, trans.y, trans.z]);
+
+    const beingHeld = state.heldTargetIndex === targetIndex;
     if (beingHeld !== isHeldVisual) setIsHeldVisual(beingHeld);
     if (!beingHeld) return;
 

@@ -449,7 +449,7 @@ export function DesignerVacuumWorkbench() {
 }
 
 
-/* EvalEngineMount — useEvalEngine를 actuator/endEffector 카탈로그와 함께 mount.
+/* EvalEngineMount — useEvalEngine를 actuator/endEffector/furniture 카탈로그와 함께 mount.
    workbench 안에서 카탈로그가 있으므로 별도 컴포넌트로 분리. */
 function EvalEngineMount() {
   const actuatorsQ = useQuery({
@@ -462,9 +462,15 @@ function EvalEngineMount() {
     queryFn: () => designerVacuumApi.listEndEffectors(),
     staleTime: 5 * 60_000,
   });
+  const furnitureQ = useQuery({
+    queryKey: ['vacuum-arm', 'furniture'],
+    queryFn: () => designerVacuumApi.listFurniture(),
+    staleTime: 5 * 60_000,
+  });
   useEvalEngine({
     actuators: actuatorsQ.data?.actuators ?? [],
     endEffectors: endEffectorsQ.data?.endEffectors ?? [],
+    furnitureCatalog: furnitureQ.data?.furniture ?? [],
   });
   return null;
 }

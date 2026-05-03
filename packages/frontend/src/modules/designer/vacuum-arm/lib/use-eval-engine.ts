@@ -12,14 +12,21 @@
 import { useEffect, useRef } from 'react';
 import { useDesignerVacuumStore } from '../stores/designer-vacuum-store';
 import { computeArmStatics, computeStability } from './client-statics';
-import type { EvalIssue, ActuatorSpec, EndEffectorSpec } from '../types/product';
+import { computeWristWorldPosition } from '../kinematics/grasp-engine';
+import type {
+  EvalIssue,
+  ActuatorSpec,
+  EndEffectorSpec,
+  FurnitureSpec,
+} from '../types/product';
 
 interface EvalEngineProps {
   actuators: ActuatorSpec[];
   endEffectors: EndEffectorSpec[];
+  furnitureCatalog: FurnitureSpec[];
 }
 
-export function useEvalEngine({ actuators, endEffectors }: EvalEngineProps) {
+export function useEvalEngine({ actuators, endEffectors, furnitureCatalog }: EvalEngineProps) {
   const isPlaying = useDesignerVacuumStore((s) => s.timeline.isPlaying);
   const activeScenarioId = useDesignerVacuumStore((s) => s.activeScenarioId);
   const startEval = useDesignerVacuumStore((s) => s.startEval);
@@ -31,12 +38,14 @@ export function useEvalEngine({ actuators, endEffectors }: EvalEngineProps) {
     checkedGrabs: Set<string>;
     sawTorqueFail: boolean;
     sawZmpFail: boolean;
+    sawCollision: boolean;
     maxTimeReached: number;
   }>({
     lastCheck: 0,
     checkedGrabs: new Set(),
     sawTorqueFail: false,
     sawZmpFail: false,
+    sawCollision: false,
     maxTimeReached: 0,
   });
 
@@ -50,6 +59,7 @@ export function useEvalEngine({ actuators, endEffectors }: EvalEngineProps) {
       checkedGrabs: new Set(),
       sawTorqueFail: false,
       sawZmpFail: false,
+      sawCollision: false,
       maxTimeReached: 0,
     };
 
@@ -71,28 +81,102 @@ export function useEvalEngine({ actuators, endEffectors }: EvalEngineProps) {
         if (t >= g.t + g.durationSec) {
           tickRef.current.checkedGrabs.add(g.id);
           if (state.heldTargetIndex === null) {
+            // F: 가까운 타겟이 z>=30cm 위에 있는데 lift column off면 lift column 추천
+            const halfWCm = state.room.widthCm / 2;
+            const halfDCm = state.room.depthCm / 2;
+            const robotXM = ((state.robotXCm ?? halfWCm) - halfWCm) * 0.01;
+            const robotZM = ((state.robotYCm ?? halfDCm) - halfDCm) * 0.01;
+            let nearestTargetZ = 0;
+            let minDistSq = Infinity;
+            for (const tg of state.room.targets) {
+              const tWX = (tg.xCm - halfWCm) * 0.01;
+              const tWZ = (tg.yCm - halfDCm) * 0.01;
+              const dx = tWX - robotXM;
+              const dz = tWZ - robotZM;
+              const distSq = dx * dx + dz * dz;
+              if (distSq < minDistSq) {
+                minDistSq = distSq;
+                nearestTargetZ = tg.zCm;
+              }
+            }
+            const isHighReach = nearestTargetZ >= 30;
+            const liftOff = !state.product.base.hasLiftColumn;
+            const recommendation = isHighReach && liftOff
+              ? 'Lift column 활성화 + extension 늘리기 (높이 ' + nearestTargetZ + 'cm 도달용), ' +
+                '또는 로봇을 target에 더 가까이 이동, 또는 팔 길이(L1+L2) 증가'
+              : isHighReach
+                ? 'Lift column extension 더 늘리기 (현재 높이 부족), ' +
+                  '또는 팔 forearm 길이 증가, 또는 더 강한 어깨 액추에이터'
+                : '로봇을 target에 더 가까이 이동 (waypoint 위치 조정), ' +
+                  '또는 팔 길이(L1+L2) 증가, 또는 어깨 피치를 더 크게 (180°까지)';
             addEvalIssue({
               severity: 'fail',
               timeSec: t,
               category: 'reach',
               message:
                 `GRAB 시점 (t=${(g.t + g.durationSec).toFixed(1)}s)에 잡은 타겟 없음 — ` +
-                `그리퍼가 반경(18cm) 안 target에 도달 못 함`,
-              recommendation:
-                '로봇을 target에 더 가까이 이동, 또는 팔 길이(L1+L2) 증가, ' +
-                '또는 어깨 피치를 더 크게 (180°까지) 해서 바닥 reach 확보',
+                `그리퍼가 반경(18cm) 안 target에 도달 못 함` +
+                (isHighReach ? ` (target 높이 ${nearestTargetZ}cm)` : ''),
+              recommendation,
             });
           }
         }
       }
 
-      // 2. ~200ms마다 토크/ZMP 체크
+      // 2. ~200ms마다 토크/ZMP/충돌 체크
       if (now - tickRef.current.lastCheck > 200) {
         tickRef.current.lastCheck = now;
         const arm = state.product.arms[0];
         if (arm) {
           const ee = endEffectors.find((e) => e.sku === arm.endEffectorSku);
           const eeKg = ee ? ee.weightG / 1000 : 0.05;
+
+          // E: 기하학적 충돌 검사 — 손목 world 위치가 가구 AABB 안에 들어가는지
+          if (!tickRef.current.sawCollision) {
+            const halfWCm = state.room.widthCm / 2;
+            const halfDCm = state.room.depthCm / 2;
+            const robotXM = ((state.robotXCm ?? halfWCm) - halfWCm) * 0.01;
+            const robotZM = ((state.robotYCm ?? halfDCm) - halfDCm) * 0.01;
+            const robotYawRad = (state.robotYawDeg * Math.PI) / 180;
+            const wristPos = computeWristWorldPosition(
+              state.product.base,
+              arm,
+              state.armPose,
+              robotXM,
+              robotZM,
+              robotYawRad,
+            );
+            // 각 가구의 AABB와 손목 world 위치 비교
+            for (const fp of state.room.furniture) {
+              const fSpec = furnitureCatalog.find((f) => f.id === fp.furnitureId);
+              if (!fSpec) continue;
+              const fXM = (fp.xCm - halfWCm) * 0.01;
+              const fZM = (fp.yCm - halfDCm) * 0.01;
+              const halfW = (fSpec.widthCm * 0.01) / 2;
+              const halfD = (fSpec.depthCm * 0.01) / 2;
+              const halfH = (fSpec.surfaceHeightCm * 0.01) / 2;
+              // rotation 무시 (단순 AABB)
+              const inX = wristPos.x >= fXM - halfW && wristPos.x <= fXM + halfW;
+              const inY = wristPos.y >= 0 && wristPos.y <= halfH * 2;
+              const inZ = wristPos.z >= fZM - halfD && wristPos.z <= fZM + halfD;
+              if (inX && inY && inZ) {
+                tickRef.current.sawCollision = true;
+                addEvalIssue({
+                  severity: 'fail',
+                  timeSec: t,
+                  category: 'collision',
+                  message:
+                    `손목/그리퍼가 가구 "${fSpec.name}" 내부에 들어감 ` +
+                    `(t=${t.toFixed(1)}s, 손목 위치 (${(wristPos.x * 100).toFixed(0)}, ` +
+                    `${(wristPos.y * 100).toFixed(0)}, ${(wristPos.z * 100).toFixed(0)})cm)`,
+                  recommendation:
+                    '로봇 위치를 가구에서 떨어뜨리거나, 팔 자세를 가구 위/옆으로 우회. ' +
+                    'PICKUP 같은 자세 동작이 가구 내부로 reach하지 않게 timeline 조정',
+                });
+                break;
+              }
+            }
+          }
           const armStatics = computeArmStatics(arm, state.payloadKg, eeKg, 0, actuators);
           // 토크 한계 초과 검사
           for (const j of armStatics.statics.joints) {
@@ -157,8 +241,22 @@ export function useEvalEngine({ actuators, endEffectors }: EvalEngineProps) {
           `${arm.shoulderActuatorSku} ${arm.endEffectorSku}`
         : '(no arm)';
       const baseSummary = `${state.product.base.shape} ${state.product.base.diameterOrWidthCm}cm`;
+      const specSummary = `${baseSummary} | ${armSku} | payload ${state.payloadKg}kg`;
+      // 짧은 라벨 — matrix 컬럼 헤더용 (L1+L2 합계 + 액추에이터)
+      const specLabel = arm
+        ? `${arm.upperArmLengthCm + arm.forearmLengthCm}cm reach`
+        : 'no arm';
       const span = Math.max(tickRef.current.maxTimeReached, state.timeline.currentTime);
-      finalizeEval(span, `${baseSummary} | ${armSku} | payload ${state.payloadKg}kg`);
+      finalizeEval(span, specSummary, specLabel);
     };
-  }, [isPlaying, activeScenarioId, startEval, addEvalIssue, finalizeEval, actuators, endEffectors]);
+  }, [
+    isPlaying,
+    activeScenarioId,
+    startEval,
+    addEvalIssue,
+    finalizeEval,
+    actuators,
+    endEffectors,
+    furnitureCatalog,
+  ]);
 }

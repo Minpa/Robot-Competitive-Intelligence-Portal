@@ -21,6 +21,10 @@ import type {
   EvalIssue,
   EvalResult,
 } from '../types/product';
+import { TASK_SCENARIOS } from '../kinematics/task-scenarios';
+
+/** 시나리오 lookup map — finalizeEval에서 성공조건 평가 시 사용 */
+const TASK_SCENARIOS_LOOKUP = new Map(TASK_SCENARIOS.map((s) => [s.id, s]));
 import { useCandidatesStore } from './candidates-store';
 
 /** Tap into the candidates store from Zustand setters without a hook. */
@@ -380,6 +384,12 @@ interface DesignerVacuumState {
   evalResult: EvalResult | null;
   /** 재생 중 누적되는 이슈 (재생 끝나면 evalResult로 finalize). */
   evalIssuesInProgress: EvalIssue[];
+  /** 모든 평가 결과 history (matrix UI에서 시나리오 × spec 비교) */
+  evalHistory: EvalResult[];
+
+  /** 각 target의 현재 world 위치 (m) — GrabbableTarget이 매 프레임 push.
+   *  Key = room.targets 인덱스. 평가 엔진이 finalize 시 'targetNearPosition' 검사. */
+  targetWorldPositions: Record<number, [number, number, number]>;
 
   // base mutators (REQ-1)
   setBaseShape: (shape: VacuumBaseSpec['shape']) => void;
@@ -435,9 +445,15 @@ interface DesignerVacuumState {
   /** 평가 중 이슈 추가 */
   addEvalIssue: (issue: EvalIssue) => void;
   /** 평가 종료 (재생 끝/중단 시 호출, evalResult finalize) */
-  finalizeEval: (currentTimeSec: number, specSummary: string) => void;
+  finalizeEval: (currentTimeSec: number, specSummary: string, specLabel: string) => void;
   /** 평가 결과 클리어 */
   clearEvalResult: () => void;
+  /** History에서 entry 삭제 */
+  removeEvalHistoryEntry: (id: string) => void;
+  /** History 전체 삭제 */
+  clearEvalHistory: () => void;
+  /** Target world position 업데이트 (GrabbableTarget이 useFrame에서 throttled 호출) */
+  setTargetWorldPosition: (idx: number, pos: [number, number, number]) => void;
 
   // ─── Timeline (옵션 X: 모션 시퀀스) ───────────────────────────────────────
   addWaypoint: (waypoint: Omit<TimelineWaypoint, 'id'>) => void;
@@ -478,6 +494,8 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   activeScenarioId: null,
   evalResult: null,
   evalIssuesInProgress: [],
+  evalHistory: [],
+  targetWorldPositions: {},
 
   setBaseShape: (shape) =>
     set((s) => {
@@ -769,31 +787,95 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   addEvalIssue: (issue) =>
     set((s) => ({ evalIssuesInProgress: [...s.evalIssuesInProgress, issue] })),
 
-  finalizeEval: (currentTimeSec, specSummary) =>
+  finalizeEval: (currentTimeSec, specSummary, specLabel) =>
     set((s) => {
       if (!s.activeScenarioId) {
         return { evalIssuesInProgress: [] };
       }
-      // import scenario inline to avoid circular dep
-      const failureCount = s.evalIssuesInProgress.filter((i) => i.severity === 'fail').length;
-      const passed = failureCount === 0;
+      // 활성 시나리오 + 성공조건 추가 평가
+      const finalIssues = [...s.evalIssuesInProgress];
+      // task-scenarios.ts에서 lookup (circular import 방지: 동적 require 대신 inline)
+      // findScenario은 exported됨 — 여기선 string id만 알므로 task-scenarios import
+      const scn = TASK_SCENARIOS_LOOKUP.get(s.activeScenarioId);
+      let totalCriteria = 1; // noFailures default
+      let passedCriteria = 0;
+
+      if (scn) {
+        totalCriteria = scn.successCriteria.length;
+        for (const c of scn.successCriteria) {
+          if (c.kind === 'noFailures') {
+            const failCount = finalIssues.filter((i) => i.severity === 'fail').length;
+            if (failCount === 0) passedCriteria++;
+          } else if (c.kind === 'targetNearPosition') {
+            const targetCm = c.positionCm;
+            const radius = c.radiusCm;
+            const targetIdx = c.targetIndex;
+            // 시나리오에서 추가한 첫 번째 타겟의 실제 인덱스 = (basePresetTargets.length + targetIdx)
+            // 단순화: 마지막 N개 타겟이 시나리오 추가분이라고 가정
+            const totalTargets = s.room.targets.length;
+            const extraStart = totalTargets - scn.extraTargets.length;
+            const actualIdx = extraStart + targetIdx;
+            const pos = s.targetWorldPositions[actualIdx];
+            if (pos) {
+              // pos는 월드 m, 룸 좌표 cm으로 변환
+              const halfWCm = s.room.widthCm / 2;
+              const halfDCm = s.room.depthCm / 2;
+              const targetXCm = pos[0] / 0.01 + halfWCm;
+              const targetYCm = pos[2] / 0.01 + halfDCm;
+              const dx = targetXCm - targetCm.xCm;
+              const dy = targetYCm - targetCm.yCm;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist <= radius) {
+                passedCriteria++;
+              } else {
+                finalIssues.push({
+                  severity: 'fail',
+                  timeSec: currentTimeSec,
+                  category: 'goal',
+                  message:
+                    `목표 위치 미달 — target #${targetIdx}이 (${targetCm.xCm}, ${targetCm.yCm}) ` +
+                    `반경 ${radius}cm 안에 없음 (실제 위치: ${targetXCm.toFixed(0)}, ${targetYCm.toFixed(0)}, ` +
+                    `거리: ${dist.toFixed(0)}cm)`,
+                  recommendation:
+                    'RELEASE 시점의 로봇 위치/yaw 조정, 또는 target 시작 위치 재배치',
+                });
+              }
+            } else {
+              // target 위치 추적 안 됨 (rapier body ref 못 잡음) — pass로 간주
+              passedCriteria++;
+            }
+          }
+        }
+      }
+
+      const failureCount = finalIssues.filter((i) => i.severity === 'fail').length;
+      const passed = failureCount === 0 && passedCriteria === totalCriteria;
+      const result: EvalResult = {
+        id: makeTimelineId(),
+        scenarioId: s.activeScenarioId,
+        scenarioName: scn?.name ?? s.activeScenarioId,
+        passed,
+        passedCriteriaCount: passedCriteria,
+        totalCriteriaCount: totalCriteria,
+        issues: finalIssues,
+        durationSec: currentTimeSec,
+        specSummary,
+        specLabel,
+        ranAt: new Date().toISOString(),
+      };
       return {
-        evalResult: {
-          scenarioId: s.activeScenarioId,
-          scenarioName: s.activeScenarioId, // UI에서 lookup
-          passed,
-          passedCriteriaCount: passed ? 1 : 0,
-          totalCriteriaCount: 1,
-          issues: [...s.evalIssuesInProgress],
-          durationSec: currentTimeSec,
-          specSummary,
-          ranAt: new Date().toISOString(),
-        },
+        evalResult: result,
         evalIssuesInProgress: [],
+        evalHistory: [...s.evalHistory, result],
       };
     }),
 
   clearEvalResult: () => set({ evalResult: null, evalIssuesInProgress: [] }),
+  removeEvalHistoryEntry: (id) =>
+    set((s) => ({ evalHistory: s.evalHistory.filter((r) => r.id !== id) })),
+  clearEvalHistory: () => set({ evalHistory: [] }),
+  setTargetWorldPosition: (idx, pos) =>
+    set((s) => ({ targetWorldPositions: { ...s.targetWorldPositions, [idx]: pos } })),
 
   // ─── Timeline actions ───────────────────────────────────────────────────
   // 모든 mutation은 deriveCurrentFrame로 visual 즉시 반영 (waypoint 추가/편집/스크럽 시
@@ -894,5 +976,7 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
       activeScenarioId: null,
       evalResult: null,
       evalIssuesInProgress: [],
+      evalHistory: [],
+      targetWorldPositions: {},
     }),
 }));
