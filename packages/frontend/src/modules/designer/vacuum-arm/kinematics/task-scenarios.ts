@@ -84,9 +84,11 @@ export const TASK_SCENARIOS: TaskScenario[] = [
       { t: 10, xCm: 80, yCm: 60, yawDeg: 270 },
     ],
     gestures: [
-      // PICKUP으로 자세 잡고 (높은 reach)
-      { t: 4, durationSec: 3, type: 'PICKUP' },
-      // GRAB (PICKUP과 겹쳐도 PICKUP이 우선)
+      // PICKUP으로 자세 잡고 (높은 reach) — GRAB END(t=7.5)까지 덮어 reach pose 유지
+      // 그렇지 않으면 GRAB END에 PICKUP 끝나서 GRAB의 default reach-down (바닥용)으로
+      // fallback → 컵(z=75cm)에 도달 불가
+      { t: 4, durationSec: 4, type: 'PICKUP' },
+      // GRAB (PICKUP이 활성인 동안에는 PICKUP pose 우선, GRAB은 그리퍼 close만 담당)
       { t: 5.5, durationSec: 2, type: 'GRAB' },
       // 싱크 도착 후 RELEASE
       { t: 12, durationSec: 2, type: 'RELEASE' },

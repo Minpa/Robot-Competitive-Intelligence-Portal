@@ -26,11 +26,18 @@ export function useEvalEngine({ actuators, endEffectors }: EvalEngineProps) {
   const addEvalIssue = useDesignerVacuumStore((s) => s.addEvalIssue);
   const finalizeEval = useDesignerVacuumStore((s) => s.finalizeEval);
 
-  const tickRef = useRef<{ lastCheck: number; checkedGrabs: Set<string>; sawTorqueFail: boolean; sawZmpFail: boolean }>({
+  const tickRef = useRef<{
+    lastCheck: number;
+    checkedGrabs: Set<string>;
+    sawTorqueFail: boolean;
+    sawZmpFail: boolean;
+    maxTimeReached: number;
+  }>({
     lastCheck: 0,
     checkedGrabs: new Set(),
     sawTorqueFail: false,
     sawZmpFail: false,
+    maxTimeReached: 0,
   });
 
   useEffect(() => {
@@ -38,13 +45,24 @@ export function useEvalEngine({ actuators, endEffectors }: EvalEngineProps) {
     if (!isPlaying || !activeScenarioId) return;
 
     startEval();
-    tickRef.current = { lastCheck: 0, checkedGrabs: new Set(), sawTorqueFail: false, sawZmpFail: false };
+    tickRef.current = {
+      lastCheck: 0,
+      checkedGrabs: new Set(),
+      sawTorqueFail: false,
+      sawZmpFail: false,
+      maxTimeReached: 0,
+    };
 
     let raf = 0;
     const tick = () => {
       const state = useDesignerVacuumStore.getState();
       const t = state.timeline.currentTime;
       const now = performance.now();
+
+      // max 도달 시간 추적 (loop되어도 정확한 playback span 표시)
+      if (t > tickRef.current.maxTimeReached) {
+        tickRef.current.maxTimeReached = t;
+      }
 
       // 1. GRAB END 시 reach 체크 — 한 GRAB당 한 번만
       for (const g of state.timeline.gestures) {
@@ -112,10 +130,16 @@ export function useEvalEngine({ actuators, endEffectors }: EvalEngineProps) {
         }
       }
 
-      // 3. 재생 끝났는지
-      if (t >= state.timeline.duration) {
-        // useTimelinePlayback이 자동 loop하므로, 여기선 한 cycle만 평가
-        // (사용자가 멈추거나 한 바퀴 다 돌면 finalizeEval은 cleanup에서)
+      // 3. 시나리오 평가는 1 cycle만 — duration 도달하면 자동 stop
+      // (loop되면 결과가 계속 갱신되어 혼란)
+      // maxTimeReached로 거의 끝까지 갔는지 판단 (loop 직후 t≈0인 경우 max는 ≈duration)
+      if (
+        tickRef.current.maxTimeReached >= state.timeline.duration - 0.5 &&
+        t < 1.0 // loop 직후 (다시 0 근처로 돌아옴)
+      ) {
+        // 한 cycle 완료 → 자동 정지
+        useDesignerVacuumStore.getState().setTimelinePlaying(false);
+        return; // raf 재예약 안 함 (effect cleanup이 실행되면서 finalize)
       }
 
       raf = requestAnimationFrame(tick);
@@ -124,7 +148,8 @@ export function useEvalEngine({ actuators, endEffectors }: EvalEngineProps) {
 
     return () => {
       cancelAnimationFrame(raf);
-      // 재생 종료 시 finalize
+      // 재생 종료 시 finalize. durationSec은 maxTimeReached 사용 (loop 후
+      // currentTime이 0으로 돌아와도 정확한 playback span 표시).
       const state = useDesignerVacuumStore.getState();
       const arm = state.product.arms[0];
       const armSku = arm
@@ -132,7 +157,8 @@ export function useEvalEngine({ actuators, endEffectors }: EvalEngineProps) {
           `${arm.shoulderActuatorSku} ${arm.endEffectorSku}`
         : '(no arm)';
       const baseSummary = `${state.product.base.shape} ${state.product.base.diameterOrWidthCm}cm`;
-      finalizeEval(state.timeline.currentTime, `${baseSummary} | ${armSku} | payload ${state.payloadKg}kg`);
+      const span = Math.max(tickRef.current.maxTimeReached, state.timeline.currentTime);
+      finalizeEval(span, `${baseSummary} | ${armSku} | payload ${state.payloadKg}kg`);
     };
   }, [isPlaying, activeScenarioId, startEval, addEvalIssue, finalizeEval, actuators, endEffectors]);
 }
