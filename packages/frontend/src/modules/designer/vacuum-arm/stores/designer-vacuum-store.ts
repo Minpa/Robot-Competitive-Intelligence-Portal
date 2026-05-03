@@ -89,6 +89,26 @@ function makeTimelineId(): string {
   return `tl${Date.now()}_${timelineIdCounter++}`;
 }
 
+/**
+ * 새 timeline 상태를 받아서, 그 시점의 (robotXCm, robotYCm, armPose)를 함께 갱신해
+ * Zustand에 적용할 partial state를 반환.
+ *
+ * 모든 timeline mutation (waypoint 추가/삭제/편집, 스크럽, 재생 진행)에서 사용 →
+ * timeline 변경 시 visual이 즉시 반영됨. 이 함수가 핵심.
+ */
+function deriveCurrentFrame(
+  partial: { timeline: TimelineState },
+): { timeline: TimelineState; robotXCm?: number; robotYCm?: number; armPose?: ArmPose } {
+  const tl = partial.timeline;
+  const pos = positionAtTimeInline(tl.waypoints, tl.currentTime);
+  const pose = poseAtTimeInline(tl.gestures, tl.currentTime);
+  return {
+    timeline: tl,
+    ...(pos ? { robotXCm: pos.xCm, robotYCm: pos.yCm } : {}),
+    ...(pose ? { armPose: pose } : {}),
+  };
+}
+
 /** 시간 t에 로봇이 어디 있어야 하는지 — 인접 waypoints 사이 lerp.
  *  waypoints는 t 오름차순으로 정렬됐다고 가정 (store actions에서 보장).
  *  결과 null = waypoint 없음 → 위치 갱신 안 함. */
@@ -113,19 +133,14 @@ function positionAtTimeInline(
   return { xCm: last.xCm, yCm: last.yCm };
 }
 
-/** 시간 t에 활성 gesture의 armPose. 없으면 default(folded). */
+/** 시간 t에 활성 gesture의 armPose. 활성 gesture 없으면 null (현재 armPose 유지). */
 function poseAtTimeInline(
   gestures: TimelineGesture[],
   t: number,
 ): { shoulderPitchDeg: number; elbowDeg: number } | null {
-  // 활성 gesture: t in [g.t, g.t + g.durationSec]
   const active = gestures.filter((g) => t >= g.t && t <= g.t + g.durationSec);
-  if (active.length === 0) {
-    // No active gesture → default folded pose
-    return { ...DEFAULT_POSE };
-  }
-  // 가장 최근 시작한 gesture 우선
-  const g = active[active.length - 1];
+  if (active.length === 0) return null; // pose 갱신 안 함 → 슬라이더 값 보존
+  const g = active[active.length - 1]; // 가장 최근 시작한 gesture
   const localT = t - g.t;
   return interpolateGesturePose(g.type, localT, g.durationSec);
 }
@@ -581,54 +596,64 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   setRobotPosition: (xCm, yCm) => set({ robotXCm: xCm, robotYCm: yCm }),
 
   // ─── Timeline actions ───────────────────────────────────────────────────
+  // 모든 mutation은 deriveCurrentFrame로 visual 즉시 반영 (waypoint 추가/편집/스크럽 시
+  // 로봇 위치·자세가 새 timeline 상태에 맞춰 갱신됨).
   addWaypoint: (wp) =>
-    set((s) => ({
-      timeline: {
-        ...s.timeline,
-        waypoints: [...s.timeline.waypoints, { ...wp, id: makeTimelineId() }].sort(
-          (a, b) => a.t - b.t,
-        ),
-      },
-    })),
+    set((s) => {
+      const newWaypoints = [...s.timeline.waypoints, { ...wp, id: makeTimelineId() }].sort(
+        (a, b) => a.t - b.t,
+      );
+      return deriveCurrentFrame({
+        timeline: { ...s.timeline, waypoints: newWaypoints },
+      });
+    }),
   updateWaypoint: (id, patch) =>
-    set((s) => ({
-      timeline: {
-        ...s.timeline,
-        waypoints: s.timeline.waypoints
-          .map((w) => (w.id === id ? { ...w, ...patch } : w))
-          .sort((a, b) => a.t - b.t),
-      },
-    })),
+    set((s) => {
+      const newWaypoints = s.timeline.waypoints
+        .map((w) => (w.id === id ? { ...w, ...patch } : w))
+        .sort((a, b) => a.t - b.t);
+      return deriveCurrentFrame({
+        timeline: { ...s.timeline, waypoints: newWaypoints },
+      });
+    }),
   removeWaypoint: (id) =>
-    set((s) => ({
-      timeline: { ...s.timeline, waypoints: s.timeline.waypoints.filter((w) => w.id !== id) },
-    })),
+    set((s) =>
+      deriveCurrentFrame({
+        timeline: { ...s.timeline, waypoints: s.timeline.waypoints.filter((w) => w.id !== id) },
+      }),
+    ),
   addGestureKeyframe: (g) =>
-    set((s) => ({
-      timeline: {
-        ...s.timeline,
-        gestures: [...s.timeline.gestures, { ...g, id: makeTimelineId() }].sort(
-          (a, b) => a.t - b.t,
-        ),
-      },
-    })),
+    set((s) => {
+      const newGestures = [...s.timeline.gestures, { ...g, id: makeTimelineId() }].sort(
+        (a, b) => a.t - b.t,
+      );
+      return deriveCurrentFrame({
+        timeline: { ...s.timeline, gestures: newGestures },
+      });
+    }),
   updateGestureKeyframe: (id, patch) =>
-    set((s) => ({
-      timeline: {
-        ...s.timeline,
-        gestures: s.timeline.gestures
-          .map((g) => (g.id === id ? { ...g, ...patch } : g))
-          .sort((a, b) => a.t - b.t),
-      },
-    })),
+    set((s) => {
+      const newGestures = s.timeline.gestures
+        .map((g) => (g.id === id ? { ...g, ...patch } : g))
+        .sort((a, b) => a.t - b.t);
+      return deriveCurrentFrame({
+        timeline: { ...s.timeline, gestures: newGestures },
+      });
+    }),
   removeGestureKeyframe: (id) =>
-    set((s) => ({
-      timeline: { ...s.timeline, gestures: s.timeline.gestures.filter((g) => g.id !== id) },
-    })),
+    set((s) =>
+      deriveCurrentFrame({
+        timeline: { ...s.timeline, gestures: s.timeline.gestures.filter((g) => g.id !== id) },
+      }),
+    ),
   setTimelineDuration: (sec) =>
     set((s) => ({ timeline: { ...s.timeline, duration: clamp(sec, 1, 300) } })),
   setTimelineCurrentTime: (sec) =>
-    set((s) => ({ timeline: { ...s.timeline, currentTime: clamp(sec, 0, s.timeline.duration) } })),
+    set((s) =>
+      deriveCurrentFrame({
+        timeline: { ...s.timeline, currentTime: clamp(sec, 0, s.timeline.duration) },
+      }),
+    ),
   setTimelinePlaying: (playing) =>
     set((s) => ({ timeline: { ...s.timeline, isPlaying: playing } })),
   setTimelinePlaySpeed: (sp) => set((s) => ({ timeline: { ...s.timeline, playSpeed: sp } })),
@@ -639,18 +664,16 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
       if (nextT >= tl.duration) {
         nextT = nextT % tl.duration; // loop
       }
-      // Position from waypoints (lerp), pose from gestures.
-      // 순환 import 피하려고 inline 구현 — 간단한 lerp + active gesture lookup.
-      const pos = positionAtTimeInline(tl.waypoints, nextT);
-      const pose = poseAtTimeInline(tl.gestures, nextT);
-      return {
+      return deriveCurrentFrame({
         timeline: { ...tl, currentTime: nextT },
-        ...(pos ? { robotXCm: pos.xCm, robotYCm: pos.yCm } : {}),
-        ...(pose ? { armPose: pose } : {}),
-      };
+      });
     }),
   resetTimeline: () =>
-    set((s) => ({ timeline: { ...DEFAULT_TIMELINE, duration: s.timeline.duration } })),
+    set((s) =>
+      deriveCurrentFrame({
+        timeline: { ...DEFAULT_TIMELINE, duration: s.timeline.duration },
+      }),
+    ),
 
   reset: () =>
     set({
