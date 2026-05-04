@@ -610,7 +610,11 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
       return { product: { ...s.product, arms: next } };
     }),
 
-  setProductName: (name) => set((s) => ({ product: { ...s.product, name } })),
+  setProductName: (name) =>
+    set((s) => {
+      logRev('product.name', s.product.name, name);
+      return { product: { ...s.product, name } };
+    }),
 
   setPayloadKg: (kg) =>
     set((s) => {

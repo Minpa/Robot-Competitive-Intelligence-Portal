@@ -6,16 +6,16 @@ import { AlertTriangle, ArrowLeft } from 'lucide-react';
 import { DesignerVacuumWorkbench } from '@/modules/designer/vacuum-arm';
 
 const REQUIREMENTS = [
-  { id: 'REQ-1', title: '베이스 5변수 + 3D 시각화', milestone: 'M1 W3 ~ M2 W2', status: 'in-progress' },
-  { id: 'REQ-2', title: '팔 9변수 (1~2개)', milestone: 'M2 W1 ~ M2 W4', status: 'pending' },
-  { id: 'REQ-3', title: '작업 공간 메쉬', milestone: 'M2 W4 ~ M3 W1', status: 'pending' },
-  { id: 'REQ-4', title: '정역학 토크', milestone: 'M3 W1 ~ M3 W2', status: 'pending' },
-  { id: 'REQ-5', title: 'ZMP 안정성', milestone: 'M3 W2 ~ M3 W4', status: 'pending' },
-  { id: 'REQ-6', title: '2D 방 에디터', milestone: 'M2 W3 ~ M3 W2', status: 'pending' },
-  { id: 'REQ-7', title: '환경 도달성', milestone: 'M3 W3 ~ M4 W1', status: 'pending' },
-  { id: 'REQ-8', title: '후보 비교', milestone: 'M4 W1 ~ M4 W2', status: 'pending' },
-  { id: 'REQ-9', title: '변경 로그', milestone: 'M4 W2 ~ M4 W3', status: 'pending' },
-  { id: 'REQ-10', title: '검토 의견 + PDF', milestone: 'M4 W2 ~ M4 W4', status: 'pending' },
+  { id: 'REQ-1', title: '베이스 5변수 + 3D 시각화', milestone: 'M1 W3 ~ M2 W2', status: 'live' },
+  { id: 'REQ-2', title: '팔 9변수 (1~2개)', milestone: 'M2 W1 ~ M2 W4', status: 'live' },
+  { id: 'REQ-3', title: '작업 공간 메쉬', milestone: 'M2 W4 ~ M3 W1', status: 'live' },
+  { id: 'REQ-4', title: '정역학 토크', milestone: 'M3 W1 ~ M3 W2', status: 'live' },
+  { id: 'REQ-5', title: 'ZMP 안정성', milestone: 'M3 W2 ~ M3 W4', status: 'live' },
+  { id: 'REQ-6', title: '2D 방 에디터', milestone: 'M2 W3 ~ M3 W2', status: 'live' },
+  { id: 'REQ-7', title: '환경 도달성', milestone: 'M3 W3 ~ M4 W1', status: 'live' },
+  { id: 'REQ-8', title: '후보 비교', milestone: 'M4 W1 ~ M4 W2', status: 'live' },
+  { id: 'REQ-9', title: '변경 로그', milestone: 'M4 W2 ~ M4 W3', status: 'live' },
+  { id: 'REQ-10', title: '검토 의견 + PDF', milestone: 'M4 W2 ~ M4 W4', status: 'in-progress' },
 ];
 
 export default function ArgosDesignerVacuumArmPage() {
@@ -43,7 +43,7 @@ export default function ArgosDesignerVacuumArmPage() {
           <div className="h-4 w-px bg-white/15" />
           <div className="flex flex-col">
             <span className="font-mono text-[9px] font-medium uppercase tracking-[0.22em] text-[#E63950]">
-              Prototype · Phase 1 PoC v1.2 · REQ-1 · vacuum-arm
+              Prototype · Phase 1 PoC v1.2 · REQ-1~9 LIVE · vacuum-arm
             </span>
             <span className="mt-0.5 text-[13px] font-medium text-white">
               ARGOS-Designer · 청소기 + 매니퓰레이터 사양 수렴
@@ -88,18 +88,24 @@ export default function ArgosDesignerVacuumArmPage() {
               key={req.id}
               className={[
                 'border p-3 transition-colors',
-                req.status === 'in-progress'
-                  ? 'border-gold/50 bg-[#1a1408]'
-                  : 'border-white/10 bg-[#0f0f0f]',
+                req.status === 'live'
+                  ? 'border-gold/40 bg-[#1a1408]'
+                  : req.status === 'in-progress'
+                    ? 'border-[#E63950]/50 bg-[#1f0d10]'
+                    : 'border-white/10 bg-[#0f0f0f]',
               ].join(' ')}
             >
               <div className="flex items-center gap-1.5">
                 <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-gold">
                   {req.id}
                 </span>
-                {req.status === 'in-progress' ? (
-                  <span className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#E63950]">
+                {req.status === 'live' ? (
+                  <span className="font-mono text-[8px] uppercase tracking-[0.18em] text-gold/80">
                     · live
+                  </span>
+                ) : req.status === 'in-progress' ? (
+                  <span className="font-mono text-[8px] uppercase tracking-[0.18em] text-[#E63950]">
+                    · in-progress
                   </span>
                 ) : null}
               </div>
