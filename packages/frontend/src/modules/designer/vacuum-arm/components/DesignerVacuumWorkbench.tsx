@@ -260,11 +260,12 @@ export function DesignerVacuumWorkbench() {
         </aside>
 
         {/* Center: 3D Viewport (또는 2D Room Editor) + Timeline (room3d 모드).
-            3D 뷰포트만 다크 — spec §5에서 다크 캔버스 + light 오브젝트 대비 권장. */}
+            3D 뷰포트만 다크 — spec §5에서 다크 캔버스 + light 오브젝트 대비 권장.
+            모드 토글은 viewport 위쪽 별도 row로 분리 — 절대 위치 시 RoomCanvas
+            자체 툴바와 겹치므로. */}
         <section className="col-span-6 flex flex-col bg-designer-viewport min-h-0">
-          <div className="relative flex-1 min-h-[400px]">
-          {/* Mode toggle — 활성만 accent 채움. spec §5.4 */}
-          <div className="absolute left-3 top-3 z-10 flex items-center gap-1">
+          {/* Mode toggle — 항상 보이는 상단 row. spec §5.4 활성만 accent 채움. */}
+          <div className="flex items-center gap-1 border-b border-designer-rule bg-designer-ink px-3 py-2">
             <ViewportModeButton active={mode === 'product3d'} onClick={() => setMode('product3d')}>
               로봇 3D
             </ViewportModeButton>
@@ -279,33 +280,39 @@ export function DesignerVacuumWorkbench() {
               방 3D
             </ViewportModeButton>
           </div>
+          <div className="relative flex-1 min-h-[400px]">
 
-          <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
-            <span className="font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-white/85 px-2 py-1 border border-white/20 bg-black/40">
-              {base.shape} · {base.diameterOrWidthCm.toFixed(0)}×{base.heightCm.toFixed(0)} cm · {base.weightKg.toFixed(1)}kg
-            </span>
-            {armCount > 0 ? (
-              <span className="font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-designer-accent px-2 py-1 border border-designer-accent/60 bg-black/40">
-                팔 {armCount}개
+          {/* 우측 HUD — 3D 전용. 2D 룸 에디터에서는 RoomCanvas 자체 툴바와
+              겹치므로 숨김. base info / 팔 / workspace / ZMP / rotate / labels
+              모두 3D 전용 시각 옵션이라 2D에선 의미 없음. */}
+          {mode !== 'roomEditor' ? (
+            <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
+              <span className="font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-white/85 px-2 py-1 border border-white/20 bg-black/40">
+                {base.shape} · {base.diameterOrWidthCm.toFixed(0)}×{base.heightCm.toFixed(0)} cm · {base.weightKg.toFixed(1)}kg
               </span>
-            ) : null}
-            {armCount > 0 ? (
-              <>
-                <ViewportToggle active={showWorkspaceMesh} onClick={toggleWorkspaceMesh} title="Toggle workspace mesh (REQ-3)">
-                  ◑ workspace
-                </ViewportToggle>
-                <ViewportToggle active={showZmp} onClick={toggleZmp} title="Toggle ZMP overlay (REQ-5)">
-                  ◎ ZMP
-                </ViewportToggle>
-              </>
-            ) : null}
-            <ViewportToggle active={autoRotate} onClick={toggleAutoRotate} title="Auto-rotate">
-              ⟳ rotate
-            </ViewportToggle>
-            <ViewportToggle active={showLabels} onClick={toggleLabels} title="Toggle labels">
-              labels
-            </ViewportToggle>
-          </div>
+              {armCount > 0 ? (
+                <span className="font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-designer-accent px-2 py-1 border border-designer-accent/60 bg-black/40">
+                  팔 {armCount}개
+                </span>
+              ) : null}
+              {armCount > 0 ? (
+                <>
+                  <ViewportToggle active={showWorkspaceMesh} onClick={toggleWorkspaceMesh} title="Toggle workspace mesh (REQ-3)">
+                    ◑ workspace
+                  </ViewportToggle>
+                  <ViewportToggle active={showZmp} onClick={toggleZmp} title="Toggle ZMP overlay (REQ-5)">
+                    ◎ ZMP
+                  </ViewportToggle>
+                </>
+              ) : null}
+              <ViewportToggle active={autoRotate} onClick={toggleAutoRotate} title="Auto-rotate">
+                ⟳ rotate
+              </ViewportToggle>
+              <ViewportToggle active={showLabels} onClick={toggleLabels} title="Toggle labels">
+                labels
+              </ViewportToggle>
+            </div>
+          ) : null}
           {/* HUD — spec §5: axis indicator + 1m scale bar + object chip + workspace label */}
           {mode !== 'roomEditor' ? (
             <ViewportHud
