@@ -3,13 +3,18 @@
 /**
  * EnvironmentPanel · REQ-7
  *
- * Per-target reachability + base traversability summary, shown in the right
- * column when room mode is active or when room has targets.
+ * Light theme per ARGOS-UX-Spec.
+ *   - 2x2 KPI grid (통과 영역 / 차단 / 클리어런스 / 면적)
+ *   - 타겟 도달성 카드 — PASS/WARN/FAIL chip + 사유 + payload 마진
  */
 
 import { useQuery } from '@tanstack/react-query';
 import type { EnvironmentResult, RoomConfig, TargetReachabilityResult } from '../../types/product';
 import { designerVacuumApi } from '../../api/designer-vacuum-api';
+
+const ACCENT = '#D4A22F';
+const RISK = '#D63F6F';
+const PASS = '#3F8C6E';
 
 interface EnvironmentPanelProps {
   room: RoomConfig;
@@ -27,11 +32,9 @@ export function EnvironmentPanel({ room, environment, isLoading }: EnvironmentPa
 
   if (room.targets.length === 0 && room.obstacles.length === 0) {
     return (
-      <div className="space-y-2 border-t border-white/10 pt-4 mt-4">
-        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">
-          Environment Fit · REQ-7
-        </span>
-        <p className="text-[11px] text-white/55 leading-relaxed">
+      <div className="space-y-3 border-t border-designer-rule pt-6 mt-6">
+        <SectionLabel>Environment Fit · REQ-7</SectionLabel>
+        <p className="text-[15px] text-designer-muted leading-relaxed">
           [방 에디터] 탭에서 가구·장애물·타겟을 추가하면 도달성 / 통과 가능 영역 분석이 표시됩니다.
         </p>
       </div>
@@ -39,42 +42,52 @@ export function EnvironmentPanel({ room, environment, isLoading }: EnvironmentPa
   }
 
   return (
-    <div className="space-y-3 border-t border-white/10 pt-4 mt-4">
+    <div className="space-y-4 border-t border-designer-rule pt-6 mt-6">
       <div className="flex items-baseline justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">
-          Environment Fit · REQ-7
-        </span>
+        <SectionLabel>Environment Fit · REQ-7</SectionLabel>
         {isLoading ? (
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold/75">▸ 분석 중</span>
+          <span className="font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-designer-accent">
+            ▸ 분석 중
+          </span>
         ) : null}
       </div>
 
-      {/* Traversability summary */}
+      {/* KPI grid */}
       {environment?.traversability ? (
-        <div className="grid grid-cols-2 gap-1.5">
-          <Stat
-            label="통과 가능 영역"
-            value={`${environment.traversability.coveragePct.toFixed(1)}%`}
-            highlight={environment.traversability.coveragePct < 60 ? '#F2A93B' : '#3acc6f'}
+        <div className="grid grid-cols-2 gap-3">
+          <KpiCard
+            label="통과 영역"
+            value={environment.traversability.coveragePct.toFixed(1)}
+            unit="%"
+            status={
+              environment.traversability.coveragePct >= 80
+                ? { label: 'PASS', color: PASS }
+                : environment.traversability.coveragePct >= 60
+                  ? { label: 'WARN', color: ACCENT }
+                  : { label: 'FAIL', color: RISK }
+            }
           />
-          <Stat
+          <KpiCard
             label="차단 장애물"
-            value={`${environment.traversability.blockedObstacleIndices.length} / ${room.obstacles.length}개`}
+            value={`${environment.traversability.blockedObstacleIndices.length}`}
+            unit={`/ ${room.obstacles.length}`}
           />
-          <Stat
+          <KpiCard
             label="베이스 클리어런스"
-            value={`${environment.traversability.groundClearanceCm.toFixed(1)} cm`}
+            value={environment.traversability.groundClearanceCm.toFixed(1)}
+            unit="cm"
           />
-          <Stat
+          <KpiCard
             label="바닥 면적"
-            value={`${(environment.traversability.reachableFloorAreaCm2 / 10000).toFixed(2)} m²`}
+            value={(environment.traversability.reachableFloorAreaCm2 / 10000).toFixed(2)}
+            unit="m²"
           />
         </div>
       ) : null}
 
       {/* Per-target reachability */}
-      <div className="space-y-1">
-        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/50">
+      <div className="space-y-2">
+        <span className="font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-designer-muted">
           타겟 도달성 ({room.targets.length}개)
         </span>
         {room.targets.map((t, i) => {
@@ -86,32 +99,28 @@ export function EnvironmentPanel({ room, environment, isLoading }: EnvironmentPa
           return (
             <div
               key={i}
-              className="flex items-start gap-2 border border-white/10 px-2 py-1.5"
-              style={{ borderLeftColor: status.color, borderLeftWidth: 2 }}
+              className="border border-designer-rule bg-designer-card p-3"
+              style={{ borderLeftColor: status.color, borderLeftWidth: 3 }}
             >
-              <span className="font-mono text-[14px] leading-none mt-0.5" style={{ color: status.color }}>
-                {status.icon}
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline justify-between">
-                  <span className="text-[12px] text-white truncate">
-                    {spec?.name ?? `타겟 ${i + 1}`}
-                  </span>
-                  <span className="font-mono text-[10px] text-white/50 tabular-nums shrink-0 ml-2">
-                    ({t.xCm.toFixed(0)}, {t.yCm.toFixed(0)}, z {t.zCm.toFixed(0)}) cm
-                  </span>
-                </div>
-                <p className="text-[11px] mt-0.5 leading-snug" style={{ color: status.color }}>
-                  {result?.reasonText ?? '대기 중…'}
-                </p>
-                {result?.canReach && result.payloadMarginKg !== 0 ? (
-                  <p className="font-mono text-[10px] text-white/45 mt-0.5">
-                    payload margin {result.payloadMarginKg > 0 ? '+' : ''}
-                    {result.payloadMarginKg.toFixed(2)} kg ·
-                    팔 {result.armUsed !== null ? result.armUsed + 1 : '-'}
-                  </p>
-                ) : null}
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-[15px] font-medium text-designer-ink truncate">
+                  {spec?.name ?? `타겟 ${i + 1}`}
+                </span>
+                <span className="font-mono text-[13px] text-designer-muted tabular-nums shrink-0">
+                  ({t.xCm.toFixed(0)}, {t.yCm.toFixed(0)}, z {t.zCm.toFixed(0)})
+                </span>
               </div>
+              <p className="text-[13px] mt-1 leading-snug" style={{ color: status.color }}>
+                <span className="font-mono font-semibold mr-1">{status.label}</span>
+                {result?.reasonText ?? '대기 중…'}
+              </p>
+              {result?.canReach && result.payloadMarginKg !== 0 ? (
+                <p className="font-mono text-[13px] text-designer-muted mt-1">
+                  payload margin {result.payloadMarginKg > 0 ? '+' : ''}
+                  {result.payloadMarginKg.toFixed(2)} kg ·
+                  팔 {result.armUsed !== null ? result.armUsed + 1 : '-'}
+                </p>
+              ) : null}
             </div>
           );
         })}
@@ -120,33 +129,56 @@ export function EnvironmentPanel({ room, environment, isLoading }: EnvironmentPa
   );
 }
 
-function reachabilityStatus(r: TargetReachabilityResult | undefined): { icon: string; color: string } {
-  if (!r) return { icon: '○', color: 'rgba(255,255,255,0.35)' };
-  if (r.canReach) return { icon: '✓', color: '#3acc6f' };
-  if (r.reason === 'BASE_BLOCKED' || r.reason === 'HEIGHT_OUT_OF_REACH') {
-    return { icon: '⚠', color: '#F2A93B' };
-  }
-  return { icon: '✗', color: '#E63950' };
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-designer-muted">
+      {children}
+    </span>
+  );
 }
 
-function Stat({
+function KpiCard({
   label,
   value,
-  highlight,
+  unit,
+  status,
 }: {
   label: string;
   value: string;
-  highlight?: string;
+  unit: string;
+  status?: { label: string; color: string };
 }) {
   return (
-    <div className="border border-white/10 px-2 py-1">
-      <span className="block text-[10.5px] text-white/55">{label}</span>
-      <span
-        className="block font-mono text-[12px] tabular-nums mt-0.5"
-        style={{ color: highlight ?? '#fff' }}
-      >
-        {value}
-      </span>
+    <div className="border border-designer-rule bg-designer-card p-3">
+      <div className="flex items-baseline justify-between">
+        <span className="text-[13px] font-medium text-designer-muted">{label}</span>
+        {status ? (
+          <span
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 border font-mono text-[11px] font-semibold uppercase tracking-[0.14em]"
+            style={{ borderColor: status.color, color: status.color }}
+          >
+            <span className="block h-1 w-1 rounded-full" style={{ background: status.color }} />
+            {status.label}
+          </span>
+        ) : null}
+      </div>
+      <div className="mt-1.5 flex items-baseline gap-1">
+        <span className="font-mono text-[28px] font-semibold leading-none tabular-nums text-designer-ink">
+          {value}
+        </span>
+        {unit ? (
+          <span className="font-mono text-[15px] tabular-nums text-designer-muted">{unit}</span>
+        ) : null}
+      </div>
     </div>
   );
+}
+
+function reachabilityStatus(r: TargetReachabilityResult | undefined): { label: string; color: string } {
+  if (!r) return { label: '대기', color: '#6B6B6B' };
+  if (r.canReach) return { label: 'PASS', color: PASS };
+  if (r.reason === 'BASE_BLOCKED' || r.reason === 'HEIGHT_OUT_OF_REACH') {
+    return { label: 'WARN', color: ACCENT };
+  }
+  return { label: 'FAIL', color: RISK };
 }
