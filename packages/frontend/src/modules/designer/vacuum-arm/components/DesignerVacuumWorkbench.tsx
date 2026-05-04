@@ -177,8 +177,8 @@ export function DesignerVacuumWorkbench() {
   return (
     <>
       {/* Candidate toolbar */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-white/10 bg-[#0f0f0f] px-4 py-2">
-        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/50">
+      <div className="flex flex-wrap items-center gap-2 border-b border-designer-rule bg-designer-surface-2 px-4 py-2">
+        <span className="font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-designer-muted">
           후보안 ({candidates.length})
         </span>
         <button
@@ -188,7 +188,7 @@ export function DesignerVacuumWorkbench() {
             if (!name) return;
             saveCandidate(name, product, room, payloadKg, clientAnalysis ?? analyzeQ.data ?? null);
           }}
-          className="border border-gold/40 bg-[#1a1408] px-2 py-1 font-mono text-[11px] uppercase tracking-[0.18em] text-gold hover:bg-[#231a0c] transition-colors"
+          className="bg-designer-ink px-3 py-1.5 font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-white hover:bg-designer-ink-2 transition-colors"
         >
           + 후보 저장
         </button>
@@ -197,15 +197,21 @@ export function DesignerVacuumWorkbench() {
             const selected = selectedForCompareIds.includes(c.id);
             const hasAnalysis = !!c.analysis;
             return (
-              <div key={c.id} className="flex items-center border border-white/15 px-2 py-1 gap-1.5">
+              <div
+                key={c.id}
+                className={[
+                  'flex items-center border px-2 py-1 gap-1.5 bg-designer-card',
+                  selected ? 'border-designer-accent' : 'border-designer-rule',
+                ].join(' ')}
+              >
                 <input
                   type="checkbox"
                   checked={selected}
                   onChange={() => toggleCompareSelection(c.id)}
-                  className="cursor-pointer"
+                  className="cursor-pointer accent-designer-accent"
                   aria-label={`비교 ${c.name}`}
                 />
-                <span className="text-[12px] text-white/85 truncate max-w-[8rem]">{c.name}</span>
+                <span className="text-[15px] text-designer-ink truncate max-w-[10rem]">{c.name}</span>
                 <button
                   type="button"
                   disabled={!hasAnalysis}
@@ -215,7 +221,7 @@ export function DesignerVacuumWorkbench() {
                       '_blank'
                     );
                   }}
-                  className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold/80 hover:text-gold disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-designer-ink-2 hover:text-designer-accent disabled:opacity-30 disabled:cursor-not-allowed"
                   title={hasAnalysis ? '사양서 PDF 출력' : '분석 데이터 없음 — 워크벤치에서 다시 저장'}
                 >
                   PDF
@@ -223,7 +229,7 @@ export function DesignerVacuumWorkbench() {
                 <button
                   type="button"
                   onClick={() => removeCandidate(c.id)}
-                  className="text-[11px] text-white/40 hover:text-[#E63950]"
+                  className="text-[15px] text-designer-muted hover:text-designer-risk"
                   title="삭제"
                 >
                   ×
@@ -236,16 +242,16 @@ export function DesignerVacuumWorkbench() {
           type="button"
           disabled={selectedForCompareIds.length < 2}
           onClick={() => setCompareOpen(true)}
-          className="ml-auto border border-white/15 bg-black/40 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.18em] text-white/70 disabled:opacity-30 disabled:cursor-not-allowed hover:border-gold hover:text-gold transition-colors"
+          className="ml-auto border border-designer-rule bg-designer-card px-3 py-1.5 font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-designer-ink-2 disabled:opacity-30 disabled:cursor-not-allowed hover:border-designer-accent hover:text-designer-ink transition-colors"
         >
           비교 ({selectedForCompareIds.length})
         </button>
       </div>
 
-      <div className="grid flex-1 grid-cols-12 gap-px bg-white/5 p-px min-h-[640px]">
+      <div className="grid flex-1 grid-cols-12 gap-px bg-designer-rule p-px min-h-[640px]">
         {/* Left: SpecParametersPanel + RevisionLog */}
         <aside
-          className="col-span-3 overflow-y-auto bg-[#0a0a0a] p-5"
+          className="col-span-3 overflow-y-auto bg-designer-surface p-6"
           style={{ maxHeight: '100%' }}
         >
           <SpecParametersPanel />
@@ -253,124 +259,53 @@ export function DesignerVacuumWorkbench() {
         </aside>
 
         {/* Center: 3D Viewport (또는 2D Room Editor) + Timeline (room3d 모드).
-            flex-col로 viewport flex-1 + timeline 자연 높이. */}
-        <section className="col-span-6 flex flex-col bg-[#171c24] min-h-0">
+            3D 뷰포트만 다크 — spec §5에서 다크 캔버스 + light 오브젝트 대비 권장. */}
+        <section className="col-span-6 flex flex-col bg-designer-viewport min-h-0">
           <div className="relative flex-1 min-h-[400px]">
-          {/* Mode toggle */}
+          {/* Mode toggle — 활성만 accent 채움. spec §5.4 */}
           <div className="absolute left-3 top-3 z-10 flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setMode('product3d')}
-              className={[
-                'font-mono text-[10.5px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
-                mode === 'product3d'
-                  ? 'border-gold text-gold'
-                  : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
-              ].join(' ')}
-              aria-pressed={mode === 'product3d'}
-            >
+            <ViewportModeButton active={mode === 'product3d'} onClick={() => setMode('product3d')}>
               로봇 3D
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('roomEditor')}
-              className={[
-                'font-mono text-[10.5px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
-                mode === 'roomEditor'
-                  ? 'border-gold text-gold'
-                  : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
-              ].join(' ')}
-              aria-pressed={mode === 'roomEditor'}
-            >
+            </ViewportModeButton>
+            <ViewportModeButton active={mode === 'roomEditor'} onClick={() => setMode('roomEditor')}>
               방 에디터 (2D)
-            </button>
-            <button
-              type="button"
+            </ViewportModeButton>
+            <ViewportModeButton
+              active={mode === 'room3d'}
               onClick={() => setMode('room3d')}
-              className={[
-                'font-mono text-[10.5px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
-                mode === 'room3d'
-                  ? 'border-gold text-gold'
-                  : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
-              ].join(' ')}
-              aria-pressed={mode === 'room3d'}
               title="방 + 로봇을 3D로 (옵션 A)"
             >
               방 3D
-            </button>
+            </ViewportModeButton>
           </div>
 
           <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
-            <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-white/60 px-2 py-1 border border-white/15 bg-black/40">
+            <span className="font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-white/85 px-2 py-1 border border-white/20 bg-black/40">
               {base.shape} · {base.diameterOrWidthCm.toFixed(0)}×{base.heightCm.toFixed(0)} cm · {base.weightKg.toFixed(1)}kg
             </span>
             {armCount > 0 ? (
-              <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-gold/85 px-2 py-1 border border-gold/40 bg-black/40">
+              <span className="font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-designer-accent px-2 py-1 border border-designer-accent/60 bg-black/40">
                 팔 {armCount}개
               </span>
             ) : null}
             {armCount > 0 ? (
               <>
-                <button
-                  type="button"
-                  onClick={toggleWorkspaceMesh}
-                  className={[
-                    'font-mono text-[10.5px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
-                    showWorkspaceMesh
-                      ? 'border-gold/60 text-gold'
-                      : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
-                  ].join(' ')}
-                  aria-pressed={showWorkspaceMesh}
-                  title="Toggle workspace mesh (REQ-3)"
-                >
+                <ViewportToggle active={showWorkspaceMesh} onClick={toggleWorkspaceMesh} title="Toggle workspace mesh (REQ-3)">
                   ◑ workspace
-                </button>
-                <button
-                  type="button"
-                  onClick={toggleZmp}
-                  className={[
-                    'font-mono text-[10.5px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
-                    showZmp
-                      ? 'border-gold/60 text-gold'
-                      : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
-                  ].join(' ')}
-                  aria-pressed={showZmp}
-                  title="Toggle ZMP overlay (REQ-5)"
-                >
+                </ViewportToggle>
+                <ViewportToggle active={showZmp} onClick={toggleZmp} title="Toggle ZMP overlay (REQ-5)">
                   ◎ ZMP
-                </button>
+                </ViewportToggle>
               </>
             ) : null}
-            <button
-              type="button"
-              onClick={toggleAutoRotate}
-              className={[
-                'font-mono text-[10.5px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
-                autoRotate
-                  ? 'border-gold/60 text-gold'
-                  : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
-              ].join(' ')}
-              aria-pressed={autoRotate}
-              title="Auto-rotate"
-            >
+            <ViewportToggle active={autoRotate} onClick={toggleAutoRotate} title="Auto-rotate">
               ⟳ rotate
-            </button>
-            <button
-              type="button"
-              onClick={toggleLabels}
-              className={[
-                'font-mono text-[10.5px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
-                showLabels
-                  ? 'border-gold/60 text-gold'
-                  : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
-              ].join(' ')}
-              aria-pressed={showLabels}
-              title="Toggle labels"
-            >
+            </ViewportToggle>
+            <ViewportToggle active={showLabels} onClick={toggleLabels} title="Toggle labels">
               labels
-            </button>
+            </ViewportToggle>
           </div>
-          <div className="absolute left-3 bottom-3 z-10 font-mono text-[10px] uppercase tracking-[0.22em] text-white/35">
+          <div className="absolute left-3 bottom-3 z-10 font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-white/55">
             {name}
           </div>
           <div className="absolute inset-0">
@@ -408,7 +343,7 @@ export function DesignerVacuumWorkbench() {
 
         {/* Right: EngineeringAnalysisPanel (REQ-4) */}
         <aside
-          className="col-span-3 overflow-y-auto bg-[#0a0a0a] p-5"
+          className="col-span-3 overflow-y-auto bg-designer-surface p-6"
           style={{ maxHeight: '100%' }}
         >
           <EngineeringAnalysisPanel
@@ -454,6 +389,69 @@ export function DesignerVacuumWorkbench() {
   );
 }
 
+
+/* ─── Viewport HUD buttons — spec §5.4 ────────────────────────────────────
+ * 활성 모드만 accent 채움 + ink 글자, 비활성은 transparent + muted, hover 시
+ * surface-2 배경. 다크 viewport 위라 white 베이스로 처리.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+function ViewportModeButton({
+  active,
+  onClick,
+  title,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-pressed={active}
+      className={[
+        'font-mono text-[13px] font-semibold uppercase tracking-[0.14em] px-2.5 py-1.5 transition-colors',
+        active
+          ? 'bg-designer-accent text-designer-ink'
+          : 'bg-transparent text-white/65 hover:bg-white/10 hover:text-white',
+      ].join(' ')}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ViewportToggle({
+  active,
+  onClick,
+  title,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-pressed={active}
+      className={[
+        'font-mono text-[13px] font-semibold uppercase tracking-[0.14em] px-2 py-1 border transition-colors',
+        active
+          ? 'border-designer-accent bg-designer-accent/15 text-designer-accent'
+          : 'border-white/20 bg-black/40 text-white/65 hover:border-white/40 hover:text-white',
+      ].join(' ')}
+    >
+      {children}
+    </button>
+  );
+}
 
 /* EvalEngineMount — useEvalEngine를 actuator/endEffector/furniture 카탈로그와 함께 mount.
    workbench 안에서 카탈로그가 있으므로 별도 컴포넌트로 분리. */

@@ -48,6 +48,23 @@ module.exports = {
         'neg-soft':  '#EED4CA',
         info:       '#1F4A7A',
         'info-soft': '#D4E0EE',
+        // ARGOS Designer UX spec (2026-05-04) — vacuum-arm panels
+        // Light surfaces with single accent + viewport-only dark.
+        // 기존 paper(#F8F7F3)/ink-*/gold(#B8892B)와 별개로 spec 정확도 높음.
+        designer: {
+          surface:   '#FAFAF7',
+          'surface-2': '#F2F0EA',
+          card:      '#FFFFFF',
+          ink:       '#1A1A1A',
+          'ink-2':   '#3A3A3A',
+          muted:     '#6B6B6B',
+          rule:      '#E2DED4',
+          accent:    '#D4A22F',
+          'accent-soft': 'rgba(212, 162, 47, 0.25)',
+          risk:      '#D63F6F',
+          pass:      '#3F8C6E',
+          viewport:  '#1F1F23',
+        },
       },
       fontFamily: {
         display: ['var(--font-sans)', 'Inter', 'Pretendard', 'system-ui', 'sans-serif'],
