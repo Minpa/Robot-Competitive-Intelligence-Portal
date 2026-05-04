@@ -13,6 +13,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useDesignerVacuumStore } from '../../stores/designer-vacuum-store';
+import { solveIKForTarget } from '../../kinematics/grasp-engine';
 
 const STEP_OPTIONS_CM = [5, 10, 20, 50] as const;
 const ROTATE_STEP_DEG = 15;
@@ -147,6 +148,55 @@ export function ViewportControlsOverlay({
                   <PresetButton onClick={() => applyPosePreset('reach')}>리치</PresetButton>
                   <PresetButton onClick={() => applyPosePreset('folded')}>접힘</PresetButton>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const s = getStore();
+                    const arm = s.product.arms[0];
+                    if (!arm || s.room.targets.length === 0) return;
+                    const halfW = s.room.widthCm / 2;
+                    const halfD = s.room.depthCm / 2;
+                    const robotXM = ((s.robotXCm ?? halfW) - halfW) * 0.01;
+                    const robotZM = ((s.robotYCm ?? halfD) - halfD) * 0.01;
+                    // 가장 가까운 타겟 찾기 (3D 직선 거리)
+                    let bestIdx = 0;
+                    let bestDistSq = Infinity;
+                    for (let i = 0; i < s.room.targets.length; i++) {
+                      const t = s.room.targets[i];
+                      const tWX = (t.xCm - halfW) * 0.01;
+                      const tWZ = (t.yCm - halfD) * 0.01;
+                      const tWY = Math.max(t.zCm, 0.5) * 0.01;
+                      const dx = tWX - robotXM;
+                      const dz = tWZ - robotZM;
+                      const dy = tWY;
+                      const dsq = dx * dx + dy * dy + dz * dz;
+                      if (dsq < bestDistSq) {
+                        bestDistSq = dsq;
+                        bestIdx = i;
+                      }
+                    }
+                    const target = s.room.targets[bestIdx];
+                    const targetWorld = {
+                      x: (target.xCm - halfW) * 0.01,
+                      y: Math.max(target.zCm, 0.5) * 0.01,
+                      z: (target.yCm - halfD) * 0.01,
+                    };
+                    const yawRad = (s.robotYawDeg * Math.PI) / 180;
+                    const ik = solveIKForTarget(s.product.base, arm, targetWorld, robotXM, robotZM, yawRad);
+                    setArmPose({ shoulderPitchDeg: ik.shoulderPitchDeg, elbowDeg: ik.elbowDeg });
+                    if (ik.outOfReach) {
+                      // 시각적 알림은 outOfReach 시 그리퍼 마커가 타겟에서 떨어진 위치에 보임
+                      // (arm이 fully extended toward target 방향). 콘솔 로그로 spec 부족 신호.
+                      console.warn(
+                        `[IK] 타겟 "${s.room.targets[bestIdx].targetObjectId}"에 도달 불가 — L1+L2 또는 mount/yaw 조정 필요`,
+                      );
+                    }
+                  }}
+                  className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] border border-designer-accent/60 bg-designer-accent/20 hover:bg-designer-accent/35 text-designer-accent px-2 py-1"
+                  title="가장 가까운 타겟까지 자동 reach (2-link IK). 닿지 않으면 fully-extended toward target."
+                >
+                  ⌖ Auto-Reach
+                </button>
               </div>
 
               <span className="h-7 w-px bg-white/15" />

@@ -21,6 +21,7 @@ import { OrbitControls, Grid, Environment, Html } from '@react-three/drei';
 import { useQuery } from '@tanstack/react-query';
 import { WorkspaceMesh } from './WorkspaceMesh';
 import { ZMPOverlay } from './ZMPOverlay';
+import { GripperTipMarker } from './GripperTipMarker';
 import { KinematicRobot } from './RobotViewport';
 import { FurnitureVisual } from '../../kinematics/furniture-visuals';
 import {
@@ -328,6 +329,9 @@ export function Room3DViewport({
               </GrabbableTarget>
             );
           })}
+
+          {/* 그리퍼 tip 마커 — 사용자가 자세 슬라이더 조정 시 어디 도달하는지 즉각 표시 */}
+          <GripperTipMarker halfWCm={halfWCm} halfDCm={halfDCm} />
 
           {/* 로봇 — kinematic body, store position+yaw 추종 + 드래그 가능. 가구를 자동 push */}
           <KinematicRobotBody

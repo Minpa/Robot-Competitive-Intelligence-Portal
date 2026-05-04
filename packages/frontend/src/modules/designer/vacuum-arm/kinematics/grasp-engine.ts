@@ -198,3 +198,144 @@ export function computeGripWorldPosition(
 ): THREE.Vector3 {
   return computeWristWorldPosition(base, arm, armPose, robotXM, robotZM, robotYawRad);
 }
+
+/* ─── 2-link IK: 타겟 world 위치 → (shoulderPitchDeg, elbowDeg) ──────────
+ *
+ * 어깨 회전 평면(2D)에서 풀이:
+ *   - shoulder 원점에서 target까지 평면거리 d
+ *   - L1+L2 ≥ d ≥ |L1−L2| 이면 해 존재
+ *   - cos(elbowJoint) = (d² − L1² − L2²) / (2·L1·L2)  → elbow의 "굽힘" 각
+ *   - 어깨 각도: target 방향 각 ± atan2 보정
+ *
+ * 좌표 변환:
+ *   target world (m) → robot local (yaw 역회전, robot pos 빼기)
+ *   → shoulder local (mount offset · base height · shoulder height 빼기)
+ *   → 그 다음 mount의 회전 평면(YZ for center/front, XY for left/right) 안에서 풀이
+ *
+ * mount=center/front: 평면=YZ, 평면 좌표 (y, z) = (target_local.y, target_local.z)
+ *   shoulder=0 → +Y(위), 90 → +Z(앞), 180 → -Y(아래)
+ *   shoulder = atan2(planeZ, planeY)  (각도 0 = 위, +90 = 앞)
+ *   여기에 IK 보정 (target까지 직선 vs upper arm) 더함
+ *
+ * mount=left: 평면=XY, 평면 좌표 (y, x) — shoulder axis [0,0,1] 기준
+ * mount=right: 평면=XY, 평면 좌표 (y, -x)
+ *
+ * 현재 FK에서 elbowJoint = elbowRad − π. 즉 elbowDeg=180 → joint=0 (펴짐),
+ * elbowDeg=0 → joint=−π (완전 접힘 back). IK 결과 elbowJoint에 +π 해서 elbowDeg.
+ * ─────────────────────────────────────────────────────────────────────── */
+
+export interface IKResult {
+  shoulderPitchDeg: number;
+  elbowDeg: number;
+  /** 타겟이 reach 한계 밖이면 true. 그래도 가능한 한 target 방향으로 fully extend. */
+  outOfReach: boolean;
+}
+
+export function solveIKForTarget(
+  base: VacuumBaseSpec,
+  arm: ManipulatorArmSpec,
+  targetWorld: { x: number; y: number; z: number },
+  robotXM: number,
+  robotZM: number,
+  robotYawRad = 0,
+): IKResult {
+  const L1 = arm.upperArmLengthCm * CM_TO_M;
+  const L2 = arm.forearmLengthCm * CM_TO_M;
+
+  // 1) target → shoulder local frame
+  // robot → robot-local: target 좌표에서 robot 위치 뺀 뒤 yaw 역회전
+  const dxWorld = targetWorld.x - robotXM;
+  const dzWorld = targetWorld.z - robotZM;
+  const cy = Math.cos(-robotYawRad);
+  const sy = Math.sin(-robotYawRad);
+  const localXAfterYaw = dxWorld * cy - dzWorld * sy;
+  const localZAfterYaw = dxWorld * sy + dzWorld * cy;
+  // pedestal offset 빼기 (mount-dependent)
+  const mount = computeMountOffset(arm, base);
+  const px = localXAfterYaw - mount.x;
+  const pz = localZAfterYaw - mount.z;
+  // shoulder origin: pedestal + (0, base.heightCm + arm.shoulderHeightAboveBaseCm, 0)
+  const shoulderY = (base.heightCm + arm.shoulderHeightAboveBaseCm) * CM_TO_M;
+  const py = targetWorld.y - shoulderY;
+  // 이제 target은 shoulder local: (px, py, pz)
+
+  // 2) 회전 평면 좌표 (planeUp=어깨 0° 방향=+Y, planeForward=어깨 90° 방향)
+  let planeUp: number;
+  let planeForward: number;
+  let outOfPlaneDist: number;
+  switch (arm.mountPosition) {
+    case 'center':
+    case 'front':
+      // axis=X. plane=YZ. shoulder=0 → +Y, shoulder=90 (CCW around X) → +Z (sin>0)
+      // FK: rotate (0,1,0) by shoulderRad around X → (0, cos, sin) = (0, cos, sin)
+      // 그래서 +Z = forward(앞). plane forward = pz, plane up = py.
+      planeUp = py;
+      planeForward = pz;
+      outOfPlaneDist = px;
+      break;
+    case 'left':
+      // axis=Z. plane=XY. shoulder=0 → +Y, shoulder=90 (CCW around Z) → -X
+      // (0,1,0) rotate by θ around Z → (-sin, cos, 0). 그래서 forward = -X.
+      planeUp = py;
+      planeForward = -px;
+      outOfPlaneDist = pz;
+      break;
+    case 'right':
+      // axis=-Z. (0,1,0) rotate by θ around -Z → (sin, cos, 0). forward = +X.
+      planeUp = py;
+      planeForward = px;
+      outOfPlaneDist = pz;
+      break;
+  }
+
+  // 3) plane 안에서 2-link IK
+  const d = Math.sqrt(planeUp * planeUp + planeForward * planeForward);
+  let outOfReach = false;
+  let elbowJoint: number; // FK에서 사용하는 joint angle (0 = 펴짐, -π = 완전 접힘 back)
+  let shoulderRad: number;
+
+  if (d > L1 + L2) {
+    // 닿지 않음 — fully extended, target 방향으로 직선
+    outOfReach = true;
+    elbowJoint = 0; // 펴짐 (= elbowDeg 180)
+    shoulderRad = Math.atan2(planeForward, planeUp);
+  } else if (d < Math.abs(L1 - L2)) {
+    // 너무 가까움 — folded. 흔치 않음.
+    outOfReach = true;
+    elbowJoint = -Math.PI; // 완전 접힘
+    shoulderRad = Math.atan2(planeForward, planeUp);
+  } else {
+    // 일반 해: cosine rule
+    const cosElbowInternal = (L1 * L1 + L2 * L2 - d * d) / (2 * L1 * L2);
+    const elbowInternal = Math.acos(Math.max(-1, Math.min(1, cosElbowInternal)));
+    // elbowInternal: upper arm과 forearm 사이 내각 (0 = 직선 펴짐, π = 완전 접힘)
+    // FK joint angle = elbowInternal - π (음수 자연 접힘)
+    // "elbow up" 자세 선택: 위쪽으로 굽힘 → joint = -(π - elbowInternal) = elbowInternal - π
+    elbowJoint = elbowInternal - Math.PI;
+
+    // shoulder 각: target 방향 각 + α (upper arm이 직선과 이루는 각)
+    const targetAngle = Math.atan2(planeForward, planeUp); // 0 = 위, π/2 = 앞
+    const cosAlpha = (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d);
+    const alpha = Math.acos(Math.max(-1, Math.min(1, cosAlpha)));
+    // elbow up 선택과 일관 — target 방향에서 alpha만큼 앞쪽으로 쏠림
+    shoulderRad = targetAngle + alpha;
+  }
+
+  // 4) elbowJoint → elbowDeg, shoulderRad → shoulderPitchDeg
+  const elbowDeg = (elbowJoint + Math.PI) * (180 / Math.PI); // 0~180
+  const shoulderPitchDeg = shoulderRad * (180 / Math.PI);
+
+  // 5) 범위 clamp + 평면 외 거리 경고
+  const clampedShoulder = Math.max(-30, Math.min(180, shoulderPitchDeg));
+  const clampedElbow = Math.max(0, Math.min(180, elbowDeg));
+  if (Math.abs(outOfPlaneDist) > 0.05) {
+    // 5cm 이상 평면 밖 — 엄밀히 IK 불가능, robot yaw 회전 필요. outOfReach=true로 플래그.
+    outOfReach = true;
+  }
+
+  return {
+    shoulderPitchDeg: clampedShoulder,
+    elbowDeg: clampedElbow,
+    outOfReach,
+  };
+}
