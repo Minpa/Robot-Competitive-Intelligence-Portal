@@ -14,7 +14,7 @@
  *   surfaceHeightCm / zCm           * 0.01   (worldY, 위)
  */
 
-import { Suspense, useMemo, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import * as THREE from 'three';
 import { Canvas, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Grid, Environment, Html } from '@react-three/drei';
@@ -22,6 +22,14 @@ import { useQuery } from '@tanstack/react-query';
 import { WorkspaceMesh } from './WorkspaceMesh';
 import { ZMPOverlay } from './ZMPOverlay';
 import { GripperTipMarker } from './GripperTipMarker';
+import { ViewportMinimap } from './ViewportMinimap';
+
+/** OrbitControls 인스턴스의 최소 인터페이스 — drei가 노출하는 three-stdlib
+ *  OrbitControls를 직접 import하지 않고 필요한 메서드만 사용. */
+type OrbitControlsLike = {
+  target: { set: (x: number, y: number, z: number) => void };
+  update: () => void;
+} | null;
 import { KinematicRobot } from './RobotViewport';
 import { FurnitureVisual } from '../../kinematics/furniture-visuals';
 import {
@@ -166,7 +174,27 @@ export function Room3DViewport({
 
   const camRadius = Math.max(roomWidthM, roomDepthM) * 0.95;
   const camHeight = Math.max(roomWidthM, roomDepthM) * 0.55;
-  const target = [0, totalHeightM / 2, 0] as [number, number, number];
+
+  // 카메라 target — 미니맵 상호작용으로 이동 가능하게 state로 lift.
+  // Y는 robot 중심 높이 유지, XZ만 미니맵에서 변경.
+  const [cameraTarget, setCameraTarget] = useState<[number, number, number]>([
+    0,
+    totalHeightM / 2,
+    0,
+  ]);
+  // totalHeightM이 변하면 target.y도 자동 갱신 (lift column 토글 등)
+  useEffect(() => {
+    setCameraTarget((prev) => [prev[0], totalHeightM / 2, prev[2]]);
+  }, [totalHeightM]);
+
+  // OrbitControls ref — minimap에서 cameraTarget 변경 시 controls.target 동기화
+  const controlsRef = useRef<OrbitControlsLike>(null);
+  useEffect(() => {
+    const c = controlsRef.current;
+    if (!c) return;
+    c.target.set(cameraTarget[0], cameraTarget[1], cameraTarget[2]);
+    c.update();
+  }, [cameraTarget]);
 
   return (
     <div className="relative w-full h-full">
@@ -374,17 +402,33 @@ export function Room3DViewport({
       />
 
       <OrbitControls
+        ref={controlsRef}
         autoRotate={autoRotate}
         autoRotateSpeed={0.6}
         enabled={!isDragging}
         enablePan
         enableZoom
         enableRotate
-        target={target}
+        target={cameraTarget}
         minDistance={0.8}
         maxDistance={Math.max(roomWidthM, roomDepthM) * 2}
       />
       </Canvas>
+
+      {/* 미니맵 — 우측 상단 floating panel. 클릭/드래그로 카메라 target 이동. */}
+      <ViewportMinimap
+        room={room}
+        furnitureCatalog={furnitureCatalog}
+        targetCatalog={targetCatalog}
+        robotXCm={robotXCm}
+        robotYCm={robotYCm}
+        robotYawDeg={robotYawDeg}
+        robotDiameterCm={base.diameterOrWidthCm}
+        cameraTargetWorld={{ x: cameraTarget[0], z: cameraTarget[2] }}
+        onCameraTargetChange={(wx, wz) => {
+          setCameraTarget([wx, cameraTarget[1], wz]);
+        }}
+      />
 
       {/* 빈 방 hint — 방 에디터로 안내 + 원클릭 프리셋 로드 */}
       {isEmpty ? (
