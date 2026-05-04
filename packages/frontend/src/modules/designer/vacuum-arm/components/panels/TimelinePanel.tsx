@@ -17,10 +17,13 @@
  *   - "+ 웨이포인트 (현재 시점·로봇 위치)" 버튼
  *   - "+ 동작" 버튼 + 종류 selector
  *   - 항목별 삭제 버튼
+ *   - 가상 컨트롤러 (D-pad) — 전·후·좌·우 회전. 드래그 대신 버튼으로
+ *     로봇 이동 가능 (yaw 0 = +y(아래), CCW)
  *
  * 단일 로봇 시나리오 전용. 룸 3D 모드에서만 표시.
  */
 
+import { useEffect, useRef, useState } from 'react';
 import { useDesignerVacuumStore } from '../../stores/designer-vacuum-store';
 import type { GestureType, TimelineWaypoint, TimelineGesture } from '../../stores/designer-vacuum-store';
 
@@ -226,7 +229,8 @@ export function TimelinePanel() {
         aria-label="시간 스크럽"
       />
 
-      {/* 로봇 회전 슬라이더 — 위치와 별도로 yaw 제어 */}
+      {/* 로봇 가상 컨트롤러 + yaw 슬라이더 */}
+      <RobotController />
       <div className="flex items-center gap-2 mb-2">
         <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-designer-muted w-16">
           로봇 yaw
@@ -475,5 +479,171 @@ function GestureList({ gestures }: { gestures: TimelineGesture[] }) {
         ))}
       </div>
     </div>
+  );
+}
+
+/* ─── RobotController — D-pad 형태의 가상 컨트롤러 ────────────────────────
+ * 드래그 대신 버튼으로 로봇 이동·회전. press-and-hold로 연속 이동 지원.
+ *
+ * 좌표계 (Room3DViewport 참조):
+ *   - 2D 룸: x = 가로(우측+), y = 세로(아래+). 원점 (0,0) = 좌상단
+ *   - 3D 월드: yaw=0 → 로봇이 +z 방향 = +y 방향(아래) 향함
+ *   - yaw +90° (CCW from above) → +x 방향(우측) 향함
+ *
+ * 따라서 forward 벡터:
+ *   dx = sin(yawRad) * step
+ *   dy = cos(yawRad) * step
+ * ───────────────────────────────────────────────────────────────────────── */
+
+const STEP_OPTIONS_CM = [5, 10, 20, 50] as const;
+const ROTATE_STEP_DEG = 15;
+const HOLD_REPEAT_MS = 80;
+
+function RobotController() {
+  const room = useDesignerVacuumStore((s) => s.room);
+  const robotXCm = useDesignerVacuumStore((s) => s.robotXCm);
+  const robotYCm = useDesignerVacuumStore((s) => s.robotYCm);
+  const robotYawDeg = useDesignerVacuumStore((s) => s.robotYawDeg);
+  const setRobotPosition = useDesignerVacuumStore((s) => s.setRobotPosition);
+  const setRobotYawDeg = useDesignerVacuumStore((s) => s.setRobotYawDeg);
+
+  const [stepCm, setStepCm] = useState<number>(10);
+
+  // 클릭 시점에 room/robot state는 stale 가능 — getState로 최신값 읽음
+  const getStore = useDesignerVacuumStore.getState;
+
+  const move = (signedStep: number) => {
+    const s = getStore();
+    const yaw = (s.robotYawDeg * Math.PI) / 180;
+    const curX = s.robotXCm ?? s.room.widthCm / 2;
+    const curY = s.robotYCm ?? s.room.depthCm / 2;
+    const dx = Math.sin(yaw) * signedStep;
+    const dy = Math.cos(yaw) * signedStep;
+    const nx = Math.max(0, Math.min(s.room.widthCm, curX + dx));
+    const ny = Math.max(0, Math.min(s.room.depthCm, curY + dy));
+    setRobotPosition(nx, ny);
+  };
+
+  const rotate = (deg: number) => {
+    const s = getStore();
+    setRobotYawDeg(s.robotYawDeg + deg);
+  };
+
+  return (
+    <div className="mb-3 border border-designer-rule bg-designer-card px-3 py-2">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-designer-muted">
+          로봇 컨트롤러
+        </span>
+
+        {/* D-pad: 좌회전 / 후진+전진 (column) / 우회전 */}
+        <div className="flex items-center gap-1">
+          <HoldButton onTrigger={() => rotate(-ROTATE_STEP_DEG)} title="좌회전 (CCW −15°)">
+            <span className="text-[14px] leading-none">↺</span>
+          </HoldButton>
+          <div className="flex flex-col gap-1">
+            <HoldButton onTrigger={() => move(stepCm)} title={`전진 +${stepCm}cm`} small>
+              <span className="text-[12px] leading-none">▲</span>
+            </HoldButton>
+            <HoldButton onTrigger={() => move(-stepCm)} title={`후진 −${stepCm}cm`} small>
+              <span className="text-[12px] leading-none">▼</span>
+            </HoldButton>
+          </div>
+          <HoldButton onTrigger={() => rotate(ROTATE_STEP_DEG)} title="우회전 (CW +15°)">
+            <span className="text-[14px] leading-none">↻</span>
+          </HoldButton>
+        </div>
+
+        {/* 이동 step 선택 */}
+        <div className="flex items-center gap-1">
+          <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-designer-muted">
+            step
+          </span>
+          {STEP_OPTIONS_CM.map((cm) => (
+            <button
+              key={cm}
+              type="button"
+              onClick={() => setStepCm(cm)}
+              className={[
+                'font-mono text-[10px] uppercase tracking-[0.14em] px-2 py-1 border transition-colors',
+                stepCm === cm
+                  ? 'border-designer-accent bg-designer-accent/15 text-designer-ink'
+                  : 'border-designer-rule bg-designer-card text-designer-ink-2 hover:border-designer-ink-2',
+              ].join(' ')}
+            >
+              {cm}cm
+            </button>
+          ))}
+        </div>
+
+        {/* 현재 상태 readout */}
+        <span className="font-mono text-[10px] tabular-nums text-designer-muted ml-auto">
+          ({(robotXCm ?? room.widthCm / 2).toFixed(0)}, {(robotYCm ?? room.depthCm / 2).toFixed(0)})cm · yaw {robotYawDeg.toFixed(0)}°
+        </span>
+
+        {/* 방 중앙으로 리셋 */}
+        <button
+          type="button"
+          onClick={() => {
+            setRobotPosition(room.widthCm / 2, room.depthCm / 2);
+            setRobotYawDeg(0);
+          }}
+          className="border border-designer-rule bg-designer-card hover:border-designer-ink-2 text-designer-muted hover:text-designer-ink px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em]"
+          title="방 중앙으로 리셋 (yaw=0)"
+        >
+          홈
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* HoldButton — 누르고 있으면 일정 간격으로 onTrigger 반복.
+ * 한 번 클릭은 즉시 한 번만. small=true면 높이 작게. */
+function HoldButton({
+  onTrigger,
+  title,
+  small,
+  children,
+}: {
+  onTrigger: () => void;
+  title?: string;
+  small?: boolean;
+  children: React.ReactNode;
+}) {
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stop = () => {
+    if (intervalRef.current !== null) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
+  const start = () => {
+    onTrigger(); // 즉시 1회
+    stop();
+    intervalRef.current = setInterval(onTrigger, HOLD_REPEAT_MS);
+  };
+
+  // unmount 시 안전하게 cleanup
+  useEffect(() => stop, []);
+
+  return (
+    <button
+      type="button"
+      title={title}
+      onMouseDown={start}
+      onMouseUp={stop}
+      onMouseLeave={stop}
+      onTouchStart={start}
+      onTouchEnd={stop}
+      className={[
+        'border border-designer-accent/50 bg-designer-accent/10 hover:bg-designer-accent/20 text-designer-accent select-none transition-colors flex items-center justify-center w-7',
+        small ? 'h-5' : 'h-7',
+      ].join(' ')}
+    >
+      {children}
+    </button>
   );
 }
