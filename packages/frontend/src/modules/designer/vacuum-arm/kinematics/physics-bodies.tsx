@@ -111,6 +111,9 @@ interface PhysicalDraggableObjectProps {
   enabledRotations?: [boolean, boolean, boolean];
   /** 질량 — 가벼운 타겟(작은 물체)은 작게 (0.3kg), 가구는 크게 (10kg+) */
   massKg?: number;
+  /** true이면 type="fixed" — 로봇이 부딪혀도 안 밀림. 사용자 드래그는 가능
+   *  (setTranslation으로 직접 텔레포트). 무거운 가구(식탁/조리대/소파/책상)에 사용. */
+  immovable?: boolean;
   children: ReactNode;
 }
 
@@ -124,6 +127,7 @@ export function PhysicalDraggableObject({
   onDragEnd,
   enabledRotations = [false, true, false],
   massKg = 10,
+  immovable = false,
   children,
 }: PhysicalDraggableObjectProps) {
   const bodyRef = useRef<RapierRigidBody | null>(null);
@@ -136,15 +140,17 @@ export function PhysicalDraggableObject({
     const body = bodyRef.current;
     if (!body) return;
     body.setTranslation({ x: initialX, y: sizeM[1] / 2, z: initialZ }, true);
-    body.setLinvel({ x: 0, y: 0, z: 0 }, true);
-    body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+    if (!immovable) {
+      body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialX, initialZ]);
 
   return (
     <RigidBody
       ref={bodyRef}
-      type="dynamic"
+      type={immovable ? 'fixed' : 'dynamic'}
       position={[initialX, sizeM[1] / 2, initialZ]}
       rotation={[0, rotationY, 0]}
       colliders={false}
@@ -199,8 +205,10 @@ export function PhysicalDraggableObject({
           const body = bodyRef.current;
           if (body) {
             body.setTranslation({ x: wx, y: sizeM[1] / 2, z: wz }, true);
-            body.setLinvel({ x: 0, y: 0, z: 0 }, true);
-            body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+            if (!immovable) {
+              body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+              body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+            }
           }
           onPositionChange(wx, wz);
         }}

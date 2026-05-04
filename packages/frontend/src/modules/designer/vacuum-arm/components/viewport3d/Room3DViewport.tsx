@@ -15,6 +15,7 @@
  */
 
 import { Suspense, useMemo, useState, type ReactNode } from 'react';
+import * as THREE from 'three';
 import { Canvas, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Grid, Environment, Html } from '@react-three/drei';
 import { useQuery } from '@tanstack/react-query';
@@ -230,6 +231,10 @@ export function Room3DViewport({
                 rotationY={-p.rotationDeg * DEG_TO_RAD}
                 sizeM={[w, h, d]}
                 massKg={spec.weightKg}
+                /* 무거운 가구(>=20kg) + sentinel 0(벽 부착)은 fixed —
+                 * 청소 로봇이 부딪혀도 식탁/조리대/소파/책상이 안 밀림.
+                 * 의자(5/9kg)만 dynamic으로 밀림 가능 (현실적). */
+                immovable={spec.weightKg === 0 || spec.weightKg >= 20}
                 onDragStart={() => setDragging(true)}
                 onDragEnd={() => setDragging(false)}
                 onPositionChange={(nx, nz) => {
@@ -267,6 +272,9 @@ export function Room3DViewport({
                 rotationY={-p.rotationDeg * DEG_TO_RAD}
                 sizeM={[w, h, d]}
                 massKg={spec.type === 'threshold' ? 50 : 2}
+                /* 문턱(threshold)은 바닥 고정 구조물 — 부딪혀도 안 밀림.
+                 * 러그·케이블·장난감은 가벼워서 밀려도 OK. */
+                immovable={spec.type === 'threshold'}
                 onDragStart={() => setDragging(true)}
                 onDragEnd={() => setDragging(false)}
                 onPositionChange={(nx, nz) => {
@@ -545,7 +553,11 @@ function Obstacle3D({
   );
 }
 
-/* ─── Target 3D — 타겟은 3D 위치(zCm)에 작은 발광 구체 ────────────────────── */
+/* ─── Target 3D — 카탈로그 id별 실제 형상 시각화 ──────────────────────────
+ * 201 빈컵 / 202 리모컨 / 203 빈접시 / 204 휴대폰 / 205 책 / 206 양말 /
+ * 207 페트병 / 208 장난감 자동차. 형상이 가구와 비교해 작아서 hover ring과
+ * 라벨로 식별성 보강.
+ * ───────────────────────────────────────────────────────────────────────── */
 
 function Target3D({
   target,
@@ -558,25 +570,22 @@ function Target3D({
   halfDCm: number;
   showLabel: boolean;
 }) {
-  const y = Math.max(target.zCm, 0.5) * CM_TO_M; // 바닥 아래로 박히지 않게
+  const yBase = Math.max(target.zCm, 0.5) * CM_TO_M; // 바닥/가구 표면 위 위치
 
   return (
-    <group position={[0, y, 0]}>
-      {/* 발광 구체 */}
-      <mesh castShadow>
-        <sphereGeometry args={[0.03, 16, 12]} />
-        <meshStandardMaterial color="#3acc6f" emissive="#3acc6f" emissiveIntensity={0.6} />
-      </mesh>
+    <group position={[0, yBase, 0]}>
+      <TargetGeometry id={target.targetObjectId} />
+
       {/* 바닥에서 타겟까지 수직 가이드 라인 (z >= 5cm일 때) */}
       {target.zCm >= 5 ? (
-        <mesh position={[0, -y / 2, 0]}>
-          <cylinderGeometry args={[0.002, 0.002, y, 6]} />
-          <meshBasicMaterial color="#3acc6f" transparent opacity={0.45} />
+        <mesh position={[0, -yBase / 2, 0]}>
+          <cylinderGeometry args={[0.002, 0.002, yBase, 6]} />
+          <meshBasicMaterial color="#3acc6f" transparent opacity={0.4} />
         </mesh>
       ) : null}
       {showLabel || target.zCm > 0 ? (
         <Html
-          position={[0, 0.06, 0]}
+          position={[0, 0.08, 0]}
           center
           distanceFactor={8}
           occlude={false}
@@ -595,6 +604,203 @@ function Target3D({
           {target.zCm > 0 ? ` · z${target.zCm}` : ''}
         </Html>
       ) : null}
+    </group>
+  );
+}
+
+/* TargetGeometry — id별 형상.
+ * 모든 형상은 그룹 원점이 바닥 면이 되도록 y offset 조정 (z=0 = 바닥/표면 위에 놓임). */
+function TargetGeometry({ id }: { id: number }) {
+  switch (id) {
+    case 201:
+      return <CupGeometry />;
+    case 202:
+      return <RemoteGeometry />;
+    case 203:
+      return <PlateGeometry />;
+    case 204:
+      return <PhoneGeometry />;
+    case 205:
+      return <BookGeometry />;
+    case 206:
+      return <SockGeometry />;
+    case 207:
+      return <BottleGeometry />;
+    case 208:
+      return <ToyCarGeometry />;
+    default:
+      return (
+        <mesh castShadow>
+          <sphereGeometry args={[0.03, 16, 12]} />
+          <meshStandardMaterial color="#3acc6f" emissive="#3acc6f" emissiveIntensity={0.4} />
+        </mesh>
+      );
+  }
+}
+
+/* 빈컵 — 백색 작은 실린더 + 손잡이 */
+function CupGeometry() {
+  const h = 0.085; // 8.5cm 컵
+  const r = 0.035;
+  return (
+    <group position={[0, h / 2, 0]}>
+      <mesh castShadow>
+        <cylinderGeometry args={[r, r * 0.9, h, 20, 1, true]} />
+        <meshStandardMaterial color="#f4f1ec" roughness={0.4} metalness={0.05} side={THREE.DoubleSide} />
+      </mesh>
+      {/* 컵 안쪽 어둠 */}
+      <mesh position={[0, h * 0.45, 0]}>
+        <cylinderGeometry args={[r * 0.85, r * 0.85, 0.002, 20]} />
+        <meshStandardMaterial color="#2a2620" roughness={0.9} />
+      </mesh>
+      {/* 손잡이 (작은 토러스) */}
+      <mesh position={[r + 0.012, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <torusGeometry args={[0.018, 0.005, 8, 16, Math.PI]} />
+        <meshStandardMaterial color="#f4f1ec" roughness={0.4} />
+      </mesh>
+    </group>
+  );
+}
+
+/* 빈접시 — 얕은 흰 원반 */
+function PlateGeometry() {
+  const r = 0.10;
+  const h = 0.012;
+  return (
+    <group position={[0, h / 2, 0]}>
+      <mesh castShadow>
+        <cylinderGeometry args={[r, r * 0.85, h, 32]} />
+        <meshStandardMaterial color="#f6f3ed" roughness={0.35} metalness={0.05} />
+      </mesh>
+      {/* 접시 가운데 살짝 들어간 부분 */}
+      <mesh position={[0, h * 0.5, 0]}>
+        <cylinderGeometry args={[r * 0.7, r * 0.7, 0.002, 32]} />
+        <meshStandardMaterial color="#e3ddd2" roughness={0.5} />
+      </mesh>
+    </group>
+  );
+}
+
+/* 리모컨 — 검은 길쭉한 직사각형 + 버튼 도트 */
+function RemoteGeometry() {
+  return (
+    <group position={[0, 0.011, 0]}>
+      <mesh castShadow>
+        <boxGeometry args={[0.05, 0.022, 0.16]} />
+        <meshStandardMaterial color="#1a1a1a" roughness={0.6} />
+      </mesh>
+      {/* 버튼 4개 */}
+      {[0.04, 0.0, -0.04, -0.06].map((z, i) => (
+        <mesh key={i} position={[0, 0.012, z]}>
+          <cylinderGeometry args={[0.006, 0.006, 0.003, 12]} />
+          <meshStandardMaterial color={i === 0 ? '#cf3030' : '#5a5a5a'} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/* 휴대폰 — 얇은 검은 슬랩 + 화면 면 */
+function PhoneGeometry() {
+  return (
+    <group position={[0, 0.005, 0]}>
+      <mesh castShadow>
+        <boxGeometry args={[0.075, 0.009, 0.155]} />
+        <meshStandardMaterial color="#202326" roughness={0.45} metalness={0.3} />
+      </mesh>
+      {/* 화면 (위쪽) */}
+      <mesh position={[0, 0.0046, 0]}>
+        <boxGeometry args={[0.068, 0.001, 0.146]} />
+        <meshStandardMaterial color="#0a0a0a" emissive="#1f3b6b" emissiveIntensity={0.3} />
+      </mesh>
+    </group>
+  );
+}
+
+/* 책 — 두께 있는 직사각형 + 책등 색상 */
+function BookGeometry() {
+  return (
+    <group position={[0, 0.022, 0]}>
+      <mesh castShadow>
+        <boxGeometry args={[0.135, 0.044, 0.18]} />
+        <meshStandardMaterial color="#3a5d8a" roughness={0.7} />
+      </mesh>
+      {/* 책 페이지 (옆면) */}
+      <mesh position={[0.0676, 0, 0]}>
+        <boxGeometry args={[0.0008, 0.042, 0.178]} />
+        <meshStandardMaterial color="#f4ecd6" roughness={0.9} />
+      </mesh>
+      <mesh position={[-0.0676, 0, 0]}>
+        <boxGeometry args={[0.0008, 0.042, 0.178]} />
+        <meshStandardMaterial color="#f4ecd6" roughness={0.9} />
+      </mesh>
+    </group>
+  );
+}
+
+/* 양말 — 작은 둥글둥글한 형상 (squashed sphere + 발목 부분) */
+function SockGeometry() {
+  return (
+    <group position={[0, 0.025, 0]}>
+      <mesh castShadow scale={[1.4, 0.6, 0.9]}>
+        <sphereGeometry args={[0.04, 16, 12]} />
+        <meshStandardMaterial color="#cfd5dc" roughness={0.95} />
+      </mesh>
+    </group>
+  );
+}
+
+/* 페트병 — 투명한 푸른 실린더 + 짧은 목 + 캡 */
+function BottleGeometry() {
+  const h = 0.22;
+  const r = 0.03;
+  return (
+    <group position={[0, h / 2, 0]}>
+      {/* 본체 */}
+      <mesh castShadow>
+        <cylinderGeometry args={[r, r, h * 0.85, 20]} />
+        <meshStandardMaterial color="#9bd6e0" roughness={0.2} metalness={0.05} transparent opacity={0.55} />
+      </mesh>
+      {/* 목 */}
+      <mesh position={[0, h * 0.46, 0]}>
+        <cylinderGeometry args={[r * 0.5, r, h * 0.06, 16]} />
+        <meshStandardMaterial color="#9bd6e0" roughness={0.25} transparent opacity={0.55} />
+      </mesh>
+      {/* 캡 */}
+      <mesh position={[0, h * 0.49, 0]}>
+        <cylinderGeometry args={[r * 0.55, r * 0.55, h * 0.06, 16]} />
+        <meshStandardMaterial color="#2c5fa1" roughness={0.6} />
+      </mesh>
+    </group>
+  );
+}
+
+/* 장난감 자동차 — 빨간 본체 + 검은 바퀴 4개 */
+function ToyCarGeometry() {
+  return (
+    <group position={[0, 0.018, 0]}>
+      {/* 본체 */}
+      <mesh castShadow>
+        <boxGeometry args={[0.07, 0.024, 0.13]} />
+        <meshStandardMaterial color="#cf3030" roughness={0.5} />
+      </mesh>
+      {/* 캐빈 */}
+      <mesh position={[0, 0.018, -0.005]} castShadow>
+        <boxGeometry args={[0.05, 0.022, 0.06]} />
+        <meshStandardMaterial color="#a02525" roughness={0.5} />
+      </mesh>
+      {/* 바퀴 4개 */}
+      {[
+        [0.038, -0.012, 0.04],
+        [-0.038, -0.012, 0.04],
+        [0.038, -0.012, -0.04],
+        [-0.038, -0.012, -0.04],
+      ].map(([x, y, z], i) => (
+        <mesh key={i} position={[x, y, z]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.014, 0.014, 0.012, 12]} />
+          <meshStandardMaterial color="#1a1a1a" roughness={0.8} />
+        </mesh>
+      ))}
     </group>
   );
 }
