@@ -17,6 +17,7 @@ import { SpecParametersPanel } from './panels/SpecParametersPanel';
 import { EngineeringAnalysisPanel } from './panels/EngineeringAnalysisPanel';
 import { EnvironmentPanel } from './panels/EnvironmentPanel';
 import { CandidateComparisonPanel } from './panels/CandidateComparisonPanel';
+import { ViewportHud } from './viewport3d/ViewportHud';
 import { RevisionLog } from './panels/RevisionLog';
 import { EngineeringReviewPanel } from './panels/EngineeringReviewPanel';
 import { TimelinePanel } from './panels/TimelinePanel';
@@ -305,9 +306,19 @@ export function DesignerVacuumWorkbench() {
               labels
             </ViewportToggle>
           </div>
-          <div className="absolute left-3 bottom-3 z-10 font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-white/55">
-            {name}
-          </div>
+          {/* HUD — spec §5: axis indicator + 1m scale bar + object chip + workspace label */}
+          {mode !== 'roomEditor' ? (
+            <ViewportHud
+              showAxes
+              showScale
+              objectLabel={name}
+              workspaceRadiusM={
+                armCount > 0
+                  ? Math.max(...arms.map((a) => (a.upperArmLengthCm + a.forearmLengthCm) / 100))
+                  : undefined
+              }
+            />
+          ) : null}
           <div className="absolute inset-0">
             {mode === 'product3d' ? (
               <RobotViewport
