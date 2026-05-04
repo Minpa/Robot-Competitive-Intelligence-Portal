@@ -13,6 +13,7 @@
  */
 
 import type { SpecSheetPayload } from '../types/product';
+import type { DerivedSpec, IKReachResult } from '../lib/ik-reachability';
 
 const REASON_KO: Record<string, string> = {
   OK: '도달',
@@ -25,7 +26,22 @@ const REASON_KO: Record<string, string> = {
   NO_ARM: '팔 없음',
 };
 
-export function SpecSheetView({ data }: { data: SpecSheetPayload }) {
+const IK_REASON_KO: Record<string, string> = {
+  OK: '도달',
+  OUT_OF_REACH: '리치 부족',
+  HEIGHT_ABOVE: '어깨 높이 부족',
+  YAW_REQUIRED: 'yaw 회전 필요',
+  PAYLOAD_OVER_EE: '페이로드 한계',
+};
+
+interface SpecSheetViewProps {
+  data: SpecSheetPayload;
+  /** Phase B — 동작 → 스펙 도출 (IK 기반). 클라이언트에서 계산 후 주입. */
+  derivedSpec?: DerivedSpec | null;
+  ikResults?: IKReachResult[];
+}
+
+export function SpecSheetView({ data, derivedSpec, ikResults }: SpecSheetViewProps) {
   const { meta, product, payloadKg, room, analysis, review, revisions } = data;
   const generatedDate = new Date(meta.generatedAt).toLocaleDateString('ko-KR');
   const targetCount = analysis.environment?.targets.length ?? 0;
@@ -468,9 +484,118 @@ export function SpecSheetView({ data }: { data: SpecSheetPayload }) {
         )}
       </section>
 
-      {/* PAGE 5 — Review */}
+      {/* PAGE 5 — Derived Spec (동작 → 스펙 도출) */}
+      {derivedSpec && ikResults && ikResults.length > 0 ? (
+        <section className="page">
+          <h2>5. 동작 → 스펙 도출 (Derived Spec)</h2>
+          <p style={{ fontSize: '9.5pt', color: '#666', margin: '0 0 12px' }}>
+            방에 배치된 타겟 {derivedSpec.totalTargets}개에서 IK 기반으로 자동 도출된 최소 요구
+            스펙. 이 값들을 만족하면 모든 타겟에 도달 가능. 개발팀이 검토할 핵심 요구.
+          </p>
+
+          <h3>5.1 종합</h3>
+          <table>
+            <tbody>
+              <tr>
+                <th style={{ width: '40%' }}>도달 가능 타겟</th>
+                <td className="num">
+                  {derivedSpec.passedTargets} / {derivedSpec.totalTargets}{' '}
+                  ({((derivedSpec.passedTargets / Math.max(1, derivedSpec.totalTargets)) * 100).toFixed(0)}%)
+                </td>
+              </tr>
+              <tr>
+                <th>최소 L1+L2 (팔 reach)</th>
+                <td className="num">≥ {derivedSpec.minTotalReachCm.toFixed(0)} cm</td>
+              </tr>
+              <tr>
+                <th>최소 어깨 높이 (베이스 + lift)</th>
+                <td className="num">≥ {derivedSpec.minShoulderHeightCm.toFixed(0)} cm</td>
+              </tr>
+              <tr>
+                <th>최소 EE max payload</th>
+                <td className="num">≥ {derivedSpec.minPayloadKg.toFixed(2)} kg</td>
+              </tr>
+              {derivedSpec.recommendCenterMount ? (
+                <tr style={{ background: '#fdf3d6' }}>
+                  <th>마운트 권장</th>
+                  <td>center (여러 타겟이 yaw 회전 요구 → 중앙 마운트로 회피)</td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+
+          <h3>5.2 실패 분류</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>실패 사유</th>
+                <th>건수</th>
+                <th>대응</th>
+              </tr>
+            </thead>
+            <tbody>
+              {derivedSpec.failureCounts.OUT_OF_REACH > 0 ? (
+                <tr>
+                  <td>리치 부족</td>
+                  <td className="num">{derivedSpec.failureCounts.OUT_OF_REACH}</td>
+                  <td>L1 또는 L2 길이를 늘려 총 reach가 ≥ {derivedSpec.minTotalReachCm.toFixed(0)}cm가 되게 함</td>
+                </tr>
+              ) : null}
+              {derivedSpec.failureCounts.HEIGHT_ABOVE > 0 ? (
+                <tr>
+                  <td>어깨 높이 부족</td>
+                  <td className="num">{derivedSpec.failureCounts.HEIGHT_ABOVE}</td>
+                  <td>리프트 컬럼 추가 / extension ≥ {derivedSpec.minShoulderHeightCm.toFixed(0)}cm 도달 가능하게</td>
+                </tr>
+              ) : null}
+              {derivedSpec.failureCounts.YAW_REQUIRED > 0 ? (
+                <tr>
+                  <td>yaw 회전 필요</td>
+                  <td className="num">{derivedSpec.failureCounts.YAW_REQUIRED}</td>
+                  <td>마운트=center 또는 시퀀스에 회전 동작 추가</td>
+                </tr>
+              ) : null}
+              {derivedSpec.failureCounts.PAYLOAD_OVER_EE > 0 ? (
+                <tr>
+                  <td>페이로드 한계</td>
+                  <td className="num">{derivedSpec.failureCounts.PAYLOAD_OVER_EE}</td>
+                  <td>EE max payload ≥ {derivedSpec.minPayloadKg.toFixed(2)}kg 인 엔드이펙터로 교체</td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+
+          <h3>5.3 타겟별 IK 결과</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>타겟</th>
+                <th>거리 (어깨~타겟)</th>
+                <th>도달</th>
+                <th>실패 사유</th>
+                <th>스펙 델타</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ikResults.map((r) => (
+                <tr key={r.targetIndex} style={r.ok ? undefined : { background: '#fde8eb' }}>
+                  <td>{r.targetIndex + 1}</td>
+                  <td>{r.targetName}</td>
+                  <td className="num">{(r.distanceM * 100).toFixed(0)} cm</td>
+                  <td>{r.ok ? 'OK' : '✗'}</td>
+                  <td>{IK_REASON_KO[r.reason] ?? r.reason}</td>
+                  <td style={{ fontSize: '9.5pt' }}>{r.ok ? '—' : r.reasonText}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      ) : null}
+
+      {/* PAGE 6 — Review */}
       <section className="page">
-        <h2>5. 검토 의견</h2>
+        <h2>6. 검토 의견</h2>
         <p style={{ fontSize: '9pt', color: '#666', margin: '0 0 8px' }}>
           출처: {review.source === 'claude' ? 'Claude API (claude-opus-4-7)' : '내부 휴리스틱 룰 베이스'} ·{' '}
           {new Date(review.generatedAt).toLocaleString('ko-KR')}
@@ -505,7 +630,7 @@ export function SpecSheetView({ data }: { data: SpecSheetPayload }) {
 
       {/* PAGE 6 — Revisions */}
       <section className="page">
-        <h2>6. 부록 · 사양 변경 로그</h2>
+        <h2>7. 부록 · 사양 변경 로그</h2>
         {revisions.length === 0 ? (
           <p style={{ color: '#888' }}>변경 이력 없음.</p>
         ) : (

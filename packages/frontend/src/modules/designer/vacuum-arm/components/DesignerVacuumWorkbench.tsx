@@ -16,6 +16,7 @@ import { designerVacuumApi } from '../api/designer-vacuum-api';
 import { SpecParametersPanel } from './panels/SpecParametersPanel';
 import { EngineeringAnalysisPanel } from './panels/EngineeringAnalysisPanel';
 import { EnvironmentPanel } from './panels/EnvironmentPanel';
+import { DerivedSpecCard } from './panels/DerivedSpecCard';
 import { CandidateComparisonPanel } from './panels/CandidateComparisonPanel';
 import { ViewportHud } from './viewport3d/ViewportHud';
 import { ViewportControlsOverlay } from './viewport3d/ViewportControlsOverlay';
@@ -386,6 +387,8 @@ export function DesignerVacuumWorkbench() {
             environment={analyzeQ.data?.environment ?? null}
             isLoading={analyzeQ.isFetching}
           />
+          {/* 동작 → 스펙 도출. EnvironmentPanel 결과를 종합해 최소 요구 스펙 제시. */}
+          <DerivedSpecCard />
         </aside>
       </div>
 

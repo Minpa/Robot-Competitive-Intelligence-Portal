@@ -9,12 +9,17 @@
  * print-optimized view and triggers `window.print()` once for the user.
  */
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { useCandidatesStore } from '@/modules/designer/vacuum-arm/stores/candidates-store';
 import { designerVacuumApi } from '@/modules/designer/vacuum-arm/api/designer-vacuum-api';
 import { SpecSheetView } from '@/modules/designer/vacuum-arm/components/SpecSheetView';
 import type { SpecSheetPayload } from '@/modules/designer/vacuum-arm/types/product';
+import {
+  analyzeIKReachability,
+  deriveSpecFromResults,
+} from '@/modules/designer/vacuum-arm/lib/ik-reachability';
 
 function SpecSheetInner() {
   const searchParams = useSearchParams();
@@ -26,6 +31,41 @@ function SpecSheetInner() {
   const [data, setData] = useState<SpecSheetPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [printed, setPrinted] = useState(false);
+
+  // 카탈로그 (IK 분석에 필요)
+  const targetsQ = useQuery({
+    queryKey: ['vacuum-arm', 'target-objects'],
+    queryFn: () => designerVacuumApi.listTargetObjects(),
+    staleTime: 5 * 60_000,
+  });
+  const endEffectorsQ = useQuery({
+    queryKey: ['vacuum-arm', 'end-effectors'],
+    queryFn: () => designerVacuumApi.listEndEffectors(),
+    staleTime: 5 * 60_000,
+  });
+
+  // 후보의 product/room으로 IK 기반 derived spec 계산
+  const ikData = useMemo(() => {
+    if (!candidate || !targetsQ.data || !endEffectorsQ.data) return null;
+    const arm = candidate.product.arms[0];
+    if (!arm) return null;
+    const ee = endEffectorsQ.data.endEffectors.find((e) => e.sku === arm.endEffectorSku);
+    const results = analyzeIKReachability({
+      base: candidate.product.base,
+      arm,
+      endEffector: ee,
+      targets: candidate.room.targets,
+      targetCatalog: targetsQ.data.targetObjects,
+      payloadKg: candidate.payloadKg,
+      // 후보 저장 시점의 robot 위치는 store에 따로 캐시되지 않음 — 방 중앙 기준 분석
+      robotXCm: null,
+      robotYCm: null,
+      robotYawDeg: 0,
+      roomWidthCm: candidate.room.widthCm,
+      roomDepthCm: candidate.room.depthCm,
+    });
+    return { results, derived: deriveSpecFromResults(results) };
+  }, [candidate, targetsQ.data, endEffectorsQ.data]);
 
   useEffect(() => {
     if (!candidate) return;
@@ -162,7 +202,7 @@ function SpecSheetInner() {
           }
         }
       `}</style>
-      <SpecSheetView data={data} />
+      <SpecSheetView data={data} derivedSpec={ikData?.derived ?? null} ikResults={ikData?.results} />
     </>
   );
 }

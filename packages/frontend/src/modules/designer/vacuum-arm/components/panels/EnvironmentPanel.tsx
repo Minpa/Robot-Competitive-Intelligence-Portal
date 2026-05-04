@@ -6,11 +6,18 @@
  * Light theme per ARGOS-UX-Spec.
  *   - 2x2 KPI grid (통과 영역 / 차단 / 클리어런스 / 면적)
  *   - 타겟 도달성 카드 — PASS/WARN/FAIL chip + 사유 + payload 마진
+ *   - IK 분석 결과 (실패 분류 + spec delta) — Phase C
  */
 
 import { useQuery } from '@tanstack/react-query';
 import type { EnvironmentResult, RoomConfig, TargetReachabilityResult } from '../../types/product';
 import { designerVacuumApi } from '../../api/designer-vacuum-api';
+import { useDesignerVacuumStore } from '../../stores/designer-vacuum-store';
+import {
+  analyzeIKReachability,
+  type IKReachReason,
+  type IKReachResult,
+} from '../../lib/ik-reachability';
 
 const ACCENT = '#D4A22F';
 const RISK = '#D63F6F';
@@ -29,6 +36,38 @@ export function EnvironmentPanel({ room, environment, isLoading }: EnvironmentPa
     staleTime: 5 * 60_000,
   });
   const targetCatalog = targetsQ.data?.targetObjects ?? [];
+  const endEffectorsQ = useQuery({
+    queryKey: ['vacuum-arm', 'end-effectors'],
+    queryFn: () => designerVacuumApi.listEndEffectors(),
+    staleTime: 5 * 60_000,
+  });
+  const endEffectors = endEffectorsQ.data?.endEffectors ?? [];
+
+  // IK 기반 reachability — backend env 결과와 별개로 실시간 client-side 분석
+  const product = useDesignerVacuumStore((s) => s.product);
+  const payloadKg = useDesignerVacuumStore((s) => s.payloadKg);
+  const robotXCm = useDesignerVacuumStore((s) => s.robotXCm);
+  const robotYCm = useDesignerVacuumStore((s) => s.robotYCm);
+  const robotYawDeg = useDesignerVacuumStore((s) => s.robotYawDeg);
+  const setArmPose = useDesignerVacuumStore((s) => s.setArmPose);
+
+  const arm = product.arms[0];
+  const ee = arm ? endEffectors.find((e) => e.sku === arm.endEffectorSku) : undefined;
+  const ikResults: IKReachResult[] = arm
+    ? analyzeIKReachability({
+        base: product.base,
+        arm,
+        endEffector: ee,
+        targets: room.targets,
+        targetCatalog,
+        payloadKg,
+        robotXCm,
+        robotYCm,
+        robotYawDeg,
+        roomWidthCm: room.widthCm,
+        roomDepthCm: room.depthCm,
+      })
+    : [];
 
   if (room.targets.length === 0 && room.obstacles.length === 0) {
     return (
@@ -94,8 +133,9 @@ export function EnvironmentPanel({ room, environment, isLoading }: EnvironmentPa
           const result: TargetReachabilityResult | undefined = environment?.targets.find(
             (x) => x.targetMarkerIndex === i
           );
+          const ik = ikResults.find((r) => r.targetIndex === i);
           const spec = targetCatalog.find((c) => c.id === t.targetObjectId);
-          const status = reachabilityStatus(result);
+          const status = ikStatus(ik) ?? reachabilityStatus(result);
           return (
             <div
               key={i}
@@ -112,13 +152,42 @@ export function EnvironmentPanel({ room, environment, isLoading }: EnvironmentPa
               </div>
               <p className="text-[13px] mt-1 leading-snug" style={{ color: status.color }}>
                 <span className="font-mono font-semibold mr-1">{status.label}</span>
-                {result?.reasonText ?? '대기 중…'}
+                {ik ? ik.reasonText : (result?.reasonText ?? '대기 중…')}
               </p>
+
+              {ik ? (
+                <div className="mt-2 flex items-center justify-between gap-2 pt-2 border-t border-designer-rule">
+                  <span className="font-mono text-[12px] text-designer-muted">
+                    어깨 거리 {(ik.distanceM * 100).toFixed(0)}cm /
+                    팔 reach {(ik.maxReachM * 100).toFixed(0)}cm
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setArmPose({
+                        shoulderPitchDeg: ik.pose.shoulderPitchDeg,
+                        elbowDeg: ik.pose.elbowDeg,
+                      })
+                    }
+                    className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] border border-designer-accent/50 bg-designer-accent/10 hover:bg-designer-accent/25 text-designer-accent px-2 py-1"
+                    title="이 타겟을 향한 IK 자세를 적용 — 닿지 않으면 fully-extended toward target으로"
+                  >
+                    ⌖ Reach
+                  </button>
+                </div>
+              ) : null}
+
+              {/* spec delta — 실패 사유에 따라 무엇을 늘려야 하는지 */}
+              {ik && !ik.ok ? (
+                <p className="font-mono text-[12px] text-designer-risk mt-1.5 leading-snug">
+                  Δ {formatDelta(ik)}
+                </p>
+              ) : null}
+
               {result?.canReach && result.payloadMarginKg !== 0 ? (
-                <p className="font-mono text-[13px] text-designer-muted mt-1">
+                <p className="font-mono text-[12px] text-designer-muted mt-1">
                   payload margin {result.payloadMarginKg > 0 ? '+' : ''}
-                  {result.payloadMarginKg.toFixed(2)} kg ·
-                  팔 {result.armUsed !== null ? result.armUsed + 1 : '-'}
+                  {result.payloadMarginKg.toFixed(2)}kg
                 </p>
               ) : null}
             </div>
@@ -127,6 +196,42 @@ export function EnvironmentPanel({ room, environment, isLoading }: EnvironmentPa
       </div>
     </div>
   );
+}
+
+function ikStatus(ik: IKReachResult | undefined): { label: string; color: string } | null {
+  if (!ik) return null;
+  if (ik.ok) return { label: 'PASS', color: PASS };
+  if (ik.reason === 'OUT_OF_REACH' || ik.reason === 'PAYLOAD_OVER_EE') {
+    return { label: 'FAIL', color: RISK };
+  }
+  return { label: 'WARN', color: ACCENT };
+}
+
+function formatDelta(ik: IKReachResult): string {
+  switch (ik.reason) {
+    case 'OUT_OF_REACH': {
+      const need = ik.delta.minTotalReachM * 100 - ik.maxReachM * 100;
+      return `L1+L2 +${need.toFixed(0)}cm 필요 (현재 ${(ik.maxReachM * 100).toFixed(0)} → ${(
+        ik.delta.minTotalReachM * 100
+      ).toFixed(0)})`;
+    }
+    case 'HEIGHT_ABOVE': {
+      const cur = ik.targetWorld.y * 100;
+      const minShoulder = ik.delta.minShoulderHeightM * 100;
+      return `어깨 높이 ${minShoulder.toFixed(0)}cm 이상 필요 (lift column 또는 더 높은 베이스). 타겟 ${cur.toFixed(0)}cm`;
+    }
+    case 'YAW_REQUIRED': {
+      if (ik.delta.requiredYawRad !== null) {
+        const deg = (ik.delta.requiredYawRad * 180) / Math.PI;
+        return `로봇 yaw ${deg.toFixed(0)}° 회전 필요 (또는 mount=center로 변경)`;
+      }
+      return 'mount=center로 변경 권장';
+    }
+    case 'PAYLOAD_OVER_EE':
+      return `EE max payload ≥ ${ik.delta.minPayloadKg.toFixed(2)}kg 필요`;
+    default:
+      return '';
+  }
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
