@@ -55,7 +55,7 @@ export function EngineeringAnalysisPanel({
   if (arms.length === 0) {
     return (
       <div className="space-y-3">
-        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/40">
+        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">
           Engineering Analysis · REQ-4
         </span>
         <p className="text-[11px] text-white/55 leading-relaxed">
@@ -77,18 +77,18 @@ export function EngineeringAnalysisPanel({
   return (
     <div className="space-y-4">
       <div className="flex items-baseline justify-between">
-        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/40">
+        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">
           Engineering Analysis · REQ-4
         </span>
         {isLoading ? (
-          <span className="font-mono text-[8.5px] uppercase tracking-[0.18em] text-gold/70">
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold/75">
             ▸ analyzing
           </span>
         ) : null}
       </div>
 
       {isError ? (
-        <p className="text-[10.5px] text-[#E63950]">분석 실패: {errorMessage}</p>
+        <p className="text-[11px] text-[#E63950]">분석 실패: {errorMessage}</p>
       ) : null}
 
       {stability ? <StabilityCard stability={stability} /> : null}
@@ -130,7 +130,7 @@ function StabilityCard({ stability }: { stability: StabilityResult }) {
           value={`${stability.marginToEdgeCm > 0 ? '+' : ''}${stability.marginToEdgeCm.toFixed(1)} cm`}
         />
       </div>
-      <p className="text-[10px] text-white/45 leading-snug">
+      <p className="text-[11px] text-white/50 leading-snug">
         worst-case 자세(팔 수평 뻗음)에서 무게중심 floor projection이 베이스 풋프린트 안에 있어야 안정. 음수 마진 = 전복 위험.
       </p>
     </div>
@@ -181,7 +181,7 @@ function ArmAnalysisCard({
       {/* Over-limit warning */}
       {result.statics.joints.some((j) => j.overLimit) ? (
         <div className="border border-[#E63950]/50 bg-[#2a1a0d] px-2 py-1.5">
-          <p className="text-[10.5px] text-[#E63950] leading-snug">
+          <p className="text-[11px] text-[#E63950] leading-snug">
             ⚠ 액추에이터 토크 한계 초과 — payload {payloadKg.toFixed(1)}kg 기준 자세 유지 불가
           </p>
         </div>
@@ -190,7 +190,7 @@ function ArmAnalysisCard({
       {/* End-effector payload constraint */}
       {result.endEffectorPayloadOverLimit ? (
         <div className="border border-[#F2A93B]/50 bg-[#2a1a0d] px-2 py-1.5">
-          <p className="text-[10.5px] text-[#F2A93B] leading-snug">
+          <p className="text-[11px] text-[#F2A93B] leading-snug">
             ⚠ 엔드이펙터 max payload {result.endEffectorMaxPayloadKg.toFixed(1)}kg &lt; {payloadKg.toFixed(1)}kg
           </p>
         </div>
@@ -198,7 +198,7 @@ function ArmAnalysisCard({
 
       {/* Joint torque bar chart */}
       <div>
-        <span className="block font-mono text-[9px] uppercase tracking-[0.18em] text-white/55 mb-1">
+        <span className="block font-mono text-[10px] uppercase tracking-[0.18em] text-white/60 mb-1">
           관절 토크 (요구 vs 액추에이터 peak)
         </span>
         <div className="h-[110px]">
@@ -224,7 +224,7 @@ function ArmAnalysisCard({
           </ResponsiveContainer>
         </div>
         {/* margin labels */}
-        <div className="mt-1 grid grid-cols-2 gap-1 font-mono text-[9.5px] tabular-nums">
+        <div className="mt-1 grid grid-cols-2 gap-1 font-mono text-[10.5px] tabular-nums">
           {result.statics.joints.map((j) => (
             <div key={j.jointName} className="border border-white/10 px-1.5 py-1">
               <span className="text-white/50">{j.jointName === 'shoulder' ? '어깨' : '팔꿈치'}</span>
@@ -242,7 +242,7 @@ function ArmAnalysisCard({
       {/* Payload ↔ reach curve */}
       {result.payloadCurve.length > 0 ? (
         <div>
-          <span className="block font-mono text-[9px] uppercase tracking-[0.18em] text-white/55 mb-1">
+          <span className="block font-mono text-[10px] uppercase tracking-[0.18em] text-white/60 mb-1">
             페이로드 ↔ 리치 트레이드오프 (어깨 continuous torque 기준)
           </span>
           <div className="h-[110px]">
@@ -284,8 +284,8 @@ function ArmAnalysisCard({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between border-b border-white/5 pb-1.5">
-      <span className="text-[10.5px] text-white/55">{label}</span>
-      <span className="font-mono text-[10.5px] tabular-nums text-white text-right max-w-[60%] truncate">{value}</span>
+      <span className="text-[11.5px] text-white/60">{label}</span>
+      <span className="font-mono text-[11.5px] tabular-nums text-white text-right max-w-[60%] truncate">{value}</span>
     </div>
   );
 }

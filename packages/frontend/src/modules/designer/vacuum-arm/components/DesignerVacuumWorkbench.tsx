@@ -178,7 +178,7 @@ export function DesignerVacuumWorkbench() {
     <>
       {/* Candidate toolbar */}
       <div className="flex flex-wrap items-center gap-2 border-b border-white/10 bg-[#0f0f0f] px-4 py-2">
-        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/45">
+        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/50">
           후보안 ({candidates.length})
         </span>
         <button
@@ -188,7 +188,7 @@ export function DesignerVacuumWorkbench() {
             if (!name) return;
             saveCandidate(name, product, room, payloadKg, clientAnalysis ?? analyzeQ.data ?? null);
           }}
-          className="border border-gold/40 bg-[#1a1408] px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-gold hover:bg-[#231a0c] transition-colors"
+          className="border border-gold/40 bg-[#1a1408] px-2 py-1 font-mono text-[11px] uppercase tracking-[0.18em] text-gold hover:bg-[#231a0c] transition-colors"
         >
           + 후보 저장
         </button>
@@ -205,7 +205,7 @@ export function DesignerVacuumWorkbench() {
                   className="cursor-pointer"
                   aria-label={`비교 ${c.name}`}
                 />
-                <span className="text-[11px] text-white/85 truncate max-w-[8rem]">{c.name}</span>
+                <span className="text-[12px] text-white/85 truncate max-w-[8rem]">{c.name}</span>
                 <button
                   type="button"
                   disabled={!hasAnalysis}
@@ -215,7 +215,7 @@ export function DesignerVacuumWorkbench() {
                       '_blank'
                     );
                   }}
-                  className="font-mono text-[8.5px] uppercase tracking-[0.18em] text-gold/80 hover:text-gold disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold/80 hover:text-gold disabled:opacity-30 disabled:cursor-not-allowed"
                   title={hasAnalysis ? '사양서 PDF 출력' : '분석 데이터 없음 — 워크벤치에서 다시 저장'}
                 >
                   PDF
@@ -223,7 +223,7 @@ export function DesignerVacuumWorkbench() {
                 <button
                   type="button"
                   onClick={() => removeCandidate(c.id)}
-                  className="text-[10px] text-white/35 hover:text-[#E63950]"
+                  className="text-[11px] text-white/40 hover:text-[#E63950]"
                   title="삭제"
                 >
                   ×
@@ -236,7 +236,7 @@ export function DesignerVacuumWorkbench() {
           type="button"
           disabled={selectedForCompareIds.length < 2}
           onClick={() => setCompareOpen(true)}
-          className="ml-auto border border-white/15 bg-black/40 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/65 disabled:opacity-30 disabled:cursor-not-allowed hover:border-gold hover:text-gold transition-colors"
+          className="ml-auto border border-white/15 bg-black/40 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.18em] text-white/70 disabled:opacity-30 disabled:cursor-not-allowed hover:border-gold hover:text-gold transition-colors"
         >
           비교 ({selectedForCompareIds.length})
         </button>
@@ -262,7 +262,7 @@ export function DesignerVacuumWorkbench() {
               type="button"
               onClick={() => setMode('product3d')}
               className={[
-                'font-mono text-[9px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
+                'font-mono text-[10.5px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
                 mode === 'product3d'
                   ? 'border-gold text-gold'
                   : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
@@ -275,7 +275,7 @@ export function DesignerVacuumWorkbench() {
               type="button"
               onClick={() => setMode('roomEditor')}
               className={[
-                'font-mono text-[9px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
+                'font-mono text-[10.5px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
                 mode === 'roomEditor'
                   ? 'border-gold text-gold'
                   : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
@@ -288,7 +288,7 @@ export function DesignerVacuumWorkbench() {
               type="button"
               onClick={() => setMode('room3d')}
               className={[
-                'font-mono text-[9px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
+                'font-mono text-[10.5px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
                 mode === 'room3d'
                   ? 'border-gold text-gold'
                   : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
@@ -301,11 +301,11 @@ export function DesignerVacuumWorkbench() {
           </div>
 
           <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
-            <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/55 px-2 py-1 border border-white/15 bg-black/40">
+            <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-white/60 px-2 py-1 border border-white/15 bg-black/40">
               {base.shape} · {base.diameterOrWidthCm.toFixed(0)}×{base.heightCm.toFixed(0)} cm · {base.weightKg.toFixed(1)}kg
             </span>
             {armCount > 0 ? (
-              <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-gold/80 px-2 py-1 border border-gold/40 bg-black/40">
+              <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-gold/85 px-2 py-1 border border-gold/40 bg-black/40">
                 팔 {armCount}개
               </span>
             ) : null}
@@ -315,7 +315,7 @@ export function DesignerVacuumWorkbench() {
                   type="button"
                   onClick={toggleWorkspaceMesh}
                   className={[
-                    'font-mono text-[9px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
+                    'font-mono text-[10.5px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
                     showWorkspaceMesh
                       ? 'border-gold/60 text-gold'
                       : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
@@ -329,7 +329,7 @@ export function DesignerVacuumWorkbench() {
                   type="button"
                   onClick={toggleZmp}
                   className={[
-                    'font-mono text-[9px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
+                    'font-mono text-[10.5px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
                     showZmp
                       ? 'border-gold/60 text-gold'
                       : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
@@ -345,7 +345,7 @@ export function DesignerVacuumWorkbench() {
               type="button"
               onClick={toggleAutoRotate}
               className={[
-                'font-mono text-[9px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
+                'font-mono text-[10.5px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
                 autoRotate
                   ? 'border-gold/60 text-gold'
                   : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
@@ -359,7 +359,7 @@ export function DesignerVacuumWorkbench() {
               type="button"
               onClick={toggleLabels}
               className={[
-                'font-mono text-[9px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
+                'font-mono text-[10.5px] uppercase tracking-[0.18em] px-2 py-1 border bg-black/40 transition-colors',
                 showLabels
                   ? 'border-gold/60 text-gold'
                   : 'border-white/15 text-white/55 hover:border-white/30 hover:text-white',
@@ -370,7 +370,7 @@ export function DesignerVacuumWorkbench() {
               labels
             </button>
           </div>
-          <div className="absolute left-3 bottom-3 z-10 font-mono text-[9px] uppercase tracking-[0.22em] text-white/30">
+          <div className="absolute left-3 bottom-3 z-10 font-mono text-[10px] uppercase tracking-[0.22em] text-white/35">
             {name}
           </div>
           <div className="absolute inset-0">

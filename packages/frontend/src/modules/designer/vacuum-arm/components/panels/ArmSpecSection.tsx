@@ -47,8 +47,8 @@ function SliderRow({ label, value, unit, min, max, step, onChange }: SliderRowPr
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <span className="text-[11px] text-white/70">{label}</span>
-        <span className="font-mono text-[11px] tabular-nums text-white">
+        <span className="text-[12px] text-white/75">{label}</span>
+        <span className="font-mono text-[12px] tabular-nums text-white">
           {step < 1 ? value.toFixed(1) : Math.round(value)}
           <span className="ml-1 text-white/40">{unit}</span>
         </span>
@@ -63,7 +63,7 @@ function SliderRow({ label, value, unit, min, max, step, onChange }: SliderRowPr
         className="mt-1.5 w-full accent-gold cursor-pointer"
         aria-label={label}
       />
-      <div className="mt-0.5 flex justify-between font-mono text-[8.5px] text-white/30">
+      <div className="mt-0.5 flex justify-between font-mono text-[10px] text-white/35">
         <span>{min}</span>
         <span>{max}</span>
       </div>
@@ -95,11 +95,11 @@ export function ArmSpecSection({ index, defaultOpen = true, actuators, endEffect
           ) : (
             <ChevronRight className="h-3 w-3 text-white/45" strokeWidth={2.2} />
           )}
-          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/65">
+          <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-white/70">
             팔 {armNum} (Manipulator Arm)
           </span>
         </span>
-        <span className="font-mono text-[8.5px] uppercase tracking-[0.18em] text-gold/70 px-1.5 py-0.5 border border-gold/30">
+        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-gold/75 px-1.5 py-0.5 border border-gold/30">
           리치 {totalReach.toFixed(0)}cm · {arm.wristDof + 2}DOF
         </span>
       </button>
@@ -108,7 +108,7 @@ export function ArmSpecSection({ index, defaultOpen = true, actuators, endEffect
         <div className="space-y-3 pb-4">
           {/* 1. mount position */}
           <div>
-            <span className="text-[11px] text-white/70">마운트 위치</span>
+            <span className="text-[12px] text-white/75">마운트 위치</span>
             <div className="mt-1.5 grid grid-cols-4 gap-1">
               {MOUNT_OPTIONS.map((opt) => (
                 <button
@@ -116,7 +116,7 @@ export function ArmSpecSection({ index, defaultOpen = true, actuators, endEffect
                   type="button"
                   onClick={() => setArmMount(index, opt.value)}
                   className={[
-                    'border py-1.5 transition-colors font-mono text-[9px] uppercase tracking-[0.18em]',
+                    'border py-1.5 transition-colors font-mono text-[10.5px] uppercase tracking-[0.18em]',
                     arm.mountPosition === opt.value
                       ? 'border-gold bg-[#1a1408] text-white'
                       : 'border-white/10 bg-[#0a0a0a] text-white/55 hover:border-white/30 hover:text-white',
@@ -217,9 +217,9 @@ function ActuatorSelect({
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <span className="text-[11px] text-white/70">{label}</span>
+        <span className="text-[12px] text-white/75">{label}</span>
         {current ? (
-          <span className="font-mono text-[10px] tabular-nums text-white/55">
+          <span className="font-mono text-[11px] tabular-nums text-white/60">
             {current.peakTorqueNm.toFixed(0)}Nm · {current.weightG}g
           </span>
         ) : null}
@@ -227,7 +227,7 @@ function ActuatorSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1.5 w-full bg-[#0a0a0a] border border-white/15 px-2 py-1.5 text-[11px] text-white focus:border-gold focus:outline-none cursor-pointer"
+        className="mt-1.5 w-full bg-[#0a0a0a] border border-white/15 px-2 py-1.5 text-[12px] text-white focus:border-gold focus:outline-none cursor-pointer"
         aria-label={label}
       >
         {actuators.length === 0 ? (
@@ -259,9 +259,9 @@ function EndEffectorSelect({
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <span className="text-[11px] text-white/70">{label}</span>
+        <span className="text-[12px] text-white/75">{label}</span>
         {current ? (
-          <span className="font-mono text-[10px] tabular-nums text-white/55">
+          <span className="font-mono text-[11px] tabular-nums text-white/60">
             ≤{current.maxPayloadKg.toFixed(1)}kg · {current.weightG}g
           </span>
         ) : null}
@@ -269,7 +269,7 @@ function EndEffectorSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1.5 w-full bg-[#0a0a0a] border border-white/15 px-2 py-1.5 text-[11px] text-white focus:border-gold focus:outline-none cursor-pointer"
+        className="mt-1.5 w-full bg-[#0a0a0a] border border-white/15 px-2 py-1.5 text-[12px] text-white focus:border-gold focus:outline-none cursor-pointer"
         aria-label={label}
       >
         {endEffectors.length === 0 ? (

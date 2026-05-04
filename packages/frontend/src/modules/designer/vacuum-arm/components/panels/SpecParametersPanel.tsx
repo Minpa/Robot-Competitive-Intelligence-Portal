@@ -47,12 +47,12 @@ function Section({ title, defaultOpen = true, badge, children }: SectionProps) {
           ) : (
             <ChevronRight className="h-3 w-3 text-white/45" strokeWidth={2.2} />
           )}
-          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/65">
+          <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-white/70">
             {title}
           </span>
         </span>
         {badge ? (
-          <span className="font-mono text-[8.5px] uppercase tracking-[0.18em] text-white/40 px-1.5 py-0.5 border border-white/10">
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/45 px-1.5 py-0.5 border border-white/10">
             {badge}
           </span>
         ) : null}
@@ -77,8 +77,8 @@ function SliderRow({ label, value, unit, min, max, step, onChange, disabled }: S
   return (
     <div>
       <div className="flex items-baseline justify-between">
-        <span className="text-[11px] text-white/70">{label}</span>
-        <span className="font-mono text-[11px] tabular-nums text-white">
+        <span className="text-[12px] text-white/75">{label}</span>
+        <span className="font-mono text-[12px] tabular-nums text-white">
           {value.toFixed(step < 1 ? 1 : 0)}
           <span className="ml-1 text-white/40">{unit}</span>
         </span>
@@ -94,7 +94,7 @@ function SliderRow({ label, value, unit, min, max, step, onChange, disabled }: S
         className="mt-1.5 w-full accent-gold cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
         aria-label={label}
       />
-      <div className="mt-0.5 flex justify-between font-mono text-[8.5px] text-white/30">
+      <div className="mt-0.5 flex justify-between font-mono text-[10px] text-white/35">
         <span>{min}</span>
         <span>{max}</span>
       </div>
@@ -135,19 +135,19 @@ export function SpecParametersPanel() {
   return (
     <div className="space-y-1">
       <div className="pb-3">
-        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/40">
+        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/45">
           Spec Variables · REQ-1 + REQ-2
         </span>
         <input
           type="text"
           value={product.name}
           onChange={(e) => setProductName(e.target.value)}
-          className="mt-1.5 w-full bg-transparent border-b border-white/15 pb-1 text-[14px] text-white focus:border-gold focus:outline-none"
+          className="mt-1.5 w-full bg-transparent border-b border-white/15 pb-1 text-[15px] text-white focus:border-gold focus:outline-none"
           placeholder="후보 이름"
           aria-label="후보 이름"
         />
         {catalogLoadError ? (
-          <p className="mt-2 text-[10px] text-[#E63950]">
+          <p className="mt-2 text-[11px] text-[#E63950]">
             카탈로그 로드 실패: {(catalogLoadError as Error).message}
           </p>
         ) : null}
@@ -156,7 +156,7 @@ export function SpecParametersPanel() {
       {/* 베이스 */}
       <Section title="베이스 (Vacuum Base)" badge="5 vars">
         <div>
-          <span className="text-[11px] text-white/70">폼 (Shape)</span>
+          <span className="text-[12px] text-white/75">폼 (Shape)</span>
           <div className="mt-1.5 grid grid-cols-3 gap-1">
             {SHAPE_OPTIONS.map((opt) => (
               <button
@@ -171,10 +171,10 @@ export function SpecParametersPanel() {
                 ].join(' ')}
                 aria-pressed={base.shape === opt.value}
               >
-                <span className="block font-mono text-[9px] uppercase tracking-[0.18em]">
+                <span className="block font-mono text-[10px] uppercase tracking-[0.18em]">
                   {opt.label}
                 </span>
-                <span className="mt-0.5 block text-[9.5px] text-white/45 leading-snug">
+                <span className="mt-0.5 block text-[10.5px] text-white/50 leading-snug">
                   {opt.hint}
                 </span>
               </button>
@@ -214,7 +214,7 @@ export function SpecParametersPanel() {
 
         <div>
           <label className="flex items-center justify-between cursor-pointer">
-            <span className="text-[11px] text-white/70">리프트 컬럼</span>
+            <span className="text-[12px] text-white/75">리프트 컬럼</span>
             <span className="relative inline-flex h-4 w-8 items-center">
               <input
                 type="checkbox"
@@ -245,7 +245,7 @@ export function SpecParametersPanel() {
       {/* 팔 개수 토글 (REQ-2) */}
       <Section title="매니퓰레이터" badge={`${armCount}개`}>
         <div>
-          <span className="text-[11px] text-white/70">팔 개수</span>
+          <span className="text-[12px] text-white/75">팔 개수</span>
           <div className="mt-1.5 grid grid-cols-3 gap-1">
             {ARM_COUNT_OPTIONS.map((opt) => (
               <button
@@ -253,7 +253,7 @@ export function SpecParametersPanel() {
                 type="button"
                 onClick={() => setArmCount(opt.value)}
                 className={[
-                  'border py-2 text-center transition-colors font-mono text-[10px] uppercase tracking-[0.18em]',
+                  'border py-2 text-center transition-colors font-mono text-[11px] uppercase tracking-[0.18em]',
                   armCount === opt.value
                     ? 'border-gold bg-[#1a1408] text-white'
                     : 'border-white/10 bg-[#0a0a0a] text-white/55 hover:border-white/30 hover:text-white',
@@ -264,18 +264,18 @@ export function SpecParametersPanel() {
               </button>
             ))}
           </div>
-          <p className="mt-2 text-[10px] text-white/45 leading-relaxed">
+          <p className="mt-2 text-[11px] text-white/50 leading-relaxed">
             팔 0/1/2개 토글. 각 팔은 9개 사양 변수 (마운트 위치, 어깨 높이, L1, L2, 손목 DOF, 액추에이터×2, 엔드이펙터).
           </p>
         </div>
       </Section>
 
-      {/* 팔 각각 (있을 때만) */}
+      {/* 팔 각각 — 기본 접힘 (사용자가 필요시 펼침). 컬럼 높이 줄여 viewport-timeline 간격 압축. */}
       {arms.map((_, i) => (
         <ArmSpecSection
           key={i}
           index={i}
-          defaultOpen={i === 0}
+          defaultOpen={false}
           actuators={actuators}
           endEffectors={endEffectors}
         />
@@ -284,7 +284,7 @@ export function SpecParametersPanel() {
       {/* 페이로드 — REQ-4 */}
       <PayloadSection />
 
-      {/* 시각 자세 제어 (분석 무관) */}
+      {/* 시각 자세 제어 (분석 무관) — 기본 접힘 */}
       {armCount > 0 ? <PoseSection /> : null}
     </div>
   );
@@ -296,7 +296,7 @@ function PoseSection() {
   const applyPosePreset = useDesignerVacuumStore((s) => s.applyPosePreset);
 
   return (
-    <Section title="자세 (시각용)" defaultOpen badge="3D 표시">
+    <Section title="자세 (시각용)" defaultOpen={false} badge="3D 표시">
       <div className="mb-3 flex flex-wrap gap-1">
         {(
           [
@@ -310,7 +310,7 @@ function PoseSection() {
             key={p.id}
             type="button"
             onClick={() => applyPosePreset(p.id)}
-            className="border border-white/15 bg-[#0a0a0a] px-2 py-1 font-mono text-[9.5px] uppercase tracking-[0.16em] text-white/65 hover:border-gold hover:text-gold transition-colors"
+            className="border border-white/15 bg-[#0a0a0a] px-2 py-1 font-mono text-[10.5px] uppercase tracking-[0.16em] text-white/70 hover:border-gold hover:text-gold transition-colors"
           >
             {p.label}
           </button>
@@ -335,7 +335,7 @@ function PoseSection() {
         step={1}
         onChange={(v) => setArmPose({ elbowDeg: v })}
       />
-      <p className="mt-1 text-[10px] text-white/45 leading-relaxed">
+      <p className="mt-1 text-[11px] text-white/50 leading-relaxed">
         3D 미리보기 자세만 변경 — 토크·ZMP 분석은 항상 worst-case (수평 뻗음) 기준입니다.
       </p>
     </Section>
@@ -356,7 +356,7 @@ function PayloadSection() {
         step={0.05}
         onChange={setPayloadKg}
       />
-      <p className="mt-1 text-[10px] text-white/45 leading-relaxed">
+      <p className="mt-1 text-[11px] text-white/50 leading-relaxed">
         worst-case (팔 수평 뻗음) 자세에서 끝점에 매달리는 무게. 토크·도달성 분석에 사용됩니다.
       </p>
     </Section>
