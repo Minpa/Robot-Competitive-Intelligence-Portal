@@ -75,12 +75,12 @@ export function TimelinePanel() {
   const playheadPct = (timeline.currentTime / timeline.duration) * 100;
 
   return (
-    <div className="bg-[#0a0a0a] border-t border-white/10 px-3 py-2">
+    <div className="bg-designer-card border-t border-designer-rule px-3 py-2">
       <div className="flex items-center gap-2 mb-2">
-        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-gold">
+        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-designer-accent">
           모션 타임라인
         </span>
-        <span className="font-mono text-[9px] text-white/45 ml-2">
+        <span className="font-mono text-[9px] text-designer-muted ml-2">
           {timeline.currentTime.toFixed(1)}s / {timeline.duration.toFixed(1)}s
         </span>
         <div className="flex-1" />
@@ -88,7 +88,7 @@ export function TimelinePanel() {
         <button
           type="button"
           onClick={() => setPlaying(!timeline.isPlaying)}
-          className="border border-gold/40 bg-[#1a1408] hover:bg-[#231a0c] text-gold px-3 py-1 font-mono text-[11px] uppercase tracking-[0.18em]"
+          className="border border-designer-accent/50 bg-designer-accent/10 hover:bg-designer-accent/20 text-designer-accent px-3 py-1 font-mono text-[11px] uppercase tracking-[0.18em]"
           title={timeline.isPlaying ? '일시정지' : '재생'}
         >
           {timeline.isPlaying ? '⏸ 일시정지' : '▶ 재생'}
@@ -96,7 +96,7 @@ export function TimelinePanel() {
         <select
           value={timeline.playSpeed}
           onChange={(e) => setPlaySpeed(Number(e.target.value) as 1 | 2 | 3)}
-          className="bg-[#0a0a0a] border border-white/15 text-white/80 px-2 py-1 font-mono text-[10px]"
+          className="bg-designer-card border border-designer-rule text-designer-ink px-2 py-1 font-mono text-[10px]"
           aria-label="재생 속도"
         >
           <option value={1}>1×</option>
@@ -109,13 +109,13 @@ export function TimelinePanel() {
             setCurrentTime(0);
             setPlaying(false);
           }}
-          className="border border-white/15 bg-[#0a0a0a] hover:border-white/30 text-white/55 hover:text-white px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em]"
+          className="border border-designer-rule bg-designer-card hover:border-designer-ink-2 text-designer-muted hover:text-designer-ink px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em]"
           title="처음으로"
         >
           ↺ 0:00
         </button>
-        <span className="mx-2 h-4 w-px bg-white/15" />
-        <label className="text-[10px] text-white/55 font-mono">길이</label>
+        <span className="mx-2 h-4 w-px bg-designer-rule" />
+        <label className="text-[10px] text-designer-muted font-mono">길이</label>
         <input
           type="number"
           min={1}
@@ -123,27 +123,27 @@ export function TimelinePanel() {
           step={1}
           value={timeline.duration}
           onChange={(e) => setDuration(Number(e.target.value))}
-          className="w-14 bg-[#0a0a0a] border border-white/15 text-white/80 px-2 py-1 font-mono text-[10px]"
+          className="w-14 bg-designer-card border border-designer-rule text-designer-ink px-2 py-1 font-mono text-[10px]"
         />
-        <span className="text-[10px] text-white/45">s</span>
+        <span className="text-[10px] text-designer-muted">s</span>
         <button
           type="button"
           onClick={() => {
             if (window.confirm('모든 웨이포인트와 동작을 삭제할까요?')) resetTimeline();
           }}
-          className="border border-white/15 bg-[#0a0a0a] hover:border-error hover:text-error text-white/55 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em]"
+          className="border border-designer-rule bg-designer-card hover:border-error hover:text-error text-designer-muted px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em]"
         >
           전체 삭제
         </button>
       </div>
 
       {/* 시간축 트랙 */}
-      <div className="relative h-12 bg-[#1a1f27] border border-white/10 mb-2">
+      <div className="relative h-12 bg-designer-surface-2 border border-designer-rule mb-2">
         {/* 배경 그리드 (1초 간격) */}
         {Array.from({ length: Math.floor(timeline.duration) + 1 }).map((_, i) => (
           <div
             key={i}
-            className="absolute top-0 bottom-0 w-px bg-white/8"
+            className="absolute top-0 bottom-0 w-px bg-designer-rule"
             style={{ left: `${(i / timeline.duration) * 100}%` }}
           />
         ))}
@@ -163,7 +163,7 @@ export function TimelinePanel() {
               }}
               title={`${GESTURE_LABELS[g.type]} · ${g.t.toFixed(1)}s ~ ${(g.t + g.durationSec).toFixed(1)}s`}
             >
-              <span className="absolute inset-0 flex items-center justify-center text-[8.5px] font-mono uppercase text-white tracking-wider truncate px-1">
+              <span className="absolute inset-0 flex items-center justify-center text-[8.5px] font-mono uppercase text-designer-ink tracking-wider truncate px-1">
                 {GESTURE_LABELS[g.type]}
               </span>
               <button
@@ -172,7 +172,7 @@ export function TimelinePanel() {
                   e.stopPropagation();
                   removeGesture(g.id);
                 }}
-                className="absolute top-0 right-0 w-3.5 h-3.5 bg-black/60 text-white/70 text-[10px] leading-none flex items-center justify-center opacity-0 group-hover:opacity-100"
+                className="absolute top-0 right-0 w-3.5 h-3.5 bg-designer-ink text-designer-ink-2 text-[10px] leading-none flex items-center justify-center opacity-0 group-hover:opacity-100"
                 title="삭제"
               >
                 ×
@@ -190,11 +190,11 @@ export function TimelinePanel() {
               style={{ left: `${leftPct}%`, transform: 'translateX(-50%)' }}
               title={`웨이포인트 · t=${w.t.toFixed(1)}s · (${w.xCm.toFixed(0)}, ${w.yCm.toFixed(0)})cm`}
             >
-              <div className="w-2 h-5 bg-gold border border-gold-dark" />
+              <div className="w-2 h-5 bg-designer-accent border border-designer-accent" />
               <button
                 type="button"
                 onClick={() => removeWaypoint(w.id)}
-                className="absolute -top-3 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-black/70 text-white/70 text-[10px] leading-none flex items-center justify-center opacity-0 group-hover:opacity-100"
+                className="absolute -top-3 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-designer-ink text-designer-ink-2 text-[10px] leading-none flex items-center justify-center opacity-0 group-hover:opacity-100"
                 title="삭제"
               >
                 ×
@@ -204,10 +204,10 @@ export function TimelinePanel() {
         })}
         {/* Playhead */}
         <div
-          className="absolute top-0 bottom-0 w-px bg-[#ff4d64] pointer-events-none"
+          className="absolute top-0 bottom-0 w-px bg-designer-risk pointer-events-none"
           style={{ left: `${playheadPct}%` }}
         >
-          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#ff4d64] rotate-45" />
+          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-designer-risk rotate-45" />
         </div>
       </div>
 
@@ -222,13 +222,13 @@ export function TimelinePanel() {
           setPlaying(false);
           setCurrentTime(Number(e.target.value));
         }}
-        className="w-full accent-[#ff4d64] mb-3"
+        className="w-full accent-designer-risk mb-3"
         aria-label="시간 스크럽"
       />
 
       {/* 로봇 회전 슬라이더 — 위치와 별도로 yaw 제어 */}
       <div className="flex items-center gap-2 mb-2">
-        <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/55 w-16">
+        <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-designer-muted w-16">
           로봇 yaw
         </span>
         <input
@@ -238,16 +238,16 @@ export function TimelinePanel() {
           step={1}
           value={robotYawDeg}
           onChange={(e) => setRobotYawDeg(Number(e.target.value))}
-          className="flex-1 accent-gold cursor-pointer"
+          className="flex-1 accent-designer-accent cursor-pointer"
           aria-label="로봇 회전 (yaw)"
         />
-        <span className="font-mono text-[10px] tabular-nums text-white w-10 text-right">
+        <span className="font-mono text-[10px] tabular-nums text-designer-ink w-10 text-right">
           {robotYawDeg.toFixed(0)}°
         </span>
         <button
           type="button"
           onClick={() => setRobotYawDeg(0)}
-          className="border border-white/15 bg-[#0a0a0a] hover:border-white/30 text-white/55 hover:text-white px-2 py-1 font-mono text-[9px] uppercase"
+          className="border border-designer-rule bg-designer-card hover:border-designer-ink-2 text-designer-muted hover:text-designer-ink px-2 py-1 font-mono text-[9px] uppercase"
           title="회전 초기화"
         >
           ↺
@@ -266,23 +266,23 @@ export function TimelinePanel() {
               yawDeg: robotYawDeg,
             })
           }
-          className="border border-gold/40 bg-[#1a1408] hover:bg-[#231a0c] text-gold px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em]"
+          className="border border-designer-accent/50 bg-designer-accent/10 hover:bg-designer-accent/20 text-designer-accent px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em]"
           title="현재 시점·위치·회전을 웨이포인트로 추가"
         >
           + 웨이포인트
         </button>
-        <span className="text-[10px] text-white/40 font-mono">
+        <span className="text-[10px] text-designer-muted font-mono">
           현재: ({(robotXCm ?? halfWCm).toFixed(0)}, {(robotYCm ?? halfDCm).toFixed(0)})cm · {robotYawDeg.toFixed(0)}°
         </span>
 
-        <span className="mx-2 h-4 w-px bg-white/15" />
+        <span className="mx-2 h-4 w-px bg-designer-rule" />
 
         {POSE_GESTURES.map((gType) => (
           <button
             key={gType}
             type="button"
             onClick={() => addGesture({ t: timeline.currentTime, durationSec: 3, type: gType })}
-            className="border border-white/20 bg-[#0a0a0a] hover:border-white/40 text-white/70 hover:text-white px-2 py-1 font-mono text-[9.5px] uppercase tracking-[0.18em]"
+            className="border border-designer-rule bg-designer-card hover:border-designer-ink text-designer-ink-2 hover:text-designer-ink px-2 py-1 font-mono text-[9.5px] uppercase tracking-[0.18em]"
             style={{ borderColor: `${GESTURE_COLORS[gType]}60` }}
             title={`현재 시점에 ${gType} 동작 추가 (3초). 위치는 별도 웨이포인트로 관리.`}
           >
@@ -291,7 +291,7 @@ export function TimelinePanel() {
         ))}
 
         {/* 그리퍼 닫기/열기 — proximity-based auto grab */}
-        <span className="mx-1 h-4 w-px bg-white/15" />
+        <span className="mx-1 h-4 w-px bg-designer-rule" />
         <button
           type="button"
           onClick={() => addGesture({ t: timeline.currentTime, durationSec: 2, type: 'GRAB' })}
@@ -321,7 +321,7 @@ export function TimelinePanel() {
       {/* 웨이포인트/제스처 리스트 (편집용) — 접힘 가능 */}
       {(timeline.waypoints.length > 0 || timeline.gestures.length > 0) ? (
         <details className="mt-2">
-          <summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.18em] text-white/55 hover:text-white py-0.5">
+          <summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.18em] text-designer-muted hover:text-designer-ink py-0.5">
             웨이포인트 ({timeline.waypoints.length}) · 동작 ({timeline.gestures.length}) — 클릭해서 편집
           </summary>
           <div className="grid grid-cols-2 gap-3 mt-2">
@@ -331,13 +331,13 @@ export function TimelinePanel() {
         </details>
       ) : (
         <details className="mt-2">
-          <summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.18em] text-white/35 hover:text-white py-0.5">
+          <summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.18em] text-designer-muted hover:text-designer-ink py-0.5">
             사용 방법 (위치/동작 트랙 독립)
           </summary>
-          <div className="mt-2 text-[10px] text-white/45 leading-relaxed space-y-1">
+          <div className="mt-2 text-[10px] text-designer-muted leading-relaxed space-y-1">
             <p>
-              <strong className="text-gold">위치(웨이포인트)</strong>와{' '}
-              <strong className="text-gold">동작(제스처)</strong>는 독립 트랙입니다.
+              <strong className="text-designer-accent">위치(웨이포인트)</strong>와{' '}
+              <strong className="text-designer-accent">동작(제스처)</strong>는 독립 트랙입니다.
             </p>
             <p>
               <strong>위치 시퀀스</strong>: 로봇을 A로 드래그 → 시간축 0초 → + 웨이포인트 → 스크럽
@@ -359,46 +359,46 @@ function WaypointList({ waypoints }: { waypoints: TimelineWaypoint[] }) {
   const removeWaypoint = useDesignerVacuumStore((s) => s.removeWaypoint);
   return (
     <div>
-      <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/55 mb-1">
+      <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-designer-muted mb-1">
         웨이포인트 ({waypoints.length}) — t / x / y / yaw 편집 가능
       </div>
       <div className="space-y-1 max-h-32 overflow-y-auto">
         {waypoints.map((w) => (
           <div
             key={w.id}
-            className="flex items-center gap-1 bg-[#0f0f0f] border border-white/10 px-2 py-1 font-mono text-[10px]"
+            className="flex items-center gap-1 bg-designer-surface-2 border border-designer-rule px-2 py-1 font-mono text-[10px]"
           >
-            <span className="text-gold/80 text-[9px]">t</span>
+            <span className="text-designer-accent text-[9px]">t</span>
             <input
               type="number"
               min={0}
               step={0.1}
               value={w.t.toFixed(1)}
               onChange={(e) => updateWaypoint(w.id, { t: Number(e.target.value) })}
-              className="w-12 bg-[#0a0a0a] border border-white/15 text-white/85 px-1 text-[10px]"
+              className="w-12 bg-designer-card border border-designer-rule text-designer-ink px-1 text-[10px]"
               title="시점 (초)"
             />
-            <span className="text-white/45 text-[9px] ml-1">x</span>
+            <span className="text-designer-muted text-[9px] ml-1">x</span>
             <input
               type="number"
               min={0}
               step={1}
               value={w.xCm.toFixed(0)}
               onChange={(e) => updateWaypoint(w.id, { xCm: Number(e.target.value) })}
-              className="w-11 bg-[#0a0a0a] border border-white/15 text-white/85 px-1 text-[10px]"
+              className="w-11 bg-designer-card border border-designer-rule text-designer-ink px-1 text-[10px]"
               title="X 위치 (cm)"
             />
-            <span className="text-white/45 text-[9px]">y</span>
+            <span className="text-designer-muted text-[9px]">y</span>
             <input
               type="number"
               min={0}
               step={1}
               value={w.yCm.toFixed(0)}
               onChange={(e) => updateWaypoint(w.id, { yCm: Number(e.target.value) })}
-              className="w-11 bg-[#0a0a0a] border border-white/15 text-white/85 px-1 text-[10px]"
+              className="w-11 bg-designer-card border border-designer-rule text-designer-ink px-1 text-[10px]"
               title="Y 위치 (cm)"
             />
-            <span className="text-white/45 text-[9px]">yaw</span>
+            <span className="text-designer-muted text-[9px]">yaw</span>
             <input
               type="number"
               min={0}
@@ -406,13 +406,13 @@ function WaypointList({ waypoints }: { waypoints: TimelineWaypoint[] }) {
               step={5}
               value={(w.yawDeg ?? 0).toFixed(0)}
               onChange={(e) => updateWaypoint(w.id, { yawDeg: Number(e.target.value) })}
-              className="w-11 bg-[#0a0a0a] border border-white/15 text-white/85 px-1 text-[10px]"
+              className="w-11 bg-designer-card border border-designer-rule text-designer-ink px-1 text-[10px]"
               title="회전 yaw (도). 인접 waypoint와 lerp."
             />
             <button
               type="button"
               onClick={() => removeWaypoint(w.id)}
-              className="text-white/35 hover:text-error ml-auto"
+              className="text-designer-muted hover:text-error ml-auto"
               title="삭제"
             >
               ×
@@ -429,30 +429,30 @@ function GestureList({ gestures }: { gestures: TimelineGesture[] }) {
   const removeGesture = useDesignerVacuumStore((s) => s.removeGestureKeyframe);
   return (
     <div>
-      <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/55 mb-1">
+      <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-designer-muted mb-1">
         동작 ({gestures.length})
       </div>
       <div className="space-y-1 max-h-32 overflow-y-auto">
         {gestures.map((g) => (
           <div
             key={g.id}
-            className="flex items-center gap-2 bg-[#0f0f0f] border border-white/10 px-2 py-1 font-mono text-[10px]"
+            className="flex items-center gap-2 bg-designer-surface-2 border border-designer-rule px-2 py-1 font-mono text-[10px]"
           >
             <span
               className="w-1.5 h-1.5 rounded-sm"
               style={{ background: GESTURE_COLORS[g.type] }}
             />
-            <span className="text-white/80 w-20 truncate">{GESTURE_LABELS[g.type]}</span>
-            <span className="text-white/45 text-[9px]">@</span>
+            <span className="text-designer-ink w-20 truncate">{GESTURE_LABELS[g.type]}</span>
+            <span className="text-designer-muted text-[9px]">@</span>
             <input
               type="number"
               min={0}
               step={0.1}
               value={g.t.toFixed(1)}
               onChange={(e) => updateGesture(g.id, { t: Number(e.target.value) })}
-              className="w-12 bg-[#0a0a0a] border border-white/15 text-white/80 px-1 text-[10px]"
+              className="w-12 bg-designer-card border border-designer-rule text-designer-ink px-1 text-[10px]"
             />
-            <span className="text-white/45 text-[9px]">×</span>
+            <span className="text-designer-muted text-[9px]">×</span>
             <input
               type="number"
               min={0.5}
@@ -460,13 +460,13 @@ function GestureList({ gestures }: { gestures: TimelineGesture[] }) {
               step={0.5}
               value={g.durationSec.toFixed(1)}
               onChange={(e) => updateGesture(g.id, { durationSec: Number(e.target.value) })}
-              className="w-12 bg-[#0a0a0a] border border-white/15 text-white/80 px-1 text-[10px]"
+              className="w-12 bg-designer-card border border-designer-rule text-designer-ink px-1 text-[10px]"
             />
-            <span className="text-white/45 text-[9px]">s</span>
+            <span className="text-designer-muted text-[9px]">s</span>
             <button
               type="button"
               onClick={() => removeGesture(g.id)}
-              className="text-white/35 hover:text-error"
+              className="text-designer-muted hover:text-error"
               title="삭제"
             >
               ×

@@ -81,22 +81,22 @@ export function ScenarioPanel() {
   const libraryEffectivelyOpen = libraryOpen || hasContent;
 
   return (
-    <div className="bg-[#0a0a0a] border-t border-white/10">
+    <div className="bg-designer-surface border-t border-designer-rule">
       {/* Always-visible header — 한 줄, 클릭으로 toggle */}
       <button
         type="button"
         onClick={() => setLibraryOpen(!libraryEffectivelyOpen)}
-        className="flex items-center gap-2 w-full px-4 py-1.5 hover:bg-white/5 text-left"
+        className="flex items-center gap-2 w-full px-4 py-1.5 hover:bg-designer-surface-2 text-left"
       >
-        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-gold">
+        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-designer-accent">
           {libraryEffectivelyOpen ? '▼' : '▶'} 가사업무 시나리오 + 평가
         </span>
         {activeScenario ? (
-          <span className="font-mono text-[9px] text-white/60">
-            · 현재: <span className="text-white">{activeScenario.name}</span>
+          <span className="font-mono text-[9px] text-designer-ink-2">
+            · 현재: <span className="text-designer-ink">{activeScenario.name}</span>
           </span>
         ) : (
-          <span className="font-mono text-[9px] text-white/35">
+          <span className="font-mono text-[9px] text-designer-muted">
             · {TASK_SCENARIOS.length}개 시나리오 사용 가능
           </span>
         )}
@@ -117,7 +117,7 @@ export function ScenarioPanel() {
               onReRun();
             }}
             disabled={isPlaying}
-            className="border border-gold/40 bg-[#1a1408] hover:bg-[#231a0c] text-gold px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] disabled:opacity-30"
+            className="border border-designer-accent/50 bg-designer-accent/10 hover:bg-designer-accent/20 text-designer-accent px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] disabled:opacity-30"
             title="현재 spec으로 시나리오 다시 재생"
           >
             ▶ 재실행
@@ -139,8 +139,8 @@ export function ScenarioPanel() {
                   className={[
                     'text-left border px-2 py-1.5 transition-colors',
                     active
-                      ? 'border-gold bg-[#1a1408]'
-                      : 'border-white/15 bg-[#0f0f0f] hover:border-white/40 hover:bg-[#141414]',
+                      ? 'border-designer-accent bg-designer-accent/10'
+                      : 'border-designer-rule bg-designer-card hover:border-designer-ink-2 hover:bg-designer-surface-2',
                   ].join(' ')}
                   title={scn.description}
                 >
@@ -152,7 +152,7 @@ export function ScenarioPanel() {
                       {scn.category}
                     </span>
                   </div>
-                  <span className="text-[10.5px] font-medium text-white leading-tight block">
+                  <span className="text-[10.5px] font-medium text-designer-ink leading-tight block">
                     {scn.name}
                   </span>
                 </button>
@@ -233,16 +233,16 @@ function ResultMatrix() {
   }
 
   return (
-    <div className="border border-white/15 bg-[#0a0a0a]">
+    <div className="border border-designer-rule bg-designer-surface">
       <div className="flex items-center gap-2 px-3 py-1.5">
         <button
           type="button"
           onClick={() => setOpen(!open)}
-          className="font-mono text-[9px] uppercase tracking-[0.22em] text-gold hover:text-white"
+          className="font-mono text-[9px] uppercase tracking-[0.22em] text-designer-accent hover:text-designer-ink"
         >
           {open ? '▼' : '▶'} 결과 매트릭스 (시나리오 × spec)
         </button>
-        <span className="font-mono text-[9px] text-white/45">
+        <span className="font-mono text-[9px] text-designer-muted">
           · {scenarioOrder.length}개 시나리오 × {specOrder.length}개 spec · {evalHistory.length}회
         </span>
         <div className="flex-1" />
@@ -252,7 +252,7 @@ function ResultMatrix() {
             onClick={() => {
               if (window.confirm('평가 history 전체 삭제할까요?')) clearEvalHistory();
             }}
-            className="border border-white/15 bg-[#0a0a0a] hover:border-error hover:text-error text-white/55 px-2 py-1 font-mono text-[9.5px] uppercase tracking-[0.18em]"
+            className="border border-designer-rule bg-designer-surface hover:border-error hover:text-error text-designer-ink-2 px-2 py-1 font-mono text-[9.5px] uppercase tracking-[0.18em]"
           >
             history 전체 삭제
           </button>
@@ -264,7 +264,7 @@ function ResultMatrix() {
         <table className="text-[10.5px] font-mono w-full border-collapse">
           <thead>
             <tr>
-              <th className="text-left py-1.5 px-2 border-b border-white/15 text-white/55">
+              <th className="text-left py-1.5 px-2 border-b border-designer-rule text-designer-ink-2">
                 시나리오 ↓ / spec →
               </th>
               {specOrder.map((spec) => {
@@ -275,7 +275,7 @@ function ResultMatrix() {
                 return (
                   <th
                     key={spec}
-                    className="text-center py-1.5 px-2 border-b border-white/15 text-white/85 min-w-[110px]"
+                    className="text-center py-1.5 px-2 border-b border-designer-rule text-designer-ink min-w-[110px]"
                   >
                     <div className="text-[10.5px]">{spec}</div>
                     <div className="text-[8.5px]" style={{ color: ratioColor }}>
@@ -288,13 +288,13 @@ function ResultMatrix() {
           </thead>
           <tbody>
             {scenarioOrder.map((scnId) => (
-              <tr key={scnId} className="border-b border-white/5 hover:bg-white/5">
-                <td className="py-1.5 px-2 text-white/85">{scenarioNames.get(scnId) ?? scnId}</td>
+              <tr key={scnId} className="border-b border-designer-rule hover:bg-designer-surface-2">
+                <td className="py-1.5 px-2 text-designer-ink">{scenarioNames.get(scnId) ?? scnId}</td>
                 {specOrder.map((spec) => {
                   const r = grid.get(scnId)?.get(spec);
                   if (!r) {
                     return (
-                      <td key={spec} className="text-center py-1.5 px-2 text-white/25">
+                      <td key={spec} className="text-center py-1.5 px-2 text-designer-ink/25">
                         —
                       </td>
                     );
@@ -319,7 +319,7 @@ function ResultMatrix() {
                         >
                           {r.passed ? '✓' : '✗'}
                         </span>
-                        <span className="text-white/65 text-[9.5px]">
+                        <span className="text-designer-ink-2 text-[9.5px]">
                           {r.passedCriteriaCount}/{r.totalCriteriaCount}
                         </span>
                         {failCount > 0 ? (
@@ -329,7 +329,7 @@ function ResultMatrix() {
                       <button
                         type="button"
                         onClick={() => removeEvalHistoryEntry(r.id)}
-                        className="absolute top-0 right-0.5 text-white/25 hover:text-error opacity-0 group-hover:opacity-100 text-[10px]"
+                        className="absolute top-0 right-0.5 text-designer-ink/25 hover:text-error opacity-0 group-hover:opacity-100 text-[10px]"
                         title="결과 삭제"
                       >
                         ×
@@ -343,7 +343,7 @@ function ResultMatrix() {
         </table>
       </div>
 
-      <p className="text-[9.5px] text-white/40 leading-relaxed">
+      <p className="text-[9.5px] text-designer-muted leading-relaxed">
         같은 시나리오를 여러 spec(부품 교체 후)으로 돌리면 컬럼이 추가됩니다.
         셀 hover 시 상세 내용. 컬럼 헤더의 통과율로 어떤 spec이 가장 많은 시나리오를 통과하는지 비교 가능.
       </p>
@@ -378,9 +378,9 @@ function ResultBlock({
       : '#fca5a5';
 
   return (
-    <div className="border border-white/15 bg-[#0a0a0a] p-3 space-y-2">
+    <div className="border border-designer-rule bg-designer-surface p-3 space-y-2">
       <div className="flex items-baseline gap-3">
-        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/55">
+        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-designer-ink-2">
           평가 결과
         </span>
         <span className="text-[13px] font-medium" style={{ color: verdictColor }}>
@@ -388,7 +388,7 @@ function ResultBlock({
         </span>
         {result ? (
           <>
-            <span className="text-[10px] text-white/35">
+            <span className="text-[10px] text-designer-muted">
               · {result.durationSec.toFixed(1)}s 재생
             </span>
             {warnCount > 0 ? (
@@ -399,17 +399,17 @@ function ResultBlock({
       </div>
 
       {result?.specSummary ? (
-        <div className="font-mono text-[9.5px] text-white/45 truncate" title={result.specSummary}>
+        <div className="font-mono text-[9.5px] text-designer-muted truncate" title={result.specSummary}>
           spec: {result.specSummary}
         </div>
       ) : null}
 
       {/* 시나리오 설명 */}
-      <div className="text-[10.5px] text-white/50">{scenarioName}</div>
+      <div className="text-[10.5px] text-designer-muted">{scenarioName}</div>
 
       {/* 이슈 리스트 */}
       {issues.length === 0 ? (
-        <div className="text-[10.5px] text-white/40 italic">발견된 이슈 없음 — 모든 검사 통과</div>
+        <div className="text-[10.5px] text-designer-muted italic">발견된 이슈 없음 — 모든 검사 통과</div>
       ) : (
         <div className="space-y-1.5 max-h-64 overflow-y-auto">
           {issues.map((issue, i) => {
@@ -427,16 +427,16 @@ function ResultBlock({
                   >
                     {sty.label}
                   </span>
-                  <span className="font-mono text-[8.5px] text-white/45">
+                  <span className="font-mono text-[8.5px] text-designer-muted">
                     [{CATEGORY_LABELS[issue.category]}]
                   </span>
-                  <span className="font-mono text-[8.5px] text-white/45">
+                  <span className="font-mono text-[8.5px] text-designer-muted">
                     @ {issue.timeSec.toFixed(1)}s
                   </span>
                 </div>
-                <div className="text-[11px] text-white/85 leading-snug">{issue.message}</div>
+                <div className="text-[11px] text-designer-ink leading-snug">{issue.message}</div>
                 {issue.recommendation ? (
-                  <div className="text-[10px] text-gold/80 leading-snug mt-0.5">
+                  <div className="text-[10px] text-designer-accent/80 leading-snug mt-0.5">
                     → {issue.recommendation}
                   </div>
                 ) : null}

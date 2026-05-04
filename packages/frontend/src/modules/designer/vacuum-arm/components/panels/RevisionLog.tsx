@@ -87,38 +87,38 @@ export function RevisionLog() {
   const visible = showAll ? revisions.slice().reverse() : revisions.slice(-VISIBLE_LIMIT_DEFAULT).reverse();
 
   return (
-    <div className="border-t border-white/10">
+    <div className="border-t border-designer-rule pt-6 mt-6">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between py-3 text-left"
+        className="flex w-full items-center justify-between pb-4 text-left"
       >
         <span className="flex items-center gap-2">
           {open ? (
-            <ChevronDown className="h-3 w-3 text-white/45" strokeWidth={2.2} />
+            <ChevronDown className="h-3.5 w-3.5 text-designer-muted" strokeWidth={2.2} />
           ) : (
-            <ChevronRight className="h-3 w-3 text-white/45" strokeWidth={2.2} />
+            <ChevronRight className="h-3.5 w-3.5 text-designer-muted" strokeWidth={2.2} />
           )}
-          <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-white/70">
-            변경 로그 (REQ-9)
+          <span className="font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-designer-muted">
+            변경 로그 · REQ-9
           </span>
         </span>
-        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/45 px-1.5 py-0.5 border border-white/10">
+        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-designer-muted px-2 py-0.5 border border-designer-rule bg-designer-card">
           {revisions.length}건
         </span>
       </button>
       {open ? (
-        <div className="pb-4">
+        <div>
           {revisions.length === 0 ? (
-            <p className="text-[11px] text-white/50">사양을 변경하면 여기에 기록됩니다.</p>
+            <p className="text-[15px] text-designer-muted">사양을 변경하면 여기에 기록됩니다.</p>
           ) : (
             <>
-              <div className="flex items-center gap-1.5 mb-2">
+              <div className="flex items-center gap-1.5 mb-3">
                 {!showAll && revisions.length > VISIBLE_LIMIT_DEFAULT ? (
                   <button
                     type="button"
                     onClick={() => setShowAll(true)}
-                    className="font-mono text-[10px] uppercase tracking-[0.18em] border border-white/15 px-2 py-0.5 text-white/60 hover:border-white/40 hover:text-white"
+                    className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] border border-designer-rule bg-designer-card px-2 py-1 text-designer-ink-2 hover:border-designer-ink-2 hover:text-designer-ink"
                   >
                     전체 표시 ({revisions.length})
                   </button>
@@ -127,7 +127,7 @@ export function RevisionLog() {
                   <button
                     type="button"
                     onClick={() => setShowAll(false)}
-                    className="font-mono text-[10px] uppercase tracking-[0.18em] border border-white/15 px-2 py-0.5 text-white/60 hover:border-white/40 hover:text-white"
+                    className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] border border-designer-rule bg-designer-card px-2 py-1 text-designer-ink-2 hover:border-designer-ink-2 hover:text-designer-ink"
                   >
                     최근 {VISIBLE_LIMIT_DEFAULT}건만
                   </button>
@@ -135,32 +135,32 @@ export function RevisionLog() {
                 <button
                   type="button"
                   onClick={clear}
-                  className="ml-auto font-mono text-[10px] uppercase tracking-[0.18em] border border-white/15 p-1 text-white/60 hover:border-[#E63950] hover:text-[#E63950]"
+                  className="ml-auto border border-designer-rule bg-designer-card p-1.5 text-designer-muted hover:border-designer-risk hover:text-designer-risk"
                   title="로그 비우기"
                 >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <ul className="space-y-1">
+              <ul className="space-y-1.5">
                 {visible.map((entry) => (
-                  <li key={entry.id} className="border border-white/10 px-2 py-1.5">
+                  <li key={entry.id} className="border border-designer-rule bg-designer-card px-2.5 py-2">
                     <div className="flex items-baseline justify-between gap-2">
                       <span
-                        className="text-[11.5px] text-white/80 truncate"
+                        className="text-[15px] text-designer-ink truncate"
                         title={entry.parameterName}
                       >
                         {humanizeParam(entry.parameterName)}
                       </span>
-                      <span className="font-mono text-[10px] tabular-nums text-white/40 shrink-0">
+                      <span className="font-mono text-[11px] tabular-nums text-designer-muted shrink-0">
                         {formatTime(entry.changedAt)}
                       </span>
                     </div>
-                    <div className="mt-0.5 font-mono text-[11px] tabular-nums text-white/70 truncate">
-                      <span className="text-white/45">
+                    <div className="mt-1 font-mono text-[13px] tabular-nums text-designer-ink-2 truncate">
+                      <span className="text-designer-muted">
                         {humanizeValue(entry.parameterName, entry.oldValue)}
                       </span>
-                      <span className="mx-1.5 text-white/35">→</span>
-                      <span className="text-white">
+                      <span className="mx-1.5 text-designer-muted">→</span>
+                      <span className="text-designer-ink font-semibold">
                         {humanizeValue(entry.parameterName, entry.newValue)}
                       </span>
                     </div>

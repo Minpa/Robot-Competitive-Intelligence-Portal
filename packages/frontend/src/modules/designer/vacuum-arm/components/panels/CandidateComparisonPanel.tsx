@@ -150,43 +150,43 @@ export function CandidateComparisonPanel({ candidates, onClose }: CandidateCompa
   }, [winners, candidates]);
 
   return (
-    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/70 p-6">
-      <div className="relative w-full max-w-6xl max-h-[88vh] overflow-y-auto bg-[#0a0a0a] border border-white/15 p-6">
+    <div className="fixed inset-0 z-30 flex items-center justify-center bg-designer-ink/40 p-6 backdrop-blur-sm">
+      <div className="relative w-full max-w-6xl max-h-[88vh] overflow-y-auto bg-designer-card border border-designer-rule shadow-report-lg p-6">
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 border border-white/15 p-1.5 text-white/60 hover:border-white/40 hover:text-white"
+          className="absolute right-4 top-4 border border-designer-rule bg-designer-surface p-1.5 text-designer-muted hover:border-designer-ink-2 hover:text-designer-ink"
           aria-label="닫기"
         >
           <X className="h-4 w-4" />
         </button>
 
-        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/45">
+        <span className="font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-designer-muted">
           Candidate Comparison · REQ-8
         </span>
-        <h2 className="mt-1 text-[18px] text-white">사양 후보안 비교 매트릭스</h2>
+        <h2 className="mt-2 text-[22px] font-medium text-designer-ink">사양 후보안 비교 매트릭스</h2>
 
         {candidates.length === 0 ? (
-          <p className="mt-4 text-[12px] text-white/55">
+          <p className="mt-4 text-[15px] text-designer-muted">
             비교할 후보가 없습니다. 좌측 사양 입력 후 [후보 저장]으로 추가하세요.
           </p>
         ) : (
           <>
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-[11px]">
+            <div className="mt-5 overflow-x-auto">
+              <table className="w-full text-[15px]">
                 <thead>
-                  <tr className="border-b border-white/15">
-                    <th className="text-left py-2 px-2 font-mono text-[9px] uppercase tracking-[0.18em] text-white/45 w-44">
+                  <tr className="border-b-2 border-designer-rule">
+                    <th className="text-left py-3 px-3 font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-designer-muted w-44">
                       메트릭
                     </th>
                     {candidates.map((c, i) => (
                       <th
                         key={c.id}
-                        className="text-right py-2 px-2 font-mono text-[9px] uppercase tracking-[0.18em] text-white/65"
+                        className="text-right py-3 px-3 font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-designer-muted"
                       >
-                        <span className="block text-white">{c.name}</span>
-                        <span className="block text-white/35 mt-0.5">팔 {c.product.arms.length}</span>
-                        <span className="block mt-1 text-gold tabular-nums">
+                        <span className="block text-[15px] text-designer-ink">{c.name}</span>
+                        <span className="block text-designer-muted mt-1">팔 {c.product.arms.length}</span>
+                        <span className="block mt-1.5 text-designer-accent tabular-nums">
                           🏆 {winners[i]}
                         </span>
                       </th>
@@ -195,9 +195,9 @@ export function CandidateComparisonPanel({ candidates, onClose }: CandidateCompa
                 </thead>
                 <tbody>
                   {matrix.map((row) => (
-                    <tr key={row.key} className="border-b border-white/5">
-                      <td className="py-2 px-2 text-white/75">
-                        {row.label} <span className="text-white/30 ml-1">({row.unit})</span>
+                    <tr key={row.key} className="border-b border-designer-rule">
+                      <td className="py-2.5 px-3 text-[15px] text-designer-ink">
+                        {row.label} <span className="text-designer-muted ml-1">({row.unit})</span>
                       </td>
                       {row.values.map((v, i) => {
                         const isBest = v !== null && row.best !== null && Math.abs(v - row.best) < 0.001;
@@ -205,11 +205,13 @@ export function CandidateComparisonPanel({ candidates, onClose }: CandidateCompa
                           <td
                             key={i}
                             className={[
-                              'py-2 px-2 text-right font-mono tabular-nums',
-                              isBest ? 'bg-[#1a1408] text-gold font-semibold' : 'text-white/85',
+                              'py-2.5 px-3 text-right font-mono tabular-nums text-[15px]',
+                              isBest
+                                ? 'bg-designer-accent/15 text-designer-ink font-semibold'
+                                : 'text-designer-ink-2',
                             ].join(' ')}
                           >
-                            {v === null ? <span className="text-white/30">—</span> : v.toFixed(row.unit === '%' ? 1 : 1)}
+                            {v === null ? <span className="text-designer-muted">—</span> : v.toFixed(row.unit === '%' ? 1 : 1)}
                           </td>
                         );
                       })}
@@ -219,11 +221,11 @@ export function CandidateComparisonPanel({ candidates, onClose }: CandidateCompa
               </table>
             </div>
 
-            <div className="mt-5 border-l-2 border-gold pl-4 py-2">
-              <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-gold/80">
+            <div className="mt-5 border-l-4 border-designer-accent bg-designer-surface-2 pl-4 py-3">
+              <span className="font-mono text-[13px] font-semibold uppercase tracking-[0.14em] text-designer-muted">
                 종합 추천
               </span>
-              <p className="mt-1 text-[12.5px] text-white leading-relaxed">{recommendation}</p>
+              <p className="mt-1.5 text-[17px] text-designer-ink leading-relaxed">{recommendation}</p>
             </div>
           </>
         )}

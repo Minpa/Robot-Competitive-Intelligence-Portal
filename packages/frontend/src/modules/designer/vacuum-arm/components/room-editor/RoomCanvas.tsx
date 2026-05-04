@@ -158,9 +158,9 @@ export function RoomCanvas({ heightPx = 500 }: { heightPx?: number }) {
   return (
     <div className="flex h-full flex-col">
       {/* Top toolbar: room size + presets + scenarios + reset */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-white/10 bg-[#0f0f0f] px-3 py-2">
+      <div className="flex flex-wrap items-center gap-3 border-b border-designer-rule bg-designer-surface-2 px-3 py-2">
         <div className="flex items-center gap-1">
-          <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/45">방</span>
+          <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-designer-muted">방</span>
           <NumberField
             value={room.widthCm}
             onChange={(v) => setRoomSize(v, room.depthCm)}
@@ -169,7 +169,7 @@ export function RoomCanvas({ heightPx = 500 }: { heightPx?: number }) {
             step={10}
             unit="cm"
           />
-          <span className="text-white/45">×</span>
+          <span className="text-designer-muted">×</span>
           <NumberField
             value={room.depthCm}
             onChange={(v) => setRoomSize(room.widthCm, v)}
@@ -181,7 +181,7 @@ export function RoomCanvas({ heightPx = 500 }: { heightPx?: number }) {
         </div>
 
         <div className="flex items-center gap-1">
-          <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/45">프리셋</span>
+          <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-designer-muted">프리셋</span>
           {presets.map((p) => (
             <button
               key={p.id}
@@ -190,8 +190,8 @@ export function RoomCanvas({ heightPx = 500 }: { heightPx?: number }) {
               className={[
                 'border px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] transition-colors',
                 room.preset === p.id
-                  ? 'border-gold text-gold'
-                  : 'border-white/15 text-white/60 hover:border-white/35 hover:text-white',
+                  ? 'border-designer-accent text-designer-accent'
+                  : 'border-designer-rule text-designer-ink-2 hover:border-designer-ink-2 hover:text-designer-ink',
               ].join(' ')}
               title={p.description}
             >
@@ -201,7 +201,7 @@ export function RoomCanvas({ heightPx = 500 }: { heightPx?: number }) {
         </div>
 
         <div className="flex items-center gap-1">
-          <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-white/45">시나리오</span>
+          <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-designer-muted">시나리오</span>
           {scenarios.map((s) => (
             <button
               key={s.id}
@@ -210,7 +210,7 @@ export function RoomCanvas({ heightPx = 500 }: { heightPx?: number }) {
                 const presetSpec = presets.find((p) => p.id === s.presetRoomId) ?? null;
                 loadScenario(s, presetSpec);
               }}
-              className="border border-white/15 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/60 hover:border-gold hover:text-white transition-colors"
+              className="border border-designer-rule px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-designer-ink-2 hover:border-designer-accent hover:text-designer-ink transition-colors"
               title={s.description}
             >
               {s.id}
@@ -224,7 +224,7 @@ export function RoomCanvas({ heightPx = 500 }: { heightPx?: number }) {
             resetRoom();
             setSelection({ type: null, index: -1 });
           }}
-          className="ml-auto border border-white/15 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-white/55 hover:border-[#E63950] hover:text-[#E63950] transition-colors"
+          className="ml-auto border border-designer-rule px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-designer-muted hover:border-designer-risk hover:text-designer-risk transition-colors"
         >
           비우기
         </button>
@@ -233,7 +233,7 @@ export function RoomCanvas({ heightPx = 500 }: { heightPx?: number }) {
       {/* Body: palettes + canvas */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left: palettes (collapsible scroll) */}
-        <div className="w-44 shrink-0 overflow-y-auto border-r border-white/10 bg-[#0f0f0f] p-2 space-y-3">
+        <div className="w-44 shrink-0 overflow-y-auto border-r border-designer-rule bg-designer-surface-2 p-2 space-y-3">
           <Palette
             title="가구"
             items={furnitureCatalog.map((f) => ({
@@ -286,7 +286,7 @@ export function RoomCanvas({ heightPx = 500 }: { heightPx?: number }) {
         </div>
 
         {/* Center: canvas */}
-        <div className="flex-1 overflow-hidden bg-[#050505]" ref={containerRef}>
+        <div className="flex-1 overflow-hidden bg-designer-viewport" ref={containerRef}>
           <Stage width={stageWidth} height={stageHeight} onMouseDown={() => setSelection({ type: null, index: -1 })}>
             <Layer>
               {/* Floor outline — mid-tone neutral so furniture / overlays read clearly */}
@@ -380,7 +380,7 @@ export function RoomCanvas({ heightPx = 500 }: { heightPx?: number }) {
         </div>
 
         {/* Right: selection inspector */}
-        <div className="w-56 shrink-0 overflow-y-auto border-l border-white/10 bg-[#0f0f0f] p-3">
+        <div className="w-56 shrink-0 overflow-y-auto border-l border-designer-rule bg-designer-surface-2 p-3">
           <SelectionInspector
             selection={selection}
             onClear={() => setSelection({ type: null, index: -1 })}
@@ -395,7 +395,7 @@ export function RoomCanvas({ heightPx = 500 }: { heightPx?: number }) {
       </div>
 
       {/* Bottom: counts */}
-      <div className="border-t border-white/10 bg-[#0a0a0a] px-3 py-1.5 flex items-center gap-4 font-mono text-[9px] uppercase tracking-[0.18em] text-white/45">
+      <div className="border-t border-designer-rule bg-designer-card px-3 py-1.5 flex items-center gap-4 font-mono text-[9px] uppercase tracking-[0.18em] text-designer-muted">
         <span>가구 {room.furniture.length}</span>
         <span>장애물 {room.obstacles.length}</span>
         <span>타겟 {room.targets.length}</span>
@@ -431,9 +431,9 @@ function NumberField({
         min={min}
         max={max}
         step={step}
-        className="w-14 bg-[#0a0a0a] border border-white/15 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-white focus:border-gold focus:outline-none"
+        className="w-14 bg-designer-card border border-designer-rule px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-designer-ink focus:border-designer-accent focus:outline-none"
       />
-      <span className="ml-0.5 font-mono text-[9px] text-white/35">{unit}</span>
+      <span className="ml-0.5 font-mono text-[9px] text-designer-muted">{unit}</span>
     </span>
   );
 }
@@ -447,21 +447,21 @@ function Palette({
 }) {
   return (
     <div>
-      <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/55 mb-1">{title}</div>
+      <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-designer-muted mb-1">{title}</div>
       <div className="space-y-1">
         {items.map((it) => (
           <button
             key={it.key}
             type="button"
             onClick={it.onAdd}
-            className="flex w-full items-center gap-2 border border-white/10 bg-[#0a0a0a] px-2 py-1.5 text-left hover:border-white/30 hover:bg-[#1a1408] transition-colors"
+            className="flex w-full items-center gap-2 border border-designer-rule bg-designer-card px-2 py-1.5 text-left hover:border-designer-ink-2 hover:bg-designer-accent/10 transition-colors"
           >
-            <span className="block h-3 w-3 shrink-0 border border-white/20" style={{ backgroundColor: it.fill }} />
+            <span className="block h-3 w-3 shrink-0 border border-designer-rule" style={{ backgroundColor: it.fill }} />
             <span className="flex-1 truncate">
-              <span className="block text-[10.5px] text-white truncate">{it.label}</span>
-              <span className="block font-mono text-[8.5px] text-white/40 truncate">{it.hint}</span>
+              <span className="block text-[10.5px] text-designer-ink truncate">{it.label}</span>
+              <span className="block font-mono text-[8.5px] text-designer-muted truncate">{it.hint}</span>
             </span>
-            <span className="text-[12px] text-white/40">+</span>
+            <span className="text-[12px] text-designer-muted">+</span>
           </button>
         ))}
       </div>
@@ -657,8 +657,8 @@ function SelectionInspector({
   if (selection.type === null) {
     return (
       <div>
-        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/45">선택 없음</span>
-        <p className="mt-2 text-[10.5px] text-white/55 leading-relaxed">
+        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-designer-muted">선택 없음</span>
+        <p className="mt-2 text-[10.5px] text-designer-muted leading-relaxed">
           좌측 팔레트에서 가구/장애물/타겟을 추가하거나, 캔버스 항목을 클릭해 편집.
         </p>
       </div>
@@ -718,7 +718,7 @@ function SelectionInspector({
         onChange={(v) => updateTarget(selection.index, { zCm: v })}
         unit="cm"
       />
-      <p className="mt-1 text-[9.5px] text-white/40 leading-snug">
+      <p className="mt-1 text-[9.5px] text-designer-muted leading-snug">
         Z=0이면 바닥, 가구 위는 그 가구의 surfaceHeightCm에 맞추기 (예: 식탁 75cm)
       </p>
     </InspectorBlock>
@@ -739,12 +739,12 @@ function InspectorBlock({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-white/55">{title}</span>
+        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-designer-muted">{title}</span>
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={onRemove}
-            className="border border-white/15 p-1 text-white/55 hover:border-[#E63950] hover:text-[#E63950] transition-colors"
+            className="border border-designer-rule p-1 text-designer-muted hover:border-designer-risk hover:text-designer-risk transition-colors"
             title="삭제"
           >
             <Trash2 className="h-3 w-3" />
@@ -752,7 +752,7 @@ function InspectorBlock({
           <button
             type="button"
             onClick={onClose}
-            className="border border-white/15 px-2 py-0.5 text-[10px] text-white/55 hover:border-white/35 hover:text-white transition-colors"
+            className="border border-designer-rule px-2 py-0.5 text-[10px] text-designer-muted hover:border-designer-ink-2 hover:text-designer-ink transition-colors"
           >
             닫기
           </button>
@@ -776,16 +776,16 @@ function NumberRow({
 }) {
   return (
     <label className="flex items-center justify-between gap-2">
-      <span className="text-[10.5px] text-white/65">{label}</span>
+      <span className="text-[10.5px] text-designer-ink-2">{label}</span>
       <span className="inline-flex items-center">
         <input
           type="number"
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
           step={1}
-          className="w-16 bg-[#0a0a0a] border border-white/15 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-white text-right focus:border-gold focus:outline-none"
+          className="w-16 bg-designer-card border border-designer-rule px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-designer-ink text-right focus:border-designer-accent focus:outline-none"
         />
-        <span className="ml-0.5 font-mono text-[9px] text-white/35">{unit}</span>
+        <span className="ml-0.5 font-mono text-[9px] text-designer-muted">{unit}</span>
       </span>
     </label>
   );
@@ -811,8 +811,8 @@ function SliderRow({
   return (
     <div>
       <div className="flex items-center justify-between">
-        <span className="text-[10.5px] text-white/65">{label}</span>
-        <span className="font-mono text-[10px] tabular-nums text-white/85">
+        <span className="text-[10.5px] text-designer-ink-2">{label}</span>
+        <span className="font-mono text-[10px] tabular-nums text-designer-ink">
           {value}
           {unit}
         </span>
@@ -824,7 +824,7 @@ function SliderRow({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="mt-1 w-full accent-gold cursor-pointer"
+        className="mt-1 w-full accent-designer-accent cursor-pointer"
       />
     </div>
   );
