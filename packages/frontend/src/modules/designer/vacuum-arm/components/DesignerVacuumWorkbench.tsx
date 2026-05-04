@@ -18,6 +18,7 @@ import { EngineeringAnalysisPanel } from './panels/EngineeringAnalysisPanel';
 import { EnvironmentPanel } from './panels/EnvironmentPanel';
 import { CandidateComparisonPanel } from './panels/CandidateComparisonPanel';
 import { ViewportHud } from './viewport3d/ViewportHud';
+import { ViewportControlsOverlay } from './viewport3d/ViewportControlsOverlay';
 import { RevisionLog } from './panels/RevisionLog';
 import { EngineeringReviewPanel } from './panels/EngineeringReviewPanel';
 import { TimelinePanel } from './panels/TimelinePanel';
@@ -325,6 +326,13 @@ export function DesignerVacuumWorkbench() {
                   : undefined
               }
             />
+          ) : null}
+
+          {/* Floating controls overlay — D-pad + 팔 자세 + GRAB/RELEASE.
+             room3d에서만: 시뮬레이션 + 동작 레코딩 워크플로우 전용.
+             product3d/2D에선 숨김. */}
+          {mode === 'room3d' ? (
+            <ViewportControlsOverlay showArmPose={armCount > 0} showTimelineActions />
           ) : null}
           <div className="absolute inset-0">
             {mode === 'product3d' ? (
