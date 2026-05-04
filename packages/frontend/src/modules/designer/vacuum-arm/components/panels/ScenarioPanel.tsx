@@ -3,16 +3,14 @@
 /**
  * ScenarioPanel — 가사업무 시나리오 로드 + 평가 결과.
  *
- * 위: 시나리오 라이브러리 (선택해서 로드)
- * 아래: 마지막 재생의 evalResult (passed/fail + issue list + recommendations)
+ * 두 섹션 모두 접힘 가능 (기본 접힘) — 작업 공간을 viewport+timeline에 양보.
+ *   - 라이브러리 + 결과 (펼침 시 시나리오 카드 + 마지막 결과)
+ *   - 매트릭스 (펼침 시 시나리오 × spec 비교 표)
  *
- * 부품 교체 워크플로우:
- *   1. 시나리오 로드
- *   2. ▶ 재생 → 평가 결과
- *   3. spec 변경 (어깨 액추에이터 / 팔 길이 / 그리퍼)
- *   4. 다시 ▶ 재생 → 새 결과 (이전과 비교 가능, candidates 저장으로 영구 보관)
+ * 부품 교체 워크플로우는 commit message 참조.
  */
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useDesignerVacuumStore } from '../../stores/designer-vacuum-store';
 import { TASK_SCENARIOS, findScenario } from '../../kinematics/task-scenarios';
@@ -50,6 +48,9 @@ export function ScenarioPanel() {
   const setCurrentTime = useDesignerVacuumStore((s) => s.setTimelineCurrentTime);
   const clearEvalResult = useDesignerVacuumStore((s) => s.clearEvalResult);
 
+  // Collapsible — 라이브러리는 마지막 평가 결과가 있을 때만 자동 펼침
+  const [libraryOpen, setLibraryOpen] = useState(false);
+
   // 룸 프리셋 로딩 (시나리오 로드 시 사용)
   const presetsQ = useQuery({
     queryKey: ['vacuum-arm', 'room-presets'],
@@ -75,81 +76,103 @@ export function ScenarioPanel() {
     setPlaying(true);
   };
 
+  // 결과가 있으면 자동으로 라이브러리도 펼침 (사용자가 결과 본 뒤 다시 시나리오 고르기 쉽도록)
+  const hasContent = activeScenarioId !== null || evalResult !== null;
+  const libraryEffectivelyOpen = libraryOpen || hasContent;
+
   return (
-    <div className="bg-[#0a0a0a] border-t border-white/10 px-4 py-3 space-y-3">
-      <div className="flex items-center gap-2">
+    <div className="bg-[#0a0a0a] border-t border-white/10">
+      {/* Always-visible header — 한 줄, 클릭으로 toggle */}
+      <button
+        type="button"
+        onClick={() => setLibraryOpen(!libraryEffectivelyOpen)}
+        className="flex items-center gap-2 w-full px-4 py-1.5 hover:bg-white/5 text-left"
+      >
         <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-gold">
-          가사업무 시나리오 + 평가
+          {libraryEffectivelyOpen ? '▼' : '▶'} 가사업무 시나리오 + 평가
         </span>
         {activeScenario ? (
           <span className="font-mono text-[9px] text-white/60">
             · 현재: <span className="text-white">{activeScenario.name}</span>
+          </span>
+        ) : (
+          <span className="font-mono text-[9px] text-white/35">
+            · {TASK_SCENARIOS.length}개 시나리오 사용 가능
+          </span>
+        )}
+        {evalResult ? (
+          <span
+            className="font-mono text-[9px] ml-2"
+            style={{ color: evalResult.passed ? '#86efac' : '#fca5a5' }}
+          >
+            {evalResult.passed ? '✓ 통과' : `✗ 실패 (${evalResult.issues.filter((i) => i.severity === 'fail').length}건)`}
           </span>
         ) : null}
         <div className="flex-1" />
         {activeScenarioId ? (
           <button
             type="button"
-            onClick={onReRun}
+            onClick={(e) => {
+              e.stopPropagation();
+              onReRun();
+            }}
             disabled={isPlaying}
             className="border border-gold/40 bg-[#1a1408] hover:bg-[#231a0c] text-gold px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] disabled:opacity-30"
-            title="현재 spec으로 시나리오 다시 재생 (부품 교체 후 결과 비교)"
+            title="현재 spec으로 시나리오 다시 재생"
           >
-            ▶ 재실행 (현재 spec으로)
+            ▶ 재실행
           </button>
         ) : null}
-      </div>
+      </button>
 
-      {/* 시나리오 라이브러리 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-        {TASK_SCENARIOS.map((scn) => {
-          const active = scn.id === activeScenarioId;
-          return (
-            <button
-              key={scn.id}
-              type="button"
-              onClick={() => onLoadScenario(scn.id)}
-              className={[
-                'text-left border px-3 py-2 transition-colors',
-                active
-                  ? 'border-gold bg-[#1a1408]'
-                  : 'border-white/15 bg-[#0f0f0f] hover:border-white/40 hover:bg-[#141414]',
-              ].join(' ')}
-            >
-              <div className="flex items-center gap-2 mb-0.5">
-                <span
-                  className="px-1.5 py-0.5 font-mono text-[8.5px] uppercase tracking-wider"
-                  style={{ color: CATEGORY_COLORS[scn.category], borderLeft: `2px solid ${CATEGORY_COLORS[scn.category]}`, paddingLeft: 6 }}
+      {libraryEffectivelyOpen ? (
+        <div className="px-4 pb-3 space-y-3">
+          {/* 시나리오 라이브러리 — 더 작게 grid */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1.5">
+            {TASK_SCENARIOS.map((scn) => {
+              const active = scn.id === activeScenarioId;
+              return (
+                <button
+                  key={scn.id}
+                  type="button"
+                  onClick={() => onLoadScenario(scn.id)}
+                  className={[
+                    'text-left border px-2 py-1.5 transition-colors',
+                    active
+                      ? 'border-gold bg-[#1a1408]'
+                      : 'border-white/15 bg-[#0f0f0f] hover:border-white/40 hover:bg-[#141414]',
+                  ].join(' ')}
+                  title={scn.description}
                 >
-                  {scn.category}
-                </span>
-                <span className="text-[12px] font-medium text-white">{scn.name}</span>
-              </div>
-              <p className="text-[10.5px] text-white/55 leading-relaxed">{scn.description}</p>
-            </button>
-          );
-        })}
-      </div>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span
+                      className="font-mono text-[7.5px] uppercase tracking-wider"
+                      style={{ color: CATEGORY_COLORS[scn.category] }}
+                    >
+                      {scn.category}
+                    </span>
+                  </div>
+                  <span className="text-[10.5px] font-medium text-white leading-tight block">
+                    {scn.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-      {/* 평가 결과 */}
-      {(evalResult || (isPlaying && evalIssuesInProgress.length > 0)) && activeScenario ? (
-        <ResultBlock
-          scenarioName={activeScenario.name}
-          result={evalResult}
-          inProgressIssues={isPlaying ? evalIssuesInProgress : null}
-        />
-      ) : (
-        <div className="border border-white/10 px-3 py-2 text-[10.5px] text-white/40 leading-relaxed">
-          시나리오를 선택해서 로드한 뒤, 모션 타임라인의 ▶ 재생을 누르면 자동 평가가 시작됩니다.
-          <br />
-          <span className="text-white/55">
-            평가 항목: 도달 (reach) · 토크 한계 · ZMP 안정성 · 충돌 · 목표 위치
-          </span>
+          {/* 평가 결과 */}
+          {(evalResult || (isPlaying && evalIssuesInProgress.length > 0)) && activeScenario ? (
+            <ResultBlock
+              scenarioName={activeScenario.name}
+              result={evalResult}
+              inProgressIssues={isPlaying ? evalIssuesInProgress : null}
+            />
+          ) : null}
+
+          {/* 결과 비교 매트릭스 — 자체 collapsible */}
+          <ResultMatrix />
         </div>
-      )}
-
-      {/* 결과 비교 매트릭스 — D 기능 */}
-      <ResultMatrix />
+      ) : null}
     </div>
   );
 }
@@ -164,6 +187,7 @@ function ResultMatrix() {
   const evalHistory = useDesignerVacuumStore((s) => s.evalHistory);
   const removeEvalHistoryEntry = useDesignerVacuumStore((s) => s.removeEvalHistoryEntry);
   const clearEvalHistory = useDesignerVacuumStore((s) => s.clearEvalHistory);
+  const [open, setOpen] = useState(false);
 
   if (evalHistory.length === 0) {
     return null;
@@ -209,27 +233,33 @@ function ResultMatrix() {
   }
 
   return (
-    <div className="border border-white/15 bg-[#0a0a0a] p-3 space-y-2">
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-gold">
-          결과 매트릭스 (시나리오 × spec)
-        </span>
-        <span className="font-mono text-[9px] text-white/45">
-          · {scenarioOrder.length}개 시나리오 × {specOrder.length}개 spec ·
-          {evalHistory.length}회 실행 누적
-        </span>
-        <div className="flex-1" />
+    <div className="border border-white/15 bg-[#0a0a0a]">
+      <div className="flex items-center gap-2 px-3 py-1.5">
         <button
           type="button"
-          onClick={() => {
-            if (window.confirm('평가 history 전체 삭제할까요?')) clearEvalHistory();
-          }}
-          className="border border-white/15 bg-[#0a0a0a] hover:border-error hover:text-error text-white/55 px-2 py-1 font-mono text-[9.5px] uppercase tracking-[0.18em]"
+          onClick={() => setOpen(!open)}
+          className="font-mono text-[9px] uppercase tracking-[0.22em] text-gold hover:text-white"
         >
-          history 전체 삭제
+          {open ? '▼' : '▶'} 결과 매트릭스 (시나리오 × spec)
         </button>
+        <span className="font-mono text-[9px] text-white/45">
+          · {scenarioOrder.length}개 시나리오 × {specOrder.length}개 spec · {evalHistory.length}회
+        </span>
+        <div className="flex-1" />
+        {open ? (
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('평가 history 전체 삭제할까요?')) clearEvalHistory();
+            }}
+            className="border border-white/15 bg-[#0a0a0a] hover:border-error hover:text-error text-white/55 px-2 py-1 font-mono text-[9.5px] uppercase tracking-[0.18em]"
+          >
+            history 전체 삭제
+          </button>
+        ) : null}
       </div>
-
+      {open ? (
+        <div className="px-3 pb-3 space-y-2">
       <div className="overflow-x-auto">
         <table className="text-[10.5px] font-mono w-full border-collapse">
           <thead>
@@ -317,6 +347,8 @@ function ResultMatrix() {
         같은 시나리오를 여러 spec(부품 교체 후)으로 돌리면 컬럼이 추가됩니다.
         셀 hover 시 상세 내용. 컬럼 헤더의 통과율로 어떤 spec이 가장 많은 시나리오를 통과하는지 비교 가능.
       </p>
+        </div>
+      ) : null}
     </div>
   );
 }

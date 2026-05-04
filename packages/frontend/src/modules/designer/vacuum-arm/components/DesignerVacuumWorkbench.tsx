@@ -252,8 +252,10 @@ export function DesignerVacuumWorkbench() {
           <RevisionLog />
         </aside>
 
-        {/* Center: 3D Viewport or 2D Room Editor — mid-tone neutral so dark robots / overlays read clearly */}
-        <section className="col-span-6 relative bg-[#171c24]">
+        {/* Center: 3D Viewport (또는 2D Room Editor) + Timeline (room3d 모드).
+            flex-col로 viewport flex-1 + timeline 자연 높이. */}
+        <section className="col-span-6 flex flex-col bg-[#171c24] min-h-0">
+          <div className="relative flex-1 min-h-[400px]">
           {/* Mode toggle */}
           <div className="absolute left-3 top-3 z-10 flex items-center gap-1">
             <button
@@ -398,6 +400,10 @@ export function DesignerVacuumWorkbench() {
               <RoomCanvas heightPx={640} />
             )}
           </div>
+          </div>
+
+          {/* Timeline — 룸 3D 모드에서 viewport 바로 아래 항상 보임 (sticky) */}
+          {mode === 'room3d' ? <TimelinePanel /> : null}
         </section>
 
         {/* Right: EngineeringAnalysisPanel (REQ-4) */}
@@ -422,11 +428,11 @@ export function DesignerVacuumWorkbench() {
         </aside>
       </div>
 
-      {/* Motion timeline + 시나리오 평가 — 룸 3D 모드에서만 표시 */}
+      {/* 시나리오 평가 — 룸 3D 모드에서만 표시. 접힘 가능. Timeline은 viewport
+          바로 아래로 이동했고 여기는 시나리오 라이브러리 + 결과만. */}
       {mode === 'room3d' ? (
         <>
           <ScenarioPanel />
-          <TimelinePanel />
           <EvalEngineMount />
         </>
       ) : null}

@@ -75,7 +75,7 @@ export function TimelinePanel() {
   const playheadPct = (timeline.currentTime / timeline.duration) * 100;
 
   return (
-    <div className="bg-[#0a0a0a] border-t border-white/10 px-4 py-3">
+    <div className="bg-[#0a0a0a] border-t border-white/10 px-3 py-2">
       <div className="flex items-center gap-2 mb-2">
         <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-gold">
           모션 타임라인
@@ -318,27 +318,37 @@ export function TimelinePanel() {
         </div>
       ) : null}
 
-      {/* 웨이포인트/제스처 리스트 (편집용) */}
+      {/* 웨이포인트/제스처 리스트 (편집용) — 접힘 가능 */}
       {(timeline.waypoints.length > 0 || timeline.gestures.length > 0) ? (
-        <div className="grid grid-cols-2 gap-3 mt-3">
-          <WaypointList waypoints={timeline.waypoints} />
-          <GestureList gestures={timeline.gestures} />
-        </div>
+        <details className="mt-2">
+          <summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.18em] text-white/55 hover:text-white py-0.5">
+            웨이포인트 ({timeline.waypoints.length}) · 동작 ({timeline.gestures.length}) — 클릭해서 편집
+          </summary>
+          <div className="grid grid-cols-2 gap-3 mt-2">
+            <WaypointList waypoints={timeline.waypoints} />
+            <GestureList gestures={timeline.gestures} />
+          </div>
+        </details>
       ) : (
-        <div className="mt-2 text-[10px] text-white/45 leading-relaxed space-y-1">
-          <p>
-            <strong className="text-gold">위치(웨이포인트)</strong>와{' '}
-            <strong className="text-gold">동작(제스처)</strong>는 독립 트랙입니다.
-          </p>
-          <p>
-            <strong>위치 시퀀스</strong>: 로봇을 A로 드래그 → 시간축 0초 → + 웨이포인트 → 스크럽
-            5초로 → B로 드래그 → + 웨이포인트 → 재생 시 0~5초 동안 A→B 이동.
-          </p>
-          <p>
-            <strong>동작 시퀀스</strong>: 어떤 시점에든 + PICKUP/WAVE 등 클릭 → 동작 블록 추가.
-            위치는 별도(웨이포인트가 결정).
-          </p>
-        </div>
+        <details className="mt-2">
+          <summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.18em] text-white/35 hover:text-white py-0.5">
+            사용 방법 (위치/동작 트랙 독립)
+          </summary>
+          <div className="mt-2 text-[10px] text-white/45 leading-relaxed space-y-1">
+            <p>
+              <strong className="text-gold">위치(웨이포인트)</strong>와{' '}
+              <strong className="text-gold">동작(제스처)</strong>는 독립 트랙입니다.
+            </p>
+            <p>
+              <strong>위치 시퀀스</strong>: 로봇을 A로 드래그 → 시간축 0초 → + 웨이포인트 → 스크럽
+              5초로 → B로 드래그 → + 웨이포인트 → 재생 시 0~5초 동안 A→B 이동.
+            </p>
+            <p>
+              <strong>동작 시퀀스</strong>: 어떤 시점에든 + PICKUP/WAVE 등 클릭 → 동작 블록 추가.
+              위치는 별도(웨이포인트가 결정).
+            </p>
+          </div>
+        </details>
       )}
     </div>
   );
