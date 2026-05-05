@@ -14,6 +14,8 @@ import * as THREE from 'three';
 import type { TimelineGesture } from '../stores/designer-vacuum-store';
 import type { ManipulatorArmSpec, VacuumBaseSpec, ArmMountPosition } from '../types/product';
 import { MOUNT_OFFSET_RATIO } from '../types/product';
+import { buildVacuumArmChain, buildVacuumArmState } from '../../kinematics/vacuum-arm-chain';
+import { computeFK, getLinkDistalEnd } from '../../kinematics/chain';
 
 const CM_TO_M = 0.01;
 const DEG_TO_RAD = Math.PI / 180;
@@ -129,51 +131,22 @@ export function computeWristWorldPosition(
   robotZM: number,
   robotYawRad = 0,
 ): THREE.Vector3 {
-  const m = new THREE.Matrix4();
-  const tmp = new THREE.Matrix4();
+  // Generic kinematic chain 기반 FK — vacuum-arm spec을 chain으로 변환 후 FK 실행.
+  // form factor가 늘어나도 같은 코드로 처리. 결과는 기존 직접 transform 누적과 동일.
+  const product = { name: '', base, arms: [arm] };
+  const chain = buildVacuumArmChain({ product });
+  const state = buildVacuumArmState({
+    product,
+    armPose,
+    robotXM,
+    robotZM,
+    robotYawRad,
+  });
+  const fk = computeFK(chain, state);
 
-  // base_link world: robot 위치 (로봇 베이스 바닥) + yaw 회전
-  m.makeTranslation(robotXM, 0, robotZM);
-  if (robotYawRad !== 0) {
-    tmp.makeRotationY(robotYawRad);
-    m.multiply(tmp);
-  }
-
-  // pedestal: 베이스 윗면(높이) + mount offset (robot local frame)
-  const mount = computeMountOffset(arm, base);
-  tmp.makeTranslation(mount.x, base.heightCm * CM_TO_M, mount.z);
-  m.multiply(tmp);
-
-  // shoulder origin: 페데스탈 위 shoulderUpM 만큼
-  tmp.makeTranslation(0, arm.shoulderHeightAboveBaseCm * CM_TO_M, 0);
-  m.multiply(tmp);
-
-  // shoulder rotation
-  const shoulderAxisArr = shoulderPitchAxis(arm.mountPosition);
-  const shoulderRad = armPose.shoulderPitchDeg * DEG_TO_RAD;
-  const axisVec = new THREE.Vector3(shoulderAxisArr[0], shoulderAxisArr[1], shoulderAxisArr[2]);
-  tmp.makeRotationAxis(axisVec, shoulderRad);
-  m.multiply(tmp);
-
-  // upper arm: +Y 방향으로 L1
-  const L1 = arm.upperArmLengthCm * CM_TO_M;
-  tmp.makeTranslation(0, L1, 0);
-  m.multiply(tmp);
-
-  // elbow rotation (관절 state = elbowRad - π, 음수가 자연스러운 접힘)
-  const elbowRad = armPose.elbowDeg * DEG_TO_RAD;
-  const elbowJoint = elbowRad - Math.PI;
-  tmp.makeRotationAxis(axisVec, elbowJoint);
-  m.multiply(tmp);
-
-  // forearm: +Y 방향으로 L2 → 끝이 wrist
-  const L2 = arm.forearmLengthCm * CM_TO_M;
-  tmp.makeTranslation(0, L2, 0);
-  m.multiply(tmp);
-
-  const wristPos = new THREE.Vector3();
-  wristPos.setFromMatrixPosition(m);
-  return wristPos;
+  // wrist = forearm link의 distal end. forearm link id는 'arm0_forearm'.
+  const wrist = getLinkDistalEnd(fk, chain, 'arm0_forearm');
+  return wrist ?? new THREE.Vector3();
 }
 
 /**
