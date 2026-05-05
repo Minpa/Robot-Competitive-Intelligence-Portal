@@ -161,7 +161,7 @@ export const ROBOT_INFO: Record<string, RobotInfoEntry> = {
     reach: '0.8m ~ 1.2m + 무한 이동',
     pricing: '$80K ~ $250K (단가)',
     isLgLineup: true,
-    imagePath: '/robots/moma.jpg',
+    imagePath: '/robots/moma.webp',
   },
   Hum: {
     code: 'Hum',
