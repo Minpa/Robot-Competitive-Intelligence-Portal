@@ -146,7 +146,7 @@ export function ViewportControlsOverlay({
                     label="팔꿈치"
                     value={armPose.elbowDeg}
                     min={0}
-                    max={180}
+                    max={270}
                     onChange={(v) => setArmPose({ elbowDeg: v })}
                   />
                 </div>

@@ -361,11 +361,11 @@ function PoseSection() {
         onChange={(v) => setArmPose({ shoulderPitchDeg: v })}
       />
       <SliderRow
-        label="팔꿈치 각도"
+        label="팔꿈치 (180=펴짐, <180 backward fold, >180 forward fold)"
         value={armPose.elbowDeg}
         unit="°"
         min={0}
-        max={180}
+        max={270}
         step={1}
         onChange={(v) => setArmPose({ elbowDeg: v })}
       />

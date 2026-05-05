@@ -288,48 +288,62 @@ export function solveIKForTarget(
       break;
   }
 
-  // 3) plane 안에서 2-link IK
+  // 3) plane 안에서 2-link IK — 두 branch (elbow-up / elbow-down) 모두 계산 후
+  //    elbow 위치가 더 높은 (자기 충돌 적은) branch 선택.
   const d = Math.sqrt(planeUp * planeUp + planeForward * planeForward);
   let outOfReach = false;
-  let elbowJoint: number; // FK에서 사용하는 joint angle (0 = 펴짐, -π = 완전 접힘 back)
-  let shoulderRad: number;
+  let shoulderPitchDeg: number;
+  let elbowDeg: number;
 
   if (d > L1 + L2) {
-    // 닿지 않음 — fully extended, target 방향으로 직선
+    // 닿지 않음 — fully extended toward target
     outOfReach = true;
-    elbowJoint = 0; // 펴짐 (= elbowDeg 180)
-    shoulderRad = Math.atan2(planeForward, planeUp);
+    shoulderPitchDeg = (Math.atan2(planeForward, planeUp) * 180) / Math.PI;
+    elbowDeg = 180; // 펴짐
   } else if (d < Math.abs(L1 - L2)) {
-    // 너무 가까움 — folded. 흔치 않음.
     outOfReach = true;
-    elbowJoint = -Math.PI; // 완전 접힘
-    shoulderRad = Math.atan2(planeForward, planeUp);
+    shoulderPitchDeg = (Math.atan2(planeForward, planeUp) * 180) / Math.PI;
+    elbowDeg = 0; // 완전 접힘
   } else {
-    // 일반 해: cosine rule
+    // 일반 해: cosine rule. 두 branch 평가.
     const cosElbowInternal = (L1 * L1 + L2 * L2 - d * d) / (2 * L1 * L2);
     const elbowInternal = Math.acos(Math.max(-1, Math.min(1, cosElbowInternal)));
-    // elbowInternal: upper arm과 forearm 사이 내각 (0 = 직선 펴짐, π = 완전 접힘)
-    // FK joint angle = elbowInternal - π (음수 자연 접힘)
-    // "elbow up" 자세 선택: 위쪽으로 굽힘 → joint = -(π - elbowInternal) = elbowInternal - π
-    elbowJoint = elbowInternal - Math.PI;
-
-    // shoulder 각: target 방향 각 + α (upper arm이 직선과 이루는 각)
-    const targetAngle = Math.atan2(planeForward, planeUp); // 0 = 위, π/2 = 앞
+    const targetAngle = Math.atan2(planeForward, planeUp);
     const cosAlpha = (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d);
     const alpha = Math.acos(Math.max(-1, Math.min(1, cosAlpha)));
-    // elbow up 선택과 일관 — target 방향에서 alpha만큼 앞쪽으로 쏠림
-    shoulderRad = targetAngle + alpha;
+
+    // Branch A: 어깨가 (target+alpha) 방향, elbow는 backward fold (joint < 0)
+    const shoulderRadA = targetAngle + alpha;
+    const elbowJointA = elbowInternal - Math.PI; // 음수
+    // Branch B: 어깨가 (target-alpha) 방향, elbow는 forward fold (joint > 0)
+    const shoulderRadB = targetAngle - alpha;
+    const elbowJointB = Math.PI - elbowInternal; // 양수
+
+    // 각 branch의 elbow world Y 계산 → 더 높은 쪽 선택 (베이스/floor 통과 회피).
+    // elbow 위치 (in plane): (sin(shoulderRad)·L1 in planeForward, cos(shoulderRad)·L1 in planeUp)
+    const elbowYofShoulder = (sr: number) => Math.cos(sr) * L1; // shoulder local Y (planeUp 기준)
+    const elbowYA = elbowYofShoulder(shoulderRadA);
+    const elbowYB = elbowYofShoulder(shoulderRadB);
+
+    // 더 높은 elbow를 선택. 동률이면 shoulderRad가 [0, π] 안인 쪽.
+    let pickB: boolean;
+    if (Math.abs(elbowYA - elbowYB) > 0.001) {
+      pickB = elbowYB > elbowYA;
+    } else {
+      pickB = shoulderRadB >= 0 && shoulderRadB <= Math.PI;
+    }
+    const shoulderRad = pickB ? shoulderRadB : shoulderRadA;
+    const elbowJoint = pickB ? elbowJointB : elbowJointA;
+
+    shoulderPitchDeg = (shoulderRad * 180) / Math.PI;
+    elbowDeg = (elbowJoint + Math.PI) * (180 / Math.PI); // [0, 360]
   }
 
-  // 4) elbowJoint → elbowDeg, shoulderRad → shoulderPitchDeg
-  const elbowDeg = (elbowJoint + Math.PI) * (180 / Math.PI); // 0~180
-  const shoulderPitchDeg = shoulderRad * (180 / Math.PI);
-
-  // 5) 범위 clamp + 평면 외 거리 경고
+  // 4) 범위 clamp + 평면 외 거리 경고
   const clampedShoulder = Math.max(-30, Math.min(180, shoulderPitchDeg));
-  const clampedElbow = Math.max(0, Math.min(180, elbowDeg));
+  // elbow [0, 270] — forward fold(180+) 허용해 자연스러운 reach
+  const clampedElbow = Math.max(0, Math.min(270, elbowDeg));
   if (Math.abs(outOfPlaneDist) > 0.05) {
-    // 5cm 이상 평면 밖 — 엄밀히 IK 불가능, robot yaw 회전 필요. outOfReach=true로 플래그.
     outOfReach = true;
   }
 

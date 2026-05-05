@@ -660,7 +660,7 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
           -30,
           180,
         ),
-        elbowDeg: clamp(pose.elbowDeg ?? s.armPose.elbowDeg, 0, 180),
+        elbowDeg: clamp(pose.elbowDeg ?? s.armPose.elbowDeg, 0, 270),
       },
     })),
   applyPosePreset: (presetId) =>
