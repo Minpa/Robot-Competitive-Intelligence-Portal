@@ -84,6 +84,10 @@ export interface TimelineGesture {
   type: GestureType;
   /** GRAB일 때만 사용 — room.targets 배열의 인덱스 */
   targetIndex?: number;
+  /** GRAB의 reach 종착 자세를 IK로 미리 계산해 저장. 설정 시 GESTURE_PROFILES의
+   *  hardcoded reach pose(110°/165°)를 이 값으로 대체 → 팔 끝이 실제 타겟 위치에
+   *  정확히 닿음. + GRAB motion planner가 채움. */
+  endPose?: { shoulderPitchDeg: number; elbowDeg: number };
 }
 
 export interface TimelineState {
@@ -156,10 +160,12 @@ function positionAtTimeInline(
     const b = waypoints[i + 1];
     if (t >= a.t && t <= b.t) {
       const span = b.t - a.t || 1;
-      const r = (t - a.t) / span;
+      const rRaw = (t - a.t) / span;
+      // smoothstep ease-in-out — base 이동/yaw 회전이 부드럽게 시작·정지
+      const r = rRaw * rRaw * (3 - 2 * rRaw);
       const xCm = a.xCm + (b.xCm - a.xCm) * r;
       const yCm = a.yCm + (b.yCm - a.yCm) * r;
-      // yaw lerp: 둘 다 정의돼 있을 때만, shortest-path
+      // yaw lerp: 둘 다 정의돼 있을 때만, shortest-path + smoothstep
       let yawDeg: number | undefined;
       if (a.yawDeg !== undefined && b.yawDeg !== undefined) {
         const da = a.yawDeg;
@@ -198,17 +204,26 @@ function poseAtTimeInline(
   const poseOnly = allActive.filter((g) => g.type !== 'GRAB' && g.type !== 'RELEASE');
   const usable = poseOnly.length > 0 ? poseOnly : allActive;
   const g = usable[usable.length - 1];
-  return interpolateGesturePose(g.type, t - g.t, g.durationSec);
+  return interpolateGesturePose(g, t - g.t);
 }
 
-/** Gesture별 (shoulderPitchDeg, elbowDeg) keyframes — duration에 비례해 정규화. */
+/** Gesture별 (shoulderPitchDeg, elbowDeg) keyframes — duration에 비례해 정규화.
+ *  GRAB의 endPose가 설정돼 있으면 hardcoded reach 자세를 그 값으로 대체 — 팔 끝이
+ *  실제 타겟 위치까지 IK 정확히 도달. */
 function interpolateGesturePose(
-  type: GestureType,
+  g: TimelineGesture,
   localT: number,
-  durationSec: number,
 ): { shoulderPitchDeg: number; elbowDeg: number } {
-  const profile = GESTURE_PROFILES[type] ?? GESTURE_PROFILES.IDLE;
-  const tNorm = durationSec > 0 ? localT / durationSec : 0;
+  let profile = GESTURE_PROFILES[g.type] ?? GESTURE_PROFILES.IDLE;
+  // GRAB endPose 오버라이드 — tNorm >= 0.6 keyframes를 endPose로 교체
+  if (g.type === 'GRAB' && g.endPose) {
+    profile = profile.map((kf) =>
+      kf.tNorm >= 0.6
+        ? { ...kf, shoulderPitchDeg: g.endPose!.shoulderPitchDeg, elbowDeg: g.endPose!.elbowDeg }
+        : kf,
+    );
+  }
+  const tNorm = g.durationSec > 0 ? localT / g.durationSec : 0;
   // Find adjacent keyframes
   for (let i = 0; i < profile.length - 1; i++) {
     const a = profile[i];

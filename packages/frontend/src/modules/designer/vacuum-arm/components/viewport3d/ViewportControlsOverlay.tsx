@@ -336,13 +336,32 @@ export function ViewportControlsOverlay({
                   // 동작 시간 산정:
                   //   base drive: 0.5 m/s 가정, 최소 1초
                   //   GRAB: 2초 고정
-                  const driveDistanceM = (distToTarget - APPROACH_DIST_CM) / 100;
+                  const driveDistanceM = Math.max(0, (distToTarget - APPROACH_DIST_CM) / 100);
                   const driveTimeSec = Math.max(1.0, driveDistanceM / 0.5);
                   const grabDurationSec = 2.0;
                   const totalSec = driveTimeSec + grabDurationSec + 0.5;
 
+                  // 접근 위치에서 타겟까지 IK — GRAB 제스처의 reach 종착 자세를
+                  // hardcoded 110/165 대신 실제 IK 자세로. 팔 끝이 정확히 컵에 닿음.
+                  const halfWM = halfW;
+                  const halfDM = halfD;
+                  const approachXM = (approachX - halfWM) * 0.01;
+                  const approachZM = (approachY - halfDM) * 0.01;
+                  const targetWorld = {
+                    x: (target.xCm - halfWM) * 0.01,
+                    y: Math.max(target.zCm, 0.5) * 0.01,
+                    z: (target.yCm - halfDM) * 0.01,
+                  };
+                  const ik = solveIKForTarget(
+                    s.product.base,
+                    arm,
+                    targetWorld,
+                    approachXM,
+                    approachZM,
+                    (approachYawDeg * Math.PI) / 180,
+                  );
+
                   // 타임라인 reset & 새 시퀀스 등록.
-                  // 먼저 currentTime=0으로 보내고 duration 갱신, waypoint/gesture 추가.
                   setTimelineDuration(totalSec);
                   setTimelineCurrentTime(0);
 
@@ -360,15 +379,17 @@ export function ViewportControlsOverlay({
                     yCm: approachY,
                     yawDeg: ((approachYawDeg % 360) + 360) % 360,
                   });
-                  // GRAB 제스처: 접근 도달 시점부터
+                  // GRAB 제스처 — endPose에 IK 결과 저장. interpolateGesturePose에서
+                  // tNorm>=0.6 keyframes의 자세를 endPose로 대체 → 팔이 컵에 정확히 닿음.
                   addGesture({
                     t: driveTimeSec,
                     durationSec: grabDurationSec,
                     type: 'GRAB',
                     targetIndex: bestIdx,
+                    endPose: { shoulderPitchDeg: ik.shoulderPitchDeg, elbowDeg: ik.elbowDeg },
                   });
 
-                  // 자동 재생 — 사용자가 동작 전체를 봄
+                  // 자동 재생
                   setTimelinePlaying(true);
                 }}
                 className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] border border-green-400/60 bg-green-500/15 hover:bg-green-500/25 text-green-200 px-2 py-1"
