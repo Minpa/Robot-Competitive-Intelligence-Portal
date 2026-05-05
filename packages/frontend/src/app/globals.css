@@ -108,7 +108,11 @@ html, body {
 [class*="bg-gold"] .text-white,
 [class*="bg-gold"].text-white,
 [class*="bg-gradient"] .text-white,
-[class*="bg-gradient"].text-white {
+[class*="bg-gradient"].text-white,
+/* Tailwind arbitrary value backgrounds — bg-[#hex], bg-[rgb(...)], etc.
+   Assume any explicit color background wants its text-white to actually be white. */
+[class*="bg-["] .text-white,
+[class*="bg-["].text-white {
   color: #ffffff;
 }
 
