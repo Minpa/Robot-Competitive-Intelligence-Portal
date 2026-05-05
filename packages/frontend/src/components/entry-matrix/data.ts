@@ -103,7 +103,7 @@ export const BARRIER_CODES: Record<string, string> = V11.barrier_codes;
 
 // ─────────────────────────────────────────────────────────────────
 // 로봇 카테고리 상세 — IR / CR / MoMa / Hum / AMR / CLOiD
-// PPT 원본 + 외부 시장 정보를 합산. 이미지 경로는 public/images/robots/{code}.jpg
+// PPT 원본 + 외부 시장 정보를 합산. 이미지 경로는 public/robots/{code}.jpg
 
 export interface RobotInfoEntry {
   code: string;
@@ -133,7 +133,7 @@ export const ROBOT_INFO: Record<string, RobotInfoEntry> = {
     reach: '0.5m ~ 3.5m',
     pricing: '$30K ~ $200K (단가)',
     isLgLineup: false,
-    imagePath: '/images/robots/ir.jpg',
+    imagePath: '/robots/ir.jpg',
   },
   CR: {
     code: 'CR',
@@ -147,7 +147,7 @@ export const ROBOT_INFO: Record<string, RobotInfoEntry> = {
     reach: '0.5m ~ 1.8m',
     pricing: '$25K ~ $80K (단가)',
     isLgLineup: false,
-    imagePath: '/images/robots/cr.jpg',
+    imagePath: '/robots/cr.jpg',
   },
   MoMa: {
     code: 'MoMa',
@@ -161,7 +161,7 @@ export const ROBOT_INFO: Record<string, RobotInfoEntry> = {
     reach: '0.8m ~ 1.2m + 무한 이동',
     pricing: '$80K ~ $250K (단가)',
     isLgLineup: true,
-    imagePath: '/images/robots/moma.jpg',
+    imagePath: '/robots/moma.jpg',
   },
   Hum: {
     code: 'Hum',
@@ -175,7 +175,7 @@ export const ROBOT_INFO: Record<string, RobotInfoEntry> = {
     reach: '인간 키 (약 1.7m)',
     pricing: '$150K ~ $300K (양산가, 2026 기준)',
     isLgLineup: false,
-    imagePath: '/images/robots/hum.jpg',
+    imagePath: '/robots/digit.jpg',
   },
   AMR: {
     code: 'AMR',
@@ -189,7 +189,7 @@ export const ROBOT_INFO: Record<string, RobotInfoEntry> = {
     reach: '무제한 (이동)',
     pricing: '$30K ~ $80K (단가)',
     isLgLineup: true,
-    imagePath: '/images/robots/amr.jpg',
+    imagePath: '/robots/amr.jpg',
   },
   CLOiD: {
     code: 'CLOiD',
@@ -203,7 +203,7 @@ export const ROBOT_INFO: Record<string, RobotInfoEntry> = {
     reach: '인간 키 (1.65m ± )',
     pricing: 'TBD — 2026 출시 시 공개',
     isLgLineup: true,
-    imagePath: '/images/robots/cloid.jpg',
+    imagePath: '/robots/cloid.jpg',
   },
 };
 

@@ -97,7 +97,7 @@ export default function RobotInfoModal({ code, onClose }: Props) {
           <p className="font-mono text-[9.5px] text-[#888780] uppercase tracking-[0.18em] mt-2 text-center">
             {info.imagePath && !imgFailed
               ? '실제 제품 이미지'
-              : '이미지 추가 예정 — public/images/robots/' + info.code.toLowerCase() + '.jpg'}
+              : '이미지 추가 예정 — public/robots/' + info.code.toLowerCase() + '.jpg'}
           </p>
         </div>
 
