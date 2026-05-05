@@ -39,6 +39,9 @@ export function ViewportControlsOverlay({
   const armPose = useDesignerVacuumStore((s) => s.armPose);
   const setArmPose = useDesignerVacuumStore((s) => s.setArmPose);
   const applyPosePreset = useDesignerVacuumStore((s) => s.applyPosePreset);
+  const manualGripperClosed = useDesignerVacuumStore((s) => s.manualGripperClosed);
+  const setManualGripperClosed = useDesignerVacuumStore((s) => s.setManualGripperClosed);
+  const heldTargetIndex = useDesignerVacuumStore((s) => s.heldTargetIndex);
 
   const timelineCurrentTime = useDesignerVacuumStore((s) => s.timeline.currentTime);
   const addGesture = useDesignerVacuumStore((s) => s.addGestureKeyframe);
@@ -184,18 +187,43 @@ export function ViewportControlsOverlay({
                     const yawRad = (s.robotYawDeg * Math.PI) / 180;
                     const ik = solveIKForTarget(s.product.base, arm, targetWorld, robotXM, robotZM, yawRad);
                     setArmPose({ shoulderPitchDeg: ik.shoulderPitchDeg, elbowDeg: ik.elbowDeg });
+                    // 자세 적용 직후 그리퍼 닫음 → GrabController가 반경 내 closest target 자동 attach.
+                    // 도달 불가여도 닫은 채 두면 사용자가 수동 D-pad로 가까이 가져가면 그 시점에 잡힘.
+                    setManualGripperClosed(true);
                     if (ik.outOfReach) {
-                      // 시각적 알림은 outOfReach 시 그리퍼 마커가 타겟에서 떨어진 위치에 보임
-                      // (arm이 fully extended toward target 방향). 콘솔 로그로 spec 부족 신호.
                       console.warn(
                         `[IK] 타겟 "${s.room.targets[bestIdx].targetObjectId}"에 도달 불가 — L1+L2 또는 mount/yaw 조정 필요`,
                       );
                     }
                   }}
                   className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] border border-designer-accent/60 bg-designer-accent/20 hover:bg-designer-accent/35 text-designer-accent px-2 py-1"
-                  title="가장 가까운 타겟까지 자동 reach (2-link IK). 닿지 않으면 fully-extended toward target."
+                  title="가장 가까운 타겟까지 IK reach + 그리퍼 닫음. 반경 내 타겟이면 자동 attach."
                 >
                   ⌖ Auto-Reach
+                </button>
+                {/* 그리퍼 닫기 토글 — timeline 무관하게 수동 잡기 테스트 */}
+                <button
+                  type="button"
+                  onClick={() => setManualGripperClosed(!manualGripperClosed)}
+                  className={[
+                    'font-mono text-[10px] font-semibold uppercase tracking-[0.14em] border px-2 py-1',
+                    manualGripperClosed
+                      ? 'border-green-400/70 bg-green-500/25 text-green-200'
+                      : 'border-white/30 bg-black/40 text-white/70 hover:border-white/50 hover:text-white',
+                  ].join(' ')}
+                  title={
+                    manualGripperClosed
+                      ? `그리퍼 닫힘 — 반경 내 타겟 자동 잡음${
+                          heldTargetIndex !== null ? ` (잡힘: 타겟 ${heldTargetIndex + 1})` : ''
+                        }. 클릭하면 열림.`
+                      : '그리퍼 열림. 클릭하면 닫음 → 반경 내 타겟 자동 잡음.'
+                  }
+                >
+                  {manualGripperClosed
+                    ? heldTargetIndex !== null
+                      ? `✓ Held #${heldTargetIndex + 1}`
+                      : '⊙ Closed'
+                    : '◯ Open'}
                 </button>
               </div>
 

@@ -552,7 +552,8 @@ export function GrabController({ halfWCm, halfDCm }: GrabControllerProps) {
     );
 
     // Gripper 상태 (timeline 기반)
-    const closed = isGripperClosedAtTime(state.timeline.gestures, state.timeline.currentTime);
+    const timelineClosed = isGripperClosedAtTime(state.timeline.gestures, state.timeline.currentTime);
+    const closed = timelineClosed || state.manualGripperClosed;
     const explicit = getExplicitTargetAtTime(state.timeline.gestures, state.timeline.currentTime);
 
     if (!closed) {

@@ -374,6 +374,11 @@ interface DesignerVacuumState {
    *  GrabController가 매 프레임 갱신 (gripper 상태 + 반경 내 closest target). */
   heldTargetIndex: number | null;
 
+  /** 수동 그리퍼 닫기 토글. true이면 timeline GRAB 제스처와 무관하게 그리퍼가
+   *  닫혀있다고 간주 — GrabController가 반경 내 타겟을 자동 attach.
+   *  Static 시뮬 (timeline 안 쓰는 경우) 잡기 테스트용. */
+  manualGripperClosed: boolean;
+
   /** 모션 타임라인 — 시간 진행에 따라 로봇이 자동으로 이동·동작 (옵션 X). */
   timeline: TimelineState;
 
@@ -436,6 +441,7 @@ interface DesignerVacuumState {
   setRobotPosition: (xCm: number | null, yCm: number | null) => void;
   setRobotYawDeg: (deg: number) => void;
   setHeldTargetIndex: (idx: number | null) => void;
+  setManualGripperClosed: (closed: boolean) => void;
 
   // ─── Scenarios + 평가 ──────────────────────────────────────────────────
   /** 시나리오 로드 — 룸 프리셋 + 추가 타겟/가구 + 로봇 시작 + timeline + 성공조건 */
@@ -490,6 +496,7 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   robotYCm: null,
   robotYawDeg: 0,
   heldTargetIndex: null,
+  manualGripperClosed: false,
   timeline: { ...DEFAULT_TIMELINE },
   activeScenarioId: null,
   evalResult: null,
@@ -717,6 +724,7 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
   setRobotPosition: (xCm, yCm) => set({ robotXCm: xCm, robotYCm: yCm }),
   setRobotYawDeg: (deg) => set({ robotYawDeg: ((deg % 360) + 360) % 360 }),
   setHeldTargetIndex: (idx) => set({ heldTargetIndex: idx }),
+  setManualGripperClosed: (closed) => set({ manualGripperClosed: closed }),
 
   // ─── Scenarios + 평가 actions ───────────────────────────────────────────
   loadTaskScenario: (scenario, preset) =>
