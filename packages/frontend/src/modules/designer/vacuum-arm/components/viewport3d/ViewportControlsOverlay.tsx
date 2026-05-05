@@ -161,7 +161,7 @@ export function ViewportControlsOverlay({
                     const halfD = s.room.depthCm / 2;
                     const robotXM = ((s.robotXCm ?? halfW) - halfW) * 0.01;
                     const robotZM = ((s.robotYCm ?? halfD) - halfD) * 0.01;
-                    // 가장 가까운 타겟 찾기 (3D 직선 거리)
+                    // 가장 가까운 타겟 찾기
                     let bestIdx = 0;
                     let bestDistSq = Infinity;
                     for (let i = 0; i < s.room.targets.length; i++) {
@@ -184,20 +184,46 @@ export function ViewportControlsOverlay({
                       y: Math.max(target.zCm, 0.5) * 0.01,
                       z: (target.yCm - halfD) * 0.01,
                     };
-                    const yawRad = (s.robotYawDeg * Math.PI) / 180;
-                    const ik = solveIKForTarget(s.product.base, arm, targetWorld, robotXM, robotZM, yawRad);
+
+                    // 로봇 yaw 자동 회전 — mount plane이 타겟을 향하게
+                    const dxWorld = targetWorld.x - robotXM;
+                    const dzWorld = targetWorld.z - robotZM;
+                    const targetAngleWorld = Math.atan2(dxWorld, dzWorld);
+                    let mountOffsetRad = 0;
+                    switch (arm.mountPosition) {
+                      case 'center':
+                      case 'front':
+                        mountOffsetRad = 0;
+                        break;
+                      case 'left':
+                        mountOffsetRad = Math.PI / 2;
+                        break;
+                      case 'right':
+                        mountOffsetRad = -Math.PI / 2;
+                        break;
+                    }
+                    const newYawRad = targetAngleWorld + mountOffsetRad;
+                    const newYawDeg = ((newYawRad * 180) / Math.PI + 360) % 360;
+                    setRobotYawDeg(newYawDeg);
+
+                    const ik = solveIKForTarget(
+                      s.product.base,
+                      arm,
+                      targetWorld,
+                      robotXM,
+                      robotZM,
+                      newYawRad,
+                    );
                     setArmPose({ shoulderPitchDeg: ik.shoulderPitchDeg, elbowDeg: ik.elbowDeg });
-                    // 자세 적용 직후 그리퍼 닫음 → GrabController가 반경 내 closest target 자동 attach.
-                    // 도달 불가여도 닫은 채 두면 사용자가 수동 D-pad로 가까이 가져가면 그 시점에 잡힘.
                     setManualGripperClosed(true);
                     if (ik.outOfReach) {
                       console.warn(
-                        `[IK] 타겟 "${s.room.targets[bestIdx].targetObjectId}"에 도달 불가 — L1+L2 또는 mount/yaw 조정 필요`,
+                        `[IK] 타겟 "${s.room.targets[bestIdx].targetObjectId}"에 도달 불가 — L1+L2 부족`,
                       );
                     }
                   }}
                   className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] border border-designer-accent/60 bg-designer-accent/20 hover:bg-designer-accent/35 text-designer-accent px-2 py-1"
-                  title="가장 가까운 타겟까지 IK reach + 그리퍼 닫음. 반경 내 타겟이면 자동 attach."
+                  title="로봇 yaw를 타겟 방향으로 회전 + IK reach + 그리퍼 닫음. 반경 내 타겟 자동 attach."
                 >
                   ⌖ Auto-Reach
                 </button>
@@ -240,50 +266,83 @@ export function ViewportControlsOverlay({
               <button
                 type="button"
                 onClick={() => {
-                  // GRAB = 가장 가까운 타겟 방향으로 IK reach + 그리퍼 닫음.
-                  // ⚠️ 순서 중요: addGesture가 deriveCurrentFrame을 호출해 GRAB
-                  // 프로파일의 hardcoded 자세(110, 165)로 armPose를 덮어쓰므로
-                  // setArmPose는 반드시 addGesture 후에 호출해야 IK 자세가 유지됨.
+                  // GRAB = (1) 로봇 yaw를 타겟 방향으로 자동 회전
+                  //         (2) 그 다음 IK reach + 그리퍼 닫음
+                  // 순서 중요: addGesture는 GRAB 프로파일의 hardcoded 자세로 armPose를
+                  // 덮어쓰므로 yaw + IK는 모두 addGesture 후에.
                   addGesture({ t: timelineCurrentTime, durationSec: 2, type: 'GRAB' });
                   setManualGripperClosed(true);
 
                   const s = getStore();
                   const arm = s.product.arms[0];
-                  if (arm && s.room.targets.length > 0) {
-                    const halfW = s.room.widthCm / 2;
-                    const halfD = s.room.depthCm / 2;
-                    const robotXM = ((s.robotXCm ?? halfW) - halfW) * 0.01;
-                    const robotZM = ((s.robotYCm ?? halfD) - halfD) * 0.01;
-                    let bestIdx = 0;
-                    let bestDistSq = Infinity;
-                    for (let i = 0; i < s.room.targets.length; i++) {
-                      const t = s.room.targets[i];
-                      const tWX = (t.xCm - halfW) * 0.01;
-                      const tWZ = (t.yCm - halfD) * 0.01;
-                      const tWY = Math.max(t.zCm, 0.5) * 0.01;
-                      const dx = tWX - robotXM;
-                      const dz = tWZ - robotZM;
-                      const dy = tWY;
-                      const dsq = dx * dx + dy * dy + dz * dz;
-                      if (dsq < bestDistSq) {
-                        bestDistSq = dsq;
-                        bestIdx = i;
-                      }
+                  if (!arm || s.room.targets.length === 0) return;
+
+                  const halfW = s.room.widthCm / 2;
+                  const halfD = s.room.depthCm / 2;
+                  const robotXM = ((s.robotXCm ?? halfW) - halfW) * 0.01;
+                  const robotZM = ((s.robotYCm ?? halfD) - halfD) * 0.01;
+
+                  // 가장 가까운 타겟 찾기
+                  let bestIdx = 0;
+                  let bestDistSq = Infinity;
+                  for (let i = 0; i < s.room.targets.length; i++) {
+                    const t = s.room.targets[i];
+                    const tWX = (t.xCm - halfW) * 0.01;
+                    const tWZ = (t.yCm - halfD) * 0.01;
+                    const tWY = Math.max(t.zCm, 0.5) * 0.01;
+                    const dx = tWX - robotXM;
+                    const dz = tWZ - robotZM;
+                    const dy = tWY;
+                    const dsq = dx * dx + dy * dy + dz * dz;
+                    if (dsq < bestDistSq) {
+                      bestDistSq = dsq;
+                      bestIdx = i;
                     }
-                    const target = s.room.targets[bestIdx];
-                    const targetWorld = {
-                      x: (target.xCm - halfW) * 0.01,
-                      y: Math.max(target.zCm, 0.5) * 0.01,
-                      z: (target.yCm - halfD) * 0.01,
-                    };
-                    const yawRad = (s.robotYawDeg * Math.PI) / 180;
-                    const ik = solveIKForTarget(s.product.base, arm, targetWorld, robotXM, robotZM, yawRad);
-                    // setArmPose 마지막 — gesture profile의 덮어쓰기 후에 IK 자세 적용
-                    setArmPose({ shoulderPitchDeg: ik.shoulderPitchDeg, elbowDeg: ik.elbowDeg });
                   }
+                  const target = s.room.targets[bestIdx];
+                  const targetWorld = {
+                    x: (target.xCm - halfW) * 0.01,
+                    y: Math.max(target.zCm, 0.5) * 0.01,
+                    z: (target.yCm - halfD) * 0.01,
+                  };
+
+                  // 로봇 yaw를 타겟 방향으로 자동 회전 — mount별 plane 정렬:
+                  // center/front: 로봇 +Z(local)가 타겟 가리키게
+                  // left:        로봇 -X(local)가 타겟 가리키게  → yaw + 90°
+                  // right:       로봇 +X(local)가 타겟 가리키게  → yaw - 90°
+                  const dxWorld = targetWorld.x - robotXM;
+                  const dzWorld = targetWorld.z - robotZM;
+                  const targetAngleWorld = Math.atan2(dxWorld, dzWorld); // 0 = +Z 방향
+                  let mountOffsetRad = 0;
+                  switch (arm.mountPosition) {
+                    case 'center':
+                    case 'front':
+                      mountOffsetRad = 0;
+                      break;
+                    case 'left':
+                      mountOffsetRad = Math.PI / 2;
+                      break;
+                    case 'right':
+                      mountOffsetRad = -Math.PI / 2;
+                      break;
+                  }
+                  const newYawRad = targetAngleWorld + mountOffsetRad;
+                  const newYawDeg = ((newYawRad * 180) / Math.PI + 360) % 360;
+                  setRobotYawDeg(newYawDeg);
+
+                  // IK 계산 — 새 yaw 기준
+                  const ik = solveIKForTarget(
+                    s.product.base,
+                    arm,
+                    targetWorld,
+                    robotXM,
+                    robotZM,
+                    newYawRad,
+                  );
+                  setArmPose({ shoulderPitchDeg: ik.shoulderPitchDeg, elbowDeg: ik.elbowDeg });
                 }}
                 className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] border border-green-400/60 bg-green-500/15 hover:bg-green-500/25 text-green-200 px-2 py-1"
-                title="가장 가까운 타겟까지 IK reach + 그리퍼 닫음 + timeline에 GRAB 기록."
+                title="로봇이 타겟 방향으로 회전 + IK reach + 그리퍼 닫음 + timeline에 GRAB 기록."
               >
                 + GRAB
               </button>
