@@ -240,13 +240,49 @@ export function ViewportControlsOverlay({
               <button
                 type="button"
                 onClick={() => {
-                  // 즉시 잡기: GRAB 제스처 추가 (자세 = reach down) + 그리퍼 닫음 →
-                  // GrabController가 반경 내 closest target 자동 attach.
-                  addGesture({ t: timelineCurrentTime, durationSec: 2, type: 'GRAB' });
+                  // GRAB = 가장 가까운 타겟 방향으로 IK reach + 그리퍼 닫음.
+                  // 사용자 기대: "그리퍼가 컵을 잡는 동작" — 고정된 forward-down이
+                  // 아닌 실제 타겟 방향으로 팔이 가야 함.
+                  const s = getStore();
+                  const arm = s.product.arms[0];
+                  if (arm && s.room.targets.length > 0) {
+                    const halfW = s.room.widthCm / 2;
+                    const halfD = s.room.depthCm / 2;
+                    const robotXM = ((s.robotXCm ?? halfW) - halfW) * 0.01;
+                    const robotZM = ((s.robotYCm ?? halfD) - halfD) * 0.01;
+                    let bestIdx = 0;
+                    let bestDistSq = Infinity;
+                    for (let i = 0; i < s.room.targets.length; i++) {
+                      const t = s.room.targets[i];
+                      const tWX = (t.xCm - halfW) * 0.01;
+                      const tWZ = (t.yCm - halfD) * 0.01;
+                      const tWY = Math.max(t.zCm, 0.5) * 0.01;
+                      const dx = tWX - robotXM;
+                      const dz = tWZ - robotZM;
+                      const dy = tWY;
+                      const dsq = dx * dx + dy * dy + dz * dz;
+                      if (dsq < bestDistSq) {
+                        bestDistSq = dsq;
+                        bestIdx = i;
+                      }
+                    }
+                    const target = s.room.targets[bestIdx];
+                    const targetWorld = {
+                      x: (target.xCm - halfW) * 0.01,
+                      y: Math.max(target.zCm, 0.5) * 0.01,
+                      z: (target.yCm - halfD) * 0.01,
+                    };
+                    const yawRad = (s.robotYawDeg * Math.PI) / 180;
+                    const ik = solveIKForTarget(s.product.base, arm, targetWorld, robotXM, robotZM, yawRad);
+                    setArmPose({ shoulderPitchDeg: ik.shoulderPitchDeg, elbowDeg: ik.elbowDeg });
+                  }
+                  // GrabController가 반경 내 closest target 자동 attach
                   setManualGripperClosed(true);
+                  // timeline에도 GRAB 제스처 기록 (재생/시퀀스 편집용)
+                  addGesture({ t: timelineCurrentTime, durationSec: 2, type: 'GRAB' });
                 }}
                 className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] border border-green-400/60 bg-green-500/15 hover:bg-green-500/25 text-green-200 px-2 py-1"
-                title="즉시 reach 자세 + 그리퍼 닫음 → 반경 내 타겟 자동 잡음. timeline에도 GRAB 제스처 추가됨."
+                title="가장 가까운 타겟까지 IK reach + 그리퍼 닫음 + timeline에 GRAB 기록."
               >
                 + GRAB
               </button>
