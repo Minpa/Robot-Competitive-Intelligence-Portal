@@ -46,6 +46,9 @@ export function ViewportControlsOverlay({
   const timelineCurrentTime = useDesignerVacuumStore((s) => s.timeline.currentTime);
   const addGesture = useDesignerVacuumStore((s) => s.addGestureKeyframe);
   const addWaypoint = useDesignerVacuumStore((s) => s.addWaypoint);
+  const setTimelineCurrentTime = useDesignerVacuumStore((s) => s.setTimelineCurrentTime);
+  const setTimelineDuration = useDesignerVacuumStore((s) => s.setTimelineDuration);
+  const setTimelinePlaying = useDesignerVacuumStore((s) => s.setTimelinePlaying);
 
   const [stepCm, setStepCm] = useState<number>(10);
   const [collapsed, setCollapsed] = useState(false);
@@ -266,12 +269,13 @@ export function ViewportControlsOverlay({
               <button
                 type="button"
                 onClick={() => {
-                  // GRAB = (1) 로봇 yaw를 타겟 방향으로 자동 회전
-                  //         (2) 그 다음 IK reach + 그리퍼 닫음
-                  // 순서 중요: addGesture는 GRAB 프로파일의 hardcoded 자세로 armPose를
-                  // 덮어쓰므로 yaw + IK는 모두 addGesture 후에.
-                  addGesture({ t: timelineCurrentTime, durationSec: 2, type: 'GRAB' });
-                  setManualGripperClosed(true);
+                  // GRAB = 자율 동작 계획. "청소기가 컵을 어떻게 잡을지" 시뮬:
+                  //   1. 가장 가까운 타겟 + 접근 위치(컵에서 ~30cm 앞) 계산
+                  //   2. 현재 위치 → 접근 위치 사이 base 이동 waypoint 추가
+                  //   3. 접근 도달 시점에 GRAB 제스처 (reach 애니메이션 + 그리퍼 닫음)
+                  //   4. 타임라인 자동 재생 → 사용자가 동작 전체를 봄
+                  //   manualGripperClosed는 끔 — 타임라인의 GRAB이 그리퍼를 자연스럽게 닫음.
+                  setManualGripperClosed(false);
 
                   const s = getStore();
                   const arm = s.product.arms[0];
@@ -279,40 +283,40 @@ export function ViewportControlsOverlay({
 
                   const halfW = s.room.widthCm / 2;
                   const halfD = s.room.depthCm / 2;
-                  const robotXM = ((s.robotXCm ?? halfW) - halfW) * 0.01;
-                  const robotZM = ((s.robotYCm ?? halfD) - halfD) * 0.01;
+                  const robotXCmCur = s.robotXCm ?? halfW;
+                  const robotYCmCur = s.robotYCm ?? halfD;
 
-                  // 가장 가까운 타겟 찾기
+                  // 가장 가까운 타겟
                   let bestIdx = 0;
-                  let bestDistSq = Infinity;
+                  let bestDistCm = Infinity;
                   for (let i = 0; i < s.room.targets.length; i++) {
                     const t = s.room.targets[i];
-                    const tWX = (t.xCm - halfW) * 0.01;
-                    const tWZ = (t.yCm - halfD) * 0.01;
-                    const tWY = Math.max(t.zCm, 0.5) * 0.01;
-                    const dx = tWX - robotXM;
-                    const dz = tWZ - robotZM;
-                    const dy = tWY;
-                    const dsq = dx * dx + dy * dy + dz * dz;
-                    if (dsq < bestDistSq) {
-                      bestDistSq = dsq;
+                    const dx = t.xCm - robotXCmCur;
+                    const dy = t.yCm - robotYCmCur;
+                    const d = Math.sqrt(dx * dx + dy * dy);
+                    if (d < bestDistCm) {
+                      bestDistCm = d;
                       bestIdx = i;
                     }
                   }
                   const target = s.room.targets[bestIdx];
-                  const targetWorld = {
-                    x: (target.xCm - halfW) * 0.01,
-                    y: Math.max(target.zCm, 0.5) * 0.01,
-                    z: (target.yCm - halfD) * 0.01,
-                  };
 
-                  // 로봇 yaw를 타겟 방향으로 자동 회전 — mount별 plane 정렬:
-                  // center/front: 로봇 +Z(local)가 타겟 가리키게
-                  // left:        로봇 -X(local)가 타겟 가리키게  → yaw + 90°
-                  // right:       로봇 +X(local)가 타겟 가리키게  → yaw - 90°
-                  const dxWorld = targetWorld.x - robotXM;
-                  const dzWorld = targetWorld.z - robotZM;
-                  const targetAngleWorld = Math.atan2(dxWorld, dzWorld); // 0 = +Z 방향
+                  // 접근 거리: 컵까지 30cm 앞에 멈춤 (팔 reach가 닿는 거리)
+                  const APPROACH_DIST_CM = 30;
+                  const dxToTarget = target.xCm - robotXCmCur;
+                  const dyToTarget = target.yCm - robotYCmCur;
+                  const distToTarget = Math.sqrt(dxToTarget * dxToTarget + dyToTarget * dyToTarget);
+                  let approachX = robotXCmCur;
+                  let approachY = robotYCmCur;
+                  if (distToTarget > APPROACH_DIST_CM) {
+                    const ux = dxToTarget / distToTarget;
+                    const uy = dyToTarget / distToTarget;
+                    approachX = target.xCm - ux * APPROACH_DIST_CM;
+                    approachY = target.yCm - uy * APPROACH_DIST_CM;
+                  }
+
+                  // 접근 시 yaw — mount plane이 타겟 향하게
+                  const targetAngleWorld = Math.atan2(dxToTarget, dyToTarget); // 0 = +Y
                   let mountOffsetRad = 0;
                   switch (arm.mountPosition) {
                     case 'center':
@@ -326,23 +330,49 @@ export function ViewportControlsOverlay({
                       mountOffsetRad = -Math.PI / 2;
                       break;
                   }
-                  const newYawRad = targetAngleWorld + mountOffsetRad;
-                  const newYawDeg = ((newYawRad * 180) / Math.PI + 360) % 360;
-                  setRobotYawDeg(newYawDeg);
+                  const approachYawDeg =
+                    ((targetAngleWorld + mountOffsetRad) * 180) / Math.PI;
 
-                  // IK 계산 — 새 yaw 기준
-                  const ik = solveIKForTarget(
-                    s.product.base,
-                    arm,
-                    targetWorld,
-                    robotXM,
-                    robotZM,
-                    newYawRad,
-                  );
-                  setArmPose({ shoulderPitchDeg: ik.shoulderPitchDeg, elbowDeg: ik.elbowDeg });
+                  // 동작 시간 산정:
+                  //   base drive: 0.5 m/s 가정, 최소 1초
+                  //   GRAB: 2초 고정
+                  const driveDistanceM = (distToTarget - APPROACH_DIST_CM) / 100;
+                  const driveTimeSec = Math.max(1.0, driveDistanceM / 0.5);
+                  const grabDurationSec = 2.0;
+                  const totalSec = driveTimeSec + grabDurationSec + 0.5;
+
+                  // 타임라인 reset & 새 시퀀스 등록.
+                  // 먼저 currentTime=0으로 보내고 duration 갱신, waypoint/gesture 추가.
+                  setTimelineDuration(totalSec);
+                  setTimelineCurrentTime(0);
+
+                  // WP0: 현재 위치 (t=0)
+                  addWaypoint({
+                    t: 0,
+                    xCm: robotXCmCur,
+                    yCm: robotYCmCur,
+                    yawDeg: s.robotYawDeg,
+                  });
+                  // WP1: 접근 위치 + 타겟 향한 yaw (t=driveTimeSec)
+                  addWaypoint({
+                    t: driveTimeSec,
+                    xCm: approachX,
+                    yCm: approachY,
+                    yawDeg: ((approachYawDeg % 360) + 360) % 360,
+                  });
+                  // GRAB 제스처: 접근 도달 시점부터
+                  addGesture({
+                    t: driveTimeSec,
+                    durationSec: grabDurationSec,
+                    type: 'GRAB',
+                    targetIndex: bestIdx,
+                  });
+
+                  // 자동 재생 — 사용자가 동작 전체를 봄
+                  setTimelinePlaying(true);
                 }}
                 className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] border border-green-400/60 bg-green-500/15 hover:bg-green-500/25 text-green-200 px-2 py-1"
-                title="로봇이 타겟 방향으로 회전 + IK reach + 그리퍼 닫음 + timeline에 GRAB 기록."
+                title="자율 잡기 시퀀스 계획: 접근 → 회전 → 팔 뻗기 → 그리퍼 닫기. 타임라인 자동 재생."
               >
                 + GRAB
               </button>
