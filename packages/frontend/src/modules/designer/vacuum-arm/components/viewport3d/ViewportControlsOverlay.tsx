@@ -241,8 +241,12 @@ export function ViewportControlsOverlay({
                 type="button"
                 onClick={() => {
                   // GRAB = 가장 가까운 타겟 방향으로 IK reach + 그리퍼 닫음.
-                  // 사용자 기대: "그리퍼가 컵을 잡는 동작" — 고정된 forward-down이
-                  // 아닌 실제 타겟 방향으로 팔이 가야 함.
+                  // ⚠️ 순서 중요: addGesture가 deriveCurrentFrame을 호출해 GRAB
+                  // 프로파일의 hardcoded 자세(110, 165)로 armPose를 덮어쓰므로
+                  // setArmPose는 반드시 addGesture 후에 호출해야 IK 자세가 유지됨.
+                  addGesture({ t: timelineCurrentTime, durationSec: 2, type: 'GRAB' });
+                  setManualGripperClosed(true);
+
                   const s = getStore();
                   const arm = s.product.arms[0];
                   if (arm && s.room.targets.length > 0) {
@@ -274,12 +278,9 @@ export function ViewportControlsOverlay({
                     };
                     const yawRad = (s.robotYawDeg * Math.PI) / 180;
                     const ik = solveIKForTarget(s.product.base, arm, targetWorld, robotXM, robotZM, yawRad);
+                    // setArmPose 마지막 — gesture profile의 덮어쓰기 후에 IK 자세 적용
                     setArmPose({ shoulderPitchDeg: ik.shoulderPitchDeg, elbowDeg: ik.elbowDeg });
                   }
-                  // GrabController가 반경 내 closest target 자동 attach
-                  setManualGripperClosed(true);
-                  // timeline에도 GRAB 제스처 기록 (재생/시퀀스 편집용)
-                  addGesture({ t: timelineCurrentTime, durationSec: 2, type: 'GRAB' });
                 }}
                 className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] border border-green-400/60 bg-green-500/15 hover:bg-green-500/25 text-green-200 px-2 py-1"
                 title="가장 가까운 타겟까지 IK reach + 그리퍼 닫음 + timeline에 GRAB 기록."
