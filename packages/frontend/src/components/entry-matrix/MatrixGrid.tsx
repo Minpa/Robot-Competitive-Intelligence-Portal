@@ -3,7 +3,8 @@
 import { useMemo } from 'react';
 import {
   TASKS, SECTORS, SCORES,
-  scoreToColor, isCellHighlighted, isTop5Cell, getTop5Rank,
+  scoreToColor, isCellHighlighted,
+  isTopTierCell, getTopTierRank,
   getCellAvgByTask, getCellAvgBySector,
   type EmphasisMode,
 } from './data';
@@ -76,8 +77,8 @@ export default function MatrixGrid({ mode, onCellClick }: Props) {
                 const score = SCORES[t][sec];
                 const isLow = score < 1.0;
                 const highlighted = isCellHighlighted(mode, t, sec);
-                const isTop = isTop5Cell(t, sec);
-                const rank = getTop5Rank(t, sec);
+                const isTop = isTopTierCell(t, sec);
+                const rank = getTopTierRank(t, sec);
                 const lineupShown = (LINEUP_BY_TASK[t] || []).slice(0, 2);
 
                 return (
@@ -92,16 +93,26 @@ export default function MatrixGrid({ mode, onCellClick }: Props) {
                       style={{
                         backgroundColor: scoreToColor(score),
                         opacity: highlighted ? 1 : 0.28,
-                        outline: isTop ? '2px solid #8B1538' : '1px solid rgba(0,0,0,0.04)',
+                        outline: isTop ? '2px solid #A50034' : '1px solid rgba(0,0,0,0.04)',
                         outlineOffset: isTop ? '-2px' : '-1px',
                         padding: '6px 8px',
+                        boxShadow: isTop ? '0 0 8px rgba(165, 0, 52, 0.4)' : undefined,
                       }}
                     >
-                      {/* Top 5 star + rank */}
+                      {/* 진입 적합 셀: rank corner badge */}
                       {isTop && (
-                        <span className="absolute top-0.5 right-1 font-mono text-[10px] font-medium text-[#8B1538] tracking-wide">
-                          ⭐ {rank}
-                        </span>
+                        <>
+                          <span
+                            className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[#A50034] z-10"
+                            aria-hidden
+                          />
+                          <span
+                            className="absolute top-0.5 right-1.5 font-mono text-[10px] font-bold text-[#A50034] tracking-wide"
+                            title={`진입 적합 #${rank}`}
+                          >
+                            🎯 {rank}
+                          </span>
+                        </>
                       )}
 
                       {isLow ? (

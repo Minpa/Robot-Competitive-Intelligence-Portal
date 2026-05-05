@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import {
   TASKS, SECTORS, SCORES, getLvDetails, isLvDetailsHandCurated,
-  scoreToColor, scoreToVerdict, isTop5Cell, getTop5Rank,
+  scoreToColor, scoreToVerdict,
+  isTopTierCell, getTopTierRank,
+  isTop5Cell, getTop5Rank,
   ROBOT_INFO, LG_LINEUP_CODES,
   type LvDetail,
 } from './data';
@@ -23,8 +25,10 @@ export default function CellModal({ taskIdx, sectorIdx, onClose }: Props) {
   const score = SCORES[taskIdx][sectorIdx];
   const task = TASKS[taskIdx];
   const sector = SECTORS[sectorIdx];
-  const isTop = isTop5Cell(taskIdx, sectorIdx);
-  const rank = getTop5Rank(taskIdx, sectorIdx);
+  const isTopTier = isTopTierCell(taskIdx, sectorIdx);
+  const tierRank = getTopTierRank(taskIdx, sectorIdx);
+  const hasDeepDive = isTop5Cell(taskIdx, sectorIdx);
+  const deepDiveRank = getTop5Rank(taskIdx, sectorIdx);
   const lvDetails = getLvDetails(taskIdx, sectorIdx);
   const handCurated = isLvDetailsHandCurated(taskIdx, sectorIdx);
   const proc = task && getProc(taskIdx);
@@ -43,9 +47,9 @@ export default function CellModal({ taskIdx, sectorIdx, onClose }: Props) {
   }, [onClose]);
 
   const handleDeepDive = () => {
-    if (!rank) return;
+    if (!deepDiveRank) return;
     onClose();
-    router.push(`/business-strategy/matrix/deepdive/${rank - 1}`);
+    router.push(`/business-strategy/matrix/deepdive/${deepDiveRank - 1}`);
   };
 
   return (
@@ -83,11 +87,11 @@ export default function CellModal({ taskIdx, sectorIdx, onClose }: Props) {
           </div>
           <div className="flex-1 px-6 py-5 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
-              {isTop && (
+              {isTopTier && tierRank && (
                 <span
-                  className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-[#8B1538]"
+                  className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-[#A50034]"
                 >
-                  ⭐ TOP {rank}
+                  🎯 진입 적합 #{tierRank}
                 </span>
               )}
               <span className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-[#5F5E5A]">
@@ -126,7 +130,7 @@ export default function CellModal({ taskIdx, sectorIdx, onClose }: Props) {
               : '등급 = 점수 역산 (PPT 원본 텍스트는 추후 교체) · 점유 = 산업로봇 점유율'}
           </span>
           <div className="flex items-center gap-2">
-            {isTop && (
+            {hasDeepDive && (
               <button
                 onClick={handleDeepDive}
                 className="px-4 py-2 bg-[#8B1538] text-white font-medium text-[13px] hover:bg-[#751029] transition-colors"

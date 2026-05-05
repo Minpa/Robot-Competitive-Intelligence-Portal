@@ -1,21 +1,28 @@
-// 휴머노이드 진입성 매트릭스 v9.3 — 12 Top Task × 12 산업
+// 휴머노이드 진입성 매트릭스 v11 — 12 Top Task × 12 산업
 //
 // 데이터 모델: 등급 ★★★=3 / ★★=2 / ★=1 / ✗=0
 // 4Lv 합산 → 10점 환산 (합산 ÷ 12 × 10)
+//
+// 데이터 소스: v11-matrix.json (B-2b 전체 완료, 8산업 Deep 검증 + Top 12 확장)
+// 점수 ≥ 7.5 셀: 13개 (진입 적합)
+
+import v11Raw from './v11-matrix.json';
 
 export type RobotKind  = 'IR' | 'CR' | 'MoMa' | 'Hum';
 export type GripperKind = 'Vac' | 'Jaw' | 'Multi' | 'Soft' | 'Mag';
 export type LineupKind  = 'IR' | 'CR' | 'MoMa' | 'AMR' | 'CLOiD';
+export type Grade = 0 | 1 | 2 | 3;
+export type Share = 0 | 1 | 2 | 3 | 4 | 5;
 
 export interface LvDetail {
-  grade: 0 | 1 | 2 | 3;        // ✗/★/★★/★★★
+  grade: Grade;                 // ✗/★/★★/★★★
   task: string;
   robots: RobotKind[];
   grippers: GripperKind[];
-  share: 0 | 1 | 2 | 3 | 4 | 5; // 산업로봇 점유율 (도트)
+  share: Share;                 // 산업로봇 점유율 (도트)
   lineup: LineupKind[];
-  tags: string[];              // -D = 양산, -X = 중단/제한
-  barriers: string;            // ✗ Lv일 때 강조
+  tags: string[];               // -D = 양산, -X = 중단/제한, -A = 알파/PoC
+  barriers: string;             // ✗ Lv일 때 강조 — 코드 → 한국어 description
 }
 
 export interface CellData {
@@ -27,46 +34,90 @@ export interface CellData {
   lineup: LineupKind[];        // 셀 카드용
   tags: string[];
   barriers: string[];
-  lvDetails?: LvDetail[];      // 4Lv (Top 5 + 주요 셀만)
+  lvDetails?: LvDetail[];
 }
 
-export const TASKS = [
-  { idx: 0,  num: '①', name: 'Bin Picking',     short: 'Bin Picking' },
-  { idx: 1,  num: '②', name: 'Kitting',         short: 'Kitting' },
-  { idx: 2,  num: '③', name: 'Machine Tending', short: 'M.Tending' },
-  { idx: 3,  num: '④', name: 'Visual QC',       short: 'Visual QC' },
-  { idx: 4,  num: '⑤', name: '나사 체결',       short: '나사 체결' },
-  { idx: 5,  num: '⑥', name: '커넥터 체결',     short: '커넥터' },
-  { idx: 6,  num: '⑦', name: '케이블 라우팅',   short: '케이블' },
-  { idx: 7,  num: '⑧', name: 'Tote 이송',       short: 'Tote 이송' },
-  { idx: 8,  num: '⑨', name: 'Tote·박스 적재',  short: '박스 적재' },
-  { idx: 9,  num: '⑩', name: '박스 마감',       short: '박스 마감' },
-  { idx: 10, num: '⑪', name: '용접·도장',       short: '용접·도장' },
-  { idx: 11, num: '⑫', name: '점검·계측',       short: '점검·계측' },
-] as const;
+// ─────────────────────────────────────────────────────────────────
+// v11 JSON 타입 (raw)
+interface V11Lv {
+  lv: number;
+  grade: '★★★' | '★★' | '★' | '✗';
+  grade_score: number;
+  robots: string[];
+  grippers: string[];
+  industry_share: number;
+  lg_robots: string[];
+  task: string;
+  barriers: string[];
+  barrier_desc: string;
+  tags: string[];
+}
 
-export const SECTORS = [
-  '자동차BCG', '자동차LG', '배터리', '물류', '전자가전', '반도체',
-  '조선', '제약', '식품', '화학', '의류', 'Frontier',
-] as const;
+interface V11Industry {
+  idx: number;
+  name: string;
+  score10: number;
+  levels: V11Lv[];
+}
+
+interface V11Task {
+  idx: number;
+  num: string;
+  name: string;
+  levels: { name: string; sub_name: string; desc: string }[];
+  industries: V11Industry[];
+}
+
+interface V11Data {
+  meta: { version: string; date: string; total_tasks: number; total_industries: number; total_cells: number; total_lv_cells: number };
+  tasks: V11Task[];
+  industries: string[];
+  barrier_codes: Record<string, string>;
+}
+
+const V11 = v11Raw as unknown as V11Data;
+
+export const MATRIX_VERSION = V11.meta.version;          // 'v11'
+export const MATRIX_RELEASED = V11.meta.date;            // '2026-04-30'
+
+// ─────────────────────────────────────────────────────────────────
+// TASKS (12) — JSON과 일치, 단 short(축약 표기)는 코드 보존
+const TASK_SHORT: Record<number, string> = {
+  0: 'Bin Picking', 1: 'Kitting', 2: 'M.Tending', 3: 'Visual QC',
+  4: '나사 체결',   5: '커넥터',   6: '케이블',     7: 'Tote 이송',
+  8: '박스 적재',   9: '박스 마감', 10: '용접·도장', 11: '점검·계측',
+};
+
+export const TASKS = V11.tasks.map(t => ({
+  idx: t.idx,
+  num: t.num,
+  name: t.name,
+  short: TASK_SHORT[t.idx] ?? t.name,
+})) as readonly { idx: number; num: string; name: string; short: string }[];
+
+// SECTORS (12) — JSON 산업 순서 그대로
+export const SECTORS = V11.industries as readonly string[];
+
+// barrier 코드 → 한국어 description 변환표
+export const BARRIER_CODES: Record<string, string> = V11.barrier_codes;
 
 // ─────────────────────────────────────────────────────────────────
 // 로봇 카테고리 상세 — IR / CR / MoMa / Hum / AMR / CLOiD
 // PPT 원본 + 외부 시장 정보를 합산. 이미지 경로는 public/images/robots/{code}.jpg
 
 export interface RobotInfoEntry {
-  code: string;            // 'IR'
-  nameKr: string;          // '산업용 로봇'
-  nameEn: string;          // 'Industrial Robot'
-  tagline: string;         // 한 줄 정의
-  description: string;     // 상세 설명 (~200자)
-  examples: string[];      // 실제 제품/회사명
-  useCases: string[];      // 대표 작업
-  payload: string;         // 페이로드 범위
-  reach: string;           // 작업 범위
-  pricing: string;         // 단가 / 추정
-  isLgLineup: boolean;     // LG 자사 라인업 여부 (red border 표시)
-  imagePath?: string;      // public/images/robots/{code}.jpg
+  code: string;
+  nameKr: string;
+  nameEn: string;
+  tagline: string;
+  description: string;
+  examples: string[];
+  useCases: string[];
+  payload: string;
+  reach: string;
+  pricing: string;
+  isLgLineup: boolean;
+  imagePath?: string;
 }
 
 export const ROBOT_INFO: Record<string, RobotInfoEntry> = {
@@ -160,25 +211,68 @@ export const ROBOT_INFO: Record<string, RobotInfoEntry> = {
 export const LG_LINEUP_CODES = new Set(['MoMa', 'AMR', 'CLOiD']);
 
 // ─────────────────────────────────────────────────────────────────
-// 144셀 점수 행렬 (행=task, 열=sector)
-// 점수 산출: 4Lv 등급 합산을 가설 → 10점 환산
-const SCORES: number[][] = [
-  // 자동차BCG, 자동차LG, 배터리, 물류, 전자가전, 반도체, 조선, 제약, 식품, 화학, 의류, Frontier
-  [5.0, 5.0, 4.2, 5.8, 4.2, 3.3, 1.7, 3.3, 3.3, 2.5, 2.5, 3.3], // ① Bin Picking
-  [4.2, 4.2, 4.2, 7.5, 4.2, 3.3, 1.7, 3.3, 4.2, 2.5, 2.5, 3.3], // ② Kitting
-  [5.8, 5.8, 6.7, 1.7, 5.0, 5.8, 2.5, 4.2, 3.3, 4.2, 1.7, 4.2], // ③ Machine Tending
-  [5.0, 5.8, 6.7, 2.5, 5.8, 7.5, 4.2, 5.8, 5.0, 4.2, 4.2, 4.2], // ④ Visual QC
-  [6.7, 6.7, 4.2, 0.8, 5.8, 2.5, 4.2, 1.7, 0.8, 1.7, 0.0, 3.3], // ⑤ 나사 체결
-  [7.5, 6.7, 8.3, 0.8, 7.5, 3.3, 3.3, 1.7, 0.8, 2.5, 0.0, 4.2], // ⑥ 커넥터 체결
-  [5.8, 6.7, 5.0, 0.8, 5.0, 3.3, 4.2, 1.7, 0.8, 2.5, 0.0, 3.3], // ⑦ 케이블 라우팅
-  [5.8, 5.8, 6.7, 9.2, 6.7, 5.0, 3.3, 5.8, 5.8, 4.2, 4.2, 5.0], // ⑧ Tote 이송
-  [5.0, 5.0, 5.0, 7.5, 5.8, 5.0, 3.3, 5.0, 5.0, 4.2, 4.2, 4.2], // ⑨ Tote·박스 적재
-  [4.2, 4.2, 4.2, 6.7, 5.0, 4.2, 2.5, 5.0, 5.8, 4.2, 4.2, 3.3], // ⑩ 박스 마감
-  [6.7, 5.8, 1.7, 0.8, 4.2, 0.8, 8.3, 0.0, 0.0, 2.5, 0.0, 3.3], // ⑪ 용접·도장
-  [4.2, 5.0, 5.8, 3.3, 5.0, 6.7, 5.0, 6.7, 4.2, 5.0, 1.7, 4.2], // ⑫ 점검·계측
-];
+// v11 → 내부 타입 매핑
 
-// 보조 정보 (label / proc / lineup / tags / barriers) — 12 task 공통 디폴트
+const GRADE_TO_NUM: Record<string, Grade> = {
+  '★★★': 3, '★★': 2, '★': 1, '✗': 0,
+};
+
+function asRobots(arr: string[]): RobotKind[] {
+  return arr.filter((r): r is RobotKind => r === 'IR' || r === 'CR' || r === 'MoMa' || r === 'Hum');
+}
+function asGrippers(arr: string[]): GripperKind[] {
+  return arr.filter((g): g is GripperKind => g === 'Vac' || g === 'Jaw' || g === 'Multi' || g === 'Soft' || g === 'Mag');
+}
+function asLineup(arr: string[]): LineupKind[] {
+  return arr.filter((l): l is LineupKind => l === 'IR' || l === 'CR' || l === 'MoMa' || l === 'AMR' || l === 'CLOiD');
+}
+function asShare(n: number): Share {
+  return Math.max(0, Math.min(5, Math.round(n))) as Share;
+}
+
+function resolveBarrierText(codes: string[], desc: string): string {
+  if (desc && desc.trim().length > 0) return desc.trim();
+  if (!codes || codes.length === 0) return '';
+  return codes.map(c => `${c}: ${BARRIER_CODES[c] ?? c}`).join(' · ');
+}
+
+// ─────────────────────────────────────────────────────────────────
+// 144셀 점수 행렬 (행=task, 열=sector) — JSON에서 파생
+const SCORES: number[][] = (() => {
+  const m: number[][] = [];
+  for (const task of V11.tasks) {
+    const row = new Array<number>(SECTORS.length).fill(0);
+    for (const ind of task.industries) row[ind.idx] = ind.score10;
+    m.push(row);
+  }
+  return m;
+})();
+
+// 576개 Lv 셀 — JSON에서 파생 (모달용)
+export const LV_DETAILS_BY_KEY: Record<string, LvDetail[]> = (() => {
+  const out: Record<string, LvDetail[]> = {};
+  for (const task of V11.tasks) {
+    for (const ind of task.industries) {
+      const key = `${task.idx}-${ind.idx}`;
+      out[key] = ind.levels
+        .slice()
+        .sort((a, b) => a.lv - b.lv)
+        .map(lv => ({
+          grade: GRADE_TO_NUM[lv.grade] ?? 0,
+          task: lv.task,
+          robots: asRobots(lv.robots),
+          grippers: asGrippers(lv.grippers),
+          share: asShare(lv.industry_share),
+          lineup: asLineup(lv.lg_robots),
+          tags: lv.tags ?? [],
+          barriers: resolveBarrierText(lv.barriers ?? [], lv.barrier_desc ?? ''),
+        }));
+    }
+  }
+  return out;
+})();
+
+// 보조 정보 (proc / lineup / tags / barriers) — 셀 카드 디폴트
 const TASK_DEFAULTS: Record<number, {
   proc: string; lineup: LineupKind[]; tags: string[]; barriers: string[];
 }> = {
@@ -219,7 +313,36 @@ export function buildCells(): CellData[] {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Top 5 Deep Dive 셀 (taskIdx, sectorIdx) — 점수 순
+// 진입 적합 셀 (score10 ≥ 7.5) — v11 기준 13개. 동점은 task index 우선.
+export interface TopTierEntry {
+  rank: number;            // 1~N
+  taskIdx: number;
+  sectorIdx: number;
+  score: number;
+  shortLabel: string;      // '② Kitting × 물류'
+  verdict: string;         // '진입 적합' (≥7.5 일괄)
+}
+
+export const TOP_TIER: TopTierEntry[] = (() => {
+  const list: { taskIdx: number; sectorIdx: number; score: number }[] = [];
+  for (let t = 0; t < 12; t++) {
+    for (let s = 0; s < 12; s++) {
+      const sc = SCORES[t][s];
+      if (sc >= 7.5) list.push({ taskIdx: t, sectorIdx: s, score: sc });
+    }
+  }
+  list.sort((a, b) => b.score - a.score || a.taskIdx - b.taskIdx || a.sectorIdx - b.sectorIdx);
+  return list.map((e, i) => ({
+    rank: i + 1,
+    taskIdx: e.taskIdx,
+    sectorIdx: e.sectorIdx,
+    score: e.score,
+    shortLabel: `${TASKS[e.taskIdx].num} ${TASKS[e.taskIdx].name} × ${SECTORS[e.sectorIdx]}`,
+    verdict: '진입 적합',
+  }));
+})();
+
+// 기존 Top 5 Deep Dive 호환 — DeepDive 콘텐츠는 Rank 1~5에만 존재
 export interface Top5Entry {
   rank: 1 | 2 | 3 | 4 | 5;
   taskIdx: number;
@@ -238,176 +361,30 @@ export const TOP_5: Top5Entry[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────────
-// Top 5 셀 4Lv 상세 (CellModal에서 사용)
-export const LV_DETAILS_BY_KEY: Record<string, LvDetail[]> = {
-  // Top 1 — Tote 이송 × 물류
-  '7-3': [
-    { grade: 3, task: 'AMR Tote 정형 이송',     robots: ['MoMa'],         grippers: ['Vac'],   share: 4, lineup: ['AMR'],          tags: ['Amazon-D'], barriers: '' },
-    { grade: 3, task: 'DC 다중 라인 순회',       robots: ['MoMa'],         grippers: ['Vac'],   share: 3, lineup: ['AMR', 'MoMa'],  tags: ['GXO-D'],    barriers: '' },
-    { grade: 3, task: '계단·다층 이송',          robots: ['Hum'],          grippers: ['Multi'], share: 2, lineup: ['CLOiD'],         tags: ['Spanx-D'],  barriers: '' },
-    { grade: 2, task: '협소 랙 진입',            robots: ['Hum'],          grippers: ['Multi'], share: 1, lineup: ['CLOiD'],         tags: [],           barriers: '슬림 휴머노이드 부재 (CLOiD-2026 예상)' },
-  ],
-  // Top 2 — 커넥터 체결 × 배터리
-  '5-2': [
-    { grade: 3, task: 'BMS 커넥터 양손 체결',    robots: ['CR'],           grippers: ['Jaw'],   share: 3, lineup: ['CR'],            tags: ['CATL-D'],   barriers: '' },
-    { grade: 3, task: 'Pack 다종 체결',          robots: ['CR', 'Hum'],    grippers: ['Multi'], share: 2, lineup: ['CR', 'CLOiD'],   tags: ['CATL-D'],   barriers: '' },
-    { grade: 3, task: '고압 커넥터 체결',        robots: ['Hum'],          grippers: ['Multi'], share: 1, lineup: ['CLOiD'],         tags: ['CATL-D'],   barriers: '' },
-    { grade: 1, task: '비표준 커넥터·예외 처리', robots: ['Hum'],          grippers: ['Multi'], share: 0, lineup: ['CLOiD'],         tags: [],           barriers: '예외 SKU 데이터셋 부재 + 안전 인증 비용' },
-  ],
-  // Top 3 — 용접·도장 × 조선
-  '10-6': [
-    { grade: 1, task: '개방 위치 용접',          robots: ['IR'],           grippers: ['Mag'],   share: 5, lineup: ['IR'],            tags: ['HD현대-D'], barriers: '' },
-    { grade: 3, task: '블록 다종 용접',          robots: ['Hum'],          grippers: ['Mag'],   share: 2, lineup: ['CLOiD'],         tags: ['HD현대-D'], barriers: '' },
-    { grade: 3, task: '협소 블록 용접',          robots: ['Hum'],          grippers: ['Mag'],   share: 1, lineup: ['CLOiD'],         tags: ['HD현대-D'], barriers: '' },
-    { grade: 3, task: '도장 전 처리',            robots: ['Hum'],          grippers: ['Soft'],  share: 1, lineup: ['CLOiD'],         tags: ['삼성중공업-X'], barriers: '' },
-  ],
-  // Top 4 — Kitting × 물류
-  '1-3': [
-    { grade: 3, task: '단일 SKU 분류',           robots: ['MoMa'],         grippers: ['Vac'],   share: 4, lineup: ['AMR'],           tags: ['Amazon-D'], barriers: '' },
-    { grade: 3, task: 'Mixed-SKU Kit',          robots: ['MoMa'],         grippers: ['Vac', 'Multi'], share: 3, lineup: ['MoMa'],   tags: ['Amazon-D'], barriers: '' },
-    { grade: 3, task: '다 SKU·동선 변동',        robots: ['Hum'],          grippers: ['Multi'], share: 2, lineup: ['CLOiD'],         tags: ['GXO-D'],    barriers: '' },
-    { grade: 2, task: '실시간 주문 변경 대응',   robots: ['Hum'],          grippers: ['Multi'], share: 1, lineup: ['CLOiD'],         tags: [],           barriers: '실시간 주문 변경 알고리즘 안정성 확보 필요' },
-  ],
-  // Top 5 — 커넥터 체결 × 전자가전
-  '5-4': [
-    { grade: 2, task: '표준 가전 커넥터',        robots: ['CR'],           grippers: ['Jaw'],   share: 4, lineup: ['CR'],            tags: ['LGE-D'],    barriers: '' },
-    { grade: 3, task: '다 모델·FPC 체결',         robots: ['Hum'],          grippers: ['Multi'], share: 2, lineup: ['CLOiD'],         tags: ['LGE-X'],    barriers: '' },
-    { grade: 2, task: '협소 내부 체결',          robots: ['Hum'],          grippers: ['Multi'], share: 1, lineup: ['CLOiD'],         tags: [],           barriers: '슬림 휴머노이드 가용성' },
-    { grade: 1, task: '신모델 신속 적응',        robots: ['Hum'],          grippers: ['Multi'], share: 0, lineup: ['CLOiD'],         tags: [],           barriers: '6~12개월 모델 변경 주기 추종' },
-  ],
+// LvDetails 조회 — JSON에서 모든 144셀 hand-curated. fallback 불필요하지만 안전망 유지.
+const FALLBACK_LV: LvDetail = {
+  grade: 0,
+  task: '데이터 미등록',
+  robots: [],
+  grippers: [],
+  share: 0,
+  lineup: [],
+  tags: [],
+  barriers: '',
 };
 
-// ─────────────────────────────────────────────────────────────────
-// 자동 생성 — 점수 → 4Lv 등급 분포 (Top 5 외 셀의 fallback)
-//
-// 점수 = (Lv1+Lv2+Lv3+Lv4) / 12 × 10  →  sum = round(score × 1.2)
-// 일반 패턴: 난이도 高(Lv4)일수록 등급 낮음.
-
-const SUM_TO_GRADES: Record<number, [0|1|2|3, 0|1|2|3, 0|1|2|3, 0|1|2|3]> = {
-  0:  [0, 0, 0, 0],
-  1:  [1, 0, 0, 0],
-  2:  [1, 1, 0, 0],
-  3:  [1, 1, 1, 0],
-  4:  [2, 1, 1, 0],
-  5:  [2, 2, 1, 0],
-  6:  [2, 2, 1, 1],
-  7:  [3, 2, 1, 1],
-  8:  [3, 2, 2, 1],
-  9:  [3, 3, 2, 1],
-  10: [3, 3, 2, 2],
-  11: [3, 3, 3, 2],
-  12: [3, 3, 3, 3],
-};
-
-// task별 Lv 작업 라벨 (Lv1 → Lv4)
-const TASK_LV_LABELS: Record<number, [string, string, string, string]> = {
-  0:  ['정형 부품 Picking',     '다종 SKU 혼재',       '비정형 SKU·동적',     '협소 공간 진입'],
-  1:  ['단일 SKU 분류',         'Mixed-SKU Kit',       '다 SKU·동선 변동',    '실시간 주문 변경'],
-  2:  ['단일 머신 Tending',     '다중 라인 순회',      '라인 변경·재구성',    '비표준 라인 대응'],
-  3:  ['평면 외관 검사',        '3D 형상 검사',        '미세 결함 검출',      '종합 품질 검수'],
-  4:  ['동일 위치 체결',        '다종 위치 체결',      '협소 위치 체결',      '비표준 체결'],
-  5:  ['표준 커넥터 체결',      '다 모델 체결',        'Pack 다종·고압',      '예외·신규 모델'],
-  6:  ['직선 라우팅',           '굴곡 라우팅',         '협소 진입 라우팅',    '복합 다발 라우팅'],
-  7:  ['AMR Tote 정형 이송',    '다 라인 순회',        '계단·다층 이송',      '협소 랙 진입'],
-  8:  ['단일 단 적재',          '다단 적재',           '적재 패턴 변경',      '비표준 적재'],
-  9:  ['표준 테이프 마감',      '다 SKU 박스 마감',    '비표준 포장',         '예외 처리'],
-  10: ['개방 위치 용접',        '다 위치 용접',        '협소 블록 용접',      '특수 환경 용접'],
-  11: ['평면 측정',             '3D 점검',             '시설 진단',           '종합 점검'],
-};
-
-const TASK_LV_ROBOTS: [RobotKind[], RobotKind[], RobotKind[], RobotKind[]] = [
-  ['IR', 'CR'],
-  ['CR', 'MoMa'],
-  ['MoMa', 'Hum'],
-  ['Hum'],
-];
-
-const TASK_LV_GRIPPERS: Record<number, [GripperKind[], GripperKind[], GripperKind[], GripperKind[]]> = {
-  0:  [['Vac'],         ['Vac', 'Jaw'],   ['Multi'],         ['Multi']],
-  1:  [['Vac'],         ['Vac', 'Multi'], ['Multi'],         ['Multi']],
-  2:  [['Jaw'],         ['Jaw', 'Multi'], ['Multi'],         ['Multi']],
-  3:  [[],              [],               [],                []],
-  4:  [['Jaw'],         ['Jaw'],          ['Multi'],         ['Multi']],
-  5:  [['Jaw'],         ['Jaw', 'Multi'], ['Multi'],         ['Multi']],
-  6:  [['Jaw'],         ['Multi'],        ['Multi'],         ['Multi']],
-  7:  [['Vac'],         ['Vac'],          ['Multi'],         ['Multi']],
-  8:  [['Vac'],         ['Vac', 'Multi'], ['Multi'],         ['Multi']],
-  9:  [['Vac'],         ['Vac'],          ['Multi'],         ['Multi']],
-  10: [['Mag'],         ['Mag'],          ['Mag', 'Multi'],  ['Multi']],
-  11: [[],              [],               [],                []],
-};
-
-const TASK_LV_LINEUP: Record<number, [LineupKind[], LineupKind[], LineupKind[], LineupKind[]]> = {
-  0:  [['IR'],            ['CR', 'MoMa'], ['MoMa', 'CLOiD'], ['CLOiD']],
-  1:  [['AMR'],           ['MoMa'],       ['MoMa', 'CLOiD'], ['CLOiD']],
-  2:  [['IR'],            ['CR', 'MoMa'], ['MoMa', 'CLOiD'], ['CLOiD']],
-  3:  [['IR'],            ['MoMa'],       ['MoMa', 'CLOiD'], ['CLOiD']],
-  4:  [['CR'],            ['CR'],         ['CLOiD'],         ['CLOiD']],
-  5:  [['CR'],            ['CR', 'CLOiD'], ['CLOiD'],         ['CLOiD']],
-  6:  [['CR'],            ['CR'],         ['CLOiD'],         ['CLOiD']],
-  7:  [['AMR'],           ['AMR', 'MoMa'], ['CLOiD'],         ['CLOiD']],
-  8:  [['MoMa'],          ['MoMa'],       ['CLOiD'],         ['CLOiD']],
-  9:  [['MoMa'],          ['MoMa'],       ['CLOiD'],         ['CLOiD']],
-  10: [['IR'],            ['IR'],         ['CLOiD'],         ['CLOiD']],
-  11: [['MoMa'],          ['MoMa'],       ['CLOiD'],         ['CLOiD']],
-};
-
-const SHARE_BY_GRADE: Record<0 | 1 | 2 | 3, 0 | 1 | 2 | 3 | 4 | 5> = {
-  3: 4,
-  2: 3,
-  1: 2,
-  0: 0,
-};
-
-// 일반 진입 장벽 풀이 (✗ 등급에서 표시)
-const GENERIC_BARRIER_BY_TASK: Record<number, string> = {
-  0:  '비정형 SKU 다양도 高 + 협소 공간 진입 — 슬림 휴머노이드 부재',
-  1:  '실시간 주문 변경 알고리즘 안정성 + 다 SKU 데이터셋 부재',
-  2:  '비표준 라인 통합 + MES/ERP 인터페이스 비용',
-  3:  '미세 결함 데이터셋 부재 + 검사 사이클 타임 압박',
-  4:  '비표준 체결 위치 + 토크 정밀도 + 안전 인증',
-  5:  '예외 모델 적응 비용 + 고압 커넥터 안전 인증',
-  6:  '복합 다발 라우팅 — 휴머노이드 양손 협응 데이터셋 부재',
-  7:  '협소 랙 — 슬림 휴머노이드 부재 (CLOiD-2026 예상)',
-  8:  '비표준 적재 패턴 + 페이로드 한계',
-  9:  '비표준 포장 다양도 + 사례 데이터 부재',
-  10: '특수 환경 (고온·고압·유독) + 용접 자격 인증',
-  11: '종합 점검 — 시설별 비표준 진단 항목',
-};
-
-export function deriveLvDetails(taskIdx: number, sectorIdx: number): LvDetail[] {
-  const score = SCORES[taskIdx][sectorIdx];
-  const sum = Math.max(0, Math.min(12, Math.round(score * 1.2)));
-  const grades = SUM_TO_GRADES[sum];
-  const labels = TASK_LV_LABELS[taskIdx];
-  const grippers = TASK_LV_GRIPPERS[taskIdx];
-  const lineups = TASK_LV_LINEUP[taskIdx];
-
-  return grades.map((g, i) => ({
-    grade: g,
-    task: labels[i],
-    robots: TASK_LV_ROBOTS[i],
-    grippers: grippers[i],
-    share: SHARE_BY_GRADE[g],
-    lineup: lineups[i],
-    tags: [],                       // 자동 생성에는 사례 태그 비움 (PPT 원본 필요)
-    barriers: g === 0 ? GENERIC_BARRIER_BY_TASK[taskIdx] : '',
-  }));
-}
-
-// 통합 조회 — Top 5 hand-curated가 있으면 우선, 없으면 자동 생성
 export function getLvDetails(taskIdx: number, sectorIdx: number): LvDetail[] {
   const key = `${taskIdx}-${sectorIdx}`;
-  return LV_DETAILS_BY_KEY[key] ?? deriveLvDetails(taskIdx, sectorIdx);
+  return LV_DETAILS_BY_KEY[key] ?? [FALLBACK_LV, FALLBACK_LV, FALLBACK_LV, FALLBACK_LV];
 }
 
-// 셀이 hand-curated인지 자동 생성인지 표시 (UI 신뢰도 표시용)
+// 셀이 hand-curated인지 (v11에서는 모두 hand-curated)
 export function isLvDetailsHandCurated(taskIdx: number, sectorIdx: number): boolean {
   return Boolean(LV_DETAILS_BY_KEY[`${taskIdx}-${sectorIdx}`]);
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Top 5 Deep Dive 콘텐츠
+// Top 5 Deep Dive 콘텐츠 (v11에서도 Rank 1~5 셀은 동일 — 자료 재사용)
 export interface DeepDiveItem { name: string; tag?: string; }
 export interface DeepDive {
   rank: 1 | 2 | 3 | 4 | 5;
@@ -546,11 +523,11 @@ export const DEEP_DIVES: DeepDive[] = [
 
 // ─────────────────────────────────────────────────────────────────
 // 강조 모드
-export type EmphasisMode = 'all' | 'top5' | 'lg' | 'shipbuilding' | 'battery' | 'logistics';
+export type EmphasisMode = 'all' | 'topTier' | 'lg' | 'shipbuilding' | 'battery' | 'logistics';
 
 export const EMPHASIS_MODES: { id: EmphasisMode; label: string }[] = [
   { id: 'all',           label: '전체' },
-  { id: 'top5',          label: 'Top 5' },
+  { id: 'topTier',       label: '진입 적합 13' },
   { id: 'lg',            label: 'LG 자사' },
   { id: 'shipbuilding',  label: '조선' },
   { id: 'battery',       label: '배터리' },
@@ -580,12 +557,21 @@ export function gradeToStars(grade: number): string {
   return ['✗', '★', '★★', '★★★'][grade] ?? '✗';
 }
 
+export function isTopTierCell(taskIdx: number, sectorIdx: number): boolean {
+  return SCORES[taskIdx][sectorIdx] >= 7.5;
+}
+
+export function getTopTierRank(taskIdx: number, sectorIdx: number): number | null {
+  const e = TOP_TIER.find(t => t.taskIdx === taskIdx && t.sectorIdx === sectorIdx);
+  return e?.rank ?? null;
+}
+
 export function isTop5Cell(taskIdx: number, sectorIdx: number): boolean {
-  return TOP_5.some((t) => t.taskIdx === taskIdx && t.sectorIdx === sectorIdx);
+  return TOP_5.some(t => t.taskIdx === taskIdx && t.sectorIdx === sectorIdx);
 }
 
 export function getTop5Rank(taskIdx: number, sectorIdx: number): number | null {
-  const e = TOP_5.find((t) => t.taskIdx === taskIdx && t.sectorIdx === sectorIdx);
+  const e = TOP_5.find(t => t.taskIdx === taskIdx && t.sectorIdx === sectorIdx);
   return e?.rank ?? null;
 }
 
@@ -607,7 +593,7 @@ export function isCellHighlighted(
 ): boolean {
   switch (mode) {
     case 'all':           return true;
-    case 'top5':          return isTop5Cell(taskIdx, sectorIdx);
+    case 'topTier':       return isTopTierCell(taskIdx, sectorIdx);
     case 'lg':            return sectorIdx === 1 || sectorIdx === 4; // 자동차LG / 전자가전
     case 'shipbuilding':  return sectorIdx === 6;
     case 'battery':       return sectorIdx === 2;
@@ -621,7 +607,6 @@ export const STATS = {
   total: 144,
   fitCount: SCORES.flat().filter((s) => s >= 7.5).length,
   avg: SCORES.flat().reduce((a, b) => a + b, 0) / 144,
-  // 산업별 평균 1위
   topSector: (() => {
     let bestIdx = 0; let bestAvg = -1;
     for (let s = 0; s < 12; s++) {

@@ -18,7 +18,7 @@ export default function MatrixHeader({ mode, onModeChange }: Props) {
             휴머노이드 진입성 매트릭스
           </h1>
           <span className="font-mono text-[11px] font-medium text-[#8B1538] tracking-[0.16em] uppercase">
-            v9.3
+            v11
           </span>
         </div>
         <span className="ml-auto font-mono text-[10.5px] text-[#888780] uppercase tracking-[0.18em] hidden md:inline">
