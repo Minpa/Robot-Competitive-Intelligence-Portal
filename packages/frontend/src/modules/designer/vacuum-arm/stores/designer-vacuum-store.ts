@@ -971,11 +971,15 @@ export const useDesignerVacuumStore = create<DesignerVacuumState>((set) => ({
     set((s) => {
       const tl = s.timeline;
       let nextT = tl.currentTime + deltaSec * tl.playSpeed;
+      let nextPlaying = tl.isPlaying;
       if (nextT >= tl.duration) {
-        nextT = nextT % tl.duration; // loop
+        // 끝에서 정지 — loop 안 함. 그리퍼 닫힌 상태(GRAB 끝) 유지 + 잡힌 타겟
+        // 보존. 사용자가 수동으로 0으로 되돌리거나 + GRAB을 새로 누르면 새 시퀀스.
+        nextT = tl.duration;
+        nextPlaying = false;
       }
       return deriveCurrentFrame({
-        timeline: { ...tl, currentTime: nextT },
+        timeline: { ...tl, currentTime: nextT, isPlaying: nextPlaying },
       });
     }),
   resetTimeline: () =>
