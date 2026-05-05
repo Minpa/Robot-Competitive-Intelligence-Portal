@@ -14,7 +14,7 @@
  *   surfaceHeightCm / zCm           * 0.01   (worldY, 위)
  */
 
-import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from 'react';
 import * as THREE from 'three';
 import { Canvas, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Grid, Environment, Html } from '@react-three/drei';
@@ -24,12 +24,13 @@ import { ZMPOverlay } from './ZMPOverlay';
 import { GripperTipMarker } from './GripperTipMarker';
 import { ViewportMinimap } from './ViewportMinimap';
 
-/** OrbitControls 인스턴스의 최소 인터페이스 — drei가 노출하는 three-stdlib
- *  OrbitControls를 직접 import하지 않고 필요한 메서드만 사용. */
-type OrbitControlsLike = {
+/** OrbitControls 인스턴스 — drei가 노출하는 controls 객체. ref로 받아
+ *  target.set(...)와 update() 호출. drei와 three-stdlib 사이 타입 mismatch
+ *  회피를 위해 최소 인터페이스만 정의. */
+interface OrbitControlsLike {
   target: { set: (x: number, y: number, z: number) => void };
   update: () => void;
-} | null;
+}
 import { KinematicRobot } from './RobotViewport';
 import { FurnitureVisual } from '../../kinematics/furniture-visuals';
 import {
@@ -188,7 +189,7 @@ export function Room3DViewport({
   }, [totalHeightM]);
 
   // OrbitControls ref — minimap에서 cameraTarget 변경 시 controls.target 동기화
-  const controlsRef = useRef<OrbitControlsLike>(null);
+  const controlsRef = useRef<OrbitControlsLike | null>(null);
   useEffect(() => {
     const c = controlsRef.current;
     if (!c) return;
@@ -402,7 +403,10 @@ export function Room3DViewport({
       />
 
       <OrbitControls
-        ref={controlsRef}
+        // drei OrbitControls는 three-stdlib의 OrbitControls 타입을 요구하지만 우리는
+        // .target.set() / .update()만 호출하므로 cast로 충분.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ref={controlsRef as MutableRefObject<any>}
         autoRotate={autoRotate}
         autoRotateSpeed={0.6}
         enabled={!isDragging}
