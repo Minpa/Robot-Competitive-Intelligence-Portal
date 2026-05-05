@@ -239,21 +239,25 @@ export function ViewportControlsOverlay({
               </span>
               <button
                 type="button"
-                onClick={() =>
-                  addGesture({ t: timelineCurrentTime, durationSec: 2, type: 'GRAB' })
-                }
+                onClick={() => {
+                  // 즉시 잡기: GRAB 제스처 추가 (자세 = reach down) + 그리퍼 닫음 →
+                  // GrabController가 반경 내 closest target 자동 attach.
+                  addGesture({ t: timelineCurrentTime, durationSec: 2, type: 'GRAB' });
+                  setManualGripperClosed(true);
+                }}
                 className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] border border-green-400/60 bg-green-500/15 hover:bg-green-500/25 text-green-200 px-2 py-1"
-                title={`현재 시점(${timelineCurrentTime.toFixed(1)}s)에 GRAB 동작 추가 — 팔이 자동 reach + 가까운 타겟 잡음`}
+                title="즉시 reach 자세 + 그리퍼 닫음 → 반경 내 타겟 자동 잡음. timeline에도 GRAB 제스처 추가됨."
               >
                 + GRAB
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  addGesture({ t: timelineCurrentTime, durationSec: 2, type: 'RELEASE' })
-                }
+                onClick={() => {
+                  addGesture({ t: timelineCurrentTime, durationSec: 2, type: 'RELEASE' });
+                  setManualGripperClosed(false);
+                }}
                 className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] border border-orange-400/60 bg-orange-500/15 hover:bg-orange-500/25 text-orange-200 px-2 py-1"
-                title="현재 시점에 RELEASE — 잡고 있던 것 놓고 retract"
+                title="즉시 그리퍼 열기 — 잡고 있던 거 놓고 retract. timeline에도 RELEASE 제스처 추가."
               >
                 + RELEASE
               </button>

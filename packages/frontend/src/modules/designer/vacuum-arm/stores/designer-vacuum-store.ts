@@ -272,11 +272,14 @@ const GESTURE_PROFILES: Record<GestureType, GestureKeyframeDef[]> = {
     { tNorm: 0.85, shoulderPitchDeg: 70, elbowDeg: 130 },
     { tNorm: 1.0, shoulderPitchDeg: 25, elbowDeg: 110 },
   ],
-  // GRAB: rest → reach-down (앞-아래로 뻗어 floor reach) → hold.
-  // 그리퍼는 gesture END 시점에 닫힘 → reach 동작 끝난 후 잡음.
+  // GRAB: 즉시 reach-down 자세 (앞-아래로 뻗어 floor reach) → hold.
+  // 이전에는 tNorm=0에서 rest 자세였지만 timeline 재생 안 한 상태에서 + GRAB 클릭 시
+  // 팔이 rest로 snap되어 사용자가 의도한 "지금 잡기" 동작과 어긋남. 이제 클릭 즉시
+  // reach 자세 → ViewportControlsOverlay의 + GRAB이 manualGripperClosed도 같이
+  // 켜므로 반경 안이면 그 시점에 attach.
   // PICKUP 같은 자세 gesture가 동시에 활성이면 그게 우선 (poseAtTimeInline 분기).
   GRAB: [
-    { tNorm: 0.0, shoulderPitchDeg: 25, elbowDeg: 110 }, // rest
+    { tNorm: 0.0, shoulderPitchDeg: 110, elbowDeg: 165 }, // 즉시 reach down
     { tNorm: 0.6, shoulderPitchDeg: 110, elbowDeg: 165 }, // reach down toward floor
     { tNorm: 1.0, shoulderPitchDeg: 110, elbowDeg: 165 }, // hold (gripper closes at end)
   ],
