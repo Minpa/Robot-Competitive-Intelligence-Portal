@@ -25,10 +25,11 @@ async function seedHumanoidModels() {
       .onConflictDoNothing({ target: humanoidModels.modelName });
     console.log(`  ✓ ${s.modelName} (${s.formFactor})`);
   }
-  const [{ count }] = await db
+  const result = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(humanoidModels);
-  console.log(`\nhumanoid_models total: ${count} rows`);
+  const total = result[0]?.count ?? 0;
+  console.log(`\nhumanoid_models total: ${total} rows`);
   process.exit(0);
 }
 

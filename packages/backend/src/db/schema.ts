@@ -11,6 +11,7 @@ import {
   date,
   index,
   uniqueIndex,
+  serial,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
@@ -2052,7 +2053,7 @@ export interface HumanoidEeOptions {
 export const humanoidModels = pgTable(
   'humanoid_models',
   {
-    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    id: serial('id').primaryKey(),
     modelName: varchar('model_name', { length: 100 }).notNull().unique(),
     codeName: varchar('code_name', { length: 100 }),
     formFactor: varchar('form_factor', { length: 50 }).notNull(),
@@ -2101,7 +2102,7 @@ export const eeCategories = pgTable('ee_categories', {
 export const cellEeRequirements = pgTable(
   'cell_ee_requirements',
   {
-    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    id: serial('id').primaryKey(),
     taskIdx: integer('task_idx').notNull(),
     industryIdx: integer('industry_idx').notNull(),
     lv: integer('lv').notNull(),
@@ -2124,7 +2125,7 @@ export const cellEeRequirements = pgTable(
 export const reportDownloads = pgTable(
   'report_downloads',
   {
-    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    id: serial('id').primaryKey(),
     reportType: varchar('report_type', { length: 50 }).notNull(),
     humanoidModelsSnapshot: jsonb('humanoid_models_snapshot').$type<Record<string, unknown>>(),
     userId: varchar('user_id', { length: 100 }),

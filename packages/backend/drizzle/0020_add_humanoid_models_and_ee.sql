@@ -2,7 +2,7 @@
 -- Task 3: EE 카테고리·요구사항·다운로드 이력 (ee_categories / cell_ee_requirements / report_downloads)
 
 CREATE TABLE IF NOT EXISTS "humanoid_models" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	"id" serial PRIMARY KEY,
 	"model_name" varchar(100) NOT NULL UNIQUE,
 	"code_name" varchar(100),
 	"form_factor" varchar(50) NOT NULL,
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS "ee_categories" (
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "cell_ee_requirements" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	"id" serial PRIMARY KEY,
 	"task_idx" integer NOT NULL,
 	"industry_idx" integer NOT NULL,
 	"lv" integer NOT NULL,
@@ -76,7 +76,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS "cell_ee_req_cell_lookup_idx"
 	ON "cell_ee_requirements" ("task_idx", "industry_idx", "lv");
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "report_downloads" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	"id" serial PRIMARY KEY,
 	"report_type" varchar(50) NOT NULL,
 	"humanoid_models_snapshot" jsonb,
 	"user_id" varchar(100),
