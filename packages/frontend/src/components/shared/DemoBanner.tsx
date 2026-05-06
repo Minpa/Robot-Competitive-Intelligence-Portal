@@ -51,8 +51,6 @@ export function DemoBanner() {
               <Monitor className="w-3.5 h-3.5 text-cyan-400" />
               <span className="text-xs font-semibold text-cyan-300">DEMO MODE</span>
             </div>
-            <span className="text-xs text-ink-500 hidden md:inline">|</span>
-            <span className="text-xs text-ink-500 hidden md:inline">AWE 2026 Presentation Tour</span>
           </div>
 
           <div className="flex items-center gap-1 overflow-x-auto">
