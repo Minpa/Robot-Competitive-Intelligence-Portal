@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronDown } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import {
   findCellById,
@@ -13,15 +13,29 @@ import {
   type Verdict,
 } from '@/components/cloid-coverage/data';
 
-function VerdictPill({ verdict }: { verdict: Verdict }) {
-  const v = VERDICT_LABEL[verdict];
+const VERDICT_TINT: Record<
+  Verdict,
+  { strip: string; bg: string; chipBg: string; chipText: string; mark: string; dot: string }
+> = {
+  cover:   { strip: '#3F8C6E', bg: '#F4F9F6', chipBg: '#3F8C6E', chipText: '#FFFFFF', mark: '✓', dot: '#3F8C6E' },
+  partial: { strip: '#D4A22F', bg: '#FBF6E8', chipBg: '#D4A22F', chipText: '#1A1A1A', mark: '⚠', dot: '#D4A22F' },
+  gap:     { strip: '#D63F6F', bg: '#FBEEF3', chipBg: '#D63F6F', chipText: '#FFFFFF', mark: '✕', dot: '#D63F6F' },
+};
+
+function worseVerdict(a: Verdict, b: Verdict): Verdict {
+  const order: Record<Verdict, number> = { gap: 0, partial: 1, cover: 2 };
+  return order[a] < order[b] ? a : b;
+}
+
+function VerdictChip({ verdict }: { verdict: Verdict }) {
+  const t = VERDICT_TINT[verdict];
   return (
     <span
       className="inline-flex items-center gap-1 px-2 py-0.5 font-mono text-[11px] font-medium"
-      style={{ backgroundColor: v.bg, color: v.color, borderRadius: 3 }}
+      style={{ backgroundColor: t.chipBg, color: t.chipText, borderRadius: 3 }}
     >
-      <span>{v.emoji}</span>
-      <span>{v.ko}</span>
+      <span>{t.mark}</span>
+      <span>{VERDICT_LABEL[verdict].ko}</span>
     </span>
   );
 }
@@ -38,85 +52,97 @@ function PriorityPill({ priority }: { priority: SubCell['priority'] }) {
   );
 }
 
-function LvRow({ sc }: { sc: SubCell }) {
+function LvRow({ sc, isLast }: { sc: SubCell; isLast: boolean }) {
+  const lvVerdict = worseVerdict(sc.cloidW.verdict, sc.cloidB.verdict);
+  const tint = VERDICT_TINT[lvVerdict];
+
   return (
-    <div className="border-b border-[#E8E6DD] last:border-b-0 py-5">
+    <div
+      className={`relative pl-6 pr-5 py-5 ${isLast ? '' : 'border-b border-[#E2DED4]'}`}
+      style={{ backgroundColor: tint.bg }}
+    >
+      {/* §12.2 4px solid strip */}
+      <div className="absolute left-0 top-0 bottom-0" style={{ width: 4, backgroundColor: tint.strip }} />
+
       {/* Header row */}
-      <div className="flex items-start justify-between gap-3 mb-3">
+      <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-center gap-3 min-w-0">
           <span
-            className="font-mono text-[12px] font-medium px-2 py-1 bg-[#F0EEE8] text-[#2C2C2A] tracking-wide"
+            className="font-mono text-[12px] font-medium px-2 py-1 bg-white text-[#1A1A1A] tracking-wide border border-[#E2DED4]"
             style={{ borderRadius: 3 }}
           >
             Lv{sc.lv}
           </span>
-          <h3 className="font-medium text-[15px] text-[#2C2C2A] leading-tight">{sc.taskName}</h3>
+          <h3 className="font-medium text-[17px] text-[#1A1A1A] leading-tight">{sc.taskName}</h3>
         </div>
         <PriorityPill priority={sc.priority} />
       </div>
 
-      {/* Body grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 mb-3">
-        {/* Core actions */}
+      {/* Body grid: core actions + thresholds */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 mb-4">
         <div>
-          <p className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.14em] mb-1.5">핵심 동작</p>
+          <p className="font-mono text-[11px] text-[#6B6B6B] uppercase tracking-[0.14em] mb-2 font-semibold">
+            핵심 동작
+          </p>
           <ul className="space-y-1">
             {sc.coreActions.map((a, i) => (
-              <li key={i} className="text-[12.5px] text-[#2C2C2A]">
+              <li key={i} className="text-[15px] text-[#1A1A1A] leading-relaxed">
                 <span className="text-[#8B1538] mr-1.5">•</span>
                 {a}
               </li>
             ))}
           </ul>
         </div>
-        {/* Thresholds */}
         <div>
-          <p className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.14em] mb-1.5">요구 임계값</p>
-          <p className="text-[12.5px] text-[#2C2C2A] leading-relaxed">{sc.thresholds}</p>
+          <p className="font-mono text-[11px] text-[#6B6B6B] uppercase tracking-[0.14em] mb-2 font-semibold">
+            요구 임계값
+          </p>
+          <p className="text-[15px] text-[#1A1A1A] leading-relaxed">{sc.thresholds}</p>
         </div>
       </div>
 
       {/* CLOiD W / B verdicts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-        <div
-          className="border border-[#E8E6DD] p-3"
-          style={{ borderRadius: 6, backgroundColor: VERDICT_LABEL[sc.cloidW.verdict].bg + '40' }}
-        >
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="font-mono text-[10.5px] text-[#5F5E5A] uppercase tracking-[0.14em] font-medium">
-              CLOiD W (휠형)
-            </span>
-            <VerdictPill verdict={sc.cloidW.verdict} />
-          </div>
-          <p className="text-[12px] text-[#2C2C2A] leading-relaxed">{sc.cloidW.note}</p>
-        </div>
-        <div
-          className="border border-[#E8E6DD] p-3"
-          style={{ borderRadius: 6, backgroundColor: VERDICT_LABEL[sc.cloidB.verdict].bg + '40' }}
-        >
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="font-mono text-[10.5px] text-[#5F5E5A] uppercase tracking-[0.14em] font-medium">
-              CLOiD B (양족)
-            </span>
-            <VerdictPill verdict={sc.cloidB.verdict} />
-          </div>
-          <p className="text-[12px] text-[#2C2C2A] leading-relaxed">{sc.cloidB.note}</p>
-        </div>
+        {(['cloidW', 'cloidB'] as const).map((key) => {
+          const item = sc[key];
+          const t = VERDICT_TINT[item.verdict];
+          const label = key === 'cloidW' ? 'CLOiD W (휠형)' : 'CLOiD B (양족)';
+          return (
+            <div
+              key={key}
+              className="relative bg-white p-3 pl-4 border border-[#E2DED4] overflow-hidden"
+              style={{ borderRadius: 6 }}
+            >
+              <div className="absolute left-0 top-0 bottom-0" style={{ width: 3, backgroundColor: t.strip }} />
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="font-mono text-[11px] text-[#6B6B6B] uppercase tracking-[0.14em] font-semibold">
+                  {label}
+                </span>
+                <VerdictChip verdict={item.verdict} />
+              </div>
+              <p className="text-[14px] text-[#1A1A1A] leading-relaxed">{item.note}</p>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Benchmark + Dev items */}
+      {/* §12.3 Benchmark (plain) + Dev items (검정 테두리 강조) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
-          <p className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.14em] mb-1">양산 벤치마크</p>
-          <p className="text-[11.5px] text-[#5F5E5A] leading-snug">{sc.benchmark}</p>
+        <div className="bg-white border border-[#E2DED4] p-3" style={{ borderRadius: 6 }}>
+          <p className="font-mono text-[11px] text-[#6B6B6B] uppercase tracking-[0.14em] mb-1.5 font-semibold">
+            양산 벤치마크
+          </p>
+          <p className="text-[14px] text-[#3A3A3A] leading-snug">{sc.benchmark}</p>
         </div>
-        <div>
-          <p className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.14em] mb-1">개발 필요 항목</p>
-          <ul className="space-y-0.5">
+        <div className="bg-white p-3" style={{ borderRadius: 6, border: '1.5px solid #1A1A1A' }}>
+          <p className="font-mono text-[11px] text-[#1A1A1A] uppercase tracking-[0.12em] mb-1.5 font-bold">
+            → 개발 필요 항목
+          </p>
+          <ul className="space-y-1">
             {sc.devItems.map((d, i) => (
-              <li key={i} className="text-[11.5px] text-[#2C2C2A] leading-snug">
-                <span className="text-[#8B1538] mr-1">→</span>
-                {d}
+              <li key={i} className="text-[15px] text-[#1A1A1A] leading-relaxed flex gap-1.5">
+                <span className="text-[#1A1A1A] shrink-0">·</span>
+                <span>{d}</span>
               </li>
             ))}
           </ul>
@@ -126,19 +152,23 @@ function LvRow({ sc }: { sc: SubCell }) {
   );
 }
 
-function SpecTable({ spec }: { spec: { label: string; rows: readonly (readonly [string, string, string])[] } }) {
+function SpecTable({
+  spec,
+}: {
+  spec: { label: string; rows: readonly (readonly [string, string, string])[] };
+}) {
   return (
-    <div className="bg-[#FAFAF8] border border-[#E8E6DD] p-4" style={{ borderRadius: 8 }}>
-      <p className="font-medium text-[13px] text-[#2C2C2A] mb-3">{spec.label}</p>
-      <table className="w-full text-[11.5px]">
+    <div className="bg-[#FAFAF7] border border-[#E2DED4] p-4" style={{ borderRadius: 8 }}>
+      <p className="font-medium text-[13px] text-[#1A1A1A] mb-3">{spec.label}</p>
+      <table className="w-full text-[12px]">
         <tbody>
           {spec.rows.map((row, i) => (
-            <tr key={i} className="border-b border-[#EAE7DD] last:border-b-0">
-              <td className="py-1 pr-2 font-mono text-[10px] text-[#888780] uppercase tracking-[0.12em] w-12 align-top">
+            <tr key={i} className="border-b border-[#E2DED4] last:border-b-0">
+              <td className="py-1 pr-2 font-mono text-[10px] text-[#6B6B6B] uppercase tracking-[0.12em] w-12 align-top">
                 {row[0]}
               </td>
-              <td className="py-1 pr-2 text-[#5F5E5A] align-top">{row[1]}</td>
-              <td className="py-1 text-[#2C2C2A] font-medium align-top">{row[2]}</td>
+              <td className="py-1 pr-2 text-[#3A3A3A] align-top">{row[1]}</td>
+              <td className="py-1 text-[#1A1A1A] font-medium align-top">{row[2]}</td>
             </tr>
           ))}
         </tbody>
@@ -155,7 +185,7 @@ function CellDetailContent() {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-[20px] text-[#2C2C2A] mb-2">셀을 찾을 수 없습니다</h1>
+          <h1 className="text-[20px] text-[#1A1A1A] mb-2">셀을 찾을 수 없습니다</h1>
           <Link href="/business-strategy/cloid-coverage" className="text-[#8B1538]">
             ← 목록으로 돌아가기
           </Link>
@@ -164,97 +194,202 @@ function CellDetailContent() {
     );
   }
 
-  // Per-cell W/B counts
+  // Per-cell W/B counts + dev count
   const w = { cover: 0, partial: 0, gap: 0 } as Record<Verdict, number>;
   const b = { cover: 0, partial: 0, gap: 0 } as Record<Verdict, number>;
+  let devCount = 0;
   for (const sc of cell.subCells) {
     w[sc.cloidW.verdict]++;
     b[sc.cloidB.verdict]++;
+    devCount += sc.devItems.length;
   }
+  const totalCover = w.cover + b.cover;
+  const totalPartial = w.partial + b.partial;
+  const totalGap = w.gap + b.gap;
 
   return (
-    <div className="min-h-screen bg-white" style={{ color: '#2C2C2A' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#FAFAF7', color: '#1A1A1A' }}>
       <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Breadcrumb */}
         <Link
           href="/business-strategy/cloid-coverage"
-          className="inline-flex items-center gap-1.5 text-[12px] text-[#5F5E5A] hover:text-[#8B1538] mb-3"
+          className="inline-flex items-center gap-1.5 text-[12px] text-[#6B6B6B] hover:text-[#8B1538] mb-3"
         >
           <ArrowLeft size={14} />
           진입 적합 셀 목록
         </Link>
 
-        {/* Cell header */}
-        <div className="flex items-stretch border border-[#E8E6DD] mb-6" style={{ borderRadius: 8, overflow: 'hidden' }}>
+        {/* Cell identity header */}
+        <div
+          className="flex items-stretch border border-[#E2DED4] mb-3 bg-white"
+          style={{ borderRadius: 8, overflow: 'hidden' }}
+        >
           <div
             className="flex flex-col items-center justify-center px-6 py-5 shrink-0"
-            style={{ width: 110, backgroundColor: cell.score >= 9 ? '#E1F0D9' : cell.score >= 8 ? '#EAF3DE' : '#F4ECDC' }}
+            style={{
+              width: 110,
+              backgroundColor:
+                cell.score >= 9 ? '#E1F0D9' : cell.score >= 8 ? '#EAF3DE' : '#F4ECDC',
+            }}
           >
             <span
-              className="font-medium text-[36px] text-[#2C2C2A] leading-none"
+              className="font-medium text-[36px] text-[#1A1A1A] leading-none"
               style={{ fontVariantNumeric: 'tabular-nums' }}
             >
               {cell.score.toFixed(1)}
             </span>
-            <span className="font-mono text-[10px] text-[#5F5E5A] uppercase tracking-[0.18em] mt-1.5">/ 10</span>
+            <span className="font-mono text-[10px] text-[#6B6B6B] uppercase tracking-[0.18em] mt-1.5">
+              / 10
+            </span>
           </div>
-          <div className="flex-1 px-6 py-5 min-w-0 bg-white">
+          <div className="flex-1 px-6 py-5 min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
               <span className="font-mono text-[10.5px] font-medium uppercase tracking-[0.16em] text-[#8B1538]">
                 진입 적합 셀
               </span>
             </div>
-            <h1 className="font-medium text-[24px] text-[#2C2C2A] tracking-tight leading-tight">
+            <h1 className="font-medium text-[24px] text-[#1A1A1A] tracking-tight leading-tight">
               <span className="font-mono text-[#8B1538] mr-1.5">{cell.cellNum}</span>
               {cell.taskName}
               <span className="text-[#B8B6AE] mx-2">×</span>
               {cell.sectorName}
             </h1>
-            <p className="text-[13.5px] text-[#5F5E5A] mt-1.5 leading-relaxed">{cell.oneLineInsight}</p>
+            <p className="text-[15px] text-[#3A3A3A] mt-1.5 leading-relaxed">
+              {cell.oneLineInsight}
+            </p>
           </div>
         </div>
 
-        {/* W/B summary */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div className="bg-[#FAFAF8] border border-[#E8E6DD] p-4" style={{ borderRadius: 8 }}>
-            <p className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.16em] mb-2">CLOiD W 4-Lv 종합</p>
-            <div className="flex gap-3 text-[13px]">
-              <span className="font-medium text-emerald-700">✅ Cover {w.cover}</span>
-              <span className="font-medium text-amber-700">⚠️ Partial {w.partial}</span>
-              <span className="font-medium text-red-700">❌ Gap {w.gap}</span>
+        {/* §12.1 한 줄 결론 띠 */}
+        <div
+          className="flex items-center justify-between gap-4 px-5 py-3 border border-[#E2DED4] bg-white mb-3 flex-wrap"
+          style={{ borderRadius: 8 }}
+        >
+          <div className="flex items-center gap-5 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <span
+                className="inline-block w-2 h-2 rounded-full"
+                style={{ backgroundColor: VERDICT_TINT.cover.dot }}
+              />
+              <span className="font-mono text-[13px] text-[#1A1A1A]">
+                {totalCover} <span className="text-[#6B6B6B]">Cover</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span
+                className="inline-block w-2 h-2 rounded-full"
+                style={{ backgroundColor: VERDICT_TINT.partial.dot }}
+              />
+              <span className="font-mono text-[13px] text-[#1A1A1A]">
+                {totalPartial} <span className="text-[#6B6B6B]">Partial</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span
+                className="inline-block w-2 h-2 rounded-full"
+                style={{ backgroundColor: VERDICT_TINT.gap.dot }}
+              />
+              <span className="font-mono text-[13px] text-[#1A1A1A]">
+                {totalGap} <span className="text-[#6B6B6B]">Gap</span>
+              </span>
+            </div>
+            <span className="font-mono text-[11px] text-[#6B6B6B] uppercase tracking-[0.14em]">
+              W·B 합산 {totalCover + totalPartial + totalGap}
+            </span>
+          </div>
+          <div
+            className="font-mono text-[13px] font-medium px-3 py-1.5"
+            style={{ backgroundColor: '#1A1A1A', color: '#FFFFFF', borderRadius: 4 }}
+          >
+            → 개발 {devCount}건
+          </div>
+        </div>
+
+        {/* W·B 분리 카운트 — 비교 정보 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+          <div
+            className="bg-white border border-[#E2DED4] px-4 py-3"
+            style={{ borderRadius: 8 }}
+          >
+            <p className="font-mono text-[11px] text-[#6B6B6B] uppercase tracking-[0.16em] mb-2 font-semibold">
+              CLOiD W (휠형)
+            </p>
+            <div className="flex gap-3 text-[13px] font-mono">
+              <span style={{ color: VERDICT_TINT.cover.dot }} className="font-medium">
+                Cover {w.cover}
+              </span>
+              <span style={{ color: VERDICT_TINT.partial.dot }} className="font-medium">
+                Partial {w.partial}
+              </span>
+              <span style={{ color: VERDICT_TINT.gap.dot }} className="font-medium">
+                Gap {w.gap}
+              </span>
             </div>
           </div>
-          <div className="bg-[#FAFAF8] border border-[#E8E6DD] p-4" style={{ borderRadius: 8 }}>
-            <p className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.16em] mb-2">CLOiD B 4-Lv 종합</p>
-            <div className="flex gap-3 text-[13px]">
-              <span className="font-medium text-emerald-700">✅ Cover {b.cover}</span>
-              <span className="font-medium text-amber-700">⚠️ Partial {b.partial}</span>
-              <span className="font-medium text-red-700">❌ Gap {b.gap}</span>
+          <div
+            className="bg-white border border-[#E2DED4] px-4 py-3"
+            style={{ borderRadius: 8 }}
+          >
+            <p className="font-mono text-[11px] text-[#6B6B6B] uppercase tracking-[0.16em] mb-2 font-semibold">
+              CLOiD B (양족)
+            </p>
+            <div className="flex gap-3 text-[13px] font-mono">
+              <span style={{ color: VERDICT_TINT.cover.dot }} className="font-medium">
+                Cover {b.cover}
+              </span>
+              <span style={{ color: VERDICT_TINT.partial.dot }} className="font-medium">
+                Partial {b.partial}
+              </span>
+              <span style={{ color: VERDICT_TINT.gap.dot }} className="font-medium">
+                Gap {b.gap}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* 4Lv detail */}
-        <div className="bg-white border border-[#E8E6DD] mb-8" style={{ borderRadius: 8 }}>
-          <div className="px-5 py-3 border-b border-[#E8E6DD] bg-[#FAFAF8]">
-            <h2 className="font-medium text-[14px] text-[#2C2C2A]">4-Level 동작·Gap 상세</h2>
+        {/* 4-Lv 상세 */}
+        <div
+          className="bg-white border border-[#E2DED4] mb-8 overflow-hidden"
+          style={{ borderRadius: 8 }}
+        >
+          <div
+            className="px-5 py-3 border-b border-[#E2DED4]"
+            style={{ backgroundColor: '#F2F0EA' }}
+          >
+            <h2 className="font-mono text-[13px] text-[#6B6B6B] uppercase tracking-[0.14em] font-semibold">
+              4-Level 동작·Gap 상세
+            </h2>
           </div>
-          <div className="px-5">
-            {cell.subCells.map((sc) => (
-              <LvRow key={sc.lv} sc={sc} />
-            ))}
-          </div>
+          {cell.subCells.map((sc, i) => (
+            <LvRow key={sc.lv} sc={sc} isLast={i === cell.subCells.length - 1} />
+          ))}
         </div>
 
-        {/* Spec baseline */}
-        <h2 className="font-medium text-[14px] text-[#2C2C2A] mb-3">분석 baseline — CLOiD 추정 스펙</h2>
-        <p className="text-[11.5px] text-[#5F5E5A] mb-3 leading-relaxed">
-          ⚠️ 모든 항목 [추정] — ARGOS의 LG 휴머노이드 스펙 페이지에 실제 스펙 입력 후 정밀화 예정.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <SpecTable spec={CLOID_SPECS.W} />
-          <SpecTable spec={CLOID_SPECS.B} />
-        </div>
+        {/* §12.4 베이스라인 스펙 — collapsed */}
+        <details
+          className="group border border-[#E2DED4] bg-white"
+          style={{ borderRadius: 8 }}
+        >
+          <summary className="cursor-pointer list-none px-5 py-3 flex items-center gap-2 hover:bg-[#FAFAF7]">
+            <ChevronDown
+              size={14}
+              className="transition-transform -rotate-90 group-open:rotate-0 text-[#6B6B6B]"
+            />
+            <span className="font-mono text-[13px] uppercase tracking-[0.14em] font-semibold text-[#6B6B6B]">
+              분석 baseline
+            </span>
+            <span className="text-[13px] text-[#1A1A1A]">— CLOiD 추정 스펙 (펼치기)</span>
+          </summary>
+          <div className="px-5 pb-5 pt-2">
+            <p className="text-[12px] text-[#6B6B6B] mb-3 leading-relaxed">
+              모든 항목 [추정] — ARGOS의 LG 휴머노이드 스펙 페이지에 실제 스펙 입력 후 정밀화 예정.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <SpecTable spec={CLOID_SPECS.W} />
+              <SpecTable spec={CLOID_SPECS.B} />
+            </div>
+          </div>
+        </details>
       </div>
     </div>
   );
