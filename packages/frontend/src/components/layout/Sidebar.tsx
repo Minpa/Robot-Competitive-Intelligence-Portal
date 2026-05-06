@@ -138,9 +138,6 @@ export function Sidebar() {
             <h1 className="font-serif text-[22px] font-semibold tracking-tight leading-none text-white">
               ARGOS
             </h1>
-            <span className="font-mono text-[9px] font-medium text-gold tracking-[0.18em] uppercase">
-              AWE 2026
-            </span>
           </div>
           <p className="font-mono text-[9px] text-white/50 uppercase tracking-[0.22em] mt-2">
             Robot Intelligence

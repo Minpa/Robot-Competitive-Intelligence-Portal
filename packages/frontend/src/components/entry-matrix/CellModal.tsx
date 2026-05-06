@@ -52,6 +52,29 @@ export default function CellModal({ taskIdx, sectorIdx, onClose }: Props) {
     router.push(`/business-strategy/matrix/deepdive/${deepDiveRank - 1}`);
   };
 
+  // Map (taskIdx, sectorIdx) → CLOiD coverage cell id (only for entry-fit cells ≥7.5)
+  const COVERAGE_MAP: Record<string, string> = {
+    '7-3': 'tote-logistics',
+    '1-3': 'kitting-logistics',
+    '5-2': 'connector-battery',
+    '9-3': 'box-closing-logistics',
+    '10-6': 'welding-shipbuilding',
+    '0-3': 'binpicking-logistics',
+    '4-4': 'screw-electronics',
+    '5-4': 'connector-electronics',
+    '6-2': 'cable-battery',
+    '6-6': 'cable-shipbuilding',
+    '7-0': 'tote-automotive-bcg',
+    '8-3': 'palletize-logistics',
+    '11-6': 'inspection-shipbuilding',
+  };
+  const coverageId = COVERAGE_MAP[`${taskIdx}-${sectorIdx}`];
+  const handleCoverage = () => {
+    if (!coverageId) return;
+    onClose();
+    router.push(`/business-strategy/cloid-coverage/${coverageId}`);
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
@@ -130,6 +153,15 @@ export default function CellModal({ taskIdx, sectorIdx, onClose }: Props) {
               : '등급 = 점수 역산 (PPT 원본 텍스트는 추후 교체) · 점유 = 산업로봇 점유율'}
           </span>
           <div className="flex items-center gap-2">
+            {coverageId && (
+              <button
+                onClick={handleCoverage}
+                className="px-4 py-2 border border-[#8B1538] text-[#8B1538] font-medium text-[13px] hover:bg-[#FAEAE7] transition-colors"
+                style={{ borderRadius: 4 }}
+              >
+                CLOiD W/B 커버리지 →
+              </button>
+            )}
             {hasDeepDive && (
               <button
                 onClick={handleDeepDive}

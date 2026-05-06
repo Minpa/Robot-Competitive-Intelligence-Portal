@@ -285,13 +285,12 @@
     /* ============ GESTURE MENU (DROPDOWN) ============ */
     .gesture-menu-wrapper { position: relative; }
     .gesture-menu {
-      position: absolute; top: 100%;
-      right: 0;  /* anchor right, expand left so sidebar doesn't clip it */
+      position: fixed;
       min-width: 240px;
       background: var(--bg-2);
       border: 1px solid var(--cyan);
-      border-radius: 3px; margin-top: 2px;
-      z-index: 1000; max-height: 320px; overflow-y: auto;
+      border-radius: 3px;
+      z-index: 1000; overflow-y: auto;
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 217, 255, 0.2);
     }
     .gesture-menu-header {
@@ -685,6 +684,75 @@
       background: rgba(0, 0, 0, 0.2);
     }
     .gesture-block-handle:hover { background: var(--cyan); }
+    .timeline-track-row.speech { background: rgba(34, 197, 94, 0.03); }
+    .timeline-track-row.speech:hover { background: rgba(34, 197, 94, 0.06); }
+    .timeline-track-label.speech {
+      color: var(--text-tertiary);
+      padding-left: 26px;
+      font-size: 10.5px;
+    }
+    .speech-block {
+      position: absolute;
+      height: 18px;
+      background: rgba(34, 197, 94, 0.25);
+      border: 1px solid var(--success);
+      border-radius: 2px;
+      font-size: 10.5px;
+      font-family: 'IBM Plex Mono', monospace;
+      color: white;
+      top: 2px;
+      padding: 0 6px;
+      display: flex; align-items: center;
+      cursor: move;
+      z-index: 4;
+      overflow: hidden;
+      white-space: nowrap;
+      letter-spacing: 0.5px;
+    }
+    .speech-block:hover { background: rgba(34, 197, 94, 0.45); }
+    .speech-block.selected {
+      box-shadow: 0 0 0 2px var(--cyan);
+      background: rgba(34, 197, 94, 0.45);
+    }
+    .speech-block-handle {
+      position: absolute;
+      width: 6px; height: 100%;
+      right: 0; top: 0;
+      cursor: col-resize;
+      background: rgba(0, 0, 0, 0.2);
+    }
+    .speech-block-handle:hover { background: var(--cyan); }
+    .speech-bubble {
+      position: fixed;
+      pointer-events: none;
+      background: rgba(255, 255, 255, 0.95);
+      color: #1a1a1a;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 12px;
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+      white-space: nowrap;
+      transform: translateX(-50%);
+      z-index: 50;
+      animation: speechFadeIn 0.3s ease-out;
+    }
+    .speech-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 16px;
+      width: 0; height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 8px solid rgba(255, 255, 255, 0.95);
+    }
+    @keyframes speechFadeIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
     .playhead {
       position: absolute;
       width: 2px;
@@ -1051,10 +1119,10 @@
         </div>
         <div class="action-grid">
           <button class="btn-secondary" id="propRobotAddWaypoint">+ 경로점</button>
-          <div class="gesture-menu-wrapper">
-            <button class="btn-secondary" id="propRobotAddGesture" style="width:100%">+ 동작 ▾</button>
-            <div class="gesture-menu" id="gestureAddMenu" style="display:none"></div>
-          </div>
+          <button class="btn-secondary" id="propRobotAddGesture">+ 동작 ▾</button>
+        </div>
+        <div class="action-grid" style="grid-template-columns: 1fr; margin-top: 4px;">
+          <button class="btn-secondary" id="propRobotAddSpeech">+ 발화</button>
         </div>
         <div class="action-grid">
           <button class="btn-secondary" id="propRobotFocus">🔍 포커스</button>
@@ -1086,6 +1154,28 @@
         <div id="propGestureParams"></div>
         <div class="action-grid">
           <button class="btn-secondary danger" id="propGestureDelete">삭제</button>
+        </div>
+      </div>
+
+      <div id="propertiesSpeech" class="properties-panel">
+        <div class="panel-heading">발화</div>
+        <div class="panel-subheading" id="propSpeechSubhead">-</div>
+        <div class="form-row">
+          <label>텍스트</label>
+          <input type="text" class="form-input" id="propSpeechText" placeholder="발화 내용 입력">
+        </div>
+        <div class="form-row-split">
+          <div class="form-row">
+            <label>시작 (초)</label>
+            <input type="number" class="form-input" id="propSpeechStart" step="0.1" min="0">
+          </div>
+          <div class="form-row">
+            <label>지속 (초)</label>
+            <input type="number" class="form-input" id="propSpeechDuration" step="0.1" min="0.5">
+          </div>
+        </div>
+        <div class="action-grid">
+          <button class="btn-secondary danger" id="propSpeechDelete">삭제</button>
         </div>
       </div>
 
@@ -1157,10 +1247,8 @@
           <button class="speed-btn" data-speed="3" title="3× speed">3×</button>
         </div>
         <div class="timeline-playback" style="margin-left: auto;">
-          <div class="gesture-menu-wrapper" style="display: inline-block;">
-            <button id="btnAddGesture" title="현재 시점에 동작 추가" style="width: auto; padding: 0 10px; font-size: 11px;">+ 동작 ▾</button>
-            <div class="gesture-menu" id="gestureAddMenuTimeline" style="display:none; right: 0; left: auto; min-width: 240px;"></div>
-          </div>
+          <button id="btnAddSpeech" title="현재 시점에 발화 추가" style="width: auto; padding: 0 10px; font-size: 11px;">+ 발화</button>
+          <button id="btnAddGesture" title="현재 시점에 동작 추가" style="width: auto; padding: 0 10px; font-size: 11px;">+ 동작 ▾</button>
           <button id="btnAddWaypointHere" title="현재 시점에 경로점 추가" style="width: auto; padding: 0 10px; font-size: 11px;">+ 경로점</button>
         </div>
       </div>
@@ -1177,6 +1265,7 @@
     </div>
   </div>
 
+  <div id="speechBubbleOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:40;"></div>
   <div class="toast-container" id="toastContainer"></div>
 
   <script>
@@ -1459,7 +1548,7 @@
       'IDLE', 'WAVE', 'POINT', 'PICKUP', 'BOW', 'WALK', 'SCAN',
       'SIT', 'JUMP', 'TILT', 'DUAL_PICKUP',
       'HANDSHAKE', 'KNEEL', 'LIE_DOWN', 'STRETCH', 'HANDOVER',
-      'ATTACH', 'DETACH'
+      'ATTACH', 'DETACH', 'BALLET', 'WAIT'
     ];
     const GESTURE_LABELS = {
       IDLE:        '대기',
@@ -1480,6 +1569,8 @@
       HANDOVER:    '양손 전달',
       ATTACH:      '들기 시작',
       DETACH:      '놓기',
+      BALLET:      '발레',
+      WAIT:        '대기',
     };
     const GESTURE_DESCRIPTIONS = {
       IDLE:        '대기 / 호흡 (자동)',
@@ -1500,6 +1591,8 @@
       HANDOVER:    '한 팔 → 다른 팔로 물건 전달',
       ATTACH:      '선택한 가구를 손에 부착 (이후 로봇과 함께 이동)',
       DETACH:      '들고 있던 가구를 현재 위치에 놓음',
+      BALLET:      '양팔을 들고 제자리에서 360° 회전',
+      WAIT:        '마지막 위치에서 제자리 대기',
     };
     const GESTURE_DURATIONS = {
       IDLE: Infinity, WAVE: 3.0, POINT: 2.5, PICKUP: 4.0,
@@ -1507,6 +1600,8 @@
       SIT: 3.0, JUMP: 1.2, TILT: 1.8, DUAL_PICKUP: 4.5,
       HANDSHAKE: 3.5, KNEEL: 3.3, LIE_DOWN: 3.5, STRETCH: 3.5, HANDOVER: 4.5,
       ATTACH: 0.5, DETACH: 0.5,
+      BALLET: 4.0,
+      WAIT: 1.0,
     };
     const GESTURE_ROBOT_APPLIES = {
       IDLE: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator', 'amrServi'],
@@ -1528,6 +1623,8 @@
       // ATTACH/DETACH — robots that have a hand/gripper part to carry items.
       ATTACH: ['cloidWheel', 'cloidBipedal', 'midManipulator', 'cleaner'],
       DETACH: ['cloidWheel', 'cloidBipedal', 'midManipulator', 'cleaner'],
+      BALLET: ['cloidBipedal', 'cloidWheel'],
+      WAIT: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator', 'amrServi'],
     };
 
     /* ============ STATE ============ */
@@ -1763,7 +1860,7 @@
 
       // Floor
       const floorGeo = new THREE.PlaneGeometry(w, d);
-      const floorMat = new THREE.MeshStandardMaterial({ color: 0xFFEB3B, roughness: 0.85, metalness: 0.1 });
+      const floorMat = new THREE.MeshStandardMaterial({ color: 0xF5F0E8, roughness: 0.85, metalness: 0.1 });
       const floor = new THREE.Mesh(floorGeo, floorMat);
       floor.rotation.x = -Math.PI / 2;
       floor.receiveShadow = true;
@@ -5797,6 +5894,26 @@
             p.root_body.position.y = baseY + lerpKeyframes(bodyYFrames, localT);
           }
         },
+        BALLET: (p, localT) => {
+          // 1) Arms raise to 5th position (0–0.8s), hold, lower (3.4–4.0s)
+          const armFrames = [[0.0, 0.0], [0.8, -2.8], [3.4, -2.8], [4.0, 0.0]];
+          if (p.armR) p.armR.rotation.z = lerpKeyframes(armFrames, localT);
+          if (p.armL) p.armL.rotation.z = -lerpKeyframes(armFrames, localT);
+          // 2) Elbows curve inward for rounded ballet arms (0–0.8s)
+          const elbowFrames = [[0.0, 0.0], [0.8, -0.45], [3.4, -0.45], [4.0, 0.0]];
+          if (p.armR_elbow) p.armR_elbow.rotation.x = lerpKeyframes(elbowFrames, localT);
+          if (p.armL_elbow) p.armL_elbow.rotation.x = lerpKeyframes(elbowFrames, localT);
+          // 3) Tiptoe: ankle extension starts after arms are raised (0.6–1.0s)
+          const ankleFrames = [[0.0, 0.0], [0.6, 0.0], [1.0, -0.35], [3.4, -0.35], [4.0, 0.0]];
+          const ankle = lerpKeyframes(ankleFrames, localT);
+          if (p.legL_ankle) p.legL_ankle.rotation.x = ankle;
+          if (p.legR_ankle) p.legR_ankle.rotation.x = ankle;
+          // 4) Legs slight outward splay (ballet 1st position, synced with tiptoe)
+          const splayFrames = [[0.0, 0.0], [0.6, 0.0], [1.0, 0.12], [3.4, 0.12], [4.0, 0.0]];
+          const splay = lerpKeyframes(splayFrames, localT);
+          if (p.legL) p.legL.rotation.z = -splay;
+          if (p.legR) p.legR.rotation.z = splay;
+        },
       };
 
       return { root, parts, impls };
@@ -6892,6 +7009,22 @@
           parts.armR_elbow.rotation.x = lerpKeyframes(eFrames, localT);
         }
       },
+      BALLET: (parts, localT) => {
+        // 1) Arms raise to 5th position (0–0.8s), hold, lower (3.4–4.0s)
+        const armFrames = [[0.0, 0.0], [0.8, -2.8], [3.4, -2.8], [4.0, 0.0]];
+        if (parts.armR) parts.armR.rotation.z = lerpKeyframes(armFrames, localT);
+        if (parts.armL) parts.armL.rotation.z = -lerpKeyframes(armFrames, localT);
+        // 2) Elbows curve inward for rounded ballet arms (0–0.8s)
+        const elbowFrames = [[0.0, 0.0], [0.8, -0.45], [3.4, -0.45], [4.0, 0.0]];
+        if (parts.armR_elbow) parts.armR_elbow.rotation.x = lerpKeyframes(elbowFrames, localT);
+        if (parts.armL_elbow) parts.armL_elbow.rotation.x = lerpKeyframes(elbowFrames, localT);
+        // 3) Tiptoe — body rises after arms are up (0.6–1.0s)
+        const toeFrames = [[0.0, 0.0], [0.6, 0.0], [1.0, 0.07], [3.4, 0.07], [4.0, 0.0]];
+        if (parts.root_body) {
+          const baseY = parts.root_body.userData.baseY ?? parts.root_body.position.y;
+          parts.root_body.position.y = baseY + lerpKeyframes(toeFrames, localT);
+        }
+      },
     };
 
     function computeRobotPosition(robot, t) {
@@ -6980,7 +7113,7 @@
         }
 
         active.forEach(g => {
-          if (g.type === 'IDLE' || g.type === 'WALK') return;
+          if (g.type === 'IDLE' || g.type === 'WALK' || g.type === 'WAIT') return;
           const impl = meshData.impls[g.type] || GESTURE_IMPLS[g.type];
           if (!impl) return;
           const localT = t - g.t;
@@ -6992,6 +7125,17 @@
         meshData.group.position.x = pos.x;
         meshData.group.position.z = pos.z;
         meshData.group.rotation.y = pos.rotY;
+
+        // 4) BALLET: 360° spin after pose is ready (1.0–3.4s)
+        active.filter(g => g.type === 'BALLET').forEach(g => {
+          const localT = t - g.t;
+          const dur = g.duration || GESTURE_DURATIONS.BALLET || 4.0;
+          const spinStart = dur * 0.25;
+          const spinEnd = dur * 0.85;
+          const p = Math.max(0, Math.min((localT - spinStart) / (spinEnd - spinStart), 1.0));
+          const smooth = p * p * (3 - 2 * p);
+          meshData.group.rotation.y += smooth * Math.PI * 2;
+        });
 
         // ===== PICKUP: attach nearest furniture to robot =====
         const pickupGestures = active.filter(g => g.type === 'PICKUP' || g.type === 'DUAL_PICKUP');
@@ -7241,7 +7385,7 @@
         item.className = `placed-item${sel ? ' selected' : ''}`;
         item.innerHTML = `
           <span><span class="dot" style="background:${r.color}"></span>${r.name}</span>
-          <span class="item-meta">${r.positionTrack.length}wp / ${r.gestureTrack.length}g</span>
+          <span class="item-meta">${r.positionTrack.length}wp / ${r.gestureTrack.length}g / ${(r.speechTrack || []).length}s</span>
         `;
         item.addEventListener('click', () => selectRobot(r.id));
         list.appendChild(item);
@@ -7299,7 +7443,7 @@
 
     /* ============ PROPERTIES PANEL ============ */
     function renderProperties() {
-      ['propertiesEmpty', 'propertiesFurniture', 'propertiesRobot', 'propertiesGesture', 'propertiesWaypoint', 'propertiesSpec'].forEach(id => {
+      ['propertiesEmpty', 'propertiesFurniture', 'propertiesRobot', 'propertiesGesture', 'propertiesSpeech', 'propertiesWaypoint', 'propertiesSpec'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.remove('active');
       });
@@ -7368,6 +7512,15 @@
         document.getElementById('propGestureStart').value = g.t.toFixed(1);
         document.getElementById('propGestureDuration').value = g.duration.toFixed(1);
         renderGestureParams(g);
+      } else if (state.selectedType === 'speech') {
+        const r = state.robots.find(x => x.id === state.selectedId);
+        const sp = r && (r.speechTrack || []).find(x => x.id === state.selectedSubId);
+        if (!sp) { document.getElementById('propertiesEmpty').classList.add('active'); return; }
+        document.getElementById('propertiesSpeech').classList.add('active');
+        document.getElementById('propSpeechSubhead').textContent = `${r.name} · "${sp.text}"`;
+        document.getElementById('propSpeechText').value = sp.text;
+        document.getElementById('propSpeechStart').value = sp.t.toFixed(1);
+        document.getElementById('propSpeechDuration').value = sp.duration.toFixed(1);
       } else if (state.selectedType === 'waypoint') {
         const r = state.robots.find(x => x.id === state.selectedId);
         const wp = r && r.positionTrack.find(x => x.id === state.selectedSubId);
@@ -7477,6 +7630,7 @@
         speedMultiplier: 1.0,
         positionTrack: [{ id: generateId('p'), t: 0, x: offset, z: 0, rotY: 0 }],
         gestureTrack: [],
+        speechTrack: [],
       };
       state.robots.push(r);
       rebuildRobots();
@@ -7611,6 +7765,10 @@
         gestLabel.className = 'timeline-track-label gesture';
         gestLabel.textContent = 'gesture';
         labels.appendChild(gestLabel);
+        const speechLabel = document.createElement('div');
+        speechLabel.className = 'timeline-track-label speech';
+        speechLabel.textContent = 'speech';
+        labels.appendChild(speechLabel);
 
         // POS row
         const posRow = document.createElement('div');
@@ -7679,6 +7837,44 @@
           addGesture(r.id, t);
         });
         tracks.appendChild(gestRow);
+
+        // SPEECH row
+        const speechRow = document.createElement('div');
+        speechRow.className = 'timeline-track-row speech';
+        speechRow.dataset.robotId = r.id;
+        speechRow.dataset.trackType = 'speech';
+        (r.speechTrack || []).forEach(sp => {
+          const block = document.createElement('div');
+          block.className = 'speech-block';
+          if (state.selectedType === 'speech' && state.selectedSubId === sp.id) block.classList.add('selected');
+          block.style.left = `${sp.t * PX_PER_SEC}px`;
+          block.style.width = `${Math.max(sp.duration * PX_PER_SEC, 24)}px`;
+          block.textContent = sp.text;
+          block.title = `"${sp.text}" · ${sp.t.toFixed(1)}~${(sp.t + sp.duration).toFixed(1)}초`;
+          block.dataset.spId = sp.id;
+          block.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            selectSpeech(r.id, sp.id);
+            startSpeechDrag(e, r.id, sp.id, 'move');
+          });
+          const handle = document.createElement('div');
+          handle.className = 'speech-block-handle';
+          handle.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            selectSpeech(r.id, sp.id);
+            startSpeechDrag(e, r.id, sp.id, 'resize');
+          });
+          block.appendChild(handle);
+          speechRow.appendChild(block);
+        });
+        speechRow.addEventListener('click', (e) => {
+          if (e.target !== speechRow) return;
+          const rect = speechRow.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const t = clamp(x / PX_PER_SEC, 0, state.duration);
+          promptAndAddSpeech(r.id, t);
+        });
+        tracks.appendChild(speechRow);
       });
 
       if (state.robots.length === 0) {
@@ -7727,6 +7923,61 @@
       selectGesture(r.id, g.id);
       const label = GESTURE_LABELS[type] || type;
       showToast(`동작 추가: ${label} (${type}) · ${t.toFixed(1)}초`, 'success');
+    }
+
+    function selectSpeech(robotId, speechId) {
+      state.selectedType = 'speech';
+      state.selectedId = robotId;
+      state.selectedSubId = speechId;
+      renderRobotList();
+      renderProperties();
+      renderTimeline();
+      updateSelectionVisuals();
+    }
+
+    function addSpeech(robotId, t, text, duration = 3.0) {
+      const r = state.robots.find(x => x.id === robotId);
+      if (!r) return;
+      if (!r.speechTrack) r.speechTrack = [];
+      const sp = { id: generateId('s'), t, duration, text };
+      r.speechTrack.push(sp);
+      renderTimeline();
+      renderRobotList();
+      selectSpeech(r.id, sp.id);
+      showToast(`발화 추가: "${text}" · ${t.toFixed(1)}초`, 'success');
+    }
+
+    function promptAndAddSpeech(robotId, t) {
+      const text = prompt('발화 텍스트를 입력하세요:');
+      if (!text || !text.trim()) return;
+      addSpeech(robotId, t, text.trim());
+    }
+
+    function startSpeechDrag(e, robotId, spId, mode) {
+      const r = state.robots.find(x => x.id === robotId);
+      const sp = r && (r.speechTrack || []).find(x => x.id === spId);
+      if (!sp) return;
+      const startX = e.clientX;
+      const origT = sp.t;
+      const origDur = sp.duration;
+      const d = { mode };
+      const onMove = (ev) => {
+        const dx = ev.clientX - startX;
+        const dt = dx / PX_PER_SEC;
+        if (d.mode === 'move') {
+          sp.t = clamp(origT + dt, 0, state.duration - sp.duration);
+        } else {
+          sp.duration = clamp(origDur + dt, 0.2, state.duration - sp.t);
+        }
+        renderTimeline();
+      };
+      const onUp = () => {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        renderProperties();
+      };
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
     }
 
     /* ============ DRAG LOGIC — TIMELINE ============ */
@@ -8088,6 +8339,13 @@
         const r = state.robots.find(x => x.id === state.selectedId);
         if (r) {
           r.gestureTrack = r.gestureTrack.filter(g => g.id !== state.selectedSubId);
+          state.selectedType = 'robot'; state.selectedSubId = null;
+          renderRobotList(); renderTimeline(); renderProperties();
+        }
+      } else if (state.selectedType === 'speech') {
+        const r = state.robots.find(x => x.id === state.selectedId);
+        if (r) {
+          r.speechTrack = (r.speechTrack || []).filter(s => s.id !== state.selectedSubId);
           state.selectedType = 'robot'; state.selectedSubId = null;
           renderRobotList(); renderTimeline(); renderProperties();
         }
@@ -8586,6 +8844,12 @@
       document.getElementById('btnPlayPause').textContent = '▶';
       updatePlayhead();
     });
+    document.getElementById('btnAddSpeech').addEventListener('click', () => {
+      const robotId = state.selectedId;
+      const r = robotId && state.robots.find(x => x.id === robotId);
+      if (!r) { showToast('로봇을 먼저 선택하세요', 'warn'); return; }
+      promptAndAddSpeech(r.id, state.currentTime);
+    });
     document.getElementById('btnAddGesture').addEventListener('click', e => {
       e.stopPropagation();
       if (state.selectedType !== 'robot') {
@@ -8594,14 +8858,9 @@
       }
       const r = state.robots.find(x => x.id === state.selectedId);
       if (!r) return;
-      const menu = document.getElementById('gestureAddMenuTimeline');
-      const isOpen = menu.style.display === 'block';
-      closeAllGestureMenus();
-      if (isOpen) return;
-      buildGestureMenu(menu, r.type, type => {
+      openGestureMenu(e.currentTarget, r.type, type => {
         addGesture(r.id, state.currentTime, type);
       });
-      menu.style.display = 'block';
     });
     document.getElementById('btnAddWaypointHere').addEventListener('click', () => {
       if (state.selectedType === 'robot') {
@@ -8829,6 +9088,9 @@
         renderTimeline();
       }
     });
+    document.getElementById('propRobotAddSpeech').addEventListener('click', () => {
+      if (state.selectedType === 'robot') promptAndAddSpeech(state.selectedId, state.currentTime);
+    });
     document.getElementById('propRobotAddWaypoint').addEventListener('click', () => {
       if (state.selectedType === 'robot') addWaypoint(state.selectedId, state.currentTime);
     });
@@ -8884,10 +9146,50 @@
       });
     }
 
+    // Shared gesture dropdown — appended to body to escape sidebar overflow clipping
+    const _gestureOverlay = document.createElement('div');
+    _gestureOverlay.className = 'gesture-menu';
+    _gestureOverlay.id = 'gestureOverlay';
+    _gestureOverlay.style.display = 'none';
+    document.body.appendChild(_gestureOverlay);
+
+    function openGestureMenu(anchorEl, robotType, onSelect) {
+      const menu = _gestureOverlay;
+      const wasOpen = menu.style.display === 'block';
+      menu.style.display = 'none';
+      if (wasOpen) return;
+
+      buildGestureMenu(menu, robotType, type => {
+        onSelect(type);
+        menu.style.display = 'none';
+      });
+
+      menu.style.display = 'block';
+      const btnRect = anchorEl.getBoundingClientRect();
+      const vp = window.innerHeight;
+      const vpW = window.innerWidth;
+      const pad = 8;
+      const menuH = menu.scrollHeight;
+      const spaceBelow = vp - btnRect.bottom - pad;
+      const spaceAbove = btnRect.top - pad;
+
+      if (spaceBelow >= menuH || spaceBelow >= spaceAbove) {
+        menu.style.top = btnRect.bottom + 2 + 'px';
+        menu.style.bottom = '';
+        menu.style.maxHeight = Math.max(160, spaceBelow) + 'px';
+      } else {
+        menu.style.top = '';
+        menu.style.bottom = (vp - btnRect.top + 2) + 'px';
+        menu.style.maxHeight = Math.max(160, spaceAbove) + 'px';
+      }
+      const menuW = menu.offsetWidth || 240;
+      const left = Math.min(btnRect.left, vpW - menuW - pad);
+      menu.style.left = Math.max(pad, left) + 'px';
+      menu.style.right = '';
+    }
+
     function closeAllGestureMenus() {
-      document.getElementById('gestureAddMenu').style.display = 'none';
-      const tl = document.getElementById('gestureAddMenuTimeline');
-      if (tl) tl.style.display = 'none';
+      _gestureOverlay.style.display = 'none';
     }
 
     document.getElementById('propRobotAddGesture').addEventListener('click', e => {
@@ -8895,18 +9197,13 @@
       if (state.selectedType !== 'robot') return;
       const r = state.robots.find(x => x.id === state.selectedId);
       if (!r) return;
-      const menu = document.getElementById('gestureAddMenu');
-      const isOpen = menu.style.display === 'block';
-      closeAllGestureMenus();
-      if (isOpen) return;
-      buildGestureMenu(menu, r.type, type => {
+      openGestureMenu(e.currentTarget, r.type, type => {
         addGesture(r.id, state.currentTime, type);
       });
-      menu.style.display = 'block';
     });
 
     document.addEventListener('click', e => {
-      if (!e.target.closest('.gesture-menu-wrapper')) {
+      if (!e.target.closest('.gesture-menu') && !e.target.closest('#propRobotAddGesture') && !e.target.closest('#btnAddGesture')) {
         closeAllGestureMenus();
       }
     });
@@ -8960,6 +9257,32 @@
     });
     document.getElementById('propGestureDelete').addEventListener('click', () => {
       if (state.selectedType === 'gesture') handleDelete();
+    });
+
+    // Speech
+    document.getElementById('propSpeechText').addEventListener('change', e => {
+      const r = state.robots.find(x => x.id === state.selectedId);
+      const sp = r && (r.speechTrack || []).find(x => x.id === state.selectedSubId);
+      if (sp) { sp.text = e.target.value; renderTimeline(); renderProperties(); }
+    });
+    document.getElementById('propSpeechStart').addEventListener('change', e => {
+      const r = state.robots.find(x => x.id === state.selectedId);
+      const sp = r && (r.speechTrack || []).find(x => x.id === state.selectedSubId);
+      if (sp) {
+        sp.t = clamp(parseFloat(e.target.value) || 0, 0, state.duration - sp.duration);
+        renderTimeline();
+      }
+    });
+    document.getElementById('propSpeechDuration').addEventListener('change', e => {
+      const r = state.robots.find(x => x.id === state.selectedId);
+      const sp = r && (r.speechTrack || []).find(x => x.id === state.selectedSubId);
+      if (sp) {
+        sp.duration = clamp(parseFloat(e.target.value) || 1, 0.5, state.duration - sp.t);
+        renderTimeline();
+      }
+    });
+    document.getElementById('propSpeechDelete').addEventListener('click', () => {
+      if (state.selectedType === 'speech') handleDelete();
     });
 
     // Waypoint
@@ -9022,6 +9345,9 @@
           gestureTrack: (r.gestureTrack || []).map(g => ({
             id: g.id, t: g.t, duration: g.duration, type: g.type, params: g.params || {},
           })),
+          speechTrack: (r.speechTrack || []).map(sp => ({
+            id: sp.id, t: sp.t, duration: sp.duration, text: sp.text,
+          })),
         })),
       };
     }
@@ -9035,6 +9361,7 @@
           ...r,
           positionTrack: r.positionTrack || r.waypoints || [],
           gestureTrack: r.gestureTrack || [],
+          speechTrack: r.speechTrack || [],
         }));
         migrated = true;
       }
@@ -9047,6 +9374,7 @@
         description: r.description || '',
         positionTrack: (r.positionTrack || []).map(p => ({ ...p, id: p.id || generateId('p') })),
         gestureTrack: (r.gestureTrack || []).map(g => ({ ...g, id: g.id || generateId('g'), params: g.params || {} })),
+        speechTrack: (r.speechTrack || []).map(sp => ({ ...sp, id: sp.id || generateId('s') })),
       }));
 
       rebuildBooth();
@@ -9140,6 +9468,49 @@
     }
     document.getElementById('scenarioName').addEventListener('input', updateDDay);
 
+    /* ============ SPEECH BUBBLE RENDERING ============ */
+    const _speechBubbleCache = {};
+    function renderSpeechBubbles(t) {
+      const overlay = document.getElementById('speechBubbleOverlay');
+      if (!overlay) return;
+      const canvasEl = document.getElementById('canvas');
+      const rect = canvasEl.getBoundingClientRect();
+
+      const alive = new Set();
+      state.robots.forEach(r => {
+        const meshData = robotMeshes[r.id];
+        if (!meshData) return;
+        (r.speechTrack || []).forEach(sp => {
+          if (t < sp.t || t >= sp.t + sp.duration) return;
+          const bid = 'sb_' + sp.id;
+          alive.add(bid);
+          let el = _speechBubbleCache[bid];
+          if (!el) {
+            el = document.createElement('div');
+            el.className = 'speech-bubble';
+            el.id = bid;
+            overlay.appendChild(el);
+            _speechBubbleCache[bid] = el;
+          }
+          el.textContent = sp.text;
+          const wp = new THREE.Vector3();
+          meshData.group.getWorldPosition(wp);
+          wp.y = (r.height || 1.7) + 0.35;
+          const proj = wp.project(camera);
+          if (proj.z > 1) { el.style.display = 'none'; return; }
+          el.style.display = '';
+          el.style.left = (rect.left + (proj.x * 0.5 + 0.5) * rect.width) + 'px';
+          el.style.top = (rect.top + (-proj.y * 0.5 + 0.5) * rect.height - 20) + 'px';
+        });
+      });
+      Object.keys(_speechBubbleCache).forEach(bid => {
+        if (!alive.has(bid)) {
+          _speechBubbleCache[bid].remove();
+          delete _speechBubbleCache[bid];
+        }
+      });
+    }
+
     /* ============ ANIMATION LOOP ============ */
     function tick() {
       requestAnimationFrame(tick);
@@ -9156,6 +9527,8 @@
       if (state.mode === 'choreo' || state.robots.length > 0) {
         applyGestures(state.currentTime);
       }
+
+      renderSpeechBubbles(state.currentTime);
 
       // Pulse experience zone corners
       const pulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.003);
@@ -9205,6 +9578,7 @@
           x, z, rotY, speedMultiplier: 1.0,
           positionTrack: [{ id: generateId('p'), t: 0, x, z, rotY }],
           gestureTrack: [],
+          speechTrack: [],
         };
         s.robots.push(inst);
         return inst;
@@ -9633,6 +10007,82 @@
       return { booth: { widthFt: 80, depthFt: 80 }, furniture: [], robots: [] };
     }
 
+    // KB전북금융타운 1층 — actual bank floor plan reference:
+    //   top (back wall): teller counters (창구) in a row
+    //   upper-left: security guard (청원경찰/청경) seat
+    //   center: customer waiting area 1 (고객대기석1) — bench rows
+    //   bottom-right: customer waiting area 2 (고객대기석2) — round tables
+    //   bottom-center: queue ticket kiosk (순번대기표)
+    //   bottom-left: STM kiosk + main entrance (은행주출입구)
+    //   1 CLOiD Bipedal at main entrance
+    function presetKBJeonbuk() {
+      const s = { booth: { widthFt: 65, depthFt: 50 }, furniture: [], robots: [] };
+      const { m, r } = presetHelpers(s);
+      const Z_BACK = -7.00;
+
+      // ── 창구 (Teller counters — back wall, 5 windows) ──
+      const tellerXs = [-3.6, -1.8, 0.0, 1.8, 3.6];
+      tellerXs.forEach((x, i) => {
+        const num = String(i + 1);
+        m('TELLER_COUNTER', x, Z_BACK + 0.50, 0, `창구 ${num}`);
+        m('NUMBERED_SIGN', x, Z_BACK + 0.10, 0, `번호 ${num}`, { label: num });
+        m('OFFICE_CHAIR', x, Z_BACK + 0.05, 0, `창구 ${num} 직원석`);
+        m('OFFICE_CHAIR', x, Z_BACK + 1.30, Math.PI, `창구 ${num} 고객석`);
+      });
+      m('LED_VIDEO_WALL', 0, Z_BACK - 0.05, 0, 'KB 브랜드 사이니지');
+
+      // ── 청경(청원경찰) 대기석 — upper-left area ──
+      m('OFFICE_DESK', -7.50, Z_BACK + 1.50, Math.PI / 2, '청경 데스크');
+      m('OFFICE_CHAIR', -7.50, Z_BACK + 2.10, Math.PI / 2, '청경 의자');
+
+      // ── 고객대기석1 — center, bench rows facing tellers ──
+      m('WAITING_BENCH', -2.50, -2.80, 0, '대기석1 1A');
+      m('WAITING_BENCH', -0.50, -2.80, 0, '대기석1 1B');
+      m('WAITING_BENCH',  1.50, -2.80, 0, '대기석1 1C');
+      m('WAITING_BENCH',  3.50, -2.80, 0, '대기석1 1D');
+      m('WAITING_BENCH', -2.50, -1.40, 0, '대기석1 2A');
+      m('WAITING_BENCH', -0.50, -1.40, 0, '대기석1 2B');
+      m('WAITING_BENCH',  1.50, -1.40, 0, '대기석1 2C');
+      m('WAITING_BENCH',  3.50, -1.40, 0, '대기석1 2D');
+      m('WAITING_BENCH', -2.50,  0.00, 0, '대기석1 3A');
+      m('WAITING_BENCH', -0.50,  0.00, 0, '대기석1 3B');
+      m('WAITING_BENCH',  1.50,  0.00, 0, '대기석1 3C');
+      m('WAITING_BENCH',  3.50,  0.00, 0, '대기석1 3D');
+      m('SIDE_TABLE', -3.80, -1.40, 0, '잡지 테이블 1');
+      m('SIDE_TABLE',  4.80, -1.40, 0, '잡지 테이블 2');
+
+      // ── 고객대기석2 — bottom-right, round tables + chairs ──
+      m('COFFEE_TABLE', 6.00, 3.80, 0, '대기석2 테이블 1');
+      m('OFFICE_CHAIR', 6.60, 3.30, -Math.PI / 4, '대기석2 의자 1A');
+      m('OFFICE_CHAIR', 5.40, 3.30, Math.PI / 4, '대기석2 의자 1B');
+      m('OFFICE_CHAIR', 6.60, 4.30, Math.PI, '대기석2 의자 1C');
+      m('OFFICE_CHAIR', 5.40, 4.30, Math.PI, '대기석2 의자 1D');
+      m('COFFEE_TABLE', 6.00, 5.80, 0, '대기석2 테이블 2');
+      m('OFFICE_CHAIR', 6.60, 5.30, -Math.PI / 4, '대기석2 의자 2A');
+      m('OFFICE_CHAIR', 5.40, 5.30, Math.PI / 4, '대기석2 의자 2B');
+      m('OFFICE_CHAIR', 6.60, 6.30, Math.PI, '대기석2 의자 2C');
+      m('OFFICE_CHAIR', 5.40, 6.30, Math.PI, '대기석2 의자 2D');
+
+      // ── 순번대기표 — bottom-center ──
+      m('TICKET_KIOSK', 0.00, 4.00, Math.PI, '순번대기표');
+
+      // ── STM — near entrance, bottom-left ──
+      m('ATM_KIOSK', -5.50, 4.50, Math.PI / 2, 'STM');
+
+      // ── 은행주출입구 — bottom-left entrance marker ──
+      m('DOORWAY', -7.50, 6.50, 0, '은행 주출입구');
+
+      // ── 벽면 구획용 월패널 ──
+      m('WALL_PANEL', -8.80, -3.00, Math.PI / 2, '좌측 벽');
+      m('WALL_PANEL', -8.80, 0.50, Math.PI / 2, '좌측 벽 2');
+      m('WALL_PANEL', -8.80, 4.00, Math.PI / 2, '좌측 벽 3');
+
+      // ── CLOiD Bipedal 로봇 — 주출입구 앞 ──
+      r('cloidBipedal', -6.50, 6.00, -Math.PI / 4, 'CLOiD 안내로봇');
+
+      return s;
+    }
+
     // Built-in preset registry. Add new presets here — they appear in the
     // dropdown automatically alongside any DB-saved user scenarios.
     const BUILTIN_PRESETS = [
@@ -9644,6 +10094,8 @@
         description: '25×18 ft 1인실 — 침대·옷장·STYLER·책상 + 로봇 2대 (의류 도우미·NR 청소기) 12초 동작 시퀀스' },
       { id: 'bank_branch',  name: '은행 영업점',          factory: presetBankBranch,
         description: '60×40 ft 은행 영업점 — 창구 6개 + ATM 3대 + 대기석 + 상담 데스크 + 코지 코너 + 안내 로봇' },
+      { id: 'kb_jeonbuk',   name: 'KB전북금융타운 1층',   factory: presetKBJeonbuk,
+        description: '65×50 ft KB전북금융타운 1층 — 창구 5개 + 고객대기석 2구역 + 순번대기표 + STM + 청경 대기석 + CLOiD Bipedal 1대' },
       { id: 'hiplaza',      name: '하이프라자 매장',       factory: presetHiPlaza,
         description: '60×40 ft LG 베스트샵/하이프라자 — 천장 LED 패널 + TV 월그리드 + 미러 디스플레이 아일랜드 + 마사지 체어 + 안내·NR 로봇' },
       { id: 'manufacturing', name: '제조라인',            factory: presetManufacturingLine,

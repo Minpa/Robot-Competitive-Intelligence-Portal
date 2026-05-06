@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Bot, Sparkles } from 'lucide-react';
+import { Loader2, Bot } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -52,17 +52,7 @@ export default function LoginPage() {
       <div className="absolute inset-0 bg-[linear-gradient(rgba(37,99,235,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(37,99,235,0.04)_1px,transparent_1px)] bg-[size:60px_60px]" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-info/5 rounded-full blur-[120px]" />
 
-      {/* AWE2026 Banner */}
-      <div className={`mb-8 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
-        <div className="flex items-center gap-2 bg-info-soft/60 border border-info/20 rounded-full px-5 py-2">
-          <Sparkles className="w-4 h-4 text-info" />
-          <span className="text-sm font-medium text-info">AWE 2026 Edition</span>
-          <span className="text-xs text-ink-400 ml-1">|</span>
-          <span className="text-xs text-ink-500 ml-1">38+ Humanoid Robots Tracked</span>
-        </div>
-      </div>
-
-      <div className={`bg-white backdrop-blur-xl p-8 rounded-2xl border border-ink-200 w-full max-w-md shadow-report-lg relative z-10 transition-all duration-700 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+<div className={`bg-white backdrop-blur-xl p-8 rounded-2xl border border-ink-200 w-full max-w-md shadow-report-lg relative z-10 transition-all duration-700 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/25">
             <Bot className="w-8 h-8 !text-white" />

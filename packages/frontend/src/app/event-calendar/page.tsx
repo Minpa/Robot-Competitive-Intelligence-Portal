@@ -1,11 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { RefreshCw } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { EventCalendar } from '@/components/event-calendar/EventCalendar';
+import { api } from '@/lib/api';
 import type { RobotAIEvent } from '@/types/event-calendar';
+
+const SUPER_ADMIN_EMAILS = ['somewhere010@gmail.com', 'yongsun.lee@lge.com', 'nikamu.lee2@lge.com'];
 
 type DataSource = 'claude' | 'cache' | 'cache-stale' | 'mock' | null;
 
@@ -23,6 +27,14 @@ function EventCalendarContent() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [dataSource, setDataSource] = useState<DataSource>(null);
+
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: async () => {
+      try { return await api.getMe(); } catch { return null; }
+    },
+  });
+  const isSuperAdmin = SUPER_ADMIN_EMAILS.includes(currentUser?.email?.toLowerCase() ?? '');
 
   const fetchEvents = useCallback(async (refresh = false) => {
     if (refresh) {
@@ -75,14 +87,16 @@ function EventCalendarContent() {
                 )}
               </span>
             )}
-            <button
-              onClick={() => fetchEvents(true)}
-              disabled={refreshing}
-              className="inline-flex items-center gap-2 bg-white hover:bg-ink-50 text-ink-700 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] px-4 py-2.5 border border-ink-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? '업데이트 중...' : '데이터 업데이트'}
-            </button>
+            {isSuperAdmin && (
+              <button
+                onClick={() => fetchEvents(true)}
+                disabled={refreshing}
+                className="inline-flex items-center gap-2 bg-white hover:bg-ink-50 text-ink-700 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] px-4 py-2.5 border border-ink-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                {refreshing ? '업데이트 중...' : '데이터 업데이트'}
+              </button>
+            )}
           </div>
         }
       />

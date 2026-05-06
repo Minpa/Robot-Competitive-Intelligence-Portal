@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { STATS, EMPHASIS_MODES, type EmphasisMode } from './data';
 
 interface Props {
@@ -21,9 +22,16 @@ export default function MatrixHeader({ mode, onModeChange }: Props) {
             v11
           </span>
         </div>
-        <span className="ml-auto font-mono text-[10.5px] text-[#888780] uppercase tracking-[0.18em] hidden md:inline">
+        <span className="ml-auto font-mono text-[10.5px] text-[#888780] uppercase tracking-[0.18em] hidden md:inline mr-3">
           12 Top Task × 12 산업 / 클릭 시 4Lv 상세
         </span>
+        <Link
+          href="/business-strategy/cloid-coverage"
+          className="px-3 py-1.5 text-[11.5px] font-medium border border-[#8B1538] text-[#8B1538] hover:bg-[#FAEAE7] transition-colors whitespace-nowrap"
+          style={{ borderRadius: 4 }}
+        >
+          CLOiD W/B 커버리지 →
+        </Link>
       </div>
 
       {/* Stats cards */}
