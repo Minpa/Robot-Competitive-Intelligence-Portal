@@ -5795,13 +5795,13 @@
           }
         },
         BALLET: (p, localT) => {
-          // Tiptoe: ankle extension + slight body raise
-          const ankleFrames = [[0.0, 0.0], [0.5, -0.35], [3.5, -0.35], [4.0, 0.0]];
+          // 3) Tiptoe: ankle extension starts after arms are raised (0.6–1.0s)
+          const ankleFrames = [[0.0, 0.0], [0.6, 0.0], [1.0, -0.35], [3.4, -0.35], [4.0, 0.0]];
           const ankle = lerpKeyframes(ankleFrames, localT);
           if (p.legL_ankle) p.legL_ankle.rotation.x = ankle;
           if (p.legR_ankle) p.legR_ankle.rotation.x = ankle;
-          // Legs straight, slight outward splay (ballet 1st position)
-          const splayFrames = [[0.0, 0.0], [0.5, 0.12], [3.5, 0.12], [4.0, 0.0]];
+          // Legs slight outward splay (ballet 1st position, synced with tiptoe)
+          const splayFrames = [[0.0, 0.0], [0.6, 0.0], [1.0, 0.12], [3.4, 0.12], [4.0, 0.0]];
           const splay = lerpKeyframes(splayFrames, localT);
           if (p.legL) p.legL.rotation.z = -splay;
           if (p.legR) p.legR.rotation.z = splay;
@@ -6902,16 +6902,16 @@
         }
       },
       BALLET: (parts, localT) => {
-        // Arms raise overhead in ballet 5th position, hold during spin, then lower
-        const armFrames = [[0.0, 0.0], [0.6, -2.8], [3.4, -2.8], [4.0, 0.0]];
+        // 1) Arms raise to 5th position (0–0.8s), hold, lower (3.4–4.0s)
+        const armFrames = [[0.0, 0.0], [0.8, -2.8], [3.4, -2.8], [4.0, 0.0]];
         if (parts.armR) parts.armR.rotation.z = lerpKeyframes(armFrames, localT);
         if (parts.armL) parts.armL.rotation.z = -lerpKeyframes(armFrames, localT);
-        // Slight elbow curve (rounded ballet arms)
-        const elbowFrames = [[0.0, 0.0], [0.6, -0.4], [3.4, -0.4], [4.0, 0.0]];
+        // 2) Elbows curve inward for rounded ballet arms (0–0.8s)
+        const elbowFrames = [[0.0, 0.0], [0.8, -0.45], [3.4, -0.45], [4.0, 0.0]];
         if (parts.armR_elbow) parts.armR_elbow.rotation.x = lerpKeyframes(elbowFrames, localT);
         if (parts.armL_elbow) parts.armL_elbow.rotation.x = lerpKeyframes(elbowFrames, localT);
-        // Tiptoe: slight raise via body Y
-        const toeFrames = [[0.0, 0.0], [0.5, 0.06], [3.5, 0.06], [4.0, 0.0]];
+        // 3) Tiptoe — body rises after arms are up (0.6–1.0s)
+        const toeFrames = [[0.0, 0.0], [0.6, 0.0], [1.0, 0.07], [3.4, 0.07], [4.0, 0.0]];
         if (parts.root_body) {
           const baseY = parts.root_body.userData.baseY ?? parts.root_body.position.y;
           parts.root_body.position.y = baseY + lerpKeyframes(toeFrames, localT);
@@ -7018,11 +7018,13 @@
         meshData.group.position.z = pos.z;
         meshData.group.rotation.y = pos.rotY;
 
-        // BALLET: smooth 360° spin on top of base rotation
+        // 4) BALLET: 360° spin after pose is ready (1.0–3.4s)
         active.filter(g => g.type === 'BALLET').forEach(g => {
           const localT = t - g.t;
           const dur = g.duration || GESTURE_DURATIONS.BALLET || 4.0;
-          const p = Math.min(localT / dur, 1.0);
+          const spinStart = dur * 0.25;
+          const spinEnd = dur * 0.85;
+          const p = Math.max(0, Math.min((localT - spinStart) / (spinEnd - spinStart), 1.0));
           const smooth = p * p * (3 - 2 * p);
           meshData.group.rotation.y += smooth * Math.PI * 2;
         });
