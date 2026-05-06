@@ -9469,7 +9469,7 @@
     function renderSpeechBubbles(t) {
       const overlay = document.getElementById('speechBubbleOverlay');
       if (!overlay) return;
-      const canvasEl = document.getElementById('viewport');
+      const canvasEl = document.getElementById('canvas');
       const rect = canvasEl.getBoundingClientRect();
 
       const alive = new Set();
