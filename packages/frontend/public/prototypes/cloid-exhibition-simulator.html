@@ -1050,10 +1050,7 @@
         </div>
         <div class="action-grid">
           <button class="btn-secondary" id="propRobotAddWaypoint">+ 경로점</button>
-          <div class="gesture-menu-wrapper">
-            <button class="btn-secondary" id="propRobotAddGesture" style="width:100%">+ 동작 ▾</button>
-            <div class="gesture-menu" id="gestureAddMenu" style="display:none"></div>
-          </div>
+          <button class="btn-secondary" id="propRobotAddGesture" style="width:100%">+ 동작 ▾</button>
         </div>
         <div class="action-grid">
           <button class="btn-secondary" id="propRobotFocus">🔍 포커스</button>
@@ -1156,10 +1153,7 @@
           <button class="speed-btn" data-speed="3" title="3× speed">3×</button>
         </div>
         <div class="timeline-playback" style="margin-left: auto;">
-          <div class="gesture-menu-wrapper" style="display: inline-block;">
-            <button id="btnAddGesture" title="현재 시점에 동작 추가" style="width: auto; padding: 0 10px; font-size: 11px;">+ 동작 ▾</button>
-            <div class="gesture-menu" id="gestureAddMenuTimeline" style="display:none; right: 0; left: auto; min-width: 240px;"></div>
-          </div>
+          <button id="btnAddGesture" title="현재 시점에 동작 추가" style="width: auto; padding: 0 10px; font-size: 11px;">+ 동작 ▾</button>
           <button id="btnAddWaypointHere" title="현재 시점에 경로점 추가" style="width: auto; padding: 0 10px; font-size: 11px;">+ 경로점</button>
         </div>
       </div>
@@ -8634,14 +8628,9 @@
       }
       const r = state.robots.find(x => x.id === state.selectedId);
       if (!r) return;
-      const menu = document.getElementById('gestureAddMenuTimeline');
-      const isOpen = menu.style.display === 'block';
-      closeAllGestureMenus();
-      if (isOpen) return;
-      buildGestureMenu(menu, r.type, type => {
+      openGestureMenu(e.currentTarget, r.type, type => {
         addGesture(r.id, state.currentTime, type);
       });
-      positionGestureMenu(menu, e.currentTarget);
     });
     document.getElementById('btnAddWaypointHere').addEventListener('click', () => {
       if (state.selectedType === 'robot') {
@@ -8924,33 +8913,50 @@
       });
     }
 
-    function positionGestureMenu(menuEl, anchorEl) {
-      menuEl.style.display = 'block';
+    // Shared gesture dropdown — appended to body to escape sidebar overflow clipping
+    const _gestureOverlay = document.createElement('div');
+    _gestureOverlay.className = 'gesture-menu';
+    _gestureOverlay.id = 'gestureOverlay';
+    _gestureOverlay.style.display = 'none';
+    document.body.appendChild(_gestureOverlay);
+
+    function openGestureMenu(anchorEl, robotType, onSelect) {
+      const menu = _gestureOverlay;
+      const wasOpen = menu.style.display === 'block';
+      menu.style.display = 'none';
+      if (wasOpen) return;
+
+      buildGestureMenu(menu, robotType, type => {
+        onSelect(type);
+        menu.style.display = 'none';
+      });
+
+      menu.style.display = 'block';
       const btnRect = anchorEl.getBoundingClientRect();
-      const menuH = menuEl.scrollHeight;
       const vp = window.innerHeight;
+      const vpW = window.innerWidth;
       const pad = 8;
-      const maxH = Math.max(200, vp - pad * 2);
-      menuEl.style.maxHeight = maxH + 'px';
+      const menuH = menu.scrollHeight;
       const spaceBelow = vp - btnRect.bottom - pad;
       const spaceAbove = btnRect.top - pad;
-      if (spaceBelow >= Math.min(menuH, maxH) || spaceBelow >= spaceAbove) {
-        menuEl.style.top = btnRect.bottom + 2 + 'px';
-        menuEl.style.bottom = '';
-        menuEl.style.maxHeight = Math.min(maxH, spaceBelow) + 'px';
+
+      if (spaceBelow >= menuH || spaceBelow >= spaceAbove) {
+        menu.style.top = btnRect.bottom + 2 + 'px';
+        menu.style.bottom = '';
+        menu.style.maxHeight = Math.max(160, spaceBelow) + 'px';
       } else {
-        menuEl.style.bottom = (vp - btnRect.top + 2) + 'px';
-        menuEl.style.top = '';
-        menuEl.style.maxHeight = Math.min(maxH, spaceAbove) + 'px';
+        menu.style.top = '';
+        menu.style.bottom = (vp - btnRect.top + 2) + 'px';
+        menu.style.maxHeight = Math.max(160, spaceAbove) + 'px';
       }
-      menuEl.style.right = Math.max(pad, window.innerWidth - btnRect.right) + 'px';
-      menuEl.style.left = '';
+      const menuW = menu.offsetWidth || 240;
+      const left = Math.min(btnRect.left, vpW - menuW - pad);
+      menu.style.left = Math.max(pad, left) + 'px';
+      menu.style.right = '';
     }
 
     function closeAllGestureMenus() {
-      document.getElementById('gestureAddMenu').style.display = 'none';
-      const tl = document.getElementById('gestureAddMenuTimeline');
-      if (tl) tl.style.display = 'none';
+      _gestureOverlay.style.display = 'none';
     }
 
     document.getElementById('propRobotAddGesture').addEventListener('click', e => {
@@ -8958,18 +8964,13 @@
       if (state.selectedType !== 'robot') return;
       const r = state.robots.find(x => x.id === state.selectedId);
       if (!r) return;
-      const menu = document.getElementById('gestureAddMenu');
-      const isOpen = menu.style.display === 'block';
-      closeAllGestureMenus();
-      if (isOpen) return;
-      buildGestureMenu(menu, r.type, type => {
+      openGestureMenu(e.currentTarget, r.type, type => {
         addGesture(r.id, state.currentTime, type);
       });
-      positionGestureMenu(menu, e.currentTarget);
     });
 
     document.addEventListener('click', e => {
-      if (!e.target.closest('.gesture-menu-wrapper')) {
+      if (!e.target.closest('.gesture-menu') && !e.target.closest('#propRobotAddGesture') && !e.target.closest('#btnAddGesture')) {
         closeAllGestureMenus();
       }
     });
