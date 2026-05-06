@@ -285,13 +285,12 @@
     /* ============ GESTURE MENU (DROPDOWN) ============ */
     .gesture-menu-wrapper { position: relative; }
     .gesture-menu {
-      position: absolute; top: 100%;
-      right: 0;  /* anchor right, expand left so sidebar doesn't clip it */
+      position: fixed;
       min-width: 240px;
       background: var(--bg-2);
       border: 1px solid var(--cyan);
-      border-radius: 3px; margin-top: 2px;
-      z-index: 1000; max-height: 320px; overflow-y: auto;
+      border-radius: 3px;
+      z-index: 1000; overflow-y: auto;
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 217, 255, 0.2);
     }
     .gesture-menu-header {
@@ -8642,7 +8641,7 @@
       buildGestureMenu(menu, r.type, type => {
         addGesture(r.id, state.currentTime, type);
       });
-      menu.style.display = 'block';
+      positionGestureMenu(menu, e.currentTarget);
     });
     document.getElementById('btnAddWaypointHere').addEventListener('click', () => {
       if (state.selectedType === 'robot') {
@@ -8925,6 +8924,29 @@
       });
     }
 
+    function positionGestureMenu(menuEl, anchorEl) {
+      menuEl.style.display = 'block';
+      const btnRect = anchorEl.getBoundingClientRect();
+      const menuH = menuEl.scrollHeight;
+      const vp = window.innerHeight;
+      const pad = 8;
+      const maxH = Math.max(200, vp - pad * 2);
+      menuEl.style.maxHeight = maxH + 'px';
+      const spaceBelow = vp - btnRect.bottom - pad;
+      const spaceAbove = btnRect.top - pad;
+      if (spaceBelow >= Math.min(menuH, maxH) || spaceBelow >= spaceAbove) {
+        menuEl.style.top = btnRect.bottom + 2 + 'px';
+        menuEl.style.bottom = '';
+        menuEl.style.maxHeight = Math.min(maxH, spaceBelow) + 'px';
+      } else {
+        menuEl.style.bottom = (vp - btnRect.top + 2) + 'px';
+        menuEl.style.top = '';
+        menuEl.style.maxHeight = Math.min(maxH, spaceAbove) + 'px';
+      }
+      menuEl.style.right = Math.max(pad, window.innerWidth - btnRect.right) + 'px';
+      menuEl.style.left = '';
+    }
+
     function closeAllGestureMenus() {
       document.getElementById('gestureAddMenu').style.display = 'none';
       const tl = document.getElementById('gestureAddMenuTimeline');
@@ -8943,7 +8965,7 @@
       buildGestureMenu(menu, r.type, type => {
         addGesture(r.id, state.currentTime, type);
       });
-      menu.style.display = 'block';
+      positionGestureMenu(menu, e.currentTarget);
     });
 
     document.addEventListener('click', e => {
