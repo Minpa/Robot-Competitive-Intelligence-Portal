@@ -1459,7 +1459,7 @@
       'IDLE', 'WAVE', 'POINT', 'PICKUP', 'BOW', 'WALK', 'SCAN',
       'SIT', 'JUMP', 'TILT', 'DUAL_PICKUP',
       'HANDSHAKE', 'KNEEL', 'LIE_DOWN', 'STRETCH', 'HANDOVER',
-      'ATTACH', 'DETACH'
+      'ATTACH', 'DETACH', 'BALLET'
     ];
     const GESTURE_LABELS = {
       IDLE:        '대기',
@@ -1480,6 +1480,7 @@
       HANDOVER:    '양손 전달',
       ATTACH:      '들기 시작',
       DETACH:      '놓기',
+      BALLET:      '발레',
     };
     const GESTURE_DESCRIPTIONS = {
       IDLE:        '대기 / 호흡 (자동)',
@@ -1500,6 +1501,7 @@
       HANDOVER:    '한 팔 → 다른 팔로 물건 전달',
       ATTACH:      '선택한 가구를 손에 부착 (이후 로봇과 함께 이동)',
       DETACH:      '들고 있던 가구를 현재 위치에 놓음',
+      BALLET:      '양팔을 들고 제자리에서 360° 회전',
     };
     const GESTURE_DURATIONS = {
       IDLE: Infinity, WAVE: 3.0, POINT: 2.5, PICKUP: 4.0,
@@ -1507,6 +1509,7 @@
       SIT: 3.0, JUMP: 1.2, TILT: 1.8, DUAL_PICKUP: 4.5,
       HANDSHAKE: 3.5, KNEEL: 3.3, LIE_DOWN: 3.5, STRETCH: 3.5, HANDOVER: 4.5,
       ATTACH: 0.5, DETACH: 0.5,
+      BALLET: 4.0,
     };
     const GESTURE_ROBOT_APPLIES = {
       IDLE: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator', 'amrServi'],
@@ -1528,6 +1531,7 @@
       // ATTACH/DETACH — robots that have a hand/gripper part to carry items.
       ATTACH: ['cloidWheel', 'cloidBipedal', 'midManipulator', 'cleaner'],
       DETACH: ['cloidWheel', 'cloidBipedal', 'midManipulator', 'cleaner'],
+      BALLET: ['cloidBipedal', 'cloidWheel'],
     };
 
     /* ============ STATE ============ */
@@ -5797,6 +5801,18 @@
             p.root_body.position.y = baseY + lerpKeyframes(bodyYFrames, localT);
           }
         },
+        BALLET: (p, localT) => {
+          // Tiptoe: ankle extension + slight body raise
+          const ankleFrames = [[0.0, 0.0], [0.5, -0.35], [3.5, -0.35], [4.0, 0.0]];
+          const ankle = lerpKeyframes(ankleFrames, localT);
+          if (p.legL_ankle) p.legL_ankle.rotation.x = ankle;
+          if (p.legR_ankle) p.legR_ankle.rotation.x = ankle;
+          // Legs straight, slight outward splay (ballet 1st position)
+          const splayFrames = [[0.0, 0.0], [0.5, 0.12], [3.5, 0.12], [4.0, 0.0]];
+          const splay = lerpKeyframes(splayFrames, localT);
+          if (p.legL) p.legL.rotation.z = -splay;
+          if (p.legR) p.legR.rotation.z = splay;
+        },
       };
 
       return { root, parts, impls };
@@ -6892,6 +6908,22 @@
           parts.armR_elbow.rotation.x = lerpKeyframes(eFrames, localT);
         }
       },
+      BALLET: (parts, localT) => {
+        // Arms raise overhead in ballet 5th position, hold during spin, then lower
+        const armFrames = [[0.0, 0.0], [0.6, -2.8], [3.4, -2.8], [4.0, 0.0]];
+        if (parts.armR) parts.armR.rotation.z = lerpKeyframes(armFrames, localT);
+        if (parts.armL) parts.armL.rotation.z = -lerpKeyframes(armFrames, localT);
+        // Slight elbow curve (rounded ballet arms)
+        const elbowFrames = [[0.0, 0.0], [0.6, -0.4], [3.4, -0.4], [4.0, 0.0]];
+        if (parts.armR_elbow) parts.armR_elbow.rotation.x = lerpKeyframes(elbowFrames, localT);
+        if (parts.armL_elbow) parts.armL_elbow.rotation.x = lerpKeyframes(elbowFrames, localT);
+        // Tiptoe: slight raise via body Y
+        const toeFrames = [[0.0, 0.0], [0.5, 0.06], [3.5, 0.06], [4.0, 0.0]];
+        if (parts.root_body) {
+          const baseY = parts.root_body.userData.baseY ?? parts.root_body.position.y;
+          parts.root_body.position.y = baseY + lerpKeyframes(toeFrames, localT);
+        }
+      },
     };
 
     function computeRobotPosition(robot, t) {
@@ -6992,6 +7024,15 @@
         meshData.group.position.x = pos.x;
         meshData.group.position.z = pos.z;
         meshData.group.rotation.y = pos.rotY;
+
+        // BALLET: smooth 360° spin on top of base rotation
+        active.filter(g => g.type === 'BALLET').forEach(g => {
+          const localT = t - g.t;
+          const dur = g.duration || GESTURE_DURATIONS.BALLET || 4.0;
+          const p = Math.min(localT / dur, 1.0);
+          const smooth = p * p * (3 - 2 * p);
+          meshData.group.rotation.y += smooth * Math.PI * 2;
+        });
 
         // ===== PICKUP: attach nearest furniture to robot =====
         const pickupGestures = active.filter(g => g.type === 'PICKUP' || g.type === 'DUAL_PICKUP');
