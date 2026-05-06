@@ -1118,9 +1118,11 @@
           <div class="property-value" id="propRobotGestures">0</div>
         </div>
         <div class="action-grid">
-          <button class="btn-secondary" id="propRobotAddSpeech">+ 발화</button>
           <button class="btn-secondary" id="propRobotAddWaypoint">+ 경로점</button>
-          <button class="btn-secondary" id="propRobotAddGesture" style="width:100%">+ 동작 ▾</button>
+          <button class="btn-secondary" id="propRobotAddGesture">+ 동작 ▾</button>
+        </div>
+        <div class="action-grid" style="grid-template-columns: 1fr; margin-top: 4px;">
+          <button class="btn-secondary" id="propRobotAddSpeech" style="background: rgba(34,197,94,0.12); border-color: var(--success);">💬 + 발화</button>
         </div>
         <div class="action-grid">
           <button class="btn-secondary" id="propRobotFocus">🔍 포커스</button>
@@ -1245,7 +1247,7 @@
           <button class="speed-btn" data-speed="3" title="3× speed">3×</button>
         </div>
         <div class="timeline-playback" style="margin-left: auto;">
-          <button id="btnAddSpeech" title="현재 시점에 발화 추가" style="width: auto; padding: 0 10px; font-size: 11px;">+ 발화</button>
+          <button id="btnAddSpeech" title="현재 시점에 발화 추가" style="width: auto; padding: 0 10px; font-size: 11px; border-color: var(--success); color: var(--success);">💬 발화</button>
           <button id="btnAddGesture" title="현재 시점에 동작 추가" style="width: auto; padding: 0 10px; font-size: 11px;">+ 동작 ▾</button>
           <button id="btnAddWaypointHere" title="현재 시점에 경로점 추가" style="width: auto; padding: 0 10px; font-size: 11px;">+ 경로점</button>
         </div>
