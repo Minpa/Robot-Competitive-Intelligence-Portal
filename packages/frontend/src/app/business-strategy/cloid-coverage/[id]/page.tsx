@@ -20,6 +20,12 @@ import {
   lookupRequiredGripper,
   GRIPPER_GENERATED_META,
 } from '@/components/cloid-coverage/gripper-data.generated';
+import {
+  lookupAction,
+  parseActionCode,
+  findAbbreviationsInText,
+  GLOSSARY_GENERATED_META,
+} from '@/components/cloid-coverage/action-glossary.generated';
 
 // Phase B에서 enrich-cloid-gripper.ts가 생성한 정식 분류가 있으면 그걸 사용하고,
 // 없을 때만 Phase A 휴리스틱 키워드 추출로 fallback.
@@ -61,6 +67,39 @@ const VERDICT_TINT: Record<
 function worseVerdict(a: Verdict, b: Verdict): Verdict {
   const order: Record<Verdict, number> = { gap: 0, partial: 1, cover: 2 };
   return order[a] < order[b] ? a : b;
+}
+
+// 핵심 동작 한 줄 렌더: 코드를 떼어내 풀어쓴 명칭이 앞에 오게 하고
+// 코드는 회색 mono로 부가, glossary description이 있으면 캡션으로 보강.
+function ActionLine({ raw }: { raw: string }) {
+  const { code, rest } = parseActionCode(raw);
+  const entry = code ? lookupAction(code) : undefined;
+
+  if (!code) {
+    // 코드 없는 자유서술
+    return <span>{raw}</span>;
+  }
+
+  if (entry) {
+    return (
+      <div>
+        <div className="leading-snug">
+          <span className="font-medium">{entry.plainName}</span>
+          {rest && <span className="text-[#3A3A3A]"> · {rest}</span>}
+          <span className="font-mono text-[11.5px] text-[#888780] ml-1.5">({code})</span>
+        </div>
+        <p className="text-[12.5px] text-[#6B6B6B] leading-snug mt-0.5">{entry.description}</p>
+      </div>
+    );
+  }
+
+  // glossary 미생성: code + rest 그대로 (단, code를 회색 mono로 다운톤)
+  return (
+    <div>
+      <span className="font-mono text-[12.5px] text-[#888780] mr-1.5">{code}</span>
+      <span>{rest}</span>
+    </div>
+  );
 }
 
 function VerdictChip({ verdict }: { verdict: Verdict }) {
@@ -120,11 +159,11 @@ function LvRow({ sc, isLast }: { sc: SubCell; isLast: boolean }) {
           <p className="font-mono text-[11px] text-[#6B6B6B] uppercase tracking-[0.14em] mb-2 font-semibold">
             핵심 동작
           </p>
-          <ul className="space-y-1">
+          <ul className="space-y-2">
             {sc.coreActions.map((a, i) => (
-              <li key={i} className="text-[15px] text-[#1A1A1A] leading-relaxed">
-                <span className="text-[#8B1538] mr-1.5">•</span>
-                {a}
+              <li key={i} className="text-[15px] text-[#1A1A1A] flex gap-1.5">
+                <span className="text-[#8B1538] shrink-0 mt-0.5">•</span>
+                <ActionLine raw={a} />
               </li>
             ))}
           </ul>
@@ -235,6 +274,12 @@ function DevItemsModal({
 
   const totalDev = cell.subCells.reduce((s, sc) => s + sc.devItems.length, 0);
   const clusters = findRelevantClusters(cell);
+
+  // 셀 전체 텍스트에서 등장하는 약어 모음
+  const allText = cell.subCells
+    .flatMap((sc) => [...sc.coreActions, sc.thresholds, ...sc.devItems, sc.benchmark, sc.cloidW.note, sc.cloidB.note])
+    .join(' ');
+  const usedAbbrs = findAbbreviationsInText(allText);
 
   return (
     <div
@@ -387,6 +432,31 @@ function DevItemsModal({
             );
           })}
 
+          {/* 약어 풀이 — 이 셀에서 등장하는 약어 한곳에 */}
+          {usedAbbrs.length > 0 && (
+            <div
+              className="border border-[#E2DED4] p-4"
+              style={{ borderRadius: 6, backgroundColor: '#FAFAF7' }}
+            >
+              <p className="font-mono text-[11px] text-[#6B6B6B] uppercase tracking-[0.14em] mb-2.5 font-semibold">
+                약어 풀이
+              </p>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                {usedAbbrs.map((a) => (
+                  <div key={a.term} className="flex gap-2">
+                    <dt className="font-mono text-[12.5px] text-[#1A1A1A] font-semibold shrink-0 w-16">
+                      {a.term}
+                    </dt>
+                    <dd className="text-[12.5px] text-[#3A3A3A] leading-snug">
+                      <span className="text-[#1A1A1A]">{a.expansion}</span>
+                      <span className="text-[#6B6B6B]"> — {a.description}</span>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
+
           {/* 관련 개발 클러스터 */}
           {clusters.length > 0 && (
             <div
@@ -418,16 +488,29 @@ function DevItemsModal({
           className="px-6 py-3 border-t border-[#E2DED4] flex items-center justify-between gap-4"
           style={{ backgroundColor: '#FAFAF7' }}
         >
-          <p className="font-mono text-[10.5px] text-[#6B6B6B]">
-            {GRIPPER_GENERATED_META.count > 0 ? (
-              <>
-                필요 그리퍼 분류: {GRIPPER_GENERATED_META.model} ·{' '}
-                {GRIPPER_GENERATED_META.generatedAt?.slice(0, 10)} 생성
-              </>
-            ) : (
-              <>필요 그리퍼 정식 분류 미생성 — 휴리스틱 추출 표시 중</>
-            )}
-          </p>
+          <div className="font-mono text-[10.5px] text-[#6B6B6B] leading-relaxed">
+            <div>
+              {GRIPPER_GENERATED_META.count > 0 ? (
+                <>
+                  필요 그리퍼: {GRIPPER_GENERATED_META.model} ·{' '}
+                  {GRIPPER_GENERATED_META.generatedAt?.slice(0, 10)}
+                </>
+              ) : (
+                <>필요 그리퍼 정식 분류 미생성 — 휴리스틱 표시 중</>
+              )}
+            </div>
+            <div>
+              {GLOSSARY_GENERATED_META.actionCount > 0 ? (
+                <>
+                  동작·약어 글로서리: {GLOSSARY_GENERATED_META.actionCount}개 동작 +{' '}
+                  {GLOSSARY_GENERATED_META.abbrCount}개 약어 ·{' '}
+                  {GLOSSARY_GENERATED_META.generatedAt?.slice(0, 10)}
+                </>
+              ) : (
+                <>동작·약어 글로서리 미생성 — 코드 그대로 표시 중</>
+              )}
+            </div>
+          </div>
           <button
             onClick={onClose}
             className="font-mono text-[12px] text-[#1A1A1A] px-3 py-1.5 border border-[#E2DED4] hover:bg-white"

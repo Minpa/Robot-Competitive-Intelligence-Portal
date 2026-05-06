@@ -16,6 +16,21 @@ export interface RequiredGripper {
   confidence: GripperConfidence; // 임원보고용 — 추정 강도
 }
 
+export type ActionCategory = 'LOC' | 'MAN' | 'PER' | 'COG' | 'NAV' | 'SAF';
+
+export interface ActionGlossaryEntry {
+  code: string;              // 예: 'MAN-02'
+  category: ActionCategory;
+  plainName: string;         // 임원이 즉시 이해하는 한글 명칭 (예: '단일 물품 픽업')
+  description: string;       // 1~2문장 풀이 (왜 이 동작이 필요한지 / 어떤 상황)
+}
+
+export interface AbbreviationEntry {
+  term: string;              // 예: 'VLA', 'F/T', 'IECEx'
+  expansion: string;         // 풀어쓴 명칭 (예: 'Vision-Language-Action 모델')
+  description: string;       // 1~2문장 한글 풀이
+}
+
 export interface SubCell {
   lv: 1 | 2 | 3 | 4;
   taskName: string;
