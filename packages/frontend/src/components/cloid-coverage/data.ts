@@ -3,10 +3,17 @@
 
 export type Verdict = 'cover' | 'partial' | 'gap';
 export type Priority = 'High' | 'Mid' | 'Low';
+export type GripperConfidence = 'high' | 'medium' | 'low';
 
 export interface SubCellAssessment {
   verdict: Verdict;
   note: string; // 1~2 문장 요약
+}
+
+export interface RequiredGripper {
+  category: string;          // 예: '평행 그리퍼', 'Soft 그리퍼', 'Multi-그리퍼', '흡착/진공', 'F/T 정밀', '커스텀(FPC 등)'
+  detail: string;            // 1~2 문장 구체 스펙·옵션
+  confidence: GripperConfidence; // 임원보고용 — 추정 강도
 }
 
 export interface SubCell {

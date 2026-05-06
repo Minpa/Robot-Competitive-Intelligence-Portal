@@ -14,11 +14,15 @@ import {
   type SubCell,
   type Verdict,
   type CloidCoverageCell,
+  type GripperConfidence,
 } from '@/components/cloid-coverage/data';
+import {
+  lookupRequiredGripper,
+  GRIPPER_GENERATED_META,
+} from '@/components/cloid-coverage/gripper-data.generated';
 
-// Phase A: 휴리스틱 그리퍼 추출. coreActions / thresholds / devItems 안에서
-// 그리퍼 관련 키워드가 들어간 라인을 그대로 발췌해 보여준다.
-// Phase B에서 SubCell.requiredGripper 필드를 신설하면 이 함수는 fallback으로만 사용.
+// Phase B에서 enrich-cloid-gripper.ts가 생성한 정식 분류가 있으면 그걸 사용하고,
+// 없을 때만 Phase A 휴리스틱 키워드 추출로 fallback.
 const GRIPPER_KEYWORDS = [
   '그리퍼', '그리핑', '그립',
   'MAN-20', 'MAN-21', 'MAN-22',
@@ -277,7 +281,8 @@ function DevItemsModal({
             if (sc.devItems.length === 0) return null;
             const lvVerdict = worseVerdict(sc.cloidW.verdict, sc.cloidB.verdict);
             const tint = VERDICT_TINT[lvVerdict];
-            const gripperHints = extractGripperHints(sc);
+            const formalGripper = lookupRequiredGripper(cell.id, sc.lv);
+            const gripperHints = formalGripper ? [] : extractGripperHints(sc);
 
             return (
               <div
@@ -332,8 +337,29 @@ function DevItemsModal({
                   </ul>
                 </div>
 
-                {/* 관련 그리퍼 (heuristic) */}
-                {gripperHints.length > 0 && (
+                {/* 필요 그리퍼 — 정식 분류 (Phase B 산출물) */}
+                {formalGripper && (
+                  <div
+                    className="bg-white border border-[#E2DED4] p-3 mt-2"
+                    style={{ borderRadius: 6 }}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                      <p className="font-mono text-[11px] text-[#6B6B6B] uppercase tracking-[0.14em] font-semibold">
+                        필요 그리퍼
+                      </p>
+                      <ConfidenceBadge confidence={formalGripper.confidence} />
+                    </div>
+                    <p className="text-[15px] font-medium text-[#1A1A1A] mb-0.5">
+                      {formalGripper.category}
+                    </p>
+                    <p className="text-[13.5px] text-[#3A3A3A] leading-relaxed">
+                      {formalGripper.detail}
+                    </p>
+                  </div>
+                )}
+
+                {/* Fallback: 휴리스틱 키워드 추출 (정식 분류 없을 때만) */}
+                {!formalGripper && gripperHints.length > 0 && (
                   <div
                     className="bg-white border border-[#E2DED4] p-3 mt-2"
                     style={{ borderRadius: 6 }}
@@ -341,7 +367,7 @@ function DevItemsModal({
                     <p className="font-mono text-[11px] text-[#6B6B6B] uppercase tracking-[0.14em] mb-1.5 font-semibold">
                       관련 그리퍼·손목 단서{' '}
                       <span className="text-[#B8B6AE] normal-case tracking-normal font-normal">
-                        (텍스트 추출)
+                        (텍스트 추출 — 정식 분류 미생성)
                       </span>
                     </p>
                     <ul className="space-y-0.5">
@@ -389,9 +415,19 @@ function DevItemsModal({
 
         {/* Footer */}
         <div
-          className="px-6 py-3 border-t border-[#E2DED4] flex items-center justify-end"
+          className="px-6 py-3 border-t border-[#E2DED4] flex items-center justify-between gap-4"
           style={{ backgroundColor: '#FAFAF7' }}
         >
+          <p className="font-mono text-[10.5px] text-[#6B6B6B]">
+            {GRIPPER_GENERATED_META.count > 0 ? (
+              <>
+                필요 그리퍼 분류: {GRIPPER_GENERATED_META.model} ·{' '}
+                {GRIPPER_GENERATED_META.generatedAt?.slice(0, 10)} 생성
+              </>
+            ) : (
+              <>필요 그리퍼 정식 분류 미생성 — 휴리스틱 추출 표시 중</>
+            )}
+          </p>
           <button
             onClick={onClose}
             className="font-mono text-[12px] text-[#1A1A1A] px-3 py-1.5 border border-[#E2DED4] hover:bg-white"
@@ -411,6 +447,24 @@ function VerdictDot({ v }: { v: Verdict }) {
       className="inline-block w-1.5 h-1.5 rounded-full align-middle mx-0.5"
       style={{ backgroundColor: VERDICT_TINT[v].dot }}
     />
+  );
+}
+
+const CONFIDENCE_STYLE: Record<GripperConfidence, { label: string; bg: string; color: string }> = {
+  high:   { label: 'HIGH 신뢰',  bg: '#E6F4EA', color: '#1a7a3a' },
+  medium: { label: 'MED 신뢰',   bg: '#FFF4D6', color: '#9a6500' },
+  low:    { label: 'LOW 신뢰',   bg: '#FBEAF0', color: '#a01020' },
+};
+
+function ConfidenceBadge({ confidence }: { confidence: GripperConfidence }) {
+  const s = CONFIDENCE_STYLE[confidence];
+  return (
+    <span
+      className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] px-1.5 py-0.5"
+      style={{ backgroundColor: s.bg, color: s.color, borderRadius: 3 }}
+    >
+      {s.label}
+    </span>
   );
 }
 
