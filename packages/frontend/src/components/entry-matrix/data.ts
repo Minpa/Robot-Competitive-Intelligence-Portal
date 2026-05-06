@@ -403,11 +403,11 @@ export interface DeepDive {
 export const DEEP_DIVES: DeepDive[] = [
   {
     rank: 1, taskIdx: 7, sectorIdx: 3, score: 9.2, verdict: '진입 적합 · 즉시',
-    headline: '글로벌 DC가 이미 양산 검증한 영역. 즉시 진입 가능한 1순위 시장.',
-    story: 'Amazon, GXO, Spanx가 휴머노이드+AMR 조합으로 양산 가동 중. LG는 보유 AMR과 CLOiD를 결합해 단기 PoC 진입이 가능하다.',
+    headline: '글로벌 DC가 이미 상용 RaaS 검증한 영역. 즉시 진입 가능한 1순위 시장.',
+    story: 'Amazon Robin/Sparrow 상용 가동, GXO Digit RaaS, Spanx Digit 단층 DC RaaS 등 휴머노이드+AMR 조합 상용 운영 중. LG는 보유 AMR과 CLOiD를 결합해 단기 PoC 진입이 가능하다.',
     deployed: [
-      { name: 'Agility Digit',          tag: 'Spanx, GXO 양산' },
-      { name: 'Apptronik Apollo',       tag: 'Mercedes·GXO Pilot' },
+      { name: 'Agility Digit',          tag: 'GXO/Spanx 상용 RaaS (누적 10만+ Tote, 단층 DC)' },
+      { name: 'Apptronik Apollo',       tag: 'Mercedes·GXO 파일럿' },
       { name: 'Boston Dynamics Atlas',  tag: 'Hyundai Pilot' },
     ],
     lineup: [
@@ -428,10 +428,10 @@ export const DEEP_DIVES: DeepDive[] = [
   },
   {
     rank: 2, taskIdx: 5, sectorIdx: 2, score: 8.3, verdict: '진입 적합 · LG 자사 우선',
-    headline: 'CATL Xiaomo가 이미 양산. LGES 자사 PoC로 가장 빠르게 진입할 수 있다.',
-    story: 'Pack 다종·고압 커넥터 체결을 휴머노이드로 양산 검증한 사례 존재. LGES와 자사 PoC 검증 → 외부 확산이 정석 루트.',
+    headline: 'CATL Xiaomo가 이미 대규모 배치. LGES 자사 PoC로 가장 빠르게 진입할 수 있다.',
+    story: 'Pack 다종·고압 커넥터 체결을 휴머노이드로 대규모 배치 검증한 사례 존재 (CATL Xiaomo 2025-12 Luoyang). LGES와 자사 PoC 검증 → 외부 확산이 정석 루트.',
     deployed: [
-      { name: 'CATL Xiaomo',     tag: '고압 커넥터 양산 산둥' },
+      { name: 'CATL Xiaomo',     tag: '세계 최초 대규모 배치 (2025-12 Luoyang Zhongzhou, 99%)' },
       { name: 'Tesla Optimus',   tag: '4680 셀 핸들링' },
     ],
     lineup: [
@@ -451,11 +451,11 @@ export const DEEP_DIVES: DeepDive[] = [
   },
   {
     rank: 3, taskIdx: 10, sectorIdx: 6, score: 8.3, verdict: '진입 적합 · 거점 확보',
-    headline: 'HD현대가 양산 가동. 한국 조선 압도의 전략적 거점.',
-    story: '블록 다양·협소 위치 용접에서 휴머노이드가 산업로봇 대체. HD현대 양산 사례 확보 시 글로벌 조선 시장 확장 가능.',
+    headline: 'HD현대 + Persona AI 시제품 단계 (2027 commercial 예정). 한국 조선 압도의 전략적 거점.',
+    story: '블록 다양·협소 위치 용접에서 휴머노이드가 산업로봇 대체. HD현대 + Persona AI 시제품 → 2027 commercial 확보 시 글로벌 조선 시장 확장 가능.',
     deployed: [
-      { name: 'HD현대 자체 휴머노이드', tag: '블록 용접·도장 양산' },
-      { name: '삼성중공업 PoC',         tag: '도장 라인' },
+      { name: 'HD현대 + Persona AI', tag: '블록 용접·도장 시제품 (2026말 prototype, 2027 commercial 예정)' },
+      { name: '삼성중공업 PoC',       tag: '도장 라인' },
     ],
     lineup: [
       { name: 'CLOiD 휴머노이드', tag: '협소 블록 용접' },
@@ -474,10 +474,10 @@ export const DEEP_DIVES: DeepDive[] = [
   },
   {
     rank: 4, taskIdx: 1, sectorIdx: 3, score: 7.5, verdict: '진입 가능 · 복합 솔루션',
-    headline: 'Mixed-SKU 주문 단위 Kitting을 MoMa+AMR 조합으로 양산 진입.',
-    story: 'Amazon·GXO 양산 검증. LG는 MoMa(보유)+AMR로 즉시 PoC 가능, 다 SKU·동선 변동 영역은 휴머노이드 추가 필요.',
+    headline: 'Mixed-SKU 주문 단위 Kitting을 MoMa+AMR 조합으로 상용 진입.',
+    story: 'Amazon Robin/Sparrow 상용 가동, GXO × Digit 상용 RaaS 검증. LG는 MoMa(보유)+AMR로 즉시 PoC 가능, 다 SKU·동선 변동 영역은 휴머노이드 추가 필요.',
     deployed: [
-      { name: 'Amazon Robin/Sparrow', tag: 'Mixed-SKU 양산' },
+      { name: 'Amazon Robin/Sparrow', tag: 'Mixed-SKU 상용 가동' },
       { name: 'Agility Digit',         tag: 'GXO Kitting Pilot' },
     ],
     lineup: [
@@ -501,8 +501,8 @@ export const DEEP_DIVES: DeepDive[] = [
     headline: 'LGE 자사 PCB·FPC 체결로 자사 검증 → 외부 확산.',
     story: 'LGE 자사 PoC 가장 빠른 검증 루트. 다 모델 가전 커넥터 + FPC 체결에서 휴머노이드의 양손 협응이 산업로봇 대비 우위.',
     deployed: [
-      { name: 'Foxconn 자체 솔루션', tag: 'PCB 체결 양산' },
-      { name: 'Figure 02',           tag: 'BMW 전장 Pilot' },
+      { name: 'Foxconn 자체 솔루션', tag: 'PCB 체결 자체 양산 라인' },
+      { name: 'Figure 02',           tag: 'BMW Spartanburg X3 11개월 파일럿 (30K대 기여, 2025-11 retire)' },
     ],
     lineup: [
       { name: 'CLOiD 휴머노이드', tag: '다 모델·FPC 체결' },

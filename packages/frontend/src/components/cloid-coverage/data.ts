@@ -1,5 +1,15 @@
-// 13개 진입 적합 셀 × CLOiD W/B 동작·Gap 분석 데이터 (v1.0, 2026-05-06)
+// 13개 진입 적합 셀 × CLOiD W/B 동작·Gap 분석 데이터 (v1.1, 2026-05-07 fact-check 적용)
 // 모든 CLOiD 스펙은 [추정] — ARGOS 페이지에 실제 스펙 입력 후 정밀화 예정.
+//
+// v1.1 fact-check 정정 (Humanoid_Deployment_Factcheck_Report.md 기반):
+//   "양산" 모호 표현 → 정확한 단계 구분
+//   - Digit @ GXO  → 상용 RaaS (mass production 아님, deployment)
+//   - Spanx        → 단층 DC RaaS (다층 양산 사례 부재)
+//   - Xiaomi EV    → 3시간 자율 trial / pilot 단계
+//   - CATL Xiaomo  → 대규모 배치 (deployment, mass production 아님)
+//   - Walker S2    → mass delivery 시작 (2025-11)
+//   - Toyota TMMC  → commercial RaaS (7대, 2026-02)
+//   - HD현대+Persona AI / Mercedes Apollo / Apollo Jabil / AEON / Figure 02 → 파일럿 또는 시제품
 
 export type Verdict = 'cover' | 'partial' | 'gap';
 export type Priority = 'High' | 'Mid' | 'Low';
@@ -118,17 +128,17 @@ export const CELLS: CloidCoverageCell[] = [
         cloidW: { verdict: 'cover', note: '평지 이동·페이로드·SLAM 모두 cover. 베어로보틱스 결합 시 즉시 진입 가능.' },
         cloidB: { verdict: 'partial', note: '보행 속도 1.0 m/s 한계, 24/7 배터리 부족. 평지에서 휠 대비 비효율.' },
         priority: 'Low',
-        benchmark: 'Digit @ GXO Spanx (양산, 16kg payload, 6 ft reach, 4시간 배터리)',
+        benchmark: 'Digit @ GXO/Spanx (상용 RaaS, 16kg payload, 6 ft reach, 4시간 배터리)',
         devItems: ['배터리 24/7 운영 (스왑 또는 빠른 충전 도킹)', 'DC 통로 폭 적응'],
       },
       {
-        lv: 2, taskName: 'DC 다 라인 Tote 순회 (Digit GXO 100K 양산)',
+        lv: 2, taskName: 'DC 다 라인 Tote 순회 (Digit @ GXO 누적 10만 Tote)',
         coreActions: ['LOC-01 평지 정속', 'LOC-04 동적 장애물 회피', 'MAN-01 양손 Tote'],
         thresholds: '동적 환경(사람·카트), 다종 컨베이어 인터페이스, 다 위치 순회 자율 계획',
         cloidW: { verdict: 'cover', note: '동적 회피·SLAM cover. 컨베이어 인터페이스 Skill 학습 필요.' },
         cloidB: { verdict: 'partial', note: '보행 속도+배터리 한계. 다 라인 동시 커버 시 휠 대비 효율 떨어짐.' },
         priority: 'Mid',
-        benchmark: 'Digit (Spanx 100,000+ totes, GXO Flowery Branch 양산)',
+        benchmark: 'Digit (Spanx/GXO Flowery Branch 누적 10만+ Tote, 상용 RaaS, 단층 DC)',
         devItems: ['컨베이어 → AMR 이재 Skill', '다 라인 작업 큐 자율 계획', '24/7 배터리 운영'],
       },
       {
@@ -138,7 +148,7 @@ export const CELLS: CloidCoverageCell[] = [
         cloidW: { verdict: 'gap', note: '계단 불가. 휠은 평면 한정.' },
         cloidB: { verdict: 'partial', note: '계단 가능 [추정]. 페이로드 들고 계단 등반·6 ft reach 검증 필요.' },
         priority: 'High',
-        benchmark: 'Digit (6 ft reach, 16kg payload, 양족 계단 양산 검증, Spanx 다층 DC)',
+        benchmark: 'Digit (6 ft reach, 16kg payload, 계단 능력 demo 검증; Spanx는 단층 DC, 다층 양산 사례 부재)',
         devItems: ['Tote 들고 계단 등반 안정성 검증', '도달 높이 1900→1830mm reach 확보', '추락 안전 인증 (ISO 13482)', '양손 페이로드 균형 제어'],
       },
       {
@@ -168,7 +178,7 @@ export const CELLS: CloidCoverageCell[] = [
         cloidW: { verdict: 'cover', note: '단일 SKU 픽 → 정위치 배치 cover. 처리량 검증 필요.' },
         cloidB: { verdict: 'cover', note: '동일 cover. 다만 휠 대비 처리량 약함.' },
         priority: 'Low',
-        benchmark: 'GXO × Digit Order Picking (양산 RaaS), Apollo Pilot',
+        benchmark: 'GXO × Digit Order Picking 상용 RaaS, Apollo Pilot',
         devItems: ['처리량 최적화 (시간당 pick 횟수)'],
       },
       {
@@ -178,7 +188,7 @@ export const CELLS: CloidCoverageCell[] = [
         cloidW: { verdict: 'partial', note: 'VLA 다 SKU 인식 가능 [추정]. 정확도 검증 필요.' },
         cloidB: { verdict: 'partial', note: '동일.' },
         priority: 'Mid',
-        benchmark: 'Toyota TMMC Digit 7대 commercial (RAV4 plant), Mercedes Apollo',
+        benchmark: 'Toyota TMMC Digit 7대 commercial RaaS (Woodstock RAV4 plant), Mercedes Apollo 파일럿',
         devItems: ['VLA 모델 SKU 분류 정확도 ≥99%', 'BOM 자율 관리 시스템 통합'],
       },
       {
@@ -208,7 +218,7 @@ export const CELLS: CloidCoverageCell[] = [
     id: 'connector-battery',
     cellNum: '⑥', taskName: '커넥터 체결', sectorName: '배터리',
     taskIdx: 5, sectorIdx: 2, score: 8.3,
-    oneLineInsight: 'Lv1~3 모두 정밀도 1mm→0.5mm 향상 + 고전압 안전 인증 필수. CATL Xiaomo 양산 추격.',
+    oneLineInsight: 'Lv1~3 모두 정밀도 1mm→0.5mm 향상 + 고전압 안전 인증 필수. CATL Xiaomo 대규모 배치 추격.',
     subCells: [
       {
         lv: 1, taskName: '셀 단계 BMS 커넥터',
@@ -227,17 +237,17 @@ export const CELLS: CloidCoverageCell[] = [
         cloidW: { verdict: 'partial', note: '다종 인식 VLA 가능. 정밀도는 미달 가능.' },
         cloidB: { verdict: 'partial', note: '동일.' },
         priority: 'High',
-        benchmark: 'CATL Xiaomo 모듈 양산',
+        benchmark: 'CATL Xiaomo 모듈 대규모 배치',
         devItems: ['다종 커넥터 라이브러리 학습', '정밀도 향상'],
       },
       {
-        lv: 3, taskName: 'Pack 다 위치 고전압 체결 (Xiaomo 99% 양산)',
+        lv: 3, taskName: 'Pack 다 위치 고전압 체결 (Xiaomo 99% 대규모 배치)',
         coreActions: ['MAN-08 고전압 안전 체결', 'MAN-10 양손 협조 체결', 'PER-07 비정형 위치 인식'],
         thresholds: '고전압 (400V+) 절연 안전, 비정형 위치 양손 협조, IECEx 인증 가능성',
         cloidW: { verdict: 'partial', note: '양손 협조 cover. 굽힘 자세 안정성·고전압 안전 인증 필요.' },
         cloidB: { verdict: 'partial', note: '굽힘 자세 양족이 유리. 고전압 안전 인증 미보유 [추정].' },
         priority: 'High',
-        benchmark: 'CATL Xiaomo (세계 최초 양산 2025.12, Luoyang Zhongzhou, 99% 성공률)',
+        benchmark: 'CATL Xiaomo (세계 최초 대규모 배치 2025.12, Luoyang Zhongzhou, 99% 성공률)',
         devItems: ['고전압 작업 절연 안전 인증', '비정형 위치 6D pose 정확도', '양손 협조 정밀 작업 검증'],
       },
       {
@@ -266,7 +276,7 @@ export const CELLS: CloidCoverageCell[] = [
         cloidW: { verdict: 'cover', note: '정형 패킹 cover.' },
         cloidB: { verdict: 'cover', note: '동일.' },
         priority: 'Low',
-        benchmark: 'GXO × Digit 양산 (RaaS)',
+        benchmark: 'GXO × Digit 상용 RaaS',
         devItems: ['처리량 최적화'],
       },
       {
@@ -276,7 +286,7 @@ export const CELLS: CloidCoverageCell[] = [
         cloidW: { verdict: 'partial', note: '다 사이즈 적응 VLA cover. 보호재 채우기 Skill 추가 필요.' },
         cloidB: { verdict: 'partial', note: '동일.' },
         priority: 'Mid',
-        benchmark: 'GXO 양산',
+        benchmark: 'GXO 상용 RaaS',
         devItems: ['보호재 채우기 Skill (양 판단)', '다 사이즈 박스 라이브러리'],
       },
       {
@@ -319,13 +329,13 @@ export const CELLS: CloidCoverageCell[] = [
         devItems: ['(산업R 영역 — 휴머노이드 진입 비효율)'],
       },
       {
-        lv: 2, taskName: '곡면 외판 용접 (HD현대 양산)',
+        lv: 2, taskName: '곡면 외판 용접 (HD현대 + Persona AI 시제품)',
         coreActions: ['MAN-17 용접 토치', 'MAN-18 곡면 추종', 'PER-10 곡면 path 인식'],
         thresholds: '곡면 path tracking, 추종 정밀도 1mm, 용접 인증 (KS/AWS)',
         cloidW: { verdict: 'gap', note: '곡면 path 추종 능력 [추정] 없음 — 신규 개발 필요.' },
         cloidB: { verdict: 'partial', note: '비정형 자세 가능. 용접 Skill·인증 미보유.' },
         priority: 'High',
-        benchmark: 'HD현대 양산 (Persona AI 시제품 완료, 2027 commercial)',
+        benchmark: 'HD현대 + Persona AI 시제품 (2026말 prototype 완료 → 2027 field testing/commercial 예정)',
         devItems: ['용접 토치 운용 Skill', '곡면 path tracking', '용접 인증 (KS/AWS)', '용접 환경 IP 등급 (스파크·열) 향상'],
       },
       {
@@ -365,7 +375,7 @@ export const CELLS: CloidCoverageCell[] = [
         cloidW: { verdict: 'cover', note: '정형 Bin 픽 cover.' },
         cloidB: { verdict: 'cover', note: '동일.' },
         priority: 'Low',
-        benchmark: 'Apollo Jabil Pilot, Apollo @ Mercedes',
+        benchmark: 'Apollo Jabil Pilot, Apollo @ Mercedes 파일럿 (한 자릿수 대수)',
         devItems: ['처리량 최적화'],
       },
       {
@@ -418,13 +428,13 @@ export const CELLS: CloidCoverageCell[] = [
         devItems: ['토크 정밀도 향상', '드라이버 도구 인터페이스'],
       },
       {
-        lv: 2, taskName: 'Self-tapping nut 다 위치 (Xiaomi EV 양산)',
+        lv: 2, taskName: 'Self-tapping nut 다 위치 (Xiaomi EV 자율 trial · pilot)',
         coreActions: ['MAN-22 토크 드라이버', 'MAN-23 self-tapping nut 운용', 'PER-16 다 위치 인식'],
         thresholds: 'Self-tapping nut 운용, 다 위치 (수~십 위치), line cycle (3분 이내)',
         cloidW: { verdict: 'partial', note: '다 위치 작업 cover. self-tapping nut Skill 학습 필요.' },
         cloidB: { verdict: 'partial', note: '동일.' },
         priority: 'High',
-        benchmark: 'Xiaomi EV plant (3시간 self-tapping nut within line cycle 양산)',
+        benchmark: 'Xiaomi EV plant (3시간 자율 trial, 90.2% 성공률 · 76초 cycle, pilot 단계 — 양산 아님)',
         devItems: ['Self-tapping nut Skill', 'Line cycle 처리량 최적화', 'LGE 자사 라인 PoC 우선'],
       },
       {
@@ -454,7 +464,7 @@ export const CELLS: CloidCoverageCell[] = [
     id: 'connector-electronics',
     cellNum: '⑥', taskName: '커넥터 체결', sectorName: '전자가전',
     taskIdx: 5, sectorIdx: 4, score: 7.5,
-    oneLineInsight: 'Foxconn 3C 양산 추격 + LGE FPC 정밀화. 손바닥 카메라·F/T 손목 정밀화 필수.',
+    oneLineInsight: 'Foxconn 3C 라인 + Walker S2 mass delivery 추격, LGE FPC 정밀화. 손바닥 카메라·F/T 손목 정밀화 필수.',
     subCells: [
       {
         lv: 1, taskName: '표준 가전 커넥터',
@@ -467,13 +477,13 @@ export const CELLS: CloidCoverageCell[] = [
         devItems: ['커넥터 라이브러리 (가전용)'],
       },
       {
-        lv: 2, taskName: '가전 다종 하네스 체결 (Foxconn 양산)',
+        lv: 2, taskName: '가전 다종 하네스 체결 (Foxconn 3C 라인 + Walker S2)',
         coreActions: ['MAN-07 다종 커넥터', 'MAN-26 하네스 라우팅 전 체결', 'PER-06 다종 pose'],
         thresholds: '다종 하네스 (Foxconn 3C 라인), 시간당 처리량',
         cloidW: { verdict: 'partial', note: 'VLA 다종 인식 cover.' },
         cloidB: { verdict: 'partial', note: '동일.' },
         priority: 'High',
-        benchmark: 'UBTech Walker S1/S2 + Foxconn 3C 양산',
+        benchmark: 'UBTech Walker S2 mass delivery (2025-11, 수백대 1차) + Foxconn 3C 라인',
         devItems: ['다종 하네스 라이브러리', 'Foxconn 3C 라인 학습'],
       },
       {
@@ -503,7 +513,7 @@ export const CELLS: CloidCoverageCell[] = [
     id: 'cable-battery',
     cellNum: '⑦', taskName: '케이블 라우팅', sectorName: '배터리',
     taskIdx: 6, sectorIdx: 2, score: 7.5,
-    oneLineInsight: 'CATL Xiaomo flexible wiring 양산 추격. 굽힘 자세는 CLOiD B 유리, dynamic force 제어 필요.',
+    oneLineInsight: 'CATL Xiaomo flexible wiring 대규모 배치 추격. 굽힘 자세는 CLOiD B 유리, dynamic force 제어 필요.',
     subCells: [
       {
         lv: 1, taskName: 'BMS 단순 케이블',
@@ -522,8 +532,8 @@ export const CELLS: CloidCoverageCell[] = [
         cloidW: { verdict: 'partial', note: '양손 협조 cover. 다발 처리 Skill 필요.' },
         cloidB: { verdict: 'partial', note: '동일.' },
         priority: 'High',
-        benchmark: 'CATL Xiaomo 모듈 양산',
-        devItems: ['다발 케이블 처리 Skill', 'CATL 양산 라인 학습'],
+        benchmark: 'CATL Xiaomo 모듈 대규모 배치',
+        devItems: ['다발 케이블 처리 Skill', 'CATL 대규모 배치 라인 학습'],
       },
       {
         lv: 3, taskName: 'Pack 다 위치 케이블·결속 (Xiaomo flexible)',
@@ -532,7 +542,7 @@ export const CELLS: CloidCoverageCell[] = [
         cloidW: { verdict: 'partial', note: '동적 force 제어 cover. 굽힘 자세 한계.' },
         cloidB: { verdict: 'partial', note: '굽힘 자세 양족 유리.' },
         priority: 'High',
-        benchmark: 'CATL Xiaomo (flexible wiring 양산)',
+        benchmark: 'CATL Xiaomo (flexible wiring 대규모 배치)',
         devItems: ['Dynamic force 제어', '굽힘 자세 안정', 'Xiaomo 99% 벤치마크'],
       },
       {
@@ -601,7 +611,7 @@ export const CELLS: CloidCoverageCell[] = [
     id: 'tote-automotive-bcg',
     cellNum: '⑧', taskName: 'Tote 이송', sectorName: '자동차BCG',
     taskIdx: 7, sectorIdx: 0, score: 7.5,
-    oneLineInsight: 'Mercedes Apollo 양산 추격. CLOiD W 평지 takt 동기화·다 라인 작업 큐 핵심.',
+    oneLineInsight: 'Mercedes Apollo 파일럿 추격. CLOiD W 평지 takt 동기화·다 라인 작업 큐 핵심.',
     subCells: [
       {
         lv: 1, taskName: '라인 사이드 자재 Tote 공급',
@@ -610,7 +620,7 @@ export const CELLS: CloidCoverageCell[] = [
         cloidW: { verdict: 'cover', note: '평지 + 양손 + SLAM cover. takt 검증 필요.' },
         cloidB: { verdict: 'partial', note: '보행 속도 한계.' },
         priority: 'Mid',
-        benchmark: 'Mercedes Apollo Berlin·Kecskemét 양산',
+        benchmark: 'Mercedes Apollo 파일럿 Berlin·Kecskemét (한 자릿수 대수)',
         devItems: ['Takt 시간 동기화', 'Mercedes/BMW 라인 인터페이스'],
       },
       {
@@ -620,7 +630,7 @@ export const CELLS: CloidCoverageCell[] = [
         cloidW: { verdict: 'partial', note: 'SLAM·동선 cover. 1시간+ 연속 안정성 검증.' },
         cloidB: { verdict: 'partial', note: '동일.' },
         priority: 'Mid',
-        benchmark: 'Mercedes Apollo (Tote delivery 양산)',
+        benchmark: 'Mercedes Apollo 파일럿 (Tote delivery, 한 자릿수 대수)',
         devItems: ['배터리 운영', '다 라인 작업 큐'],
       },
       {
@@ -630,7 +640,7 @@ export const CELLS: CloidCoverageCell[] = [
         cloidW: { verdict: 'gap', note: '경사면 한계.' },
         cloidB: { verdict: 'partial', note: '경사 보행 cover.' },
         priority: 'Low',
-        benchmark: '양산 사례 일부.',
+        benchmark: '파일럿 사례 일부.',
         devItems: ['(자동차 라인 평면 위주)'],
       },
       {
@@ -650,7 +660,7 @@ export const CELLS: CloidCoverageCell[] = [
     id: 'palletize-logistics',
     cellNum: '⑨', taskName: 'Tote·박스 적재', sectorName: '물류',
     taskIdx: 8, sectorIdx: 3, score: 7.5,
-    oneLineInsight: 'Lv1~2 양산 임박. 양손 페이로드 10kg → 15kg 향상이 결정적.',
+    oneLineInsight: 'Lv1~2 상용 RaaS 임박. 양손 페이로드 10kg → 15kg 향상이 결정적.',
     subCells: [
       {
         lv: 1, taskName: 'DC 정형 Palletizing',
@@ -669,7 +679,7 @@ export const CELLS: CloidCoverageCell[] = [
         cloidW: { verdict: 'partial', note: '페이로드 한계.' },
         cloidB: { verdict: 'partial', note: '동일.' },
         priority: 'High',
-        benchmark: 'GXO 양산',
+        benchmark: 'GXO 상용 RaaS',
         devItems: ['페이로드 향상', 'SKU별 적재 자율'],
       },
       {
@@ -679,7 +689,7 @@ export const CELLS: CloidCoverageCell[] = [
         cloidW: { verdict: 'partial', note: '협소 통로 cover. 부정형 적재 Skill 필요.' },
         cloidB: { verdict: 'partial', note: '동일.' },
         priority: 'Mid',
-        benchmark: 'GXO 양산',
+        benchmark: 'GXO 상용 RaaS',
         devItems: ['부정형 박스 적재 Skill'],
       },
       {
@@ -699,7 +709,7 @@ export const CELLS: CloidCoverageCell[] = [
     id: 'inspection-shipbuilding',
     cellNum: '⑫', taskName: '점검·계측', sectorName: '조선',
     taskIdx: 11, sectorIdx: 6, score: 7.5,
-    oneLineInsight: 'IP65+ / IECEx 인증이 진입 게이트. CLOiD B 협소·경사 cover. HD현대 양산 라인 학습 필수.',
+    oneLineInsight: 'IP65+ / IECEx 인증이 진입 게이트. CLOiD B 협소·경사 cover. HD현대 야드 운용 라인 학습 필수.',
     subCells: [
       {
         lv: 1, taskName: '의장 점검',
@@ -708,7 +718,7 @@ export const CELLS: CloidCoverageCell[] = [
         cloidW: { verdict: 'partial', note: '평지 의장 cover. 조선 환경 IP 등급 필요.' },
         cloidB: { verdict: 'partial', note: '동일.' },
         priority: 'Mid',
-        benchmark: 'HD현대 양산',
+        benchmark: 'HD현대 야드 점검 (Spot 등 4족 RaaS)',
         devItems: ['IP65+ 환경 인증', 'HD현대 협업'],
       },
       {
@@ -718,8 +728,8 @@ export const CELLS: CloidCoverageCell[] = [
         cloidW: { verdict: 'gap', note: '경사 한계.' },
         cloidB: { verdict: 'partial', note: '경사 cover. IP65+ 인증 필요.' },
         priority: 'High',
-        benchmark: 'HD현대 양산 (Spot 등 4족도 활용)',
-        devItems: ['IP65+ 인증', '경사 + 작업 검증', 'HD현대 양산 라인 학습'],
+        benchmark: 'HD현대 야드 점검 (Spot 등 4족 RaaS)',
+        devItems: ['IP65+ 인증', '경사 + 작업 검증', 'HD현대 야드 운용 학습'],
       },
       {
         lv: 3, taskName: '블록 내부 협소 점검 (HD현대)',
@@ -753,7 +763,7 @@ export const DEV_CLUSTERS = [
     name: '클러스터 1: 정밀도 향상 (1mm → 0.5mm 이하)',
     cells: ['⑥커넥터/배터리', '⑥커넥터/전자가전', '⑤나사/전자가전'],
     direction: '손바닥 카메라 추가 + F/T 손목 정밀화',
-    benchmark: 'CATL Xiaomo 99% 성공률 / Foxconn 양산',
+    benchmark: 'CATL Xiaomo 99% 성공률 / Foxconn 3C 라인',
     duration: '6~12개월',
   },
   {
@@ -776,8 +786,8 @@ export const DEV_CLUSTERS = [
     id: 'cluster-4-skills',
     name: '클러스터 4: 산업별 Skill 학습 (VLA 데이터셋)',
     cells: ['거의 모든 Lv2~3 셀'],
-    direction: '양산 라인 학습 데이터 수집 + VLA fine-tuning',
-    benchmark: '각 산업 양산 라인',
+    direction: '상용 RaaS · 대규모 배치 · 파일럿 라인 학습 데이터 수집 + VLA fine-tuning',
+    benchmark: '각 산업 deployment 라인 (Digit RaaS / Xiaomo 배치 / Apollo·Figure 파일럿 등)',
     duration: '산업별 3~6개월',
   },
   {

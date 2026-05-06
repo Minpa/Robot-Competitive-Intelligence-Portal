@@ -113,7 +113,7 @@ export const DOMAINS: DomainDef[] = [
     sectorCount: 0,
     cellsTotal: 0,
     cellsFilled: 0,
-    tagline: 'Phase 3 (2027 H1) — 베어로보틱스 + Digit + Apollo 양산 실적',
+    tagline: 'Phase 3 (2027 H1) — 베어로보틱스 RaaS + Digit 상용 RaaS + Apollo 파일럿 실적',
     tasks: [
       '창고 픽업·정렬',
       'Tote 이송 (산업 ⑧과 일부 중복)',
@@ -269,7 +269,7 @@ export const PHASES: PhaseDef[] = [
       { label: '산업 ⑧ Tote 이송과 연계 분석',        done: false },
       { label: '콜드체인·라스트마일 셀 입력',          done: false },
     ],
-    rationale: '경쟁사 양산 실적 풍부 → 외부 데이터 풍부, 비교 분석 용이',
+    rationale: '경쟁사 deployment 실적 풍부 (Digit RaaS, Apollo 파일럿, Walker S2 mass delivery 등) → 외부 데이터 풍부, 비교 분석 용이',
   },
   {
     id: 'p4',
