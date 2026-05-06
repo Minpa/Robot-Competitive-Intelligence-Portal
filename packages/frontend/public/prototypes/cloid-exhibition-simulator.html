@@ -5795,12 +5795,20 @@
           }
         },
         BALLET: (p, localT) => {
+          // 1) Arms raise to 5th position (0–0.8s), hold, lower (3.4–4.0s)
+          const armFrames = [[0.0, 0.0], [0.8, -2.8], [3.4, -2.8], [4.0, 0.0]];
+          if (p.armR) p.armR.rotation.z = lerpKeyframes(armFrames, localT);
+          if (p.armL) p.armL.rotation.z = -lerpKeyframes(armFrames, localT);
+          // 2) Elbows curve inward for rounded ballet arms (0–0.8s)
+          const elbowFrames = [[0.0, 0.0], [0.8, -0.45], [3.4, -0.45], [4.0, 0.0]];
+          if (p.armR_elbow) p.armR_elbow.rotation.x = lerpKeyframes(elbowFrames, localT);
+          if (p.armL_elbow) p.armL_elbow.rotation.x = lerpKeyframes(elbowFrames, localT);
           // 3) Tiptoe: ankle extension starts after arms are raised (0.6–1.0s)
           const ankleFrames = [[0.0, 0.0], [0.6, 0.0], [1.0, -0.35], [3.4, -0.35], [4.0, 0.0]];
           const ankle = lerpKeyframes(ankleFrames, localT);
           if (p.legL_ankle) p.legL_ankle.rotation.x = ankle;
           if (p.legR_ankle) p.legR_ankle.rotation.x = ankle;
-          // Legs slight outward splay (ballet 1st position, synced with tiptoe)
+          // 4) Legs slight outward splay (ballet 1st position, synced with tiptoe)
           const splayFrames = [[0.0, 0.0], [0.6, 0.0], [1.0, 0.12], [3.4, 0.12], [4.0, 0.0]];
           const splay = lerpKeyframes(splayFrames, localT);
           if (p.legL) p.legL.rotation.z = -splay;
@@ -9699,6 +9707,82 @@
       return { booth: { widthFt: 80, depthFt: 80 }, furniture: [], robots: [] };
     }
 
+    // KB전북금융타운 1층 — actual bank floor plan reference:
+    //   top (back wall): teller counters (창구) in a row
+    //   upper-left: security guard (청원경찰/청경) seat
+    //   center: customer waiting area 1 (고객대기석1) — bench rows
+    //   bottom-right: customer waiting area 2 (고객대기석2) — round tables
+    //   bottom-center: queue ticket kiosk (순번대기표)
+    //   bottom-left: STM kiosk + main entrance (은행주출입구)
+    //   1 CLOiD Bipedal at main entrance
+    function presetKBJeonbuk() {
+      const s = { booth: { widthFt: 65, depthFt: 50 }, furniture: [], robots: [] };
+      const { m, r } = presetHelpers(s);
+      const Z_BACK = -7.00;
+
+      // ── 창구 (Teller counters — back wall, 5 windows) ──
+      const tellerXs = [-3.6, -1.8, 0.0, 1.8, 3.6];
+      tellerXs.forEach((x, i) => {
+        const num = String(i + 1);
+        m('TELLER_COUNTER', x, Z_BACK + 0.50, 0, `창구 ${num}`);
+        m('NUMBERED_SIGN', x, Z_BACK + 0.10, 0, `번호 ${num}`, { label: num });
+        m('OFFICE_CHAIR', x, Z_BACK + 0.05, 0, `창구 ${num} 직원석`);
+        m('OFFICE_CHAIR', x, Z_BACK + 1.30, Math.PI, `창구 ${num} 고객석`);
+      });
+      m('LED_VIDEO_WALL', 0, Z_BACK - 0.05, 0, 'KB 브랜드 사이니지');
+
+      // ── 청경(청원경찰) 대기석 — upper-left area ──
+      m('OFFICE_DESK', -7.50, Z_BACK + 1.50, Math.PI / 2, '청경 데스크');
+      m('OFFICE_CHAIR', -7.50, Z_BACK + 2.10, Math.PI / 2, '청경 의자');
+
+      // ── 고객대기석1 — center, bench rows facing tellers ──
+      m('WAITING_BENCH', -2.50, -2.80, 0, '대기석1 1A');
+      m('WAITING_BENCH', -0.50, -2.80, 0, '대기석1 1B');
+      m('WAITING_BENCH',  1.50, -2.80, 0, '대기석1 1C');
+      m('WAITING_BENCH',  3.50, -2.80, 0, '대기석1 1D');
+      m('WAITING_BENCH', -2.50, -1.40, 0, '대기석1 2A');
+      m('WAITING_BENCH', -0.50, -1.40, 0, '대기석1 2B');
+      m('WAITING_BENCH',  1.50, -1.40, 0, '대기석1 2C');
+      m('WAITING_BENCH',  3.50, -1.40, 0, '대기석1 2D');
+      m('WAITING_BENCH', -2.50,  0.00, 0, '대기석1 3A');
+      m('WAITING_BENCH', -0.50,  0.00, 0, '대기석1 3B');
+      m('WAITING_BENCH',  1.50,  0.00, 0, '대기석1 3C');
+      m('WAITING_BENCH',  3.50,  0.00, 0, '대기석1 3D');
+      m('SIDE_TABLE', -3.80, -1.40, 0, '잡지 테이블 1');
+      m('SIDE_TABLE',  4.80, -1.40, 0, '잡지 테이블 2');
+
+      // ── 고객대기석2 — bottom-right, round tables + chairs ──
+      m('COFFEE_TABLE', 6.00, 3.80, 0, '대기석2 테이블 1');
+      m('OFFICE_CHAIR', 6.60, 3.30, -Math.PI / 4, '대기석2 의자 1A');
+      m('OFFICE_CHAIR', 5.40, 3.30, Math.PI / 4, '대기석2 의자 1B');
+      m('OFFICE_CHAIR', 6.60, 4.30, Math.PI, '대기석2 의자 1C');
+      m('OFFICE_CHAIR', 5.40, 4.30, Math.PI, '대기석2 의자 1D');
+      m('COFFEE_TABLE', 6.00, 5.80, 0, '대기석2 테이블 2');
+      m('OFFICE_CHAIR', 6.60, 5.30, -Math.PI / 4, '대기석2 의자 2A');
+      m('OFFICE_CHAIR', 5.40, 5.30, Math.PI / 4, '대기석2 의자 2B');
+      m('OFFICE_CHAIR', 6.60, 6.30, Math.PI, '대기석2 의자 2C');
+      m('OFFICE_CHAIR', 5.40, 6.30, Math.PI, '대기석2 의자 2D');
+
+      // ── 순번대기표 — bottom-center ──
+      m('TICKET_KIOSK', 0.00, 4.00, Math.PI, '순번대기표');
+
+      // ── STM — near entrance, bottom-left ──
+      m('ATM_KIOSK', -5.50, 4.50, Math.PI / 2, 'STM');
+
+      // ── 은행주출입구 — bottom-left entrance marker ──
+      m('DOORWAY', -7.50, 6.50, 0, '은행 주출입구');
+
+      // ── 벽면 구획용 월패널 ──
+      m('WALL_PANEL', -8.80, -3.00, Math.PI / 2, '좌측 벽');
+      m('WALL_PANEL', -8.80, 0.50, Math.PI / 2, '좌측 벽 2');
+      m('WALL_PANEL', -8.80, 4.00, Math.PI / 2, '좌측 벽 3');
+
+      // ── CLOiD Bipedal 로봇 — 주출입구 앞 ──
+      r('cloidBipedal', -6.50, 6.00, -Math.PI / 4, 'CLOiD 안내로봇');
+
+      return s;
+    }
+
     // Built-in preset registry. Add new presets here — they appear in the
     // dropdown automatically alongside any DB-saved user scenarios.
     const BUILTIN_PRESETS = [
@@ -9710,6 +9794,8 @@
         description: '25×18 ft 1인실 — 침대·옷장·STYLER·책상 + 로봇 2대 (의류 도우미·NR 청소기) 12초 동작 시퀀스' },
       { id: 'bank_branch',  name: '은행 영업점',          factory: presetBankBranch,
         description: '60×40 ft 은행 영업점 — 창구 6개 + ATM 3대 + 대기석 + 상담 데스크 + 코지 코너 + 안내 로봇' },
+      { id: 'kb_jeonbuk',   name: 'KB전북금융타운 1층',   factory: presetKBJeonbuk,
+        description: '65×50 ft KB전북금융타운 1층 — 창구 5개 + 고객대기석 2구역 + 순번대기표 + STM + 청경 대기석 + CLOiD Bipedal 1대' },
       { id: 'hiplaza',      name: '하이프라자 매장',       factory: presetHiPlaza,
         description: '60×40 ft LG 베스트샵/하이프라자 — 천장 LED 패널 + TV 월그리드 + 미러 디스플레이 아일랜드 + 마사지 체어 + 안내·NR 로봇' },
       { id: 'manufacturing', name: '제조라인',            factory: presetManufacturingLine,
