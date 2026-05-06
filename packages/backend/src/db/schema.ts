@@ -12,7 +12,7 @@ import {
   index,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 
 // Company entity
 export const companies = pgTable(
@@ -1932,3 +1932,209 @@ export const cloidScenarios = pgTable('cloid_scenarios', {
   categoryIdx: index('cloid_scenarios_category_idx').on(table.category),
   nameIdx: index('cloid_scenarios_name_idx').on(table.name),
 }));
+
+// ============================================
+// LG 휴머노이드 스펙 (Task 2 — JSONB hybrid)
+// ============================================
+// 핵심 식별 필드는 컬럼, 8개 카테고리(basic/physical/locomotion/manipulation/
+// perception/ai_compute/safety/commercial)는 JSONB로 그룹핑.
+// EE 옵션(9-카테고리 보유 여부)은 별도 JSONB 컬럼.
+
+// 8개 카테고리 JSONB 키 정의 (입력 폼이 이 구조를 source-of-truth로 씀)
+export interface HumanoidBasicInfo {
+  form_factor_detail?: string;
+  cumulative_shipped?: number;
+  major_customers?: string;
+  target_price_usd_k?: number;
+}
+export interface HumanoidPhysical {
+  height_mm?: number;
+  weight_kg?: number;
+  base_width_mm?: number;
+  total_dof?: number;
+  arm_dof_each?: number;
+  hand_dof_each?: number;
+  torso_dof?: number;
+  leg_dof_each?: number | null;
+  ip_rating?: string;
+  temp_min_c?: number;
+  temp_max_c?: number;
+}
+export interface HumanoidLocomotion {
+  locomotion_type?: 'Wheel' | 'Biped' | 'Quadruped';
+  max_speed_ms?: number;
+  max_run_speed_ms?: number | null;
+  turning_time_sec?: number;
+  stair_climbing?: boolean;
+  stair_height_max_cm?: number | null;
+  slope_max_deg?: number;
+  slippery_surface?: boolean;
+  uneven_terrain?: boolean;
+  battery_capacity_wh?: number;
+  runtime_hr?: number;
+  charging_time_hr?: number;
+  auto_docking?: boolean;
+  fall_recovery?: boolean | null;
+}
+export interface HumanoidManipulation {
+  payload_single_kg?: number;
+  payload_dual_kg?: number;
+  arm_reach_mm?: number;
+  reach_height_max_mm?: number;
+  grip_force_n?: number;
+  grip_precision_mm?: number;
+  hand_type?: string;
+  gripper_change?: 'auto' | 'manual' | 'none';
+  force_torque_control?: boolean;
+  bimanual_coordination?: boolean;
+  tool_use?: 'full' | 'partial' | 'none';
+}
+export interface HumanoidPerception {
+  rgb_camera_count?: number;
+  depth_sensor_type?: 'ToF' | 'Structured Light' | 'Stereo' | 'Stereo + ToF' | 'None';
+  lidar?: boolean;
+  imu_axis?: number;
+  ft_sensor_wrist?: boolean;
+  ft_sensor_ankle?: boolean;
+  palm_camera?: boolean;
+  microphone_speaker?: boolean;
+  pose_estimation_precision_mm?: number;
+  slam_capable?: boolean;
+  special_sensors?: string;
+}
+export interface HumanoidAiCompute {
+  main_soc?: string;
+  npu_tops?: number;
+  memory_gb?: number;
+  storage_gb?: number;
+  vla_onboard?: 'onboard' | 'cloud' | 'hybrid' | 'none';
+  online_learning?: boolean;
+  cloud_connected?: boolean;
+  voice_recognition?: boolean;
+  multistep_autonomous?: boolean;
+}
+export interface HumanoidSafety {
+  iso_10218?: '인증' | '진행 중' | '미인증' | '미해당';
+  iso_13482?: '인증' | '진행 중' | '미인증' | '미해당';
+  iso_ts_15066?: '인증' | '진행 중' | '미인증' | '미해당';
+  ce_certified?: boolean;
+  ul_certified?: boolean;
+  kc_certified?: boolean;
+  emergency_stop?: boolean;
+  human_collab_mode?: 'PFL' | 'SSM' | 'Both' | 'None';
+  cleanroom_class?: string;
+  fall_safety?: 'High' | 'Mid' | 'Low' | 'None';
+  noise_db?: number;
+}
+export interface HumanoidCommercial {
+  current_price_usd_k?: number;
+  target_price_usd_k?: number;
+  production_phase?: '시제품' | 'Pilot' | '양산 중' | '조사 중' | '미정';
+  cumulative_shipped?: number;
+  major_customers?: string;
+  remarks?: string;
+}
+
+// EE 옵션 9-카테고리 (작업 3 ee_categories.code와 키 일치 필수)
+export type EeOptionLevel = 'full' | 'partial' | 'none';
+export interface HumanoidEeOptions {
+  dex_5f?: EeOptionLevel;
+  dex_4f?: EeOptionLevel;
+  dex_3f?: EeOptionLevel;
+  jaw_2f?: EeOptionLevel;
+  vac?: EeOptionLevel;
+  hook?: EeOptionLevel;
+  tool?: EeOptionLevel;
+  soft?: EeOptionLevel;
+  swap?: EeOptionLevel;
+}
+
+export const humanoidModels = pgTable(
+  'humanoid_models',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    modelName: varchar('model_name', { length: 100 }).notNull().unique(),
+    codeName: varchar('code_name', { length: 100 }),
+    formFactor: varchar('form_factor', { length: 50 }).notNull(),
+    isPotential: boolean('is_potential').notNull().default(false),
+    releasePhase: varchar('release_phase', { length: 50 }),
+    releaseTargetDate: date('release_target_date'),
+    basicInfo: jsonb('basic_info').$type<HumanoidBasicInfo>().notNull().default({}),
+    physical: jsonb('physical').$type<HumanoidPhysical>().notNull().default({}),
+    locomotion: jsonb('locomotion').$type<HumanoidLocomotion>().notNull().default({}),
+    manipulation: jsonb('manipulation').$type<HumanoidManipulation>().notNull().default({}),
+    perception: jsonb('perception').$type<HumanoidPerception>().notNull().default({}),
+    aiCompute: jsonb('ai_compute').$type<HumanoidAiCompute>().notNull().default({}),
+    safety: jsonb('safety').$type<HumanoidSafety>().notNull().default({}),
+    commercial: jsonb('commercial').$type<HumanoidCommercial>().notNull().default({}),
+    eeOptions: jsonb('ee_options').$type<HumanoidEeOptions>().notNull().default({}),
+    customFields: jsonb('custom_fields').$type<Record<string, unknown>>().notNull().default({}),
+    notes: text('notes'),
+    createdBy: varchar('created_by', { length: 100 }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    formFactorIdx: index('humanoid_models_form_factor_idx').on(table.formFactor),
+    isPotentialIdx: index('humanoid_models_is_potential_idx').on(table.isPotential),
+    releaseDateIdx: index('humanoid_models_release_date_idx').on(table.releaseTargetDate),
+  })
+);
+
+// ============================================
+// EE 카테고리 마스터 (Task 3) — 9-카테고리 정의
+// humanoid_models.ee_options JSONB key는 이 테이블의 code와 일치.
+// ============================================
+export const eeCategories = pgTable('ee_categories', {
+  code: varchar('code', { length: 20 }).primaryKey(),
+  nameKo: varchar('name_ko', { length: 50 }).notNull(),
+  description: text('description'),
+  benchmarkExamples: text('benchmark_examples'),
+  displayOrder: integer('display_order').notNull().unique(),
+});
+
+// ============================================
+// 셀별 EE 요구사항 (Task 3)
+// 진입 매트릭스 13 진입적합 셀 × 4 Lv = 52 row.
+// task_idx / industry_idx / lv는 frontend v11-matrix.json과 일치.
+// ============================================
+export const cellEeRequirements = pgTable(
+  'cell_ee_requirements',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    taskIdx: integer('task_idx').notNull(),
+    industryIdx: integer('industry_idx').notNull(),
+    lv: integer('lv').notNull(),
+    tier1Codes: text('tier1_codes').array().notNull().default(sql`'{}'::text[]`),
+    tier2Codes: text('tier2_codes').array().notNull().default(sql`'{}'::text[]`),
+    tier3Codes: text('tier3_codes').array().notNull().default(sql`'{}'::text[]`),
+    rationale: text('rationale'),
+    benchmarkEe: text('benchmark_ee'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    cellLookup: uniqueIndex('cell_ee_req_cell_lookup_idx').on(table.taskIdx, table.industryIdx, table.lv),
+  })
+);
+
+// ============================================
+// 리포트 다운로드 이력 (Task 3)
+// ============================================
+export const reportDownloads = pgTable(
+  'report_downloads',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    reportType: varchar('report_type', { length: 50 }).notNull(),
+    humanoidModelsSnapshot: jsonb('humanoid_models_snapshot').$type<Record<string, unknown>>(),
+    userId: varchar('user_id', { length: 100 }),
+    filename: varchar('filename', { length: 200 }).notNull(),
+    fileSizeBytes: integer('file_size_bytes'),
+    buildTimeMs: integer('build_time_ms'),
+    downloadedAt: timestamp('downloaded_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    reportTypeIdx: index('report_downloads_report_type_idx').on(table.reportType),
+    downloadedAtIdx: index('report_downloads_downloaded_at_idx').on(table.downloadedAt),
+  })
+);

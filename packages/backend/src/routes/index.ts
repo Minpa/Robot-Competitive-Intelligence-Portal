@@ -31,6 +31,7 @@ import { regulatoryDocumentRoutes } from './regulatory-documents.js';
 import { designerRoutes } from './designer/index.js';
 import { cloidSimulatorRoutes } from './cloid-simulator.js';
 import { eventRoutes } from './events.js';
+import { humanoidSpecRoutes } from './humanoid-specs.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -91,4 +92,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // Event calendar — AI-driven event discovery via Claude + web_search
   fastify.register(eventRoutes, { prefix: '/api/events' });
+
+  // LG 휴머노이드 스펙 (Task 2) — 8탭 폼 CRUD + EE 옵션 JSONB
+  fastify.register(humanoidSpecRoutes, { prefix: '/api/humanoid-specs' });
 }

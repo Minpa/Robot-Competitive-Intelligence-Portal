@@ -26,6 +26,7 @@ import {
   Wrench,
   Briefcase,
   Grid3x3,
+  Bot,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -67,6 +68,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: 'ARGOS 도메인 확장', href: '/business-strategy', icon: Briefcase },
       { name: '진입 매트릭스 v11', href: '/business-strategy/matrix', icon: Grid3x3 },
+      { name: 'LG 휴머노이드 스펙', href: '/lg-humanoid-specs', icon: Bot },
     ],
   },
   {
