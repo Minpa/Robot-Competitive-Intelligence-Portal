@@ -2,16 +2,48 @@
 
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ChevronDown } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, ChevronDown, X } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import {
   findCellById,
   CLOID_SPECS,
   VERDICT_LABEL,
   PRIORITY_LABEL,
+  DEV_CLUSTERS,
   type SubCell,
   type Verdict,
+  type CloidCoverageCell,
 } from '@/components/cloid-coverage/data';
+
+// Phase A: 휴리스틱 그리퍼 추출. coreActions / thresholds / devItems 안에서
+// 그리퍼 관련 키워드가 들어간 라인을 그대로 발췌해 보여준다.
+// Phase B에서 SubCell.requiredGripper 필드를 신설하면 이 함수는 fallback으로만 사용.
+const GRIPPER_KEYWORDS = [
+  '그리퍼', '그리핑', '그립',
+  'MAN-20', 'MAN-21', 'MAN-22',
+  'Soft', 'soft',
+  'F/T', 'F-T', 'F·T',
+  '손바닥 카메라', '손목 회전', '손 DoF', '손목 7',
+  'multi 그리퍼', 'multi-그리퍼',
+  '평행', '흡착', 'suction', '진공',
+];
+
+function extractGripperHints(sc: SubCell): string[] {
+  const sources: string[] = [...sc.coreActions, sc.thresholds, ...sc.devItems];
+  const hits = new Set<string>();
+  for (const text of sources) {
+    if (GRIPPER_KEYWORDS.some((k) => text.includes(k))) hits.add(text);
+  }
+  return [...hits];
+}
+
+// 셀 / 클러스터 매칭: cluster.cells 문자열 안에 cell.cellNum + 산업명 일부가 포함되는지
+function findRelevantClusters(cell: CloidCoverageCell) {
+  return DEV_CLUSTERS.filter((cl) =>
+    cl.cells.some((c) => c.includes(cell.cellNum) || c.includes(cell.sectorName)),
+  );
+}
 
 const VERDICT_TINT: Record<
   Verdict,
@@ -177,9 +209,215 @@ function SpecTable({
   );
 }
 
+function DevItemsModal({
+  cell,
+  onClose,
+}: {
+  cell: CloidCoverageCell;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+
+  const totalDev = cell.subCells.reduce((s, sc) => s + sc.devItems.length, 0);
+  const clusters = findRelevantClusters(cell);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8"
+      style={{ backgroundColor: 'rgba(26,26,26,0.55)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full max-w-[920px] max-h-[90vh] overflow-hidden flex flex-col"
+        style={{ borderRadius: 8, border: '1px solid #E2DED4' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          className="flex items-start justify-between gap-4 px-6 py-4 border-b border-[#E2DED4]"
+          style={{ backgroundColor: '#FAFAF7' }}
+        >
+          <div className="min-w-0">
+            <p className="font-mono text-[11px] text-[#6B6B6B] uppercase tracking-[0.16em] font-semibold mb-1">
+              개발 필요 항목
+            </p>
+            <h2 className="text-[20px] font-medium text-[#1A1A1A] leading-tight">
+              <span className="font-mono text-[#8B1538] mr-1.5">{cell.cellNum}</span>
+              {cell.taskName}
+              <span className="text-[#B8B6AE] mx-2">×</span>
+              {cell.sectorName}
+              <span className="ml-3 font-mono text-[14px] text-[#6B6B6B]">
+                총 {totalDev}건
+              </span>
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="shrink-0 p-1.5 rounded hover:bg-[#F2F0EA] text-[#6B6B6B] hover:text-[#1A1A1A]"
+            aria-label="닫기"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          {cell.subCells.map((sc) => {
+            if (sc.devItems.length === 0) return null;
+            const lvVerdict = worseVerdict(sc.cloidW.verdict, sc.cloidB.verdict);
+            const tint = VERDICT_TINT[lvVerdict];
+            const gripperHints = extractGripperHints(sc);
+
+            return (
+              <div
+                key={sc.lv}
+                className="relative pl-5 pr-4 py-4 border border-[#E2DED4]"
+                style={{ borderRadius: 6, backgroundColor: tint.bg }}
+              >
+                <div
+                  className="absolute left-0 top-0 bottom-0"
+                  style={{ width: 4, backgroundColor: tint.strip }}
+                />
+
+                <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span
+                      className="font-mono text-[12px] font-medium px-2 py-0.5 bg-white text-[#1A1A1A] tracking-wide border border-[#E2DED4]"
+                      style={{ borderRadius: 3 }}
+                    >
+                      Lv{sc.lv}
+                    </span>
+                    <span className="text-[15px] font-medium text-[#1A1A1A]">
+                      {sc.taskName}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <PriorityPill priority={sc.priority} />
+                    <span className="font-mono text-[11px] text-[#6B6B6B]">
+                      W <VerdictDot v={sc.cloidW.verdict} /> · B{' '}
+                      <VerdictDot v={sc.cloidB.verdict} />
+                    </span>
+                  </div>
+                </div>
+
+                {/* Dev items — 가장 강한 시각 무게 */}
+                <div
+                  className="bg-white p-3"
+                  style={{ borderRadius: 6, border: '1.5px solid #1A1A1A' }}
+                >
+                  <p className="font-mono text-[11px] text-[#1A1A1A] uppercase tracking-[0.12em] mb-1.5 font-bold">
+                    → 개발 필요
+                  </p>
+                  <ul className="space-y-1">
+                    {sc.devItems.map((d, i) => (
+                      <li
+                        key={i}
+                        className="text-[15px] text-[#1A1A1A] leading-relaxed flex gap-1.5"
+                      >
+                        <span className="shrink-0">·</span>
+                        <span>{d}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* 관련 그리퍼 (heuristic) */}
+                {gripperHints.length > 0 && (
+                  <div
+                    className="bg-white border border-[#E2DED4] p-3 mt-2"
+                    style={{ borderRadius: 6 }}
+                  >
+                    <p className="font-mono text-[11px] text-[#6B6B6B] uppercase tracking-[0.14em] mb-1.5 font-semibold">
+                      관련 그리퍼·손목 단서{' '}
+                      <span className="text-[#B8B6AE] normal-case tracking-normal font-normal">
+                        (텍스트 추출)
+                      </span>
+                    </p>
+                    <ul className="space-y-0.5">
+                      {gripperHints.map((g, i) => (
+                        <li
+                          key={i}
+                          className="text-[13.5px] text-[#3A3A3A] leading-relaxed flex gap-1.5"
+                        >
+                          <span className="shrink-0">·</span>
+                          <span>{g}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* 관련 개발 클러스터 */}
+          {clusters.length > 0 && (
+            <div
+              className="border border-[#E2DED4] p-4"
+              style={{ borderRadius: 6, backgroundColor: '#FAFAF7' }}
+            >
+              <p className="font-mono text-[11px] text-[#6B6B6B] uppercase tracking-[0.14em] mb-2.5 font-semibold">
+                Phase 4 관련 개발 클러스터
+              </p>
+              <ul className="space-y-2">
+                {clusters.map((cl) => (
+                  <li key={cl.id} className="text-[14px] text-[#1A1A1A] leading-relaxed">
+                    <div className="font-medium">{cl.name}</div>
+                    <div className="text-[12.5px] text-[#3A3A3A] mt-0.5">
+                      방향: {cl.direction}
+                    </div>
+                    <div className="font-mono text-[11.5px] text-[#6B6B6B] mt-0.5">
+                      벤치마크: {cl.benchmark} · 기간: {cl.duration}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div
+          className="px-6 py-3 border-t border-[#E2DED4] flex items-center justify-end"
+          style={{ backgroundColor: '#FAFAF7' }}
+        >
+          <button
+            onClick={onClose}
+            className="font-mono text-[12px] text-[#1A1A1A] px-3 py-1.5 border border-[#E2DED4] hover:bg-white"
+            style={{ borderRadius: 4 }}
+          >
+            닫기 (Esc)
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VerdictDot({ v }: { v: Verdict }) {
+  return (
+    <span
+      className="inline-block w-1.5 h-1.5 rounded-full align-middle mx-0.5"
+      style={{ backgroundColor: VERDICT_TINT[v].dot }}
+    />
+  );
+}
+
 function CellDetailContent() {
   const params = useParams<{ id: string }>();
   const cell = findCellById(params.id);
+  const [devModalOpen, setDevModalOpen] = useState(false);
 
   if (!cell) {
     return (
@@ -297,13 +535,18 @@ function CellDetailContent() {
               W·B 합산 {totalCover + totalPartial + totalGap}
             </span>
           </div>
-          <div
-            className="font-mono text-[13px] font-medium px-3 py-1.5"
+          <button
+            type="button"
+            onClick={() => setDevModalOpen(true)}
+            className="font-mono text-[13px] font-medium px-3 py-1.5 transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#1A1A1A]"
             style={{ backgroundColor: '#1A1A1A', color: '#FFFFFF', borderRadius: 4 }}
+            aria-label={`개발 필요 ${devCount}건 상세 보기`}
           >
-            → 개발 {devCount}건
-          </div>
+            → 개발 필요 {devCount}건
+          </button>
         </div>
+
+        {devModalOpen && <DevItemsModal cell={cell} onClose={() => setDevModalOpen(false)} />}
 
         {/* W·B 분리 카운트 — 비교 정보 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
