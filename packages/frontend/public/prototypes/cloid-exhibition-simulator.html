@@ -1308,6 +1308,7 @@
       'CONTROL_PANEL', 'PALLET', 'SAFETY_FENCE',
       // ARCHITECTURE
       'WALL_PANEL', 'DOORWAY', 'FIREPLACE', 'FLOOR_LAMP', 'SLAT_PANEL', 'LED_STRIP',
+      'REPAIR_ROOM',
     ];
     const FURNITURE_CATEGORIES = {
       MAIN_STAGE: 'STAGING', CIRCULAR_PODIUM: 'STAGING', PRODUCT_SHELF: 'STAGING',
@@ -1331,6 +1332,7 @@
       CONTROL_PANEL: 'MANUFACTURING', PALLET: 'MANUFACTURING', SAFETY_FENCE: 'MANUFACTURING',
       WALL_PANEL: 'ARCHITECTURE', DOORWAY: 'ARCHITECTURE', FIREPLACE: 'ARCHITECTURE',
       FLOOR_LAMP: 'ARCHITECTURE', SLAT_PANEL: 'ARCHITECTURE', LED_STRIP: 'ARCHITECTURE',
+      REPAIR_ROOM: 'ARCHITECTURE',
     };
     const FURNITURE_CATEGORY_ORDER = ['STAGING', 'DISPLAY', 'AUDIO', 'APPLIANCE', 'FURNITURE', 'BANK', 'RETAIL', 'MANUFACTURING', 'ARCHITECTURE'];
     const FURNITURE_DIMS = {
@@ -1393,6 +1395,7 @@
       FLOOR_LAMP: { width: 0.30, depth: 0.30, height: 1.65 },
       SLAT_PANEL: { width: 1.50, depth: 0.06, height: 2.50 },
       LED_STRIP: { width: 3.00, depth: 0.03, height: 0.04 },
+      REPAIR_ROOM: { width: 3.00, depth: 4.00, height: 2.50 },
     };
     const FURNITURE_SNAP = {
       MAIN_STAGE: 'free', CIRCULAR_PODIUM: 'free', PRODUCT_SHELF: 'wall', SCREEN_WALL: 'wall',
@@ -1414,6 +1417,7 @@
       CNC_MACHINE: 'free', CONTROL_PANEL: 'free', PALLET: 'free', SAFETY_FENCE: 'free',
       WALL_PANEL: 'wall', DOORWAY: 'wall', FIREPLACE: 'wall',
       FLOOR_LAMP: 'free', SLAT_PANEL: 'wall', LED_STRIP: 'wall',
+      REPAIR_ROOM: 'free',
     };
     const FURNITURE_COLORS = {
       MAIN_STAGE: 0xA50034, CIRCULAR_PODIUM: 0x2a221a, PRODUCT_SHELF: 0x2a2a2a,
@@ -1437,6 +1441,7 @@
       CNC_MACHINE: 0xa8a8a8, CONTROL_PANEL: 0xc0c0c0, PALLET: 0x8a6a48, SAFETY_FENCE: 0xffd000,
       WALL_PANEL: 0xc0bbb0, DOORWAY: 0xc0bbb0, FIREPLACE: 0x222222,
       FLOOR_LAMP: 0xc0c0c0, SLAT_PANEL: 0x8a6a4a, LED_STRIP: 0xff6688,
+      REPAIR_ROOM: 0xd0d5dc,
     };
     const FURNITURE_LABELS = {
       MAIN_STAGE: 'Main Stage', CIRCULAR_PODIUM: 'Circular Podium',
@@ -1466,6 +1471,7 @@
       SAFETY_FENCE: 'Safety Fence',
       WALL_PANEL: 'Wall Panel', DOORWAY: 'Doorway', FIREPLACE: 'Fireplace',
       FLOOR_LAMP: 'Floor Lamp', SLAT_PANEL: 'Slat Panel', LED_STRIP: 'LED Strip',
+      REPAIR_ROOM: 'Robot Repair Room',
     };
     // Robot interaction height (top surface or button height) for SPEC risk eval.
     const FURNITURE_INTERACTION = {
@@ -1528,6 +1534,7 @@
       FLOOR_LAMP: { h: 1.20, weight: 0.0, label: 'lamp switch' },
       SLAT_PANEL: { h: 1.50, weight: 0.0, label: 'panel surface' },
       LED_STRIP: { h: 0.04, weight: 0.0, label: 'strip' },
+      REPAIR_ROOM: { h: 1.50, weight: 0.0, label: 'repair bay' },
     };
 
     const ROBOT_TYPES = ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator', 'amrServi', 'amrCarti'];
@@ -4756,6 +4763,101 @@
       return group;
     }
 
+    function buildRepairRoom() {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.REPAIR_ROOM;
+      const W = dims.width, D = dims.depth, H = dims.height;
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0xd0d5dc, roughness: 0.5, metalness: 0.3 });
+      const frameMat = new THREE.MeshStandardMaterial({ color: 0x606870, roughness: 0.4, metalness: 0.6 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2e, roughness: 0.5, metalness: 0.4 });
+      const glowMat = new THREE.MeshStandardMaterial({ color: 0x00D9FF, emissive: 0x00D9FF, emissiveIntensity: 0.8 });
+      const floorMat = new THREE.MeshStandardMaterial({ color: 0x8a8e94, roughness: 0.7, metalness: 0.2 });
+      const glassMat = new THREE.MeshStandardMaterial({ color: 0xa0d8e8, transparent: true, opacity: 0.15, roughness: 0.05, side: THREE.DoubleSide });
+
+      // Floor plate
+      const floor = new THREE.Mesh(new THREE.BoxGeometry(W, 0.06, D), floorMat);
+      floor.position.set(0, 0.03, 0);
+      floor.receiveShadow = true;
+      group.add(floor);
+
+      // Side walls (left & right)
+      [-1, 1].forEach(s => {
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(0.08, H, D), wallMat);
+        wall.position.set(s * (W / 2 - 0.04), H / 2, 0);
+        wall.castShadow = true;
+        group.add(wall);
+      });
+
+      // Top roof panel
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(W, 0.06, D), wallMat);
+      roof.position.set(0, H, 0);
+      roof.castShadow = true;
+      group.add(roof);
+
+      // Entry arch (front, z = +D/2) — metal detector style
+      const archT = 0.06;
+      [-1, 1].forEach(s => {
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, H * 0.85, archT), frameMat);
+        post.position.set(s * (W / 2 - 0.20), H * 0.85 / 2, D / 2 - archT / 2);
+        post.castShadow = true;
+        group.add(post);
+      });
+      const archTop = new THREE.Mesh(new THREE.BoxGeometry(W - 0.16, 0.10, archT), frameMat);
+      archTop.position.set(0, H * 0.85, D / 2 - archT / 2);
+      group.add(archTop);
+      // Arch LED strip
+      const archLed = new THREE.Mesh(new THREE.BoxGeometry(W - 0.40, 0.025, 0.025), glowMat);
+      archLed.position.set(0, H * 0.85 + 0.06, D / 2 - archT / 2);
+      group.add(archLed);
+
+      // Exit arch (back, z = -D/2)
+      [-1, 1].forEach(s => {
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, H * 0.85, archT), frameMat);
+        post.position.set(s * (W / 2 - 0.20), H * 0.85 / 2, -D / 2 + archT / 2);
+        post.castShadow = true;
+        group.add(post);
+      });
+      const exitArchTop = new THREE.Mesh(new THREE.BoxGeometry(W - 0.16, 0.10, archT), frameMat);
+      exitArchTop.position.set(0, H * 0.85, -D / 2 + archT / 2);
+      group.add(exitArchTop);
+      const exitLed = new THREE.Mesh(new THREE.BoxGeometry(W - 0.40, 0.025, 0.025), glowMat);
+      exitLed.position.set(0, H * 0.85 + 0.06, -D / 2 + archT / 2);
+      group.add(exitLed);
+
+      // Internal diagnostic panels on both side walls (scanner look)
+      [-1, 1].forEach(s => {
+        for (let i = 0; i < 3; i++) {
+          const pz = -D / 2 + D * 0.25 + (D * 0.25) * i;
+          const panel = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.80, 0.50), darkMat);
+          panel.position.set(s * (W / 2 - 0.095), H * 0.5, pz);
+          group.add(panel);
+          // Scan line LED on each panel
+          const led = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.02, 0.40), glowMat);
+          led.position.set(s * (W / 2 - 0.075), H * 0.5 + 0.20, pz);
+          group.add(led);
+        }
+      });
+
+      // Conveyor rollers on the floor (5 rollers across the depth)
+      for (let i = 0; i < 5; i++) {
+        const rz = -D / 2 + 0.40 + (D - 0.80) / 4 * i;
+        const roller = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.04, 0.04, W - 0.30, 12),
+          frameMat
+        );
+        roller.rotation.z = Math.PI / 2;
+        roller.position.set(0, 0.10, rz);
+        group.add(roller);
+      }
+
+      // "REPAIR" label sign above entry arch
+      const signBg = new THREE.Mesh(new THREE.BoxGeometry(1.20, 0.28, 0.03), darkMat);
+      signBg.position.set(0, H * 0.85 + 0.25, D / 2 + 0.02);
+      group.add(signBg);
+
+      return group;
+    }
+
     const FURNITURE_BUILDERS = {
       MAIN_STAGE: buildMainStage,
       CIRCULAR_PODIUM: buildCircularPodium,
@@ -4816,6 +4918,7 @@
       FLOOR_LAMP: buildFloorLamp,
       SLAT_PANEL: buildSlatPanel,
       LED_STRIP: buildLEDStrip,
+      REPAIR_ROOM: buildRepairRoom,
     };
 
     function makeOutlineRing(dims) {
@@ -9804,7 +9907,7 @@
     // Reference: LG CES booth photos with overhead "LG AI Home" video wall +
     // sub-banners "with me!" / "Take a photo with me!" above each demo zone.
     function presetLGAIHome() {
-      const s = { booth: { widthFt: 60, depthFt: 35 }, furniture: [], robots: [] };
+      const s = { booth: { widthFt: 60, depthFt: 45 }, furniture: [], robots: [] };
       const { m, r } = presetHelpers(s);
       const Z_BACK = -5.10;
 
@@ -9837,6 +9940,9 @@
       m('REFRIGERATOR', 8.20, Z_BACK + 0.40, -Math.PI / 2, '냉장고');
       m('CIRCULAR_PODIUM', 5.80, -1.50, 0, '포토 포디움');
       m('PHOTO_RUG', 5.80, -1.50, 0, '포토 러그');
+
+      // ── ZONE 4: Robot Repair Room (below Living zone) ──
+      m('REPAIR_ROOM', -6.10, 3.05, 0, '로봇 리페어룸');
 
       // ── Robots (one per zone) ──
       // Living zone — wheeled CLOiD acts as roving concierge near sofa
