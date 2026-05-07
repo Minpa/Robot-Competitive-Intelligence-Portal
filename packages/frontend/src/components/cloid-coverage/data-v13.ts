@@ -90,6 +90,26 @@ export const VERDICT_LABEL: Record<Verdict, { ko: string; emoji: string; color: 
   gap:     { ko: '신규 개발', emoji: '❌', color: '#a01020', bg: '#FBEAF0' },
 };
 
+// End-Effector 비용·복잡도 등급 — 임원 보고에서 "주력 27"이 비싼 5지손인지
+// 저가 jaw인지 즉시 보이도록. 산업 표준 가격대 기준 (단위: USD).
+// $: <$10K / $$: $10K~$30K / $$$: $30K+
+export const EE_COST_TIER: Record<string, {
+  cost: '$' | '$$' | '$$$';
+  costLabel: string;
+  complexity: 'low' | 'mid' | 'high';
+  note: string;          // 짧은 비용·실용 컨텍스트
+}> = {
+  jaw_2f:  { cost: '$',   costLabel: '저가', complexity: 'low',  note: '산업R 50년 표준 · 대부분 단순 픽업·이재 충분' },
+  vac:     { cost: '$',   costLabel: '저가', complexity: 'low',  note: '박스·평면 SKU 픽 표준' },
+  hook:    { cost: '$',   costLabel: '저가', complexity: 'low',  note: 'Tote 전용 (Digit @ GXO 양산 검증)' },
+  tool:    { cost: '$',   costLabel: '저가', complexity: 'low',  note: '드라이버·토치 등 도구 마운트 — 도구 자체 비용 별도' },
+  dex_3f:  { cost: '$$',  costLabel: '중가', complexity: 'mid',  note: '6~7 DoF · 산업R + 일부 휴머노이드' },
+  dex_4f:  { cost: '$$$', costLabel: '고가', complexity: 'high', note: '11 DoF · Apptronik Apollo 급' },
+  dex_5f:  { cost: '$$$', costLabel: '고가', complexity: 'high', note: '11~22 DoF · Tesla/Figure/Xiaomi 급 정밀 손' },
+  soft:    { cost: '$$',  costLabel: '중가', complexity: 'mid',  note: '비정형 SKU 전용 (의류·잡화)' },
+  swap:    { cost: '$$',  costLabel: '중가', complexity: 'mid',  note: '자동 그리퍼 교체 시스템' },
+};
+
 export const PRIORITY_LABEL: Record<Priority, { color: string; bg: string }> = {
   High: { color: '#a01020', bg: '#FBEAF0' },
   Mid:  { color: '#9a6500', bg: '#FFF4D6' },

@@ -3,7 +3,13 @@
 import Link from 'next/link';
 import { Wrench } from 'lucide-react';
 import { STATS, EMPHASIS_MODES, type EmphasisMode } from './data';
-import { CELLS_V13, END_EFFECTOR_CATEGORIES } from '../cloid-coverage/data-v13';
+import { CELLS_V13, END_EFFECTOR_CATEGORIES, EE_COST_TIER } from '../cloid-coverage/data-v13';
+
+const COST_STYLE = {
+  '$':   { color: '#1f6647', bg: '#E8F5EE' },
+  '$$':  { color: '#7a5a14', bg: '#FBF1D6' },
+  '$$$': { color: '#a01020', bg: '#FBEAF0' },
+} as const;
 
 // 13개 진입 적합 셀의 모든 Lv (52 sub-cell) 합산 그리퍼 사용 빈도
 function aggregateAllGrippers() {
@@ -111,13 +117,21 @@ export default function MatrixHeader({ mode, onModeChange }: Props) {
 function RequiredGrippersBand() {
   const grippers = aggregateAllGrippers();
   if (grippers.length === 0) return null;
-  // Top 6 by weighted importance for the headline; rest as compact list
   const headline = grippers.slice(0, 6);
+
+  // 비용 효율 인사이트 — 저가 그리퍼 셀 커버리지 계산
+  const lowCostCodes = ['jaw_2f', 'vac', 'hook', 'tool'];
+  let cellsCoveredByLowCost = 0;
+  for (const cell of CELLS_V13) {
+    const cellLowCostCount = cell.subCells.filter((sc) => {
+      const tier1 = sc.eeReq.tier1 || [];
+      return tier1.some((g) => lowCostCodes.includes(g));
+    }).length;
+    if (cellLowCostCount >= 2) cellsCoveredByLowCost++;
+  }
+
   return (
-    <div
-      className="border border-[#E8E6DD] bg-white p-4"
-      style={{ borderRadius: 8 }}
-    >
+    <div className="border border-[#E8E6DD] bg-white p-4" style={{ borderRadius: 8 }}>
       <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
         <div className="flex items-center gap-1.5">
           <Wrench size={14} className="text-[#A50034]" />
@@ -126,20 +140,34 @@ function RequiredGrippersBand() {
           </span>
         </div>
         <span className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.14em]">
-          52 sub-cell 합산 · 가중치 3:2:1
+          52 sub-cell 합산
         </span>
       </div>
+
+      {/* 핵심 인사이트 — 비용 컨텍스트 */}
+      <div
+        className="text-[11.5px] text-[#1A1A1A] leading-relaxed mb-3 px-3 py-2"
+        style={{ backgroundColor: '#FAFAF7', borderLeft: '3px solid #A50034', borderRadius: 4 }}
+      >
+        <strong className="text-[#A50034]">사업 인사이트:</strong> 정밀 작업(배터리/전자가전 커넥터·FPC)이 많아
+        <span className="font-mono mx-1 px-1" style={{ backgroundColor: '#FBEAF0', color: '#a01020' }}>$$$ dex_5f</span>
+        가 1순위로 자주 등장하지만,
+        <span className="font-mono mx-1 px-1" style={{ backgroundColor: '#E8F5EE', color: '#1f6647' }}>$ jaw_2f / hook</span>
+        만으로 <strong>{cellsCoveredByLowCost}개 셀</strong>의 절반 이상 Lv를 처리 가능 (Tote·Bin·박스 적재 등 단순 픽).
+        <span className="text-[#5F5E5A] ml-1">→ 1차 진입은 저가 그리퍼로, 정밀 셀은 단계적 도입.</span>
+      </div>
+
       <p className="text-[11px] text-[#5F5E5A] mb-3 leading-snug">
-        ⓘ <strong>셀당 실제 채택은 1~2개</strong>. 아래는 13개 셀이 어떤 그리퍼를 얼마나 자주 요구하는지 빈도 순위입니다.
-        <span className="font-mono text-[10px] ml-2">
-          <strong style={{ color: '#1f6647' }}>주력</strong> = 1순위로 요구한 셀 수 ·
-          <strong style={{ color: '#7a5a14' }} className="ml-1">대체</strong> = 차선책으로 받는 수 ·
-          <strong style={{ color: '#5F5E5A' }} className="ml-1">옵션</strong> = 최후 옵션
-        </span>
+        ⓘ <strong>주력</strong> = 셀이 1순위로 요구한 수 (그리퍼 자체 비용·기술 난이도와 별개) ·
+        <strong className="ml-1">대체</strong> = 폴백으로 받는 셀 수 ·
+        <strong className="ml-1">옵션</strong> = 최후 옵션
       </p>
+
       <div className="flex flex-wrap gap-2">
         {headline.map((g, idx) => {
           const ee = END_EFFECTOR_CATEGORIES[g.code];
+          const cost = EE_COST_TIER[g.code];
+          const costStyle = cost ? COST_STYLE[cost.cost] : COST_STYLE['$'];
           const isTop3 = idx < 3;
           return (
             <div
@@ -150,7 +178,7 @@ function RequiredGrippersBand() {
                 border: `1.5px solid ${isTop3 ? '#A50034' : '#D3D1C7'}`,
                 borderRadius: 6,
               }}
-              title={ee ? `${ee.examples}` : g.code}
+              title={cost ? `${cost.note}` : ee?.examples || g.code}
             >
               <span
                 className="font-mono font-bold text-[14px]"
@@ -160,6 +188,14 @@ function RequiredGrippersBand() {
               </span>
               {ee && (
                 <span className="text-[14px] font-medium text-[#1A1A1A]">{ee.kr}</span>
+              )}
+              {cost && (
+                <span
+                  className="font-mono text-[11px] font-bold px-1.5 py-0.5"
+                  style={{ backgroundColor: costStyle.bg, color: costStyle.color, borderRadius: 3 }}
+                >
+                  {cost.cost} {cost.costLabel}
+                </span>
               )}
               <span className="font-mono text-[10.5px] text-[#5F5E5A] inline-flex items-baseline gap-1">
                 <span style={{ color: '#1f6647' }}>주력 <strong>{g.tier1}</strong></span>

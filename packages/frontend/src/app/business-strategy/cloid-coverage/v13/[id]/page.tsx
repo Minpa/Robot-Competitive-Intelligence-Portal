@@ -13,10 +13,17 @@ import {
   LG_ASSETS,
   KOREA_PARTNERS,
   END_EFFECTOR_CATEGORIES,
+  EE_COST_TIER,
   DEV_TYPES,
   type SubCellV13,
   type Verdict,
 } from '@/components/cloid-coverage/data-v13';
+
+const COST_STYLE_DETAIL = {
+  '$':   { color: '#1f6647', bg: '#E8F5EE', border: '#3F8C6E' },
+  '$$':  { color: '#7a5a14', bg: '#FBF1D6', border: '#D4A22F' },
+  '$$$': { color: '#a01020', bg: '#FBEAF0', border: '#C8366E' },
+} as const;
 
 function VerdictPill({ verdict }: { verdict: Verdict }) {
   const v = VERDICT_LABEL[verdict];
@@ -378,24 +385,34 @@ function aggregateGrippers(cell: NonNullable<ReturnType<typeof findCellV13>>) {
 
 function GripperPill({ code, tone }: { code: string; tone: 'primary' | 'secondary' | 'tertiary' }) {
   const ee = END_EFFECTOR_CATEGORIES[code];
+  const cost = EE_COST_TIER[code];
   const styles = {
     primary:   { bg: '#E8F5EE', color: '#0F4F32', border: '#3F8C6E', dofColor: '#1f6647' },
     secondary: { bg: '#FBF1D6', color: '#5A3F0A', border: '#D4A22F', dofColor: '#7a5a14' },
     tertiary:  { bg: '#F0EEE8', color: '#3A3A38', border: '#B8B6AE', dofColor: '#5F5E5A' },
   } as const;
   const s = styles[tone];
+  const costStyle = cost ? COST_STYLE_DETAIL[cost.cost] : null;
   return (
     <span
       className="inline-flex items-baseline gap-2 px-3 py-1.5"
       style={{ backgroundColor: s.bg, color: s.color, border: `1.5px solid ${s.border}`, borderRadius: 6 }}
-      title={ee ? `${ee.kr} (${ee.dof}) — ${ee.examples}` : code}
+      title={cost ? `${cost.note}` : ee ? `${ee.kr} (${ee.dof}) — ${ee.examples}` : code}
     >
       <span className="font-mono font-bold text-[14px] tracking-wide">{code}</span>
       {ee && (
-        <>
-          <span className="text-[14px] font-medium">{ee.kr}</span>
-          <span className="font-mono text-[10px] opacity-75" style={{ color: s.dofColor }}>{ee.dof}</span>
-        </>
+        <span className="text-[14px] font-medium">{ee.kr}</span>
+      )}
+      {cost && costStyle && (
+        <span
+          className="font-mono text-[10px] font-bold px-1.5 py-0.5"
+          style={{ backgroundColor: costStyle.bg, color: costStyle.color, border: `1px solid ${costStyle.border}`, borderRadius: 3 }}
+        >
+          {cost.cost} {cost.costLabel}
+        </span>
+      )}
+      {ee && (
+        <span className="font-mono text-[10px] opacity-75" style={{ color: s.dofColor }}>{ee.dof}</span>
       )}
     </span>
   );
