@@ -9695,7 +9695,7 @@
           el.textContent = sp.text;
           const wp = new THREE.Vector3();
           meshData.group.getWorldPosition(wp);
-          wp.y = (r.height || 1.7) + 0.35;
+          wp.y = (r.height || 1.7) - 0.05;
           const proj = wp.project(camera);
           if (proj.z > 1) { el.style.display = 'none'; return; }
           el.style.display = '';
