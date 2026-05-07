@@ -211,6 +211,67 @@ export const ROBOT_INFO: Record<string, RobotInfoEntry> = {
 export const LG_LINEUP_CODES = new Set(['MoMa', 'AMR', 'CLOiD']);
 
 // ─────────────────────────────────────────────────────────────────
+// 그리퍼 카테고리 상세 — Vac / Jaw / Multi / Soft / Mag
+
+export interface GripperInfoEntry {
+  code: GripperKind;
+  nameKr: string;
+  nameEn: string;
+  tagline: string;
+  description: string;
+  examples: string[];
+  useCases: string[];
+}
+
+export const GRIPPER_INFO: Record<string, GripperInfoEntry> = {
+  Vac: {
+    code: 'Vac',
+    nameKr: '진공 흡착 그리퍼',
+    nameEn: 'Vacuum Gripper',
+    tagline: '흡착 컵으로 평면·곡면 물체를 비접촉 파지',
+    description: '공압 또는 전기식 진공 발생기로 흡착력을 생성하여 물체를 파지. 평면·곡면 표면에서 빠르고 안정적. 다공성·불규칙 형상에는 부적합.',
+    examples: ['Schmalz', 'Piab piGRIP', 'SMC ZP 시리즈', 'OnRobot VGC10'],
+    useCases: ['박스 팔레타이징', '판유리·패널 이송', 'PCB 핸들링', '포장재 Bin Picking'],
+  },
+  Jaw: {
+    code: 'Jaw',
+    nameKr: '평행 조 그리퍼',
+    nameEn: 'Parallel Jaw Gripper',
+    tagline: '2-핑거 평행 조로 정형 부품을 정밀 파지',
+    description: '두 개의 평행한 핑거가 직선 운동으로 물체를 양측에서 클램핑. 정형 부품 파지에 가장 보편적이며 반복 정밀도가 높음. 비정형·대형 물체에는 한계.',
+    examples: ['Schunk PGN-plus', 'FESTO DHPS', 'Robotiq 2F-85/140', 'OnRobot RG2/RG6'],
+    useCases: ['머신 텐딩 부품 로딩', '나사 체결 부품 파지', '커넥터 삽입', '소형 부품 조립'],
+  },
+  Multi: {
+    code: 'Multi',
+    nameKr: '다중 핑거 그리퍼',
+    nameEn: 'Multi-Finger Gripper',
+    tagline: '3+ 핑거로 비정형·다종 물체에 적응적 파지',
+    description: '3개 이상의 핑거가 독립 구동되어 다양한 형상에 적응적으로 파지. 비정형 SKU 대응력이 뛰어나며 양손 협응 작업에 적합. 구조 복잡성과 제어 난이도가 높음.',
+    examples: ['Robotiq 3-Finger', 'Barrett Hand', 'Shadow Dexterous Hand', 'Wonik QBrobotics'],
+    useCases: ['Mixed-SKU Kitting', '비정형 Bin Picking', '양손 협응 체결', '케이블 라우팅'],
+  },
+  Soft: {
+    code: 'Soft',
+    nameKr: '소프트 그리퍼',
+    nameEn: 'Soft Gripper',
+    tagline: '유연 소재로 파손 위험 없이 연성 물체를 파지',
+    description: '실리콘·공압 액추에이터 등 유연 소재로 구성. 과일·식품·전자 부품 등 파손에 민감한 물체를 안전하게 파지. 고정밀 위치 결정이나 고중량 파지에는 부적합.',
+    examples: ['Soft Robotics mGrip', 'OnRobot Soft Gripper', 'Festo DHEF', 'RightHand RightPick'],
+    useCases: ['식품 핸들링', '전자 부품 이송', '의약품 포장', '불규칙 형상 파지'],
+  },
+  Mag: {
+    code: 'Mag',
+    nameKr: '자기 그리퍼',
+    nameEn: 'Magnetic Gripper',
+    tagline: '전자석·영구자석으로 철제 부품을 비접촉 파지',
+    description: '전자석 또는 영구자석(전환식)으로 강자성체 물체를 파지. 표면 상태에 무관하게 안정적이며 oil·분진 환경에 강점. 비자성체에는 사용 불가.',
+    examples: ['Schunk EMH', 'SMC MHM', 'Goudsmit 전자석', 'Schmalz SGM'],
+    useCases: ['철판·강재 이송', '조선 블록 용접 지그', '프레스 부품 로딩', '자동차 차체 핸들링'],
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────
 // 사례(태그) 상세 정보 — 배포 사례 클릭 시 팝업용
 export type CaseStatus = 'D' | 'A' | 'P' | 'X';
 

@@ -8,11 +8,12 @@ import {
   scoreToColor, scoreToVerdict,
   isTopTierCell, getTopTierRank,
   isTop5Cell, getTop5Rank,
-  ROBOT_INFO, LG_LINEUP_CODES, CASE_INFO,
+  ROBOT_INFO, LG_LINEUP_CODES, CASE_INFO, GRIPPER_INFO,
   type LvDetail,
 } from './data';
 import RobotInfoModal from './RobotInfoModal';
 import CaseInfoModal from './CaseInfoModal';
+import GripperInfoModal from './GripperInfoModal';
 
 interface Props {
   taskIdx: number;
@@ -24,6 +25,7 @@ export default function CellModal({ taskIdx, sectorIdx, onClose }: Props) {
   const router = useRouter();
   const [robotInfoCode, setRobotInfoCode] = useState<string | null>(null);
   const [caseInfoTag, setCaseInfoTag] = useState<string | null>(null);
+  const [gripperInfoCode, setGripperInfoCode] = useState<string | null>(null);
   const score = SCORES[taskIdx][sectorIdx];
   const task = TASKS[taskIdx];
   const sector = SECTORS[sectorIdx];
@@ -144,7 +146,7 @@ export default function CellModal({ taskIdx, sectorIdx, onClose }: Props) {
 
         {/* Body */}
         <div className="px-6 py-5">
-          <Lv4Table details={lvDetails} onRobotClick={setRobotInfoCode} onTagClick={setCaseInfoTag} />
+          <Lv4Table details={lvDetails} onRobotClick={setRobotInfoCode} onTagClick={setCaseInfoTag} onGripperClick={setGripperInfoCode} />
         </div>
 
         {/* Footer */}
@@ -201,6 +203,9 @@ export default function CellModal({ taskIdx, sectorIdx, onClose }: Props) {
       {caseInfoTag && (
         <CaseInfoModal tag={caseInfoTag} onClose={() => setCaseInfoTag(null)} />
       )}
+      {gripperInfoCode && (
+        <GripperInfoModal code={gripperInfoCode} onClose={() => setGripperInfoCode(null)} />
+      )}
     </div>
   );
 }
@@ -210,10 +215,12 @@ function Lv4Table({
   details,
   onRobotClick,
   onTagClick,
+  onGripperClick,
 }: {
   details: LvDetail[];
   onRobotClick: (code: string) => void;
   onTagClick: (tag: string) => void;
+  onGripperClick: (code: string) => void;
 }) {
   return (
     <>
@@ -233,7 +240,7 @@ function Lv4Table({
           </thead>
           <tbody>
             {details.map((lv, i) => (
-              <Lv4Row key={i} lvNum={i + 1} lv={lv} onRobotClick={onRobotClick} onTagClick={onTagClick} />
+              <Lv4Row key={i} lvNum={i + 1} lv={lv} onRobotClick={onRobotClick} onTagClick={onTagClick} onGripperClick={onGripperClick} />
             ))}
           </tbody>
         </table>
@@ -242,12 +249,12 @@ function Lv4Table({
       {/* Mobile: stacked cards */}
       <div className="md:hidden space-y-3">
         {details.map((lv, i) => (
-          <Lv4Card key={i} lvNum={i + 1} lv={lv} onRobotClick={onRobotClick} onTagClick={onTagClick} />
+          <Lv4Card key={i} lvNum={i + 1} lv={lv} onRobotClick={onRobotClick} onTagClick={onTagClick} onGripperClick={onGripperClick} />
         ))}
       </div>
 
       <p className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.18em] mt-4 pt-3 border-t border-[#E8E6DD]">
-        산업R / 라인업 / 사례 칩 클릭 시 상세 정보 · 빨간 테두리 = LG 자사 라인업
+        산업R / 그립 / 라인업 / 사례 칩 클릭 시 상세 정보 · 빨간 테두리 = LG 자사 라인업
       </p>
     </>
   );
@@ -258,11 +265,13 @@ function Lv4Row({
   lv,
   onRobotClick,
   onTagClick,
+  onGripperClick,
 }: {
   lvNum: number;
   lv: LvDetail;
   onRobotClick: (code: string) => void;
   onTagClick: (tag: string) => void;
+  onGripperClick: (code: string) => void;
 }) {
   const failed = lv.grade === 0;
   return (
@@ -283,7 +292,7 @@ function Lv4Row({
           <ChipRow items={lv.robots} kind="robot" onRobotClick={onRobotClick} />
         </td>
         <td className="px-3 py-2.5 border-b border-[#E8E6DD] align-top">
-          {lv.grippers.length > 0 ? <ChipRow items={lv.grippers} kind="gripper" /> : <span className="text-[#B8B6AE]">—</span>}
+          {lv.grippers.length > 0 ? <ChipRow items={lv.grippers} kind="gripper" onGripperClick={onGripperClick} /> : <span className="text-[#B8B6AE]">—</span>}
         </td>
         <td className="px-3 py-2.5 border-b border-[#E8E6DD] align-top">
           <ShareDots filled={lv.share} />
@@ -307,11 +316,13 @@ function Lv4Card({
   lv,
   onRobotClick,
   onTagClick,
+  onGripperClick,
 }: {
   lvNum: number;
   lv: LvDetail;
   onRobotClick: (code: string) => void;
   onTagClick: (tag: string) => void;
+  onGripperClick: (code: string) => void;
 }) {
   const failed = lv.grade === 0;
   return (
@@ -326,7 +337,7 @@ function Lv4Card({
       <p className="font-medium text-[14px] text-[#2C2C2A] mb-3">{lv.task}</p>
       <div className="grid grid-cols-2 gap-3 text-[11.5px]">
         <Field label="산업R">  <ChipRow items={lv.robots} kind="robot" onRobotClick={onRobotClick} /></Field>
-        <Field label="그립">    {lv.grippers.length ? <ChipRow items={lv.grippers} kind="gripper" /> : <span className="text-[#B8B6AE]">—</span>}</Field>
+        <Field label="그립">    {lv.grippers.length ? <ChipRow items={lv.grippers} kind="gripper" onGripperClick={onGripperClick} /> : <span className="text-[#B8B6AE]">—</span>}</Field>
         <Field label="점유율">  <ShareDots filled={lv.share} /></Field>
         <Field label="라인업">  <ChipRow items={lv.lineup} kind="lineup" onRobotClick={onRobotClick} /></Field>
         <Field label="사례">    {lv.tags.length ? <ChipRow items={lv.tags} kind="tag" onTagClick={onTagClick} /> : <span className="text-[#B8B6AE]">—</span>}</Field>
@@ -395,11 +406,13 @@ function ChipRow({
   kind,
   onRobotClick,
   onTagClick,
+  onGripperClick,
 }: {
   items: string[];
   kind: 'robot' | 'gripper' | 'lineup' | 'tag';
   onRobotClick?: (code: string) => void;
   onTagClick?: (tag: string) => void;
+  onGripperClick?: (code: string) => void;
 }) {
   const s = CHIP_STYLES[kind];
 
@@ -410,9 +423,11 @@ function ChipRow({
         const isLgLineup = kind === 'lineup' && LG_LINEUP_CODES.has(it);
         const hasRobotInfo = ROBOT_INFO[it] !== undefined;
         const hasCaseInfo = CASE_INFO[it] !== undefined;
+        const hasGripperInfo = GRIPPER_INFO[it] !== undefined;
         const canClickRobot = (kind === 'robot' || kind === 'lineup') && Boolean(onRobotClick) && hasRobotInfo;
         const canClickTag = kind === 'tag' && Boolean(onTagClick) && hasCaseInfo;
-        const canClick = canClickRobot || canClickTag;
+        const canClickGripper = kind === 'gripper' && Boolean(onGripperClick) && hasGripperInfo;
+        const canClick = canClickRobot || canClickTag || canClickGripper;
 
         const baseStyle: React.CSSProperties = {
           backgroundColor: isHalt ? '#F0EEE8' : s.bg,
@@ -432,6 +447,7 @@ function ChipRow({
               onClick={() => {
                 if (canClickRobot) onRobotClick!(it);
                 else if (canClickTag) onTagClick!(it);
+                else if (canClickGripper) onGripperClick!(it);
               }}
               className={className}
               style={baseStyle}
