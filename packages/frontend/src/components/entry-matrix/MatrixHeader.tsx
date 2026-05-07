@@ -26,11 +26,11 @@ export default function MatrixHeader({ mode, onModeChange }: Props) {
           12 Top Task × 12 산업 / 클릭 시 4Lv 상세
         </span>
         <Link
-          href="/business-strategy/cloid-coverage"
-          className="px-3 py-1.5 text-[11.5px] font-medium border border-[#8B1538] text-[#8B1538] hover:bg-[#FAEAE7] transition-colors whitespace-nowrap"
+          href="/business-strategy/cloid-coverage/v13"
+          className="px-3 py-1.5 text-[11.5px] font-medium border border-[#A50034] text-[#A50034] hover:bg-[#FAEAE7] transition-colors whitespace-nowrap"
           style={{ borderRadius: 4 }}
         >
-          CLOiD W/B 커버리지 →
+          CLOiD W/B 커버리지 v1.3 →
         </Link>
       </div>
 

@@ -76,7 +76,7 @@ export default function CellModal({ taskIdx, sectorIdx, onClose }: Props) {
   const handleCoverage = () => {
     if (!coverageId) return;
     onClose();
-    router.push(`/business-strategy/cloid-coverage/${coverageId}`);
+    router.push(`/business-strategy/cloid-coverage/v13/${coverageId}`);
   };
 
   return (
