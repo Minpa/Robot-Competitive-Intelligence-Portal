@@ -4866,6 +4866,16 @@
       signBg.position.set(0, H * 0.85 + 0.25, D / 2 + 0.02);
       group.add(signBg);
 
+      // Tag every mesh for UNDER_REPAIR whole-room glow and save original material
+      group.traverse(child => {
+        if (child.isMesh) {
+          child.userData.isRepairPart = true;
+          child.userData._repairOrigColor = child.material.color.getHex();
+          child.userData._repairOrigEmissive = child.material.emissive ? child.material.emissive.getHex() : 0x000000;
+          child.userData._repairOrigEmissiveIntensity = child.material.emissiveIntensity || 0;
+        }
+      });
+
       return group;
     }
 
@@ -9879,7 +9889,7 @@
 
       renderSpeechBubbles(state.currentTime);
 
-      // UNDER_REPAIR: blink repair room LEDs green when any robot is in UNDER_REPAIR
+      // UNDER_REPAIR: blink entire repair room green when any robot is in UNDER_REPAIR
       const hasRepairGesture = state.robots.some(r => {
         const t = state.currentTime;
         return (r.gestureTrack || []).some(g =>
@@ -9890,17 +9900,21 @@
         if (!group.userData?.furnitureId) return;
         const f = state.furniture.find(x => x.id === group.userData.furnitureId);
         if (f && f.type === 'REPAIR_ROOM') {
+          const blink = (Math.sin(performance.now() * 0.008) + 1) * 0.5;
           group.traverse(child => {
-            if (!child.userData.isRepairLed) return;
+            if (!child.isMesh || !child.userData.isRepairPart) return;
             if (hasRepairGesture) {
-              const blink = (Math.sin(performance.now() * 0.008) + 1) * 0.5;
               child.material.color.setHex(0x22ff66);
-              child.material.emissive.setHex(0x22ff66);
-              child.material.emissiveIntensity = 0.3 + blink * 1.5;
+              if (child.material.emissive) {
+                child.material.emissive.setHex(0x22ff66);
+                child.material.emissiveIntensity = 0.4 + blink * 1.6;
+              }
             } else {
-              child.material.color.setHex(0x00D9FF);
-              child.material.emissive.setHex(0x00D9FF);
-              child.material.emissiveIntensity = 0.8;
+              child.material.color.setHex(child.userData._repairOrigColor);
+              if (child.material.emissive) {
+                child.material.emissive.setHex(child.userData._repairOrigEmissive);
+                child.material.emissiveIntensity = child.userData._repairOrigEmissiveIntensity;
+              }
             }
           });
         }
