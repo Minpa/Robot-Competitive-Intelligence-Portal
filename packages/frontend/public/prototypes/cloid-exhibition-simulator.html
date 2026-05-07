@@ -9900,14 +9900,18 @@
         if (!group.userData?.furnitureId) return;
         const f = state.furniture.find(x => x.id === group.userData.furnitureId);
         if (f && f.type === 'REPAIR_ROOM') {
-          const blink = (Math.sin(performance.now() * 0.008) + 1) * 0.5;
+          const blink = (Math.sin(performance.now() * 0.005) + 1) * 0.5;
           group.traverse(child => {
             if (!child.isMesh || !child.userData.isRepairPart) return;
             if (hasRepairGesture) {
-              child.material.color.setHex(0x22ff66);
+              child.material.color.lerpColors(
+                new THREE.Color(child.userData._repairOrigColor),
+                new THREE.Color(0x22ff66),
+                0.5 + blink * 0.3
+              );
               if (child.material.emissive) {
                 child.material.emissive.setHex(0x22ff66);
-                child.material.emissiveIntensity = 0.4 + blink * 1.6;
+                child.material.emissiveIntensity = 0.2 + blink * 0.8;
               }
             } else {
               child.material.color.setHex(child.userData._repairOrigColor);
