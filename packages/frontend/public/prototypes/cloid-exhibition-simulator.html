@@ -1395,7 +1395,7 @@
       FLOOR_LAMP: { width: 0.30, depth: 0.30, height: 1.65 },
       SLAT_PANEL: { width: 1.50, depth: 0.06, height: 2.50 },
       LED_STRIP: { width: 3.00, depth: 0.03, height: 0.04 },
-      REPAIR_ROOM: { width: 3.00, depth: 4.00, height: 2.50 },
+      REPAIR_ROOM: { width: 1.00, depth: 1.33, height: 0.83 },
     };
     const FURNITURE_SNAP = {
       MAIN_STAGE: 'free', CIRCULAR_PODIUM: 'free', PRODUCT_SHELF: 'wall', SCREEN_WALL: 'wall',
@@ -9942,7 +9942,7 @@
       m('PHOTO_RUG', 5.80, -1.50, 0, '포토 러그');
 
       // ── ZONE 4: Robot Repair Room (below Living zone) ──
-      m('REPAIR_ROOM', -6.10, 3.05, 0, '로봇 리페어룸');
+      m('REPAIR_ROOM', -6.10, 3.05, Math.PI, '로봇 리페어룸');
 
       // ── Robots (one per zone) ──
       // Living zone — wheeled CLOiD acts as roving concierge near sofa
