@@ -89,13 +89,13 @@ function CloidCoverageV13Content() {
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Header */}
         <div className="mb-6">
-          <Link
-            href="/business-strategy/matrix"
-            className="inline-flex items-center gap-1.5 text-[12px] text-[#5F5E5A] hover:text-[#8B1538] mb-3"
-          >
-            <ArrowLeft size={14} />
-            진입성 매트릭스로
-          </Link>
+          <div className="flex items-center gap-2 mb-3 text-[12px] text-[#5F5E5A]">
+            <Link href="/business-strategy" className="hover:text-[#8B1538]">ARGOS 도메인 확장</Link>
+            <span className="text-[#B8B6AE]">/</span>
+            <Link href="/business-strategy/matrix" className="hover:text-[#8B1538]">진입성 매트릭스</Link>
+            <span className="text-[#B8B6AE]">/</span>
+            <span className="text-[#2C2C2A] font-medium">CLOiD 커버리지</span>
+          </div>
           <div className="flex items-center gap-3 mb-2">
             <h1 className="font-medium text-[28px] text-[#2C2C2A] tracking-tight">
               CLOiD W/B Capability Gap 분석

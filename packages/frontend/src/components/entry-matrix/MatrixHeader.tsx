@@ -1,7 +1,39 @@
 'use client';
 
 import Link from 'next/link';
+import { Wrench } from 'lucide-react';
 import { STATS, EMPHASIS_MODES, type EmphasisMode } from './data';
+import { CELLS_V13, END_EFFECTOR_CATEGORIES } from '../cloid-coverage/data-v13';
+
+// 13개 진입 적합 셀의 모든 Lv (52 sub-cell) 합산 그리퍼 사용 빈도
+function aggregateAllGrippers() {
+  const counts: Record<string, { tier1: number; tier2: number; tier3: number }> = {};
+  for (const cell of CELLS_V13) {
+    for (const sc of cell.subCells) {
+      (sc.eeReq.tier1 || []).forEach((g) => {
+        if (!counts[g]) counts[g] = { tier1: 0, tier2: 0, tier3: 0 };
+        counts[g].tier1++;
+      });
+      (sc.eeReq.tier2 || []).forEach((g) => {
+        if (!counts[g]) counts[g] = { tier1: 0, tier2: 0, tier3: 0 };
+        counts[g].tier2++;
+      });
+      (sc.eeReq.tier3 || []).forEach((g) => {
+        if (!counts[g]) counts[g] = { tier1: 0, tier2: 0, tier3: 0 };
+        counts[g].tier3++;
+      });
+    }
+  }
+  const list = Object.entries(counts).map(([code, c]) => ({
+    code,
+    ...c,
+    total: c.tier1 + c.tier2 + c.tier3,
+    weighted: c.tier1 * 3 + c.tier2 * 2 + c.tier3,
+  }));
+  // Sort by weighted score descending (Tier1 weight 3x, Tier2 2x, Tier3 1x)
+  list.sort((a, b) => b.weighted - a.weighted);
+  return list;
+}
 
 interface Props {
   mode: EmphasisMode;
@@ -46,6 +78,9 @@ export default function MatrixHeader({ mode, onModeChange }: Props) {
         />
       </div>
 
+      {/* 13개 진입 적합 셀 통합 — 권장 그리퍼 (52 sub-cell 합산, Tier 가중치 3:2:1) */}
+      <RequiredGrippersBand />
+
       {/* Emphasis toggle */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.18em] mr-1">
@@ -70,6 +105,70 @@ export default function MatrixHeader({ mode, onModeChange }: Props) {
         })}
       </div>
     </header>
+  );
+}
+
+function RequiredGrippersBand() {
+  const grippers = aggregateAllGrippers();
+  if (grippers.length === 0) return null;
+  // Top 6 by weighted importance for the headline; rest as compact list
+  const headline = grippers.slice(0, 6);
+  return (
+    <div
+      className="border border-[#E8E6DD] bg-white p-4"
+      style={{ borderRadius: 8 }}
+    >
+      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+        <div className="flex items-center gap-1.5">
+          <Wrench size={14} className="text-[#A50034]" />
+          <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.16em] text-[#A50034]">
+            13개 진입 적합 셀 통합 — 권장 End-Effector
+          </span>
+        </div>
+        <span className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.14em]">
+          Tier 가중치 3:2:1 · 52 sub-cell 합산
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {headline.map((g, idx) => {
+          const ee = END_EFFECTOR_CATEGORIES[g.code];
+          // Highlight intensity by rank
+          const isTop3 = idx < 3;
+          return (
+            <div
+              key={g.code}
+              className="inline-flex items-baseline gap-2 px-3 py-2"
+              style={{
+                backgroundColor: isTop3 ? '#FAEAE7' : '#FAFAF7',
+                border: `1.5px solid ${isTop3 ? '#A50034' : '#D3D1C7'}`,
+                borderRadius: 6,
+              }}
+              title={ee ? `${ee.examples}` : g.code}
+            >
+              <span
+                className="font-mono font-bold text-[14px]"
+                style={{ color: isTop3 ? '#A50034' : '#2C2C2A' }}
+              >
+                {g.code}
+              </span>
+              {ee && (
+                <span className="text-[14px] font-medium text-[#1A1A1A]">{ee.kr}</span>
+              )}
+              <span className="font-mono text-[10.5px] text-[#5F5E5A]">
+                T1<span className="font-bold mx-0.5" style={{ color: '#1f6647' }}>{g.tier1}</span>
+                · T2<span className="font-bold mx-0.5" style={{ color: '#7a5a14' }}>{g.tier2}</span>
+                · T3<span className="font-bold mx-0.5" style={{ color: '#5F5E5A' }}>{g.tier3}</span>
+              </span>
+            </div>
+          );
+        })}
+        {grippers.length > 6 && (
+          <span className="self-center font-mono text-[11px] text-[#888780]">
+            + {grippers.length - 6}종 더
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
 

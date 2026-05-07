@@ -296,39 +296,64 @@ function DevItemsModal({
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-          {cell.subCells.map((sc) => {
-            if (sc.devItems.length === 0) return null;
-            const tint = VERDICT_LABEL[sc.cloidW.verdict];
-            return (
-              <div
-                key={sc.lv}
-                className="relative pl-5 pr-4 py-3 border border-[#E2DED4]"
-                style={{ borderRadius: 6, backgroundColor: tint.bg + '40' }}
-              >
-                <div className="absolute left-0 top-0 bottom-0" style={{ width: 4, backgroundColor: tint.color }} />
-                <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span
-                      className="font-mono text-[12px] font-medium px-2 py-0.5 bg-white text-[#1A1A1A] tracking-wide border border-[#E2DED4]"
-                      style={{ borderRadius: 3 }}
-                    >
-                      Lv{sc.lv}
-                    </span>
-                    <span className="text-[14px] font-medium text-[#1A1A1A]">{sc.taskName}</span>
+          {(() => {
+            const lvsWithItems = cell.subCells.filter((sc) => sc.devItems && sc.devItems.length > 0);
+            if (lvsWithItems.length === 0) {
+              return (
+                <p className="text-[13px] text-[#5F5E5A] text-center py-8">
+                  이 셀의 4개 Lv 모두 개발 필요 항목이 없습니다.
+                </p>
+              );
+            }
+            return lvsWithItems.map((sc) => {
+              const tint = VERDICT_LABEL[sc.cloidW.verdict];
+              return (
+                <div
+                  key={sc.lv}
+                  className="relative pl-5 pr-4 py-4 border border-[#E2DED4] bg-white"
+                  style={{ borderRadius: 6 }}
+                >
+                  <div className="absolute left-0 top-0 bottom-0" style={{ width: 4, backgroundColor: tint.color }} />
+                  <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span
+                        className="font-mono text-[12px] font-medium px-2 py-0.5 bg-[#F0EEE8] text-[#1A1A1A] tracking-wide"
+                        style={{ borderRadius: 3 }}
+                      >
+                        Lv{sc.lv}
+                      </span>
+                      <span className="text-[14px] font-medium text-[#1A1A1A]">
+                        {sc.taskName || `Lv${sc.lv} 작업`}
+                      </span>
+                      <span className="font-mono text-[11px] text-[#888780]">
+                        ({sc.devItems.length}건)
+                      </span>
+                    </div>
+                    <PriorityPill priority={sc.priority} />
                   </div>
-                  <PriorityPill priority={sc.priority} />
+                  <div
+                    className="bg-[#FAFAF7] p-3"
+                    style={{ borderRadius: 4, border: '1px solid #E8E6DD' }}
+                  >
+                    <p className="font-mono text-[10px] text-[#1A1A1A] uppercase tracking-[0.14em] mb-2 font-bold">
+                      → 개발 필요
+                    </p>
+                    <ul className="space-y-1.5">
+                      {sc.devItems.map((d, i) => (
+                        <li
+                          key={i}
+                          className="text-[13.5px] text-[#1A1A1A] leading-relaxed flex gap-2"
+                        >
+                          <span className="shrink-0 text-[#8B1538] font-bold">·</span>
+                          <span>{d}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-                <ul className="space-y-1">
-                  {sc.devItems.map((d, i) => (
-                    <li key={i} className="text-[13.5px] text-[#1A1A1A] leading-relaxed flex gap-1.5">
-                      <span className="shrink-0 text-[#8B1538]">·</span>
-                      <span>{d}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
       </div>
     </div>
@@ -354,19 +379,24 @@ function aggregateGrippers(cell: NonNullable<ReturnType<typeof findCellV13>>) {
 function GripperPill({ code, tone }: { code: string; tone: 'primary' | 'secondary' | 'tertiary' }) {
   const ee = END_EFFECTOR_CATEGORIES[code];
   const styles = {
-    primary:   { bg: '#F4F9F6', color: '#1f6647', border: '#3F8C6E' },
-    secondary: { bg: '#FBF6E8', color: '#7a5a14', border: '#D4A22F' },
-    tertiary:  { bg: '#F0EEE8', color: '#5F5E5A', border: '#B8B6AE' },
+    primary:   { bg: '#E8F5EE', color: '#0F4F32', border: '#3F8C6E', dofColor: '#1f6647' },
+    secondary: { bg: '#FBF1D6', color: '#5A3F0A', border: '#D4A22F', dofColor: '#7a5a14' },
+    tertiary:  { bg: '#F0EEE8', color: '#3A3A38', border: '#B8B6AE', dofColor: '#5F5E5A' },
   } as const;
   const s = styles[tone];
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2 py-0.5 font-mono text-[11px]"
-      style={{ backgroundColor: s.bg, color: s.color, border: `1px solid ${s.border}`, borderRadius: 3 }}
+      className="inline-flex items-baseline gap-2 px-3 py-1.5"
+      style={{ backgroundColor: s.bg, color: s.color, border: `1.5px solid ${s.border}`, borderRadius: 6 }}
       title={ee ? `${ee.kr} (${ee.dof}) — ${ee.examples}` : code}
     >
-      <span className="font-semibold">{code}</span>
-      {ee && <span className="text-[#5F5E5A]">{ee.kr}</span>}
+      <span className="font-mono font-bold text-[14px] tracking-wide">{code}</span>
+      {ee && (
+        <>
+          <span className="text-[14px] font-medium">{ee.kr}</span>
+          <span className="font-mono text-[10px] opacity-75" style={{ color: s.dofColor }}>{ee.dof}</span>
+        </>
+      )}
     </span>
   );
 }
