@@ -739,7 +739,7 @@
       max-width: 280px;
       text-align: center;
       line-height: 1.5;
-      transform: translateX(-50%);
+      transform: translate(-50%, -100%);
       z-index: 50;
       animation: speechFadeIn 0.3s ease-out;
     }
@@ -747,15 +747,16 @@
       content: '';
       position: absolute;
       bottom: -8px;
-      left: 16px;
+      left: 50%;
+      margin-left: -8px;
       width: 0; height: 0;
       border-left: 8px solid transparent;
       border-right: 8px solid transparent;
       border-top: 8px solid rgba(255, 255, 255, 0.95);
     }
     @keyframes speechFadeIn {
-      from { opacity: 0; transform: translateX(-50%) translateY(8px); }
-      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+      from { opacity: 0; transform: translate(-50%, -100%) translateY(8px); }
+      to   { opacity: 1; transform: translate(-50%, -100%) translateY(0); }
     }
     .playhead {
       position: absolute;
@@ -9854,12 +9855,12 @@
           el.textContent = sp.text;
           const wp = new THREE.Vector3();
           meshData.group.getWorldPosition(wp);
-          wp.y = (r.height || 1.7) + 0.2;
+          wp.y = (r.height || 1.7) + 0.5;
           const proj = wp.project(camera);
           if (proj.z > 1) { el.style.display = 'none'; return; }
           el.style.display = '';
           el.style.left = (rect.left + (proj.x * 0.5 + 0.5) * rect.width) + 'px';
-          el.style.top = (rect.top + (-proj.y * 0.5 + 0.5) * rect.height - 20) + 'px';
+          el.style.top = (rect.top + (-proj.y * 0.5 + 0.5) * rect.height) + 'px';
         });
       });
       Object.keys(_speechBubbleCache).forEach(bid => {
