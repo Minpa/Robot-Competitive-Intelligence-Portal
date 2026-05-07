@@ -10414,7 +10414,7 @@
     //   bottom-right: customer waiting area 2 (고객대기석2) — round tables
     //   bottom-center: queue ticket kiosk (순번대기표)
     //   bottom-left: STM kiosk + main entrance (은행주출입구)
-    //   1 CLOiD Bipedal at main entrance
+    //   1 CLOiD Wheel at main entrance
     function presetKBJeonbuk() {
       const s = { booth: { widthFt: 65, depthFt: 50 }, furniture: [], robots: [] };
       const { m, r } = presetHelpers(s);
@@ -10477,8 +10477,8 @@
       m('WALL_PANEL', -8.80, 0.50, Math.PI / 2, '좌측 벽 2');
       m('WALL_PANEL', -8.80, 4.00, Math.PI / 2, '좌측 벽 3');
 
-      // ── CLOiD Bipedal 로봇 — 주출입구 앞 ──
-      r('cloidBipedal', -6.50, 6.00, -Math.PI / 4, 'CLOiD 안내로봇');
+      // ── CLOiD Wheel 로봇 — 주출입구 앞 ──
+      r('cloidWheel', -6.50, 6.00, -Math.PI / 4, 'CLOiD 안내로봇');
 
       return s;
     }
@@ -10495,7 +10495,7 @@
       { id: 'bank_branch',  name: '은행 영업점',          factory: presetBankBranch,
         description: '60×40 ft 은행 영업점 — 창구 6개 + ATM 3대 + 대기석 + 상담 데스크 + 코지 코너 + 안내 로봇' },
       { id: 'kb_jeonbuk',   name: 'KB전북금융타운 1층',   factory: presetKBJeonbuk,
-        description: '65×50 ft KB전북금융타운 1층 — 창구 5개 + 고객대기석 2구역 + 순번대기표 + STM + 청경 대기석 + CLOiD Bipedal 1대' },
+        description: '65×50 ft KB전북금융타운 1층 — 창구 5개 + 고객대기석 2구역 + 순번대기표 + STM + 청경 대기석 + CLOiD Wheel 1대' },
       { id: 'hiplaza',      name: '하이프라자 매장',       factory: presetHiPlaza,
         description: '60×40 ft LG 베스트샵/하이프라자 — 천장 LED 패널 + TV 월그리드 + 미러 디스플레이 아일랜드 + 마사지 체어 + 안내·NR 로봇' },
       { id: 'manufacturing', name: '제조라인',            factory: presetManufacturingLine,
