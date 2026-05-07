@@ -83,9 +83,11 @@ export const GAP_DEFINITION = {"cover": {"symbol": "✓", "label": "Cover", "kr"
 export const DEV_TYPES = {"A": {"desc": "Form factor 변경 (휠->양족, 베이스폭 축소)", "time": "24~36개월", "priority": ""}, "B": {"desc": "HW 보강 (도달 높이, 페이로드, 정밀도)", "time": "12~18개월", "priority": ""}, "C": {"desc": "인증 취득 (IECEx, IP65+)", "time": "18~24개월", "priority": "★ 우선 검토"}, "D": {"desc": "신규 Skill·도구 인터페이스 (NDE, swap)", "time": "6~12개월", "priority": ""}} as const;
 
 export const VERDICT_LABEL: Record<Verdict, { ko: string; emoji: string; color: string; bg: string }> = {
-  cover:   { ko: 'Cover',   emoji: '✅', color: '#1a7a3a', bg: '#E6F4EA' },
-  partial: { ko: 'Partial', emoji: '⚠️', color: '#9a6500', bg: '#FFF4D6' },
-  gap:     { ko: '개발필요', emoji: '❌', color: '#a01020', bg: '#FBEAF0' },
+  cover:   { ko: 'Cover',     emoji: '✅', color: '#1a7a3a', bg: '#E6F4EA' },
+  partial: { ko: 'Partial',   emoji: '⚠️', color: '#9a6500', bg: '#FFF4D6' },
+  // 'gap' verdict = Lv 단위 평가 ("이 Lv는 새로 개발해야 함"). 작업 항목
+  // 카운트('개발 필요 N건')와 단어 충돌을 피하려고 '신규 개발'로 명명.
+  gap:     { ko: '신규 개발', emoji: '❌', color: '#a01020', bg: '#FBEAF0' },
 };
 
 export const PRIORITY_LABEL: Record<Priority, { color: string; bg: string }> = {

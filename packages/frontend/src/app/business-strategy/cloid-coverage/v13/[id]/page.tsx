@@ -475,17 +475,22 @@ function CellDetailV13Content() {
           style={{ borderRadius: 8 }}
         >
           <div className="flex-1 min-w-[280px]">
-            <div className="flex items-center gap-1.5 mb-2">
+            <div className="flex items-center gap-1.5 mb-1">
               <Wrench size={13} className="text-[#5F5E5A]" />
               <span className="font-mono text-[10.5px] text-[#5F5E5A] uppercase tracking-[0.16em] font-semibold">
-                권장 End-Effector (셀 4-Lv 통합)
+                이 셀에 필요한 End-Effector
               </span>
             </div>
+            <p className="text-[10.5px] text-[#888780] mb-2">
+              4 Lv별 요구 그리퍼 합산 — <strong style={{ color: '#1f6647' }}>주력</strong>(1순위) /
+              <strong style={{ color: '#7a5a14' }} className="ml-1">대체</strong>(폴백) /
+              <strong style={{ color: '#5F5E5A' }} className="ml-1">옵션</strong>(최후)
+            </p>
             <div className="space-y-1.5">
               {grippers.tier1.length > 0 && (
                 <div className="flex items-start gap-2">
-                  <span className="font-mono text-[10px] text-[#1f6647] uppercase tracking-[0.12em] w-12 shrink-0 mt-1">
-                    Tier 1
+                  <span className="font-mono text-[10px] text-[#1f6647] uppercase tracking-[0.12em] w-12 shrink-0 mt-1.5 font-semibold">
+                    주력
                   </span>
                   <div className="flex flex-wrap gap-1">
                     {grippers.tier1.map((g) => (
@@ -496,8 +501,8 @@ function CellDetailV13Content() {
               )}
               {grippers.tier2.length > 0 && (
                 <div className="flex items-start gap-2">
-                  <span className="font-mono text-[10px] text-[#7a5a14] uppercase tracking-[0.12em] w-12 shrink-0 mt-1">
-                    Tier 2
+                  <span className="font-mono text-[10px] text-[#7a5a14] uppercase tracking-[0.12em] w-12 shrink-0 mt-1.5 font-semibold">
+                    대체
                   </span>
                   <div className="flex flex-wrap gap-1">
                     {grippers.tier2.map((g) => (
@@ -508,8 +513,8 @@ function CellDetailV13Content() {
               )}
               {grippers.tier3.length > 0 && (
                 <div className="flex items-start gap-2">
-                  <span className="font-mono text-[10px] text-[#5F5E5A] uppercase tracking-[0.12em] w-12 shrink-0 mt-1">
-                    Tier 3
+                  <span className="font-mono text-[10px] text-[#5F5E5A] uppercase tracking-[0.12em] w-12 shrink-0 mt-1.5 font-semibold">
+                    옵션
                   </span>
                   <div className="flex flex-wrap gap-1">
                     {grippers.tier3.map((g) => (
@@ -522,19 +527,19 @@ function CellDetailV13Content() {
           </div>
           <div className="flex flex-col items-end justify-center gap-2 pl-3 border-l border-[#E2DED4]">
             <span className="font-mono text-[10.5px] text-[#5F5E5A] uppercase tracking-[0.16em]">
-              개발 필요
+              개발 필요 작업
             </span>
             <button
               type="button"
               onClick={() => setDevModalOpen(true)}
               className="font-mono text-[14px] font-semibold px-4 py-2 transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1A1A1A] flex items-center gap-2"
               style={{ backgroundColor: '#1A1A1A', color: '#FFFFFF', borderRadius: 4 }}
-              aria-label={`개발 필요 ${totalDev}건 상세 보기`}
+              aria-label={`개발 필요 작업 ${totalDev}건 상세 보기`}
             >
               → 개발 필요 {totalDev}건
             </button>
             <span className="font-mono text-[10px] text-[#888780]">
-              {cell.subCells.filter((sc) => sc.priority === 'High').length} High · 클릭해 모두 보기
+              4 Lv 작업 항목 합 · {cell.subCells.filter((sc) => sc.priority === 'High').length} High
             </span>
           </div>
         </div>
@@ -544,20 +549,22 @@ function CellDetailV13Content() {
         {/* W/B summary + LG/Korea aggregate */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-[#FAFAF8] border border-[#E8E6DD] p-4" style={{ borderRadius: 8 }}>
-            <p className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.16em] mb-2">CLOiD W 4-Lv 종합</p>
+            <p className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.16em] mb-2">CLOiD W — Lv 단위 평가</p>
             <div className="flex gap-3 text-[13px]">
               <span className="font-medium text-emerald-700">✅ Cover {w.cover}</span>
               <span className="font-medium text-amber-700">⚠️ Partial {w.partial}</span>
-              <span className="font-medium text-red-700">❌ 개발필요 {w.gap}</span>
+              <span className="font-medium text-red-700">❌ 신규 개발 {w.gap}</span>
             </div>
+            <p className="text-[10px] text-[#888780] mt-1.5">4 Lv 중 각 verdict 개수 (작업 항목 카운트와 별개)</p>
           </div>
           <div className="bg-[#FAFAF8] border border-[#E8E6DD] p-4" style={{ borderRadius: 8 }}>
-            <p className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.16em] mb-2">CLOiD B 4-Lv 종합</p>
+            <p className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.16em] mb-2">CLOiD B — Lv 단위 평가</p>
             <div className="flex gap-3 text-[13px]">
               <span className="font-medium text-emerald-700">✅ Cover {b.cover}</span>
               <span className="font-medium text-amber-700">⚠️ Partial {b.partial}</span>
-              <span className="font-medium text-red-700">❌ 개발필요 {b.gap}</span>
+              <span className="font-medium text-red-700">❌ 신규 개발 {b.gap}</span>
             </div>
+            <p className="text-[10px] text-[#888780] mt-1.5">4 Lv 중 각 verdict 개수 (작업 항목 카운트와 별개)</p>
           </div>
         </div>
 

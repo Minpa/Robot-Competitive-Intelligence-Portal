@@ -222,9 +222,10 @@ with open(OUT, 'w', encoding='utf-8') as f:
 export const DEV_TYPES = {js(d.DEV_TYPES)} as const;
 
 export const VERDICT_LABEL: Record<Verdict, {{ ko: string; emoji: string; color: string; bg: string }}> = {{
-  cover:   {{ ko: 'Cover',   emoji: '✅', color: '#1a7a3a', bg: '#E6F4EA' }},
-  partial: {{ ko: 'Partial', emoji: '⚠️', color: '#9a6500', bg: '#FFF4D6' }},
-  gap:     {{ ko: '개발필요', emoji: '❌', color: '#a01020', bg: '#FBEAF0' }},
+  cover:   {{ ko: 'Cover',     emoji: '✅', color: '#1a7a3a', bg: '#E6F4EA' }},
+  partial: {{ ko: 'Partial',   emoji: '⚠️', color: '#9a6500', bg: '#FFF4D6' }},
+  // Lv 단위 verdict — 작업 항목('개발 필요 N건')과 충돌 회피 위해 '신규 개발'.
+  gap:     {{ ko: '신규 개발', emoji: '❌', color: '#a01020', bg: '#FBEAF0' }},
 }};
 
 export const PRIORITY_LABEL: Record<Priority, {{ color: string; bg: string }}> = {{
