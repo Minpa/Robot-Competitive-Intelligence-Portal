@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ArrowLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
+import TaskCategoryMatrix from '@/components/cloid-coverage/TaskCategoryMatrix';
 import {
   CELLS_V13,
   CLUSTERS_V13,
@@ -159,6 +160,11 @@ function CloidCoverageV13Content() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Task category × complexity matrix — 2축 빠른 조회 */}
+        <div className="mb-8">
+          <TaskCategoryMatrix />
         </div>
 
         {/* Cell Grid */}

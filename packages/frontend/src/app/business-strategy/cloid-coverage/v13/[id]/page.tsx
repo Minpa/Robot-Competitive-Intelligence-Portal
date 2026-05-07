@@ -146,7 +146,7 @@ function KoreaPartnerChips({ partnerIds }: { partnerIds: string[] }) {
 
 function LvRow({ sc }: { sc: SubCellV13 }) {
   return (
-    <div className="border-b border-[#E8E6DD] last:border-b-0 py-5">
+    <div id={`lv-${sc.lv}`} className="border-b border-[#E8E6DD] last:border-b-0 py-5 scroll-mt-20">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3 min-w-0">
           <span className="font-mono text-[12px] font-medium px-2 py-1 bg-[#F0EEE8] text-[#2C2C2A] tracking-wide" style={{ borderRadius: 3 }}>

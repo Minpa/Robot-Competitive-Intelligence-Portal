@@ -116,6 +116,71 @@ export const PRIORITY_LABEL: Record<Priority, { color: string; bg: string }> = {
   Low:  { color: '#5F5E5A', bg: '#F0EEE8' },
 };
 
+// ─────────────────────────────────────────────────────────────────
+// 작업 종류 × 공정 복잡도 분류 (2축 매트릭스용)
+// ─────────────────────────────────────────────────────────────────
+
+export type TaskCategory = '단순 이재' | '정밀 조작' | '도구 운용';
+
+// cellNum (①~⑫) 기준 작업 종류 매핑.
+// - 단순 이재: Tote/Bin/박스/Kitting 등 픽·이재 위주 — 그리퍼로 충분
+// - 정밀 조작: 커넥터·케이블·FPC 등 정밀 삽입·라우팅 — 다지 핸드 필수
+// - 도구 운용: 용접·도장·점검·나사 — 토치·드라이버 등 도구 마운트(tool)
+export const TASK_CATEGORY: Record<string, TaskCategory> = {
+  '①': '단순 이재',  // Bin Picking
+  '②': '단순 이재',  // Kitting
+  '⑤': '도구 운용',  // 나사 체결
+  '⑥': '정밀 조작',  // 커넥터 체결
+  '⑦': '정밀 조작',  // 케이블 라우팅
+  '⑧': '단순 이재',  // Tote 이송
+  '⑨': '단순 이재',  // Tote·박스 적재
+  '⑩': '단순 이재',  // 박스 마감
+  '⑪': '도구 운용',  // 용접·도장
+  '⑫': '도구 운용',  // 점검·계측
+};
+
+export function getTaskCategory(cellNum: string): TaskCategory | undefined {
+  return TASK_CATEGORY[cellNum];
+}
+
+export type ComplexityBucket = 'Lv1~2' | 'Lv3~4';
+export function getComplexityBucket(lv: number): ComplexityBucket {
+  return lv <= 2 ? 'Lv1~2' : 'Lv3~4';
+}
+
+export interface TaskMatrixEntry {
+  cellId: string;
+  cellNum: string;
+  taskName: string;
+  sectorName: string;
+  lv: 1 | 2 | 3 | 4;
+  subTaskName: string; // sub-cell의 task_short
+  category: TaskCategory;
+  bucket: ComplexityBucket;
+}
+
+// 52 sub-cell 전체를 (category, bucket)로 분류한 평탄화 리스트.
+export function buildTaskMatrixEntries(): TaskMatrixEntry[] {
+  const out: TaskMatrixEntry[] = [];
+  for (const cell of CELLS_V13) {
+    const cat = getTaskCategory(cell.cellNum);
+    if (!cat) continue;
+    for (const sc of cell.subCells) {
+      out.push({
+        cellId: cell.id,
+        cellNum: cell.cellNum,
+        taskName: cell.taskName,
+        sectorName: cell.sectorName,
+        lv: sc.lv,
+        subTaskName: sc.taskName,
+        category: cat,
+        bucket: getComplexityBucket(sc.lv),
+      });
+    }
+  }
+  return out;
+}
+
 export function findCellV13(id: string): CloidCoverageCellV13 | undefined {
   return CELLS_V13.find(c => c.id === id);
 }
