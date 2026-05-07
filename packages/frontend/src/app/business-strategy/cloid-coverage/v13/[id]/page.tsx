@@ -1,8 +1,9 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, Sparkles, X, Wrench } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import {
   findCellV13,
@@ -235,9 +236,145 @@ function LvRow({ sc }: { sc: SubCellV13 }) {
   );
 }
 
+// ─── Dev items modal ──────────────────────────────────────────────
+function DevItemsModal({
+  cell,
+  onClose,
+}: {
+  cell: NonNullable<ReturnType<typeof findCellV13>>;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+
+  const totalDev = cell.subCells.reduce((s, sc) => s + sc.devItems.length, 0);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8"
+      style={{ backgroundColor: 'rgba(26,26,26,0.55)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full max-w-[920px] max-h-[90vh] overflow-hidden flex flex-col"
+        style={{ borderRadius: 8, border: '1px solid #E2DED4' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="flex items-start justify-between gap-4 px-6 py-4 border-b border-[#E2DED4]"
+          style={{ backgroundColor: '#FAFAF7' }}
+        >
+          <div>
+            <p className="font-mono text-[11px] text-[#6B6B6B] uppercase tracking-[0.16em] font-semibold mb-1">
+              개발 필요 항목
+            </p>
+            <h2 className="text-[20px] font-medium text-[#1A1A1A] leading-tight">
+              <span className="font-mono text-[#8B1538] mr-1.5">{cell.cellNum}</span>
+              {cell.taskName}
+              <span className="text-[#B8B6AE] mx-2">×</span>
+              {cell.sectorName}
+              <span className="ml-3 font-mono text-[14px] text-[#6B6B6B]">총 {totalDev}건</span>
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="shrink-0 p-1.5 rounded hover:bg-[#F2F0EA] text-[#6B6B6B] hover:text-[#1A1A1A]"
+            aria-label="닫기"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          {cell.subCells.map((sc) => {
+            if (sc.devItems.length === 0) return null;
+            const tint = VERDICT_LABEL[sc.cloidW.verdict];
+            return (
+              <div
+                key={sc.lv}
+                className="relative pl-5 pr-4 py-3 border border-[#E2DED4]"
+                style={{ borderRadius: 6, backgroundColor: tint.bg + '40' }}
+              >
+                <div className="absolute left-0 top-0 bottom-0" style={{ width: 4, backgroundColor: tint.color }} />
+                <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span
+                      className="font-mono text-[12px] font-medium px-2 py-0.5 bg-white text-[#1A1A1A] tracking-wide border border-[#E2DED4]"
+                      style={{ borderRadius: 3 }}
+                    >
+                      Lv{sc.lv}
+                    </span>
+                    <span className="text-[14px] font-medium text-[#1A1A1A]">{sc.taskName}</span>
+                  </div>
+                  <PriorityPill priority={sc.priority} />
+                </div>
+                <ul className="space-y-1">
+                  {sc.devItems.map((d, i) => (
+                    <li key={i} className="text-[13.5px] text-[#1A1A1A] leading-relaxed flex gap-1.5">
+                      <span className="shrink-0 text-[#8B1538]">·</span>
+                      <span>{d}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Aggregate gripper requirements across all 4 levels of a cell ─────
+function aggregateGrippers(cell: NonNullable<ReturnType<typeof findCellV13>>) {
+  const tier1 = new Set<string>();
+  const tier2 = new Set<string>();
+  const tier3 = new Set<string>();
+  for (const sc of cell.subCells) {
+    (sc.eeReq.tier1 || []).forEach((g) => tier1.add(g));
+    (sc.eeReq.tier2 || []).forEach((g) => tier2.add(g));
+    (sc.eeReq.tier3 || []).forEach((g) => tier3.add(g));
+  }
+  // De-dupe across tiers — if a gripper appears in tier1, drop from tier2/3 etc.
+  tier1.forEach((g) => { tier2.delete(g); tier3.delete(g); });
+  tier2.forEach((g) => tier3.delete(g));
+  return { tier1: [...tier1], tier2: [...tier2], tier3: [...tier3] };
+}
+
+function GripperPill({ code, tone }: { code: string; tone: 'primary' | 'secondary' | 'tertiary' }) {
+  const ee = END_EFFECTOR_CATEGORIES[code];
+  const styles = {
+    primary:   { bg: '#F4F9F6', color: '#1f6647', border: '#3F8C6E' },
+    secondary: { bg: '#FBF6E8', color: '#7a5a14', border: '#D4A22F' },
+    tertiary:  { bg: '#F0EEE8', color: '#5F5E5A', border: '#B8B6AE' },
+  } as const;
+  const s = styles[tone];
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-2 py-0.5 font-mono text-[11px]"
+      style={{ backgroundColor: s.bg, color: s.color, border: `1px solid ${s.border}`, borderRadius: 3 }}
+      title={ee ? `${ee.kr} (${ee.dof}) — ${ee.examples}` : code}
+    >
+      <span className="font-semibold">{code}</span>
+      {ee && <span className="text-[#5F5E5A]">{ee.kr}</span>}
+    </span>
+  );
+}
+
 function CellDetailV13Content() {
   const params = useParams<{ id: string }>();
   const cell = findCellV13(params.id);
+  const [devModalOpen, setDevModalOpen] = useState(false);
 
   if (!cell) {
     return (
@@ -254,14 +391,17 @@ function CellDetailV13Content() {
 
   const w = { cover: 0, partial: 0, gap: 0 } as Record<Verdict, number>;
   const b = { cover: 0, partial: 0, gap: 0 } as Record<Verdict, number>;
+  let totalDev = 0;
   for (const sc of cell.subCells) {
     w[sc.cloidW.verdict]++;
     b[sc.cloidB.verdict]++;
+    totalDev += sc.devItems.length;
   }
 
   // Aggregated unique LG assets / Korea partners across all 4 levels
   const allLg = Array.from(new Set(cell.subCells.flatMap((sc) => sc.lgAssets)));
   const allKorea = Array.from(new Set(cell.subCells.flatMap((sc) => sc.koreaPartners)));
+  const grippers = aggregateGrippers(cell);
 
   return (
     <div className="min-h-screen bg-white" style={{ color: '#2C2C2A' }}>
@@ -298,6 +438,78 @@ function CellDetailV13Content() {
             </h1>
           </div>
         </div>
+
+        {/* Top summary band — 권장 그리퍼 + 개발 필요 N건 버튼 (셀 단위 한눈에 보기) */}
+        <div
+          className="flex items-stretch flex-wrap gap-3 px-5 py-4 border border-[#E2DED4] bg-white mb-3"
+          style={{ borderRadius: 8 }}
+        >
+          <div className="flex-1 min-w-[280px]">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Wrench size={13} className="text-[#5F5E5A]" />
+              <span className="font-mono text-[10.5px] text-[#5F5E5A] uppercase tracking-[0.16em] font-semibold">
+                권장 End-Effector (셀 4-Lv 통합)
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              {grippers.tier1.length > 0 && (
+                <div className="flex items-start gap-2">
+                  <span className="font-mono text-[10px] text-[#1f6647] uppercase tracking-[0.12em] w-12 shrink-0 mt-1">
+                    Tier 1
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {grippers.tier1.map((g) => (
+                      <GripperPill key={g} code={g} tone="primary" />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {grippers.tier2.length > 0 && (
+                <div className="flex items-start gap-2">
+                  <span className="font-mono text-[10px] text-[#7a5a14] uppercase tracking-[0.12em] w-12 shrink-0 mt-1">
+                    Tier 2
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {grippers.tier2.map((g) => (
+                      <GripperPill key={g} code={g} tone="secondary" />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {grippers.tier3.length > 0 && (
+                <div className="flex items-start gap-2">
+                  <span className="font-mono text-[10px] text-[#5F5E5A] uppercase tracking-[0.12em] w-12 shrink-0 mt-1">
+                    Tier 3
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {grippers.tier3.map((g) => (
+                      <GripperPill key={g} code={g} tone="tertiary" />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col items-end justify-center gap-2 pl-3 border-l border-[#E2DED4]">
+            <span className="font-mono text-[10.5px] text-[#5F5E5A] uppercase tracking-[0.16em]">
+              개발 필요
+            </span>
+            <button
+              type="button"
+              onClick={() => setDevModalOpen(true)}
+              className="font-mono text-[14px] font-semibold px-4 py-2 transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1A1A1A] flex items-center gap-2"
+              style={{ backgroundColor: '#1A1A1A', color: '#FFFFFF', borderRadius: 4 }}
+              aria-label={`개발 필요 ${totalDev}건 상세 보기`}
+            >
+              → 개발 필요 {totalDev}건
+            </button>
+            <span className="font-mono text-[10px] text-[#888780]">
+              {cell.subCells.filter((sc) => sc.priority === 'High').length} High · 클릭해 모두 보기
+            </span>
+          </div>
+        </div>
+
+        {devModalOpen && <DevItemsModal cell={cell} onClose={() => setDevModalOpen(false)} />}
 
         {/* W/B summary + LG/Korea aggregate */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
