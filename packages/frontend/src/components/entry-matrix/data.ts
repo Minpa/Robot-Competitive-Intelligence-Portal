@@ -211,6 +211,90 @@ export const ROBOT_INFO: Record<string, RobotInfoEntry> = {
 export const LG_LINEUP_CODES = new Set(['MoMa', 'AMR', 'CLOiD']);
 
 // ─────────────────────────────────────────────────────────────────
+// 사례(태그) 상세 정보 — 배포 사례 클릭 시 팝업용
+export type CaseStatus = 'D' | 'A' | 'P' | 'X';
+
+export interface CaseInfoEntry {
+  tag: string;
+  company: string;
+  robot: string;
+  status: CaseStatus;
+  statusLabel: string;
+  sector: string;
+  task: string;
+  description: string;
+  detail: string;
+  source?: string;
+}
+
+const STATUS_LABELS: Record<CaseStatus, string> = {
+  D: '양산 배치',
+  A: '알파 / PoC',
+  P: '파일럿',
+  X: '중단 / 제한',
+};
+
+function c(
+  tag: string, company: string, robot: string, status: CaseStatus,
+  sector: string, task: string, description: string, detail: string, source?: string,
+): CaseInfoEntry {
+  return { tag, company, robot, status, statusLabel: STATUS_LABELS[status], sector, task, description, detail, source };
+}
+
+export const CASE_INFO: Record<string, CaseInfoEntry> = {
+  'Amazon-D':           c('Amazon-D', 'Amazon', 'Sparrow / Robin / Proteus', 'D', '물류(DC)', 'Bin Picking · Tote 이송 · 팔레타이징', 'Amazon 물류 센터 양산 로봇 배치 — 75만 대 이상 가동', 'Amazon은 Sparrow(Bin Picking), Robin(분류), Proteus(자율주행 Tote 이송) 등 로봇을 DC 전역에 75만 대 이상 배치. 2024년 기준 연간 처리 Tote 10억+ 건. 인간 작업자와 협업 형태로 운영.', 'Amazon 2024 공식 발표'),
+  'Amazon-AGV':         c('Amazon-AGV', 'Amazon', 'Kiva / Proteus AGV', 'D', '물류(DC)', 'AGV 기반 선반 이송', 'Amazon Kiva → Proteus AGV 양산 배치', 'Kiva Systems 인수(2012) 이후 AGV 기반 선반 이송 시스템 양산. 이후 Proteus 자율 이동 로봇으로 세대 교체.'),
+  'GXO-D':              c('GXO-D', 'GXO Logistics', 'Agility Digit', 'D', '물류(DC)', 'Tote 이송 · Kitting', 'GXO + Agility Digit RaaS 양산 배치 — 누적 10만+ Tote', 'GXO는 Agility Digit을 RaaS(Robot-as-a-Service) 모델로 양산 배치. 단층 DC 환경에서 누적 10만+ Tote 처리 실적. Spanx DC에서 상용 운영 중.', 'GXO 2024 Q3 실적 발표'),
+  'GXO-Digit-A':        c('GXO-Digit-A', 'GXO Logistics', 'Agility Digit', 'A', '물류(DC)', 'Kitting · 분류', 'GXO Digit Kitting 파일럿', 'GXO Kitting 라인에서 Digit PoC 운영. Mixed-SKU 대응 확인 중.'),
+  'Spanx-D':            c('Spanx-D', 'Spanx (via GXO)', 'Agility Digit', 'D', '물류(DC)', 'Tote 이송', 'Spanx DC에서 Digit 양산 상용 운영', 'Spanx의 GXO 위탁 DC에서 Agility Digit이 Tote 이송 작업 양산 가동 중. RaaS 모델 적용.'),
+  'Toyota-D':           c('Toyota-D', 'Toyota', 'T-HR3 / Arene / 자사 시스템', 'D', '자동차', 'Tote 이송 · 차체 핸들링', 'Toyota 자체 공장 로봇 양산 배치', 'Toyota는 자체 로봇 시스템(T-HR3, Arene 플랫폼 등)을 공장 라인에 양산 배치. 차체 핸들링 및 물류 이송에 활용.'),
+  'Toyota-Digit-A':     c('Toyota-Digit-A', 'Toyota', 'Agility Digit', 'A', '자동차', 'Tote 이송', 'Toyota Research Institute Digit 연구 파트너십', 'TRI(Toyota Research Institute)에서 Digit 활용 Tote 이송 PoC 진행.'),
+  'Tesla-Optimus-D':    c('Tesla-Optimus-D', 'Tesla', 'Optimus (Gen 2)', 'D', '배터리·전자', '4680 셀 핸들링', 'Tesla 공장에서 Optimus 자체 배치', 'Tesla Fremont/Austin 공장에서 Optimus를 4680 배터리 셀 핸들링 및 분류 작업에 자체 배치. 2025년 기준 수십 대 규모.', 'Tesla 2025 Q1 Earnings'),
+  'Tesla-X':            c('Tesla-X', 'Tesla', 'Optimus', 'X', '다분야', 'Bin Picking 등', 'Tesla Optimus — 외부 판매 제한, 자사 전용', 'Optimus는 외부 판매 없이 Tesla 공장 내부 전용으로 운영. 외부 상용화 시점 미정.'),
+  'CATL-D':             c('CATL-D', 'CATL', 'CATL Xiaomo', 'D', '배터리', '커넥터 체결 · Pack 조립', 'CATL Xiaomo 세계 최초 대규모 휴머노이드 배치 (2025-12)', 'CATL Luoyang Zhongzhou 공장에서 Xiaomo 휴머노이드를 대규모 배치. 99% 가동률 달성. 배터리 Pack 조립 및 커넥터 체결 작업 수행.', 'CATL 2025 공식 발표'),
+  'CATL-X':             c('CATL-X', 'CATL', 'CATL Xiaomo', 'X', '배터리', '팩 조립', 'CATL Xiaomo 일부 라인 중단', 'CATL 일부 라인에서 Xiaomo 운영 중단. 품질 이슈 또는 라인 재편에 따른 것으로 추정.'),
+  'BMW-Figure-A':       c('BMW-Figure-A', 'BMW', 'Figure 02', 'A', '자동차', '차체 부품 체결', 'BMW Spartanburg 공장 Figure 02 파일럿 (11개월)', 'BMW Spartanburg X3 라인에서 Figure 02가 11개월 파일럿 운영. 30K대 생산에 기여. 2025-11 retire 후 Figure 03 전환 논의 중.', 'Figure AI 공식 발표'),
+  'BMW-Figure-D':       c('BMW-Figure-D', 'BMW', 'Figure 02/03', 'D', '자동차', '차체 부품 체결', 'BMW + Figure 양산 단계 전환', 'BMW가 Figure 로봇을 양산 라인에 투입하는 단계로 전환 중.'),
+  'BMW-Fig':            c('BMW-Fig', 'BMW', 'Figure', 'A', '자동차', '차체 조립 보조', 'BMW + Figure 파일럿', 'BMW 공장에서 Figure 로봇 활용 차체 조립 파일럿.'),
+  'Mercedes-Apollo-A':  c('Mercedes-Apollo-A', 'Mercedes-Benz', 'Apptronik Apollo', 'A', '자동차', '부품 핸들링', 'Mercedes-Benz + Apptronik Apollo PoC', 'Mercedes-Benz가 Apollo 휴머노이드를 부품 핸들링 작업에 PoC 적용. GXO와의 3자 파트너십.'),
+  'Mercedes-Apollo-D':  c('Mercedes-Apollo-D', 'Mercedes-Benz', 'Apptronik Apollo', 'D', '자동차', '부품 핸들링', 'Mercedes-Benz Apollo 양산 적용', 'Mercedes-Benz가 Apollo를 생산 라인에 양산 배치.'),
+  'Samsung-A':          c('Samsung-A', 'Samsung', '자체 솔루션 / 협동로봇', 'A', '전자', '검사 · SMT', 'Samsung 전자 라인 로봇 PoC', 'Samsung 전자 생산 라인에서 검사 및 SMT 공정 로봇 PoC.'),
+  'Samsung-RBY1-D':     c('Samsung-RBY1-D', 'Samsung', 'Rainbow Robotics RB-Y1', 'D', '전자', '검사 · 조립', 'Samsung + Rainbow Robotics RB-Y1 양산 배치', 'Samsung이 Rainbow Robotics(지분 투자) RB-Y1 양산 배치.'),
+  'Samsung-Spot-D':     c('Samsung-Spot-D', 'Samsung', 'Boston Dynamics Spot', 'D', '건설·시설', '시설 점검', 'Samsung 건설 현장 Spot 배치', 'Samsung 건설 현장에서 Boston Dynamics Spot 활용 시설 점검.'),
+  'Samsung-D':          c('Samsung-D', 'Samsung', '자체 AOI · 로봇 솔루션', 'D', '전자', '검사', 'Samsung 반도체·디스플레이 검사 로봇 양산', 'Samsung 반도체 및 디스플레이 라인에서 AOI(자동 광학 검사) 로봇 양산 가동.'),
+  'LGES-D':             c('LGES-D', 'LG에너지솔루션', '자체 / 협동로봇', 'D', '배터리', '머신텐딩 · 검사', 'LGES 배터리 라인 로봇 양산 배치', 'LG에너지솔루션 배터리 셀·팩 생산 라인에서 협동로봇 기반 머신텐딩 및 검사 자동화 양산 가동.'),
+  'LGES-PoC':           c('LGES-PoC', 'LG에너지솔루션', '휴머노이드 / MoMa', 'A', '배터리', '다종 Pack 체결', 'LGES 휴머노이드 PoC', 'LG에너지솔루션에서 휴머노이드/MoMa 활용 다종 Pack 체결 PoC.'),
+  'LGIT-PoC':           c('LGIT-PoC', 'LG이노텍', '협동로봇 / MoMa', 'A', '전자', '카메라 모듈 조립', 'LG이노텍 카메라 모듈 라인 PoC', 'LG이노텍 카메라 모듈 조립 라인에서 PoC 진행.'),
+  'HD현대-D':           c('HD현대-D', 'HD현대', '자체 용접 로봇 + Spot', 'D', '조선', '블록 용접 · 도장', 'HD현대 조선 블록 용접/도장 로봇 양산', 'HD현대중공업 조선소에서 블록 용접 및 도장 로봇 양산 가동. Spot 점검 병행.'),
+  'HD현대-A':           c('HD현대-A', 'HD현대', '휴머노이드 시제품', 'A', '조선', '특수 위치 용접', 'HD현대 휴머노이드 PoC', 'HD현대에서 협소 블록 용접용 휴머노이드 시제품 PoC.'),
+  'HD현대-P':           c('HD현대-P', 'HD현대', 'Persona AI 시제품', 'P', '조선', '블록 용접·도장', 'HD현대 + Persona AI 파일럿 (2026말 → 2027 상용화 예정)', 'HD현대와 Persona AI의 공동 블록 용접·도장 시제품. 2026말 prototype, 2027 commercial 예정.'),
+  'HD현대삼호-A':       c('HD현대삼호-A', 'HD현대삼호중공업', '로봇 시제품', 'A', '조선', '도장', 'HD현대삼호 도장 PoC', 'HD현대삼호중공업에서 도장 라인 로봇 PoC.'),
+  'Persona-HD-P':       c('Persona-HD-P', 'Persona AI + HD현대', 'Persona AI 휴머노이드', 'P', '조선', '블록 용접·도장', 'Persona AI + HD현대 시제품 파일럿', 'Persona AI 휴머노이드와 HD현대의 공동 파일럿. 2026말 prototype 목표.'),
+  'Apollo-A':           c('Apollo-A', 'Apptronik', 'Apollo', 'A', '다분야', '부품 핸들링', 'Apptronik Apollo PoC 다수 진행', 'Apptronik Apollo 휴머노이드가 다수 산업에서 PoC 진행 중.'),
+  'Apollo-Jabil-P':     c('Apollo-Jabil-P', 'Jabil + Apptronik', 'Apollo', 'P', '전자', 'PCB 조립', 'Jabil + Apollo 파일럿', 'Jabil EMS 공장에서 Apollo 휴머노이드 PCB 조립 파일럿.'),
+  'Jabil-Apollo-P':     c('Jabil-Apollo-P', 'Jabil + Apptronik', 'Apollo', 'P', '전자', 'PCB 조립', 'Jabil 공장 Apollo 파일럿', 'Jabil EMS 공장에서 Apollo PCB 조립 라인 파일럿.'),
+  'Atlas-Hyundai-D':    c('Atlas-Hyundai-D', 'Boston Dynamics + Hyundai', 'Atlas (Electric)', 'D', '자동차', '부품 핸들링', 'Hyundai 공장 Atlas 배치', 'Boston Dynamics Atlas(전동)를 현대자동차 공장에 양산 배치.'),
+  'Spot-A':             c('Spot-A', 'Boston Dynamics', 'Spot', 'A', '시설관리', '시설 점검', 'Spot 시설 점검 PoC', 'Boston Dynamics Spot을 시설 점검에 PoC 적용.'),
+  'Figure03':           c('Figure03', 'Figure AI', 'Figure 03', 'A', '다분야', '범용 작업', 'Figure 03 차세대 휴머노이드', 'Figure AI의 차세대 휴머노이드 Figure 03. 멀티태스크 목표.'),
+  'ANYmal-A':           c('ANYmal-A', 'ANYbotics', 'ANYmal', 'A', '에너지·시설', '시설 점검', 'ANYmal 4족 보행 점검 로봇 PoC', 'ANYbotics ANYmal — 석유·가스·발전소 시설 점검용 4족 보행 로봇 PoC.'),
+  'Foxconn-Nvidia-A':   c('Foxconn-Nvidia-A', 'Foxconn + NVIDIA', '자체 + NVIDIA Isaac', 'A', '전자', 'SMT · 조립', 'Foxconn + NVIDIA 공장 자동화 PoC', 'Foxconn이 NVIDIA Isaac 플랫폼을 활용한 공장 자동화 PoC.'),
+  'UBTech-Foxconn-A':   c('UBTech-Foxconn-A', 'UBTech + Foxconn', 'UBTech Walker S', 'A', '전자', '조립 보조', 'UBTech Walker S Foxconn 라인 PoC', 'UBTech Walker S 휴머노이드가 Foxconn 조립 라인에서 PoC 진행.'),
+  'Fincantieri-D':      c('Fincantieri-D', 'Fincantieri', '용접 로봇 시스템', 'D', '조선', '블록 용접', 'Fincantieri 조선 용접 로봇 양산', 'Fincantieri(이탈리아 조선) 블록 용접 로봇 양산 가동.'),
+  'KUKA-Flex':          c('KUKA-Flex', 'KUKA', 'KR Flex / iiwa', 'A', '자동차', '가변 라인 조립', 'KUKA Flex 가변 라인 솔루션', 'KUKA의 가변(Flex) 생산 라인 솔루션.'),
+  'Stäubli-A':          c('Stäubli-A', 'Stäubli', 'TX2-90 등', 'A', '반도체·전자', '클린룸 핸들링', 'Stäubli 클린룸 로봇 PoC', 'Stäubli 클린룸 대응 로봇 PoC.'),
+  'TSMC-A':             c('TSMC-A', 'TSMC', '자체 + 협동로봇', 'A', '반도체', '웨이퍼 핸들링', 'TSMC 팹 로봇 PoC', 'TSMC 팹 내 웨이퍼 핸들링 로봇 PoC.'),
+  'Bayer-X':            c('Bayer-X', 'Bayer', 'Fetch / MiR', 'X', '제약', '라인 운반', 'Bayer 물류 로봇 중단', 'Bayer 제약 라인 물류 로봇 도입 후 축소.'),
+  'Merc-Ap':            c('Merc-Ap', 'Mercedes-Benz', 'Apptronik Apollo', 'A', '자동차', '부품 핸들링', 'Mercedes + Apollo PoC', 'Mercedes-Benz Apollo PoC — GXO 파트너십.'),
+  'Dextro-A':           c('Dextro-A', 'Dextrous Robotics', 'Dextrous 시스템', 'A', '물류', '택배 분류', 'Dextrous Robotics 택배 분류 PoC', 'Dextrous Robotics의 택배 박스 분류 PoC.'),
+  'Ardent-A':           c('Ardent-A', 'Ardent', 'Ardent 용접 시스템', 'A', '조선·건설', '현장 용접', 'Ardent 현장 용접 PoC', 'Ardent의 이동식 현장 용접 PoC.'),
+  'Chef-A':             c('Chef-A', 'Chef Robotics 등', '식품 조리 로봇', 'A', '식품', '식품 조리·배분', 'Chef Robotics 식품 조리 PoC', 'Chef Robotics의 식품 조리·배분 로봇 PoC.'),
+  'EVST-A':             c('EVST-A', 'EVST', 'EVST 시스템', 'A', '에너지', '태양광 패널 설치', 'EVST 태양광 패널 설치 PoC', 'EVST의 태양광 패널 설치 로봇 PoC.'),
+  'Faraday-Aegis-A':    c('Faraday-Aegis-A', 'Faraday Future + Aegis', 'Aegis 시스템', 'A', '자동차', '조립', 'Faraday + Aegis 조립 PoC', 'Faraday Future가 Aegis 로봇 시스템을 활용한 조립 PoC.'),
+  'Xiaomi-Hum-A':       c('Xiaomi-Hum-A', 'Xiaomi', 'CyberOne / CyberDog', 'A', '전자', '조립 보조', 'Xiaomi 휴머노이드 PoC', 'Xiaomi CyberOne 휴머노이드 공장 조립 PoC.'),
+  '한화오션-T':         c('한화오션-T', '한화오션', '용접 로봇 시스템', 'D', '조선', '블록 용접', '한화오션 용접 로봇 양산', '한화오션 조선소 블록 용접 로봇 양산 가동.'),
+};
+
+// ─────────────────────────────────────────────────────────────────
 // v11 → 내부 타입 매핑
 
 const GRADE_TO_NUM: Record<string, Grade> = {
