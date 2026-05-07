@@ -149,7 +149,7 @@ export const CELLS: CloidCoverageCell[] = [
         cloidB: { verdict: 'partial', note: '계단 가능 [추정]. 페이로드 들고 계단 등반·6 ft reach 검증 필요.' },
         priority: 'High',
         benchmark: 'Digit (6 ft reach, 16kg payload, 계단 능력 demo 검증; Spanx는 단층 DC, 다층 양산 사례 부재)',
-        devItems: ['Tote 들고 계단 등반 안정성 검증', '도달 높이 1900→1830mm reach 확보', '추락 안전 인증 (ISO 13482)', '양손 페이로드 균형 제어'],
+        devItems: ['Tote 들고 계단 등반 안정성 검증', '양손 페이로드 10→16kg 확보 (Digit 대비 6kg 부족)', '추락 안전 인증 (ISO 13482)', '계단 + 페이로드 동시 부하 시 균형 제어'],
       },
       {
         lv: 4, taskName: '협소 랙 Tote 진입',

@@ -1526,14 +1526,15 @@
       LED_STRIP: { h: 0.04, weight: 0.0, label: 'strip' },
     };
 
-    const ROBOT_TYPES = ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator', 'amrServi'];
+    const ROBOT_TYPES = ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator', 'amrServi', 'amrCarti'];
     const ROBOT_LABELS = {
       cloidWheel:     'CLOiD Wheel',
       cloidBipedal:   'CLOiD Bipedal',
       quadruped:      '4족 로봇',
       cleaner:        'NR',
       midManipulator: '중간형 로봇',
-      amrServi:       'Bear AMR (Servi)',
+      amrServi:       'Bear AMR (선반형 Servi)',
+      amrCarti:       'Bear AMR (저상형 Carti)',
     };
     const ROBOT_DEFAULTS = {
       cloidWheel:     { height: 1.70, color: '#E63950' },
@@ -1542,6 +1543,7 @@
       cleaner:        { height: 0.12, color: '#00D9FF' },
       midManipulator: { height: 1.30, color: '#22C55E' },
       amrServi:       { height: 1.35, color: '#8B5CF6' },
+      amrCarti:       { height: 0.30, color: '#00BFFF' },
     };
 
     const GESTURE_TYPES = [
@@ -1604,13 +1606,13 @@
       WAIT: 1.0,
     };
     const GESTURE_ROBOT_APPLIES = {
-      IDLE: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator', 'amrServi'],
+      IDLE: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator', 'amrServi', 'amrCarti'],
       WAVE: ['cloidWheel', 'cloidBipedal', 'midManipulator', 'cleaner'],
       POINT: ['cloidWheel', 'cloidBipedal', 'midManipulator', 'cleaner'],
       PICKUP: ['cloidWheel', 'cloidBipedal', 'midManipulator', 'cleaner'],
       BOW: ['cloidWheel', 'cloidBipedal', 'midManipulator'],
       WALK: ['cloidBipedal', 'quadruped'],
-      SCAN: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator', 'amrServi'],
+      SCAN: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator', 'amrServi', 'amrCarti'],
       SIT: ['quadruped'],
       JUMP: ['quadruped'],
       TILT: ['quadruped'],
@@ -6810,6 +6812,199 @@
       return { root, parts };
     }
 
+    function buildAmrCarti(color, height) {
+      // Bear Robotics Carti — low-profile cart-style AMR with flat top platform
+      // for under-pallet/under-cart pickup. Wider footprint than Servi, no
+      // upper shelves. Used for material handling and tote/pallet transport
+      // in factories, hospitals, retail backrooms.
+      const root = new THREE.Group();
+      const parts = {};
+      const col = new THREE.Color(color);
+      const matWhite  = new THREE.MeshStandardMaterial({ color: 0xf4f4f4, roughness: 0.45, metalness: 0.30 });
+      const matDark   = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.50, metalness: 0.40 });
+      const matFrame  = new THREE.MeshStandardMaterial({ color: 0x2a2a2e, roughness: 0.50, metalness: 0.45 });
+      const matAccent = new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.7 });
+      const matSilver = new THREE.MeshStandardMaterial({ color: 0x9a9a9a, roughness: 0.35, metalness: 0.7 });
+      const matRed    = new THREE.MeshStandardMaterial({ color: 0xcc1122, emissive: 0xcc1122, emissiveIntensity: 0.6 });
+
+      // ============ FOOTPRINT ============
+      // Wider platform (~0.95m × 0.65m) to accept pallets/totes from above.
+      const baseW = 0.95, baseD = 0.65, baseH = 0.18; // body height
+      const platformH = 0.04;
+      const totalH = baseH + platformH + 0.02;
+
+      // ============ LOWER BODY (white skirt, rounded edges) ============
+      const skirt = new THREE.Mesh(
+        new THREE.BoxGeometry(baseW, baseH, baseD),
+        matWhite
+      );
+      skirt.position.y = baseH / 2;
+      skirt.castShadow = true; skirt.receiveShadow = true;
+      root.add(skirt);
+      // Bottom dark band (kick plate)
+      const kickPlate = new THREE.Mesh(
+        new THREE.BoxGeometry(baseW + 0.005, 0.045, baseD + 0.005),
+        matDark
+      );
+      kickPlate.position.y = 0.022;
+      root.add(kickPlate);
+      // Front LED strip (cyan accent — Bear signature)
+      const ledFront = new THREE.Mesh(
+        new THREE.BoxGeometry(baseW * 0.50, 0.012, 0.005),
+        matAccent
+      );
+      ledFront.position.set(0, baseH * 0.55, baseD / 2 + 0.003);
+      root.add(ledFront);
+      // Side LED strips (long horizontal lines on left/right body)
+      [-1, 1].forEach(s => {
+        const ledSide = new THREE.Mesh(
+          new THREE.BoxGeometry(0.005, 0.010, baseD * 0.45),
+          matAccent
+        );
+        ledSide.position.set(s * (baseW / 2 + 0.003), baseH * 0.55, 0);
+        root.add(ledSide);
+      });
+      // Rear red taillight (hazard indicator)
+      const tailLight = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, 0.025, 0.005),
+        matRed
+      );
+      tailLight.position.set(-baseW * 0.42, baseH * 0.45, -baseD / 2 - 0.003);
+      root.add(tailLight);
+      // Rear status display (small black panel with "CARTI" text)
+      const cnvLabel = document.createElement('canvas');
+      cnvLabel.width = 256; cnvLabel.height = 96;
+      const lctx = cnvLabel.getContext('2d');
+      lctx.fillStyle = '#0a0a0a'; lctx.fillRect(0, 0, 256, 96);
+      lctx.fillStyle = '#f0f0f0';
+      lctx.font = 'bold 38px IBM Plex Sans, sans-serif';
+      lctx.textAlign = 'center'; lctx.textBaseline = 'middle';
+      lctx.fillText('CARTI', 128, 50);
+      const labelTex = new THREE.CanvasTexture(cnvLabel);
+      labelTex.colorSpace = THREE.SRGBColorSpace;
+      const rearLabel = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.18, 0.07),
+        new THREE.MeshStandardMaterial({ map: labelTex, emissive: 0xffffff, emissiveMap: labelTex, emissiveIntensity: 0.4 })
+      );
+      rearLabel.position.set(0, baseH * 0.50, -baseD / 2 - 0.003);
+      rearLabel.rotation.y = Math.PI;
+      root.add(rearLabel);
+      // Front sensor cluster (4 small dots in a row)
+      [-0.04, -0.013, 0.013, 0.04].forEach(x => {
+        const sensor = new THREE.Mesh(
+          new THREE.CircleGeometry(0.006, 10),
+          matAccent
+        );
+        sensor.position.set(x, baseH * 0.30, baseD / 2 + 0.003);
+        root.add(sensor);
+      });
+
+      // ============ DRIVE WHEELS (visible side wheels) ============
+      [-1, 1].forEach(s => {
+        // Wheel housing recess (dark)
+        const housing = new THREE.Mesh(
+          new THREE.BoxGeometry(0.04, 0.10, 0.18),
+          matDark
+        );
+        housing.position.set(s * (baseW / 2 - 0.010), 0.05, baseD * 0.10);
+        root.add(housing);
+        // Visible wheel
+        const wheel = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.045, 0.045, 0.030, 18),
+          new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.7 })
+        );
+        wheel.rotation.z = Math.PI / 2;
+        wheel.position.set(s * (baseW / 2 - 0.005), 0.045, baseD * 0.10);
+        root.add(wheel);
+        // Hub cap (silver center)
+        const hub = new THREE.Mesh(
+          new THREE.CircleGeometry(0.020, 14),
+          matSilver
+        );
+        hub.rotation.y = s === 1 ? -Math.PI / 2 : Math.PI / 2;
+        hub.position.set(s * (baseW / 2 + 0.011), 0.045, baseD * 0.10);
+        root.add(hub);
+        // Power button (Bear signature blue circle on right wheel area)
+        if (s === 1) {
+          const powerBtn = new THREE.Mesh(
+            new THREE.CircleGeometry(0.028, 24),
+            matAccent
+          );
+          powerBtn.rotation.y = -Math.PI / 2;
+          powerBtn.position.set(s * (baseW / 2 + 0.012), 0.045, baseD * 0.10 - 0.04);
+          root.add(powerBtn);
+        }
+      });
+
+      // ============ TOP PLATFORM (flat dark cargo deck) ============
+      const platformY = baseH + 0.005;
+      const platform = new THREE.Mesh(
+        new THREE.BoxGeometry(baseW, platformH, baseD),
+        matFrame
+      );
+      platform.position.y = platformY + platformH / 2;
+      platform.castShadow = true; platform.receiveShadow = true;
+      root.add(platform);
+
+      // Center cutout (hexagonal opening for under-cart pickup mechanism)
+      const cutout = new THREE.Mesh(
+        new THREE.BoxGeometry(0.10, platformH + 0.005, 0.10),
+        matDark
+      );
+      cutout.position.y = platformY + platformH / 2;
+      root.add(cutout);
+
+      // Lift mounting points — 4 corners with bolt heads + LED rings
+      const mountPositions = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+      mountPositions.forEach(([sx, sz]) => {
+        const x = sx * (baseW / 2 - 0.18);
+        const z = sz * (baseD / 2 - 0.13);
+        // Bolt head
+        const bolt = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.018, 0.018, 0.012, 8),
+          matSilver
+        );
+        bolt.position.set(x, platformY + platformH + 0.006, z);
+        root.add(bolt);
+        // Glowing ring around bolt (lift-active indicator)
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(0.024, 0.002, 6, 18),
+          matAccent
+        );
+        ring.rotation.x = Math.PI / 2;
+        ring.position.set(x, platformY + platformH + 0.012, z);
+        root.add(ring);
+      });
+
+      // ============ HEAD (sensor array + status — for SCAN gestures) ============
+      // Carti has no display; we use the front sensor cluster as the "head"
+      // group so SCAN rotates the whole sensor module.
+      const head = new THREE.Group();
+      head.name = 'head';
+      head.position.set(0, baseH * 0.30, baseD / 2 - 0.005);
+      root.add(head);
+      parts.head = head;
+
+      const sensorPod = new THREE.Mesh(
+        new THREE.BoxGeometry(0.16, 0.04, 0.012),
+        matDark
+      );
+      head.add(sensorPod);
+
+      // ============ ROOT_BODY (for IDLE breathing — slight platform lift) ============
+      const body = new THREE.Group();
+      body.name = 'root_body';
+      body.position.y = totalH;
+      root.add(body);
+      parts.root_body = body;
+
+      // Empty arm/leg stubs for resetRobotPose compatibility
+      const armL = new THREE.Group(); armL.name = 'armL'; root.add(armL); parts.armL = armL;
+      const armR = new THREE.Group(); armR.name = 'armR'; root.add(armR); parts.armR = armR;
+
+      return { root, parts };
+    }
+
     const ROBOT_BUILDERS = {
       cloidWheel:     buildHumanoid,
       cloidBipedal:   buildCloidBipedal,
@@ -6817,6 +7012,7 @@
       cleaner:        buildCleaner,
       midManipulator: buildMidManipulator,
       amrServi:       buildAmrServi,
+      amrCarti:       buildAmrCarti,
     };
 
     function rebuildRobots() {
@@ -9880,8 +10076,11 @@
 
       // ── ROBOTS ──
       // 2 Bear AMR Servi robots — material delivery between input pallets and conveyor lines
-      r('amrServi', -5.50, -1.30, 0, 'AMR 1 (자재 운반)');
-      r('amrServi',  5.20,  3.00, Math.PI, 'AMR 2 (완제품 운반)');
+      // Bear AMR 두 변형을 사용 시나리오에 맞게 배치:
+      //  - Servi(선반형): 입고된 작은 부품·트레이를 라인사이드로 다단 운반
+      //  - Carti(저상형): 완제품 팔레트·박스를 적재 영역에서 출고 도크로 저상 픽업
+      r('amrServi', -5.50, -1.30, 0, 'AMR Servi (자재 트레이 운반)');
+      r('amrCarti',  5.20,  3.00, Math.PI, 'AMR Carti (팔레트 저상 운반)');
       // 1 quadruped for facility inspection patrol
       r('quadruped', 0.00, 5.00, Math.PI, '점검 로봇');
 
