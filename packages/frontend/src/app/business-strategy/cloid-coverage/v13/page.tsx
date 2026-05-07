@@ -72,7 +72,7 @@ function CellCard({ cell }: { cell: (typeof CELLS_V13)[number] }) {
         {lgCount > 0 && (
           <div className="flex items-center gap-2 text-[10.5px] font-mono pt-1 border-t border-[#F0EEE8] mt-2">
             <Sparkles size={11} className="text-[#A50034]" />
-            <span className="text-[#A50034] font-medium">LG 자산 매핑 {lgCount}건</span>
+            <span className="text-[#A50034] font-medium">LG Captive 매핑 {lgCount}건</span>
           </div>
         )}
       </div>
@@ -106,7 +106,7 @@ function CloidCoverageV13Content() {
             </span>
           </div>
           <p className="text-[13.5px] text-[#5F5E5A] leading-relaxed max-w-[920px]">
-            13개 진입 적합 셀 × 4Lv = <strong>52 sub-cell</strong>, EE 9-카테고리 분리, Tier 매칭, LG 자체 자산 7종, 한국 협업 5종, 6 클러스터.
+            13개 진입 적합 셀 × 4Lv = <strong>52 sub-cell</strong>, EE 9-카테고리 분리, Tier 매칭, LG Captive 7종, 한국 협업 5종, 6 클러스터.
             CLOiD 스펙은 [F추정] — ARGOS 페이지 입력 후 Phase 4 정밀화.
           </p>
         </div>
@@ -135,7 +135,7 @@ function CloidCoverageV13Content() {
             <p className="text-[11px] text-[#5F5E5A] mt-1">계단·협소·조선 우위</p>
           </div>
           <div className="bg-[#FAEAE7] border border-[#F0CCD0] p-4" style={{ borderRadius: 8 }}>
-            <p className="font-mono text-[10px] text-[#A50034] uppercase tracking-[0.16em] mb-1.5">LG 자산 매핑 셀</p>
+            <p className="font-mono text-[10px] text-[#A50034] uppercase tracking-[0.16em] mb-1.5">LG Captive 매핑 셀</p>
             <p className="font-medium text-[28px] text-[#A50034] tabular-nums">
               {stats.cellsWithLgAssets}
               <span className="text-[14px] font-mono ml-1">/ {CELLS_V13.length} ({stats.lgAssetRatio})</span>
@@ -235,7 +235,7 @@ function CloidCoverageV13Content() {
         </div>
 
         {/* LG Assets */}
-        <h2 className="font-medium text-[16px] text-[#2C2C2A] mb-4">LG 자체 자산 7종</h2>
+        <h2 className="font-medium text-[16px] text-[#2C2C2A] mb-4">LG Captive (자체 자산) 7종</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-12">
           {Object.entries(LG_ASSETS).map(([key, asset]) => (
             <div key={key} className="bg-[#FAFAF8] border border-[#E8E6DD] p-4" style={{ borderRadius: 8 }}>

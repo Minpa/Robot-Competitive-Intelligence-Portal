@@ -69,7 +69,7 @@ function BusinessStrategyContent() {
               </p>
               <p className="font-medium text-[15px] text-[#1A1A1A] mb-0.5">CLOiD W/B 커버리지 분석</p>
               <p className="text-[12.5px] text-[#5F5E5A] leading-snug">
-                52 sub-cell × 작업 종류·복잡도 매트릭스 + LG 자산 매핑 + 한국 협업 + 그리퍼 요구사항
+                52 sub-cell × 작업 종류·복잡도 매트릭스 + LG Captive 매핑 + 한국 협업 + 그리퍼 요구사항
               </p>
             </div>
             <ArrowRight size={18} className="text-[#A50034] group-hover:translate-x-1 transition-transform shrink-0" />
