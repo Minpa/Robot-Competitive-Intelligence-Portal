@@ -1561,7 +1561,7 @@
       'IDLE', 'WAVE', 'POINT', 'PICKUP', 'BOW', 'WALK', 'SCAN',
       'SIT', 'JUMP', 'TILT', 'DUAL_PICKUP',
       'HANDSHAKE', 'KNEEL', 'LIE_DOWN', 'STRETCH', 'HANDOVER',
-      'ATTACH', 'DETACH', 'BALLET', 'WAIT'
+      'ATTACH', 'DETACH', 'BALLET', 'WAIT', 'ARM_FAULT'
     ];
     const GESTURE_LABELS = {
       IDLE:        '대기',
@@ -1584,6 +1584,7 @@
       DETACH:      '놓기',
       BALLET:      '발레',
       WAIT:        '대기',
+      ARM_FAULT:   '팔고장',
     };
     const GESTURE_DESCRIPTIONS = {
       IDLE:        '대기 / 호흡 (자동)',
@@ -1606,6 +1607,7 @@
       DETACH:      '들고 있던 가구를 현재 위치에 놓음',
       BALLET:      '양팔을 들고 제자리에서 360° 회전',
       WAIT:        '마지막 위치에서 제자리 대기',
+      ARM_FAULT:   '팔이 빨간색으로 깜빡이며 고장 상태 표시',
     };
     const GESTURE_DURATIONS = {
       IDLE: Infinity, WAVE: 3.0, POINT: 2.5, PICKUP: 4.0,
@@ -1615,6 +1617,7 @@
       ATTACH: 0.5, DETACH: 0.5,
       BALLET: 4.0,
       WAIT: 1.0,
+      ARM_FAULT: 5.0,
     };
     const GESTURE_ROBOT_APPLIES = {
       IDLE: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator', 'amrServi', 'amrCarti'],
@@ -1638,6 +1641,7 @@
       DETACH: ['cloidWheel', 'cloidBipedal', 'midManipulator', 'cleaner'],
       BALLET: ['cloidBipedal', 'cloidWheel'],
       WAIT: ['cloidWheel', 'cloidBipedal', 'quadruped', 'cleaner', 'midManipulator', 'amrServi'],
+      ARM_FAULT: ['cloidWheel', 'cloidBipedal', 'midManipulator'],
     };
 
     /* ============ STATE ============ */
@@ -7200,6 +7204,13 @@
       const { parts } = meshData;
       Object.values(parts).forEach(part => {
         part.rotation.set(0, 0, 0);
+        if (part.traverse) {
+          part.traverse(child => {
+            if (child.isMesh && child.userData._origMaterial) {
+              child.material = child.userData._origMaterial;
+            }
+          });
+        }
       });
     }
 
@@ -7311,6 +7322,29 @@
           const eFrames = [[0.0, 0.0], [0.6, -0.45], [2.8, -0.45], [3.5, 0.0]];
           parts.armR_elbow.rotation.x = lerpKeyframes(eFrames, localT);
         }
+      },
+      ARM_FAULT: (parts, localT) => {
+        const blink = (Math.sin(localT * 8) + 1) * 0.5;
+        const applyFault = (part) => {
+          if (!part) return;
+          part.traverse(child => {
+            if (!child.isMesh) return;
+            if (!child.userData._origMaterial) {
+              child.userData._origMaterial = child.material;
+            }
+            if (!child.userData._faultMat) {
+              child.userData._faultMat = new THREE.MeshStandardMaterial({
+                color: 0xff2020, emissive: 0xff0000,
+                emissiveIntensity: 1.0, roughness: 0.4, metalness: 0.3,
+              });
+            }
+            child.material = child.userData._faultMat;
+            child.material.emissiveIntensity = 0.3 + blink * 1.2;
+            child.material.opacity = 0.6 + blink * 0.4;
+          });
+        };
+        applyFault(parts.armR);
+        applyFault(parts.armL);
       },
       BALLET: (parts, localT) => {
         // 1) Arms raise to 5th position (0–0.8s), hold, lower (3.4–4.0s)
