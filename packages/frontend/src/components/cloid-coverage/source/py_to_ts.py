@@ -76,9 +76,10 @@ def build_cells_ts():
             s = levels[lv]
             sub_cells.append({
                 'lv': lv,
-                'taskName': s.get('task', ''),
-                'coreActions': s.get('core_actions', []),
-                'thresholds': s.get('thresholds', ''),
+                # Python source uses task_short / actions / requirements
+                'taskName': s.get('task_short') or s.get('task') or '',
+                'coreActions': s.get('actions') or s.get('core_actions') or [],
+                'thresholds': s.get('requirements') or s.get('thresholds') or '',
                 'cloidW': {
                     'verdict': {'✓': 'cover', '△': 'partial', '✗': 'gap'}[s['cloid_w'][0]],
                     'note': s['cloid_w'][1] if len(s['cloid_w']) > 1 else '',

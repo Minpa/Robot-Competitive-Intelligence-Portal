@@ -821,9 +821,9 @@ export function findCellById(id: string): CloidCoverageCell | undefined {
 }
 
 export const VERDICT_LABEL: Record<Verdict, { ko: string; emoji: string; color: string; bg: string }> = {
-  cover:   { ko: 'Cover',   emoji: '✅', color: '#1a7a3a', bg: '#E6F4EA' },
-  partial: { ko: 'Partial', emoji: '⚠️', color: '#9a6500', bg: '#FFF4D6' },
-  gap:     { ko: 'Gap',     emoji: '❌', color: '#a01020', bg: '#FBEAF0' },
+  cover:   { ko: 'Cover',    emoji: '✅', color: '#1a7a3a', bg: '#E6F4EA' },
+  partial: { ko: 'Partial',  emoji: '⚠️', color: '#9a6500', bg: '#FFF4D6' },
+  gap:     { ko: '개발필요', emoji: '❌', color: '#a01020', bg: '#FBEAF0' },
 };
 
 export const PRIORITY_LABEL: Record<Priority, { color: string; bg: string }> = {
