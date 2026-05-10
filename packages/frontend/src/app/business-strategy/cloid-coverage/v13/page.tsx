@@ -51,8 +51,8 @@ function CellCard({ cell, isVerified }: { cell: (typeof CELLS_V13)[number]; isVe
     >
       {isVerified && (
         <span
-          className="absolute top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white"
-          style={{ backgroundColor: '#A50034', borderRadius: 3 }}
+          className="absolute top-2 right-2 px-2 py-1 text-[11.5px] font-bold tracking-wide"
+          style={{ backgroundColor: '#A50034', color: '#FFFFFF', borderRadius: 3, letterSpacing: '0.02em' }}
         >
           ★ 현장 확인
         </span>

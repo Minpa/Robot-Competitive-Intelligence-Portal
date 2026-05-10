@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { MapPin } from 'lucide-react';
+import { Check } from 'lucide-react';
 import {
   TASKS, SECTORS, SCORES,
   scoreToColor, isCellHighlighted,
@@ -12,7 +12,6 @@ import {
 import { CELLS_V13 } from '../cloid-coverage/data-v13';
 import {
   useCoverageFieldStatusMap,
-  STATUS_LABEL,
   type CoverageStatus,
 } from '../cloid-coverage/useCoverageFieldEvents';
 
@@ -125,7 +124,6 @@ export default function MatrixGrid({ mode, onCellClick }: Props) {
                 const rank = getTopTierRank(t, sec);
                 const lineupShown = (LINEUP_BY_TASK[t] || []).slice(0, 2);
                 const verified = verifiedByCell[`${t}-${sec}`];
-                const verifiedLabel = verified ? STATUS_LABEL[verified.status] : null;
 
                 return (
                   <td
@@ -162,19 +160,19 @@ export default function MatrixGrid({ mode, onCellClick }: Props) {
                       )}
 
                       {/* 현장 확인 / PoC / 배포 — sub-cell 누적 이벤트가 있는 셀 */}
-                      {verified && verifiedLabel && (
+                      {verified && (
                         <span
-                          className="absolute top-0.5 left-0.5 inline-flex items-center gap-0.5 font-mono text-[9px] font-semibold px-1 py-0.5 z-10"
+                          className="absolute top-0.5 left-0.5 inline-flex items-center gap-0.5 font-bold text-[10px] px-1.5 py-0.5 z-10 shadow-sm"
                           style={{
-                            color: verifiedLabel.color,
-                            backgroundColor: verifiedLabel.bg,
-                            border: `1px solid ${verifiedLabel.color}`,
+                            color: '#FFFFFF',
+                            backgroundColor: '#1a7a3a',
                             borderRadius: 3,
+                            letterSpacing: '0.02em',
                           }}
-                          title={`${verifiedLabel.ko} · ${verified.count} sub-cell`}
+                          title={`현장 확인 · ${verified.count} sub-cell`}
                         >
-                          <MapPin size={9} />
-                          {verified.count}
+                          <Check size={11} strokeWidth={3.5} />
+                          <span>현장 {verified.count}</span>
                         </span>
                       )}
 

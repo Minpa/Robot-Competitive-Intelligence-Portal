@@ -39,29 +39,24 @@ export default function MatrixLegend() {
         <p className="font-mono text-[9.5px] text-[#888780] uppercase tracking-[0.18em] mt-4 pt-3 border-t border-[#E8E6DD]">
           🎯 진입 적합 = 2px LG Red 외곽선 / 강조 모드 = 비대상 셀 28% 투명도
         </p>
-        <div className="flex flex-wrap items-center gap-2.5 mt-2 text-[10.5px]">
+        <div className="flex flex-wrap items-center gap-2 mt-2 text-[10.5px]">
           <span className="font-mono text-[9.5px] text-[#888780] uppercase tracking-[0.18em]">
-            📍 현장 / PoC / 배포
+            현장 검증
           </span>
-          {[
-            { label: '현장 확인', color: '#A50034', bg: '#FAEAE7' },
-            { label: 'PoC 계획', color: '#9a6500', bg: '#FFF4D6' },
-            { label: 'PoC 진행', color: '#0C447C', bg: '#E6F1FB' },
-            { label: '배포', color: '#1a7a3a', bg: '#E6F4EA' },
-          ].map((x) => (
-            <span
-              key={x.label}
-              className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold px-1.5 py-0.5"
-              style={{
-                color: x.color,
-                backgroundColor: x.bg,
-                border: `1px solid ${x.color}`,
-                borderRadius: 3,
-              }}
-            >
-              {x.label}
-            </span>
-          ))}
+          <span
+            className="inline-flex items-center gap-0.5 font-bold text-[10px] px-1.5 py-0.5"
+            style={{
+              color: '#FFFFFF',
+              backgroundColor: '#1a7a3a',
+              borderRadius: 3,
+              letterSpacing: '0.02em',
+            }}
+          >
+            ✓ 현장 N
+          </span>
+          <span className="text-[10.5px] text-[#5F5E5A]">
+            현장 확인된 sub-cell 수 (DB 누적)
+          </span>
         </div>
       </div>
 
