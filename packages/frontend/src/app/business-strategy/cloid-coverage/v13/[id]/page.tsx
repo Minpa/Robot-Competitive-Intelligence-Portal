@@ -14,12 +14,16 @@ import {
   KOREA_PARTNERS,
   END_EFFECTOR_CATEGORIES,
   DEV_TYPES,
-  cellHasFieldVerified,
-  FIELD_VERIFIED_META,
   type SubCellV13,
   type Verdict,
 } from '@/components/cloid-coverage/data-v13';
 import FieldVerifiedBadge from '@/components/cloid-coverage/FieldVerifiedBadge';
+import {
+  useCoverageFieldStatusMap,
+  makeSubcellKey,
+  STATUS_LABEL,
+  type CoverageFieldStatus,
+} from '@/components/cloid-coverage/useCoverageFieldEvents';
 
 function VerdictPill({ verdict }: { verdict: Verdict }) {
   const v = VERDICT_LABEL[verdict];
@@ -140,21 +144,33 @@ function KoreaPartnerChips({ partnerIds }: { partnerIds: string[] }) {
   );
 }
 
-function LvRow({ sc }: { sc: SubCellV13 }) {
+function LvRow({ sc, status }: { sc: SubCellV13; status?: CoverageFieldStatus }) {
+  const label = status ? STATUS_LABEL[status.currentStatus] : null;
   return (
     <div id={`lv-${sc.lv}`} className="border-b border-[#E8E6DD] last:border-b-0 py-5 scroll-mt-20">
       <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-3 min-w-0 flex-wrap">
           <span className="font-mono text-[12px] font-medium px-2 py-1 bg-[#F0EEE8] text-[#2C2C2A] tracking-wide" style={{ borderRadius: 3 }}>
             Lv{sc.lv}
           </span>
           <h3 className="font-medium text-[15px] text-[#2C2C2A] leading-tight">{sc.taskName}</h3>
-          {sc.fieldVerified && (
-            <FieldVerifiedBadge
-              source={sc.fieldVerifiedSource}
-              line={sc.fieldVerifiedLine}
-              size="sm"
-            />
+          {status && label && (
+            <span className="inline-flex flex-col gap-0.5">
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold"
+                style={{ color: label.color, backgroundColor: label.bg, borderRadius: 3 }}
+                title={status.latestNote || label.ko}
+              >
+                {status.priorityRank ? <span>★{status.priorityRank}</span> : null}
+                <span>{label.ko}</span>
+                <span className="text-[10px] font-normal opacity-70">· {status.latestEventDate}</span>
+              </span>
+              {status.latestNote && (
+                <span className="text-[10px] text-gray-500 max-w-[420px] leading-snug">
+                  {status.latestNote}
+                </span>
+              )}
+            </span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -415,6 +431,7 @@ function CellDetailV13Content() {
   const params = useParams<{ id: string }>();
   const cell = findCellV13(params.id);
   const [devModalOpen, setDevModalOpen] = useState(false);
+  const { map: statusMap } = useCoverageFieldStatusMap();
 
   if (!cell) {
     return (
@@ -476,21 +493,26 @@ function CellDetailV13Content() {
               <span className="text-[#B8B6AE] mx-2">×</span>
               {cell.sectorName}
             </h1>
-            {cellHasFieldVerified(cell) && (
-              <div className="mt-2.5">
-                <FieldVerifiedBadge
-                  size="md"
-                  source={
-                    cell.subCells.find((s) => s.fieldVerifiedSource)?.fieldVerifiedSource ||
-                    FIELD_VERIFIED_META.defaultSource
-                  }
-                  line={
-                    cell.subCells.find((s) => s.lv === 2 && s.fieldVerifiedLine)?.fieldVerifiedLine ||
-                    cell.subCells.find((s) => s.fieldVerifiedLine)?.fieldVerifiedLine
-                  }
-                />
-              </div>
-            )}
+            {(() => {
+              const cellStatuses = cell.subCells
+                .map((sc) => statusMap.get(makeSubcellKey(cell.id, sc.lv)))
+                .filter((s): s is CoverageFieldStatus => !!s);
+              if (cellStatuses.length === 0) return null;
+              // 우선순위 ★1 또는 lv2 의 note 를 헤더 라인으로 표시
+              const headline =
+                cellStatuses.find((s) => s.priorityRank === 1) ||
+                cellStatuses.find((s) => s.lv === 2) ||
+                cellStatuses[0];
+              return (
+                <div className="mt-2.5">
+                  <FieldVerifiedBadge
+                    size="md"
+                    source={headline.latestSource ?? undefined}
+                    line={headline.latestNote ?? undefined}
+                  />
+                </div>
+              );
+            })()}
           </div>
         </div>
 
@@ -620,7 +642,7 @@ function CellDetailV13Content() {
           </div>
           <div className="px-5">
             {cell.subCells.map((sc) => (
-              <LvRow key={sc.lv} sc={sc} />
+              <LvRow key={sc.lv} sc={sc} status={statusMap.get(makeSubcellKey(cell.id, sc.lv))} />
             ))}
           </div>
         </div>

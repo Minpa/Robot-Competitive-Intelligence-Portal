@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { MapPin } from 'lucide-react';
 import { STATS, EMPHASIS_MODES, type EmphasisMode } from './data';
 import TaskCategoryMatrix from '../cloid-coverage/TaskCategoryMatrix';
-import { getStatsV13, FIELD_VERIFIED_META } from '../cloid-coverage/data-v13';
+import { getStatsV13 } from '../cloid-coverage/data-v13';
+import { useCoverageFieldSummary } from '../cloid-coverage/useCoverageFieldEvents';
 
 interface Props {
   mode: EmphasisMode;
@@ -84,7 +85,10 @@ export default function MatrixHeader({ mode, onModeChange }: Props) {
 
 function FieldVerifiedStat() {
   const stats = getStatsV13();
-  if (!stats.verifiedSubcells) return null;
+  const summary = useCoverageFieldSummary();
+  const verified = summary.data?.uniqueSubcells ?? 0;
+  if (!verified) return null;
+  const pct = Math.round((verified * 100) / Math.max(stats.totalSubcells, 1));
   return (
     <div
       className="flex items-center gap-3 px-4 py-2.5 border border-[#A50034] bg-white"
@@ -92,12 +96,16 @@ function FieldVerifiedStat() {
     >
       <MapPin size={14} className="text-[#A50034] shrink-0" />
       <div className="flex items-baseline gap-2 flex-wrap text-[12.5px]">
-        <span className="font-semibold text-[#A50034]">현장 확인</span>
+        <span className="font-semibold text-[#A50034]">현장 확인 / PoC / 배포</span>
         <span className="font-mono font-medium text-[#2C2C2A]" style={{ fontVariantNumeric: 'tabular-nums' }}>
-          {stats.verifiedSubcells}/{stats.totalSubcells}
+          {verified}/{stats.totalSubcells}
         </span>
-        <span className="text-[#5F5E5A]">({stats.verifiedRatio})</span>
-        <span className="text-[10.5px] text-[#888780] ml-1">{FIELD_VERIFIED_META.defaultSource}</span>
+        <span className="text-[#5F5E5A]">({pct}%)</span>
+        {summary.data?.latestEventDate && (
+          <span className="text-[10.5px] text-[#888780] ml-1">
+            최근 이벤트 {summary.data.latestEventDate}
+          </span>
+        )}
       </div>
     </div>
   );

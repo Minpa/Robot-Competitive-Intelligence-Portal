@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { MapPin } from 'lucide-react';
 import {
   TASKS, SECTORS, SCORES,
   scoreToColor, isCellHighlighted,
@@ -8,6 +9,12 @@ import {
   getCellAvgByTask, getCellAvgBySector,
   type EmphasisMode,
 } from './data';
+import { CELLS_V13 } from '../cloid-coverage/data-v13';
+import {
+  useCoverageFieldStatusMap,
+  STATUS_LABEL,
+  type CoverageStatus,
+} from '../cloid-coverage/useCoverageFieldEvents';
 
 interface Props {
   mode: EmphasisMode;
@@ -21,9 +28,46 @@ const LINEUP_BY_TASK: Record<number, string[]> = {
   9: ['MoMa'],        10: ['IR', 'CLOiD'],  11: ['MoMa', 'CLOiD'],
 };
 
+// (taskIdx, sectorIdx) -> CELLS_V13 cellId — 진입 적합 셀에 대해서만 채워짐.
+const CELL_KEY_LOOKUP: Record<string, string> = (() => {
+  const m: Record<string, string> = {};
+  for (const c of CELLS_V13) {
+    m[`${c.taskIdx}-${c.sectorIdx}`] = c.id;
+  }
+  return m;
+})();
+
+const STATUS_RANK: Record<CoverageStatus, number> = {
+  observed: 1,
+  'poc-planned': 2,
+  'poc-active': 3,
+  deployed: 4,
+};
+
 export default function MatrixGrid({ mode, onCellClick }: Props) {
   const taskAvgs = useMemo(() => TASKS.map((_, i) => getCellAvgByTask(i)), []);
   const sectorAvgs = useMemo(() => SECTORS.map((_, i) => getCellAvgBySector(i)), []);
+  const { map: statusMap } = useCoverageFieldStatusMap();
+
+  // (taskIdx, sectorIdx) -> { count, mostAdvancedStatus }
+  const verifiedByCell = useMemo(() => {
+    const out: Record<string, { count: number; status: CoverageStatus }> = {};
+    for (const s of statusMap.values()) {
+      const cell = CELLS_V13.find((c) => c.id === s.cellId);
+      if (!cell) continue;
+      const key = `${cell.taskIdx}-${cell.sectorIdx}`;
+      const existing = out[key];
+      if (!existing) {
+        out[key] = { count: 1, status: s.currentStatus };
+      } else {
+        out[key].count += 1;
+        if (STATUS_RANK[s.currentStatus] > STATUS_RANK[existing.status]) {
+          out[key].status = s.currentStatus;
+        }
+      }
+    }
+    return out;
+  }, [statusMap]);
 
   return (
     <div className="overflow-x-auto -mx-4 md:mx-0">
@@ -80,6 +124,8 @@ export default function MatrixGrid({ mode, onCellClick }: Props) {
                 const isTop = isTopTierCell(t, sec);
                 const rank = getTopTierRank(t, sec);
                 const lineupShown = (LINEUP_BY_TASK[t] || []).slice(0, 2);
+                const verified = verifiedByCell[`${t}-${sec}`];
+                const verifiedLabel = verified ? STATUS_LABEL[verified.status] : null;
 
                 return (
                   <td
@@ -113,6 +159,23 @@ export default function MatrixGrid({ mode, onCellClick }: Props) {
                             🎯 {rank}
                           </span>
                         </>
+                      )}
+
+                      {/* 현장 확인 / PoC / 배포 — sub-cell 누적 이벤트가 있는 셀 */}
+                      {verified && verifiedLabel && (
+                        <span
+                          className="absolute top-0.5 left-0.5 inline-flex items-center gap-0.5 font-mono text-[9px] font-semibold px-1 py-0.5 z-10"
+                          style={{
+                            color: verifiedLabel.color,
+                            backgroundColor: verifiedLabel.bg,
+                            border: `1px solid ${verifiedLabel.color}`,
+                            borderRadius: 3,
+                          }}
+                          title={`${verifiedLabel.ko} · ${verified.count} sub-cell`}
+                        >
+                          <MapPin size={9} />
+                          {verified.count}
+                        </span>
                       )}
 
                       {isLow ? (

@@ -9,6 +9,7 @@ import {
   type ComplexityBucket,
   type TaskMatrixEntry,
 } from './data-v13';
+import { useCoverageFieldStatusMap, STATUS_LABEL } from './useCoverageFieldEvents';
 
 const CATEGORIES: TaskCategory[] = ['단순 이재', '정밀 조작', '도구 운용'];
 const BUCKETS: ComplexityBucket[] = ['Lv1~2', 'Lv3~4'];
@@ -186,6 +187,7 @@ function ListModal({
   entries: TaskMatrixEntry[];
   onClose: () => void;
 }) {
+  const { map: statusMap } = useCoverageFieldStatusMap();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
@@ -260,34 +262,40 @@ function ListModal({
                   </Link>
                 </div>
                 <ul>
-                  {items.map((e) => (
-                    <li key={`${e.cellId}-${e.lv}`}>
-                      <Link
-                        href={`/business-strategy/cloid-coverage/v13/${e.cellId}#lv-${e.lv}`}
-                        onClick={onClose}
-                        className="flex items-center gap-3 px-3 py-2 hover:bg-[#FAEAE7]/40 group"
-                      >
-                        <span
-                          className="font-mono text-[11px] font-medium px-2 py-0.5 bg-[#F0EEE8] text-[#1A1A1A] tracking-wide shrink-0"
-                          style={{ borderRadius: 3 }}
+                  {items.map((e) => {
+                    const status = statusMap.get(e.subcellKey);
+                    const label = status ? STATUS_LABEL[status.currentStatus] : null;
+                    return (
+                      <li key={`${e.cellId}-${e.lv}`}>
+                        <Link
+                          href={`/business-strategy/cloid-coverage/v13/${e.cellId}#lv-${e.lv}`}
+                          onClick={onClose}
+                          className="flex items-center gap-3 px-3 py-2 hover:bg-[#FAEAE7]/40 group"
                         >
-                          Lv{e.lv}
-                        </span>
-                        <span className="text-[13px] text-[#1A1A1A] flex-1">
-                          {e.fieldVerified && (
-                            <span
-                              className="text-[#A50034] mr-1 font-semibold"
-                              title={e.fieldVerifiedLine || '현장 확인'}
-                            >
-                              ★
-                            </span>
-                          )}
-                          {e.subTaskName || '(작업명 없음)'}
-                        </span>
-                        <ChevronRight size={14} className="text-[#888780] group-hover:text-[#8B1538]" />
-                      </Link>
-                    </li>
-                  ))}
+                          <span
+                            className="font-mono text-[11px] font-medium px-2 py-0.5 bg-[#F0EEE8] text-[#1A1A1A] tracking-wide shrink-0"
+                            style={{ borderRadius: 3 }}
+                          >
+                            Lv{e.lv}
+                          </span>
+                          <span className="text-[13px] text-[#1A1A1A] flex-1">
+                            {status && label && (
+                              <span
+                                className="inline-block font-mono text-[10px] font-semibold px-1.5 py-0.5 mr-1.5 align-middle"
+                                style={{ color: label.color, backgroundColor: label.bg, borderRadius: 3 }}
+                                title={status.latestNote || label.ko}
+                              >
+                                {status.priorityRank ? `★${status.priorityRank} ` : ''}
+                                {label.ko}
+                              </span>
+                            )}
+                            {e.subTaskName || '(작업명 없음)'}
+                          </span>
+                          <ChevronRight size={14} className="text-[#888780] group-hover:text-[#8B1538]" />
+                        </Link>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             );

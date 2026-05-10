@@ -32,6 +32,7 @@ import { designerRoutes } from './designer/index.js';
 import { cloidSimulatorRoutes } from './cloid-simulator.js';
 import { eventRoutes } from './events.js';
 import { humanoidSpecRoutes } from './humanoid-specs.js';
+import { coverageFieldRoutes } from './coverage-field.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -95,4 +96,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // LG 휴머노이드 스펙 (Task 2) — 8탭 폼 CRUD + EE 옵션 JSONB
   fastify.register(humanoidSpecRoutes, { prefix: '/api/humanoid-specs' });
+
+  // CLOiD 커버리지 sub-cell 현장 확인 / PoC / 배포 진행 이벤트 로그
+  fastify.register(coverageFieldRoutes, { prefix: '/api/coverage/field' });
 }

@@ -2139,3 +2139,39 @@ export const reportDownloads = pgTable(
     downloadedAtIdx: index('report_downloads_downloaded_at_idx').on(table.downloadedAt),
   })
 );
+
+// ============================================
+// CLOiD W/B 커버리지 — sub-cell 현장 확인 / PoC / 배포 진행 이벤트 로그
+//
+// CELLS_V13 (frontend) 의 sub-cell taxonomy 는 stable definition 으로 코드에 두고,
+// 방문/PoC/배포 같은 mutable 한 진행 이벤트만 DB 에 누적한다.
+// subcellKey = `${cell.id}-lv${lv}` (e.g. 'tote-electronics-lv2').
+// 현재 sub-cell status 는 (subcellKey 별) 가장 최근 event 의 status 로 derive.
+// ============================================
+export const coverageFieldEvents = pgTable(
+  'coverage_field_events',
+  {
+    id: serial('id').primaryKey(),
+    subcellKey: varchar('subcell_key', { length: 120 }).notNull(),
+    cellId: varchar('cell_id', { length: 100 }).notNull(),
+    lv: integer('lv').notNull(),
+    eventDate: date('event_date').notNull(),
+    // visit | poc-planned | poc-active | poc-milestone | deployed | note
+    kind: varchar('kind', { length: 32 }).notNull(),
+    // observed | poc-planned | poc-active | deployed (event 이후의 sub-cell status)
+    status: varchar('status', { length: 32 }).notNull(),
+    site: varchar('site', { length: 200 }),
+    source: varchar('source', { length: 300 }),
+    note: text('note'),
+    nextStep: text('next_step'),
+    priorityRank: integer('priority_rank'), // ★1~4 (LG·BCG 우선순위)
+    createdBy: varchar('created_by', { length: 100 }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    subcellIdx: index('coverage_field_events_subcell_idx').on(table.subcellKey),
+    cellIdx: index('coverage_field_events_cell_idx').on(table.cellId),
+    eventDateIdx: index('coverage_field_events_date_idx').on(table.eventDate),
+  })
+);

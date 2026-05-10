@@ -14,9 +14,13 @@ import {
   DEV_TYPES,
   getStatsV13,
   VERDICT_LABEL,
-  cellHasFieldVerified,
   type Verdict,
 } from '@/components/cloid-coverage/data-v13';
+import {
+  useCoverageFieldStatusMap,
+  useCoverageFieldSummary,
+  makeSubcellKey,
+} from '@/components/cloid-coverage/useCoverageFieldEvents';
 
 function ScoreBadge({ score }: { score: number }) {
   const bg = score >= 9 ? '#E1F0D9' : score >= 8 ? '#EAF3DE' : score >= 7 ? '#F4ECDC' : '#FAFAF8';
@@ -30,7 +34,7 @@ function ScoreBadge({ score }: { score: number }) {
   );
 }
 
-function CellCard({ cell }: { cell: (typeof CELLS_V13)[number] }) {
+function CellCard({ cell, isVerified }: { cell: (typeof CELLS_V13)[number]; isVerified: boolean }) {
   const w = { cover: 0, partial: 0, gap: 0 } as Record<Verdict, number>;
   const b = { cover: 0, partial: 0, gap: 0 } as Record<Verdict, number>;
   let lgCount = 0;
@@ -39,7 +43,6 @@ function CellCard({ cell }: { cell: (typeof CELLS_V13)[number] }) {
     b[sc.cloidB.verdict]++;
     if (sc.lgAssets && sc.lgAssets.length > 0) lgCount += sc.lgAssets.length;
   }
-  const isVerified = cellHasFieldVerified(cell);
   return (
     <Link
       href={`/business-strategy/cloid-coverage/v13/${cell.id}`}
@@ -94,6 +97,14 @@ function CloidCoverageV13Content() {
   const stats = getStatsV13();
   const cwPct = ((stats.cw.cover + stats.cw.partial) / stats.totalSubcells) * 100;
   const cbPct = ((stats.cb.cover + stats.cb.partial) / stats.totalSubcells) * 100;
+  const summary = useCoverageFieldSummary();
+  const { map: statusMap } = useCoverageFieldStatusMap();
+  const verifiedSubcells = summary.data?.uniqueSubcells ?? 0;
+  const verifiedCells = summary.data?.uniqueCells ?? 0;
+  const latestEventDate = summary.data?.latestEventDate;
+  // 셀별 verified 여부 — sub-cell 중 하나라도 status 가 있으면 true
+  const isCellVerified = (cell: (typeof CELLS_V13)[number]) =>
+    cell.subCells.some((sc) => statusMap.has(makeSubcellKey(cell.id, sc.lv)));
 
   return (
     <div className="min-h-screen bg-white" style={{ color: '#2C2C2A' }}>
@@ -114,13 +125,23 @@ function CloidCoverageV13Content() {
             <span className="font-mono text-[11px] text-[#A50034] font-medium tracking-[0.14em] px-2 py-0.5 bg-[#FAEAE7]">
               v1.3.1 r2
             </span>
-            <span className="font-mono text-[10.5px] text-[#A50034] tracking-[0.14em] px-1.5 py-0.5 border border-[#A50034]">
-              ★ 현장 {stats.verifiedSubcells}/{stats.totalSubcells}
-            </span>
+            {verifiedSubcells > 0 && (
+              <span
+                className="font-mono text-[10.5px] text-[#A50034] tracking-[0.14em] px-1.5 py-0.5 border border-[#A50034]"
+                title={latestEventDate ? `최근 이벤트 ${latestEventDate}` : undefined}
+              >
+                ★ 현장/PoC {verifiedSubcells}/{stats.totalSubcells} ({verifiedCells}셀)
+              </span>
+            )}
           </div>
           <p className="text-[13.5px] text-[#5F5E5A] leading-relaxed max-w-[920px]">
             {CELLS_V13.length}개 진입 적합 셀 × 4Lv = <strong>{stats.totalSubcells} sub-cell</strong>, EE 9-카테고리 분리, Tier 매칭, LG Captive 7종, 한국 협업 5종, 7 클러스터.
-            v1.3.1 r2 — LG·BCG 합동 ES사업부 A2동 (2026-05-10) 현장 확인 {stats.verifiedSubcells}건 반영.
+            {verifiedSubcells > 0 && (
+              <>
+                {' '}현장 확인 / PoC / 배포 진행 <strong>{verifiedSubcells}건</strong>
+                {latestEventDate ? ` (최근 ${latestEventDate})` : ''} — DB 누적 이력.
+              </>
+            )}
           </p>
         </div>
 
@@ -184,7 +205,7 @@ function CloidCoverageV13Content() {
         <h2 className="font-medium text-[16px] text-[#2C2C2A] mb-4">셀별 분석 (점수 내림차순)</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
           {CELLS_V13.map((cell) => (
-            <CellCard key={cell.id} cell={cell} />
+            <CellCard key={cell.id} cell={cell} isVerified={isCellVerified(cell)} />
           ))}
         </div>
 
