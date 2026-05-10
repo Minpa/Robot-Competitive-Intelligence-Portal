@@ -43,26 +43,20 @@ export default function MatrixLegend() {
           <span className="font-mono text-[9.5px] text-[#888780] uppercase tracking-[0.18em]">
             현장 검증
           </span>
-          {/* 좌측 6px 녹색 띠 + 우하단 카운트 배지 미니 미리보기 */}
+          {/* 상단 풀 너비 녹색 띠 미니 미리보기 */}
           <span
             className="relative inline-block"
-            style={{
-              width: 32,
-              height: 18,
-              backgroundColor: '#EAF3DE',
-              boxShadow: 'inset 6px 0 0 0 #1a7a3a',
-              borderRadius: 2,
-            }}
+            style={{ width: 60, height: 22, backgroundColor: '#EAF3DE', borderRadius: 2 }}
           >
             <span
-              className="absolute bottom-0.5 right-0.5 inline-flex items-center gap-0.5 font-bold text-[8.5px] px-1 py-px"
-              style={{ color: '#FFFFFF', backgroundColor: '#1a7a3a', borderRadius: 2 }}
+              className="absolute top-0 left-0 right-0 inline-flex items-center justify-center gap-0.5 font-bold text-[8.5px] py-0.5"
+              style={{ color: '#FFFFFF', backgroundColor: '#1a7a3a' }}
             >
-              ✓N
+              ✓ 현장 N건
             </span>
           </span>
           <span className="text-[10.5px] text-[#5F5E5A]">
-            셀 좌측 녹색 띠 + 카운트 배지 = 현장 확인된 sub-cell 수 (DB 누적)
+            셀 상단 녹색 띠 = 현장 확인된 sub-cell N건 (점수 아님 / DB 누적). 셀 클릭 시 상세.
           </span>
         </div>
       </div>

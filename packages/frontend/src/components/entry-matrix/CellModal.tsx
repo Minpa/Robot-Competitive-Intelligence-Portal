@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { X } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 import {
   TASKS, SECTORS, SCORES, getLvDetails, isLvDetailsHandCurated,
   scoreToColor, scoreToVerdict,
@@ -14,6 +14,8 @@ import {
 import RobotInfoModal from './RobotInfoModal';
 import CaseInfoModal from './CaseInfoModal';
 import GripperInfoModal from './GripperInfoModal';
+import { CELLS_V13 } from '../cloid-coverage/data-v13';
+import { useCoverageFieldStatusMap, makeSubcellKey } from '../cloid-coverage/useCoverageFieldEvents';
 
 interface Props {
   taskIdx: number;
@@ -56,23 +58,22 @@ export default function CellModal({ taskIdx, sectorIdx, onClose }: Props) {
     router.push(`/business-strategy/matrix/deepdive/${deepDiveRank - 1}`);
   };
 
-  // Map (taskIdx, sectorIdx) → CLOiD coverage cell id (only for entry-fit cells ≥7.5)
-  const COVERAGE_MAP: Record<string, string> = {
-    '7-3': 'tote-logistics',
-    '1-3': 'kitting-logistics',
-    '5-2': 'connector-battery',
-    '9-3': 'box-closing-logistics',
-    '10-6': 'welding-shipbuilding',
-    '0-3': 'binpicking-logistics',
-    '4-4': 'screw-electronics',
-    '5-4': 'connector-electronics',
-    '6-2': 'cable-battery',
-    '6-6': 'cable-shipbuilding',
-    '7-0': 'tote-automotive-bcg',
-    '8-3': 'palletize-logistics',
-    '11-6': 'inspection-shipbuilding',
-  };
-  const coverageId = COVERAGE_MAP[`${taskIdx}-${sectorIdx}`];
+  // CELLS_V13 에서 (taskIdx, sectorIdx) 로 CLOiD coverage cellId lookup —
+  // 17 cells 전부 포함 (verified 셀들도 자동 navigate 가능).
+  const cellEntryV13 = CELLS_V13.find((c) => c.taskIdx === taskIdx && c.sectorIdx === sectorIdx);
+  const coverageId = cellEntryV13?.id;
+
+  // 현장 확인 / PoC / 배포 sub-cell 정보 — coverage_field_events DB
+  const { map: statusMap } = useCoverageFieldStatusMap();
+  const verifiedSubs = cellEntryV13
+    ? cellEntryV13.subCells
+        .map((sc) => ({
+          lv: sc.lv,
+          name: sc.taskName,
+          status: statusMap.get(makeSubcellKey(cellEntryV13.id, sc.lv)),
+        }))
+        .filter((x) => !!x.status)
+    : [];
   const handleCoverage = () => {
     if (!coverageId) return;
     onClose();
@@ -143,6 +144,58 @@ export default function CellModal({ taskIdx, sectorIdx, onClose }: Props) {
             <X size={18} strokeWidth={1.75} />
           </button>
         </div>
+
+        {/* 현장 확인 / PoC / 배포 — sub-cell 누적 이벤트 (coverage_field_events DB) */}
+        {verifiedSubs.length > 0 && (
+          <div
+            className="mx-6 mt-5 px-4 py-3"
+            style={{ borderRadius: 6, border: '1px solid #1a7a3a', backgroundColor: '#EAF3DE' }}
+          >
+            <div className="flex items-center gap-2 mb-2.5 flex-wrap">
+              <span
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 font-bold text-[11px]"
+                style={{ color: '#FFFFFF', backgroundColor: '#1a7a3a', borderRadius: 3 }}
+              >
+                <Check size={11} strokeWidth={3.5} />
+                현장 확인 {verifiedSubs.length}건
+              </span>
+              <span className="text-[12px] text-[#1a7a3a] font-medium">
+                {verifiedSubs[0]?.status?.latestSource ?? ''}
+              </span>
+            </div>
+            <ul className="space-y-1.5">
+              {verifiedSubs.map((sub) => {
+                const s = sub.status!;
+                return (
+                  <li key={sub.lv} className="flex items-start gap-2 text-[12.5px]">
+                    <span
+                      className="font-mono text-[10px] font-medium px-1.5 py-0.5 bg-white border border-[#D3D1C7] shrink-0"
+                      style={{ borderRadius: 3 }}
+                    >
+                      Lv{sub.lv}
+                    </span>
+                    {s.priorityRank && (
+                      <span className="text-[#A50034] font-bold shrink-0 text-[12px]">
+                        ★{s.priorityRank}
+                      </span>
+                    )}
+                    <span className="flex-1 min-w-0">
+                      <span className="text-[#2C2C2A]">{sub.name}</span>
+                      {s.latestNote && (
+                        <span className="block text-[11px] text-[#5F5E5A] mt-0.5 leading-snug">
+                          📍 {s.latestNote}
+                        </span>
+                      )}
+                    </span>
+                    <span className="font-mono text-[10px] text-[#888780] shrink-0">
+                      {s.latestEventDate}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
 
         {/* Body */}
         <div className="px-6 py-5">

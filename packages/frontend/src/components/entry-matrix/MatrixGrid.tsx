@@ -139,47 +139,46 @@ export default function MatrixGrid({ mode, onCellClick }: Props) {
                         opacity: highlighted ? 1 : 0.28,
                         outline: isTop ? '2px solid #A50034' : '1px solid rgba(0,0,0,0.04)',
                         outlineOffset: isTop ? '-2px' : '-1px',
-                        // 검증된 셀: 좌측 6px 녹색 inset 띠 (셀 affiliation 명확화)
-                        padding: verified ? '6px 8px 6px 12px' : '6px 8px',
-                        boxShadow: [
-                          isTop ? '0 0 8px rgba(165, 0, 52, 0.4)' : '',
-                          verified ? 'inset 6px 0 0 0 #1a7a3a' : '',
-                        ].filter(Boolean).join(', ') || undefined,
+                        // 검증된 셀: 상단 18px 녹색 띠 만큼 padding-top 늘려 score 가 띠 아래에 위치
+                        padding: verified ? '20px 8px 6px 8px' : '6px 8px',
+                        boxShadow: isTop ? '0 0 8px rgba(165, 0, 52, 0.4)' : undefined,
                       }}
                     >
-                      {/* 진입 적합 셀: rank corner badge */}
+                      {/* 현장 확인 / PoC / 배포 — sub-cell 누적 이벤트가 있는 셀.
+                          상단 풀 너비 녹색 띠로 표시 → 셀 affiliation 모호함 제거.
+                          텍스트 '현장 확인 N건' 으로 점수와 혼동 방지. */}
+                      {verified && (
+                        <div
+                          className="absolute top-0 left-0 right-0 inline-flex items-center justify-center gap-1 font-bold text-[10px] py-0.5 z-10"
+                          style={{
+                            color: '#FFFFFF',
+                            backgroundColor: '#1a7a3a',
+                            letterSpacing: '0.02em',
+                          }}
+                          title={`현장 확인 · ${verified.count} sub-cell — 클릭 시 상세`}
+                        >
+                          <Check size={11} strokeWidth={3.5} />
+                          <span>현장 확인 {verified.count}건</span>
+                        </div>
+                      )}
+
+                      {/* 진입 적합 셀: rank corner badge — verified 시 띠 아래로 이동 */}
                       {isTop && (
                         <>
+                          {!verified && (
+                            <span
+                              className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[#A50034] z-10"
+                              aria-hidden
+                            />
+                          )}
                           <span
-                            className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[#A50034] z-10"
-                            aria-hidden
-                          />
-                          <span
-                            className="absolute top-0.5 right-1.5 font-mono text-[10px] font-bold text-[#A50034] tracking-wide"
+                            className="absolute right-1.5 font-mono text-[10px] font-bold text-[#A50034] tracking-wide z-10"
+                            style={{ top: verified ? 19 : 2 }}
                             title={`진입 적합 #${rank}`}
                           >
                             🎯 {rank}
                           </span>
                         </>
-                      )}
-
-                      {/* 현장 확인 / PoC / 배포 — sub-cell 누적 이벤트가 있는 셀.
-                          좌측 녹색 띠(box-shadow)가 셀 affiliation 을 명확히 함.
-                          작은 카운트 배지는 하단 우측에 — 점수/그리퍼 칩과 겹치지 않게. */}
-                      {verified && (
-                        <span
-                          className="absolute bottom-0.5 right-0.5 inline-flex items-center gap-0.5 font-bold text-[10px] px-1 py-px z-10 shadow-sm"
-                          style={{
-                            color: '#FFFFFF',
-                            backgroundColor: '#1a7a3a',
-                            borderRadius: 3,
-                            letterSpacing: '0.02em',
-                          }}
-                          title={`현장 확인 · ${verified.count} sub-cell`}
-                        >
-                          <Check size={10} strokeWidth={3.5} />
-                          <span>{verified.count}</span>
-                        </span>
                       )}
 
                       {isLow ? (
