@@ -43,19 +43,26 @@ export default function MatrixLegend() {
           <span className="font-mono text-[9.5px] text-[#888780] uppercase tracking-[0.18em]">
             현장 검증
           </span>
+          {/* 좌측 6px 녹색 띠 + 우하단 카운트 배지 미니 미리보기 */}
           <span
-            className="inline-flex items-center gap-0.5 font-bold text-[10px] px-1.5 py-0.5"
+            className="relative inline-block"
             style={{
-              color: '#FFFFFF',
-              backgroundColor: '#1a7a3a',
-              borderRadius: 3,
-              letterSpacing: '0.02em',
+              width: 32,
+              height: 18,
+              backgroundColor: '#EAF3DE',
+              boxShadow: 'inset 6px 0 0 0 #1a7a3a',
+              borderRadius: 2,
             }}
           >
-            ✓ 현장 N
+            <span
+              className="absolute bottom-0.5 right-0.5 inline-flex items-center gap-0.5 font-bold text-[8.5px] px-1 py-px"
+              style={{ color: '#FFFFFF', backgroundColor: '#1a7a3a', borderRadius: 2 }}
+            >
+              ✓N
+            </span>
           </span>
           <span className="text-[10.5px] text-[#5F5E5A]">
-            현장 확인된 sub-cell 수 (DB 누적)
+            셀 좌측 녹색 띠 + 카운트 배지 = 현장 확인된 sub-cell 수 (DB 누적)
           </span>
         </div>
       </div>
