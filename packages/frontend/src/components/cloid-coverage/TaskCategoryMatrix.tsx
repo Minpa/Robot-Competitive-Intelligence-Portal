@@ -34,7 +34,7 @@ function filterLabel(k: FilterKey): string {
   if (k.category && k.bucket) return `${k.category} × ${k.bucket}`;
   if (k.category) return `${k.category} (전체 Lv)`;
   if (k.bucket) return `${k.bucket} (전체 작업 종류)`;
-  return '전체 52 sub-cell';
+  return '전체 sub-cell';
 }
 
 export default function TaskCategoryMatrix() {
@@ -61,7 +61,7 @@ export default function TaskCategoryMatrix() {
     <>
       <div className="bg-white border border-[#E8E6DD] p-5" style={{ borderRadius: 8 }}>
         <h3 className="font-medium text-[15px] text-[#2C2C2A] mb-3">
-          데이터 검증 (52 sub-cell)
+          데이터 검증 ({entries.length} sub-cell)
         </h3>
 
         <div className="overflow-x-auto">
@@ -273,7 +273,17 @@ function ListModal({
                         >
                           Lv{e.lv}
                         </span>
-                        <span className="text-[13px] text-[#1A1A1A] flex-1">{e.subTaskName || '(작업명 없음)'}</span>
+                        <span className="text-[13px] text-[#1A1A1A] flex-1">
+                          {e.fieldVerified && (
+                            <span
+                              className="text-[#A50034] mr-1 font-semibold"
+                              title={e.fieldVerifiedLine || '현장 확인'}
+                            >
+                              ★
+                            </span>
+                          )}
+                          {e.subTaskName || '(작업명 없음)'}
+                        </span>
                         <ChevronRight size={14} className="text-[#888780] group-hover:text-[#8B1538]" />
                       </Link>
                     </li>

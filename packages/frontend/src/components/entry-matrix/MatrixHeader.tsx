@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { MapPin } from 'lucide-react';
 import { STATS, EMPHASIS_MODES, type EmphasisMode } from './data';
 import TaskCategoryMatrix from '../cloid-coverage/TaskCategoryMatrix';
+import { getStatsV13, FIELD_VERIFIED_META } from '../cloid-coverage/data-v13';
 
 interface Props {
   mode: EmphasisMode;
@@ -47,6 +49,9 @@ export default function MatrixHeader({ mode, onModeChange }: Props) {
         />
       </div>
 
+      {/* v1.3.1 r2 — 현장 확인 통계 (LG·BCG 합동 ES사업부 A2동) */}
+      <FieldVerifiedStat />
+
       {/* 13개 진입 적합 셀 통합 — 작업 종류 × 복잡도 2축 매트릭스 */}
       <TaskCategoryMatrix />
 
@@ -74,6 +79,27 @@ export default function MatrixHeader({ mode, onModeChange }: Props) {
         })}
       </div>
     </header>
+  );
+}
+
+function FieldVerifiedStat() {
+  const stats = getStatsV13();
+  if (!stats.verifiedSubcells) return null;
+  return (
+    <div
+      className="flex items-center gap-3 px-4 py-2.5 border border-[#A50034] bg-white"
+      style={{ borderRadius: 6 }}
+    >
+      <MapPin size={14} className="text-[#A50034] shrink-0" />
+      <div className="flex items-baseline gap-2 flex-wrap text-[12.5px]">
+        <span className="font-semibold text-[#A50034]">현장 확인</span>
+        <span className="font-mono font-medium text-[#2C2C2A]" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          {stats.verifiedSubcells}/{stats.totalSubcells}
+        </span>
+        <span className="text-[#5F5E5A]">({stats.verifiedRatio})</span>
+        <span className="text-[10.5px] text-[#888780] ml-1">{FIELD_VERIFIED_META.defaultSource}</span>
+      </div>
+    </div>
   );
 }
 

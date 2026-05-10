@@ -14,9 +14,12 @@ import {
   KOREA_PARTNERS,
   END_EFFECTOR_CATEGORIES,
   DEV_TYPES,
+  cellHasFieldVerified,
+  FIELD_VERIFIED_META,
   type SubCellV13,
   type Verdict,
 } from '@/components/cloid-coverage/data-v13';
+import FieldVerifiedBadge from '@/components/cloid-coverage/FieldVerifiedBadge';
 
 function VerdictPill({ verdict }: { verdict: Verdict }) {
   const v = VERDICT_LABEL[verdict];
@@ -146,6 +149,13 @@ function LvRow({ sc }: { sc: SubCellV13 }) {
             Lv{sc.lv}
           </span>
           <h3 className="font-medium text-[15px] text-[#2C2C2A] leading-tight">{sc.taskName}</h3>
+          {sc.fieldVerified && (
+            <FieldVerifiedBadge
+              source={sc.fieldVerifiedSource}
+              line={sc.fieldVerifiedLine}
+              size="sm"
+            />
+          )}
         </div>
         <div className="flex items-center gap-2">
           <DevTypeBadge type={sc.devType} />
@@ -466,6 +476,21 @@ function CellDetailV13Content() {
               <span className="text-[#B8B6AE] mx-2">×</span>
               {cell.sectorName}
             </h1>
+            {cellHasFieldVerified(cell) && (
+              <div className="mt-2.5">
+                <FieldVerifiedBadge
+                  size="md"
+                  source={
+                    cell.subCells.find((s) => s.fieldVerifiedSource)?.fieldVerifiedSource ||
+                    FIELD_VERIFIED_META.defaultSource
+                  }
+                  line={
+                    cell.subCells.find((s) => s.lv === 2 && s.fieldVerifiedLine)?.fieldVerifiedLine ||
+                    cell.subCells.find((s) => s.fieldVerifiedLine)?.fieldVerifiedLine
+                  }
+                />
+              </div>
+            )}
           </div>
         </div>
 

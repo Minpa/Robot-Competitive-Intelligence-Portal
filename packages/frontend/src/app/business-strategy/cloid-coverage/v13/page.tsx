@@ -14,6 +14,7 @@ import {
   DEV_TYPES,
   getStatsV13,
   VERDICT_LABEL,
+  cellHasFieldVerified,
   type Verdict,
 } from '@/components/cloid-coverage/data-v13';
 
@@ -38,12 +39,21 @@ function CellCard({ cell }: { cell: (typeof CELLS_V13)[number] }) {
     b[sc.cloidB.verdict]++;
     if (sc.lgAssets && sc.lgAssets.length > 0) lgCount += sc.lgAssets.length;
   }
+  const isVerified = cellHasFieldVerified(cell);
   return (
     <Link
       href={`/business-strategy/cloid-coverage/v13/${cell.id}`}
-      className="group block bg-white border border-[#E8E6DD] hover:border-[#8B1538] hover:shadow-md transition-all p-5"
+      className="group relative block bg-white border border-[#E8E6DD] hover:border-[#8B1538] hover:shadow-md transition-all p-5"
       style={{ borderRadius: 8 }}
     >
+      {isVerified && (
+        <span
+          className="absolute top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white"
+          style={{ backgroundColor: '#A50034', borderRadius: 3 }}
+        >
+          ★ 현장 확인
+        </span>
+      )}
       <div className="flex items-start justify-between mb-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
@@ -97,17 +107,20 @@ function CloidCoverageV13Content() {
             <span className="text-[#B8B6AE]">/</span>
             <span className="text-[#2C2C2A] font-medium">CLOiD 커버리지</span>
           </div>
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
             <h1 className="font-medium text-[28px] text-[#2C2C2A] tracking-tight">
               CLOiD W/B Capability Gap 분석
             </h1>
             <span className="font-mono text-[11px] text-[#A50034] font-medium tracking-[0.14em] px-2 py-0.5 bg-[#FAEAE7]">
-              v1.3
+              v1.3.1 r2
+            </span>
+            <span className="font-mono text-[10.5px] text-[#A50034] tracking-[0.14em] px-1.5 py-0.5 border border-[#A50034]">
+              ★ 현장 {stats.verifiedSubcells}/{stats.totalSubcells}
             </span>
           </div>
           <p className="text-[13.5px] text-[#5F5E5A] leading-relaxed max-w-[920px]">
-            13개 진입 적합 셀 × 4Lv = <strong>52 sub-cell</strong>, EE 9-카테고리 분리, Tier 매칭, LG Captive 7종, 한국 협업 5종, 6 클러스터.
-            CLOiD 스펙은 [F추정] — ARGOS 페이지 입력 후 Phase 4 정밀화.
+            {CELLS_V13.length}개 진입 적합 셀 × 4Lv = <strong>{stats.totalSubcells} sub-cell</strong>, EE 9-카테고리 분리, Tier 매칭, LG Captive 7종, 한국 협업 5종, 7 클러스터.
+            v1.3.1 r2 — LG·BCG 합동 ES사업부 A2동 (2026-05-10) 현장 확인 {stats.verifiedSubcells}건 반영.
           </p>
         </div>
 
@@ -116,7 +129,7 @@ function CloidCoverageV13Content() {
           <div className="bg-[#FAFAF8] border border-[#E8E6DD] p-4" style={{ borderRadius: 8 }}>
             <p className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.16em] mb-1.5">총 sub-cell</p>
             <p className="font-medium text-[28px] text-[#2C2C2A] tabular-nums">{stats.totalSubcells}</p>
-            <p className="text-[11px] text-[#5F5E5A] mt-1">13 셀 × 4 Lv</p>
+            <p className="text-[11px] text-[#5F5E5A] mt-1">{CELLS_V13.length} 셀 × 4 Lv</p>
           </div>
           <div className="bg-[#FAFAF8] border border-[#E8E6DD] p-4" style={{ borderRadius: 8 }}>
             <p className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.16em] mb-1.5">CLOiD W cover/partial</p>
@@ -176,27 +189,42 @@ function CloidCoverageV13Content() {
         </div>
 
         {/* Dev Clusters */}
-        <h2 className="font-medium text-[16px] text-[#2C2C2A] mb-4">6개 개발 클러스터 (LG 관점)</h2>
+        <h2 className="font-medium text-[16px] text-[#2C2C2A] mb-4">{CLUSTERS_V13.length}개 개발 클러스터 (LG 관점)</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
           {CLUSTERS_V13.map((cluster, idx) => {
             const c = cluster as Record<string, unknown>;
             const name = (c.name as string) || `클러스터 ${idx + 1}`;
             const direction = (c.direction as string) || '';
-            const lgPersp = (c.lg_perspective as string) || '';
+            const lgPersp = (c.lg_perspective as string) || (c.lg_angle as string) || '';
             const koreaP = (c.korea_partner as string) || '';
             const benchmark = (c.benchmark as string) || '';
-            const duration = (c.duration as string) || '';
+            const duration = (c.duration as string) || (c.time as string) || '';
             const priority = (c.priority as string) || '';
+            const verified = c.field_verified === true;
+            const verifiedSrc = (c.field_verified_source as string) || '';
             return (
-              <div key={idx} className="bg-white border border-[#E8E6DD] p-5" style={{ borderRadius: 8 }}>
-                <div className="flex items-start justify-between mb-2">
-                  <p className="font-medium text-[14px] text-[#2C2C2A] flex-1">{name}</p>
+              <div
+                key={idx}
+                className="bg-white p-5"
+                style={{
+                  borderRadius: 8,
+                  border: verified ? '2px solid #A50034' : '1px solid #E8E6DD',
+                }}
+              >
+                <div className="flex items-start justify-between mb-2 gap-2">
+                  <p className="font-medium text-[14px] text-[#2C2C2A] flex-1">
+                    {verified && <span className="text-[#A50034] mr-1">★</span>}
+                    {name}
+                  </p>
                   {priority && (
                     <span className="font-mono text-[10px] font-medium uppercase tracking-[0.12em] px-2 py-0.5 bg-[#FAEAE7] text-[#A50034]">
                       {priority}
                     </span>
                   )}
                 </div>
+                {verified && verifiedSrc && (
+                  <p className="text-[10.5px] text-[#A50034] mb-2 font-mono">★ {verifiedSrc}</p>
+                )}
                 <div className="space-y-1.5 text-[12px]">
                   {direction && (
                     <div className="flex gap-2">
