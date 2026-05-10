@@ -66,7 +66,7 @@ const navigationGroups: NavGroup[] = [
     title: '사업 전략',
     subtitle: 'Business Strategy',
     items: [
-      { name: 'ARGOS 도메인 확장', href: '/business-strategy', icon: Briefcase },
+      { name: '4도메인 진입 전략', href: '/business-strategy', icon: Briefcase },
       { name: '진입 매트릭스 v11', href: '/business-strategy/matrix', icon: Grid3x3 },
       { name: 'CLOiD W/B 커버리지 v1.3', href: '/business-strategy/cloid-coverage/v13', icon: Wrench },
       { name: 'LG 휴머노이드 스펙', href: '/lg-humanoid-specs', icon: Bot },

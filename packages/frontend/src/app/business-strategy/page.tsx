@@ -22,8 +22,8 @@ function BusinessStrategyContent() {
       <div className="max-w-[1400px] mx-auto px-4 py-8 space-y-10">
         <SectionHeader
           number="§ STRATEGY · V1.0"
-          kicker="ARGOS Domain Expansion Spec"
-          title="ARGOS 도메인 확장 — 4도메인 통합 사업 전략"
+          kicker="4-Domain Entry Strategy"
+          title="4도메인 진입 전략 — 산업·상업·가정·물류 통합"
           subtitle="휴머노이드 진입성 매트릭스를 산업·상업·가정·물류 4개 도메인으로 확장하는 통합 데이터 구조와 Phase 로드맵. 작성 2026-04-30 / 로보틱스연구기획팀."
           right={
             <div className="flex items-center gap-2">

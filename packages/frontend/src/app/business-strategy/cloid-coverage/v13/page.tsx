@@ -112,7 +112,7 @@ function CloidCoverageV13Content() {
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-3 text-[12px] text-[#5F5E5A]">
-            <Link href="/business-strategy" className="hover:text-[#8B1538]">ARGOS 도메인 확장</Link>
+            <Link href="/business-strategy" className="hover:text-[#8B1538]">4도메인 진입 전략</Link>
             <span className="text-[#B8B6AE]">/</span>
             <Link href="/business-strategy/matrix" className="hover:text-[#8B1538]">진입성 매트릭스</Link>
             <span className="text-[#B8B6AE]">/</span>
