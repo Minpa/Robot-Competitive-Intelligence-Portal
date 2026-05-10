@@ -8,6 +8,7 @@ import { ciUpdateService } from './services/ci-update.service.js';
 import { benchmarkService } from './services/benchmark.service.js';
 import { seedCiData } from './db/seed-ci.js';
 import { dataGeneratorService } from './services/data-generator.service.js';
+import { coverageFieldService } from './services/coverage-field.service.js';
 
 const fastify = Fastify({
   logger: true,
@@ -53,6 +54,14 @@ const start = async () => {
     await ciUpdateService.ensureTables();
     await benchmarkService.ensureTables();
     await seedCiData();
+    await coverageFieldService.ensureTables();
+    const cfs = await coverageFieldService.seedFromFiles().catch((err) => {
+      console.warn('[CoverageField] seed 실패:', err?.message ?? err);
+      return null;
+    });
+    if (cfs && (cfs.inserted > 0 || cfs.skipped > 0)) {
+      console.log(`[CoverageField] ${cfs.files} file(s), inserted ${cfs.inserted}, skipped ${cfs.skipped}`);
+    }
     const staleJobs = await dataGeneratorService.reconcileStaleJobs().catch(() => 0);
     if (staleJobs > 0) console.log(`[DataGenerator] Reconciled ${staleJobs} stale job(s) as failed`);
     const fabricated = await dataGeneratorService.cleanupFabricatedRobots().catch(() => null);
