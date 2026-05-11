@@ -1,0 +1,474 @@
+{
+  "version": "v1.0",
+  "generatedAt": "2026-05-11",
+  "source": "manual",
+  "_note": "AI 파이프라인 (scripts/enrich-hand-specs.ts) 가 갱신하는 동일 포맷. 향후 자동 갱신 가능.",
+  "axes": [
+    {
+      "key": "dof",
+      "label": "DoF (자유도)",
+      "description": "손가락 관절의 독립 제어 자유도 총합. 다지형 정도와 정밀 조작 능력의 1차 지표.",
+      "perfectDef": "24 DoF — Shadow Hand 수준 (인간 손 21~24 DoF 매칭)",
+      "unit": "DoF",
+      "sortOrder": 1
+    },
+    {
+      "key": "payload",
+      "label": "페이로드",
+      "description": "안정적으로 들 수 있는 최대 무게. 휴머노이드 작업 범위 결정.",
+      "perfectDef": "10 kg — 휴머노이드 양손 작업 표준",
+      "unit": "kg",
+      "sortOrder": 2
+    },
+    {
+      "key": "gripForce",
+      "label": "그립력",
+      "description": "최대 파지력 (손가락 끝 합력 기준). 무거운 물체 안정성과 도구 사용 능력.",
+      "perfectDef": "50 N — 휴머노이드 작업 표준",
+      "unit": "N",
+      "sortOrder": 3
+    },
+    {
+      "key": "responseSpeed",
+      "label": "응답 속도",
+      "description": "센서모터 제어 주기. 동적 조작과 미끄러짐 복구 능력.",
+      "perfectDef": "10 Hz 이상 — 동적 조작 가능 수준",
+      "unit": "Hz",
+      "sortOrder": 4
+    },
+    {
+      "key": "tactileChannels",
+      "label": "촉각 채널",
+      "description": "내장 촉각 센서 채널 수 (또는 텍셀 수). 미끄러짐 감지·미세 조작·VLA 학습 신호.",
+      "perfectDef": "100+ 채널 — 텍타일 기반 VLA 학습 가능 수준",
+      "unit": "채널",
+      "sortOrder": 5
+    },
+    {
+      "key": "weightEfficiency",
+      "label": "무게 효율",
+      "description": "페이로드 ÷ 자체 무게. 손목 부담 최소화하면서 작업 능력 확보.",
+      "perfectDef": "5.0 이상 — 휴머노이드 손목 부담 최소화",
+      "unit": "비율",
+      "sortOrder": 6
+    }
+  ],
+  "competitors": [
+    {
+      "slug": "shadow-e3m5",
+      "name": "Shadow Hand E3M5",
+      "manufacturer": "Shadow Robot Company",
+      "country": "영국",
+      "category": "dexterous",
+      "sortOrder": 1,
+      "scores": [
+        {
+          "axisKey": "dof",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "24 DoF (20 능동 + 4 결합)",
+          "rationale": "인간 손과 동일한 24 DoF — 업계 최고 자유도. 텐던 드리븐 구조로 손바닥/손목까지 정밀 제어 가능."
+        },
+        {
+          "axisKey": "payload",
+          "currentScore": 5,
+          "targetScore": 6,
+          "rawValue": "5 kg",
+          "rationale": "텐던 드리븐 한계로 5kg 수준. 연구용/조작 정밀도 우선 설계."
+        },
+        {
+          "axisKey": "gripForce",
+          "currentScore": 7,
+          "targetScore": 8,
+          "rawValue": "약 35 N",
+          "rationale": "정밀 조작에 최적화된 그립력. 무거운 도구보다 섬세한 작업 강점."
+        },
+        {
+          "axisKey": "responseSpeed",
+          "currentScore": 5,
+          "targetScore": 7,
+          "rawValue": "5 Hz",
+          "rationale": "표준 센서모터 사이클. 동적 조작은 제한적이나 정밀도 우선."
+        },
+        {
+          "axisKey": "tactileChannels",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "129 채널 BioTac/PSyonic",
+          "rationale": "BioTac/PSyonic 손가락 끝 촉각 센서 — 업계 최고 채널 수. 진동·온도·압력 모두 측정."
+        },
+        {
+          "axisKey": "weightEfficiency",
+          "currentScore": 2,
+          "targetScore": 4,
+          "rawValue": "5kg / 4.3kg = 1.16",
+          "rationale": "자체 무게 4.3kg 으로 무거움. 휴머노이드 손목 부담 큰 게 단점."
+        }
+      ]
+    },
+    {
+      "slug": "allegro-v4",
+      "name": "Allegro Hand v4",
+      "manufacturer": "Wonik Robotics",
+      "country": "한국",
+      "category": "dexterous",
+      "sortOrder": 2,
+      "scores": [
+        {
+          "axisKey": "dof",
+          "currentScore": 7,
+          "targetScore": 7,
+          "rawValue": "16 DoF (4지 × 4)",
+          "rationale": "4핑거 4-DoF 구조. 엄지 부재로 일부 작업 제한이나 연구용 표준."
+        },
+        {
+          "axisKey": "payload",
+          "currentScore": 5,
+          "targetScore": 6,
+          "rawValue": "5 kg",
+          "rationale": "DC 모터 직결 구조로 5kg 수준. 산업 작업에는 부족."
+        },
+        {
+          "axisKey": "gripForce",
+          "currentScore": 6,
+          "targetScore": 7,
+          "rawValue": "약 30 N",
+          "rationale": "표준 그립력. 일반 물체 파지에는 충분."
+        },
+        {
+          "axisKey": "responseSpeed",
+          "currentScore": 5,
+          "targetScore": 7,
+          "rawValue": "5 Hz",
+          "rationale": "표준 제어 주기. 정적 조작 위주 설계."
+        },
+        {
+          "axisKey": "tactileChannels",
+          "currentScore": 0,
+          "targetScore": 4,
+          "rawValue": "0 (선택형)",
+          "rationale": "기본 모델 촉각 센서 미내장. 외장 SynTouch BioTac 옵션 추가 시 가능."
+        },
+        {
+          "axisKey": "weightEfficiency",
+          "currentScore": 7,
+          "targetScore": 8,
+          "rawValue": "5kg / 1.5kg = 3.33",
+          "rationale": "1.5kg 경량 설계. 휴머노이드 적용 시 손목 부담 적음."
+        }
+      ]
+    },
+    {
+      "slug": "tesollo-dg5f",
+      "name": "Tesollo DG-5F",
+      "manufacturer": "Tesollo",
+      "country": "한국",
+      "category": "dexterous",
+      "sortOrder": 3,
+      "scores": [
+        {
+          "axisKey": "dof",
+          "currentScore": 6,
+          "targetScore": 7,
+          "rawValue": "15 DoF (5지 × 3)",
+          "rationale": "5핑거 3-DoF 구조. 엄지 대향 가능해 실용 작업 범위 넓음."
+        },
+        {
+          "axisKey": "payload",
+          "currentScore": 5,
+          "targetScore": 7,
+          "rawValue": "5 kg",
+          "rationale": "산업 협동 작업 가능 수준. 한국 국산화 강점."
+        },
+        {
+          "axisKey": "gripForce",
+          "currentScore": 6,
+          "targetScore": 8,
+          "rawValue": "약 30 N",
+          "rationale": "협동로봇 부착용 표준 그립력."
+        },
+        {
+          "axisKey": "responseSpeed",
+          "currentScore": 5,
+          "targetScore": 7,
+          "rawValue": "5 Hz",
+          "rationale": "표준 제어 주기."
+        },
+        {
+          "axisKey": "tactileChannels",
+          "currentScore": 2,
+          "targetScore": 5,
+          "rawValue": "30 채널 (FSR 기반)",
+          "rationale": "손가락 끝 FSR 촉각 센서 내장. 미끄러짐 감지 가능하나 텍타일 VLA 수준은 미달."
+        },
+        {
+          "axisKey": "weightEfficiency",
+          "currentScore": 7,
+          "targetScore": 8,
+          "rawValue": "5kg / 1.4kg = 3.57",
+          "rationale": "1.4kg 경량 설계로 협동로봇 부착 친화적."
+        }
+      ]
+    },
+    {
+      "slug": "inspire-rh56dfx",
+      "name": "Inspire RH56DFX",
+      "manufacturer": "Inspire Robotics (因时机器人)",
+      "country": "중국",
+      "category": "dexterous",
+      "sortOrder": 4,
+      "scores": [
+        {
+          "axisKey": "dof",
+          "currentScore": 5,
+          "targetScore": 7,
+          "rawValue": "12 DoF (6 능동 + 6 결합)",
+          "rationale": "5핑거 6-능동 자유도. 휴머노이드 표준 형태로 자리잡음 (Optimus·Figure도 유사)."
+        },
+        {
+          "axisKey": "payload",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "10 kg",
+          "rationale": "10kg 페이로드 — 휴머노이드용 최강. 산업 작업 가능 수준."
+        },
+        {
+          "axisKey": "gripForce",
+          "currentScore": 7,
+          "targetScore": 8,
+          "rawValue": "약 35 N",
+          "rationale": "휴머노이드 표준 그립력."
+        },
+        {
+          "axisKey": "responseSpeed",
+          "currentScore": 5,
+          "targetScore": 7,
+          "rawValue": "5 Hz",
+          "rationale": "표준 제어 주기."
+        },
+        {
+          "axisKey": "tactileChannels",
+          "currentScore": 1,
+          "targetScore": 5,
+          "rawValue": "12 채널 (FSR)",
+          "rationale": "기본 FSR 촉각만 제공. 향후 다채널 텍타일 옵션 출시 계획."
+        },
+        {
+          "axisKey": "weightEfficiency",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "10kg / 0.55kg = 18.2",
+          "rationale": "550g 초경량 + 10kg 페이로드 — 업계 최고 효율. 휴머노이드 손목 부담 최소화."
+        }
+      ]
+    },
+    {
+      "slug": "paxini-dexh13",
+      "name": "PaXini DexH13",
+      "manufacturer": "PaXini Tech",
+      "country": "중국",
+      "category": "dexterous",
+      "sortOrder": 5,
+      "scores": [
+        {
+          "axisKey": "dof",
+          "currentScore": 5,
+          "targetScore": 7,
+          "rawValue": "13 DoF",
+          "rationale": "5핑거 형태. DoF 자체는 중간이나 촉각 + 응답속도가 차별점."
+        },
+        {
+          "axisKey": "payload",
+          "currentScore": 5,
+          "targetScore": 7,
+          "rawValue": "5 kg",
+          "rationale": "촉각 우선 설계로 페이로드는 중간."
+        },
+        {
+          "axisKey": "gripForce",
+          "currentScore": 6,
+          "targetScore": 8,
+          "rawValue": "약 30 N",
+          "rationale": "표준 그립력."
+        },
+        {
+          "axisKey": "responseSpeed",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "10 Hz+",
+          "rationale": "고속 센서 처리 — 동적 조작·미끄러짐 복구 가능 수준."
+        },
+        {
+          "axisKey": "tactileChannels",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "~1,300 텍셀 (DexSkin)",
+          "rationale": "PaXini DexSkin 다채널 텍타일 — Shadow와 함께 업계 양강. VLA 학습 신호 풍부."
+        },
+        {
+          "axisKey": "weightEfficiency",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "5kg / 0.95kg = 5.26",
+          "rationale": "950g 경량 + 5kg 페이로드 — 효율 우수."
+        }
+      ]
+    },
+    {
+      "slug": "linkerhand-l20",
+      "name": "LinkerHand L20",
+      "manufacturer": "LinkerHand",
+      "country": "중국",
+      "category": "dexterous",
+      "sortOrder": 6,
+      "scores": [
+        {
+          "axisKey": "dof",
+          "currentScore": 8,
+          "targetScore": 9,
+          "rawValue": "20 DoF",
+          "rationale": "20 DoF — 다지형 핸드 중 상위권. Shadow에 근접."
+        },
+        {
+          "axisKey": "payload",
+          "currentScore": 5,
+          "targetScore": 7,
+          "rawValue": "5 kg",
+          "rationale": "표준 페이로드."
+        },
+        {
+          "axisKey": "gripForce",
+          "currentScore": 6,
+          "targetScore": 8,
+          "rawValue": "약 30 N",
+          "rationale": "표준 그립력."
+        },
+        {
+          "axisKey": "responseSpeed",
+          "currentScore": 5,
+          "targetScore": 7,
+          "rawValue": "5 Hz",
+          "rationale": "표준 제어 주기."
+        },
+        {
+          "axisKey": "tactileChannels",
+          "currentScore": 4,
+          "targetScore": 7,
+          "rawValue": "50 채널",
+          "rationale": "중간 수준 촉각 — 표면 텍타일 보강 중."
+        },
+        {
+          "axisKey": "weightEfficiency",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "5kg / 0.8kg = 6.25",
+          "rationale": "800g 초경량 + 20 DoF — 가성비 강점."
+        }
+      ]
+    },
+    {
+      "slug": "sanctuary-phoenix",
+      "name": "Phoenix Hand",
+      "manufacturer": "Sanctuary AI",
+      "country": "캐나다",
+      "category": "dexterous",
+      "sortOrder": 7,
+      "scores": [
+        {
+          "axisKey": "dof",
+          "currentScore": 9,
+          "targetScore": 10,
+          "rawValue": "21 DoF",
+          "rationale": "21 DoF — 인간 손 매칭. 휴머노이드 자체 통합 핸드 중 최고 자유도."
+        },
+        {
+          "axisKey": "payload",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "5~10 kg (제조사 주장)",
+          "rationale": "Sanctuary 주장 기준 다양한 산업 작업 가능. 검증 데이터는 제한적."
+        },
+        {
+          "axisKey": "gripForce",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "약 50 N (목표치)",
+          "rationale": "독자 액추에이션 기술로 강한 그립력 — 휴머노이드 자체 핸드 중 최강."
+        },
+        {
+          "axisKey": "responseSpeed",
+          "currentScore": 5,
+          "targetScore": 8,
+          "rawValue": "5 Hz",
+          "rationale": "표준 제어 주기."
+        },
+        {
+          "axisKey": "tactileChannels",
+          "currentScore": 2,
+          "targetScore": 7,
+          "rawValue": "약 30 채널",
+          "rationale": "Carbon AI 통합용 촉각 — 향후 확장 계획."
+        },
+        {
+          "axisKey": "weightEfficiency",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "~10 (자체 핸드 통합 최적화)",
+          "rationale": "휴머노이드 자체 통합 설계로 무게 효율 우수."
+        }
+      ]
+    },
+    {
+      "slug": "schunk-svh",
+      "name": "Schunk SVH",
+      "manufacturer": "Schunk",
+      "country": "독일",
+      "category": "industrial-5f",
+      "sortOrder": 8,
+      "scores": [
+        {
+          "axisKey": "dof",
+          "currentScore": 4,
+          "targetScore": 5,
+          "rawValue": "9 DoF (5 능동 + 4 결합)",
+          "rationale": "5핑거 9-자유도 — 산업용 5지형 표준. 다지형 핸드 대비 자유도는 낮음."
+        },
+        {
+          "axisKey": "payload",
+          "currentScore": 5,
+          "targetScore": 6,
+          "rawValue": "5 kg",
+          "rationale": "산업 협동로봇 표준 페이로드."
+        },
+        {
+          "axisKey": "gripForce",
+          "currentScore": 8,
+          "targetScore": 8,
+          "rawValue": "약 40 N",
+          "rationale": "산업용 강한 그립력 — 도구 사용 강점."
+        },
+        {
+          "axisKey": "responseSpeed",
+          "currentScore": 2,
+          "targetScore": 4,
+          "rawValue": "약 1 Hz (느린 닫힘)",
+          "rationale": "약 1초 closure time — 산업 사이클 위주, 동적 조작 부적합."
+        },
+        {
+          "axisKey": "tactileChannels",
+          "currentScore": 0,
+          "targetScore": 3,
+          "rawValue": "0 (옵션 외장)",
+          "rationale": "기본 모델 촉각 미내장. 외장 옵션으로 추가 가능."
+        },
+        {
+          "axisKey": "weightEfficiency",
+          "currentScore": 8,
+          "targetScore": 8,
+          "rawValue": "5kg / 1.3kg = 3.85",
+          "rationale": "1.3kg — 산업 협동로봇 부착 친화적."
+        }
+      ]
+    }
+  ]
+}

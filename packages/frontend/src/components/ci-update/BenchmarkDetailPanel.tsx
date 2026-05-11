@@ -1,14 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import type { BenchmarkAxis, BenchmarkCompetitorData } from '@/types/ci-update';
 
-const COMPANY_COLORS: Record<string, string> = {
+const DEFAULT_COLORS: Record<string, string> = {
   digit: '#22d3ee', optimus: '#f43f5e', figure: '#a78bfa',
   neo: '#fbbf24', atlas: '#34d399', cloid: '#ff6b9d',
 };
 
-const STRATEGY_DIRECTIONS: Record<string, string> = {
+const ROBOT_STRATEGIES: Record<string, string> = {
   digit: '물류 자동화 심화. 안전 인증 + 대량 생산 확대. 손재주는 후순위.',
   optimus: 'FSD 데이터로 비전 AI 극대화. 대량생산 스케일이 핵심 무기. 모든 축 동시 추진.',
   figure: 'Helix VLA로 AI 자율성 최선두 추구. 촉각+팜카메라로 손재주 혁신. IP 극히 취약.',
@@ -17,18 +16,34 @@ const STRATEGY_DIRECTIONS: Record<string, string> = {
   cloid: 'LG 스마트홈 생태계가 핵심 무기. 가정 특화 + 안전 표준 선점 + 인간 상호작용 최우선.',
 };
 
-interface BenchmarkDetailPanelProps {
-  axes: BenchmarkAxis[];
-  competitor: BenchmarkCompetitorData;
+interface DetailAxis {
+  key: string;
+  label: string;
 }
 
-export function BenchmarkDetailPanel({ axes, competitor }: BenchmarkDetailPanelProps) {
+interface DetailCompetitor {
+  slug: string;
+  name: string;
+  manufacturer: string;
+  scores: Record<string, { currentScore: number; targetScore: number; rawValue?: string | null; rationale?: string | null }>;
+}
+
+interface BenchmarkDetailPanelProps {
+  axes: ReadonlyArray<DetailAxis>;
+  competitor: DetailCompetitor;
+  colorMap?: Record<string, string>;
+  strategies?: Record<string, string>;
+}
+
+export function BenchmarkDetailPanel({ axes, competitor, colorMap, strategies }: BenchmarkDetailPanelProps) {
   const [expandedAxis, setExpandedAxis] = useState<string | null>(null);
-  const color = COMPANY_COLORS[competitor.slug] || '#a1a1aa';
+  const palette = colorMap ?? DEFAULT_COLORS;
+  const strategyMap = strategies ?? ROBOT_STRATEGIES;
+  const color = palette[competitor.slug] || '#a1a1aa';
   const totalCurrent = axes.reduce((sum, axis) => sum + (competitor.scores[axis.key]?.currentScore || 0), 0);
   const totalTarget = axes.reduce((sum, axis) => sum + (competitor.scores[axis.key]?.targetScore || 0), 0);
   const gap = totalTarget - totalCurrent;
-  const strategy = STRATEGY_DIRECTIONS[competitor.slug] || '';
+  const strategy = strategyMap[competitor.slug] || '';
 
   return (
     <div className="bg-white rounded-xl border border-ink-200 p-5 space-y-4">
@@ -93,9 +108,17 @@ export function BenchmarkDetailPanel({ axes, competitor }: BenchmarkDetailPanelP
                 </div>
               </div>
               {/* Expanded rationale */}
-              {isExpanded && score?.rationale && (
-                <div className="mt-1.5 ml-5 bg-ink-100 border border-ink-100 rounded-lg p-3">
-                  <p className="text-xs text-ink-700 leading-relaxed">{score.rationale}</p>
+              {isExpanded && (score?.rationale || score?.rawValue) && (
+                <div className="mt-1.5 ml-5 bg-ink-100 border border-ink-100 rounded-lg p-3 space-y-1.5">
+                  {score?.rawValue && (
+                    <div className="text-xs">
+                      <span className="text-ink-500">원본 수치: </span>
+                      <span className="text-ink-900 font-medium">{score.rawValue}</span>
+                    </div>
+                  )}
+                  {score?.rationale && (
+                    <p className="text-xs text-ink-700 leading-relaxed">{score.rationale}</p>
+                  )}
                 </div>
               )}
             </div>

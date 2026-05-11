@@ -170,3 +170,30 @@ export interface BenchmarkData {
   axes: BenchmarkAxis[];
   competitors: BenchmarkCompetitorData[];
 }
+
+// === Hand Benchmark (다지형 핸드 Perfect 대비 분석) ===
+
+export interface HandBenchmarkAxis {
+  id: string;
+  key: string;
+  label: string;
+  description: string | null;
+  perfectDef: string | null;
+  unit: string | null;
+  sortOrder: number;
+}
+
+export interface HandBenchmarkCompetitor {
+  id: string;
+  slug: string;
+  name: string;
+  manufacturer: string;
+  country: string | null;
+  category: string | null;
+  scores: Record<string, { currentScore: number; targetScore: number; rawValue?: string | null; rationale?: string | null }>;
+}
+
+export interface HandBenchmarkData {
+  axes: HandBenchmarkAxis[];
+  competitors: HandBenchmarkCompetitor[];
+}

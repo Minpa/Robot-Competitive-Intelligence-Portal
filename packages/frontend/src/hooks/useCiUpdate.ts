@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import type { CiMatrixData, CiFreshnessSummary, CiStagingEntry, CiMonitorAlert, CiValueHistoryEntry, BenchmarkData } from '@/types/ci-update';
+import type { CiMatrixData, CiFreshnessSummary, CiStagingEntry, CiMonitorAlert, CiValueHistoryEntry, BenchmarkData, HandBenchmarkData } from '@/types/ci-update';
 
 const STALE_TIME = 120_000; // 2분
 
@@ -62,6 +62,15 @@ export function useBenchmarkData() {
   return useQuery<BenchmarkData>({
     queryKey: ['ci-update', 'benchmark'],
     queryFn: () => api.getBenchmarkData(),
+    staleTime: STALE_TIME,
+  });
+}
+
+// Hand Benchmark data
+export function useHandBenchmarkData() {
+  return useQuery<HandBenchmarkData>({
+    queryKey: ['ci-update', 'hand-benchmark'],
+    queryFn: () => api.getHandBenchmarkData(),
     staleTime: STALE_TIME,
   });
 }

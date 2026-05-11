@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { ciUpdateService } from '../services/ci-update.service.js';
 import { benchmarkService } from '../services/benchmark.service.js';
+import { handBenchmarkService } from '../services/hand-benchmark.service.js';
 import { forceReseedCiData } from '../db/seed-ci.js';
 
 export async function ciUpdateRoutes(fastify: FastifyInstance) {
@@ -132,6 +133,19 @@ export async function ciUpdateRoutes(fastify: FastifyInstance) {
     const { competitorId } = request.params as { competitorId: string };
     const { axisKey, currentScore, targetScore } = request.body as { axisKey: string; currentScore: number; targetScore: number };
     await benchmarkService.updateScore(competitorId, axisKey, currentScore, targetScore);
+    return { success: true };
+  });
+
+  // === Hand Benchmark === (다지형 핸드 Perfect 대비 분석, 로봇 벤치마크와 독립)
+
+  fastify.get('/hand-benchmark', async () => {
+    return handBenchmarkService.getBenchmarkData();
+  });
+
+  fastify.put('/hand-benchmark/scores/:competitorId', async (request) => {
+    const { competitorId } = request.params as { competitorId: string };
+    const { axisKey, currentScore, targetScore } = request.body as { axisKey: string; currentScore: number; targetScore: number };
+    await handBenchmarkService.updateScore(competitorId, axisKey, currentScore, targetScore);
     return { success: true };
   });
 }

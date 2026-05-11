@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import type { BenchmarkAxis, BenchmarkCompetitorData } from '@/types/ci-update';
+import { useState } from 'react';
 
-const COMPANY_COLORS: Record<string, string> = {
+const DEFAULT_COLORS: Record<string, string> = {
   digit: '#22d3ee',
   optimus: '#f43f5e',
   figure: '#a78bfa',
@@ -12,13 +11,27 @@ const COMPANY_COLORS: Record<string, string> = {
   cloid: '#ff6b9d',
 };
 
+interface RadarAxis {
+  key: string;
+  label: string;
+}
+
+interface RadarCompetitor {
+  slug: string;
+  scores: Record<string, { currentScore: number; targetScore: number }>;
+}
+
 interface BenchmarkRadarChartProps {
-  axes: BenchmarkAxis[];
-  competitors: BenchmarkCompetitorData[];
+  axes: ReadonlyArray<RadarAxis>;
+  competitors: ReadonlyArray<RadarCompetitor>;
   activeCompetitors: Set<string>; // slugs that are toggled on
   showTargets: boolean;
   selectedSlug: string | null;
   onSelect: (slug: string) => void;
+  /** Optional slug→hex color override. Falls back to robot palette. */
+  colorMap?: Record<string, string>;
+  /** Optional slug to render with dashed stroke (e.g. self/baseline). */
+  emphasisSlug?: string;
 }
 
 export function BenchmarkRadarChart({
@@ -28,7 +41,10 @@ export function BenchmarkRadarChart({
   showTargets,
   selectedSlug,
   onSelect,
+  colorMap,
+  emphasisSlug,
 }: BenchmarkRadarChartProps) {
+  const palette = colorMap ?? DEFAULT_COLORS;
   const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
 
   const size = 500;
@@ -128,10 +144,10 @@ export function BenchmarkRadarChart({
 
       {/* Company polygons */}
       {visibleCompetitors.map(comp => {
-        const color = COMPANY_COLORS[comp.slug] || '#a1a1aa';
+        const color = palette[comp.slug] || '#a1a1aa';
         const isHighlighted = hoveredSlug === null || hoveredSlug === comp.slug;
         const isSelected = selectedSlug === comp.slug;
-        const isCloid = comp.slug === 'cloid';
+        const isEmphasized = (emphasisSlug ?? 'cloid') === comp.slug;
         const opacity = isHighlighted ? 0.8 : 0.15;
         const fillOpacity = isHighlighted ? 0.08 : 0.02;
 
@@ -149,8 +165,8 @@ export function BenchmarkRadarChart({
               fill={color}
               fillOpacity={fillOpacity}
               stroke={color}
-              strokeWidth={isSelected ? 2.5 : isCloid ? 2 : 1.5}
-              strokeDasharray={isCloid ? '8 4' : undefined}
+              strokeWidth={isSelected ? 2.5 : isEmphasized ? 2 : 1.5}
+              strokeDasharray={isEmphasized ? '8 4' : undefined}
               opacity={opacity}
             />
 

@@ -1705,6 +1705,56 @@ export const ciBenchmarkScoresRelations = relations(ciBenchmarkScores, ({ one })
 }));
 
 // ============================================
+// Hand Benchmark Tables — 다지형 핸드 Perfect 대비 분석 (로봇 벤치마크와 독립)
+// ============================================
+
+// Hand Competitors — 비교 대상 핸드 제품
+export const handCompetitors = pgTable('hand_competitors', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  slug: varchar('slug', { length: 50 }).notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  manufacturer: varchar('manufacturer', { length: 255 }).notNull(),
+  country: varchar('country', { length: 100 }),
+  category: varchar('category', { length: 50 }).default('dexterous'), // dexterous | industrial-5f
+  imageUrl: varchar('image_url', { length: 500 }),
+  sortOrder: integer('sort_order').default(0),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Hand Benchmark Axes — 6축 (DoF, 페이로드, 그립력, 응답속도, 촉각 채널, 무게 효율)
+export const handBenchmarkAxes = pgTable('hand_benchmark_axes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  key: varchar('key', { length: 50 }).notNull().unique(),
+  label: varchar('label', { length: 100 }).notNull(),
+  description: text('description'),
+  perfectDef: text('perfect_def'),
+  unit: varchar('unit', { length: 30 }), // 'DoF', 'kg', 'N', 'Hz', '채널', '비율'
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Hand Benchmark Scores — 핸드별 점수
+export const handBenchmarkScores = pgTable('hand_benchmark_scores', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  competitorId: uuid('competitor_id').notNull().references(() => handCompetitors.id, { onDelete: 'cascade' }),
+  axisKey: varchar('axis_key', { length: 50 }).notNull(),
+  currentScore: integer('current_score').notNull().default(0),
+  targetScore: integer('target_score').notNull().default(0),
+  rawValue: varchar('raw_value', { length: 100 }), // '24 DoF', '5 kg' 등 원본 수치
+  rationale: text('rationale'),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  competitorAxisUniq: uniqueIndex('hand_benchmark_scores_competitor_axis_uniq').on(table.competitorId, table.axisKey),
+  competitorIdx: index('hand_benchmark_scores_competitor_idx').on(table.competitorId),
+}));
+
+export const handBenchmarkScoresRelations = relations(handBenchmarkScores, ({ one }) => ({
+  competitor: one(handCompetitors, { fields: [handBenchmarkScores.competitorId], references: [handCompetitors.id] }),
+}));
+
+// ============================================
 // Strategic Intelligence Tables
 // ============================================
 

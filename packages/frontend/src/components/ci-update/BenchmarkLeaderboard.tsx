@@ -1,20 +1,34 @@
 'use client';
 
 import { useState } from 'react';
-import type { BenchmarkAxis, BenchmarkCompetitorData } from '@/types/ci-update';
 
-const COMPANY_COLORS: Record<string, string> = {
+const DEFAULT_COLORS: Record<string, string> = {
   digit: '#22d3ee', optimus: '#f43f5e', figure: '#a78bfa',
   neo: '#fbbf24', atlas: '#34d399', cloid: '#ff6b9d',
 };
 
-interface BenchmarkLeaderboardProps {
-  axes: BenchmarkAxis[];
-  competitors: BenchmarkCompetitorData[];
-  onSelect: (slug: string) => void;
+interface LeaderboardAxis {
+  key: string;
+  label: string;
+  description?: string | null;
+  perfectDef?: string | null;
 }
 
-export function BenchmarkLeaderboard({ axes, competitors, onSelect }: BenchmarkLeaderboardProps) {
+interface LeaderboardCompetitor {
+  slug: string;
+  name: string;
+  scores: Record<string, { currentScore: number; targetScore: number; rationale?: string | null }>;
+}
+
+interface BenchmarkLeaderboardProps {
+  axes: ReadonlyArray<LeaderboardAxis>;
+  competitors: ReadonlyArray<LeaderboardCompetitor>;
+  onSelect: (slug: string) => void;
+  colorMap?: Record<string, string>;
+}
+
+export function BenchmarkLeaderboard({ axes, competitors, onSelect, colorMap }: BenchmarkLeaderboardProps) {
+  const palette = colorMap ?? DEFAULT_COLORS;
   const [expandedAxis, setExpandedAxis] = useState<string | null>(null);
 
   // Calculate totals
@@ -50,7 +64,7 @@ export function BenchmarkLeaderboard({ axes, competitors, onSelect }: BenchmarkL
                 <th
                   key={c.slug}
                   className="text-center font-medium px-3 py-2 border-b border-ink-200 cursor-pointer hover:bg-ink-100"
-                  style={{ color: COMPANY_COLORS[c.slug] || '#a1a1aa' }}
+                  style={{ color: palette[c.slug] || '#a1a1aa' }}
                   onClick={() => onSelect(c.slug)}
                 >
                   {c.name}
@@ -79,7 +93,7 @@ export function BenchmarkLeaderboard({ axes, competitors, onSelect }: BenchmarkL
                       const scoreData = c.scores[axis.key];
                       const score = scoreData?.currentScore || 0;
                       const isLeader = score === leader && score > 0;
-                      const color = COMPANY_COLORS[c.slug] || '#a1a1aa';
+                      const color = palette[c.slug] || '#a1a1aa';
                       return (
                         <td
                           key={c.slug}
@@ -119,7 +133,7 @@ export function BenchmarkLeaderboard({ axes, competitors, onSelect }: BenchmarkL
                           {competitors.map(c => {
                             const score = c.scores[axis.key];
                             if (!score) return null;
-                            const color = COMPANY_COLORS[c.slug] || '#a1a1aa';
+                            const color = palette[c.slug] || '#a1a1aa';
                             return (
                               <div
                                 key={c.slug}
@@ -168,7 +182,7 @@ export function BenchmarkLeaderboard({ axes, competitors, onSelect }: BenchmarkL
                 <td
                   key={c.slug}
                   className="text-center px-3 py-2.5 border-t border-ink-200"
-                  style={{ color: COMPANY_COLORS[c.slug] || '#a1a1aa' }}
+                  style={{ color: palette[c.slug] || '#a1a1aa' }}
                 >
                   {c.total}
                 </td>
