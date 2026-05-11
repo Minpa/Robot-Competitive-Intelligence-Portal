@@ -24,7 +24,6 @@ import {
   Boxes,
   CalendarDays,
   Wrench,
-  Briefcase,
   Grid3x3,
   Bot,
   Hand,
@@ -66,16 +65,8 @@ const navigationGroups: NavGroup[] = [
     ],
   },
   {
-    title: '사업 전략',
-    subtitle: 'Business Strategy',
-    items: [
-      { name: '4도메인 진입 전략', href: '/business-strategy', icon: Briefcase },
-      { name: 'LG 휴머노이드 스펙', href: '/lg-humanoid-specs', icon: Bot },
-    ],
-  },
-  {
-    title: '산업 도메인',
-    subtitle: 'Industrial Domain',
+    title: '산업(제조) 분야 진입 분석',
+    subtitle: 'Industrial Entry Analysis',
     items: [
       { name: '진입 매트릭스', href: '/business-strategy/matrix', icon: Grid3x3 },
       { name: 'CLOiD 커버리지', href: '/business-strategy/cloid-coverage/v13', icon: Wrench },
@@ -121,6 +112,7 @@ const navigationGroups: NavGroup[] = [
     title: '관리',
     subtitle: 'Administration',
     items: [
+      { name: 'LG 휴머노이드 스펙 입력', href: '/lg-humanoid-specs', icon: Bot },
       { name: '관리자 설정', href: '/admin', icon: Settings },
     ],
   },
