@@ -77,7 +77,10 @@ export function BenchmarkRadarChart({
   const visibleCompetitors = competitors.filter(c => activeCompetitors.has(c.slug));
 
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full max-w-[500px] max-h-[500px]">
+    <svg
+      viewBox={axisMaxLabels ? `-60 -10 ${size + 120} ${size + 20}` : `0 0 ${size} ${size}`}
+      className="w-full h-full max-w-[600px] max-h-[520px]"
+    >
       {/* Grid levels */}
       {levels.map(level => {
         const points = axes.map((_, i) => getPoint(i, level));
@@ -120,9 +123,16 @@ export function BenchmarkRadarChart({
       {/* Axis labels */}
       {axes.map((axis, i) => {
         const maxLabel = axisMaxLabels?.[axis.key];
-        const [x, y] = getPoint(i, maxLabel ? 11.5 : 11.8);
+        const angle = (Math.PI * 2 * i) / numAxes - Math.PI / 2;
+        const cosA = Math.cos(angle);
+        const isRight = maxLabel && cosA > 0.5;
+        const isLeft = maxLabel && cosA < -0.5;
+        // Side labels(좌/우) 는 그래프 영역과 겹치지 않도록 radial 거리 키우고 anchor 이동
+        const radius = maxLabel ? (isRight || isLeft ? 12.4 : 11.5) : 11.8;
+        const [x, y] = getPoint(i, radius);
+        const textAnchor: 'start' | 'end' | 'middle' = isRight ? 'start' : isLeft ? 'end' : 'middle';
         return (
-          <text key={`label-${i}`} x={x} y={y} textAnchor="middle" dominantBaseline="middle">
+          <text key={`label-${i}`} x={x} y={y} textAnchor={textAnchor} dominantBaseline="middle">
             <tspan x={x} className="fill-slate-400" fontSize={13}>
               {axis.label}
             </tspan>
