@@ -46,11 +46,11 @@ interface NavGroup {
 
 const navigationGroups: NavGroup[] = [
   {
-    title: '로봇리스트',
-    subtitle: 'Robot Registry',
+    title: '제품 카탈로그',
+    subtitle: 'Product Catalog',
     items: [
-      { name: '타임라인 기반', href: '/robot-evolution', icon: GitBranch },
-      { name: '리스트 기반', href: '/humanoid-robots', icon: List },
+      { name: '로봇 타임라인', href: '/robot-evolution', icon: GitBranch },
+      { name: '로봇 리스트', href: '/humanoid-robots', icon: List },
       { name: '핸드 리스트', href: '/hand-registry', icon: Hand },
     ],
   },
@@ -58,11 +58,11 @@ const navigationGroups: NavGroup[] = [
     title: '경쟁비교',
     subtitle: 'Competitive Compare',
     items: [
-      { name: '레이더 차트', href: '/humanoid-trend', icon: Radar },
-      { name: '항목별 비교', href: '/compare/matrix', icon: Table2 },
-      { name: 'Perfect 대비 분석', href: '/compare/benchmark', icon: Target },
-      { name: 'Hand Perfect 분석', href: '/compare/hand-benchmark', icon: Hand },
-      { name: '전략 제언 / Action', href: '/action-items', icon: Zap },
+      { name: '로봇 레이더 비교', href: '/humanoid-trend', icon: Radar },
+      { name: '로봇 항목별 매트릭스', href: '/compare/matrix', icon: Table2 },
+      { name: '로봇 Perfect 분석', href: '/compare/benchmark', icon: Target },
+      { name: '핸드 Perfect 분석', href: '/compare/hand-benchmark', icon: Hand },
+      { name: '전략 액션', href: '/action-items', icon: Zap },
     ],
   },
   {
@@ -70,9 +70,15 @@ const navigationGroups: NavGroup[] = [
     subtitle: 'Business Strategy',
     items: [
       { name: '4도메인 진입 전략', href: '/business-strategy', icon: Briefcase },
-      { name: '진입 매트릭스 v11', href: '/business-strategy/matrix', icon: Grid3x3 },
-      { name: 'CLOiD W/B 커버리지 v1.3', href: '/business-strategy/cloid-coverage/v13', icon: Wrench },
       { name: 'LG 휴머노이드 스펙', href: '/lg-humanoid-specs', icon: Bot },
+    ],
+  },
+  {
+    title: '산업 도메인',
+    subtitle: 'Industrial Domain',
+    items: [
+      { name: '진입 매트릭스', href: '/business-strategy/matrix', icon: Grid3x3 },
+      { name: 'CLOiD 커버리지', href: '/business-strategy/cloid-coverage/v13', icon: Wrench },
     ],
   },
   {
@@ -86,7 +92,7 @@ const navigationGroups: NavGroup[] = [
     ],
   },
   {
-    title: '컴플라이언스3',
+    title: '컴플라이언스',
     subtitle: 'Compliance',
     items: [
       { name: '규제 대시보드', href: '/compliance', icon: LayoutDashboard },
