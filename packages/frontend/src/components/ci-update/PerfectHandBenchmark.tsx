@@ -17,6 +17,16 @@ const HAND_COLORS: Record<string, string> = {
   'schunk-svh': '#94a3b8',         // slate — 독일 (산업용 베이스라인)
 };
 
+// 각 축의 "10점 = N" 정의 (Perfect Hand Spec 천장)
+const HAND_AXIS_MAX_LABELS: Record<string, string> = {
+  dof: '24 DoF',
+  payload: '10 kg',
+  gripForce: '50 N',
+  responseSpeed: '10 Hz',
+  tactileChannels: '100+ 채널',
+  weightEfficiency: '5.0 비율',
+};
+
 const HAND_STRATEGIES: Record<string, string> = {
   'shadow-e3m5': '연구용 표준. 촉각 + DoF 최강이나 무게 문제로 휴머노이드 적용 한계. 차세대는 경량화가 관건.',
   'allegro-v4': '한국 연구 시장 표준. 4지형 한계 (엄지 부재). 촉각 옵션화 + DoF 확장이 차세대 과제.',
@@ -138,6 +148,7 @@ export function PerfectHandBenchmark() {
             onSelect={setSelectedSlug}
             colorMap={HAND_COLORS}
             emphasisSlug="__none__"
+            axisMaxLabels={HAND_AXIS_MAX_LABELS}
           />
         </div>
 

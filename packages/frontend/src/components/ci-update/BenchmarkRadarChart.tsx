@@ -32,6 +32,8 @@ interface BenchmarkRadarChartProps {
   colorMap?: Record<string, string>;
   /** Optional slug to render with dashed stroke (e.g. self/baseline). */
   emphasisSlug?: string;
+  /** Optional axis key → raw max label (e.g. "24 DoF") shown under axis label. */
+  axisMaxLabels?: Record<string, string>;
 }
 
 export function BenchmarkRadarChart({
@@ -43,6 +45,7 @@ export function BenchmarkRadarChart({
   onSelect,
   colorMap,
   emphasisSlug,
+  axisMaxLabels,
 }: BenchmarkRadarChartProps) {
   const palette = colorMap ?? DEFAULT_COLORS;
   const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
@@ -116,18 +119,18 @@ export function BenchmarkRadarChart({
 
       {/* Axis labels */}
       {axes.map((axis, i) => {
-        const [x, y] = getPoint(i, 11.8);
+        const maxLabel = axisMaxLabels?.[axis.key];
+        const [x, y] = getPoint(i, maxLabel ? 11.5 : 11.8);
         return (
-          <text
-            key={`label-${i}`}
-            x={x}
-            y={y}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            className="fill-slate-400"
-            fontSize={13}
-          >
-            {axis.label}
+          <text key={`label-${i}`} x={x} y={y} textAnchor="middle" dominantBaseline="middle">
+            <tspan x={x} className="fill-slate-400" fontSize={13}>
+              {axis.label}
+            </tspan>
+            {maxLabel && (
+              <tspan x={x} dy="1.3em" className="fill-emerald-500" fontSize={10}>
+                Perfect = {maxLabel}
+              </tspan>
+            )}
           </text>
         );
       })}
@@ -137,7 +140,7 @@ export function BenchmarkRadarChart({
         const [x, y] = getPoint(0, level);
         return (
           <text key={`level-${level}`} x={x + 8} y={y - 4} fontSize={11} className="fill-slate-500">
-            {level}
+            {level === 10 ? '10점' : level}
           </text>
         );
       })}
