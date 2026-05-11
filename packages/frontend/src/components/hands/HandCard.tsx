@@ -37,7 +37,7 @@ export function HandCard({ hand, axes }: HandCardProps) {
 
   return (
     <Link
-      href={`/compare/hand-benchmark?slug=${hand.slug}`}
+      href={`/hand-registry/${hand.slug}`}
       className="block bg-white rounded-xl border border-ink-200 hover:border-info/30 transition-all hover:shadow-report-lg"
     >
       <HandImage

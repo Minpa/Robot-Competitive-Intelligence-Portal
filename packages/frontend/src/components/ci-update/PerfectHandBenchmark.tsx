@@ -5,38 +5,7 @@ import { useHandBenchmarkData } from '@/hooks/useCiUpdate';
 import { BenchmarkRadarChart } from './BenchmarkRadarChart';
 import { BenchmarkDetailPanel } from './BenchmarkDetailPanel';
 import { BenchmarkLeaderboard } from './BenchmarkLeaderboard';
-
-const HAND_COLORS: Record<string, string> = {
-  'shadow-e3m5': '#22d3ee',       // cyan — 영국 표준
-  'allegro-v4': '#f43f5e',         // rose — 한국 (Wonik)
-  'tesollo-dg5f': '#fb923c',       // orange — 한국 (Tesollo)
-  'inspire-rh56dfx': '#a78bfa',    // violet — 중국 (Inspire)
-  'paxini-dexh13': '#34d399',      // emerald — 중국 (PaXini, 촉각 강점)
-  'linkerhand-l20': '#fbbf24',     // amber — 중국 (Linker)
-  'sanctuary-phoenix': '#ff6b9d',  // pink — 캐나다
-  'schunk-svh': '#94a3b8',         // slate — 독일 (산업용 베이스라인)
-};
-
-// 각 축의 "10점 = N" 정의 (Perfect Hand Spec 천장)
-const HAND_AXIS_MAX_LABELS: Record<string, string> = {
-  dof: '24 DoF',
-  payload: '10 kg',
-  gripForce: '50 N',
-  responseSpeed: '10 Hz',
-  tactileChannels: '100+ 채널',
-  weightEfficiency: '5.0 비율',
-};
-
-const HAND_STRATEGIES: Record<string, string> = {
-  'shadow-e3m5': '연구용 표준. 촉각 + DoF 최강이나 무게 문제로 휴머노이드 적용 한계. 차세대는 경량화가 관건.',
-  'allegro-v4': '한국 연구 시장 표준. 4지형 한계 (엄지 부재). 촉각 옵션화 + DoF 확장이 차세대 과제.',
-  'tesollo-dg5f': '국산 다지형 표준. 5핑거 균형형. 촉각 채널 확대 + 응답속도 강화가 차별화 포인트.',
-  'inspire-rh56dfx': '휴머노이드 표준 핸드 — 페이로드/무게 효율 최강. 촉각 채널 확장으로 VLA 학습 호환성 추격 필요.',
-  'paxini-dexh13': '텍타일 + 응답속도 양강. 1,300 텍셀 DexSkin이 핵심 차별점. DoF 확장 시 종합 1위 가능.',
-  'linkerhand-l20': 'DoF 20 + 800g 경량 — 가성비 강점. 촉각 채널 확대로 Shadow급 추격 목표.',
-  'sanctuary-phoenix': '자체 휴머노이드 통합 핸드. 그립력 강점. 촉각 + 외부 SDK 부재가 한계.',
-  'schunk-svh': '산업용 5지형 베이스라인. 응답속도/촉각이 다지형 핸드 대비 약점. 산업 도구 그립력은 강점.',
-};
+import { HAND_COLORS, HAND_AXIS_MAX_LABELS, HAND_STRATEGIES } from '@/lib/hand-config';
 
 export function PerfectHandBenchmark() {
   const { data, isLoading, error } = useHandBenchmarkData();
