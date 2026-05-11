@@ -61,7 +61,7 @@ const navigationGroups: NavGroup[] = [
       { name: '로봇 항목별 매트릭스', href: '/compare/matrix', icon: Table2 },
       { name: '로봇 Perfect 분석', href: '/compare/benchmark', icon: Target },
       { name: '핸드 Perfect 분석', href: '/compare/hand-benchmark', icon: Hand },
-      { name: '전략 액션', href: '/action-items', icon: Zap },
+      { name: 'CLOiD 개선 항목 분석', href: '/action-items', icon: Zap },
     ],
   },
   {
