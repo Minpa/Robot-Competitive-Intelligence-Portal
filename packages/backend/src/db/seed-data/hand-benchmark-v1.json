@@ -60,6 +60,7 @@
       "manufacturer": "Shadow Robot Company",
       "country": "영국",
       "category": "dexterous",
+      "imageUrl": "https://humanoid.guide/wp-content/uploads/2025/12/Dexterous-Hand-Series-by-Shadow-Robot-humanoid-guide.webp",
       "sortOrder": 1,
       "scores": [
         {
@@ -112,6 +113,7 @@
       "manufacturer": "Wonik Robotics",
       "country": "한국",
       "category": "dexterous",
+      "imageUrl": "https://humanoid.guide/wp-content/uploads/2026/01/Allegro-Hand-V4-robotic-hand-by-WONIK-Robotics-humanoid-guide.webp",
       "sortOrder": 2,
       "scores": [
         {
@@ -164,6 +166,7 @@
       "manufacturer": "Tesollo",
       "country": "한국",
       "category": "dexterous",
+      "imageUrl": "https://humanoid.guide/wp-content/uploads/2025/12/DG-5F-robotic-hand-by-Tesollo-humanoid-guide.webp",
       "sortOrder": 3,
       "scores": [
         {
@@ -216,6 +219,7 @@
       "manufacturer": "Inspire Robotics (因时机器人)",
       "country": "중국",
       "category": "dexterous",
+      "imageUrl": "https://humanoid.guide/wp-content/uploads/2025/10/RH56_series-2.webp",
       "sortOrder": 4,
       "scores": [
         {
@@ -268,6 +272,7 @@
       "manufacturer": "PaXini Tech",
       "country": "중국",
       "category": "dexterous",
+      "imageUrl": "https://humanoid.guide/wp-content/uploads/2025/12/DexH13-hand-by-Paxini-humanoid-guide.webp",
       "sortOrder": 5,
       "scores": [
         {
@@ -320,6 +325,7 @@
       "manufacturer": "LinkerHand",
       "country": "중국",
       "category": "dexterous",
+      "imageUrl": "https://humanoid.guide/wp-content/uploads/2026/03/Linker-Hand-L30-robot-hand-by-LinkerBot-Humanoid-Huide.webp",
       "sortOrder": 6,
       "scores": [
         {
@@ -372,6 +378,7 @@
       "manufacturer": "Sanctuary AI",
       "country": "캐나다",
       "category": "dexterous",
+      "imageUrl": "https://humanoid.guide/wp-content/uploads/2025/12/Phoenix-Hand-3.2-hand-by-Sanctuary-humanoid-guide.webp",
       "sortOrder": 7,
       "scores": [
         {
@@ -424,6 +431,7 @@
       "manufacturer": "Schunk",
       "country": "독일",
       "category": "industrial-5f",
+      "imageUrl": "https://humanoid.guide/wp-content/uploads/2025/10/SCHUNK_Hand.webp",
       "sortOrder": 8,
       "scores": [
         {

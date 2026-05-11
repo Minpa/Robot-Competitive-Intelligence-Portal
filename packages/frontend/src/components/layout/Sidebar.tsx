@@ -51,6 +51,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: '타임라인 기반', href: '/robot-evolution', icon: GitBranch },
       { name: '리스트 기반', href: '/humanoid-robots', icon: List },
+      { name: '핸드 리스트', href: '/hand-registry', icon: Hand },
     ],
   },
   {

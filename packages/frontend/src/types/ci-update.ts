@@ -190,6 +190,7 @@ export interface HandBenchmarkCompetitor {
   manufacturer: string;
   country: string | null;
   category: string | null;
+  imageUrl?: string | null;
   scores: Record<string, { currentScore: number; targetScore: number; rawValue?: string | null; rationale?: string | null }>;
 }
 

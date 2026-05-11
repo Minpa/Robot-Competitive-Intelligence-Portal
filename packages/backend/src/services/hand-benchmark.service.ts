@@ -44,6 +44,7 @@ interface SeedCompetitor {
   manufacturer: string;
   country?: string;
   category?: 'dexterous' | 'industrial-5f';
+  imageUrl?: string;
   sortOrder?: number;
   scores: SeedScore[];
 }
@@ -160,7 +161,7 @@ class HandBenchmarkService {
       for (const comp of data.competitors) {
         let competitorId: string;
         const existingComp = await db
-          .select({ id: handCompetitors.id })
+          .select({ id: handCompetitors.id, imageUrl: handCompetitors.imageUrl })
           .from(handCompetitors)
           .where(eq(handCompetitors.slug, comp.slug))
           .limit(1);
@@ -174,6 +175,7 @@ class HandBenchmarkService {
               manufacturer: comp.manufacturer,
               country: comp.country ?? null,
               category: comp.category ?? 'dexterous',
+              imageUrl: comp.imageUrl ?? null,
               sortOrder: comp.sortOrder ?? 0,
             })
             .returning({ id: handCompetitors.id });
@@ -181,6 +183,13 @@ class HandBenchmarkService {
           compCount++;
         } else {
           competitorId = existingComp[0]!.id;
+          // Backfill imageUrl if missing in DB but present in seed
+          if (!existingComp[0]!.imageUrl && comp.imageUrl) {
+            await db
+              .update(handCompetitors)
+              .set({ imageUrl: comp.imageUrl, updatedAt: new Date() })
+              .where(eq(handCompetitors.id, competitorId));
+          }
         }
 
         for (const score of comp.scores) {
