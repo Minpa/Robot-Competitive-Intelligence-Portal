@@ -10,6 +10,7 @@ const PHOTO_KEYS = new Set<GripperKey>([
   'soft',
   'vacuum',
   'bimanual',
+  'multi',
   'torque-driver',
   'welding-torch',
 ]);
