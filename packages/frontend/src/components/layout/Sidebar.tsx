@@ -27,6 +27,7 @@ import {
   Grid3x3,
   Bot,
   Hand,
+  Grab,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -51,6 +52,7 @@ const navigationGroups: NavGroup[] = [
       { name: '로봇 타임라인', href: '/robot-evolution', icon: GitBranch },
       { name: '로봇 리스트', href: '/humanoid-robots', icon: List },
       { name: '핸드 리스트', href: '/hand-registry', icon: Hand },
+      { name: '그리퍼 리스트', href: '/gripper-registry', icon: Grab },
     ],
   },
   {
