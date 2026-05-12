@@ -1,7 +1,18 @@
 'use client';
 
 import { GripperIllustration } from './GripperIllustration';
-import type { AppliedProcess, GripperCategory } from './data';
+import type { AppliedProcess, GripperCategory, GripperKey } from './data';
+
+// 실 사진이 준비된 키 목록 — public/grippers/{key}.jpg
+// 나머지 키는 GripperIllustration SVG fallback
+const PHOTO_KEYS = new Set<GripperKey>([
+  'parallel',
+  'soft',
+  'vacuum',
+  'bimanual',
+  'torque-driver',
+  'welding-torch',
+]);
 
 interface Props {
   category: GripperCategory;
@@ -35,9 +46,17 @@ export function GripperListCard({ category, processes }: Props) {
   return (
     <div className="bg-white rounded-xl border border-ink-200 hover:border-info/40 transition-all hover:shadow-report-lg overflow-hidden">
       <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-0">
-        {/* Illustration */}
-        <div className="bg-[#FAFAF8] border-b md:border-b-0 md:border-r border-ink-100 aspect-[5/4] md:aspect-auto md:min-h-[220px] flex items-center justify-center">
-          <GripperIllustration gripperKey={category.key} />
+        {/* Illustration / Photo */}
+        <div className="bg-[#FAFAF8] border-b md:border-b-0 md:border-r border-ink-100 aspect-[5/4] md:aspect-auto md:min-h-[220px] flex items-center justify-center overflow-hidden">
+          {PHOTO_KEYS.has(category.key) ? (
+            <img
+              src={`/grippers/${category.key}.jpg`}
+              alt={category.nameKr}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <GripperIllustration gripperKey={category.key} />
+          )}
         </div>
 
         {/* Body */}
