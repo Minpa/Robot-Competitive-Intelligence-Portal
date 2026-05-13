@@ -41,7 +41,7 @@ export const DOMAINS: DomainDef[] = [
       '점검·계측',
     ],
     sectors: [
-      '자동차BCG', '자동차LG', '배터리', '물류', '전자가전', '반도체',
+      '자동차', '자동차 부품(전장)', '배터리', '물류', '전자가전', '반도체',
       '조선', '제약', '식품', '화학', '의류', 'Frontier',
     ],
     hint: 'B-3 / B-4 세션 Top 5 진입 적합 셀 Deep Dive 진행 중',
@@ -356,14 +356,14 @@ export const INDUSTRIAL_TASKS = [
 ] as const;
 
 export const INDUSTRIAL_SECTORS = [
-  '자동차BCG', '자동차LG', '배터리', '물류', '전자가전', '반도체',
+  '자동차', '자동차 부품(전장)', '배터리', '물류', '전자가전', '반도체',
   '조선', '제약', '식품', '화학', '의류', 'Frontier',
 ] as const;
 
 // 행 = sector, 열 = task. 가설치 (0~10).
 export const LG_ENTRY_SCORES: Record<string, Record<string, number>> = {
-  '자동차BCG': { 'Bin Picking': 8.5, 'Kitting': 8.0, 'Tending': 8.5, 'Visual QC': 7.5, '나사 체결': 7.0, '커넥터 체결': 6.5, '케이블 라우팅': 6.0, 'Tote 이송': 9.2, 'Tote·박스 적재': 8.0, '박스 마감': 6.5, '용접·도장': 7.5, '점검·계측': 6.0 },
-  '자동차LG':  { 'Bin Picking': 8.8, 'Kitting': 8.2, 'Tending': 8.6, 'Visual QC': 7.8, '나사 체결': 7.2, '커넥터 체결': 7.0, '케이블 라우팅': 6.5, 'Tote 이송': 9.0, 'Tote·박스 적재': 7.8, '박스 마감': 6.2, '용접·도장': 7.0, '점검·계측': 6.5 },
+  '자동차': { 'Bin Picking': 8.5, 'Kitting': 8.0, 'Tending': 8.5, 'Visual QC': 7.5, '나사 체결': 7.0, '커넥터 체결': 6.5, '케이블 라우팅': 6.0, 'Tote 이송': 9.2, 'Tote·박스 적재': 8.0, '박스 마감': 6.5, '용접·도장': 7.5, '점검·계측': 6.0 },
+  '자동차 부품(전장)':  { 'Bin Picking': 8.8, 'Kitting': 8.2, 'Tending': 8.6, 'Visual QC': 7.8, '나사 체결': 7.2, '커넥터 체결': 7.0, '케이블 라우팅': 6.5, 'Tote 이송': 9.0, 'Tote·박스 적재': 7.8, '박스 마감': 6.2, '용접·도장': 7.0, '점검·계측': 6.5 },
   '배터리':    { 'Bin Picking': 7.5, 'Kitting': 8.5, 'Tending': 8.8, 'Visual QC': 8.5, '나사 체결': 6.5, '커넥터 체결': 7.5, '케이블 라우팅': 6.0, 'Tote 이송': 8.5, 'Tote·박스 적재': 7.5, '박스 마감': 7.0, '용접·도장': 4.5, '점검·계측': 7.0 },
   '물류':      { 'Bin Picking': 7.0, 'Kitting': 6.5, 'Tending': 4.5, 'Visual QC': 5.5, '나사 체결': 3.0, '커넥터 체결': 3.0, '케이블 라우팅': 2.5, 'Tote 이송': 9.5, 'Tote·박스 적재': 9.2, '박스 마감': 8.5, '용접·도장': 2.0, '점검·계측': 4.5 },
   '전자가전':  { 'Bin Picking': 8.2, 'Kitting': 8.8, 'Tending': 8.0, 'Visual QC': 7.5, '나사 체결': 7.5, '커넥터 체결': 7.8, '케이블 라우팅': 6.5, 'Tote 이송': 8.0, 'Tote·박스 적재': 7.5, '박스 마감': 7.0, '용접·도장': 5.0, '점검·계측': 6.5 },
@@ -378,8 +378,8 @@ export const LG_ENTRY_SCORES: Record<string, Record<string, number>> = {
 
 // Sector tagline — 진입 시 LG 라인업 강점 한 줄
 export const SECTOR_TAGLINES: Record<string, string> = {
-  '자동차BCG':  'BCG 라인 — 정형 작업 + Tote 이송 강점',
-  '자동차LG':   'LG 자사 라인 — 데이터 접근성 + CLOiD 우선 검증',
+  '자동차':  '완성차 라인 — 정형 작업 + Tote 이송 강점',
+  '자동차 부품(전장)':   'LG 자사 라인 — 데이터 접근성 + CLOiD 우선 검증',
   '배터리':     '셀 조립·Tending·QC — 정밀도·반복성 핵심',
   '물류':       'Tote 이송·박스 적재 — Top 진입 후보 1순위',
   '전자가전':   'Kitting·Tending — LG 자사 강점 영역',

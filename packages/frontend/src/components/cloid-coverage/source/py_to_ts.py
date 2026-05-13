@@ -16,6 +16,15 @@ CELL_TO_TASK = {
     '⑦': 6, '⑧': 7, '⑨': 8, '⑩': 9, '⑪': 10, '⑫': 11,
     '⑬': 12,  # v1.3.1: Insulation·환경유해
 }
+# Python 원본 데이터는 옛 라벨('자동차BCG'/'자동차LG')로 키가 박혀 있어
+# 매핑 시에는 그대로 사용하고, 출력 단계에서만 신규 라벨로 rename.
+SECTOR_RENAME = {
+    '자동차BCG': '자동차',
+    '자동차LG': '자동차 부품(전장)',
+}
+def rename_sector(s):
+    return SECTOR_RENAME.get(s, s)
+
 SECTOR_TO_IDX = {
     '자동차BCG': 0, '자동차LG': 1, '배터리': 2, '물류': 3, '전자가전': 4,
     '반도체': 5, '조선': 6, '제약': 7, '식품': 8, '화학': 9, '의류': 10, 'Frontier': 11,
@@ -47,8 +56,14 @@ CELL_SCORE = {(cell, sector): score for cell, sector, score in d.CELL_ORDER}
 
 
 def js(v):
-    """JSON-encode a value (TS-compatible since TS reads JSON literals)."""
-    return json.dumps(v, ensure_ascii=False)
+    """JSON-encode a value (TS-compatible since TS reads JSON literals).
+    Python source still uses 옛 sector labels ('자동차BCG'/'자동차LG') as dict keys;
+    rename to new labels at serialization time so downstream TS sees only neue 라벨.
+    """
+    s = json.dumps(v, ensure_ascii=False)
+    for old, new in SECTOR_RENAME.items():
+        s = s.replace(old, new)
+    return s
 
 
 def build_cells_ts():

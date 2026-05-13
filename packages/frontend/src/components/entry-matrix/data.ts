@@ -739,7 +739,7 @@ export function isCellHighlighted(
   switch (mode) {
     case 'all':           return true;
     case 'topTier':       return isTopTierCell(taskIdx, sectorIdx);
-    case 'lg':            return sectorIdx === 1 || sectorIdx === 4; // 자동차LG / 전자가전
+    case 'lg':            return sectorIdx === 1 || sectorIdx === 4; // 자동차 부품(전장) / 전자가전
     case 'shipbuilding':  return sectorIdx === 6;
     case 'battery':       return sectorIdx === 2;
     case 'logistics':     return sectorIdx === 3;

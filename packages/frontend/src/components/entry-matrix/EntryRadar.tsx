@@ -20,15 +20,15 @@ const PALETTE = [
 type Mode = 'per-sector' | 'per-task';
 
 const TOP_PRESETS: { label: string; sectors: string[] }[] = [
-  { label: 'Top 3 진입 적합', sectors: ['물류', '자동차LG', '전자가전'] },
-  { label: '자동차 비교',     sectors: ['자동차BCG', '자동차LG'] },
-  { label: 'LG 자사 강점',    sectors: ['자동차LG', '전자가전'] },
+  { label: 'Top 3 진입 적합', sectors: ['물류', '자동차 부품(전장)', '전자가전'] },
+  { label: '자동차 비교',     sectors: ['자동차', '자동차 부품(전장)'] },
+  { label: 'LG 자사 강점',    sectors: ['자동차 부품(전장)', '전자가전'] },
   { label: 'Frontier 후보',   sectors: ['배터리', '반도체', 'Frontier'] },
 ];
 
 const SECTOR_TAGLINES: Record<string, string> = {
-  '자동차BCG':  'BCG 라인 — 정형 작업 + Tote 이송 강점',
-  '자동차LG':   'LG 자사 라인 — 데이터 접근성 + CLOiD 우선 검증',
+  '자동차':  'BCG 라인 — 정형 작업 + Tote 이송 강점',
+  '자동차 부품(전장)':   'LG 자사 라인 — 데이터 접근성 + CLOiD 우선 검증',
   '배터리':     '셀 조립·Tending·QC — 정밀도·반복성 핵심',
   '물류':       'Tote 이송·박스 적재 — Top 진입 후보 1순위',
   '전자가전':   'Kitting·Tending — LG 자사 강점 영역',
@@ -68,7 +68,7 @@ function scoreToGrade(s: number): { grade: string; bg: string; fg: string } {
 export default function EntryRadar() {
   const [mode, setMode] = useState<Mode>('per-sector');
   const [selectedSectors, setSelectedSectors] = useState<string[]>([
-    '자동차LG', '전자가전', '배터리', '반도체',
+    '자동차 부품(전장)', '전자가전', '배터리', '반도체',
   ]);
   const [selectedTasks, setSelectedTasks] = useState<string[]>([
     'Tote 이송', 'Bin Picking', 'Visual QC',

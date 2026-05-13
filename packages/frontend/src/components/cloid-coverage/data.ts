@@ -609,7 +609,7 @@ export const CELLS: CloidCoverageCell[] = [
 
   {
     id: 'tote-automotive-bcg',
-    cellNum: '⑧', taskName: 'Tote 이송', sectorName: '자동차BCG',
+    cellNum: '⑧', taskName: 'Tote 이송', sectorName: '자동차',
     taskIdx: 7, sectorIdx: 0, score: 7.5,
     oneLineInsight: 'Mercedes Apollo 파일럿 추격. CLOiD W 평지 takt 동기화·다 라인 작업 큐 핵심.',
     subCells: [

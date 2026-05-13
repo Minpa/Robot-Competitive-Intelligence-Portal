@@ -25,7 +25,7 @@ const SECTOR_COLOR: Record<string, { bg: string; text: string }> = {
   배터리: { bg: 'bg-amber-500/10', text: 'text-amber-700' },
   전자가전: { bg: 'bg-sky-500/10', text: 'text-sky-700' },
   조선: { bg: 'bg-slate-500/15', text: 'text-slate-700' },
-  자동차BCG: { bg: 'bg-rose-500/10', text: 'text-rose-700' },
+  자동차: { bg: 'bg-rose-500/10', text: 'text-rose-700' },
 };
 
 const LV_COLOR: Record<number, string> = {

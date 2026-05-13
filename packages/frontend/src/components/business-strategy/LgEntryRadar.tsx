@@ -33,9 +33,9 @@ const PALETTE = [
 type Mode = 'per-sector' | 'per-task';
 
 const TOP_PRESETS: { label: string; sectors: string[] }[] = [
-  { label: 'Top 3 진입 적합', sectors: ['물류', '자동차LG', '전자가전'] },
-  { label: '자동차 비교',     sectors: ['자동차BCG', '자동차LG'] },
-  { label: 'LG 자사 강점',    sectors: ['자동차LG', '전자가전'] },
+  { label: 'Top 3 진입 적합', sectors: ['물류', '자동차 부품(전장)', '전자가전'] },
+  { label: '자동차 비교',     sectors: ['자동차', '자동차 부품(전장)'] },
+  { label: 'LG 자사 강점',    sectors: ['자동차 부품(전장)', '전자가전'] },
   { label: 'Frontier 후보',   sectors: ['배터리', '반도체', 'Frontier'] },
 ];
 
@@ -49,7 +49,7 @@ function scoreToGrade(s: number): { grade: string; tone: 'gold' | 'pos' | 'warn'
 
 export default function LgEntryRadar() {
   const [mode, setMode] = useState<Mode>('per-sector');
-  const [selectedSectors, setSelectedSectors] = useState<string[]>(['물류', '자동차LG', '전자가전']);
+  const [selectedSectors, setSelectedSectors] = useState<string[]>(['물류', '자동차 부품(전장)', '전자가전']);
   const [selectedTasks,   setSelectedTasks]   = useState<string[]>(['Tote 이송', 'Bin Picking', 'Visual QC']);
 
   // ─── per-sector mode: 축=task, 데이터=sector별 점수 ───
