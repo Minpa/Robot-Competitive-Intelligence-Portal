@@ -15,9 +15,11 @@ function EntryMatrixContent() {
 
   return (
     <div className="min-h-screen bg-white" style={{ color: '#2C2C2A' }}>
-      <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-6 md:py-8">
+      <div className="max-w-[1800px] mx-auto px-4 md:px-6 py-6 md:py-8">
         <MatrixHeader mode={mode} onModeChange={setMode} />
-        <MatrixGrid mode={mode} onCellClick={(t, s) => setSelected({ t, s })} />
+        <div className="overflow-x-auto -mx-4 md:-mx-6 px-4 md:px-6">
+          <MatrixGrid mode={mode} onCellClick={(t, s) => setSelected({ t, s })} />
+        </div>
         <MatrixLegend />
         <EntryRadar />
       </div>

@@ -33,8 +33,8 @@ function BusinessStrategyContent() {
           }
         />
 
-        {/* 빠른 진입 — 진입성 매트릭스 / CLOiD 커버리지 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 빠른 진입 — 진입성 매트릭스 / CLOiD 커버리지 / LGE 세탁기 공정 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link
             href="/business-strategy/matrix"
             className="group flex items-center gap-4 p-5 bg-white border border-[#E2DED4] hover:border-[#8B1538] hover:shadow-md transition-all"
@@ -73,6 +73,26 @@ function BusinessStrategyContent() {
               </p>
             </div>
             <ArrowRight size={18} className="text-[#A50034] group-hover:translate-x-1 transition-transform shrink-0" />
+          </Link>
+
+          <Link
+            href="/business-strategy/lge-processes"
+            className="group flex items-center gap-4 p-5 bg-white border border-[#E2DED4] hover:border-[#8B1538] hover:shadow-md transition-all"
+            style={{ borderRadius: 8 }}
+          >
+            <div className="shrink-0 w-12 h-12 flex items-center justify-center rounded-md" style={{ backgroundColor: '#F4ECDC' }}>
+              <Wrench size={22} className="text-[#7a5a14]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-mono text-[10.5px] text-[#7a5a14] uppercase tracking-[0.16em] mb-0.5 font-semibold">
+                LGE Captive · 세탁기
+              </p>
+              <p className="font-medium text-[15px] text-[#1A1A1A] mb-0.5">세탁기 라인 공정 분석</p>
+              <p className="text-[12.5px] text-[#5F5E5A] leading-snug">
+                LGE 세탁기 라인 27개 공정 — 작업 종류·EE 분류, 매트릭스 ⑤⑥⑦ 셀 매핑
+              </p>
+            </div>
+            <ArrowRight size={18} className="text-[#888780] group-hover:text-[#8B1538] shrink-0" />
           </Link>
         </div>
 

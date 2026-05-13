@@ -72,6 +72,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: '진입 매트릭스', href: '/business-strategy/matrix', icon: Grid3x3 },
       { name: 'CLOiD 커버리지', href: '/business-strategy/cloid-coverage/v13', icon: Wrench },
+      { name: 'LGE 세탁기 공정', href: '/business-strategy/lge-processes', icon: Wrench },
     ],
   },
   {

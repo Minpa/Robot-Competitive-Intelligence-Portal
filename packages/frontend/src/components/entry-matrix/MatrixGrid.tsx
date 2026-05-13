@@ -70,7 +70,7 @@ export default function MatrixGrid({ mode, onCellClick }: Props) {
 
   return (
     <div className="overflow-x-auto -mx-4 md:mx-0">
-      <table className="border-separate border-spacing-0 mx-auto" style={{ minWidth: 1100 }}>
+      <table className="border-separate border-spacing-0 mx-auto" style={{ minWidth: 1500 }}>
         <thead>
           <tr>
             <th
