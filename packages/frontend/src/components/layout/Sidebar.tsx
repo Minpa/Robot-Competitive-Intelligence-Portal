@@ -97,11 +97,11 @@ const navigationGroups: NavGroup[] = [
     ],
   },
   {
-    title: '프로토타입',
-    subtitle: 'Prototypes',
+    title: '시뮬레이션',
+    subtitle: 'Simulation',
     items: [
-      { name: 'CLOiD 전시 시뮬레이터', href: '/cloid-simulator', icon: Boxes },
-      { name: 'ARGOS-Designer', href: '/argos-designer', icon: Wrench },
+      { name: '전시/운영 시뮬레이션', href: '/cloid-simulator', icon: Boxes },
+      { name: '제품 기획 시뮬레이션', href: '/argos-designer', icon: Wrench },
     ],
   },
   {
