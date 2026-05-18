@@ -2855,7 +2855,7 @@
     function buildLEDVideoWall(instance) {
       const group = new THREE.Group();
       const dims = FURNITURE_DIMS.LED_VIDEO_WALL;
-      const liftY = 1.50; // bottom edge above floor (overhead/header signage)
+      const liftY = (instance && typeof instance.liftOverride === 'number') ? instance.liftOverride : 1.50;
       const signageText = (instance && instance.signageText) ? String(instance.signageText) : '';
       const signageBg = (instance && instance.signageBg) ? String(instance.signageBg) : '';
       const signageColor = (instance && instance.signageColor) ? String(instance.signageColor) : '';
@@ -10615,10 +10615,12 @@
       const Z_BACK = -7.00;
 
       // ── 정면 벽면 KB은행 브랜딩 ──
-      // KB국민은행 월 사이니지 (정면 벽 중앙 상단)
-      m('WALL_SIGNAGE', 0, Z_BACK - 0.05, 0, 'KB국민은행 사이니지', { label: 'KB국민은행', brand: 'kb' });
-      // LED 비디오월에 KB은행 브랜드 표시
-      m('LED_VIDEO_WALL', 0, Z_BACK + 0.05, 0, 'KB 브랜드 디스플레이', { signageText: 'KB국민은행 마곡지점', signageBg: '#FFBC00', signageColor: '#3A1F04' });
+      // Back wall is at z = -ftToM(depthFt)/2 ≈ -7.62, front face ≈ -7.58
+      const wallZ = -ftToM(50) / 2 + 0.10;
+      // KB국민은행 월 사이니지 (정면 벽 상단 — liftY=2.10, h=1.20 → y 2.10~3.30)
+      m('WALL_SIGNAGE', 0, wallZ, 0, 'KB국민은행 사이니지', { label: 'KB국민은행', brand: 'kb' });
+      // LED 비디오월 KB 브랜드 (벽 중단 — liftY=1.50, h=1.85 이지만 사이니지와 겹침 방지를 위해 아래 조정)
+      m('LED_VIDEO_WALL', 0, wallZ, 0, 'KB 브랜드 디스플레이', { signageText: 'KB국민은행 마곡지점', signageBg: '#FFBC00', signageColor: '#3A1F04', liftOverride: 0.30 });
 
       // ── 창구 (Teller counters — back wall, 5 windows) ──
       const tellerXs = [-3.6, -1.8, 0.0, 1.8, 3.6];
