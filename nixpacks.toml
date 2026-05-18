@@ -2,6 +2,7 @@
 nixPkgs = ["nodejs_20", "npm-9_x"]
 
 [phases.install]
-cmds = ["npm install"]
+cmds = ["npm install --workspaces --include-workspace-root"]
 
-# Cache bust: v2
+[phases.build]
+cmds = ["npx turbo run build"]

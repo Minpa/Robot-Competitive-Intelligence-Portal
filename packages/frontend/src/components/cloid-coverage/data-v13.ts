@@ -158,6 +158,7 @@ export interface TaskMatrixEntry {
   taskName: string;
   sectorName: string;
   lv: 1 | 2 | 3 | 4;
+  subcellKey: string;
   subTaskName: string; // sub-cell의 task_short
   category: TaskCategory;
   bucket: ComplexityBucket;
@@ -178,6 +179,7 @@ export function buildTaskMatrixEntries(): TaskMatrixEntry[] {
         taskName: cell.taskName,
         sectorName: cell.sectorName,
         lv: sc.lv,
+        subcellKey: `${cell.id}-lv${sc.lv}`,
         subTaskName: sc.taskName,
         category: cat,
         bucket: getComplexityBucket(sc.lv),

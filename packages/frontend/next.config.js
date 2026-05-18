@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  transpilePackages: ['@react-three/rapier', '@dimforge/rapier3d-compat'],
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**' },
