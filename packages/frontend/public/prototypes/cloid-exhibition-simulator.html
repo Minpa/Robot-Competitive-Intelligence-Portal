@@ -1310,6 +1310,8 @@
       // ARCHITECTURE
       'WALL_PANEL', 'DOORWAY', 'FIREPLACE', 'FLOOR_LAMP', 'SLAT_PANEL', 'LED_STRIP',
       'REPAIR_ROOM',
+      // SIGNAGE
+      'WALL_SIGNAGE',
     ];
     const FURNITURE_CATEGORIES = {
       MAIN_STAGE: 'STAGING', CIRCULAR_PODIUM: 'STAGING', PRODUCT_SHELF: 'STAGING',
@@ -1334,6 +1336,7 @@
       WALL_PANEL: 'ARCHITECTURE', DOORWAY: 'ARCHITECTURE', FIREPLACE: 'ARCHITECTURE',
       FLOOR_LAMP: 'ARCHITECTURE', SLAT_PANEL: 'ARCHITECTURE', LED_STRIP: 'ARCHITECTURE',
       REPAIR_ROOM: 'ARCHITECTURE',
+      WALL_SIGNAGE: 'STAGING',
     };
     const FURNITURE_CATEGORY_ORDER = ['STAGING', 'DISPLAY', 'AUDIO', 'APPLIANCE', 'FURNITURE', 'BANK', 'RETAIL', 'MANUFACTURING', 'ARCHITECTURE'];
     const FURNITURE_DIMS = {
@@ -1397,10 +1400,11 @@
       SLAT_PANEL: { width: 1.50, depth: 0.06, height: 2.50 },
       LED_STRIP: { width: 3.00, depth: 0.03, height: 0.04 },
       REPAIR_ROOM: { width: 1.00, depth: 1.33, height: 0.83 },
+      WALL_SIGNAGE: { width: 6.00, depth: 0.10, height: 1.20 },
     };
     const FURNITURE_SNAP = {
       MAIN_STAGE: 'free', CIRCULAR_PODIUM: 'free', PRODUCT_SHELF: 'wall', SCREEN_WALL: 'wall',
-      LED_VIDEO_WALL: 'wall', ZONE_BANNER: 'wall', EXPERIENCE_ZONE: 'free', INFO_DESK: 'free',
+      LED_VIDEO_WALL: 'wall', ZONE_BANNER: 'wall', WALL_SIGNAGE: 'wall', EXPERIENCE_ZONE: 'free', INFO_DESK: 'free',
       OLED_TV_65: 'wall', OLED_TV_77: 'wall', OLED_TV_97: 'wall', SMART_PANEL: 'free',
       FLOOR_SPEAKER: 'free', BOOKSHELF_SPEAKER: 'free', SOUNDBAR: 'wall',
       SUBWOOFER: 'free', SPEAKER_PEDESTAL: 'free',
@@ -1422,7 +1426,7 @@
     };
     const FURNITURE_COLORS = {
       MAIN_STAGE: 0xA50034, CIRCULAR_PODIUM: 0x2a221a, PRODUCT_SHELF: 0x2a2a2a,
-      SCREEN_WALL: 0x0a0a0a, LED_VIDEO_WALL: 0x050505, ZONE_BANNER: 0x111111,
+      SCREEN_WALL: 0x0a0a0a, LED_VIDEO_WALL: 0x050505, ZONE_BANNER: 0x111111, WALL_SIGNAGE: 0x2a2a2a,
       EXPERIENCE_ZONE: 0x00D9FF, INFO_DESK: 0xf0f0f0,
       OLED_TV_65: 0x0a0a0a, OLED_TV_77: 0x0a0a0a, OLED_TV_97: 0x0a0a0a, SMART_PANEL: 0x1a1a2a,
       FLOOR_SPEAKER: 0x202020, BOOKSHELF_SPEAKER: 0x202020, SOUNDBAR: 0x141414,
@@ -1447,7 +1451,7 @@
     const FURNITURE_LABELS = {
       MAIN_STAGE: 'Main Stage', CIRCULAR_PODIUM: 'Circular Podium',
       PRODUCT_SHELF: 'Product Shelf', SCREEN_WALL: 'Screen Wall',
-      LED_VIDEO_WALL: 'LED Video Wall', ZONE_BANNER: 'Zone Banner',
+      LED_VIDEO_WALL: 'LED Video Wall', ZONE_BANNER: 'Zone Banner', WALL_SIGNAGE: 'Wall Signage',
       EXPERIENCE_ZONE: 'Experience Zone', INFO_DESK: 'Info Desk',
       OLED_TV_65: 'OLED TV 65"', OLED_TV_77: 'OLED TV 77"', OLED_TV_97: 'OLED TV 97"',
       SMART_PANEL: 'Smart Panel',
@@ -1481,6 +1485,7 @@
       PRODUCT_SHELF: { h: 1.00, weight: 0.5, label: 'mid shelf' },
       SCREEN_WALL: { h: 1.50, weight: 0.0, label: 'screen center' },
       LED_VIDEO_WALL: { h: 3.00, weight: 0.0, label: 'video wall (overhead)' },
+      WALL_SIGNAGE: { h: 2.80, weight: 0.0, label: 'wall signage' },
       ZONE_BANNER: { h: 2.50, weight: 0.0, label: 'banner sign' },
       EXPERIENCE_ZONE: { h: 0.10, weight: 0.0, label: 'floor mat' },
       INFO_DESK: { h: 1.10, weight: 0.3, label: 'desk top' },
@@ -2743,10 +2748,117 @@
       return group;
     }
 
-    function buildLEDVideoWall() {
+    // KB국민은행 star emblem — 6-pointed star in KB yellow
+    function drawKBStarEmblem(ctx, cx, cy, r) {
+      ctx.save();
+      // Outer glow
+      ctx.shadowColor = 'rgba(255, 188, 0, 0.4)';
+      ctx.shadowBlur = 20;
+      // Star shape (6-pointed)
+      ctx.fillStyle = '#FFBC00';
+      ctx.beginPath();
+      for (let i = 0; i < 12; i++) {
+        const angle = (Math.PI / 6) * i - Math.PI / 2;
+        const rad = i % 2 === 0 ? r : r * 0.5;
+        const px = cx + Math.cos(angle) * rad;
+        const py = cy + Math.sin(angle) * rad;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      // Inner circle with KB text
+      ctx.fillStyle = '#3A1F04';
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.38, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#FFBC00';
+      ctx.font = `bold ${Math.round(r * 0.42)}px IBM Plex Sans, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('KB', cx, cy);
+      ctx.restore();
+    }
+
+    // Wall-mounted signage panel with custom branding (logo + text)
+    function buildWallSignage(instance) {
+      const group = new THREE.Group();
+      const dims = FURNITURE_DIMS.WALL_SIGNAGE;
+      const liftY = 2.10;
+      const label = (instance && instance.label) ? String(instance.label) : 'KB국민은행';
+      const brand = (instance && instance.brand) ? String(instance.brand) : 'kb';
+
+      // Backplate
+      const backColor = brand === 'kb' ? 0x3A2A0A : 0x2a2a2a;
+      const back = new THREE.Mesh(
+        new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
+        new THREE.MeshStandardMaterial({ color: backColor, roughness: 0.6, metalness: 0.3 })
+      );
+      back.position.y = liftY + dims.height / 2;
+      back.castShadow = true;
+      group.add(back);
+
+      // Canvas face
+      const cnv = document.createElement('canvas');
+      cnv.width = 1536; cnv.height = 320;
+      const ctx = cnv.getContext('2d');
+
+      if (brand === 'kb') {
+        // KB국민은행 branding: warm gradient + star + text
+        const grad = ctx.createLinearGradient(0, 0, 1536, 0);
+        grad.addColorStop(0, '#4A3510');
+        grad.addColorStop(0.3, '#5C4118');
+        grad.addColorStop(0.7, '#5C4118');
+        grad.addColorStop(1, '#4A3510');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, 1536, 320);
+        // KB star emblem
+        drawKBStarEmblem(ctx, 250, 160, 100);
+        // Bank name text
+        ctx.fillStyle = '#FFBC00';
+        ctx.font = 'bold 90px IBM Plex Sans, sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(label, 900, 150);
+        // English subtitle
+        ctx.fillStyle = 'rgba(255, 188, 0, 0.6)';
+        ctx.font = '36px IBM Plex Sans, sans-serif';
+        ctx.fillText('KB Kookmin Bank', 900, 240);
+      } else {
+        // Generic signage
+        ctx.fillStyle = '#1a1a2a'; ctx.fillRect(0, 0, 1536, 320);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 80px IBM Plex Sans, sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(label, 768, 160);
+      }
+
+      const tex = new THREE.CanvasTexture(cnv);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      const face = new THREE.Mesh(
+        new THREE.PlaneGeometry(dims.width - 0.04, dims.height - 0.04),
+        new THREE.MeshStandardMaterial({
+          map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.7,
+          roughness: 0.35, metalness: 0.0,
+        })
+      );
+      face.position.set(0, liftY + dims.height / 2, dims.depth / 2 + 0.001);
+      group.add(face);
+
+      // Mounting brackets
+      [-1, 1].forEach(s => {
+        const bracket = new THREE.Mesh(
+          new THREE.BoxGeometry(0.08, 0.15, 0.05),
+          new THREE.MeshStandardMaterial({ color: 0x2a2a2a, metalness: 0.6 })
+        );
+        bracket.position.set(s * (dims.width / 2 - 0.15), liftY + dims.height + 0.08, -dims.depth / 2 + 0.02);
+        group.add(bracket);
+      });
+      return group;
+    }
+
+    function buildLEDVideoWall(instance) {
       const group = new THREE.Group();
       const dims = FURNITURE_DIMS.LED_VIDEO_WALL;
       const liftY = 1.50; // bottom edge above floor (overhead/header signage)
+      const signageText = (instance && instance.signageText) ? String(instance.signageText) : '';
+      const signageBg = (instance && instance.signageBg) ? String(instance.signageBg) : '';
+      const signageColor = (instance && instance.signageColor) ? String(instance.signageColor) : '';
       // Outer bezel (dark frame)
       const bezel = new THREE.Mesh(
         new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
@@ -2755,37 +2867,47 @@
       bezel.position.y = liftY + dims.height / 2;
       bezel.castShadow = true;
       group.add(bezel);
-      // Emissive screen face — render LG AI Home content via canvas texture
+      // Emissive screen face — render content via canvas texture
       const cnv = document.createElement('canvas');
       cnv.width = 1024; cnv.height = 384;
       const ctx = cnv.getContext('2d');
-      // Background gradient (warm interior tones)
-      const grad = ctx.createLinearGradient(0, 0, 0, 384);
-      grad.addColorStop(0, '#3a2a1a');
-      grad.addColorStop(1, '#1a1410');
-      ctx.fillStyle = grad; ctx.fillRect(0, 0, 1024, 384);
-      // Faint room mock
-      ctx.fillStyle = 'rgba(170, 140, 100, 0.25)';
-      ctx.fillRect(540, 130, 410, 220);
-      // CLOiD silhouettes (two abstract bubble heads)
-      ctx.fillStyle = 'rgba(245, 245, 245, 0.85)';
-      ctx.beginPath(); ctx.arc(280, 200, 70, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(440, 220, 55, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#0b0b0b';
-      ctx.fillRect(245, 175, 70, 50); ctx.fillRect(415, 200, 60, 40);
-      ctx.fillStyle = '#00d9ff';
-      ctx.beginPath(); ctx.arc(265, 200, 4, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(295, 200, 4, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(435, 220, 3, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(455, 220, 3, 0, Math.PI * 2); ctx.fill();
-      // LG AI Home logo (top-right)
-      ctx.fillStyle = '#f4f4f4';
-      ctx.font = 'bold 64px IBM Plex Sans, sans-serif';
-      ctx.textAlign = 'right'; ctx.textBaseline = 'top';
-      ctx.fillText('LG AI Home', 980, 30);
-      // Red accent dot on AI
-      ctx.fillStyle = '#E63950';
-      ctx.beginPath(); ctx.arc(845, 56, 5, 0, Math.PI * 2); ctx.fill();
+      if (signageText) {
+        // Custom signage mode (e.g. KB은행)
+        const bg = signageBg || '#FFBC00';
+        ctx.fillStyle = bg; ctx.fillRect(0, 0, 1024, 384);
+        // Draw star emblem for KB
+        if (signageText.includes('KB')) {
+          drawKBStarEmblem(ctx, 280, 192, 110);
+        }
+        ctx.fillStyle = signageColor || '#000000';
+        ctx.font = 'bold 80px IBM Plex Sans, sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(signageText, 620, 192);
+      } else {
+        // Default: LG AI Home content
+        const grad = ctx.createLinearGradient(0, 0, 0, 384);
+        grad.addColorStop(0, '#3a2a1a');
+        grad.addColorStop(1, '#1a1410');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, 1024, 384);
+        ctx.fillStyle = 'rgba(170, 140, 100, 0.25)';
+        ctx.fillRect(540, 130, 410, 220);
+        ctx.fillStyle = 'rgba(245, 245, 245, 0.85)';
+        ctx.beginPath(); ctx.arc(280, 200, 70, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(440, 220, 55, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#0b0b0b';
+        ctx.fillRect(245, 175, 70, 50); ctx.fillRect(415, 200, 60, 40);
+        ctx.fillStyle = '#00d9ff';
+        ctx.beginPath(); ctx.arc(265, 200, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(295, 200, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(435, 220, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(455, 220, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#f4f4f4';
+        ctx.font = 'bold 64px IBM Plex Sans, sans-serif';
+        ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+        ctx.fillText('LG AI Home', 980, 30);
+        ctx.fillStyle = '#E63950';
+        ctx.beginPath(); ctx.arc(845, 56, 5, 0, Math.PI * 2); ctx.fill();
+      }
       const tex = new THREE.CanvasTexture(cnv);
       tex.colorSpace = THREE.SRGBColorSpace;
       const screenMat = new THREE.MeshStandardMaterial({
@@ -4941,6 +5063,7 @@
       SLAT_PANEL: buildSlatPanel,
       LED_STRIP: buildLEDStrip,
       REPAIR_ROOM: buildRepairRoom,
+      WALL_SIGNAGE: buildWallSignage,
     };
 
     function makeOutlineRing(dims) {
@@ -10484,6 +10607,90 @@
       return s;
     }
 
+    // KB고객_마곡사전_시연2 — KB은행 마곡 사전 시연 시나리오
+    // 정면 벽면에 KB은행 로고와 은행명, KB국민은행 브랜딩 적용
+    function presetKBMagokDemo2() {
+      const s = { booth: { widthFt: 65, depthFt: 50 }, furniture: [], robots: [] };
+      const { m, r } = presetHelpers(s);
+      const Z_BACK = -7.00;
+
+      // ── 정면 벽면 KB은행 브랜딩 ──
+      // KB국민은행 월 사이니지 (정면 벽 중앙 상단)
+      m('WALL_SIGNAGE', 0, Z_BACK - 0.05, 0, 'KB국민은행 사이니지', { label: 'KB국민은행', brand: 'kb' });
+      // LED 비디오월에 KB은행 브랜드 표시
+      m('LED_VIDEO_WALL', 0, Z_BACK + 0.05, 0, 'KB 브랜드 디스플레이', { signageText: 'KB국민은행 마곡지점', signageBg: '#FFBC00', signageColor: '#3A1F04' });
+
+      // ── 창구 (Teller counters — back wall, 5 windows) ──
+      const tellerXs = [-3.6, -1.8, 0.0, 1.8, 3.6];
+      tellerXs.forEach((x, i) => {
+        const num = String(i + 1);
+        m('TELLER_COUNTER', x, Z_BACK + 0.80, 0, `창구 ${num}`);
+        m('NUMBERED_SIGN', x, Z_BACK + 0.30, 0, `번호 ${num}`, { label: num });
+        m('OFFICE_CHAIR', x, Z_BACK + 0.35, 0, `창구 ${num} 직원석`);
+        m('OFFICE_CHAIR', x, Z_BACK + 1.60, Math.PI, `창구 ${num} 고객석`);
+      });
+
+      // ── 청경(청원경찰) 대기석 — upper-left area ──
+      m('OFFICE_DESK', -7.50, Z_BACK + 1.50, Math.PI / 2, '청경 데스크');
+      m('OFFICE_CHAIR', -7.50, Z_BACK + 2.10, Math.PI / 2, '청경 의자');
+
+      // ── 고객대기석1 — center, bench rows facing tellers ──
+      m('WAITING_BENCH', -2.50, -2.80, 0, '대기석1 1A');
+      m('WAITING_BENCH', -0.50, -2.80, 0, '대기석1 1B');
+      m('WAITING_BENCH',  1.50, -2.80, 0, '대기석1 1C');
+      m('WAITING_BENCH',  3.50, -2.80, 0, '대기석1 1D');
+      m('WAITING_BENCH', -2.50, -1.40, 0, '대기석1 2A');
+      m('WAITING_BENCH', -0.50, -1.40, 0, '대기석1 2B');
+      m('WAITING_BENCH',  1.50, -1.40, 0, '대기석1 2C');
+      m('WAITING_BENCH',  3.50, -1.40, 0, '대기석1 2D');
+      m('WAITING_BENCH', -2.50,  0.00, 0, '대기석1 3A');
+      m('WAITING_BENCH', -0.50,  0.00, 0, '대기석1 3B');
+      m('WAITING_BENCH',  1.50,  0.00, 0, '대기석1 3C');
+      m('WAITING_BENCH',  3.50,  0.00, 0, '대기석1 3D');
+      m('SIDE_TABLE', -3.80, -1.40, 0, '잡지 테이블 1');
+      m('SIDE_TABLE',  4.80, -1.40, 0, '잡지 테이블 2');
+
+      // ── 고객대기석2 — bottom-right, round tables + chairs ──
+      m('COFFEE_TABLE', 6.00, 3.80, 0, '대기석2 테이블 1');
+      m('OFFICE_CHAIR', 6.60, 3.30, -Math.PI / 4, '대기석2 의자 1A');
+      m('OFFICE_CHAIR', 5.40, 3.30, Math.PI / 4, '대기석2 의자 1B');
+      m('OFFICE_CHAIR', 6.60, 4.30, Math.PI, '대기석2 의자 1C');
+      m('OFFICE_CHAIR', 5.40, 4.30, Math.PI, '대기석2 의자 1D');
+      m('COFFEE_TABLE', 6.00, 5.80, 0, '대기석2 테이블 2');
+      m('OFFICE_CHAIR', 6.60, 5.30, -Math.PI / 4, '대기석2 의자 2A');
+      m('OFFICE_CHAIR', 5.40, 5.30, Math.PI / 4, '대기석2 의자 2B');
+      m('OFFICE_CHAIR', 6.60, 6.30, Math.PI, '대기석2 의자 2C');
+      m('OFFICE_CHAIR', 5.40, 6.30, Math.PI, '대기석2 의자 2D');
+
+      // ── 순번대기표 — bottom-center ──
+      m('TICKET_KIOSK', 0.00, 4.00, Math.PI, '순번대기표');
+
+      // ── STM — near entrance, bottom-left ──
+      m('ATM_KIOSK', -5.50, 4.50, Math.PI / 2, 'STM');
+
+      // ── 은행주출입구 — bottom-left entrance marker ──
+      m('DOORWAY', -7.50, 6.50, 0, '은행 주출입구');
+
+      // ── 벽면 구획 ──
+      m('WALL_PANEL', -8.80, -3.00, Math.PI / 2, '좌측 벽');
+      m('WALL_PANEL', -8.80, 0.50, Math.PI / 2, '좌측 벽 2');
+      m('WALL_PANEL', -8.80, 4.00, Math.PI / 2, '좌측 벽 3');
+
+      // ── 상담 코너 (우측 상단) ──
+      m('OFFICE_DESK', 7.00, Z_BACK + 1.50, 0, '상담 데스크 1');
+      m('OFFICE_CHAIR', 7.00, Z_BACK + 0.80, 0, '상담 직원석 1');
+      m('OFFICE_CHAIR', 7.00, Z_BACK + 2.50, Math.PI, '상담 고객석 1');
+      m('OFFICE_DESK', 7.00, Z_BACK + 4.00, 0, '상담 데스크 2');
+      m('OFFICE_CHAIR', 7.00, Z_BACK + 3.30, 0, '상담 직원석 2');
+      m('OFFICE_CHAIR', 7.00, Z_BACK + 5.00, Math.PI, '상담 고객석 2');
+
+      // ── CLOiD Wheel 로봇 — 주출입구 앞 + 고객대기구역 ──
+      r('cloidWheel', -6.50, 6.00, -Math.PI / 4, 'CLOiD 안내로봇');
+      r('cloidWheel', 1.00, 1.50, Math.PI, 'CLOiD 고객안내');
+
+      return s;
+    }
+
     // Built-in preset registry. Add new presets here — they appear in the
     // dropdown automatically alongside any DB-saved user scenarios.
     const BUILTIN_PRESETS = [
@@ -10497,6 +10704,8 @@
         description: '60×40 ft 은행 영업점 — 창구 6개 + ATM 3대 + 대기석 + 상담 데스크 + 코지 코너 + 안내 로봇' },
       { id: 'kb_jeonbuk',   name: 'KB전북금융타운 1층',   factory: presetKBJeonbuk,
         description: '65×50 ft KB전북금융타운 1층 — 창구 5개 + 고객대기석 2구역 + 순번대기표 + STM + 청경 대기석 + CLOiD Wheel 1대' },
+      { id: 'kb_magok_demo2', name: 'KB고객_마곡사전_시연2', factory: presetKBMagokDemo2,
+        description: '65×50 ft KB은행 마곡지점 사전시연 — 정면 KB국민은행 로고 + 사이니지 + 창구 5개 + 상담코너 + CLOiD Wheel 2대' },
       { id: 'hiplaza',      name: '하이프라자 매장',       factory: presetHiPlaza,
         description: '60×40 ft LG 베스트샵/하이프라자 — 천장 LED 패널 + TV 월그리드 + 미러 디스플레이 아일랜드 + 마사지 체어 + 안내·NR 로봇' },
       { id: 'manufacturing', name: '제조라인',            factory: presetManufacturingLine,
