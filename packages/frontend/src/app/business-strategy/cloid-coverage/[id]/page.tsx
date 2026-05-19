@@ -3,11 +3,10 @@
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ChevronDown, X } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import {
   findCellById,
-  CLOID_SPECS,
   VERDICT_LABEL,
   PRIORITY_LABEL,
   DEV_CLUSTERS,
@@ -223,31 +222,6 @@ function LvRow({ sc, isLast }: { sc: SubCell; isLast: boolean }) {
           </ul>
         </div>
       </div>
-    </div>
-  );
-}
-
-function SpecTable({
-  spec,
-}: {
-  spec: { label: string; rows: readonly (readonly [string, string, string])[] };
-}) {
-  return (
-    <div className="bg-[#FAFAF7] border border-[#E2DED4] p-4" style={{ borderRadius: 8 }}>
-      <p className="font-medium text-[13px] text-[#1A1A1A] mb-3">{spec.label}</p>
-      <table className="w-full text-[12px]">
-        <tbody>
-          {spec.rows.map((row, i) => (
-            <tr key={i} className="border-b border-[#E2DED4] last:border-b-0">
-              <td className="py-1 pr-2 font-mono text-[10px] text-[#6B6B6B] uppercase tracking-[0.12em] w-12 align-top">
-                {row[0]}
-              </td>
-              <td className="py-1 pr-2 text-[#3A3A3A] align-top">{row[1]}</td>
-              <td className="py-1 text-[#1A1A1A] font-medium align-top">{row[2]}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }
@@ -745,31 +719,6 @@ function CellDetailContent() {
           ))}
         </div>
 
-        {/* §12.4 베이스라인 스펙 — collapsed */}
-        <details
-          className="group border border-[#E2DED4] bg-white"
-          style={{ borderRadius: 8 }}
-        >
-          <summary className="cursor-pointer list-none px-5 py-3 flex items-center gap-2 hover:bg-[#FAFAF7]">
-            <ChevronDown
-              size={14}
-              className="transition-transform -rotate-90 group-open:rotate-0 text-[#6B6B6B]"
-            />
-            <span className="font-mono text-[13px] uppercase tracking-[0.14em] font-semibold text-[#6B6B6B]">
-              분석 baseline
-            </span>
-            <span className="text-[13px] text-[#1A1A1A]">— CLOiD 추정 스펙 (펼치기)</span>
-          </summary>
-          <div className="px-5 pb-5 pt-2">
-            <p className="text-[12px] text-[#6B6B6B] mb-3 leading-relaxed">
-              모든 항목 [추정] — ARGOS의 LG 휴머노이드 스펙 페이지에 실제 스펙 입력 후 정밀화 예정.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <SpecTable spec={CLOID_SPECS.W} />
-              <SpecTable spec={CLOID_SPECS.B} />
-            </div>
-          </div>
-        </details>
       </div>
     </div>
   );

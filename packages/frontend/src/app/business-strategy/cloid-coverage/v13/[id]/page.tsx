@@ -7,7 +7,6 @@ import { ArrowLeft, Sparkles, X, Wrench } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import {
   findCellV13,
-  CLOID_SPECS_V13,
   VERDICT_LABEL,
   PRIORITY_LABEL,
   LG_ASSETS,
@@ -647,34 +646,6 @@ function CellDetailV13Content() {
           </div>
         </div>
 
-        {/* Spec baseline */}
-        <h2 className="font-medium text-[14px] text-[#2C2C2A] mb-3">분석 baseline — CLOiD 스펙 v1.3</h2>
-        <p className="text-[11.5px] text-[#5F5E5A] mb-3 leading-relaxed">
-          ⚠️ [F추정] — ARGOS 휴머노이드 스펙 페이지 입력 후 Phase 4 정밀화 예정.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {(['W', 'B'] as const).map((k) => {
-            const s = CLOID_SPECS_V13[k];
-            return (
-              <div key={k} className="bg-[#FAFAF8] border border-[#E8E6DD] p-4" style={{ borderRadius: 8 }}>
-                <p className="font-medium text-[13px] text-[#2C2C2A] mb-3">{s.label}</p>
-                <table className="w-full text-[11.5px]">
-                  <tbody>
-                    {s.rows.slice(0, 22).map((row, i) => (
-                      <tr key={i} className="border-b border-[#EAE7DD] last:border-b-0">
-                        <td className="py-1 pr-2 font-mono text-[10px] text-[#888780] uppercase tracking-[0.10em] w-16 align-top">
-                          {row[0]}
-                        </td>
-                        <td className="py-1 pr-2 text-[#5F5E5A] align-top">{row[1]}</td>
-                        <td className="py-1 text-[#2C2C2A] font-medium align-top">{row[2]}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            );
-          })}
-        </div>
       </div>
     </div>
   );
