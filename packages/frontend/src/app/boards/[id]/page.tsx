@@ -110,7 +110,7 @@ function BoardContent() {
 
         {view === 'table'
           ? <TableView data={data} canEdit={canEdit} onChanged={load} onOpenItem={setOpenItem} />
-          : <TimelineView data={data} />}
+          : <TimelineView data={data} canEdit={canEdit} onChanged={load} />}
       </div>
 
       {openItem != null && (

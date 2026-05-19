@@ -5,7 +5,7 @@ import { and, asc, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { authMiddleware } from './auth.js';
 import {
   pmProjects, pmMemberships, pmBoards, pmGroups, pmColumns,
-  pmItems, pmCells, pmUpdates, pmViews, pmActivityLog, users,
+  pmItems, pmCells, pmUpdates, pmViews, pmActivityLog, pmDependencies, users,
 } from '../db/schema.js';
 import {
   getUserProjectRole, roleAtLeast, assembleBoardData, validateCellValue, logActivity,
@@ -376,6 +376,40 @@ export async function pmRoutes(fastify: FastifyInstance) {
     if (!body) return reply.code(400).send({ error: 'body required' });
     const [u] = await db.insert(pmUpdates).values({ itemId: id, userId: uid(request), body }).returning();
     return { update: u };
+  });
+
+  // ─────────────── Dependencies (Gantt 의존선, REQ-15) ───────────────
+  fastify.post('/boards/:id/dependencies', async (request, reply) => {
+    const bid = Number((request.params as any).id);
+    if (!(await guard(request, reply, await projectIdOfBoard(bid), 'editor'))) return;
+    const b = request.body as any;
+    const predecessorItemId = Number(b?.predecessorItemId);
+    const successorItemId = Number(b?.successorItemId);
+    const type = ['FS', 'SS', 'FF', 'SF'].includes(b?.type) ? b.type : 'FS';
+    const lagDays = Number.isFinite(Number(b?.lagDays)) ? Number(b.lagDays) : 0;
+    if (!predecessorItemId || !successorItemId) return reply.code(400).send({ error: 'predecessorItemId, successorItemId required' });
+    if (predecessorItemId === successorItemId) return reply.code(400).send({ error: 'self dependency not allowed' });
+    // 두 작업이 모두 이 보드 소속인지 검증
+    const items = await db.select({ id: pmItems.id }).from(pmItems)
+      .where(and(eq(pmItems.boardId, bid), inArray(pmItems.id, [predecessorItemId, successorItemId])));
+    if (items.length !== 2) return reply.code(400).send({ error: 'items must belong to this board' });
+    const [dep] = await db.insert(pmDependencies)
+      .values({ boardId: bid, predecessorItemId, successorItemId, type, lagDays })
+      .onConflictDoUpdate({
+        target: [pmDependencies.predecessorItemId, pmDependencies.successorItemId],
+        set: { type, lagDays },
+      })
+      .returning();
+    return { dependency: dep };
+  });
+
+  fastify.delete('/dependencies/:id', async (request, reply) => {
+    const id = Number((request.params as any).id);
+    const [dep] = await db.select().from(pmDependencies).where(eq(pmDependencies.id, id)).limit(1);
+    if (!dep) return reply.code(404).send({ error: 'not found' });
+    if (!(await guard(request, reply, await projectIdOfBoard(dep.boardId), 'editor'))) return;
+    await db.delete(pmDependencies).where(eq(pmDependencies.id, id));
+    return { ok: true };
   });
 
   // ─────────────── Views ───────────────

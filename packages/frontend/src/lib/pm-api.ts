@@ -34,7 +34,9 @@ export interface PmColumn { id: number; boardId: number; name: string; type: Col
 export interface PmItem { id: number; boardId: number; groupId: number; parentItemId?: number | null; name: string; orderIndex: number; }
 export interface PmCell { itemId: number; columnId: number; value: any; }
 export interface PmView { id: number; boardId: number; name: string; type: 'table' | 'timeline' | 'kanban' | 'calendar'; config: any; isDefault: boolean; scope: string; }
-export interface BoardData { board: PmBoard; groups: PmGroup[]; columns: PmColumn[]; items: PmItem[]; cells: PmCell[]; views: PmView[]; }
+export type DependencyType = 'FS' | 'SS' | 'FF' | 'SF';
+export interface PmDependency { id: number; boardId: number; predecessorItemId: number; successorItemId: number; type: DependencyType; lagDays: number; }
+export interface BoardData { board: PmBoard; groups: PmGroup[]; columns: PmColumn[]; items: PmItem[]; cells: PmCell[]; views: PmView[]; dependencies: PmDependency[]; }
 
 export const pmApi = {
   // projects
@@ -76,6 +78,10 @@ export const pmApi = {
   // updates / activity / search
   listUpdates: (itemId: number) => req<{ updates: any[] }>(`/items/${itemId}/updates`),
   addUpdate: (itemId: number, body: string) => req<{ update: any }>(`/items/${itemId}/updates`, { method: 'POST', body: JSON.stringify({ body }) }),
+  // dependencies (Gantt 의존선)
+  createDependency: (bid: number, b: { predecessorItemId: number; successorItemId: number; type?: DependencyType; lagDays?: number }) =>
+    req<{ dependency: PmDependency }>(`/boards/${bid}/dependencies`, { method: 'POST', body: JSON.stringify(b) }),
+  deleteDependency: (id: number) => req<{ ok: true }>(`/dependencies/${id}`, { method: 'DELETE' }),
   listViews: (bid: number) => req<{ views: PmView[] }>(`/boards/${bid}/views`),
   createView: (bid: number, b: Partial<PmView>) => req<{ view: PmView }>(`/boards/${bid}/views`, { method: 'POST', body: JSON.stringify(b) }),
   updateView: (id: number, b: Partial<PmView>) => req<{ view: PmView }>(`/views/${id}`, { method: 'PUT', body: JSON.stringify(b) }),

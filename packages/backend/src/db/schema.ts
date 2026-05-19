@@ -2343,6 +2343,30 @@ export const pmUpdates = pgTable('pm_updates', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// 작업 간 의존관계 (FS/SS/FF/SF + lag) — Gantt 의존선 (REQ-15)
+export const pmDependencies = pgTable(
+  'pm_dependencies',
+  {
+    id: serial('id').primaryKey(),
+    boardId: integer('board_id')
+      .notNull()
+      .references(() => pmBoards.id, { onDelete: 'cascade' }),
+    predecessorItemId: integer('predecessor_item_id')
+      .notNull()
+      .references(() => pmItems.id, { onDelete: 'cascade' }),
+    successorItemId: integer('successor_item_id')
+      .notNull()
+      .references(() => pmItems.id, { onDelete: 'cascade' }),
+    type: varchar('type', { length: 2 }).default('FS').notNull(), // FS|SS|FF|SF
+    lagDays: integer('lag_days').default(0).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    boardIdx: index('pm_deps_board_idx').on(table.boardId),
+    uniq: uniqueIndex('pm_deps_uniq').on(table.predecessorItemId, table.successorItemId),
+  })
+);
+
 export const pmViews = pgTable('pm_views', {
   id: serial('id').primaryKey(),
   boardId: integer('board_id')

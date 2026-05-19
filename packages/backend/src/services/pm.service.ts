@@ -2,7 +2,7 @@
 import { db } from '../db/index.js';
 import {
   pmProjects, pmMemberships, pmBoards, pmGroups, pmColumns,
-  pmItems, pmCells, pmViews, pmActivityLog,
+  pmItems, pmCells, pmViews, pmActivityLog, pmDependencies,
 } from '../db/schema.js';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 
@@ -105,7 +105,8 @@ export async function assembleBoardData(boardId: number) {
     ? await db.select().from(pmCells).where(inArray(pmCells.itemId, itemIds))
     : [];
   const views = await db.select().from(pmViews).where(eq(pmViews.boardId, boardId));
-  return { board, groups, columns, items, cells, views };
+  const dependencies = await db.select().from(pmDependencies).where(eq(pmDependencies.boardId, boardId));
+  return { board, groups, columns, items, cells, views, dependencies };
 }
 
 export async function logActivity(entry: {
@@ -132,4 +133,4 @@ export async function logActivity(entry: {
   }
 }
 
-export { pmProjects, pmMemberships, pmBoards, pmGroups, pmColumns, pmItems, pmCells, pmViews, pmActivityLog };
+export { pmProjects, pmMemberships, pmBoards, pmGroups, pmColumns, pmItems, pmCells, pmViews, pmActivityLog, pmDependencies };
