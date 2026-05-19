@@ -9,6 +9,16 @@ function toDate(s?: string | null): Date | null {
   if (!s) return null; const d = new Date(s); return Number.isNaN(d.getTime()) ? null : d;
 }
 function pad(n: number) { return String(n).padStart(2, '0'); }
+// 막대 배경색 대비 텍스트 색 자동 선택 (밝으면 진한 글자, 어두우면 흰 글자)
+function pickText(hex?: string | null): { color: string; shadow: string } {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec(hex || '');
+  const n = m ? parseInt(m[1], 16) : 0x4a4a48;
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const L = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return L > 0.6
+    ? { color: '#1A1A1A', shadow: '0 1px 1px rgba(255,255,255,.6)' }
+    : { color: '#FFFFFF', shadow: '0 1px 1px rgba(0,0,0,.55)' };
+}
 function periodKey(d: Date, u: Unit): string {
   const y = d.getFullYear();
   if (u === 'day') return `${y}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -340,14 +350,17 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
                         className={`absolute ${dragCls}`}
                         style={{ left: left + 4, top: top + 2, transform: `translateX(${dx}px)`, zIndex: isDragging ? 20 : undefined }}>
                         <div className={`w-3 h-3 bg-[#A50034] rotate-45 ${isDragging ? 'ring-2 ring-[#A50034]/40' : ''}`} />
-                        <span className="absolute left-5 top-0 whitespace-nowrap text-[10.5px] text-[#1A1A1A]">{b.it.name}{shiftHint}</span>
+                        <span className="absolute left-5 top-0 whitespace-nowrap text-[10.5px] font-medium text-[#1A1A1A]"
+                          style={{ textShadow: '0 1px 2px rgba(255,255,255,.85)' }}>{b.it.name}{shiftHint}</span>
                       </div>;
                     }
+                    const barColor = gl.group.color || '#4A4A48';
+                    const txt = pickText(barColor);
                     return (
                       <div key={b.it.id} title={tip} {...dragProps}
-                        className={`absolute rounded text-[10.5px] text-white px-2 flex items-center overflow-hidden ${dragCls} ${isDragging ? 'ring-2 ring-[#A50034]/50' : ''}`}
-                        style={{ left, width: w, top, height: laneH - 10, backgroundColor: '#4A4A48', transform: `translateX(${dx}px)`, zIndex: isDragging ? 20 : undefined }}>
-                        <span className="truncate">{b.it.name}{shiftHint}</span>
+                        className={`absolute rounded text-[10.5px] font-medium px-2 flex items-center overflow-hidden ${dragCls} ${isDragging ? 'ring-2 ring-[#A50034]/50' : ''}`}
+                        style={{ left, width: w, top, height: laneH - 10, backgroundColor: barColor, color: txt.color, transform: `translateX(${dx}px)`, zIndex: isDragging ? 20 : undefined }}>
+                        <span className="truncate" style={{ textShadow: txt.shadow }}>{b.it.name}{shiftHint}</span>
                       </div>
                     );
                   })}
