@@ -115,6 +115,91 @@ export function DateCellEditor({
   );
 }
 
+// status/priority/dropdown 공용 선택 편집기.
+// - status/priority: settings.labels[{id,name,color}], 값 { label_id } (단일)
+// - dropdown: settings.options[{id,name}], 값 { option_ids:[] } (다중)
+// onAddOption: 새 항목을 컬럼 settings 에 추가하고 새 id 를 반환(리스트로 관리·재사용).
+export function ChoiceCellEditor({
+  col, value, onSave, onClose, onAddOption,
+}: {
+  col: PmColumn;
+  value: any;
+  onSave: (v: any) => void;
+  onClose?: () => void;
+  onAddOption?: (name: string) => Promise<number | null>;
+}) {
+  const isDropdown = col.type === 'dropdown';
+  const list: { id: number; name: string; color?: string }[] =
+    isDropdown ? (col.settings?.options || []) : (col.settings?.labels || []);
+  const selectedIds: number[] = isDropdown
+    ? (value?.option_ids || [])
+    : (value?.label_id != null ? [value.label_id] : []);
+  const [draft, setDraft] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const choose = (id: number) => {
+    if (isDropdown) {
+      const set = new Set<number>(selectedIds);
+      set.has(id) ? set.delete(id) : set.add(id);
+      onSave({ option_ids: [...set] });
+    } else {
+      onSave({ label_id: id });
+      onClose?.();
+    }
+  };
+  const clear = () => { onSave(isDropdown ? { option_ids: [] } : {}); if (!isDropdown) onClose?.(); };
+  const add = async () => {
+    const name = draft.trim();
+    if (!name || !onAddOption || busy) return;
+    setBusy(true);
+    try {
+      const id = await onAddOption(name);
+      setDraft('');
+      if (id != null) {
+        if (isDropdown) onSave({ option_ids: [...selectedIds, id] });
+        else { onSave({ label_id: id }); onClose?.(); }
+      }
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div
+      className="flex flex-col gap-1.5 min-w-[150px] py-0.5"
+      onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); onClose?.(); } }}>
+      <div className="flex flex-wrap gap-1">
+        {list.length === 0 && <span className="text-[11px] text-[#B8B6AE]">아직 항목이 없습니다 — 아래에서 추가</span>}
+        {list.map((o) => {
+          const on = selectedIds.includes(o.id);
+          return (
+            <button key={o.id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => choose(o.id)}
+              className={`px-2 py-0.5 rounded text-[11px] font-medium border ${on ? 'text-white border-transparent' : 'text-[#5F5E5A] bg-white border-[#D3D1C7] hover:border-[#A50034]'}`}
+              style={on ? { backgroundColor: o.color || '#3C6FA5' } : undefined}>
+              {o.name}{on && isDropdown ? ' ✕' : ''}
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-1">
+        {onAddOption && (
+          <>
+            <input value={draft} autoFocus placeholder="새 항목 추가"
+              onChange={(e) => setDraft(e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void add(); } }}
+              className="flex-1 text-[12px] px-1.5 py-0.5 border border-[#E2DED4] rounded outline-none focus:border-[#A50034]" />
+            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => void add()} disabled={busy || !draft.trim()}
+              className="text-[11px] px-1.5 py-0.5 rounded bg-[#A50034] text-white disabled:opacity-40">추가</button>
+          </>
+        )}
+        {selectedIds.length > 0 && (
+          <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={clear}
+            className="text-[11px] px-1.5 py-0.5 text-[#888780] hover:text-[#A50034]">지우기</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function CellDisplay({ col, value }: { col: PmColumn; value: any }) {
   if (col.type === 'status' || col.type === 'priority') {
     const labels = col.settings?.labels || [];

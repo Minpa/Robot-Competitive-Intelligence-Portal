@@ -13,6 +13,29 @@ import ItemDetailPanel from '@/components/pm/ItemDetailPanel';
 
 const COLUMN_TYPES = ['text', 'long_text', 'status', 'priority', 'person', 'date', 'timeline', 'number', 'dropdown', 'checkbox', 'reliability'] as const;
 
+// 업무용 추천 컬럼 — 클릭 한 번으로 타입+초기 항목까지 세팅
+const PRESET_COLUMNS: Record<string, { label: string; name: string; type: string; settings: any }> = {
+  priority: {
+    label: '우선순위 (High/Mid/Low)', name: '우선순위', type: 'priority',
+    settings: { labels: [
+      { id: 1, name: 'High', color: '#C8366E' },
+      { id: 2, name: 'Mid', color: '#D4A22F' },
+      { id: 3, name: 'Low', color: '#3F8C6E' },
+    ] },
+  },
+  dept: { label: '담당부서 (리스트 관리)', name: '담당부서', type: 'dropdown', settings: { options: [] } },
+  owner: { label: '담당자 (리스트 관리)', name: '담당자', type: 'dropdown', settings: { options: [] } },
+  activity: {
+    label: 'Activity (기획/개발/데모/테스트)', name: 'Activity', type: 'status',
+    settings: { labels: [
+      { id: 1, name: '기획', color: '#7E5BB5' },
+      { id: 2, name: '개발', color: '#3C6FA5' },
+      { id: 3, name: '데모', color: '#D4A22F' },
+      { id: 4, name: '테스트', color: '#3F8C6E' },
+    ] },
+  },
+};
+
 function BoardContent() {
   const id = Number(useParams().id);
   const [data, setData] = useState<BoardData | null>(null);
@@ -48,6 +71,11 @@ function BoardContent() {
       ? { labels: [{ id: 1, name: '예정', color: '#888780' }, { id: 2, name: '진행중', color: '#3C6FA5' }, { id: 3, name: '완료', color: '#3F8C6E' }] }
       : {};
     await pmApi.createColumn(id, { name: type === 'timeline' ? '기간' : type === 'status' ? '상태' : '새 컬럼', type: type as any, settings });
+    load();
+  };
+  const addPreset = async (key: string) => {
+    const p = PRESET_COLUMNS[key]; if (!p) return;
+    await pmApi.createColumn(id, { name: p.name, type: p.type as any, settings: p.settings });
     load();
   };
 
@@ -97,6 +125,11 @@ function BoardContent() {
           {canEdit && (
             <div className="flex items-center gap-2">
               <button onClick={addGroup} className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[12px] text-[#5F5E5A] border border-[#D3D1C7] rounded-md hover:border-[#A50034]"><Plus size={13} /> 그룹</button>
+              <select onChange={(e) => { if (e.target.value) { addPreset(e.target.value); e.target.value = ''; } }} defaultValue=""
+                className="text-[12px] border border-[#D3D1C7] rounded-md px-2 py-1.5 text-[#5F5E5A]">
+                <option value="">+ 추천 컬럼…</option>
+                {Object.entries(PRESET_COLUMNS).map(([k, p]) => <option key={k} value={k}>{p.label}</option>)}
+              </select>
               <select onChange={(e) => { if (e.target.value) { addColumn(e.target.value); e.target.value = ''; } }} defaultValue=""
                 className="text-[12px] border border-[#D3D1C7] rounded-md px-2 py-1.5 text-[#5F5E5A]">
                 <option value="">+ 컬럼 추가…</option>

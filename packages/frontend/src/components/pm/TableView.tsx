@@ -4,7 +4,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Copy, Trash2, Pencil } from 'lucide-react';
 import { pmApi, type BoardData, type PmColumn, type PmItem } from '@/lib/pm-api';
-import { CellDisplay, cellToText, textToCellValue, DateCellEditor } from './cells';
+import { CellDisplay, cellToText, textToCellValue, DateCellEditor, ChoiceCellEditor, STATUS_PALETTE } from './cells';
+
+const CHOICE_TYPES = ['status', 'priority', 'dropdown'];
 
 interface Props {
   data: BoardData;
@@ -49,7 +51,7 @@ export default function TableView({ data, canEdit, onChanged, onOpenItem }: Prop
     if (!editing) return;
     const row = rows[editing.pos.r]; const col = cols[editing.pos.c];
     // date/timeline 은 DateCellEditor 가 즉시 저장하므로 텍스트 커밋 생략
-    if (row && col && col.type !== 'date' && col.type !== 'timeline') {
+    if (row && col && col.type !== 'date' && col.type !== 'timeline' && !CHOICE_TYPES.includes(col.type)) {
       await saveCell(row.item.id, col, editing.draft);
     }
     setEditing(null);
@@ -99,6 +101,17 @@ export default function TableView({ data, canEdit, onChanged, onOpenItem }: Prop
     if (g == null) return;
     await pmApi.createItem(g, { name: '새 아이템' }); onChanged();
   }, [data.groups, rows, onChanged]);
+
+  // 선택형 컬럼에 새 항목을 추가하고(리스트로 관리·재사용) 새 id 반환
+  const addChoiceOption = useCallback(async (col: PmColumn, name: string): Promise<number | null> => {
+    const isDropdown = col.type === 'dropdown';
+    const cur: any[] = isDropdown ? (col.settings?.options || []) : (col.settings?.labels || []);
+    if (cur.some((o) => o.name === name)) return cur.find((o) => o.name === name)?.id ?? null;
+    const id = (cur.reduce((m, o) => Math.max(m, o.id || 0), 0)) + 1;
+    const entry = isDropdown ? { id, name } : { id, name, color: STATUS_PALETTE[(id - 1) % STATUS_PALETTE.length] };
+    const settings = { ...(col.settings || {}), [isDropdown ? 'options' : 'labels']: [...cur, entry] };
+    try { await pmApi.updateColumn(col.id, { settings }); onChanged(); return id; } catch { return null; }
+  }, [onChanged]);
 
   const onKey = useCallback(async (e: React.KeyboardEvent) => {
     if (!focus) return;
@@ -319,6 +332,11 @@ export default function TableView({ data, canEdit, onChanged, onOpenItem }: Prop
                                 <DateCellEditor col={col} value={cellVal(it.id, col.id)} compact
                                   onSave={async (v) => { try { await pmApi.setCell(it.id, col.id, v); onChanged(); } catch { /* noop */ } }}
                                   onClose={() => setEditing(null)} />
+                              ) : CHOICE_TYPES.includes(col.type) ? (
+                                <ChoiceCellEditor col={col} value={cellVal(it.id, col.id)}
+                                  onSave={async (v) => { try { await pmApi.setCell(it.id, col.id, v); onChanged(); } catch { /* noop */ } }}
+                                  onClose={() => setEditing(null)}
+                                  onAddOption={canEdit ? (name) => addChoiceOption(col, name) : undefined} />
                               ) : (
                                 <input autoFocus value={editing!.draft}
                                   onChange={(e) => setEditing({ pos: { r, c }, draft: e.target.value })}
