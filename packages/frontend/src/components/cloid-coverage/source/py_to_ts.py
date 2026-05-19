@@ -309,6 +309,7 @@ export interface TaskMatrixEntry {{
   taskName: string;
   sectorName: string;
   lv: 1 | 2 | 3 | 4;
+  subcellKey: string; // `${{cellId}}-lv${{lv}}` — coverage field-event status lookup 키
   subTaskName: string; // sub-cell의 task_short
   category: TaskCategory;
   bucket: ComplexityBucket;
@@ -329,6 +330,7 @@ export function buildTaskMatrixEntries(): TaskMatrixEntry[] {{
         taskName: cell.taskName,
         sectorName: cell.sectorName,
         lv: sc.lv,
+        subcellKey: `${{cell.id}}-lv${{sc.lv}}`,
         subTaskName: sc.taskName,
         category: cat,
         bucket: getComplexityBucket(sc.lv),

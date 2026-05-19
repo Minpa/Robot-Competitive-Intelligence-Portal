@@ -158,7 +158,7 @@ export interface TaskMatrixEntry {
   taskName: string;
   sectorName: string;
   lv: 1 | 2 | 3 | 4;
-  subcellKey: string;
+  subcellKey: string; // `${cellId}-lv${lv}` — coverage field-event status lookup 키
   subTaskName: string; // sub-cell의 task_short
   category: TaskCategory;
   bucket: ComplexityBucket;
