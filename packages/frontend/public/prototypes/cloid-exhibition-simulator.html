@@ -9998,7 +9998,7 @@
           showToast(`프리셋 로드됨: ${pick.label}`, 'success');
         } else {
           const sc = await apiLoadScenario(pick.id);
-          applyScenarioState(sc.data);
+          applyScenarioState(sc.data, sc.name || pick.label);
           document.getElementById('scenarioName').value = sc.name || 'Untitled';
           showToast(`로드됨: ${sc.name}`, 'success');
         }
@@ -10797,10 +10797,30 @@
         description: '대형 빈 부스' },
     ];
 
+    // KB 시나리오에서 저장된(구버전) WALL_PANEL 에 KB 브랜드 자동 부여.
+    // DB 저장 시나리오는 brand 플래그 없이 저장돼 있어 로드 시 backfill 한다.
+    function backfillKbWalls(furniture, scenarioName) {
+      if (!Array.isArray(furniture) || !furniture.length) return;
+      const nm = String(scenarioName || '');
+      const isKbScenario =
+        /KB|마곡|국민/.test(nm) ||
+        furniture.some(f =>
+          f && (f.brand === 'kb' ||
+            (typeof f.signageText === 'string' && f.signageText.includes('KB')) ||
+            (typeof f.label === 'string' && f.label.includes('KB')) ||
+            (typeof f.name === 'string' && f.name.includes('KB')))
+        );
+      if (!isKbScenario) return;
+      furniture.forEach(f => {
+        if (f && f.type === 'WALL_PANEL' && !f.brand) f.brand = 'kb';
+      });
+    }
+
     // Apply a preset/scenario shape onto state and rebuild.
-    function applyScenarioState(scenarioState) {
+    function applyScenarioState(scenarioState, scenarioName) {
       state.furniture = scenarioState.furniture || [];
       state.robots = scenarioState.robots || [];
+      backfillKbWalls(state.furniture, scenarioName);
       if (scenarioState.booth) {
         state.booth.widthFt = scenarioState.booth.widthFt || 50;
         state.booth.depthFt = scenarioState.booth.depthFt || 35;
@@ -10827,7 +10847,7 @@
     function loadBuiltinPreset(presetId) {
       const p = BUILTIN_PRESETS.find(x => x.id === presetId);
       if (!p) return;
-      applyScenarioState(p.factory());
+      applyScenarioState(p.factory(), p.name);
     }
 
     // Backwards-compat alias for the existing button binding
@@ -10943,7 +10963,7 @@
         }
         try {
           const sc = await apiLoadScenario(id);
-          applyScenarioState(sc.data);
+          applyScenarioState(sc.data, sc.name);
           showToast(`로드됨: ${sc.name}`, 'success');
         } catch (err) {
           showToast(`로드 실패: ${err.message}`, 'error');
