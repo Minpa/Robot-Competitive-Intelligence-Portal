@@ -28,6 +28,7 @@ import {
   Bot,
   Hand,
   Grab,
+  FolderKanban,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -73,6 +74,13 @@ const navigationGroups: NavGroup[] = [
       { name: '진입 매트릭스', href: '/business-strategy/matrix', icon: Grid3x3 },
       { name: 'CLOiD 커버리지', href: '/business-strategy/cloid-coverage/v13', icon: Wrench },
       { name: 'LGE 세탁기 공정', href: '/business-strategy/lge-processes', icon: Wrench },
+    ],
+  },
+  {
+    title: '프로젝트 관리',
+    subtitle: 'Project Management',
+    items: [
+      { name: 'ARGOS Projects', href: '/projects', icon: FolderKanban },
     ],
   },
   {
