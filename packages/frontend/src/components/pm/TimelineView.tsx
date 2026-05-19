@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { pmApi, type BoardData, type DependencyType } from '@/lib/pm-api';
 
-type Unit = 'week' | 'month' | 'quarter';
+type Unit = 'day' | 'week' | 'month' | 'quarter';
 
 function toDate(s?: string | null): Date | null {
   if (!s) return null; const d = new Date(s); return Number.isNaN(d.getTime()) ? null : d;
@@ -11,12 +11,14 @@ function toDate(s?: string | null): Date | null {
 function pad(n: number) { return String(n).padStart(2, '0'); }
 function periodKey(d: Date, u: Unit): string {
   const y = d.getFullYear();
+  if (u === 'day') return `${y}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   if (u === 'quarter') return `${y}Q${Math.floor(d.getMonth() / 3) + 1}`;
   if (u === 'week') { const j = new Date(y, 0, 1); const w = Math.ceil(((d.getTime() - j.getTime()) / 864e5 + j.getDay() + 1) / 7); return `${y}W${pad(w)}`; }
   return `${y}M${pad(d.getMonth() + 1)}`;
 }
 function label(d: Date, u: Unit): string {
   const y = d.getFullYear();
+  if (u === 'day') return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
   if (u === 'quarter') return `${y} Q${Math.floor(d.getMonth() / 3) + 1}`;
   if (u === 'week') { const j = new Date(y, 0, 1); const w = Math.ceil(((d.getTime() - j.getTime()) / 864e5 + j.getDay() + 1) / 7); return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}`; }
   return `${y}.${pad(d.getMonth() + 1)}`;
@@ -25,8 +27,14 @@ function step(d: Date, u: Unit): Date {
   const n = new Date(d);
   if (u === 'quarter') n.setMonth(n.getMonth() + 3);
   else if (u === 'week') n.setDate(n.getDate() + 7);
+  else if (u === 'day') n.setDate(n.getDate() + 1);
   else n.setMonth(n.getMonth() + 1);
   return n;
+}
+// 축에서 굵게 강조할 주요 눈금 (일=월초/월요일, 그 외=분기 시작)
+function isMajor(d: Date, u: Unit): boolean {
+  if (u === 'day') return d.getDate() === 1 || d.getDay() === 1;
+  return d.getMonth() % 3 === 0;
 }
 
 const DEP_TYPES: DependencyType[] = ['FS', 'SS', 'FF', 'SF'];
@@ -44,7 +52,8 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
   const dCol = useMemo(() => data.columns.find((c) => c.type === 'date'), [data.columns]);
   const cv = (itemId: number, colId: number) => data.cells.find((x) => x.itemId === itemId && x.columnId === colId)?.value;
 
-  const colW = 92, laneH = 30, labelW = 200;
+  const colW = unit === 'day' ? 38 : 92;
+  const laneH = 30, labelW = 200;
 
   // 작업 번호(Predecessors 표기용) — 보드 순서 1-based
   const numOf = useMemo(() => {
@@ -66,7 +75,8 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
     if (!min || !max) { min = new Date(); max = step(new Date(), unit); }
     const periods: { key: string; label: string; date: Date }[] = [];
     let cur = new Date(min);
-    for (let g = 0; g < 240 && cur <= max!; g++) { periods.push({ key: periodKey(cur, unit), label: label(cur, unit), date: new Date(cur) }); cur = step(cur, unit); }
+    const cap = unit === 'day' ? 400 : 240;
+    for (let g = 0; g < cap && cur <= max!; g++) { periods.push({ key: periodKey(cur, unit), label: label(cur, unit), date: new Date(cur) }); cur = step(cur, unit); }
     if (!periods.length) periods.push({ key: periodKey(min, unit), label: label(min, unit), date: min });
     const idx = (d: Date) => Math.max(0, periods.findIndex((p) => p.key === periodKey(d, unit)));
 
@@ -182,10 +192,10 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
     <div className="bg-white border border-[#E2DED4] rounded-lg overflow-hidden">
       <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-[#E2DED4]">
         <span className="font-mono text-[10.5px] text-[#888780] uppercase tracking-[0.12em]">축 단위</span>
-        {(['week', 'month', 'quarter'] as Unit[]).map((u) => (
+        {(['day', 'week', 'month', 'quarter'] as Unit[]).map((u) => (
           <button key={u} onClick={() => setUnit(u)}
             className={`px-2.5 py-1 text-[11.5px] rounded border ${unit === u ? 'bg-[#A50034] text-white border-[#A50034]' : 'bg-white text-[#5F5E5A] border-[#D3D1C7]'}`}>
-            {u === 'week' ? '주' : u === 'month' ? '월' : '분기'}
+            {u === 'day' ? '일' : u === 'week' ? '주' : u === 'month' ? '월' : '분기'}
           </button>
         ))}
         <label className="ml-3 flex items-center gap-1.5 text-[11.5px] text-[#5F5E5A] cursor-pointer">
@@ -221,7 +231,7 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
             <div style={{ width: labelW }} className="shrink-0 border-r border-[#E2DED4]" />
             {model.periods.map((p) => (
               <div key={p.key} style={{ width: colW }}
-                className={`shrink-0 text-center py-2 text-[10.5px] text-[#5F5E5A] border-r border-[#EFEDE6] ${p.date.getMonth() % 3 === 0 ? 'font-semibold' : ''}`}>
+                className={`shrink-0 text-center py-2 text-[10.5px] text-[#5F5E5A] border-r border-[#EFEDE6] ${isMajor(p.date, unit) ? 'font-semibold' : ''}`}>
                 {p.label}
               </div>
             ))}
@@ -237,7 +247,7 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
                 </div>
                 <div className="relative" style={{ width: model.periods.length * colW, height: gl.laneCount * laneH }}>
                   {model.periods.map((p, i) => (
-                    <div key={p.key} className={`absolute top-0 bottom-0 border-r ${p.date.getMonth() % 3 === 0 ? 'border-[#D3D1C7]' : 'border-[#F2F0EA]'}`} style={{ left: i * colW, width: colW }} />
+                    <div key={p.key} className={`absolute top-0 bottom-0 border-r ${isMajor(p.date, unit) ? 'border-[#D3D1C7]' : 'border-[#F2F0EA]'}`} style={{ left: i * colW, width: colW }} />
                   ))}
                   {todayIdx >= 0 && <div className="absolute top-0 bottom-0 w-px bg-[#A50034] z-10" style={{ left: todayIdx * colW + colW / 2 }} />}
                   {gl.bars.map((b) => {
