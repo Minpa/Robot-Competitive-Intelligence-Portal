@@ -52,11 +52,16 @@ export default function TableView({ data, canEdit, onChanged, onOpenItem }: Prop
     setEditing(null);
   }, [editing, rows, cols, saveCell]);
 
+  const addItemToGroup = useCallback(async (groupId: number) => {
+    await pmApi.createItem(groupId, { name: '새 아이템' }); onChanged();
+  }, [onChanged]);
+
   const addItemToLastGroup = useCallback(async () => {
-    const g = [...data.groups].sort((a, b) => a.orderIndex - b.orderIndex).slice(-1)[0];
-    if (!g) return;
-    await pmApi.createItem(g.id, { name: '새 아이템' }); onChanged();
-  }, [data.groups, onChanged]);
+    const cur = rows.length ? rows[rows.length - 1]?.groupId : undefined;
+    const g = cur ?? [...data.groups].sort((a, b) => a.orderIndex - b.orderIndex).slice(-1)[0]?.id;
+    if (g == null) return;
+    await pmApi.createItem(g, { name: '새 아이템' }); onChanged();
+  }, [data.groups, rows, onChanged]);
 
   const onKey = useCallback(async (e: React.KeyboardEvent) => {
     if (!focus) return;
@@ -161,8 +166,13 @@ export default function TableView({ data, canEdit, onChanged, onOpenItem }: Prop
   useEffect(() => { gridRef.current?.focus(); }, []);
 
   const inRect = (r: number, c: number) => rect && r >= rect.r0 && r <= rect.r1 && c >= rect.c0 && c <= rect.c1;
-  const groupName = useMemo(() => new Map(data.groups.map((g) => [g.id, g])), [data.groups]);
-  let lastGroup = -1;
+  const sortedGroups = useMemo(() => [...data.groups].sort((a, b) => a.orderIndex - b.orderIndex), [data.groups]);
+  const rowIndexByItem = useMemo(() => {
+    const m = new Map<number, number>();
+    rows.forEach((row, i) => m.set(row.item.id, i));
+    return m;
+  }, [rows]);
+  const totalCols = cols.length + 1;
 
   return (
     <div ref={gridRef} tabIndex={0} onKeyDown={onKey} className="outline-none overflow-auto border border-[#E2DED4] rounded-lg bg-white">
@@ -178,54 +188,83 @@ export default function TableView({ data, canEdit, onChanged, onOpenItem }: Prop
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, r) => {
-            const showGroup = row.groupId !== lastGroup; lastGroup = row.groupId;
-            const g = groupName.get(row.groupId);
+          {sortedGroups.map((g) => {
+            const gItems = data.items
+              .filter((i) => i.groupId === g.id && !i.parentItemId)
+              .sort((a, b) => a.orderIndex - b.orderIndex);
             return (
               <>
-                {showGroup && (
-                  <tr key={`g-${row.groupId}`}>
-                    <td colSpan={cols.length + 1} className="bg-[#F4F2EC] border-b border-[#E2DED4] px-3 py-1.5">
+                <tr key={`g-${g.id}`}>
+                  <td colSpan={totalCols} className="bg-[#F4F2EC] border-b border-[#E2DED4] px-3 py-1.5">
+                    <div className="flex items-center justify-between">
                       <span className="inline-flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: g?.color || '#888780' }} />
-                        <span className="font-medium text-[12px] text-[#1A1A1A]">{g?.name}</span>
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: g.color || '#888780' }} />
+                        <span className="font-medium text-[12px] text-[#1A1A1A]">{g.name}</span>
+                        <span className="font-mono text-[10px] text-[#888780]">{gItems.length}</span>
                       </span>
+                      {canEdit && (
+                        <button onClick={() => addItemToGroup(g.id)}
+                          className="inline-flex items-center gap-1 text-[11px] text-[#5F5E5A] hover:text-[#A50034]">
+                          <Plus size={12} /> 아이템
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+                {gItems.length === 0 && (
+                  <tr key={`e-${g.id}`}>
+                    <td colSpan={totalCols} className="border-b border-[#EFEDE6] px-3 py-2 text-[12px] text-[#B8B6AE]">
+                      {canEdit ? (
+                        <button onClick={() => addItemToGroup(g.id)} className="inline-flex items-center gap-1.5 text-[#5F5E5A] hover:text-[#A50034]">
+                          <Plus size={13} /> 이 그룹에 첫 아이템 추가
+                        </button>
+                      ) : '아이템 없음'}
                     </td>
                   </tr>
                 )}
-                <tr key={row.item.id}>
-                  <td className="border-b border-r border-[#EFEDE6] px-3 py-1.5 group cursor-pointer hover:bg-[#FAFAF7]"
-                    onClick={() => onOpenItem(row.item.id)}>
-                    <span className="text-[#1A1A1A] hover:text-[#A50034]">{row.item.name}</span>
-                  </td>
-                  {cols.map((col, c) => {
-                    const isFocus = focus?.r === r && focus?.c === c;
-                    const isEditing = editing?.pos.r === r && editing?.pos.c === c;
-                    return (
-                      <td key={col.id}
-                        onMouseDown={(e) => { setFocus({ r, c }); if (!e.shiftKey) setAnchor({ r, c }); gridRef.current?.focus(); }}
-                        onDoubleClick={() => canEdit && startEdit({ r, c }, '')}
-                        className={`border-b border-r border-[#EFEDE6] px-2.5 py-1.5 align-middle ${inRect(r, c) ? 'bg-[#FAEAE7]/50' : ''} ${isFocus ? 'outline outline-2 outline-[#A50034] -outline-offset-2' : ''}`}>
-                        {isEditing ? (
-                          <input autoFocus value={editing!.draft}
-                            onChange={(e) => setEditing({ pos: { r, c }, draft: e.target.value })}
-                            onBlur={commitEdit}
-                            className="w-full text-[12.5px] outline-none bg-transparent" />
-                        ) : (
-                          <CellDisplay col={col} value={cellVal(row.item.id, col.id)} />
-                        )}
+                {gItems.map((it) => {
+                  const r = rowIndexByItem.get(it.id) ?? -1;
+                  return (
+                    <tr key={it.id}>
+                      <td className="border-b border-r border-[#EFEDE6] px-3 py-1.5 group cursor-pointer hover:bg-[#FAFAF7]"
+                        onClick={() => onOpenItem(it.id)}>
+                        <span className="text-[#1A1A1A] hover:text-[#A50034]">{it.name}</span>
                       </td>
-                    );
-                  })}
-                </tr>
+                      {cols.map((col, c) => {
+                        const isFocus = focus?.r === r && focus?.c === c;
+                        const isEditing = editing?.pos.r === r && editing?.pos.c === c;
+                        return (
+                          <td key={col.id}
+                            onMouseDown={(e) => { setFocus({ r, c }); if (!e.shiftKey) setAnchor({ r, c }); gridRef.current?.focus(); }}
+                            onDoubleClick={() => canEdit && startEdit({ r, c }, '')}
+                            className={`border-b border-r border-[#EFEDE6] px-2.5 py-1.5 align-middle ${inRect(r, c) ? 'bg-[#FAEAE7]/50' : ''} ${isFocus ? 'outline outline-2 outline-[#A50034] -outline-offset-2' : ''}`}>
+                            {isEditing ? (
+                              <input autoFocus value={editing!.draft}
+                                onChange={(e) => setEditing({ pos: { r, c }, draft: e.target.value })}
+                                onBlur={commitEdit}
+                                className="w-full text-[12.5px] outline-none bg-transparent" />
+                            ) : (
+                              <CellDisplay col={col} value={cellVal(it.id, col.id)} />
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
               </>
             );
           })}
+          {sortedGroups.length === 0 && (
+            <tr><td colSpan={totalCols} className="px-3 py-6 text-center text-[12px] text-[#888780]">
+              그룹이 없습니다. 상단 “그룹” 버튼으로 추가하세요.
+            </td></tr>
+          )}
         </tbody>
       </table>
-      {canEdit && (
+      {canEdit && sortedGroups.length > 0 && (
         <button onClick={addItemToLastGroup} className="inline-flex items-center gap-1.5 px-3 py-2 text-[12px] text-[#5F5E5A] hover:text-[#A50034]">
-          <Plus size={13} /> 아이템 추가 (마지막 행에서 Enter)
+          <Plus size={13} /> 아이템 추가 (또는 표 안에서 마지막 행 Enter)
         </button>
       )}
     </div>
