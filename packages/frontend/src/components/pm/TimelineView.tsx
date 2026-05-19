@@ -36,6 +36,22 @@ function isMajor(d: Date, u: Unit): boolean {
   if (u === 'day') return d.getDate() === 1 || d.getDay() === 1;
   return d.getMonth() % 3 === 0;
 }
+function addDays(d: Date, n: number): Date { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function addMonths(d: Date, n: number): Date { const x = new Date(d); x.setMonth(x.getMonth() + n); return x; }
+function fmtDate(d: Date): string { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+// 날짜 문자열을 축 단위 N칸만큼 이동
+function shiftStr(s: string, periods: number, u: Unit): string {
+  const d = toDate(s); if (!d) return s;
+  if (u === 'day') return fmtDate(addDays(d, periods));
+  if (u === 'week') return fmtDate(addDays(d, periods * 7));
+  if (u === 'month') return fmtDate(addMonths(d, periods));
+  return fmtDate(addMonths(d, periods * 3)); // quarter
+}
+function diffDays(a: string, b: string): number {
+  const da = toDate(a), db = toDate(b);
+  if (!da || !db) return 0;
+  return Math.round((da.getTime() - db.getTime()) / 864e5);
+}
 
 const DEP_TYPES: DependencyType[] = ['FS', 'SS', 'FF', 'SF'];
 // 한글 설명 (선행 = 앞 작업, 후행 = 뒤 작업)
@@ -55,6 +71,7 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
   const [showDeps, setShowDeps] = useState(true);
   const [draft, setDraft] = useState<{ pred: string; succ: string; type: DependencyType }>({ pred: '', succ: '', type: 'FS' });
   const [busy, setBusy] = useState(false);
+  const [drag, setDrag] = useState<{ itemId: number; startX: number; periods: number } | null>(null);
   const tCol = useMemo(() => data.columns.find((c) => c.type === 'timeline'), [data.columns]);
   const dCol = useMemo(() => data.columns.find((c) => c.type === 'date'), [data.columns]);
   const cv = (itemId: number, colId: number) => data.cells.find((x) => x.itemId === itemId && x.columnId === colId)?.value;
@@ -101,7 +118,9 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
           const ed = toDate(tv?.end) || toDate(dv?.date);
           if (!sd) return null;
           const s = idx(sd), e = ed ? idx(ed) : s;
-          return { it, s, e, milestone: !tv?.end || s === e };
+          // 마일스톤 판정은 실제 날짜 기준 (기간 인덱스 뭉침으로 강등 금지)
+          const milestone = !ed || sd.getTime() === ed.getTime();
+          return { it, s, e, milestone };
         })
         .filter(Boolean)
         .sort((a, b) => a!.s - b!.s)
@@ -193,6 +212,26 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
     try { await pmApi.deleteDependency(id); onChanged?.(); } catch { /* noop */ } finally { setBusy(false); }
   };
 
+  // 드래그로 일정 이동 — 축 단위 N칸만큼 시작/끝(또는 날짜)을 평행 이동, 기간 보존
+  const applyDrag = async (itemId: number, periods: number) => {
+    if (!canEdit || periods === 0 || busy) return;
+    setBusy(true);
+    try {
+      const tv = tCol ? cv(itemId, tCol.id) : null;
+      const dv = dCol ? cv(itemId, dCol.id) : null;
+      if (tv?.start && tCol) {
+        const newStart = shiftStr(tv.start, periods, unit);
+        const dd = diffDays(newStart, tv.start);
+        const next: any = { start: newStart };
+        if (tv.end) next.end = fmtDate(addDays(toDate(tv.end)!, dd));
+        await pmApi.setCell(itemId, tCol.id, next);
+      } else if (dv?.date && dCol) {
+        await pmApi.setCell(itemId, dCol.id, { date: shiftStr(dv.date, periods, unit) });
+      }
+      onChanged?.();
+    } catch { /* noop */ } finally { setBusy(false); }
+  };
+
   const itemOpts = data.items.filter((i) => !i.parentItemId);
 
   return (
@@ -272,18 +311,43 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
                     const w = Math.max(colW - 8, (b.e - b.s + 1) * colW - 8);
                     const top = b.lane * laneH + 5;
                     const preds = predsOf.get(b.it.id);
-                    const tip = `${b.it.name}${preds ? ` · 선행 ${preds.join(', ')}` : ''}`;
+                    const isDragging = drag?.itemId === b.it.id;
+                    const dx = isDragging ? drag!.periods * colW : 0;
+                    const shiftHint = isDragging && drag!.periods !== 0
+                      ? ` (${drag!.periods > 0 ? '+' : ''}${drag!.periods}${unit === 'day' ? '일' : unit === 'week' ? '주' : unit === 'month' ? '개월' : '분기'})` : '';
+                    const tip = `${b.it.name}${preds ? ` · 선행 ${preds.join(', ')}` : ''}${canEdit ? ' · 드래그로 일정 이동' : ''}`;
+                    const dragProps = canEdit ? {
+                      onPointerDown: (e: React.PointerEvent) => {
+                        e.preventDefault();
+                        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                        setDrag({ itemId: b.it.id, startX: e.clientX, periods: 0 });
+                      },
+                      onPointerMove: (e: React.PointerEvent) => {
+                        if (drag?.itemId !== b.it.id) return;
+                        const p = Math.round((e.clientX - drag.startX) / colW);
+                        if (p !== drag.periods) setDrag({ ...drag, periods: p });
+                      },
+                      onPointerUp: () => {
+                        if (drag?.itemId !== b.it.id) return;
+                        const p = drag.periods;
+                        setDrag(null);
+                        void applyDrag(b.it.id, p);
+                      },
+                    } : {};
+                    const dragCls = canEdit ? 'cursor-grab active:cursor-grabbing select-none touch-none' : '';
                     if (b.milestone) {
-                      return <div key={b.it.id} title={tip} className="absolute" style={{ left: left + 4, top: top + 2 }}>
-                        <div className="w-3 h-3 bg-[#A50034] rotate-45" />
-                        <span className="absolute left-5 top-0 whitespace-nowrap text-[10.5px] text-[#1A1A1A]">{b.it.name}</span>
+                      return <div key={b.it.id} title={tip} {...dragProps}
+                        className={`absolute ${dragCls}`}
+                        style={{ left: left + 4, top: top + 2, transform: `translateX(${dx}px)`, zIndex: isDragging ? 20 : undefined }}>
+                        <div className={`w-3 h-3 bg-[#A50034] rotate-45 ${isDragging ? 'ring-2 ring-[#A50034]/40' : ''}`} />
+                        <span className="absolute left-5 top-0 whitespace-nowrap text-[10.5px] text-[#1A1A1A]">{b.it.name}{shiftHint}</span>
                       </div>;
                     }
                     return (
-                      <div key={b.it.id} title={tip}
-                        className="absolute rounded text-[10.5px] text-white px-2 flex items-center overflow-hidden"
-                        style={{ left, width: w, top, height: laneH - 10, backgroundColor: '#4A4A48' }}>
-                        <span className="truncate">{b.it.name}</span>
+                      <div key={b.it.id} title={tip} {...dragProps}
+                        className={`absolute rounded text-[10.5px] text-white px-2 flex items-center overflow-hidden ${dragCls} ${isDragging ? 'ring-2 ring-[#A50034]/50' : ''}`}
+                        style={{ left, width: w, top, height: laneH - 10, backgroundColor: '#4A4A48', transform: `translateX(${dx}px)`, zIndex: isDragging ? 20 : undefined }}>
+                        <span className="truncate">{b.it.name}{shiftHint}</span>
                       </div>
                     );
                   })}
