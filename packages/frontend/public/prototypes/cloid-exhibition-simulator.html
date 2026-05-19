@@ -2576,46 +2576,34 @@
       group.add(panel);
 
       if (brand === 'kb') {
-        // KB국민은행 브랜드 월 그래픽 ("KB가 있어 국민든든")
+        // KB국민은행 공식 로고 (별 엠블럼 + "KB 국민은행") — 흰 배경
         const cnv = document.createElement('canvas');
         cnv.width = 1200; cnv.height = 1000;
         const ctx = cnv.getContext('2d');
-        // Background
+        // White background
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, 1200, 1000);
-        // Top KB-yellow accent band
-        ctx.fillStyle = '#FFBC00';
-        ctx.fillRect(0, 0, 1200, 24);
-        // Star emblem
-        drawKBStarEmblem(ctx, 600, 250, 150);
-        // Headline — "KB가 있어"
-        ctx.fillStyle = '#555555';
-        ctx.font = '600 78px IBM Plex Sans, sans-serif';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText('KB가 있어', 600, 500);
-        // Big "국민 든든" — 국민 dark, 든든 KB yellow
-        ctx.font = 'bold 168px IBM Plex Sans, sans-serif';
-        const seg1 = '국민 ', seg2 = '든든';
-        const w1 = ctx.measureText(seg1).width;
-        const w2 = ctx.measureText(seg2).width;
-        const startX = 600 - (w1 + w2) / 2;
+        // Logo group (emblem + wordmark) — horizontally centered
+        const cy = 500;
+        const emR = 120;            // emblem radius
+        const gap = 70;             // gap between emblem and text
+        ctx.font = 'bold 200px IBM Plex Sans, sans-serif';
+        ctx.textBaseline = 'middle';
+        const wordmark = 'KB 국민은행';
+        const textW = ctx.measureText(wordmark).width;
+        const groupW = emR * 2 + gap + textW;
+        const gx = (1200 - groupW) / 2;       // group left edge
+        // Star emblem (left)
+        drawKBStarEmblem(ctx, gx + emR, cy, emR);
+        // Wordmark "KB 국민은행" — KB brownish-gray, 국민은행 gray
         ctx.textAlign = 'left';
-        ctx.fillStyle = '#2A2A2A';
-        ctx.fillText(seg1, startX, 640);
-        ctx.fillStyle = '#FFBC00';
-        ctx.fillText(seg2, startX + w1, 640);
+        const tx = gx + emR * 2 + gap;
+        ctx.fillStyle = '#6E665C';
+        ctx.fillText('KB ', tx, cy);
+        const kbW = ctx.measureText('KB ').width;
+        ctx.fillStyle = '#7A736A';
+        ctx.fillText('국민은행', tx + kbW, cy);
         ctx.textAlign = 'center';
-        // Divider
-        ctx.strokeStyle = '#E2DED4'; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.moveTo(250, 770); ctx.lineTo(950, 770); ctx.stroke();
-        // Subtitle
-        ctx.fillStyle = '#666666';
-        ctx.font = '500 44px IBM Plex Sans, sans-serif';
-        ctx.fillText('KB가 국민 곁에서', 600, 838);
-        ctx.fillText('평생 든든한 금융파트너가 되겠습니다', 600, 898);
-        // Bottom KB-yellow accent band
-        ctx.fillStyle = '#FFBC00';
-        ctx.fillRect(0, 976, 1200, 24);
 
         const tex = new THREE.CanvasTexture(cnv);
         tex.colorSpace = THREE.SRGBColorSpace;
