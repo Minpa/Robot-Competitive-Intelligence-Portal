@@ -2558,17 +2558,82 @@
       return group;
     }
 
-    function buildWallPanel() {
+    function buildWallPanel(instance) {
       const group = new THREE.Group();
       const dims = FURNITURE_DIMS.WALL_PANEL;
+      const brand = (instance && instance.brand) ? String(instance.brand) : '';
+
       const panel = new THREE.Mesh(
         new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
-        new THREE.MeshStandardMaterial({ color: FURNITURE_COLORS.WALL_PANEL, roughness: 0.85 })
+        new THREE.MeshStandardMaterial({
+          color: brand === 'kb' ? 0xFFFFFF : FURNITURE_COLORS.WALL_PANEL,
+          roughness: 0.85,
+        })
       );
       panel.position.y = dims.height / 2;
       panel.castShadow = true;
       panel.receiveShadow = true;
       group.add(panel);
+
+      if (brand === 'kb') {
+        // KB국민은행 브랜드 월 그래픽 ("KB가 있어 국민든든")
+        const cnv = document.createElement('canvas');
+        cnv.width = 1200; cnv.height = 1000;
+        const ctx = cnv.getContext('2d');
+        // Background
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, 1200, 1000);
+        // Top KB-yellow accent band
+        ctx.fillStyle = '#FFBC00';
+        ctx.fillRect(0, 0, 1200, 24);
+        // Star emblem
+        drawKBStarEmblem(ctx, 600, 250, 150);
+        // Headline — "KB가 있어"
+        ctx.fillStyle = '#555555';
+        ctx.font = '600 78px IBM Plex Sans, sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('KB가 있어', 600, 500);
+        // Big "국민 든든" — 국민 dark, 든든 KB yellow
+        ctx.font = 'bold 168px IBM Plex Sans, sans-serif';
+        const seg1 = '국민 ', seg2 = '든든';
+        const w1 = ctx.measureText(seg1).width;
+        const w2 = ctx.measureText(seg2).width;
+        const startX = 600 - (w1 + w2) / 2;
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#2A2A2A';
+        ctx.fillText(seg1, startX, 640);
+        ctx.fillStyle = '#FFBC00';
+        ctx.fillText(seg2, startX + w1, 640);
+        ctx.textAlign = 'center';
+        // Divider
+        ctx.strokeStyle = '#E2DED4'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(250, 770); ctx.lineTo(950, 770); ctx.stroke();
+        // Subtitle
+        ctx.fillStyle = '#666666';
+        ctx.font = '500 44px IBM Plex Sans, sans-serif';
+        ctx.fillText('KB가 국민 곁에서', 600, 838);
+        ctx.fillText('평생 든든한 금융파트너가 되겠습니다', 600, 898);
+        // Bottom KB-yellow accent band
+        ctx.fillStyle = '#FFBC00';
+        ctx.fillRect(0, 976, 1200, 24);
+
+        const tex = new THREE.CanvasTexture(cnv);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        const faceMat = new THREE.MeshStandardMaterial({
+          map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.35,
+          roughness: 0.5, metalness: 0.0,
+        });
+        // Branding on both broad faces (panel may be rotated either way)
+        [1, -1].forEach((sz) => {
+          const face = new THREE.Mesh(
+            new THREE.PlaneGeometry(dims.width - 0.06, dims.height - 0.06),
+            faceMat
+          );
+          face.position.set(0, dims.height / 2, sz * (dims.depth / 2 + 0.005));
+          if (sz === -1) face.rotation.y = Math.PI;
+          group.add(face);
+        });
+      }
       return group;
     }
 
@@ -10685,10 +10750,10 @@
       // ── 은행주출입구 — bottom-left entrance marker ──
       m('DOORWAY', -7.50, 6.50, 0, '은행 주출입구');
 
-      // ── 벽면 구획 ──
-      m('WALL_PANEL', -8.80, -3.00, Math.PI / 2, '좌측 벽');
-      m('WALL_PANEL', -8.80, 0.50, Math.PI / 2, '좌측 벽 2');
-      m('WALL_PANEL', -8.80, 4.00, Math.PI / 2, '좌측 벽 3');
+      // ── 벽면 구획 (KB 브랜드 월 그래픽) ──
+      m('WALL_PANEL', -8.80, -3.00, Math.PI / 2, '좌측 벽 (KB)',   { brand: 'kb' });
+      m('WALL_PANEL', -8.80, 0.50, Math.PI / 2, '좌측 벽 2 (KB)', { brand: 'kb' });
+      m('WALL_PANEL', -8.80, 4.00, Math.PI / 2, '좌측 벽 3 (KB)', { brand: 'kb' });
 
       // ── 상담 코너 (우측 상단) ──
       m('OFFICE_DESK', 7.00, Z_BACK + 1.50, 0, '상담 데스크 1');
