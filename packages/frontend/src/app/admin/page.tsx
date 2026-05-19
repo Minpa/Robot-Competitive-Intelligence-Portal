@@ -73,92 +73,113 @@ export default function AdminPage() {
     setMasterSteps(prev => prev.map(s => (s.id === id ? { ...s, ...patch } : s)));
   };
 
+  // ── 파이프라인 단계 정의 — 각 단계는 독립 실행 가능 ──
+  const STEP_DEFS: { id: string; name: string; description: string; cost: string }[] = [
+    { id: 'data',     name: '1. 데이터 수집',         description: 'Claude + 웹검색으로 회사·제품·기사·로봇 갱신 (8개 주제)', cost: '$2~$8 — 가장 비싼 단계' },
+    { id: 'events',   name: '2. 이벤트 캘린더',        description: 'CES/ICRA/IROS 등 글로벌 로봇·AI 이벤트 발견',  cost: '소액 (웹검색 1회)' },
+    { id: 'scoring',  name: '3. 점수 파이프라인',       description: 'PoC / RFM / Positioning 재채점',              cost: '거의 없음 (DB 연산)' },
+    { id: 'briefing', name: '4. 월간 브리핑·인사이트',   description: '인사이트 카드 + 월간 요약 재생성',            cost: '소액 (요약 생성)' },
+    { id: 'audit',    name: '5. 데이터 감사',          description: '엔티티 일관성·이상치 검증',                   cost: '거의 없음 (DB 검증)' },
+  ];
+
+  const makeInitialSteps = (): MasterStep[] =>
+    STEP_DEFS.map(d => ({ id: d.id, name: d.name, description: d.description, status: 'pending' as MasterStepStatus }));
+
+  // 단계별 핵심 로직 — 성공 시 정상 반환, 실패 시 throw. 단독·일괄 실행이 공유.
+  async function execData() {
+    updateStep('data', { status: 'running', startedAt: Date.now(), finishedAt: undefined, detail: undefined });
+    const { jobId } = await api.startDataBatch('claude', true);
+    // Poll every 10s, 25 min max — status fetch 요청 부하↓ + 장시간 수집 허용
+    const POLL_INTERVAL_MS = 10000;
+    const POLL_MAX = 150; // 150 × 10s = 1500s = 25분
+    let i = 0;
+    while (i < POLL_MAX) {
+      await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+      const st = await api.getDataBatchStatus(jobId);
+      updateStep('data', { detail: `${st.completed}/${st.totalTopics} 완료 (${st.currentStep ?? '진행 중'})` });
+      if (st.status === 'completed') {
+        updateStep('data', { status: 'done', detail: `${st.completed}개 주제 완료`, finishedAt: Date.now() });
+        return;
+      }
+      if (st.status === 'failed') {
+        updateStep('data', { status: 'failed', detail: st.error || 'unknown error', finishedAt: Date.now() });
+        throw new Error(`데이터 수집 실패: ${st.error}`);
+      }
+      i++;
+    }
+    updateStep('data', { status: 'failed', detail: '폴링 타임아웃', finishedAt: Date.now() });
+    throw new Error('데이터 수집 타임아웃 (25분 초과) — 백엔드 잡은 계속 실행 중일 수 있으니, 잠시 후 후속 단계만 개별 실행하세요.');
+  }
+
+  async function execEvents() {
+    updateStep('events', { status: 'running', startedAt: Date.now(), finishedAt: undefined, detail: undefined });
+    const res = await api.refreshEvents();
+    updateStep('events', { status: 'done', detail: `${res.count}건 발견${res.cached ? ' (캐시 적중)' : ''}`, finishedAt: Date.now() });
+  }
+
+  async function execScoring() {
+    updateStep('scoring', { status: 'running', startedAt: Date.now(), finishedAt: undefined, detail: undefined });
+    const result = await api.runScoringPipeline();
+    const summary = result?.summary || result?.message || '완료';
+    updateStep('scoring', { status: 'done', detail: typeof summary === 'string' ? summary : '재채점 완료', finishedAt: Date.now() });
+  }
+
+  async function execBriefing() {
+    updateStep('briefing', { status: 'running', startedAt: Date.now(), finishedAt: undefined, detail: undefined });
+    await api.generateMonthlyBrief();
+    updateStep('briefing', { status: 'done', detail: '인사이트 카드·월간 요약 재생성 완료', finishedAt: Date.now() });
+  }
+
+  async function execAudit() {
+    updateStep('audit', { status: 'running', startedAt: Date.now(), finishedAt: undefined, detail: undefined });
+    const auditResult = await api.runDataAudit();
+    const issueCount = auditResult?.totalIssues ?? auditResult?.issues?.length ?? 0;
+    updateStep('audit', { status: 'done', detail: issueCount > 0 ? `${issueCount}개 이슈 발견` : '이슈 없음', finishedAt: Date.now() });
+  }
+
+  const STEP_EXEC: Record<string, () => Promise<void>> = {
+    data: execData, events: execEvents, scoring: execScoring, briefing: execBriefing, audit: execAudit,
+  };
+
+  // 단일 단계만 실행 — 앞 단계 재실행 없이 실패 지점부터 이어갈 수 있어 비용 절감
+  async function runSingleStep(id: string) {
+    if (masterRunning) return;
+    const def = STEP_DEFS.find(d => d.id === id);
+    if (!def) return;
+    if (!confirm(`'${def.name}' 단계만 실행합니다.\n예상 비용: ${def.cost}\n계속하시겠어요?`)) return;
+    setMasterRunning(true);
+    setMasterError(null);
+    setMasterSteps(prev => (prev.length ? prev : makeInitialSteps()));
+    try {
+      await STEP_EXEC[id]();
+    } catch (err: any) {
+      updateStep(id, { status: 'failed', detail: err?.message ?? '실패', finishedAt: Date.now() });
+      setMasterError(`${def.name}: ${err?.message ?? '실패'}`);
+    }
+    queryClient.invalidateQueries();
+    setMasterRunning(false);
+  }
+
   async function runMasterRefresh() {
     if (masterRunning) return;
-    if (!confirm('전체 파이프라인을 순차 실행합니다 (8개 주제 + 이벤트 + 채점 + 인사이트 + 감사 ≈ 10~20분, $2~$8). 계속하시겠어요?')) return;
+    if (!confirm('전체 파이프라인을 순차 실행합니다 (8개 주제 + 이벤트 + 채점 + 인사이트 + 감사 ≈ 10~25분, $2~$8). 계속하시겠어요?')) return;
 
     setMasterRunning(true);
     setMasterError(null);
-    const initial: MasterStep[] = [
-      { id: 'data',     name: '1. 데이터 수집',           description: 'Claude + 웹검색으로 회사·제품·기사·로봇 갱신 (8개 주제)', status: 'pending' },
-      { id: 'events',   name: '2. 이벤트 캘린더',          description: 'CES/ICRA/IROS 등 글로벌 로봇·AI 이벤트 발견',  status: 'pending' },
-      { id: 'scoring',  name: '3. 점수 파이프라인',         description: 'PoC / RFM / Positioning 재채점',              status: 'pending' },
-      { id: 'briefing', name: '4. 월간 브리핑·인사이트',     description: '인사이트 카드 + 월간 요약 재생성',            status: 'pending' },
-      { id: 'audit',    name: '5. 데이터 감사',            description: '엔티티 일관성·이상치 검증',                   status: 'pending' },
-    ];
-    setMasterSteps(initial);
+    setMasterSteps(makeInitialSteps());
 
-    // ── Step 1: 데이터 수집 (poll until completed) ──
-    updateStep('data', { status: 'running', startedAt: Date.now() });
-    try {
-      const { jobId } = await api.startDataBatch('claude', true);
-      // Poll every 10s, 25 min max — status fetch 요청 부하↓ + 장시간 수집 허용
-      const POLL_INTERVAL_MS = 10000;
-      const POLL_MAX = 150; // 150 × 10s = 1500s = 25분
-      let i = 0;
-      while (i < POLL_MAX) {
-        await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
-        const st = await api.getDataBatchStatus(jobId);
-        const progress = `${st.completed}/${st.totalTopics} 완료 (${st.currentStep ?? '진행 중'})`;
-        updateStep('data', { detail: progress });
-        if (st.status === 'completed') {
-          updateStep('data', { status: 'done', detail: `${st.completed}개 주제 완료`, finishedAt: Date.now() });
-          break;
-        }
-        if (st.status === 'failed') {
-          updateStep('data', { status: 'failed', detail: st.error || 'unknown error', finishedAt: Date.now() });
-          throw new Error(`데이터 수집 실패: ${st.error}`);
-        }
-        i++;
+    // 한 단계가 실패해도 중단하지 않고 끝까지 진행 — 실패 단계만 개별 재실행 가능.
+    const failed: string[] = [];
+    for (const def of STEP_DEFS) {
+      try {
+        await STEP_EXEC[def.id]();
+      } catch (err: any) {
+        updateStep(def.id, { status: 'failed', detail: err?.message ?? '실패', finishedAt: Date.now() });
+        failed.push(def.name);
       }
-      if (i >= POLL_MAX) {
-        updateStep('data', { status: 'failed', detail: '폴링 타임아웃', finishedAt: Date.now() });
-        throw new Error('데이터 수집 타임아웃 (25분 초과)');
-      }
-    } catch (err: any) {
-      setMasterError(`Step 1: ${err?.message ?? '데이터 수집 실패'}`);
-      setMasterRunning(false);
-      return;
     }
-
-    // ── Step 2: 이벤트 캘린더 (Claude web_search) ──
-    updateStep('events', { status: 'running', startedAt: Date.now() });
-    try {
-      const res = await api.refreshEvents();
-      const cachedNote = res.cached ? ' (캐시 적중)' : '';
-      updateStep('events', { status: 'done', detail: `${res.count}건 발견${cachedNote}`, finishedAt: Date.now() });
-    } catch (err: any) {
-      updateStep('events', { status: 'failed', detail: err?.message ?? '실패', finishedAt: Date.now() });
-    }
-
-    // ── Step 3: 점수 파이프라인 ──
-    updateStep('scoring', { status: 'running', startedAt: Date.now() });
-    try {
-      const result = await api.runScoringPipeline();
-      const summary = result?.summary || result?.message || '완료';
-      updateStep('scoring', { status: 'done', detail: typeof summary === 'string' ? summary : '재채점 완료', finishedAt: Date.now() });
-    } catch (err: any) {
-      updateStep('scoring', { status: 'failed', detail: err?.message ?? '실패', finishedAt: Date.now() });
-      // 계속 진행 (점수 실패해도 다음 단계는 가능)
-    }
-
-    // ── Step 3: 월간 브리핑·인사이트 ──
-    updateStep('briefing', { status: 'running', startedAt: Date.now() });
-    try {
-      await api.generateMonthlyBrief();
-      updateStep('briefing', { status: 'done', detail: '인사이트 카드·월간 요약 재생성 완료', finishedAt: Date.now() });
-    } catch (err: any) {
-      updateStep('briefing', { status: 'failed', detail: err?.message ?? '실패', finishedAt: Date.now() });
-    }
-
-    // ── Step 4: 데이터 감사 ──
-    updateStep('audit', { status: 'running', startedAt: Date.now() });
-    try {
-      const auditResult = await api.runDataAudit();
-      const issueCount = auditResult?.totalIssues ?? auditResult?.issues?.length ?? 0;
-      updateStep('audit', { status: 'done', detail: issueCount > 0 ? `${issueCount}개 이슈 발견` : '이슈 없음', finishedAt: Date.now() });
-    } catch (err: any) {
-      updateStep('audit', { status: 'failed', detail: err?.message ?? '실패', finishedAt: Date.now() });
+    if (failed.length > 0) {
+      setMasterError(`일부 단계 실패: ${failed.join(', ')} — 위 목록에서 해당 단계만 개별 재실행하면 됩니다 (앞 단계 비용 없음).`);
     }
 
     // 캐시 무효화 — 다른 페이지가 새 데이터를 즉시 보도록
@@ -778,10 +799,16 @@ export default function AdminPage() {
                 )}
               </button>
 
-              {masterSteps.length > 0 && (
+              {(() => {
+                const displaySteps = masterSteps.length > 0 ? masterSteps : makeInitialSteps();
+                return (
                 <div className="border border-ink-200 rounded-lg overflow-hidden">
-                  {masterSteps.map((step, idx) => {
-                    const isLast = idx === masterSteps.length - 1;
+                  <div className="px-3 py-2 bg-ink-50 border-b border-ink-200 text-[11px] text-ink-500 font-mono">
+                    각 단계는 개별 실행 가능 — 실패한 단계만 다시 돌리면 앞 단계 비용이 들지 않습니다.
+                  </div>
+                  {displaySteps.map((step, idx) => {
+                    const isLast = idx === displaySteps.length - 1;
+                    const def = STEP_DEFS.find(d => d.id === step.id);
                     const dur = step.startedAt && step.finishedAt
                       ? `${((step.finishedAt - step.startedAt) / 1000).toFixed(1)}s`
                       : step.startedAt && !step.finishedAt
@@ -808,9 +835,21 @@ export default function AdminPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-sm font-medium text-ink-900">{step.name}</span>
-                            {dur && <span className="text-xs font-mono text-ink-500">{dur}</span>}
+                            <div className="flex items-center gap-2 shrink-0">
+                              {dur && <span className="text-xs font-mono text-ink-500">{dur}</span>}
+                              <button
+                                onClick={() => runSingleStep(step.id)}
+                                disabled={masterRunning}
+                                title={`이 단계만 실행 — 예상 비용: ${def?.cost ?? ''}`}
+                                className="inline-flex items-center gap-1 px-2 py-1 border border-violet-300 text-violet-700 hover:bg-violet-50 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                              >
+                                <Zap className="w-3 h-3" />
+                                {step.status === 'failed' ? '재실행' : '실행'}
+                              </button>
+                            </div>
                           </div>
                           <div className="text-xs text-ink-500 mt-0.5">{step.description}</div>
+                          <div className="text-[10.5px] text-ink-400 mt-0.5 font-mono">비용: {def?.cost ?? '—'}</div>
                           {step.detail && (
                             <div className={`text-xs mt-1 font-mono ${
                               step.status === 'failed' ? 'text-red-600' :
@@ -825,7 +864,8 @@ export default function AdminPage() {
                     );
                   })}
                 </div>
-              )}
+                );
+              })()}
 
               {masterError && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
