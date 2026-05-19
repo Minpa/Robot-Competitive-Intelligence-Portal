@@ -2,18 +2,18 @@
 // 각 공정 분류 축:
 //  (1) category   — 단순 이재 / 정밀 조작 / 도구 운용 (우리 작업종류 축)
 //  (2) cellNum    — 진입성 매트릭스 셀 매핑 (⑤⑥⑦⑨⑪)
-//  (3) motionGroup — BCG 6 동작군 (Pick&Place / Grip+Push / 나사 / 비고정 / 용접 / 하네스)
-//  (4) rfmTags    — BCG RFM 속성 태그 (강체·유연체·하중·정위치·결선방식 등)
-//  (5) harnessSubType — 하네스 체결 결선 난이도 sub-task (BCG ⑦ 세분화)
+//  (3) motionGroup — 6 동작군 (Pick&Place / Grip+Push / 나사 / 비고정 / 용접 / 하네스)
+//  (4) rfmTags    — RFM 속성 태그 (강체·유연체·하중·정위치·결선방식 등)
+//  (5) harnessSubType — 하네스 체결 결선 난이도 sub-task (⑦ 세분화)
 //
-// ⚠️ motionGroup / rfmTags / harnessSubType 는 BCG 슬라이드 이미지 + 공정 작업
-//    내용 기반 1차 매핑(estimated). BCG 원본 표 입수 시 정밀 보정 필요.
+// ⚠️ motionGroup / rfmTags / harnessSubType 는 참조 로드맵 자료 + 공정 작업
+//    내용 기반 1차 매핑(estimated). 원본 표 입수 시 정밀 보정 필요.
 
 import type { TaskCategory } from './data-v13';
 
 export type EeNeeded = 'gripper' | 'hand' | 'tool';
 
-// ── BCG 6 동작군 ───────────────────────────────────────────────
+// ── 6 동작군 ───────────────────────────────────────────────
 export type MotionGroup =
   | 'pick_place' // Pick & Place
   | 'grip_push'  // Grip + Push/Pull/Tilt
@@ -35,7 +35,7 @@ export const MOTION_GROUP_ORDER: MotionGroup[] = [
   'pick_place', 'grip_push', 'screw', 'non_fixed', 'welding', 'harness',
 ];
 
-// ── BCG RFM 속성 태그 (조작 대상·작용·방향·환경·결선 방식) ──────
+// ── RFM 속성 태그 (조작 대상·작용·방향·환경·결선 방식) ──────
 export type RfmTag =
   // 대상 물성
   | '강체' | '유연체' | '고변형'
@@ -50,7 +50,7 @@ export type RfmTag =
   // 결선(하네스) 방식
   | '단선' | '장선' | '양손' | '양방향' | '다체결' | '다방향' | '다지점';
 
-// ── 하네스 체결 sub-task (BCG: ⑦ 케이블/결선을 난이도별로 분해) ──
+// ── 하네스 체결 sub-task (⑦ 케이블·결선을 난이도별로 분해) ──
 // 난이도 오름차순: 단선·하향 < 양손·양방향 < 장선·양손·다체결 < 장선·양손·다방향·고하중
 export type HarnessSubType =
   | '단선·하향'
@@ -71,11 +71,11 @@ export interface LgeProcess {
   // 매트릭스 셀로 mapping (cellNum)
   // ⑤ 나사 체결 / ⑥ 커넥터 / ⑦ 케이블 / ⑨ Tote·박스 적재 / ⑪ 용접·도장
   cellNum: '⑤' | '⑥' | '⑦' | '⑨' | '⑪' | null;
-  // ── BCG 매핑 (estimated) ──
+  // ── 동작군 매핑 (estimated) ──
   motionGroup: MotionGroup;
   rfmTags: RfmTag[];
   harnessSubType?: HarnessSubType; // motionGroup === 'harness' 일 때만
-  estimated?: boolean;             // BCG 매핑이 슬라이드+작업내용 추정인지
+  estimated?: boolean;             // 동작군 매핑이 슬라이드+작업내용 추정인지
   notes?: string;
 }
 
