@@ -2786,7 +2786,7 @@
       const brand = (instance && instance.brand) ? String(instance.brand) : 'kb';
 
       // Backplate
-      const backColor = brand === 'kb' ? 0x3A2A0A : 0x2a2a2a;
+      const backColor = brand === 'kb' ? 0xF0EDE6 : 0x2a2a2a;
       const back = new THREE.Mesh(
         new THREE.BoxGeometry(dims.width, dims.height, dims.depth),
         new THREE.MeshStandardMaterial({ color: backColor, roughness: 0.6, metalness: 0.3 })
@@ -2801,24 +2801,32 @@
       const ctx = cnv.getContext('2d');
 
       if (brand === 'kb') {
-        // KB국민은행 branding: warm gradient + star + text
-        const grad = ctx.createLinearGradient(0, 0, 1536, 0);
-        grad.addColorStop(0, '#4A3510');
-        grad.addColorStop(0.3, '#5C4118');
-        grad.addColorStop(0.7, '#5C4118');
-        grad.addColorStop(1, '#4A3510');
-        ctx.fillStyle = grad; ctx.fillRect(0, 0, 1536, 320);
-        // KB star emblem
-        drawKBStarEmblem(ctx, 250, 160, 100);
-        // Bank name text
-        ctx.fillStyle = '#FFBC00';
-        ctx.font = 'bold 90px IBM Plex Sans, sans-serif';
+        // KB국민은행 공식 로고 스타일 — 밝은 배경 + 별 엠블럼 + 은행명
+        ctx.fillStyle = '#F7F4EF';
+        ctx.fillRect(0, 0, 1536, 320);
+        // Rounded border
+        ctx.strokeStyle = '#D9D5CD';
+        ctx.lineWidth = 4;
+        const bx = 8, by = 8, bw = 1520, bh = 304, br = 24;
+        ctx.beginPath();
+        ctx.moveTo(bx + br, by);
+        ctx.lineTo(bx + bw - br, by);
+        ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + br);
+        ctx.lineTo(bx + bw, by + bh - br);
+        ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - br, by + bh);
+        ctx.lineTo(bx + br, by + bh);
+        ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - br);
+        ctx.lineTo(bx, by + br);
+        ctx.quadraticCurveTo(bx, by, bx + br, by);
+        ctx.closePath();
+        ctx.stroke();
+        // KB star emblem (left side)
+        drawKBStarEmblem(ctx, 360, 160, 105);
+        // Bank name — dark text on light background
+        ctx.fillStyle = '#333333';
+        ctx.font = 'bold 110px IBM Plex Sans, sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(label, 900, 150);
-        // English subtitle
-        ctx.fillStyle = 'rgba(255, 188, 0, 0.6)';
-        ctx.font = '36px IBM Plex Sans, sans-serif';
-        ctx.fillText('KB Kookmin Bank', 900, 240);
+        ctx.fillText('KB 국민은행', 960, 160);
       } else {
         // Generic signage
         ctx.fillStyle = '#1a1a2a'; ctx.fillRect(0, 0, 1536, 320);
@@ -2872,17 +2880,21 @@
       cnv.width = 1024; cnv.height = 384;
       const ctx = cnv.getContext('2d');
       if (signageText) {
-        // Custom signage mode (e.g. KB은행)
         const bg = signageBg || '#FFBC00';
         ctx.fillStyle = bg; ctx.fillRect(0, 0, 1024, 384);
-        // Draw star emblem for KB
         if (signageText.includes('KB')) {
-          drawKBStarEmblem(ctx, 280, 192, 110);
+          // KB국민은행 로고 스타일 — 별 엠블럼 + 은행명
+          drawKBStarEmblem(ctx, 240, 192, 110);
+          ctx.fillStyle = signageColor || '#333333';
+          ctx.font = 'bold 80px IBM Plex Sans, sans-serif';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(signageText, 650, 192);
+        } else {
+          ctx.fillStyle = signageColor || '#000000';
+          ctx.font = 'bold 80px IBM Plex Sans, sans-serif';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(signageText, 512, 192);
         }
-        ctx.fillStyle = signageColor || '#000000';
-        ctx.font = 'bold 80px IBM Plex Sans, sans-serif';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(signageText, 620, 192);
       } else {
         // Default: LG AI Home content
         const grad = ctx.createLinearGradient(0, 0, 0, 384);
@@ -10553,7 +10565,7 @@
         m('OFFICE_CHAIR', x, Z_BACK + 0.05, 0, `창구 ${num} 직원석`);
         m('OFFICE_CHAIR', x, Z_BACK + 1.30, Math.PI, `창구 ${num} 고객석`);
       });
-      m('LED_VIDEO_WALL', 0, Z_BACK - 0.05, 0, 'KB 브랜드 사이니지');
+      m('LED_VIDEO_WALL', 0, Z_BACK - 0.05, 0, 'KB 브랜드 사이니지', { signageText: 'KB 국민은행', signageBg: '#F7F4EF', signageColor: '#333333' });
 
       // ── 청경(청원경찰) 대기석 — upper-left area ──
       m('OFFICE_DESK', -7.50, Z_BACK + 1.50, Math.PI / 2, '청경 데스크');
@@ -10619,8 +10631,8 @@
       const wallZ = -ftToM(50) / 2 + 0.10;
       // KB국민은행 월 사이니지 (정면 벽 상단 — liftY=2.10, h=1.20 → y 2.10~3.30)
       m('WALL_SIGNAGE', 0, wallZ, 0, 'KB국민은행 사이니지', { label: 'KB국민은행', brand: 'kb' });
-      // LED 비디오월 KB 브랜드 (벽 중단 — liftY=1.50, h=1.85 이지만 사이니지와 겹침 방지를 위해 아래 조정)
-      m('LED_VIDEO_WALL', 0, wallZ, 0, 'KB 브랜드 디스플레이', { signageText: 'KB국민은행 마곡지점', signageBg: '#FFBC00', signageColor: '#3A1F04', liftOverride: 0.30 });
+      // LED 비디오월 KB 브랜드 (벽 중단 — 사이니지와 겹침 방지를 위해 아래 배치)
+      m('LED_VIDEO_WALL', 0, wallZ, 0, 'KB 브랜드 디스플레이', { signageText: 'KB 국민은행 마곡지점', signageBg: '#F7F4EF', signageColor: '#333333', liftOverride: 0.30 });
 
       // ── 창구 (Teller counters — back wall, 5 windows) ──
       const tellerXs = [-3.6, -1.8, 0.0, 1.8, 3.6];
