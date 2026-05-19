@@ -38,6 +38,13 @@ function isMajor(d: Date, u: Unit): boolean {
 }
 
 const DEP_TYPES: DependencyType[] = ['FS', 'SS', 'FF', 'SF'];
+// 한글 설명 (선행 = 앞 작업, 후행 = 뒤 작업)
+const DEP_LABEL: Record<DependencyType, string> = {
+  FS: '선행이 끝나야 후행 시작',
+  SS: '선행이 시작해야 후행 시작',
+  FF: '선행이 끝나야 후행도 종료',
+  SF: '선행이 시작해야 후행 종료',
+};
 
 interface Props { data: BoardData; canEdit?: boolean; onChanged?: () => void; }
 
@@ -216,14 +223,24 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
               {itemOpts.map((i) => <option key={i.id} value={i.id}>{numOf.get(i.id)}. {i.name}</option>)}
             </select>
             <select value={draft.type} onChange={(e) => setDraft((d) => ({ ...d, type: e.target.value as DependencyType }))}
+              title={DEP_LABEL[draft.type]}
               className="text-[11.5px] border border-[#D3D1C7] rounded px-1.5 py-1">
-              {DEP_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              {DEP_TYPES.map((t) => <option key={t} value={t}>{t} · {DEP_LABEL[t]}</option>)}
             </select>
             <button onClick={addDep} disabled={busy || !draft.pred || !draft.succ}
+              title={`${draft.type} · ${DEP_LABEL[draft.type]}`}
               className="px-2.5 py-1 text-[11.5px] rounded bg-[#A50034] text-white disabled:opacity-40">의존 추가</button>
           </div>
         )}
       </div>
+      {canEdit && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1 px-4 py-1.5 bg-[#FAFAF7] border-b border-[#EFEDE6] text-[10.5px] text-[#888780]">
+          <span className="font-medium text-[#5F5E5A]">의존관계:</span>
+          {DEP_TYPES.map((t) => (
+            <span key={t}><b className="text-[#5F5E5A]">{t}</b> {DEP_LABEL[t]}</span>
+          ))}
+        </div>
+      )}
       <div className="overflow-auto">
         <div style={{ minWidth: labelW + model.periods.length * colW }}>
           {/* axis */}
