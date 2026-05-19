@@ -5,7 +5,7 @@ import { and, asc, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { authMiddleware } from './auth.js';
 import {
   pmProjects, pmMemberships, pmBoards, pmGroups, pmColumns,
-  pmItems, pmCells, pmUpdates, pmViews, pmActivityLog,
+  pmItems, pmCells, pmUpdates, pmViews, pmActivityLog, users,
 } from '../db/schema.js';
 import {
   getUserProjectRole, roleAtLeast, assembleBoardData, validateCellValue, logActivity,
@@ -352,7 +352,19 @@ export async function pmRoutes(fastify: FastifyInstance) {
   fastify.get('/items/:id/updates', async (request, reply) => {
     const id = Number((request.params as any).id);
     if (!(await guard(request, reply, await projectIdOfItem(id), 'viewer'))) return;
-    const rows = await db.select().from(pmUpdates).where(eq(pmUpdates.itemId, id)).orderBy(desc(pmUpdates.createdAt));
+    const rows = await db
+      .select({
+        id: pmUpdates.id,
+        itemId: pmUpdates.itemId,
+        userId: pmUpdates.userId,
+        body: pmUpdates.body,
+        createdAt: pmUpdates.createdAt,
+        authorEmail: users.email,
+      })
+      .from(pmUpdates)
+      .leftJoin(users, eq(pmUpdates.userId, users.id))
+      .where(eq(pmUpdates.itemId, id))
+      .orderBy(desc(pmUpdates.createdAt));
     return { updates: rows };
   });
 
