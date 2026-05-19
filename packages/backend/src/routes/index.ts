@@ -33,6 +33,7 @@ import { cloidSimulatorRoutes } from './cloid-simulator.js';
 import { eventRoutes } from './events.js';
 import { humanoidSpecRoutes } from './humanoid-specs.js';
 import { coverageFieldRoutes } from './coverage-field.js';
+import { pmRoutes } from './pm.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -99,4 +100,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // CLOiD 커버리지 sub-cell 현장 확인 / PoC / 배포 진행 이벤트 로그
   fastify.register(coverageFieldRoutes, { prefix: '/api/coverage/field' });
+
+  // ARGOS Projects — 프로젝트·일정 통합 관리 (spec v2.1)
+  fastify.register(pmRoutes, { prefix: '/api/pm' });
 }

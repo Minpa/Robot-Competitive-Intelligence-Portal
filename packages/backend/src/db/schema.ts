@@ -2225,3 +2225,152 @@ export const coverageFieldEvents = pgTable(
     eventDateIdx: index('coverage_field_events_date_idx').on(table.eventDate),
   })
 );
+
+// ════════════════════════════════════════════════════════════════
+// ARGOS Projects — 프로젝트·일정 통합 관리 모듈 (spec v2.1)
+// 테이블 프리픽스 pm_. user 참조는 ARGOS users.id (uuid).
+// ════════════════════════════════════════════════════════════════
+
+export const pmProjects = pgTable('pm_projects', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 120 }).notNull(),
+  code: varchar('code', { length: 30 }),
+  description: text('description'),
+  status: varchar('status', { length: 12 }).default('active').notNull(), // active | archived
+  color: varchar('color', { length: 7 }),
+  ownerUserId: uuid('owner_user_id'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const pmMemberships = pgTable(
+  'pm_memberships',
+  {
+    id: serial('id').primaryKey(),
+    projectId: integer('project_id')
+      .notNull()
+      .references(() => pmProjects.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').notNull(),
+    role: varchar('role', { length: 10 }).notNull(), // owner | editor | viewer
+  },
+  (table) => ({
+    projUserIdx: uniqueIndex('pm_memberships_proj_user_idx').on(table.projectId, table.userId),
+  })
+);
+
+export const pmBoards = pgTable('pm_boards', {
+  id: serial('id').primaryKey(),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => pmProjects.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 120 }).notNull(),
+  description: text('description'),
+  reportCycle: varchar('report_cycle', { length: 12 }).default('none'), // weekly|monthly|quarterly|none
+  orderIndex: integer('order_index').default(0).notNull(),
+});
+
+export const pmGroups = pgTable('pm_groups', {
+  id: serial('id').primaryKey(),
+  boardId: integer('board_id')
+    .notNull()
+    .references(() => pmBoards.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 80 }).notNull(),
+  color: varchar('color', { length: 7 }),
+  orderIndex: integer('order_index').default(0).notNull(),
+  collapsed: boolean('collapsed').default(false).notNull(),
+});
+
+export const pmColumns = pgTable('pm_columns', {
+  id: serial('id').primaryKey(),
+  boardId: integer('board_id')
+    .notNull()
+    .references(() => pmBoards.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 80 }).notNull(),
+  type: varchar('type', { length: 20 }).notNull(), // 5장 컬럼 타입 카탈로그
+  settings: jsonb('settings').$type<Record<string, unknown>>().default({}),
+  orderIndex: integer('order_index').default(0).notNull(),
+  width: integer('width').default(160).notNull(),
+});
+
+export const pmItems = pgTable(
+  'pm_items',
+  {
+    id: serial('id').primaryKey(),
+    boardId: integer('board_id')
+      .notNull()
+      .references(() => pmBoards.id, { onDelete: 'cascade' }),
+    groupId: integer('group_id')
+      .notNull()
+      .references(() => pmGroups.id, { onDelete: 'cascade' }),
+    parentItemId: integer('parent_item_id'),
+    name: varchar('name', { length: 300 }).notNull(),
+    orderIndex: integer('order_index').default(0).notNull(),
+    createdBy: uuid('created_by'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    boardIdx: index('pm_items_board_idx').on(table.boardId),
+    groupIdx: index('pm_items_group_idx').on(table.groupId),
+    parentIdx: index('pm_items_parent_idx').on(table.parentItemId),
+  })
+);
+
+export const pmCells = pgTable(
+  'pm_cells',
+  {
+    itemId: integer('item_id')
+      .notNull()
+      .references(() => pmItems.id, { onDelete: 'cascade' }),
+    columnId: integer('column_id')
+      .notNull()
+      .references(() => pmColumns.id, { onDelete: 'cascade' }),
+    value: jsonb('value').$type<Record<string, unknown>>().default({}),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: uniqueIndex('pm_cells_pk').on(table.itemId, table.columnId),
+  })
+);
+
+export const pmUpdates = pgTable('pm_updates', {
+  id: serial('id').primaryKey(),
+  itemId: integer('item_id')
+    .notNull()
+    .references(() => pmItems.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id'),
+  body: text('body').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const pmViews = pgTable('pm_views', {
+  id: serial('id').primaryKey(),
+  boardId: integer('board_id')
+    .notNull()
+    .references(() => pmBoards.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 80 }).notNull(),
+  type: varchar('type', { length: 12 }).notNull(), // table|timeline|kanban|calendar
+  config: jsonb('config').$type<Record<string, unknown>>().default({}),
+  isDefault: boolean('is_default').default(false).notNull(),
+  scope: varchar('scope', { length: 10 }).default('shared').notNull(), // shared|personal
+  ownerUserId: uuid('owner_user_id'),
+});
+
+export const pmActivityLog = pgTable(
+  'pm_activity_log',
+  {
+    id: serial('id').primaryKey(),
+    projectId: integer('project_id'),
+    boardId: integer('board_id'),
+    itemId: integer('item_id'),
+    userId: uuid('user_id'),
+    action: varchar('action', { length: 40 }).notNull(),
+    entityType: varchar('entity_type', { length: 20 }).notNull(),
+    diff: jsonb('diff').$type<Record<string, unknown>>().default({}),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    projIdx: index('pm_activity_log_proj_idx').on(table.projectId),
+    boardIdx: index('pm_activity_log_board_idx').on(table.boardId),
+  })
+);
