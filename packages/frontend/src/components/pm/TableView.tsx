@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { pmApi, type BoardData, type PmColumn, type PmItem } from '@/lib/pm-api';
-import { CellDisplay, cellToText, textToCellValue } from './cells';
+import { CellDisplay, cellToText, textToCellValue, DateCellEditor } from './cells';
 
 interface Props {
   data: BoardData;
@@ -48,7 +48,10 @@ export default function TableView({ data, canEdit, onChanged, onOpenItem }: Prop
   const commitEdit = useCallback(async () => {
     if (!editing) return;
     const row = rows[editing.pos.r]; const col = cols[editing.pos.c];
-    if (row && col) await saveCell(row.item.id, col, editing.draft);
+    // date/timeline 은 DateCellEditor 가 즉시 저장하므로 텍스트 커밋 생략
+    if (row && col && col.type !== 'date' && col.type !== 'timeline') {
+      await saveCell(row.item.id, col, editing.draft);
+    }
     setEditing(null);
   }, [editing, rows, cols, saveCell]);
 
@@ -239,10 +242,16 @@ export default function TableView({ data, canEdit, onChanged, onOpenItem }: Prop
                             onDoubleClick={() => canEdit && startEdit({ r, c }, '')}
                             className={`border-b border-r border-[#EFEDE6] px-2.5 py-1.5 align-middle ${inRect(r, c) ? 'bg-[#FAEAE7]/50' : ''} ${isFocus ? 'outline outline-2 outline-[#A50034] -outline-offset-2' : ''}`}>
                             {isEditing ? (
-                              <input autoFocus value={editing!.draft}
-                                onChange={(e) => setEditing({ pos: { r, c }, draft: e.target.value })}
-                                onBlur={commitEdit}
-                                className="w-full text-[12.5px] outline-none bg-transparent" />
+                              col.type === 'date' || col.type === 'timeline' ? (
+                                <DateCellEditor col={col} value={cellVal(it.id, col.id)} compact
+                                  onSave={async (v) => { try { await pmApi.setCell(it.id, col.id, v); onChanged(); } catch { /* noop */ } }}
+                                  onClose={() => setEditing(null)} />
+                              ) : (
+                                <input autoFocus value={editing!.draft}
+                                  onChange={(e) => setEditing({ pos: { r, c }, draft: e.target.value })}
+                                  onBlur={commitEdit}
+                                  className="w-full text-[12.5px] outline-none bg-transparent" />
+                              )
                             ) : (
                               <CellDisplay col={col} value={cellVal(it.id, col.id)} />
                             )}

@@ -1,5 +1,6 @@
 'use client';
 // 컬럼 타입별 셀 값 표시·편집 공용 로직.
+import { useState } from 'react';
 import type { PmColumn } from '@/lib/pm-api';
 
 export const STATUS_PALETTE = ['#3C6FA5', '#3F8C6E', '#D4A22F', '#C8366E', '#7E5BB5', '#888780'];
@@ -48,6 +49,70 @@ export function textToCellValue(col: PmColumn, raw: string): any {
     }
     default: return { text: s };
   }
+}
+
+// 날짜/기간 전용 입력기 — free-text 파싱 대신 native date picker.
+// timeline = 시작·끝 2개(한쪽만 입력 시 단일일로 처리), date = 1개.
+// onSave 는 값이 바뀔 때마다 즉시 호출(value JSONB), onClose 는 외부 클릭/ESC.
+export function DateCellEditor({
+  col, value, onSave, onClose, compact = false, autoFocus = true,
+}: {
+  col: PmColumn;
+  value: any;
+  onSave: (v: any) => void;
+  onClose?: () => void;
+  compact?: boolean;
+  autoFocus?: boolean;
+}) {
+  const v = value || {};
+  const isTimeline = col.type === 'timeline';
+  const [start, setStart] = useState<string>(isTimeline ? (v.start ?? '') : (v.date ?? ''));
+  const [end, setEnd] = useState<string>(isTimeline ? (v.end ?? '') : '');
+
+  const inputCls = `${compact ? 'text-[12px] px-1 py-0.5' : 'text-[13px] px-2 py-1.5'} border border-[#E2DED4] rounded outline-none focus:border-[#A50034]`;
+
+  const emit = (s: string, e: string) => {
+    if (!isTimeline) { onSave(s ? { date: s } : {}); return; }
+    if (s && e) onSave({ start: s, end: e });
+    else if (s || e) { const d = s || e; onSave({ start: d, end: d }); } // 한쪽만 → 단일일
+    else onSave({});
+  };
+
+  const onContainerBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    if (!onClose) return;
+    const cur = e.currentTarget;
+    // 네이티브 date picker 팝업 조작 중에는 닫지 않음 — 다음 틱에 실제 포커스 위치 확인
+    setTimeout(() => { if (!cur.contains(document.activeElement)) onClose(); }, 0);
+  };
+
+  return (
+    <div
+      className="flex items-center gap-1.5 flex-wrap"
+      onBlur={onContainerBlur}
+      onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); onClose?.(); } }}>
+      <input
+        type="date" value={start} autoFocus={autoFocus}
+        onChange={(e) => { setStart(e.target.value); emit(e.target.value, end); }}
+        className={inputCls} />
+      {isTimeline && (
+        <>
+          <span className="text-[#888780] text-[11px]">~</span>
+          <input
+            type="date" value={end}
+            onChange={(e) => { setEnd(e.target.value); emit(start, e.target.value); }}
+            className={inputCls} />
+        </>
+      )}
+      {(start || end) && (
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => { setStart(''); setEnd(''); emit('', ''); }}
+          className="text-[#B8B6AE] hover:text-[#A50034] text-[12px] px-1"
+          title="비우기">✕</button>
+      )}
+    </div>
+  );
 }
 
 export function CellDisplay({ col, value }: { col: PmColumn; value: any }) {

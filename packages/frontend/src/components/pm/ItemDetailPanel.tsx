@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { X, Send } from 'lucide-react';
 import { pmApi, type BoardData, type PmColumn } from '@/lib/pm-api';
-import { cellToText, textToCellValue, CellDisplay } from './cells';
+import { cellToText, textToCellValue, CellDisplay, DateCellEditor } from './cells';
 
 interface Props { boardData: BoardData; itemId: number; canEdit: boolean; onClose: () => void; onChanged: () => void; }
 
@@ -61,6 +61,10 @@ export default function ItemDetailPanel({ boardData, itemId, canEdit, onClose, o
     if (!canEdit) return;
     await pmApi.setCell(itemId, col.id, textToCellValue(col, raw)); onChanged();
   };
+  const saveCellValue = async (col: PmColumn, value: any) => {
+    if (!canEdit) return;
+    await pmApi.setCell(itemId, col.id, value); onChanged();
+  };
   const postComment = async () => {
     const body = comment.trim();
     if (!body || sending) return;
@@ -93,13 +97,18 @@ export default function ItemDetailPanel({ boardData, itemId, canEdit, onClose, o
               <div key={col.id} className="grid grid-cols-3 gap-3 items-center">
                 <label className="font-mono text-[10.5px] text-[#888780] uppercase tracking-[0.1em]">{col.name}</label>
                 <div className="col-span-2">
-                  {canEdit ? (
+                  {!canEdit ? (
+                    <CellDisplay col={col} value={cv(col.id)} />
+                  ) : col.type === 'timeline' || col.type === 'date' ? (
+                    <DateCellEditor col={col} value={cv(col.id)} autoFocus={false}
+                      onSave={(val) => saveCellValue(col, val)} />
+                  ) : (
                     <input
                       defaultValue={cellToText(col, cv(col.id))}
                       placeholder={TYPE_PLACEHOLDER[col.type] ?? '입력'}
                       onBlur={(e) => saveCell(col, e.target.value)}
                       className="w-full text-[13px] border border-[#E2DED4] rounded px-2 py-1.5 outline-none focus:border-[#A50034]" />
-                  ) : <CellDisplay col={col} value={cv(col.id)} />}
+                  )}
                 </div>
               </div>
             ))}
