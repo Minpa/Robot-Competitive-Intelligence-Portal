@@ -1503,6 +1503,7 @@ class ApiClient {
   // ── 휴머노이드 동향 대시보드 ──
   async getHumanoidTrendPocScores() { return this.request<any>('/humanoid-trend/poc-scores'); }
   async getHumanoidTrendRfmScores() { return this.request<any>('/humanoid-trend/rfm-scores'); }
+  async getHumanoidTrendRfmCompanyRadar() { return this.request<any>('/humanoid-trend/rfm-company-radar'); }
   async getHumanoidTrendPositioning(chartType: string) { return this.request<any>(`/humanoid-trend/positioning/${chartType}`); }
   async getHumanoidTrendBarSpecs() { return this.request<any>('/humanoid-trend/bar-specs'); }
 

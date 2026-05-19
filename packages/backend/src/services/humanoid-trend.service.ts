@@ -115,6 +115,30 @@ export interface PositioningDataWithRobot {
   evaluatedAt: Date;
 }
 
+export const RFM_RADAR_FACTORS = [
+  { key: 'generality', label: '범용성' },
+  { key: 'realWorldData', label: '실세계 데이터·테스트' },
+  { key: 'edgeInference', label: '엣지 추론 & HW' },
+  { key: 'multiRobotCollab', label: '멀티로봇 협업' },
+  { key: 'openSource', label: '오픈소스 · 생태계' },
+  { key: 'commercialMaturity', label: '상용성' },
+] as const;
+
+export type RfmRadarFactorKey = (typeof RFM_RADAR_FACTORS)[number]['key'];
+
+export interface RfmCompanyRadar {
+  companyId: string;
+  companyName: string;
+  region: string | null;
+  colorGroup: string;
+  robotCount: number;
+  /** Cohort-relative percentile per factor (0–100), used as radar axis value */
+  percentile: Record<RfmRadarFactorKey, number>;
+  /** Raw company-average score per factor (1–5, 1 decimal), for tooltip */
+  raw: Record<RfmRadarFactorKey, number>;
+  evaluatedAt: Date;
+}
+
 export interface BarSpecData {
   robotId: string;
   robotName: string;
@@ -449,6 +473,126 @@ export class HumanoidTrendService {
           },
         },
         evaluatedAt: data.latestEvaluatedAt,
+      };
+    });
+  }
+
+  /**
+   * Competitor-only RFM radar: 6-factor company averages + cohort percentile.
+   * Excludes LG entirely (this is a competitor-vs-competitor view).
+   * Percentile normalization spreads companies across each axis so near-equal
+   * raw scores no longer collapse into a single overlapping shape.
+   */
+  async getRfmCompanyRadar(): Promise<RfmCompanyRadar[]> {
+    const rows = await db
+      .select({
+        companyId: companies.id,
+        companyName: companies.name,
+        region: humanoidRobots.region,
+        generalityScore: rfmScores.generalityScore,
+        realWorldDataScore: rfmScores.realWorldDataScore,
+        edgeInferenceScore: rfmScores.edgeInferenceScore,
+        multiRobotCollabScore: rfmScores.multiRobotCollabScore,
+        openSourceScore: rfmScores.openSourceScore,
+        commercialMaturityScore: rfmScores.commercialMaturityScore,
+        evaluatedAt: rfmScores.evaluatedAt,
+      })
+      .from(rfmScores)
+      .innerJoin(humanoidRobots, eq(rfmScores.robotId, humanoidRobots.id))
+      .innerJoin(companies, eq(humanoidRobots.companyId, companies.id));
+
+    const companyMap = new Map<string, {
+      companyName: string;
+      region: string | null;
+      factors: Record<RfmRadarFactorKey, number[]>;
+      latestEvaluatedAt: Date;
+    }>();
+
+    for (const row of rows) {
+      // LG는 경쟁사 비교 대상이 아니므로 제외
+      if (row.companyName.toLowerCase().includes('lg')) continue;
+
+      let entry = companyMap.get(row.companyId);
+      if (!entry) {
+        entry = {
+          companyName: row.companyName,
+          region: row.region,
+          factors: {
+            generality: [],
+            realWorldData: [],
+            edgeInference: [],
+            multiRobotCollab: [],
+            openSource: [],
+            commercialMaturity: [],
+          },
+          latestEvaluatedAt: row.evaluatedAt,
+        };
+        companyMap.set(row.companyId, entry);
+      }
+      entry.factors.generality.push(row.generalityScore);
+      entry.factors.realWorldData.push(row.realWorldDataScore);
+      entry.factors.edgeInference.push(row.edgeInferenceScore);
+      entry.factors.multiRobotCollab.push(row.multiRobotCollabScore);
+      entry.factors.openSource.push(row.openSourceScore);
+      entry.factors.commercialMaturity.push(row.commercialMaturityScore);
+      if (row.evaluatedAt > entry.latestEvaluatedAt) {
+        entry.latestEvaluatedAt = row.evaluatedAt;
+      }
+    }
+
+    const avg = (arr: number[]) =>
+      Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10;
+
+    const REGION_TO_COLOR: Record<string, string> = {
+      north_america: 'US', china: 'CN', korea: 'KR', europe: 'EU', japan: 'JP',
+    };
+
+    const companyList = Array.from(companyMap.entries()).map(([companyId, data]) => {
+      const raw = {} as Record<RfmRadarFactorKey, number>;
+      for (const { key } of RFM_RADAR_FACTORS) {
+        raw[key] = avg(data.factors[key]);
+      }
+      const regionKey = data.region?.toLowerCase() ?? 'other';
+      return {
+        companyId,
+        companyName: data.companyName,
+        region: data.region,
+        colorGroup: REGION_TO_COLOR[regionKey] ?? 'Other',
+        robotCount: data.factors.generality.length,
+        raw,
+        latestEvaluatedAt: data.latestEvaluatedAt,
+      };
+    });
+
+    const n = companyList.length;
+
+    // 코호트 내 백분위(0–100): 동점은 평균 순위, 단일 기업은 50
+    const percentileOf = (key: RfmRadarFactorKey, value: number): number => {
+      if (n <= 1) return 50;
+      let below = 0;
+      let equal = 0;
+      for (const c of companyList) {
+        if (c.raw[key] < value) below++;
+        else if (c.raw[key] === value) equal++;
+      }
+      const rank = below + (equal - 1) / 2;
+      return Math.round((rank / (n - 1)) * 100);
+    };
+
+    return companyList.map((c) => {
+      const percentile = {} as Record<RfmRadarFactorKey, number>;
+      for (const { key } of RFM_RADAR_FACTORS) {
+        percentile[key] = percentileOf(key, c.raw[key]);
+      }
+      return {
+        companyId: c.companyId,
+        companyName: c.companyName,
+        region: c.region,
+        colorGroup: c.colorGroup,
+        robotCount: c.robotCount,
+        percentile,
+        raw: c.raw,
+        evaluatedAt: c.latestEvaluatedAt,
       };
     });
   }

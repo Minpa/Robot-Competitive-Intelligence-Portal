@@ -23,6 +23,14 @@ export function useRfmScores() {
   });
 }
 
+export function useRfmCompanyRadar() {
+  return useQuery({
+    queryKey: ['humanoid-trend', 'rfm-company-radar'],
+    queryFn: () => api.getHumanoidTrendRfmCompanyRadar(),
+    staleTime: STALE_TIME,
+  });
+}
+
 export function usePositioningData(chartType: string) {
   return useQuery({
     queryKey: ['humanoid-trend', 'positioning', chartType],

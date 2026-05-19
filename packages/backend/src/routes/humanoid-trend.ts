@@ -48,6 +48,16 @@ export async function humanoidTrendRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // GET /rfm-company-radar — competitor-only RFM radar (LG excluded, percentile-normalized)
+  fastify.get('/rfm-company-radar', { preHandler: authMiddleware }, async (_request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const result = await humanoidTrendService.getRfmCompanyRadar();
+      return result;
+    } catch (error) {
+      handleError(error, reply);
+    }
+  });
+
   // GET /positioning/:chartType — authenticated users, positioning data by chart type
   fastify.get('/positioning/:chartType', { preHandler: authMiddleware }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {

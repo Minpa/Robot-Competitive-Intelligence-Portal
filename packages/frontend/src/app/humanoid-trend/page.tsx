@@ -1,10 +1,11 @@
 'use client';
 
 import { AuthGuard } from '@/components/auth/AuthGuard';
-import { usePocScores, usePositioningData, useBarSpecs } from '@/hooks/useHumanoidTrend';
+import { usePocScores, usePositioningData, useBarSpecs, useRfmCompanyRadar } from '@/hooks/useHumanoidTrend';
 import SectionNav from '@/components/humanoid-trend/SectionNav';
 import PocRadarSection from '@/components/humanoid-trend/PocRadarSection';
 import SocBubbleChart from '@/components/humanoid-trend/SocBubbleChart';
+import RfmOverlayRadar from '@/components/humanoid-trend/RfmOverlayRadar';
 import SpecBarCharts from '@/components/humanoid-trend/SpecBarCharts';
 import AdminDataPanel from '@/components/humanoid-trend/AdminDataPanel';
 import PptDownloadButton from '@/components/humanoid-trend/PptDownloadButton';
@@ -59,6 +60,7 @@ function LoadingSkeleton() {
 function HumanoidTrendContent() {
   const { data: pocScores, isLoading: pocLoading } = usePocScores();
   const { data: socPositioning, isLoading: socPosLoading } = usePositioningData('soc_ecosystem');
+  const { data: rfmRadar, isLoading: rfmLoading } = useRfmCompanyRadar();
   const { data: barSpecs, isLoading: barLoading } = useBarSpecs();
 
   return (
@@ -70,7 +72,7 @@ function HumanoidTrendContent() {
           number="§ INTELLIGENCE · V4.2"
           kicker="Competitive Comparison"
           title="경쟁비교"
-          subtitle="휴머노이드 로봇 산업의 경쟁 지형과 스펙 패리티 벤치마크를 3종 차트로 제공합니다."
+          subtitle="휴머노이드 로봇 산업의 경쟁 지형과 스펙 패리티 벤치마크를 4종 차트로 제공합니다."
           right={<PptDownloadButton />}
         />
 
@@ -82,7 +84,11 @@ function HumanoidTrendContent() {
           {socPosLoading ? <LoadingSkeleton /> : <SocBubbleChart data={socPositioning || []} />}
         </ChartSection>
 
-        <ChartSection id="spec-comparison" index={3} kicker="Spec Benchmarks" title="산업 배치 핵심 스펙 비교">
+        <ChartSection id="rfm-competitor" index={3} kicker="RFM Competitor Radar" title="RFM 경쟁사 비교 (LG 제외)" rubricType="rfm">
+          {rfmLoading ? <LoadingSkeleton /> : <RfmOverlayRadar data={rfmRadar || []} />}
+        </ChartSection>
+
+        <ChartSection id="spec-comparison" index={4} kicker="Spec Benchmarks" title="산업 배치 핵심 스펙 비교">
           {barLoading ? <LoadingSkeleton /> : <SpecBarCharts data={barSpecs || []} />}
         </ChartSection>
       </div>

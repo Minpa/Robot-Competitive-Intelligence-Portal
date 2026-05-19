@@ -29,6 +29,25 @@ export interface RfmScoreWithRobot {
   evaluatedAt: string;
 }
 
+export type RfmRadarFactorKey =
+  | 'generality'
+  | 'realWorldData'
+  | 'edgeInference'
+  | 'multiRobotCollab'
+  | 'openSource'
+  | 'commercialMaturity';
+
+export interface RfmCompanyRadar {
+  companyId: string;
+  companyName: string;
+  region: string | null;
+  colorGroup: string;
+  robotCount: number;
+  percentile: Record<RfmRadarFactorKey, number>;
+  raw: Record<RfmRadarFactorKey, number>;
+  evaluatedAt: string;
+}
+
 export interface PositioningDataWithRobot {
   id: string;
   chartType: string;
