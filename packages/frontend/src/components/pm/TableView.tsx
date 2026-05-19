@@ -2,7 +2,7 @@
 // Table 뷰 — 스프레드시트급 조작 (REQ-23): 방향키/Tab/Enter 내비,
 // 직접 입력, 블록 복사/붙여넣기, fill-down. viewer 는 읽기전용.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Copy, Trash2, Pencil } from 'lucide-react';
 import { pmApi, type BoardData, type PmColumn, type PmItem } from '@/lib/pm-api';
 import { CellDisplay, cellToText, textToCellValue, DateCellEditor } from './cells';
 
@@ -58,6 +58,40 @@ export default function TableView({ data, canEdit, onChanged, onOpenItem }: Prop
   const addItemToGroup = useCallback(async (groupId: number) => {
     await pmApi.createItem(groupId, { name: '새 아이템' }); onChanged();
   }, [onChanged]);
+
+  // 그룹 이름 인라인 편집
+  const [editingGroup, setEditingGroup] = useState<{ id: number; name: string } | null>(null);
+  const commitGroupName = useCallback(async () => {
+    if (!editingGroup) return;
+    const g = data.groups.find((x) => x.id === editingGroup.id);
+    const name = editingGroup.name.trim();
+    setEditingGroup(null);
+    if (g && name && name !== g.name) { try { await pmApi.updateGroup(g.id, { name }); onChanged(); } catch { /* noop */ } }
+  }, [editingGroup, data.groups, onChanged]);
+
+  const removeGroup = useCallback(async (groupId: number, name: string, count: number) => {
+    const msg = count > 0
+      ? `'${name}' 그룹과 그 안의 아이템 ${count}개가 모두 삭제됩니다. 계속할까요?`
+      : `'${name}' 그룹을 삭제할까요?`;
+    if (!confirm(msg)) return;
+    try { await pmApi.deleteGroup(groupId); onChanged(); } catch { /* noop */ }
+  }, [onChanged]);
+
+  const removeItem = useCallback(async (itemId: number, name: string) => {
+    if (!confirm(`아이템 '${name}' 을(를) 삭제할까요?`)) return;
+    try { await pmApi.deleteItem(itemId); onChanged(); } catch { /* noop */ }
+  }, [onChanged]);
+
+  const duplicateItem = useCallback(async (it: PmItem) => {
+    try {
+      const { item: ni } = await pmApi.createItem(it.groupId, { name: `${it.name} (복사)` });
+      const srcCells = data.cells.filter((x) => x.itemId === it.id);
+      if (srcCells.length) {
+        await pmApi.bulkCells(ni.id, srcCells.map((x) => ({ itemId: ni.id, columnId: x.columnId, value: x.value })));
+      }
+      onChanged();
+    } catch { /* noop */ }
+  }, [data.cells, onChanged]);
 
   const addItemToLastGroup = useCallback(async () => {
     const cur = rows.length ? rows[rows.length - 1]?.groupId : undefined;
@@ -198,18 +232,43 @@ export default function TableView({ data, canEdit, onChanged, onOpenItem }: Prop
             return (
               <>
                 <tr key={`g-${g.id}`}>
-                  <td colSpan={totalCols} className="bg-[#F4F2EC] border-b border-[#E2DED4] px-3 py-1.5">
+                  <td colSpan={totalCols} className="bg-[#F4F2EC] border-b border-[#E2DED4] px-3 py-1.5 group/grp">
                     <div className="flex items-center justify-between">
                       <span className="inline-flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: g.color || '#888780' }} />
-                        <span className="font-medium text-[12px] text-[#1A1A1A]">{g.name}</span>
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: g.color || '#888780' }} />
+                        {editingGroup?.id === g.id ? (
+                          <input autoFocus value={editingGroup.name}
+                            onChange={(e) => setEditingGroup({ id: g.id, name: e.target.value })}
+                            onBlur={commitGroupName}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') { e.preventDefault(); void commitGroupName(); }
+                              else if (e.key === 'Escape') { e.preventDefault(); setEditingGroup(null); }
+                            }}
+                            className="font-medium text-[12px] text-[#1A1A1A] bg-white border border-[#A50034] rounded px-1.5 py-0.5 outline-none" />
+                        ) : (
+                          <span className="font-medium text-[12px] text-[#1A1A1A] cursor-text"
+                            onDoubleClick={() => canEdit && setEditingGroup({ id: g.id, name: g.name })}
+                            title={canEdit ? '더블클릭하여 이름 변경' : undefined}>{g.name}</span>
+                        )}
                         <span className="font-mono text-[10px] text-[#888780]">{gItems.length}</span>
                       </span>
                       {canEdit && (
-                        <button onClick={() => addItemToGroup(g.id)}
-                          className="inline-flex items-center gap-1 text-[11px] text-[#5F5E5A] hover:text-[#A50034]">
-                          <Plus size={12} /> 아이템
-                        </button>
+                        <span className="inline-flex items-center gap-3">
+                          <button onClick={() => setEditingGroup({ id: g.id, name: g.name })}
+                            className="inline-flex items-center gap-1 text-[11px] text-[#5F5E5A] hover:text-[#A50034] opacity-0 group-hover/grp:opacity-100 transition-opacity"
+                            title="그룹 이름 변경">
+                            <Pencil size={12} /> 이름
+                          </button>
+                          <button onClick={() => addItemToGroup(g.id)}
+                            className="inline-flex items-center gap-1 text-[11px] text-[#5F5E5A] hover:text-[#A50034]">
+                            <Plus size={12} /> 아이템
+                          </button>
+                          <button onClick={() => removeGroup(g.id, g.name, gItems.length)}
+                            className="inline-flex items-center gap-1 text-[11px] text-[#888780] hover:text-[#A50034] opacity-0 group-hover/grp:opacity-100 transition-opacity"
+                            title="그룹 삭제">
+                            <Trash2 size={12} /> 삭제
+                          </button>
+                        </span>
                       )}
                     </div>
                   </td>
@@ -229,9 +288,23 @@ export default function TableView({ data, canEdit, onChanged, onOpenItem }: Prop
                   const r = rowIndexByItem.get(it.id) ?? -1;
                   return (
                     <tr key={it.id}>
-                      <td className="border-b border-r border-[#EFEDE6] px-3 py-1.5 group cursor-pointer hover:bg-[#FAFAF7]"
-                        onClick={() => onOpenItem(it.id)}>
-                        <span className="text-[#1A1A1A] hover:text-[#A50034]">{it.name}</span>
+                      <td className="border-b border-r border-[#EFEDE6] px-3 py-1.5 group/it hover:bg-[#FAFAF7]">
+                        <div className="flex items-center justify-between gap-2">
+                          <button onClick={() => onOpenItem(it.id)}
+                            className="text-left text-[#1A1A1A] hover:text-[#A50034] truncate">{it.name}</button>
+                          {canEdit && (
+                            <span className="inline-flex items-center gap-2 shrink-0 opacity-0 group-hover/it:opacity-100 transition-opacity">
+                              <button onClick={(e) => { e.stopPropagation(); void duplicateItem(it); }}
+                                className="text-[#888780] hover:text-[#A50034]" title="아이템 복사">
+                                <Copy size={13} />
+                              </button>
+                              <button onClick={(e) => { e.stopPropagation(); void removeItem(it.id, it.name); }}
+                                className="text-[#888780] hover:text-[#A50034]" title="아이템 삭제">
+                                <Trash2 size={13} />
+                              </button>
+                            </span>
+                          )}
+                        </div>
                       </td>
                       {cols.map((col, c) => {
                         const isFocus = focus?.r === r && focus?.c === c;
