@@ -82,6 +82,8 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
   const [draft, setDraft] = useState<{ pred: string; succ: string; type: DependencyType }>({ pred: '', succ: '', type: 'FS' });
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState<{ itemId: number; startX: number; periods: number } | null>(null);
+  // '+' 버튼으로 기본 종료(2027-01) 이후 추가 연장한 개월 수
+  const [extendMonths, setExtendMonths] = useState(0);
   const tCol = useMemo(() => data.columns.find((c) => c.type === 'timeline'), [data.columns]);
   const dCol = useMemo(() => data.columns.find((c) => c.type === 'date'), [data.columns]);
   const cv = (itemId: number, colId: number) => data.cells.find((x) => x.itemId === itemId && x.columnId === colId)?.value;
@@ -106,10 +108,13 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
       if (s && (!min || s < min)) min = s;
       if (e && (!max || e > max)) max = e;
     }
-    if (!min || !max) { min = new Date(); max = step(new Date(), unit); }
+    if (!min) min = new Date();
+    // 기본 종료선: 2027-01 까지 보장 + '+' 버튼으로 연장한 개월 수
+    const floorEnd = addMonths(new Date(2027, 0, 31), extendMonths);
+    if (!max || max < floorEnd) max = floorEnd;
     const periods: { key: string; label: string; date: Date }[] = [];
     let cur = new Date(min);
-    const cap = unit === 'day' ? 400 : 240;
+    const cap = unit === 'day' ? 800 : 480;
     for (let g = 0; g < cap && cur <= max!; g++) { periods.push({ key: periodKey(cur, unit), label: label(cur, unit), date: new Date(cur) }); cur = step(cur, unit); }
     if (!periods.length) periods.push({ key: periodKey(min, unit), label: label(min, unit), date: min });
     const idx = (d: Date) => Math.max(0, periods.findIndex((p) => p.key === periodKey(d, unit)));
@@ -184,7 +189,7 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
     }).filter(Boolean) as { id: number; d: string; code: string; mx: number; my: number }[];
 
     return { periods, groups, idx, totalH: yCursor, links };
-  }, [data, unit, tCol, dCol, numOf]);
+  }, [data, unit, tCol, dCol, numOf, extendMonths]);
 
   // 작업별 predecessor 코드 (막대 tooltip)
   const predsOf = useMemo(() => {
@@ -301,6 +306,17 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
                 {p.label}
               </div>
             ))}
+            {/* 타임라인 연장 — 연/월 추가 */}
+            <div className="shrink-0 flex flex-col justify-center gap-1 px-2 py-1 border-l border-[#E2DED4]">
+              <button onClick={() => setExtendMonths((m) => m + 1)} title="1개월 연장"
+                className="px-2 py-0.5 text-[10.5px] leading-none rounded bg-white border border-[#D3D1C7] text-[#5F5E5A] hover:border-[#A50034] hover:text-[#A50034] whitespace-nowrap">＋ 1개월</button>
+              <button onClick={() => setExtendMonths((m) => m + 12)} title="1년 연장"
+                className="px-2 py-0.5 text-[10.5px] leading-none rounded bg-white border border-[#D3D1C7] text-[#5F5E5A] hover:border-[#A50034] hover:text-[#A50034] whitespace-nowrap">＋ 1년</button>
+              {extendMonths > 0 && (
+                <button onClick={() => setExtendMonths(0)} title="연장 초기화"
+                  className="px-2 py-0.5 text-[10px] leading-none rounded text-[#888780] hover:text-[#A50034] whitespace-nowrap">초기화</button>
+              )}
+            </div>
           </div>
           {/* groups + 의존선 오버레이 */}
           <div className="relative">
