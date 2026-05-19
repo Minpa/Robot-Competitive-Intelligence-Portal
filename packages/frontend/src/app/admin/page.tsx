@@ -92,11 +92,12 @@ export default function AdminPage() {
     updateStep('data', { status: 'running', startedAt: Date.now() });
     try {
       const { jobId } = await api.startDataBatch('claude', true);
-      // Poll every 3s, 10 min max
-      const POLL_MAX = 200; // 200 × 3s = 600s
+      // Poll every 10s, 25 min max — status fetch 요청 부하↓ + 장시간 수집 허용
+      const POLL_INTERVAL_MS = 10000;
+      const POLL_MAX = 150; // 150 × 10s = 1500s = 25분
       let i = 0;
       while (i < POLL_MAX) {
-        await new Promise(r => setTimeout(r, 3000));
+        await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
         const st = await api.getDataBatchStatus(jobId);
         const progress = `${st.completed}/${st.totalTopics} 완료 (${st.currentStep ?? '진행 중'})`;
         updateStep('data', { detail: progress });
@@ -112,7 +113,7 @@ export default function AdminPage() {
       }
       if (i >= POLL_MAX) {
         updateStep('data', { status: 'failed', detail: '폴링 타임아웃', finishedAt: Date.now() });
-        throw new Error('데이터 수집 타임아웃 (10분 초과)');
+        throw new Error('데이터 수집 타임아웃 (25분 초과)');
       }
     } catch (err: any) {
       setMasterError(`Step 1: ${err?.message ?? '데이터 수집 실패'}`);
