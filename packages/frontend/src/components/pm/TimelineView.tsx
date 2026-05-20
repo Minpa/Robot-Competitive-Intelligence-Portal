@@ -81,7 +81,7 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
   const [showDeps, setShowDeps] = useState(true);
   const [draft, setDraft] = useState<{ pred: string; succ: string; type: DependencyType }>({ pred: '', succ: '', type: 'FS' });
   const [busy, setBusy] = useState(false);
-  const [drag, setDrag] = useState<{ itemId: number; startX: number; periods: number } | null>(null);
+  const [drag, setDrag] = useState<{ itemId: number; startX: number; periods: number; mode: 'move' | 'start' | 'end' } | null>(null);
   // '+' 버튼으로 기본 종료(2027-01) 이후 추가 연장한 개월 수
   const [extendMonths, setExtendMonths] = useState(0);
   const tCol = useMemo(() => data.columns.find((c) => c.type === 'timeline'), [data.columns]);
@@ -247,6 +247,27 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
     } catch { /* noop */ } finally { setBusy(false); }
   };
 
+  // 화살표 핸들로 길이 조절 — 시작 또는 끝 한쪽만 N칸 이동 (timeline 컬럼 전용)
+  const applyResize = async (itemId: number, periods: number, mode: 'start' | 'end') => {
+    if (!canEdit || periods === 0 || busy || !tCol) return;
+    const tv = cv(itemId, tCol.id);
+    if (!tv?.start || !tv?.end) return; // 마일스톤/단일 날짜는 리사이즈 불가
+    setBusy(true);
+    try {
+      let newStart = tv.start as string;
+      let newEnd = tv.end as string;
+      if (mode === 'start') {
+        newStart = shiftStr(tv.start, periods, unit);
+        if (toDate(newStart)! > toDate(newEnd)!) newStart = newEnd; // end 추월 금지
+      } else {
+        newEnd = shiftStr(tv.end, periods, unit);
+        if (toDate(newEnd)! < toDate(newStart)!) newEnd = newStart; // start 역전 금지
+      }
+      await pmApi.setCell(itemId, tCol.id, { start: newStart, end: newEnd });
+      onChanged?.();
+    } catch { /* noop */ } finally { setBusy(false); }
+  };
+
   const itemOpts = data.items.filter((i) => !i.parentItemId);
 
   return (
@@ -333,38 +354,71 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
                   ))}
                   {todayIdx >= 0 && <div className="absolute top-0 bottom-0 w-px bg-[#A50034] z-10" style={{ left: todayIdx * colW + colW / 2 }} />}
                   {gl.bars.map((b) => {
-                    const left = b.s * colW + 4;
-                    const w = Math.max(colW - 8, (b.e - b.s + 1) * colW - 8);
+                    const baseLeft = b.s * colW + 4;
+                    const baseW = Math.max(colW - 8, (b.e - b.s + 1) * colW - 8);
                     const top = b.lane * laneH + 5;
                     const preds = predsOf.get(b.it.id);
                     const isDragging = drag?.itemId === b.it.id;
-                    const dx = isDragging ? drag!.periods * colW : 0;
-                    const shiftHint = isDragging && drag!.periods !== 0
-                      ? ` (${drag!.periods > 0 ? '+' : ''}${drag!.periods}${unit === 'day' ? '일' : unit === 'week' ? '주' : unit === 'month' ? '개월' : '분기'})` : '';
-                    const tip = `${b.it.name}${preds ? ` · 선행 ${preds.join(', ')}` : ''}${canEdit ? ' · 드래그로 일정 이동' : ''}`;
-                    const dragProps = canEdit ? {
-                      onPointerDown: (e: React.PointerEvent) => {
-                        e.preventDefault();
-                        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-                        setDrag({ itemId: b.it.id, startX: e.clientX, periods: 0 });
-                      },
-                      onPointerMove: (e: React.PointerEvent) => {
-                        if (drag?.itemId !== b.it.id) return;
-                        const p = Math.round((e.clientX - drag.startX) / colW);
-                        if (p !== drag.periods) setDrag({ ...drag, periods: p });
-                      },
-                      onPointerUp: () => {
-                        if (drag?.itemId !== b.it.id) return;
-                        const p = drag.periods;
-                        setDrag(null);
-                        void applyDrag(b.it.id, p);
-                      },
+                    const mode = isDragging ? drag!.mode : null;
+                    const unitLabel = unit === 'day' ? '일' : unit === 'week' ? '주' : unit === 'month' ? '개월' : '분기';
+
+                    // 미리보기 위치/크기 — 모드별 클램프
+                    let left = baseLeft, w = baseW, dx = 0;
+                    let previewPeriods = isDragging ? drag!.periods : 0;
+                    if (mode === 'move') {
+                      dx = previewPeriods * colW;
+                    } else if (mode === 'start') {
+                      const span = b.e - b.s; // 보존되는 칸 수 (양쪽 포함이면 span+1칸)
+                      const p = Math.max(-b.s, Math.min(previewPeriods, span));
+                      previewPeriods = p;
+                      left = baseLeft + p * colW;
+                      w = Math.max(colW - 8, baseW - p * colW);
+                    } else if (mode === 'end') {
+                      const span = b.e - b.s;
+                      const p = Math.max(-span, previewPeriods);
+                      previewPeriods = p;
+                      w = Math.max(colW - 8, baseW + p * colW);
+                    }
+
+                    const sign = previewPeriods > 0 ? '+' : '';
+                    const shiftHint = isDragging && previewPeriods !== 0
+                      ? (mode === 'start' ? ` (시작 ${sign}${previewPeriods}${unitLabel})`
+                        : mode === 'end' ? ` (종료 ${sign}${previewPeriods}${unitLabel})`
+                        : ` (${sign}${previewPeriods}${unitLabel})`)
+                      : '';
+                    const tip = `${b.it.name}${preds ? ` · 선행 ${preds.join(', ')}` : ''}${canEdit ? ' · 본문 드래그=이동, 양 끝 화살표=길이 조절' : ''}`;
+
+                    const startDrag = (e: React.PointerEvent, m: 'move' | 'start' | 'end') => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                      setDrag({ itemId: b.it.id, startX: e.clientX, periods: 0, mode: m });
+                    };
+                    const moveDrag = (e: React.PointerEvent) => {
+                      if (drag?.itemId !== b.it.id) return;
+                      const p = Math.round((e.clientX - drag.startX) / colW);
+                      if (p !== drag.periods) setDrag({ ...drag, periods: p });
+                    };
+                    const endDrag = () => {
+                      if (drag?.itemId !== b.it.id) return;
+                      const p = drag.periods, m = drag.mode;
+                      setDrag(null);
+                      if (m === 'move') void applyDrag(b.it.id, p);
+                      else void applyResize(b.it.id, p, m);
+                    };
+
+                    const moveProps = canEdit ? {
+                      onPointerDown: (e: React.PointerEvent) => startDrag(e, 'move'),
+                      onPointerMove: moveDrag,
+                      onPointerUp: endDrag,
                     } : {};
                     const dragCls = canEdit ? 'cursor-grab active:cursor-grabbing select-none touch-none' : '';
+
                     if (b.milestone) {
-                      return <div key={b.it.id} title={tip} {...dragProps}
+                      // 마일스톤은 길이 조절 불가 — 이동만 허용
+                      return <div key={b.it.id} title={tip} {...moveProps}
                         className={`absolute ${dragCls}`}
-                        style={{ left: left + 4, top: top + 2, transform: `translateX(${dx}px)`, zIndex: isDragging ? 20 : undefined }}>
+                        style={{ left: baseLeft + 4, top: top + 2, transform: `translateX(${dx}px)`, zIndex: isDragging ? 20 : undefined }}>
                         <div className={`w-3 h-3 bg-[#A50034] rotate-45 ${isDragging ? 'ring-2 ring-[#A50034]/40' : ''}`} />
                         <span className="absolute left-5 top-0 whitespace-nowrap text-[10.5px] font-medium text-[#1A1A1A]"
                           style={{ textShadow: '0 1px 2px rgba(255,255,255,.85)' }}>{b.it.name}{shiftHint}</span>
@@ -372,11 +426,38 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
                     }
                     const barColor = gl.group.color || '#4A4A48';
                     const txt = pickText(barColor);
+                    const tvCheck = tCol ? cv(b.it.id, tCol.id) : null;
+                    const canResize = canEdit && !!tvCheck?.start && !!tvCheck?.end;
+
                     return (
-                      <div key={b.it.id} title={tip} {...dragProps}
-                        className={`absolute rounded text-[10.5px] font-medium px-2 flex items-center overflow-hidden ${dragCls} ${isDragging ? 'ring-2 ring-[#A50034]/50' : ''}`}
+                      <div key={b.it.id} title={tip} {...moveProps}
+                        className={`absolute rounded text-[10.5px] font-medium flex items-center overflow-hidden ${dragCls} ${isDragging ? 'ring-2 ring-[#A50034]/50' : ''}`}
                         style={{ left, width: w, top, height: laneH - 10, backgroundColor: barColor, color: txt.color, transform: `translateX(${dx}px)`, zIndex: isDragging ? 20 : undefined }}>
-                        <span className="truncate" style={{ textShadow: txt.shadow }}>{b.it.name}{shiftHint}</span>
+                        {canResize && (
+                          <button
+                            type="button"
+                            title="시작 일정 조절"
+                            onPointerDown={(e) => startDrag(e, 'start')}
+                            onPointerMove={moveDrag}
+                            onPointerUp={endDrag}
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute left-0 top-0 bottom-0 w-3 flex items-center justify-center cursor-ew-resize hover:bg-black/15"
+                            style={{ color: txt.color, textShadow: txt.shadow }}
+                          >◀</button>
+                        )}
+                        <span className="truncate px-2" style={{ textShadow: txt.shadow, marginLeft: canResize ? 10 : 0, marginRight: canResize ? 10 : 0 }}>{b.it.name}{shiftHint}</span>
+                        {canResize && (
+                          <button
+                            type="button"
+                            title="종료 일정 조절"
+                            onPointerDown={(e) => startDrag(e, 'end')}
+                            onPointerMove={moveDrag}
+                            onPointerUp={endDrag}
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute right-0 top-0 bottom-0 w-3 flex items-center justify-center cursor-ew-resize hover:bg-black/15"
+                            style={{ color: txt.color, textShadow: txt.shadow }}
+                          >▶</button>
+                        )}
                       </div>
                     );
                   })}
