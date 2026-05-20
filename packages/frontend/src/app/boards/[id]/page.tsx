@@ -10,6 +10,7 @@ import { pmApi, type BoardData } from '@/lib/pm-api';
 import TableView from '@/components/pm/TableView';
 import TimelineView from '@/components/pm/TimelineView';
 import ItemDetailPanel from '@/components/pm/ItemDetailPanel';
+import BoardFilters, { applyFilters, emptyFilters, type BoardFilterState } from '@/components/pm/BoardFilters';
 
 const COLUMN_TYPES = ['text', 'long_text', 'status', 'priority', 'person', 'date', 'timeline', 'number', 'dropdown', 'checkbox', 'reliability'] as const;
 
@@ -46,6 +47,8 @@ function BoardContent() {
   const [exporting, setExporting] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [exportOpts, setExportOpts] = useState<any>({ view: 'timeline', axis_unit: 'month', confidentiality: 'internal', conclusion: '' });
+  const [filters, setFilters] = useState<BoardFilterState>(emptyFilters);
+  const filtered = useMemo(() => data ? applyFilters(data, filters) : null, [data, filters]);
 
   const load = useCallback(async () => {
     try {
@@ -141,13 +144,15 @@ function BoardContent() {
 
         {err && <div className="bg-red-50 border border-red-200 text-red-700 text-[13px] rounded-md p-3 mb-3">{err}</div>}
 
+        <BoardFilters data={data} value={filters} onChange={setFilters} />
+
         {view === 'table'
-          ? <TableView data={data} canEdit={canEdit} onChanged={load} onOpenItem={setOpenItem} />
-          : <TimelineView data={data} canEdit={canEdit} onChanged={load} />}
+          ? <TableView data={filtered!} canEdit={canEdit} onChanged={load} onOpenItem={setOpenItem} />
+          : <TimelineView data={filtered!} canEdit={canEdit} onChanged={load} />}
       </div>
 
-      {openItem != null && (
-        <ItemDetailPanel boardData={data} itemId={openItem} canEdit={canEdit} onClose={() => setOpenItem(null)} onChanged={load} />
+      {openItem != null && data && (
+        <ItemDetailPanel boardData={data} itemId={openItem} canEdit={canEdit} onClose={() => setOpenItem(null)} onChanged={load} onOpenItem={setOpenItem} />
       )}
 
       {showExport && (
