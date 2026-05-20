@@ -13,6 +13,7 @@ import KanbanView from '@/components/pm/KanbanView';
 import CalendarView from '@/components/pm/CalendarView';
 import ItemDetailPanel from '@/components/pm/ItemDetailPanel';
 import BoardFilters, { applyFilters, emptyFilters, type BoardFilterState } from '@/components/pm/BoardFilters';
+import SavedViewsMenu, { type ViewKind } from '@/components/pm/SavedViewsMenu';
 
 const COLUMN_TYPES = ['text', 'long_text', 'status', 'priority', 'person', 'date', 'timeline', 'number', 'dropdown', 'checkbox', 'reliability'] as const;
 
@@ -130,6 +131,14 @@ function BoardContent() {
                 <Icon size={14} /> {lbl}
               </button>
             ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <SavedViewsMenu
+              boardId={id}
+              currentView={view}
+              currentFilters={filters}
+              canEdit={canEdit}
+              onApply={(k, f) => { setView(k as ViewKind); setFilters(f); }} />
           </div>
           {canEdit && (
             <div className="flex items-center gap-2">
