@@ -1,8 +1,8 @@
 'use client';
 // Table 뷰 — 스프레드시트급 조작 (REQ-23): 방향키/Tab/Enter 내비,
 // 직접 입력, 블록 복사/붙여넣기, fill-down. viewer 는 읽기전용.
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Copy, Trash2, Pencil } from 'lucide-react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Plus, Copy, Trash2, Pencil, ChevronRight, ChevronDown, CornerDownRight } from 'lucide-react';
 import { pmApi, type BoardData, type PmColumn, type PmItem } from '@/lib/pm-api';
 import { CellDisplay, cellToText, textToCellValue, DateCellEditor, ChoiceCellEditor, STATUS_PALETTE } from './cells';
 
@@ -35,7 +35,38 @@ export default function TableView({ data, canEdit, onChanged, onOpenItem }: Prop
   const [focus, setFocus] = useState<Pos | null>(null);
   const [anchor, setAnchor] = useState<Pos | null>(null);
   const [editing, setEditing] = useState<{ pos: Pos; draft: string } | null>(null);
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const gridRef = useRef<HTMLDivElement>(null);
+
+  // 부모ID → 서브아이템 배열 (orderIndex 순)
+  const subitemsByParent = useMemo(() => {
+    const m = new Map<number, PmItem[]>();
+    for (const i of data.items) {
+      if (i.parentItemId == null) continue;
+      const arr = m.get(i.parentItemId) ?? [];
+      arr.push(i);
+      m.set(i.parentItemId, arr);
+    }
+    for (const arr of m.values()) arr.sort((a, b) => a.orderIndex - b.orderIndex);
+    return m;
+  }, [data.items]);
+
+  const toggleExpand = (itemId: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId); else next.add(itemId);
+      return next;
+    });
+  };
+
+  const addSubitem = async (parent: PmItem) => {
+    if (!canEdit) return;
+    try {
+      await pmApi.createItem(parent.groupId, { name: '새 서브아이템', parentItemId: parent.id });
+      setExpanded((prev) => new Set(prev).add(parent.id));
+      onChanged();
+    } catch { /* noop */ }
+  };
 
   const rect = useMemo(() => {
     if (!focus) return null;
@@ -243,8 +274,8 @@ export default function TableView({ data, canEdit, onChanged, onOpenItem }: Prop
               .filter((i) => i.groupId === g.id && !i.parentItemId)
               .sort((a, b) => a.orderIndex - b.orderIndex);
             return (
-              <>
-                <tr key={`g-${g.id}`}>
+              <Fragment key={`g-${g.id}`}>
+                <tr>
                   <td colSpan={totalCols} className="bg-[#F4F2EC] border-b border-[#E2DED4] px-3 py-1.5 group/grp">
                     <div className="flex items-center justify-between">
                       <span className="inline-flex items-center gap-2">
@@ -299,14 +330,31 @@ export default function TableView({ data, canEdit, onChanged, onOpenItem }: Prop
                 )}
                 {gItems.map((it) => {
                   const r = rowIndexByItem.get(it.id) ?? -1;
+                  const subs = subitemsByParent.get(it.id) ?? [];
+                  const isOpen = expanded.has(it.id);
                   return (
-                    <tr key={it.id}>
+                    <Fragment key={it.id}>
+                    <tr>
                       <td className="border-b border-r border-[#EFEDE6] px-3 py-1.5 group/it hover:bg-[#FAFAF7]">
                         <div className="flex items-center justify-between gap-2">
-                          <button onClick={() => onOpenItem(it.id)}
-                            className="text-left text-[#1A1A1A] hover:text-[#A50034] truncate">{it.name}</button>
+                          <div className="flex items-center gap-1 min-w-0">
+                            {subs.length > 0 ? (
+                              <button onClick={() => toggleExpand(it.id)} className="text-[#888780] hover:text-[#A50034] shrink-0" title={isOpen ? '서브아이템 접기' : '서브아이템 펼치기'}>
+                                {isOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                              </button>
+                            ) : <span className="w-[13px] shrink-0" />}
+                            <button onClick={() => onOpenItem(it.id)}
+                              className="text-left text-[#1A1A1A] hover:text-[#A50034] truncate">{it.name}</button>
+                            {subs.length > 0 && (
+                              <span className="font-mono text-[10px] text-[#888780] shrink-0">{subs.length}</span>
+                            )}
+                          </div>
                           {canEdit && (
                             <span className="inline-flex items-center gap-2 shrink-0 opacity-0 group-hover/it:opacity-100 transition-opacity">
+                              <button onClick={(e) => { e.stopPropagation(); void addSubitem(it); }}
+                                className="text-[#888780] hover:text-[#A50034]" title="서브아이템 추가">
+                                <CornerDownRight size={13} />
+                              </button>
                               <button onClick={(e) => { e.stopPropagation(); void duplicateItem(it); }}
                                 className="text-[#888780] hover:text-[#A50034]" title="아이템 복사">
                                 <Copy size={13} />
@@ -350,9 +398,34 @@ export default function TableView({ data, canEdit, onChanged, onOpenItem }: Prop
                         );
                       })}
                     </tr>
+                    {/* 서브아이템 — 펼침 시에만 표시. 키보드 그리드에는 미포함, 클릭으로 상세 진입 */}
+                    {isOpen && subs.map((sub) => (
+                      <tr key={`sub-${sub.id}`} className="bg-[#FAFAF7]/60">
+                        <td className="border-b border-r border-[#EFEDE6] pl-9 pr-3 py-1 group/sub">
+                          <div className="flex items-center justify-between gap-2">
+                            <button onClick={() => onOpenItem(sub.id)}
+                              className="inline-flex items-center gap-1.5 text-left text-[12px] text-[#5F5E5A] hover:text-[#A50034] truncate">
+                              <CornerDownRight size={11} className="text-[#B8B6AE]" /> {sub.name}
+                            </button>
+                            {canEdit && (
+                              <button onClick={(e) => { e.stopPropagation(); void removeItem(sub.id, sub.name); }}
+                                className="text-[#B8B6AE] hover:text-[#A50034] opacity-0 group-hover/sub:opacity-100 transition-opacity" title="서브아이템 삭제">
+                                <Trash2 size={12} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        {cols.map((col) => (
+                          <td key={col.id} className="border-b border-r border-[#EFEDE6] px-2.5 py-1 align-middle text-[11.5px]">
+                            <CellDisplay col={col} value={cellVal(sub.id, col.id)} />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                    </Fragment>
                   );
                 })}
-              </>
+              </Fragment>
             );
           })}
           {sortedGroups.length === 0 && (

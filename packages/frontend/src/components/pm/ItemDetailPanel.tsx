@@ -1,11 +1,18 @@
 'use client';
 // 아이템 상세 패널 — 전체 필드 편집 + Updates 코멘트 스레드 (REQ-13).
-import { useEffect, useRef, useState } from 'react';
-import { X, Send } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { X, Send, CornerDownRight, Plus } from 'lucide-react';
 import { pmApi, type BoardData, type PmColumn } from '@/lib/pm-api';
 import { cellToText, textToCellValue, CellDisplay, DateCellEditor } from './cells';
 
-interface Props { boardData: BoardData; itemId: number; canEdit: boolean; onClose: () => void; onChanged: () => void; }
+interface Props {
+  boardData: BoardData;
+  itemId: number;
+  canEdit: boolean;
+  onClose: () => void;
+  onChanged: () => void;
+  onOpenItem?: (id: number) => void; // 서브아이템 클릭 시 부모 페이지가 열고 있는 아이템 전환
+}
 
 // 필드 타입 → 한글 placeholder (내부 타입명 노출 방지)
 const TYPE_PLACEHOLDER: Record<string, string> = {
@@ -31,14 +38,19 @@ function relTime(iso: string) {
   return new Date(iso).toLocaleDateString('ko-KR');
 }
 
-export default function ItemDetailPanel({ boardData, itemId, canEdit, onClose, onChanged }: Props) {
+export default function ItemDetailPanel({ boardData, itemId, canEdit, onClose, onChanged, onOpenItem }: Props) {
   const item = boardData.items.find((i) => i.id === itemId);
   const cols = [...boardData.columns].sort((a, b) => a.orderIndex - b.orderIndex);
+  const subitems = useMemo(
+    () => boardData.items.filter((i) => i.parentItemId === itemId).sort((a, b) => a.orderIndex - b.orderIndex),
+    [boardData.items, itemId],
+  );
   const [updates, setUpdates] = useState<any[]>([]);
   const [comment, setComment] = useState('');
   const [name, setName] = useState(item?.name ?? '');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [newSubitemName, setNewSubitemName] = useState('');
   const listRef = useRef<HTMLDivElement>(null);
 
   const loadUpdates = () => pmApi.listUpdates(itemId).then((r) => setUpdates(r.updates)).catch(() => {});
@@ -65,6 +77,16 @@ export default function ItemDetailPanel({ boardData, itemId, canEdit, onClose, o
     if (!canEdit) return;
     await pmApi.setCell(itemId, col.id, value); onChanged();
   };
+  const addSubitem = async () => {
+    if (!canEdit || !item) return;
+    const name = newSubitemName.trim() || '새 서브아이템';
+    try {
+      await pmApi.createItem(item.groupId, { name, parentItemId: itemId });
+      setNewSubitemName('');
+      onChanged();
+    } catch (e: any) { setError(`서브아이템 추가 실패: ${e?.message ?? ''}`); }
+  };
+
   const postComment = async () => {
     const body = comment.trim();
     if (!body || sending) return;
@@ -113,6 +135,38 @@ export default function ItemDetailPanel({ boardData, itemId, canEdit, onClose, o
               </div>
             ))}
           </div>
+          <div className="pt-3 border-t border-[#E2DED4]">
+            <p className="font-mono text-[10.5px] text-[#888780] uppercase tracking-[0.14em] mb-2">
+              서브아이템 <span className="text-[#5F5E5A] normal-case">{subitems.length > 0 && `· ${subitems.length}`}</span>
+            </p>
+            <div className="space-y-1.5 mb-2">
+              {subitems.length === 0 && <p className="text-[12px] text-[#B8B6AE]">서브아이템이 없습니다.</p>}
+              {subitems.map((s) => (
+                <button key={s.id}
+                  onClick={() => onOpenItem ? onOpenItem(s.id) : undefined}
+                  disabled={!onOpenItem}
+                  className="w-full text-left inline-flex items-center gap-2 px-2 py-1.5 bg-[#FAFAF7] border border-[#EFEDE6] rounded hover:border-[#A50034] disabled:hover:border-[#EFEDE6] text-[12.5px] text-[#1A1A1A]">
+                  <CornerDownRight size={12} className="text-[#B8B6AE] shrink-0" />
+                  <span className="truncate">{s.name}</span>
+                </button>
+              ))}
+            </div>
+            {canEdit && (
+              <div className="flex items-center gap-2">
+                <input
+                  value={newSubitemName}
+                  onChange={(e) => setNewSubitemName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSubitem(); } }}
+                  placeholder="서브아이템 이름 (Enter 추가)"
+                  className="flex-1 text-[12.5px] border border-[#E2DED4] rounded px-2 py-1.5 outline-none focus:border-[#A50034]" />
+                <button onClick={addSubitem} aria-label="서브아이템 추가"
+                  className="inline-flex items-center gap-1 px-2 py-1.5 bg-[#A50034] text-white text-[11.5px] rounded">
+                  <Plus size={12} /> 추가
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="pt-3 border-t border-[#E2DED4]">
             <p className="font-mono text-[10.5px] text-[#888780] uppercase tracking-[0.14em] mb-2">Updates</p>
             <div ref={listRef} className="space-y-2 mb-3 max-h-[40vh] overflow-y-auto">
