@@ -88,6 +88,10 @@ export const pmApi = {
   deleteView: (id: number) => req<{ ok: true }>(`/views/${id}`, { method: 'DELETE' }),
   activity: (pid: number) => req<{ activity: any[] }>(`/projects/${pid}/activity`),
   search: (q: string) => req<{ projects: PmProject[]; boards: PmBoard[]; items: any[] }>(`/search?q=${encodeURIComponent(q)}`),
+  // templates
+  listTemplates: () => req<{ templates: Array<{ id: number; name: string; description?: string | null; category?: string | null; isSystem: boolean }> }>('/templates'),
+  createFromTemplate: (templateId: number, name: string, description?: string) =>
+    req<{ project: PmProject }>('/projects/from-template', { method: 'POST', body: JSON.stringify({ templateId, name, description }) }),
   // export — returns blob
   async exportBoard(bid: number, opts: any): Promise<{ blob: Blob; filename: string; meta: any }> {
     const t = token();

@@ -5,7 +5,7 @@ import { and, asc, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { authMiddleware } from './auth.js';
 import {
   pmProjects, pmMemberships, pmBoards, pmGroups, pmColumns,
-  pmItems, pmCells, pmUpdates, pmViews, pmActivityLog, pmDependencies, users,
+  pmItems, pmCells, pmUpdates, pmViews, pmActivityLog, pmDependencies, pmTemplates, users,
 } from '../db/schema.js';
 import {
   getUserProjectRole, roleAtLeast, assembleBoardData, validateCellValue, logActivity,
@@ -521,5 +521,59 @@ export async function pmRoutes(fastify: FastifyInstance) {
       .header('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`)
       .header('X-PM-Export-Meta', JSON.stringify(meta));
     return reply.send(buffer);
+  });
+
+  // ─────────────── Templates (Phase 2 REQ-18) ───────────────
+  fastify.get('/templates', async () => {
+    const rows = await db.select().from(pmTemplates).orderBy(asc(pmTemplates.id));
+    return { templates: rows };
+  });
+
+  // 템플릿에서 프로젝트 생성 — 보드/그룹/컬럼 구조 한 번에 시드
+  fastify.post('/projects/from-template', async (request, reply) => {
+    const b = request.body as any;
+    const templateId = Number(b?.templateId);
+    if (!templateId || !b?.name) return reply.code(400).send({ error: 'templateId, name required' });
+    const [tpl] = await db.select().from(pmTemplates).where(eq(pmTemplates.id, templateId)).limit(1);
+    if (!tpl) return reply.code(404).send({ error: 'template not found' });
+
+    // 1) 프로젝트 + 자동 owner 멤버십
+    const [proj] = await db.insert(pmProjects).values({
+      name: b.name, description: b.description ?? tpl.description ?? null,
+      color: b.color ?? null, ownerUserId: uid(request),
+    }).returning();
+    await db.insert(pmMemberships).values({ projectId: proj!.id, userId: uid(request), role: 'owner' });
+
+    // 2) payload.boards 순회 — 보드·그룹·컬럼 시드 (seed:false 로 자동 시드 회피)
+    const payload = (tpl.payload ?? {}) as any;
+    const boardSpecs: any[] = Array.isArray(payload.boards) ? payload.boards : [];
+    for (let bi = 0; bi < boardSpecs.length; bi++) {
+      const spec = boardSpecs[bi];
+      const [board] = await db.insert(pmBoards).values({
+        projectId: proj!.id,
+        name: spec.name || `보드 ${bi + 1}`,
+        description: spec.description ?? null,
+        reportCycle: spec.reportCycle ?? 'none',
+        orderIndex: bi,
+      }).returning();
+      const groupSpecs: any[] = Array.isArray(spec.groups) ? spec.groups : [];
+      for (let gi = 0; gi < groupSpecs.length; gi++) {
+        const gs = groupSpecs[gi];
+        await db.insert(pmGroups).values({
+          boardId: board!.id, name: gs.name || `그룹 ${gi + 1}`, color: gs.color ?? null, orderIndex: gi,
+        });
+      }
+      const colSpecs: any[] = Array.isArray(spec.columns) ? spec.columns : [];
+      for (let ci = 0; ci < colSpecs.length; ci++) {
+        const cs = colSpecs[ci];
+        await db.insert(pmColumns).values({
+          boardId: board!.id, name: cs.name || `컬럼 ${ci + 1}`, type: cs.type || 'text',
+          settings: cs.settings ?? {}, orderIndex: ci, width: cs.width ?? 160,
+        });
+      }
+    }
+    await logActivity({ projectId: proj!.id, userId: uid(request), action: 'create_from_template',
+      entityType: 'project', diff: { templateId, templateName: tpl.name } });
+    return { project: proj };
   });
 }

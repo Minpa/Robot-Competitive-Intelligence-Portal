@@ -2398,3 +2398,15 @@ export const pmActivityLog = pgTable(
     boardIdx: index('pm_activity_log_board_idx').on(table.boardId),
   })
 );
+
+// pm_templates — 프로젝트 템플릿 (Phase 2 REQ-18). payload 는 보드/그룹/컬럼 구조 JSON.
+export const pmTemplates = pgTable('pm_templates', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 120 }).notNull(),
+  description: text('description'),
+  category: varchar('category', { length: 50 }),
+  payload: jsonb('payload').$type<Record<string, unknown>>().default({}),
+  isSystem: boolean('is_system').default(false).notNull(),
+  createdBy: uuid('created_by'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});

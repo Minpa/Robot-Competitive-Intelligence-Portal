@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FolderKanban, Plus, Search } from 'lucide-react';
+import { FolderKanban, Plus, Search, FileStack } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { pmApi, type PmProject } from '@/lib/pm-api';
 
@@ -11,6 +11,8 @@ function ProjectsContent() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templates, setTemplates] = useState<Array<{ id: number; name: string; description?: string | null; category?: string | null }>>([]);
   const [name, setName] = useState('');
   const [q, setQ] = useState('');
 
@@ -20,13 +22,22 @@ function ProjectsContent() {
     catch (e: any) { setErr(e.message); }
     finally { setLoading(false); }
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); pmApi.listTemplates().then((r) => setTemplates(r.templates)).catch(() => {}); }, []);
 
   const create = async () => {
     if (!name.trim()) return;
     try {
       await pmApi.createProject({ name: name.trim() });
       setName(''); setCreating(false); load();
+    } catch (e: any) { setErr(e.message); }
+  };
+
+  const createFromTemplate = async (tplId: number, tplName: string) => {
+    const projName = prompt(`'${tplName}' 템플릿으로 새 프로젝트 만들기 — 이름`, tplName);
+    if (!projName?.trim()) return;
+    try {
+      await pmApi.createFromTemplate(tplId, projName.trim());
+      setShowTemplates(false); load();
     } catch (e: any) { setErr(e.message); }
   };
 
@@ -44,12 +55,20 @@ function ProjectsContent() {
             </div>
             <p className="text-[13px] text-[#5F5E5A] mt-1">프로젝트·일정 통합 관리 — 보드 데이터를 LG 포맷 1장으로 내보내기</p>
           </div>
-          <button
-            onClick={() => setCreating(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#A50034] hover:bg-[#8B1538] text-white font-medium text-[13px] rounded-md transition-colors"
-          >
-            <Plus size={15} /> 새 프로젝트
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowTemplates(true)}
+              disabled={templates.length === 0}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-[#D3D1C7] text-[#5F5E5A] hover:border-[#A50034] hover:text-[#A50034] font-medium text-[13px] rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+              <FileStack size={15} /> 템플릿에서 시작
+            </button>
+            <button
+              onClick={() => setCreating(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#A50034] hover:bg-[#8B1538] text-white font-medium text-[13px] rounded-md transition-colors"
+            >
+              <Plus size={15} /> 새 프로젝트
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 mb-4 bg-white border border-[#E2DED4] rounded-md px-3 py-2 max-w-sm">
@@ -101,6 +120,32 @@ function ProjectsContent() {
           </div>
         )}
       </div>
+
+      {showTemplates && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(26,26,26,0.5)' }} onClick={() => setShowTemplates(false)}>
+          <div className="bg-white rounded-lg w-full max-w-xl p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium text-[16px] text-[#1A1A1A]">템플릿에서 새 프로젝트 시작</h3>
+              <button onClick={() => setShowTemplates(false)} className="text-[#888780] hover:text-[#1A1A1A]">×</button>
+            </div>
+            <p className="text-[12.5px] text-[#5F5E5A] mb-4">기획자 워크플로우 5종 — 보드·그룹·컬럼 구조가 한 번에 시드됩니다.</p>
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+              {templates.map((t) => (
+                <button key={t.id} onClick={() => createFromTemplate(t.id, t.name)}
+                  className="w-full text-left bg-white border border-[#E2DED4] hover:border-[#A50034] hover:bg-[#FAEAE7]/30 rounded-md p-3 transition-colors">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <FileStack size={13} className="text-[#A50034] shrink-0" />
+                    <span className="font-medium text-[13.5px] text-[#1A1A1A]">{t.name}</span>
+                    {t.category && <span className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.12em]">{t.category}</span>}
+                  </div>
+                  {t.description && <p className="text-[12px] text-[#5F5E5A]">{t.description}</p>}
+                </button>
+              ))}
+              {templates.length === 0 && <p className="text-[12.5px] text-[#888780] py-6 text-center">템플릿이 없습니다.</p>}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
