@@ -88,6 +88,14 @@ export const pmApi = {
   deleteView: (id: number) => req<{ ok: true }>(`/views/${id}`, { method: 'DELETE' }),
   activity: (pid: number) => req<{ activity: any[] }>(`/projects/${pid}/activity`),
   search: (q: string) => req<{ projects: PmProject[]; boards: PmBoard[]; items: any[] }>(`/search?q=${encodeURIComponent(q)}`),
+  // dashboard (Phase 3 REQ-22)
+  dashboard: (pid: number) => req<{
+    boards: Array<{ id: number; name: string }>;
+    byStatus: Record<string, { count: number; color: string }>;
+    totalItems: number;
+    completedItems: number;
+    dueSoon: Array<{ itemId: number; boardId: number; name: string; end: string }>;
+  }>(`/projects/${pid}/dashboard`),
   // portfolio (Phase 3 REQ-20)
   portfolio: () => req<{
     projects: PmProject[];

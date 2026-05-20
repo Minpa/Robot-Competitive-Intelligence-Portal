@@ -523,6 +523,72 @@ export async function pmRoutes(fastify: FastifyInstance) {
     return reply.send(buffer);
   });
 
+  // ─────────────── Dashboard (Phase 3 REQ-22) ───────────────
+  // 프로젝트 내 전 보드 횡단 위젯 데이터: 상태 분포 / 마감 임박 / 진척률 / 보드 카운트.
+  fastify.get('/projects/:id/dashboard', async (request, reply) => {
+    const id = Number((request.params as any).id);
+    if (!(await guard(request, reply, id, 'viewer'))) return;
+    const boards = await db.select().from(pmBoards).where(eq(pmBoards.projectId, id));
+    if (boards.length === 0) return { boards: [], byStatus: {}, dueSoon: [], totalItems: 0, completedItems: 0 };
+    const boardIds = boards.map((b) => b.id);
+    const items = await db.select().from(pmItems).where(and(inArray(pmItems.boardId, boardIds), sql`${pmItems.parentItemId} IS NULL`)!);
+    const cols = await db.select().from(pmColumns).where(inArray(pmColumns.boardId, boardIds));
+    const cellRows = items.length ? await db.select().from(pmCells).where(inArray(pmCells.itemId, items.map((i) => i.id))) : [];
+    const cellByItem = new Map<number, any[]>();
+    for (const c of cellRows) { const arr = cellByItem.get(c.itemId) ?? []; arr.push(c); cellByItem.set(c.itemId, arr); }
+    const statusByBoard = new Map<number, any>();
+    const tlByBoard = new Map<number, any>();
+    for (const c of cols) {
+      if (c.type === 'status') statusByBoard.set(c.boardId, c);
+      if (c.type === 'timeline') tlByBoard.set(c.boardId, c);
+    }
+    // 상태 분포 (라벨명 합계, board 무관)
+    const byStatus: Record<string, { count: number; color: string }> = {};
+    let totalItems = 0, completedItems = 0;
+    const dueSoon: any[] = [];
+    const now = new Date(); const in7 = new Date(now.getTime() + 7 * 864e5);
+    for (const it of items) {
+      totalItems++;
+      const sCol = statusByBoard.get(it.boardId);
+      const tCol = tlByBoard.get(it.boardId);
+      const cells = cellByItem.get(it.id) ?? [];
+      if (sCol) {
+        const v = cells.find((c) => c.columnId === sCol.id)?.value;
+        const labels = (sCol.settings as any)?.labels ?? [];
+        const l = labels.find((x: any) => x.id === v?.label_id);
+        const name = l?.name ?? '미지정';
+        const color = l?.color ?? '#888780';
+        if (!byStatus[name]) byStatus[name] = { count: 0, color };
+        byStatus[name].count++;
+        if (/완료|승인|해소/.test(name)) completedItems++;
+      }
+      if (tCol) {
+        const v = cells.find((c) => c.columnId === tCol.id)?.value;
+        const endStr = v?.end ?? v?.start;
+        if (endStr) {
+          const end = new Date(endStr);
+          if (!Number.isNaN(end.getTime()) && end >= now && end <= in7) {
+            // 완료 상태는 제외
+            let isDone = false;
+            if (sCol) {
+              const sv = cells.find((c) => c.columnId === sCol.id)?.value;
+              const labels = (sCol.settings as any)?.labels ?? [];
+              const ln = labels.find((x: any) => x.id === sv?.label_id)?.name ?? '';
+              if (/완료|승인|해소/.test(ln)) isDone = true;
+            }
+            if (!isDone) dueSoon.push({ itemId: it.id, boardId: it.boardId, name: it.name, end: endStr });
+          }
+        }
+      }
+    }
+    dueSoon.sort((a, b) => (a.end < b.end ? -1 : 1));
+    return {
+      boards: boards.map((b) => ({ id: b.id, name: b.name })),
+      byStatus, totalItems, completedItems,
+      dueSoon: dueSoon.slice(0, 20),
+    };
+  });
+
   // ─────────────── Portfolio (Phase 3 REQ-20) ───────────────
   // 사용자가 멤버인 모든 프로젝트의 timeline/date 보유 아이템을 단일 타임라인으로 통합.
   fastify.get('/portfolio', async (request) => {

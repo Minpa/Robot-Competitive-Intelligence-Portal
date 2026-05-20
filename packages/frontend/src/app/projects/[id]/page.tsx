@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Trello, Users, History, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trello, Users, History, Trash2, LayoutDashboard, AlertCircle } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { pmApi, type PmProject, type PmBoard, type PmMember } from '@/lib/pm-api';
 
@@ -15,7 +15,8 @@ function ProjectDetailContent() {
   const [boards, setBoards] = useState<PmBoard[]>([]);
   const [members, setMembers] = useState<PmMember[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
-  const [tab, setTab] = useState<'boards' | 'members' | 'activity'>('boards');
+  const [dashboard, setDashboard] = useState<any | null>(null);
+  const [tab, setTab] = useState<'boards' | 'dashboard' | 'members' | 'activity'>('boards');
   const [err, setErr] = useState<string | null>(null);
   const [newBoard, setNewBoard] = useState('');
   const [newMemberId, setNewMemberId] = useState('');
@@ -30,6 +31,7 @@ function ProjectDetailContent() {
   };
   useEffect(() => { if (id) load(); }, [id]);
   useEffect(() => { if (tab === 'activity' && id) pmApi.activity(id).then((r) => setActivity(r.activity)).catch(() => {}); }, [tab, id]);
+  useEffect(() => { if (tab === 'dashboard' && id) pmApi.dashboard(id).then(setDashboard).catch(() => {}); }, [tab, id]);
 
   const addBoard = async () => {
     if (!newBoard.trim()) return;
@@ -57,7 +59,7 @@ function ProjectDetailContent() {
         {project.description && <p className="text-[13px] text-[#5F5E5A] mb-5">{project.description}</p>}
 
         <div className="flex gap-1 border-b border-[#E2DED4] mb-5">
-          {([['boards', '보드', Trello], ['members', '멤버', Users], ['activity', '활동 로그', History]] as const).map(([k, label, Icon]) => (
+          {([['boards', '보드', Trello], ['dashboard', '대시보드', LayoutDashboard], ['members', '멤버', Users], ['activity', '활동 로그', History]] as const).map(([k, label, Icon]) => (
             <button key={k} onClick={() => setTab(k)}
               className={`inline-flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors ${tab === k ? 'border-[#A50034] text-[#A50034]' : 'border-transparent text-[#5F5E5A] hover:text-[#1A1A1A]'}`}>
               <Icon size={14} /> {label}
@@ -88,6 +90,57 @@ function ProjectDetailContent() {
               {boards.length === 0 && <p className="text-[13px] text-[#888780] py-6">보드가 없습니다. 위에서 추가하세요.</p>}
             </div>
           </>
+        )}
+
+        {tab === 'dashboard' && (
+          dashboard == null ? <p className="text-[13px] text-[#888780] py-6">불러오는 중…</p> : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <StatCard label="보드" value={dashboard.boards.length} />
+                <StatCard label="아이템" value={dashboard.totalItems} />
+                <StatCard label="완료" value={dashboard.completedItems} note={dashboard.totalItems ? `${Math.round(dashboard.completedItems / dashboard.totalItems * 100)}%` : ''} accent />
+                <StatCard label="마감 임박 (7일)" value={dashboard.dueSoon.length} />
+              </div>
+              {Object.keys(dashboard.byStatus).length > 0 && (
+                <div className="bg-white border border-[#E2DED4] rounded-lg p-4">
+                  <p className="font-mono text-[10.5px] text-[#888780] uppercase tracking-[0.14em] mb-2">상태 분포</p>
+                  <div className="space-y-1.5">
+                    {Object.entries<any>(dashboard.byStatus).sort((a, b) => b[1].count - a[1].count).map(([n, info]) => {
+                      const pct = dashboard.totalItems ? (info.count / dashboard.totalItems) * 100 : 0;
+                      return (
+                        <div key={n} className="flex items-center gap-2 text-[12.5px]">
+                          <span className="w-20 truncate text-[#1A1A1A]">{n}</span>
+                          <div className="flex-1 h-3 bg-[#FAFAF7] rounded overflow-hidden">
+                            <div className="h-full" style={{ width: `${pct}%`, backgroundColor: info.color }} />
+                          </div>
+                          <span className="font-mono text-[11px] text-[#5F5E5A] w-12 text-right">{info.count}</span>
+                          <span className="font-mono text-[10.5px] text-[#888780] w-12 text-right">{pct.toFixed(0)}%</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <div className="bg-white border border-[#E2DED4] rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle size={14} className="text-[#A50034]" />
+                  <p className="font-mono text-[10.5px] text-[#888780] uppercase tracking-[0.14em]">마감 임박 — 7일 이내</p>
+                </div>
+                {dashboard.dueSoon.length === 0 ? (
+                  <p className="text-[12px] text-[#B8B6AE]">임박한 마감이 없습니다.</p>
+                ) : (
+                  <ul className="divide-y divide-[#EFEDE6]">
+                    {dashboard.dueSoon.map((d: any) => (
+                      <li key={d.itemId} className="flex items-center justify-between py-1.5">
+                        <Link href={`/boards/${d.boardId}`} className="text-[12.5px] text-[#1A1A1A] hover:text-[#A50034] truncate">{d.name}</Link>
+                        <span className="font-mono text-[11px] text-[#A50034] shrink-0 ml-3">{d.end}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )
         )}
 
         {tab === 'members' && (
@@ -127,6 +180,16 @@ function ProjectDetailContent() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, note, accent }: { label: string; value: number | string; note?: string; accent?: boolean }) {
+  return (
+    <div className={`p-4 border rounded-lg ${accent ? 'border-[#A50034] bg-[#FAEAE7]/40' : 'border-[#E2DED4] bg-white'}`}>
+      <p className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.16em]">{label}</p>
+      <p className={`font-medium text-[26px] mt-1 leading-none ${accent ? 'text-[#A50034]' : 'text-[#1A1A1A]'}`} style={{ fontVariantNumeric: 'tabular-nums' }}>{value}</p>
+      {note && <p className="font-mono text-[10.5px] text-[#888780] mt-1.5">{note}</p>}
     </div>
   );
 }
