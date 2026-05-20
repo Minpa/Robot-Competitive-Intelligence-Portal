@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Table2, GanttChartSquare, Plus, Download, Loader2, Lock } from 'lucide-react';
+import { ArrowLeft, Table2, GanttChartSquare, KanbanSquare, CalendarDays, Plus, Download, Loader2, Lock } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { api } from '@/lib/api';
 import { pmApi, type BoardData } from '@/lib/pm-api';
 import TableView from '@/components/pm/TableView';
 import TimelineView from '@/components/pm/TimelineView';
+import KanbanView from '@/components/pm/KanbanView';
+import CalendarView from '@/components/pm/CalendarView';
 import ItemDetailPanel from '@/components/pm/ItemDetailPanel';
 import BoardFilters, { applyFilters, emptyFilters, type BoardFilterState } from '@/components/pm/BoardFilters';
 
@@ -40,7 +42,7 @@ const PRESET_COLUMNS: Record<string, { label: string; name: string; type: string
 function BoardContent() {
   const id = Number(useParams().id);
   const [data, setData] = useState<BoardData | null>(null);
-  const [view, setView] = useState<'table' | 'timeline'>('table');
+  const [view, setView] = useState<'table' | 'timeline' | 'kanban' | 'calendar'>('table');
   const [canEdit, setCanEdit] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [openItem, setOpenItem] = useState<number | null>(null);
@@ -117,13 +119,17 @@ function BoardContent() {
 
         <div className="flex items-center justify-between mb-3">
           <div className="flex gap-1">
-            {([['table', 'Table', Table2], ['timeline', 'Timeline', GanttChartSquare]] as const).map(([k, lbl, Icon]) => (
+            {([
+              ['table', 'Table', Table2],
+              ['timeline', 'Timeline', GanttChartSquare],
+              ['kanban', 'Kanban', KanbanSquare],
+              ['calendar', 'Calendar', CalendarDays],
+            ] as const).map(([k, lbl, Icon]) => (
               <button key={k} onClick={() => setView(k)}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[12.5px] font-medium rounded-md border ${view === k ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-white text-[#5F5E5A] border-[#D3D1C7] hover:border-[#A50034]'}`}>
                 <Icon size={14} /> {lbl}
               </button>
             ))}
-            <span className="px-3 py-1.5 text-[11px] text-[#B8B6AE]">Kanban·Calendar (Phase 2)</span>
           </div>
           {canEdit && (
             <div className="flex items-center gap-2">
@@ -146,9 +152,10 @@ function BoardContent() {
 
         <BoardFilters data={data} value={filters} onChange={setFilters} />
 
-        {view === 'table'
-          ? <TableView data={filtered!} canEdit={canEdit} onChanged={load} onOpenItem={setOpenItem} />
-          : <TimelineView data={filtered!} canEdit={canEdit} onChanged={load} />}
+        {view === 'table' && <TableView data={filtered!} canEdit={canEdit} onChanged={load} onOpenItem={setOpenItem} />}
+        {view === 'timeline' && <TimelineView data={filtered!} canEdit={canEdit} onChanged={load} />}
+        {view === 'kanban' && <KanbanView data={filtered!} canEdit={canEdit} onChanged={load} onOpenItem={setOpenItem} />}
+        {view === 'calendar' && <CalendarView data={filtered!} onOpenItem={setOpenItem} />}
       </div>
 
       {openItem != null && data && (
