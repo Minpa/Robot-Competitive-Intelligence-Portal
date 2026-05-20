@@ -81,6 +81,7 @@ const navigationGroups: NavGroup[] = [
     subtitle: 'Project Management',
     items: [
       { name: 'ARGOS Projects', href: '/projects', icon: FolderKanban },
+      { name: '포트폴리오', href: '/portfolio', icon: LayoutDashboard },
     ],
   },
   {

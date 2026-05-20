@@ -523,6 +523,55 @@ export async function pmRoutes(fastify: FastifyInstance) {
     return reply.send(buffer);
   });
 
+  // ─────────────── Portfolio (Phase 3 REQ-20) ───────────────
+  // 사용자가 멤버인 모든 프로젝트의 timeline/date 보유 아이템을 단일 타임라인으로 통합.
+  fastify.get('/portfolio', async (request) => {
+    const userId = uid(request);
+    const isAdmin = grole(request) === 'admin';
+    const projects = isAdmin
+      ? await db.select().from(pmProjects).where(eq(pmProjects.status, 'active'))
+      : await db.select({ p: pmProjects }).from(pmProjects)
+          .innerJoin(pmMemberships, eq(pmMemberships.projectId, pmProjects.id))
+          .where(and(eq(pmMemberships.userId, userId), eq(pmProjects.status, 'active'))!)
+          .then((r) => r.map((x) => x.p));
+    if (projects.length === 0) return { projects: [], items: [] };
+    const projectIds = projects.map((p) => p.id);
+    // 해당 프로젝트들의 모든 보드 + timeline/date 컬럼 + 셀 한 번에
+    const boards = await db.select().from(pmBoards).where(inArray(pmBoards.projectId, projectIds));
+    const boardIds = boards.map((b) => b.id);
+    if (boardIds.length === 0) return { projects, items: [] };
+    const cols = await db.select().from(pmColumns).where(and(inArray(pmColumns.boardId, boardIds),
+      or(eq(pmColumns.type, 'timeline'), eq(pmColumns.type, 'date'))!)!);
+    const items = await db.select().from(pmItems).where(inArray(pmItems.boardId, boardIds));
+    const cellRows = items.length ? await db.select().from(pmCells).where(inArray(pmCells.itemId, items.map((i) => i.id))) : [];
+    const cellsByItem = new Map<number, any[]>();
+    for (const c of cellRows) {
+      const arr = cellsByItem.get(c.itemId) ?? []; arr.push(c); cellsByItem.set(c.itemId, arr);
+    }
+    const boardById = new Map(boards.map((b) => [b.id, b]));
+    const colSet = new Set(cols.map((c) => c.id));
+    // 평탄화: 아이템마다 (projectId, boardId, name, start, end, kind)
+    const out: any[] = [];
+    for (const it of items) {
+      if (it.parentItemId) continue; // 서브아이템은 포트폴리오에서 제외
+      const board = boardById.get(it.boardId); if (!board) continue;
+      const cells = cellsByItem.get(it.id) ?? [];
+      for (const c of cells) {
+        if (!colSet.has(c.columnId)) continue;
+        const col = cols.find((x) => x.id === c.columnId)!;
+        const v = c.value ?? {};
+        if (col.type === 'timeline' && v.start) {
+          out.push({ projectId: board.projectId, boardId: it.boardId, boardName: board.name,
+            itemId: it.id, name: it.name, start: v.start, end: v.end ?? v.start, kind: 'range' });
+        } else if (col.type === 'date' && v.date) {
+          out.push({ projectId: board.projectId, boardId: it.boardId, boardName: board.name,
+            itemId: it.id, name: it.name, start: v.date, end: v.date, kind: 'milestone' });
+        }
+      }
+    }
+    return { projects, items: out };
+  });
+
   // ─────────────── Templates (Phase 2 REQ-18) ───────────────
   fastify.get('/templates', async () => {
     const rows = await db.select().from(pmTemplates).orderBy(asc(pmTemplates.id));

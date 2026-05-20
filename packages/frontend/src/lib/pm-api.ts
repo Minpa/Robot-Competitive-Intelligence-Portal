@@ -88,6 +88,11 @@ export const pmApi = {
   deleteView: (id: number) => req<{ ok: true }>(`/views/${id}`, { method: 'DELETE' }),
   activity: (pid: number) => req<{ activity: any[] }>(`/projects/${pid}/activity`),
   search: (q: string) => req<{ projects: PmProject[]; boards: PmBoard[]; items: any[] }>(`/search?q=${encodeURIComponent(q)}`),
+  // portfolio (Phase 3 REQ-20)
+  portfolio: () => req<{
+    projects: PmProject[];
+    items: Array<{ projectId: number; boardId: number; boardName: string; itemId: number; name: string; start: string; end: string; kind: 'range' | 'milestone' }>;
+  }>('/portfolio'),
   // templates
   listTemplates: () => req<{ templates: Array<{ id: number; name: string; description?: string | null; category?: string | null; isSystem: boolean }> }>('/templates'),
   createFromTemplate: (templateId: number, name: string, description?: string) =>
