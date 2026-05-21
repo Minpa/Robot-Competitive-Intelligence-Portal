@@ -92,7 +92,20 @@ export function DateCellEditor({
       onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); onClose?.(); } }}>
       <input
         type="date" value={start} autoFocus={autoFocus}
-        onChange={(e) => { setStart(e.target.value); emit(e.target.value, end); }}
+        onChange={(e) => {
+          const s = e.target.value;
+          setStart(s);
+          // timeline & 종료일 비어 있을 때 → 기본 7일 뒤로 자동 채움
+          if (isTimeline && s && !end) {
+            const d = new Date(s);
+            d.setDate(d.getDate() + 7);
+            const auto = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            setEnd(auto);
+            emit(s, auto);
+          } else {
+            emit(s, end);
+          }
+        }}
         className={inputCls} />
       {isTimeline && (
         <>
