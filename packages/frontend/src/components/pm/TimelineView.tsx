@@ -82,6 +82,7 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
   const [draft, setDraft] = useState<{ pred: string; succ: string; type: DependencyType }>({ pred: '', succ: '', type: 'FS' });
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState<{ itemId: number; startX: number; periods: number; mode: 'move' | 'start' | 'end' } | null>(null);
+  const [hoverItemId, setHoverItemId] = useState<number | null>(null);
   // '+' 버튼으로 기본 종료(2027-01) 이후 추가 연장한 개월 수
   const [extendMonths, setExtendMonths] = useState(0);
   const tCol = useMemo(() => data.columns.find((c) => c.type === 'timeline'), [data.columns]);
@@ -201,7 +202,33 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
       return { id: dep.id, d, code, mx, my: (sy + ey) / 2 };
     }).filter(Boolean) as { id: number; d: string; code: string; mx: number; my: number }[];
 
-    return { periods, groups, idx, totalH: yCursor, links };
+    // 부모-서브아이템 family 매핑 (hover 시 family 만 강조)
+    const familyMap = new Map<number, Set<number>>();
+    for (const [parentId, subs] of subitemsByParent.entries()) {
+      const fam = new Set<number>([parentId, ...subs.map((s) => s.id)]);
+      familyMap.set(parentId, fam);
+      for (const s of subs) familyMap.set(s.id, fam);
+    }
+
+    // 부모 → 서브아이템 연결선: 부모의 끝점에서 서브아이템 시작점으로 직교 L 경로.
+    // 둘 다 pos 에 등록돼 있어야 (timeline/date 보유) 연결선 생김.
+    const familyLinks: Array<{ id: string; d: string; parentId: number }> = [];
+    for (const [parentId, subs] of subitemsByParent.entries()) {
+      const P = pos.get(parentId);
+      if (!P) continue;
+      for (const s of subs) {
+        const S = pos.get(s.id);
+        if (!S) continue;
+        // 부모의 우측 하단 → 서브아이템의 좌측 (다른 lane). 짧은 L 경로.
+        const sx = P.x1, sy = P.yc;
+        const ex = S.x0, ey = S.yc;
+        const midY = (sy + ey) / 2;
+        const d = `M${sx.toFixed(1)},${sy.toFixed(1)} L${sx.toFixed(1)},${midY.toFixed(1)} L${ex.toFixed(1)},${midY.toFixed(1)} L${ex.toFixed(1)},${ey.toFixed(1)}`;
+        familyLinks.push({ id: `fam-${parentId}-${s.id}`, d, parentId });
+      }
+    }
+
+    return { periods, groups, idx, totalH: yCursor, links, familyMap, familyLinks };
   }, [data, unit, tCol, dCol, numOf, extendMonths]);
 
   // 작업별 predecessor 코드 (막대 tooltip)
@@ -429,11 +456,18 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
 
                     const isSub = (b as any).isSub === true;
                     const labelPrefix = isSub ? '↳ ' : '';
+                    // family hover: 호버한 family 외 아이템은 fade out
+                    const activeFamily = hoverItemId != null ? model.familyMap.get(hoverItemId) ?? null : null;
+                    const dimmed = !!activeFamily && !activeFamily.has(b.it.id);
+                    const familyHoverHandlers = model.familyMap.has(b.it.id) ? {
+                      onMouseEnter: () => setHoverItemId(b.it.id),
+                      onMouseLeave: () => setHoverItemId((cur) => cur === b.it.id ? null : cur),
+                    } : {};
                     if (b.milestone) {
                       // 마일스톤은 길이 조절 불가 — 이동만 허용
-                      return <div key={b.it.id} title={tip} {...moveProps}
-                        className={`absolute ${dragCls}`}
-                        style={{ left: baseLeft + 4, top: top + 2, transform: `translateX(${dx}px)`, zIndex: isDragging ? 20 : undefined }}>
+                      return <div key={b.it.id} title={tip} {...moveProps} {...familyHoverHandlers}
+                        className={`absolute transition-opacity ${dragCls}`}
+                        style={{ left: baseLeft + 4, top: top + 2, transform: `translateX(${dx}px)`, zIndex: isDragging ? 20 : undefined, opacity: dimmed ? 0.18 : 1 }}>
                         <div className={`${isSub ? 'w-2 h-2' : 'w-3 h-3'} bg-[#A50034] rotate-45 ${isSub ? 'opacity-70' : ''} ${isDragging ? 'ring-2 ring-[#A50034]/40' : ''}`} />
                         <span className={`absolute ${isSub ? 'left-4' : 'left-5'} top-0 whitespace-nowrap text-[10.5px] font-medium ${isSub ? 'text-[#5F5E5A]' : 'text-[#1A1A1A]'}`}
                           style={{ textShadow: '0 1px 2px rgba(255,255,255,.85)' }}>{labelPrefix}{b.it.name}{shiftHint}</span>
@@ -446,10 +480,11 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
                     const canResize = canEdit && !!tvCheck?.start && !!tvCheck?.end;
 
                     const subBarH = laneH - 16;
+                    const baseOpacity = dimmed ? 0.18 : (isSub ? 0.75 : 1);
                     return (
-                      <div key={b.it.id} title={tip} {...moveProps}
-                        className={`absolute rounded text-[10.5px] font-medium flex items-center overflow-hidden ${dragCls} ${isDragging ? 'ring-2 ring-[#A50034]/50' : ''} ${isSub ? 'opacity-75' : ''}`}
-                        style={{ left, width: w, top: isSub ? top + 3 : top, height: isSub ? subBarH : laneH - 10, backgroundColor: barColor, color: txt.color, transform: `translateX(${dx}px)`, zIndex: isDragging ? 20 : undefined }}>
+                      <div key={b.it.id} title={tip} {...moveProps} {...familyHoverHandlers}
+                        className={`absolute rounded text-[10.5px] font-medium flex items-center overflow-hidden transition-opacity ${dragCls} ${isDragging ? 'ring-2 ring-[#A50034]/50' : ''}`}
+                        style={{ left, width: w, top: isSub ? top + 3 : top, height: isSub ? subBarH : laneH - 10, backgroundColor: barColor, color: txt.color, transform: `translateX(${dx}px)`, zIndex: isDragging ? 20 : undefined, opacity: baseOpacity }}>
                         {canResize && (
                           <button
                             type="button"
@@ -501,6 +536,28 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
                 ))}
               </svg>
             )}
+            {model.familyLinks.length > 0 && (() => {
+              const activeFamily = hoverItemId != null ? model.familyMap.get(hoverItemId) ?? null : null;
+              return (
+                <svg
+                  className="absolute top-0 pointer-events-none"
+                  style={{ left: labelW, width: model.periods.length * colW, height: model.totalH }}
+                  width={model.periods.length * colW} height={model.totalH}>
+                  {model.familyLinks.map((fl) => {
+                    const inFamily = activeFamily?.has(fl.parentId);
+                    const dim = activeFamily && !inFamily;
+                    return (
+                      <path key={fl.id} d={fl.d} fill="none"
+                        stroke={inFamily ? '#A50034' : '#888780'}
+                        strokeWidth={inFamily ? 1.6 : 1}
+                        strokeDasharray="3,3"
+                        opacity={dim ? 0.12 : (inFamily ? 0.95 : 0.55)}
+                        style={{ transition: 'opacity .15s, stroke .15s, stroke-width .15s' }} />
+                    );
+                  })}
+                </svg>
+              );
+            })()}
           </div>
         </div>
       </div>
