@@ -159,11 +159,25 @@ export async function pmRoutes(fastify: FastifyInstance) {
         { id: 2, name: 'Mid', color: '#D4A22F' },
         { id: 3, name: 'Low', color: '#3F8C6E' },
       ];
+      const DISCIPLINE_LABELS = [
+        { id: 1, name: 'SW', color: '#3C6FA5' },
+        { id: 2, name: 'HW', color: '#D4A22F' },
+        { id: 3, name: '기구', color: '#7E5BB5' },
+      ];
+      const ACTIVITY_LABELS = [
+        { id: 1, name: '시나리오', color: '#A50034' },
+        { id: 2, name: '기획', color: '#7E5BB5' },
+        { id: 3, name: '개발', color: '#3C6FA5' },
+        { id: 4, name: '데모', color: '#D4A22F' },
+        { id: 5, name: '테스트', color: '#3F8C6E' },
+      ];
       await db.insert(pmColumns).values([
         { boardId: board!.id, name: '기간', type: 'timeline', settings: {}, orderIndex: 0, width: 180 },
         { boardId: board!.id, name: '상태', type: 'status', settings: { labels: STATUS_LABELS }, orderIndex: 1, width: 120 },
         { boardId: board!.id, name: '우선순위', type: 'priority', settings: { labels: PRIORITY_LABELS }, orderIndex: 2, width: 110 },
-        { boardId: board!.id, name: '담당자', type: 'person', settings: {}, orderIndex: 3, width: 140 },
+        { boardId: board!.id, name: '분야', type: 'status', settings: { labels: DISCIPLINE_LABELS }, orderIndex: 3, width: 110 },
+        { boardId: board!.id, name: 'Activity', type: 'status', settings: { labels: ACTIVITY_LABELS }, orderIndex: 4, width: 130 },
+        { boardId: board!.id, name: 'Owner', type: 'dropdown', settings: { options: [] }, orderIndex: 5, width: 140 },
       ]);
     }
     await logActivity({ projectId: id, boardId: board!.id, userId: uid(request), action: 'create', entityType: 'board' });

@@ -27,18 +27,30 @@ const PRESET_COLUMNS: Record<string, { label: string; name: string; type: string
       { id: 3, name: 'Low', color: '#3F8C6E' },
     ] },
   },
-  dept: { label: '담당부서 (리스트 관리)', name: '담당부서', type: 'dropdown', settings: { options: [] } },
-  owner: { label: '담당자 (리스트 관리)', name: '담당자', type: 'dropdown', settings: { options: [] } },
-  activity: {
-    label: 'Activity (기획/개발/데모/테스트)', name: 'Activity', type: 'status',
+  discipline: {
+    label: '분야 (SW/HW/기구)', name: '분야', type: 'status',
     settings: { labels: [
-      { id: 1, name: '기획', color: '#7E5BB5' },
-      { id: 2, name: '개발', color: '#3C6FA5' },
-      { id: 3, name: '데모', color: '#D4A22F' },
-      { id: 4, name: '테스트', color: '#3F8C6E' },
+      { id: 1, name: 'SW', color: '#3C6FA5' },
+      { id: 2, name: 'HW', color: '#D4A22F' },
+      { id: 3, name: '기구', color: '#7E5BB5' },
     ] },
   },
+  activity: {
+    label: 'Activity (시나리오/기획/개발/데모/테스트 — 추가 가능)', name: 'Activity', type: 'status',
+    settings: { labels: [
+      { id: 1, name: '시나리오', color: '#A50034' },
+      { id: 2, name: '기획', color: '#7E5BB5' },
+      { id: 3, name: '개발', color: '#3C6FA5' },
+      { id: 4, name: '데모', color: '#D4A22F' },
+      { id: 5, name: '테스트', color: '#3F8C6E' },
+    ] },
+  },
+  owner: { label: 'Owner (입력값 자동 재사용)', name: 'Owner', type: 'dropdown', settings: { options: [] } },
+  dept: { label: '담당부서 (입력값 자동 재사용)', name: '담당부서', type: 'dropdown', settings: { options: [] } },
 };
+
+// 추천 묶음 — 1클릭으로 Priority+분야+Activity+Owner 한번에 추가
+const RECOMMENDED_BUNDLE = ['priority', 'discipline', 'activity', 'owner'] as const;
 
 function BoardContent() {
   const id = Number(useParams().id);
@@ -83,6 +95,18 @@ function BoardContent() {
     const p = PRESET_COLUMNS[key]; if (!p) return;
     await pmApi.createColumn(id, { name: p.name, type: p.type as any, settings: p.settings });
     load();
+  };
+  // 묶음 추가 — 이미 같은 이름의 컬럼이 있으면 skip (idempotent)
+  const addBundle = async () => {
+    if (!data) return;
+    const existingNames = new Set(data.columns.map((c) => c.name));
+    let added = 0;
+    for (const key of RECOMMENDED_BUNDLE) {
+      const p = PRESET_COLUMNS[key]; if (!p || existingNames.has(p.name)) continue;
+      try { await pmApi.createColumn(id, { name: p.name, type: p.type as any, settings: p.settings }); added++; } catch { /* noop */ }
+    }
+    load();
+    if (added === 0) alert('이미 모두 추가되어 있습니다.');
   };
 
   const runExport = async () => {
@@ -143,9 +167,14 @@ function BoardContent() {
           {canEdit && (
             <div className="flex items-center gap-2">
               <button onClick={addGroup} className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[12px] text-[#5F5E5A] border border-[#D3D1C7] rounded-md hover:border-[#A50034]"><Plus size={13} /> 그룹</button>
+              <button onClick={addBundle}
+                title="우선순위·분야(SW/HW/기구)·Activity·Owner 4개 컬럼을 한 번에 추가"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[12px] bg-[#FAEAE7]/60 text-[#A50034] border border-[#A50034]/40 rounded-md hover:bg-[#A50034] hover:text-white">
+                <Plus size={13} /> 추천 묶음
+              </button>
               <select onChange={(e) => { if (e.target.value) { addPreset(e.target.value); e.target.value = ''; } }} defaultValue=""
                 className="text-[12px] border border-[#D3D1C7] rounded-md px-2 py-1.5 text-[#5F5E5A]">
-                <option value="">+ 추천 컬럼…</option>
+                <option value="">+ 추천 컬럼 (개별)…</option>
                 {Object.entries(PRESET_COLUMNS).map(([k, p]) => <option key={k} value={k}>{p.label}</option>)}
               </select>
               <select onChange={(e) => { if (e.target.value) { addColumn(e.target.value); e.target.value = ''; } }} defaultValue=""
