@@ -122,11 +122,24 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
     // 전역 좌표 맵 (의존선 SVG 오버레이용) — 타임라인 영역 기준 (x: 0 = labelW 우측, y: 0 = groups 영역 상단)
     const pos = new Map<number, { x0: number; x1: number; yc: number; milestone: boolean }>();
     let yCursor = 0;
+    // 부모ID → 서브아이템 (timeline/date 있는 것만, orderIndex 순)
+    const subitemsByParent = new Map<number, typeof data.items>();
+    for (const it of data.items) {
+      if (it.parentItemId == null) continue;
+      const arr = subitemsByParent.get(it.parentItemId) ?? [];
+      arr.push(it);
+      subitemsByParent.set(it.parentItemId, arr);
+    }
     const groups = [...data.groups].sort((a, b) => a.orderIndex - b.orderIndex).map((g) => {
-      const gItems = data.items.filter((i) => i.groupId === g.id && !i.parentItemId);
+      // 부모 아이템 + 그 아래 서브아이템을 평탄화 (서브는 isSub:true 마킹, 라벨에 ↳ 표기)
+      const parents = data.items.filter((i) => i.groupId === g.id && !i.parentItemId);
+      const gItems = parents.flatMap((p) => {
+        const subs = (subitemsByParent.get(p.id) ?? []).sort((a, b) => a.orderIndex - b.orderIndex);
+        return [{ it: p, isSub: false }, ...subs.map((s) => ({ it: s, isSub: true }))];
+      });
       const laneEnd: number[] = [];
       const bars = gItems
-        .map((it) => {
+        .map(({ it, isSub }) => {
           const tv = tCol ? cv(it.id, tCol.id) : null;
           const dv = dCol ? cv(it.id, dCol.id) : null;
           const sd = toDate(tv?.start) || toDate(dv?.date);
@@ -135,7 +148,7 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
           const s = idx(sd), e = ed ? idx(ed) : s;
           // 마일스톤 판정은 실제 날짜 기준 (기간 인덱스 뭉침으로 강등 금지)
           const milestone = !ed || sd.getTime() === ed.getTime();
-          return { it, s, e, milestone };
+          return { it, s, e, milestone, isSub };
         })
         .filter(Boolean)
         .sort((a, b) => a!.s - b!.s)
@@ -414,25 +427,29 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
                     } : {};
                     const dragCls = canEdit ? 'cursor-grab active:cursor-grabbing select-none touch-none' : '';
 
+                    const isSub = (b as any).isSub === true;
+                    const labelPrefix = isSub ? '↳ ' : '';
                     if (b.milestone) {
                       // 마일스톤은 길이 조절 불가 — 이동만 허용
                       return <div key={b.it.id} title={tip} {...moveProps}
                         className={`absolute ${dragCls}`}
                         style={{ left: baseLeft + 4, top: top + 2, transform: `translateX(${dx}px)`, zIndex: isDragging ? 20 : undefined }}>
-                        <div className={`w-3 h-3 bg-[#A50034] rotate-45 ${isDragging ? 'ring-2 ring-[#A50034]/40' : ''}`} />
-                        <span className="absolute left-5 top-0 whitespace-nowrap text-[10.5px] font-medium text-[#1A1A1A]"
-                          style={{ textShadow: '0 1px 2px rgba(255,255,255,.85)' }}>{b.it.name}{shiftHint}</span>
+                        <div className={`${isSub ? 'w-2 h-2' : 'w-3 h-3'} bg-[#A50034] rotate-45 ${isSub ? 'opacity-70' : ''} ${isDragging ? 'ring-2 ring-[#A50034]/40' : ''}`} />
+                        <span className={`absolute ${isSub ? 'left-4' : 'left-5'} top-0 whitespace-nowrap text-[10.5px] font-medium ${isSub ? 'text-[#5F5E5A]' : 'text-[#1A1A1A]'}`}
+                          style={{ textShadow: '0 1px 2px rgba(255,255,255,.85)' }}>{labelPrefix}{b.it.name}{shiftHint}</span>
                       </div>;
                     }
+                    // 서브아이템은 더 옅게(opacity) + 가는 막대로 시각 구분
                     const barColor = gl.group.color || '#4A4A48';
                     const txt = pickText(barColor);
                     const tvCheck = tCol ? cv(b.it.id, tCol.id) : null;
                     const canResize = canEdit && !!tvCheck?.start && !!tvCheck?.end;
 
+                    const subBarH = laneH - 16;
                     return (
                       <div key={b.it.id} title={tip} {...moveProps}
-                        className={`absolute rounded text-[10.5px] font-medium flex items-center overflow-hidden ${dragCls} ${isDragging ? 'ring-2 ring-[#A50034]/50' : ''}`}
-                        style={{ left, width: w, top, height: laneH - 10, backgroundColor: barColor, color: txt.color, transform: `translateX(${dx}px)`, zIndex: isDragging ? 20 : undefined }}>
+                        className={`absolute rounded text-[10.5px] font-medium flex items-center overflow-hidden ${dragCls} ${isDragging ? 'ring-2 ring-[#A50034]/50' : ''} ${isSub ? 'opacity-75' : ''}`}
+                        style={{ left, width: w, top: isSub ? top + 3 : top, height: isSub ? subBarH : laneH - 10, backgroundColor: barColor, color: txt.color, transform: `translateX(${dx}px)`, zIndex: isDragging ? 20 : undefined }}>
                         {canResize && (
                           <button
                             type="button"
@@ -445,7 +462,7 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
                             style={{ color: txt.color, textShadow: txt.shadow }}
                           >◀</button>
                         )}
-                        <span className="truncate px-2" style={{ textShadow: txt.shadow, marginLeft: canResize ? 10 : 0, marginRight: canResize ? 10 : 0 }}>{b.it.name}{shiftHint}</span>
+                        <span className="truncate px-2" style={{ textShadow: txt.shadow, marginLeft: canResize ? 10 : 0, marginRight: canResize ? 10 : 0 }}>{labelPrefix}{b.it.name}{shiftHint}</span>
                         {canResize && (
                           <button
                             type="button"
