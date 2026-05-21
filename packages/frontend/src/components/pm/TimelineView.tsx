@@ -456,18 +456,23 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
 
                     const isSub = (b as any).isSub === true;
                     const labelPrefix = isSub ? '↳ ' : '';
-                    // family hover: 호버한 family 외 아이템은 fade out
-                    const activeFamily = hoverItemId != null ? model.familyMap.get(hoverItemId) ?? null : null;
-                    const dimmed = !!activeFamily && !activeFamily.has(b.it.id);
-                    const familyHoverHandlers = model.familyMap.has(b.it.id) ? {
+                    // hover: family 가 있으면 family 전체, 없으면 자기 자신만. 다른 아이템은 fade out.
+                    const activeFamily = hoverItemId != null
+                      ? (model.familyMap.get(hoverItemId) ?? new Set<number>([hoverItemId]))
+                      : null;
+                    const inFamily = !!activeFamily && activeFamily.has(b.it.id);
+                    const dimmed = !!activeFamily && !inFamily;
+                    // 모든 아이템에 hover 핸들러 부착 — 단일 아이템도 자기 자신을 강조
+                    const familyHoverHandlers = {
                       onMouseEnter: () => setHoverItemId(b.it.id),
                       onMouseLeave: () => setHoverItemId((cur) => cur === b.it.id ? null : cur),
-                    } : {};
+                    };
                     if (b.milestone) {
                       // 마일스톤은 길이 조절 불가 — 이동만 허용
+                      const msTransform = `translateX(${dx}px)${inFamily ? ' scale(1.25)' : ''}`;
                       return <div key={b.it.id} title={tip} {...moveProps} {...familyHoverHandlers}
-                        className={`absolute transition-opacity ${dragCls}`}
-                        style={{ left: baseLeft + 4, top: top + 2, transform: `translateX(${dx}px)`, zIndex: isDragging ? 20 : undefined, opacity: dimmed ? 0.18 : 1 }}>
+                        className={`absolute transition-all duration-150 ${dragCls} ${inFamily ? 'drop-shadow-[0_0_4px_rgba(165,0,52,0.6)]' : ''}`}
+                        style={{ left: baseLeft + 4, top: top + 2, transform: msTransform, zIndex: isDragging || inFamily ? 20 : undefined, opacity: dimmed ? 0.18 : 1 }}>
                         <div className={`${isSub ? 'w-2 h-2' : 'w-3 h-3'} bg-[#A50034] rotate-45 ${isSub ? 'opacity-70' : ''} ${isDragging ? 'ring-2 ring-[#A50034]/40' : ''}`} />
                         <span className={`absolute ${isSub ? 'left-4' : 'left-5'} top-0 whitespace-nowrap text-[10.5px] font-medium ${isSub ? 'text-[#5F5E5A]' : 'text-[#1A1A1A]'}`}
                           style={{ textShadow: '0 1px 2px rgba(255,255,255,.85)' }}>{labelPrefix}{b.it.name}{shiftHint}</span>
@@ -480,11 +485,14 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
                     const canResize = canEdit && !!tvCheck?.start && !!tvCheck?.end;
 
                     const subBarH = laneH - 16;
-                    const baseOpacity = dimmed ? 0.18 : (isSub ? 0.75 : 1);
+                    const baseOpacity = dimmed ? 0.18 : (isSub ? 0.85 : 1);
+                    const ringCls = inFamily
+                      ? 'ring-2 ring-[#A50034] shadow-[0_2px_8px_rgba(165,0,52,0.45)]'
+                      : (isDragging ? 'ring-2 ring-[#A50034]/50' : '');
                     return (
                       <div key={b.it.id} title={tip} {...moveProps} {...familyHoverHandlers}
-                        className={`absolute rounded text-[10.5px] font-medium flex items-center overflow-hidden transition-opacity ${dragCls} ${isDragging ? 'ring-2 ring-[#A50034]/50' : ''}`}
-                        style={{ left, width: w, top: isSub ? top + 3 : top, height: isSub ? subBarH : laneH - 10, backgroundColor: barColor, color: txt.color, transform: `translateX(${dx}px)`, zIndex: isDragging ? 20 : undefined, opacity: baseOpacity }}>
+                        className={`absolute rounded text-[10.5px] font-medium flex items-center overflow-hidden transition-all duration-150 ${dragCls} ${ringCls}`}
+                        style={{ left, width: w, top: isSub ? top + 3 : top, height: isSub ? subBarH : laneH - 10, backgroundColor: barColor, color: txt.color, transform: `translateX(${dx}px)`, zIndex: isDragging || inFamily ? 20 : undefined, opacity: baseOpacity }}>
                         {canResize && (
                           <button
                             type="button"
