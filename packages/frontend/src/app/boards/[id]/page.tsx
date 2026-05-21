@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Table2, GanttChartSquare, KanbanSquare, CalendarDays, Plus, Download, Loader2, Lock } from 'lucide-react';
+import { ArrowLeft, Table2, GanttChartSquare, KanbanSquare, CalendarDays, Plus, Download, Loader2, Lock, Sparkles, X } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { api } from '@/lib/api';
 import { pmApi, type BoardData } from '@/lib/pm-api';
@@ -64,6 +64,15 @@ function BoardContent() {
   const [exportOpts, setExportOpts] = useState<any>({ view: 'timeline', axis_unit: 'month', confidentiality: 'internal', conclusion: '' });
   const [filters, setFilters] = useState<BoardFilterState>(emptyFilters);
   const filtered = useMemo(() => data ? applyFilters(data, filters) : null, [data, filters]);
+  const [dismissedBundleBanner, setDismissedBundleBanner] = useState(false);
+  // 누락된 추천 묶음 항목 (이름 기준 idempotent)
+  const missingBundle = useMemo(() => {
+    if (!data) return [] as Array<{ key: string; name: string; label: string }>;
+    const have = new Set(data.columns.map((c) => c.name));
+    return RECOMMENDED_BUNDLE
+      .map((k) => ({ key: k as string, ...PRESET_COLUMNS[k] }))
+      .filter((p) => !have.has(p.name));
+  }, [data]);
 
   const load = useCallback(async () => {
     try {
@@ -167,11 +176,6 @@ function BoardContent() {
           {canEdit && (
             <div className="flex items-center gap-2">
               <button onClick={addGroup} className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[12px] text-[#5F5E5A] border border-[#D3D1C7] rounded-md hover:border-[#A50034]"><Plus size={13} /> 그룹</button>
-              <button onClick={addBundle}
-                title="우선순위·분야(SW/HW/기구)·Activity·Owner 4개 컬럼을 한 번에 추가"
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[12px] bg-[#FAEAE7]/60 text-[#A50034] border border-[#A50034]/40 rounded-md hover:bg-[#A50034] hover:text-white">
-                <Plus size={13} /> 추천 묶음
-              </button>
               <select onChange={(e) => { if (e.target.value) { addPreset(e.target.value); e.target.value = ''; } }} defaultValue=""
                 className="text-[12px] border border-[#D3D1C7] rounded-md px-2 py-1.5 text-[#5F5E5A]">
                 <option value="">+ 추천 컬럼 (개별)…</option>
@@ -187,6 +191,23 @@ function BoardContent() {
         </div>
 
         {err && <div className="bg-red-50 border border-red-200 text-red-700 text-[13px] rounded-md p-3 mb-3">{err}</div>}
+
+        {/* 추천 묶음 인라인 배너 — 누락된 추천 컬럼이 있을 때만, 사용자 dismiss 가능 */}
+        {canEdit && view === 'table' && !dismissedBundleBanner && missingBundle.length > 0 && (
+          <div className="flex items-center gap-3 bg-[#FAEAE7]/60 border border-[#A50034]/40 rounded-md px-3 py-2 mb-2 text-[12.5px]">
+            <Sparkles size={14} className="text-[#A50034] shrink-0" />
+            <div className="flex-1 min-w-0">
+              <span className="font-medium text-[#1A1A1A]">추천 컬럼 {missingBundle.length}개 더 추가 가능:</span>
+              <span className="ml-1.5 text-[#5F5E5A]">{missingBundle.map((m) => m.name).join(' · ')}</span>
+            </div>
+            <button onClick={addBundle}
+              className="inline-flex items-center gap-1 px-3 py-1 bg-[#A50034] hover:bg-[#8B1538] text-white text-[12px] rounded shrink-0">
+              <Plus size={12} /> 이 보드에 한 번에 추가
+            </button>
+            <button onClick={() => setDismissedBundleBanner(true)}
+              className="text-[#888780] hover:text-[#1A1A1A] shrink-0" title="닫기"><X size={14} /></button>
+          </div>
+        )}
 
         <BoardFilters data={data} value={filters} onChange={setFilters} />
 
