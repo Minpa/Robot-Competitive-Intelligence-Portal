@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Table2, GanttChartSquare, KanbanSquare, CalendarDays, Plus, Download, Loader2, Lock, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, Table2, GanttChartSquare, KanbanSquare, CalendarDays, Plus, Download, Loader2, Lock } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { api } from '@/lib/api';
 import { pmApi, type BoardData } from '@/lib/pm-api';
@@ -64,15 +64,7 @@ function BoardContent() {
   const [exportOpts, setExportOpts] = useState<any>({ view: 'timeline', axis_unit: 'month', confidentiality: 'internal', conclusion: '' });
   const [filters, setFilters] = useState<BoardFilterState>(emptyFilters);
   const filtered = useMemo(() => data ? applyFilters(data, filters) : null, [data, filters]);
-  const [dismissedBundleBanner, setDismissedBundleBanner] = useState(false);
-  // 누락된 추천 묶음 항목 (이름 기준 idempotent)
-  const missingBundle = useMemo(() => {
-    if (!data) return [] as Array<{ key: string; name: string; label: string }>;
-    const have = new Set(data.columns.map((c) => c.name));
-    return RECOMMENDED_BUNDLE
-      .map((k) => ({ key: k as string, ...PRESET_COLUMNS[k] }))
-      .filter((p) => !have.has(p.name));
-  }, [data]);
+  const autoAddedRef = useRef(false);
 
   const load = useCallback(async () => {
     try {
@@ -92,6 +84,31 @@ function BoardContent() {
   }, [id]);
   useEffect(() => { if (id) load(); }, [id, load]);
 
+  // 보드 첫 진입 시 '담당조직' + 'Activity' 컬럼이 없으면 우측에 자동 추가.
+  // localStorage 로 보드별 1회만 — 사용자가 지워도 다시 안 생김.
+  useEffect(() => {
+    if (!data || !canEdit || autoAddedRef.current) return;
+    if (typeof window === 'undefined') return;
+    const flag = `pm-autoadd-org-activity-${id}`;
+    if (localStorage.getItem(flag)) return;
+    const have = new Set(data.columns.map((c) => c.name));
+    const ACTIVITY_LABELS = [
+      { id: 1, name: '시나리오', color: '#A50034' },
+      { id: 2, name: '기획', color: '#7E5BB5' },
+      { id: 3, name: '개발', color: '#3C6FA5' },
+      { id: 4, name: '데모', color: '#D4A22F' },
+      { id: 5, name: '테스트', color: '#3F8C6E' },
+    ];
+    const toAdd: Array<{ name: string; type: string; settings: any }> = [];
+    if (!have.has('담당조직')) toAdd.push({ name: '담당조직', type: 'dropdown', settings: { options: [] } });
+    if (!have.has('Activity')) toAdd.push({ name: 'Activity', type: 'status', settings: { labels: ACTIVITY_LABELS } });
+    if (toAdd.length === 0) { localStorage.setItem(flag, '1'); return; }
+    autoAddedRef.current = true;
+    Promise.all(toAdd.map((c) => pmApi.createColumn(id, { name: c.name, type: c.type as any, settings: c.settings })))
+      .then(() => { localStorage.setItem(flag, '1'); load(); })
+      .catch(() => { autoAddedRef.current = false; });
+  }, [data, canEdit, id, load]);
+
   const addGroup = async () => { await pmApi.createGroup(id, { name: '새 그룹', color: '#3C6FA5' }); load(); };
   const addColumn = async (type: string) => {
     const settings = (type === 'status' || type === 'priority')
@@ -104,18 +121,6 @@ function BoardContent() {
     const p = PRESET_COLUMNS[key]; if (!p) return;
     await pmApi.createColumn(id, { name: p.name, type: p.type as any, settings: p.settings });
     load();
-  };
-  // 묶음 추가 — 이미 같은 이름의 컬럼이 있으면 skip (idempotent)
-  const addBundle = async () => {
-    if (!data) return;
-    const existingNames = new Set(data.columns.map((c) => c.name));
-    let added = 0;
-    for (const key of RECOMMENDED_BUNDLE) {
-      const p = PRESET_COLUMNS[key]; if (!p || existingNames.has(p.name)) continue;
-      try { await pmApi.createColumn(id, { name: p.name, type: p.type as any, settings: p.settings }); added++; } catch { /* noop */ }
-    }
-    load();
-    if (added === 0) alert('이미 모두 추가되어 있습니다.');
   };
 
   const runExport = async () => {
@@ -191,23 +196,6 @@ function BoardContent() {
         </div>
 
         {err && <div className="bg-red-50 border border-red-200 text-red-700 text-[13px] rounded-md p-3 mb-3">{err}</div>}
-
-        {/* 추천 묶음 인라인 배너 — 누락된 추천 컬럼이 있을 때만, 사용자 dismiss 가능 */}
-        {canEdit && view === 'table' && !dismissedBundleBanner && missingBundle.length > 0 && (
-          <div className="flex items-center gap-3 bg-[#FAEAE7]/60 border border-[#A50034]/40 rounded-md px-3 py-2 mb-2 text-[12.5px]">
-            <Sparkles size={14} className="text-[#A50034] shrink-0" />
-            <div className="flex-1 min-w-0">
-              <span className="font-medium text-[#1A1A1A]">추천 컬럼 {missingBundle.length}개 더 추가 가능:</span>
-              <span className="ml-1.5 text-[#5F5E5A]">{missingBundle.map((m) => m.name).join(' · ')}</span>
-            </div>
-            <button onClick={addBundle}
-              className="inline-flex items-center gap-1 px-3 py-1 bg-[#A50034] hover:bg-[#8B1538] text-white text-[12px] rounded shrink-0">
-              <Plus size={12} /> 이 보드에 한 번에 추가
-            </button>
-            <button onClick={() => setDismissedBundleBanner(true)}
-              className="text-[#888780] hover:text-[#1A1A1A] shrink-0" title="닫기"><X size={14} /></button>
-          </div>
-        )}
 
         <BoardFilters data={data} value={filters} onChange={setFilters} />
 
