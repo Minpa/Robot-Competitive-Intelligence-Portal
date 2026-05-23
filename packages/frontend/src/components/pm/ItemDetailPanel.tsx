@@ -1,7 +1,7 @@
 'use client';
 // 아이템 상세 패널 — 전체 필드 편집 + Updates 코멘트 스레드 (REQ-13).
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Send, CornerDownRight, Plus, Trash2 } from 'lucide-react';
+import { X, Send, CornerDownRight, Plus, Trash2, Pencil, ArrowUpFromLine } from 'lucide-react';
 import { pmApi, type BoardData, type PmColumn } from '@/lib/pm-api';
 import { cellToText, textToCellValue, CellDisplay, DateCellEditor, ChoiceCellEditor, STATUS_PALETTE } from './cells';
 
@@ -69,7 +69,18 @@ export default function ItemDetailPanel({ boardData, itemId, canEdit, onClose, o
   const cv = (colId: number) => boardData.cells.find((x) => x.itemId === itemId && x.columnId === colId)?.value ?? null;
 
   const saveName = async () => {
-    if (canEdit && name.trim() && name !== item.name) { await pmApi.updateItem(itemId, { name: name.trim() }); onChanged(); }
+    if (canEdit && name.trim() && item && name !== item.name) { await pmApi.updateItem(itemId, { name: name.trim() }); onChanged(); }
+  };
+  const moveToGroup = async (newGroupId: number) => {
+    if (!canEdit || !item || newGroupId === item.groupId) return;
+    try { await pmApi.updateItem(itemId, { groupId: newGroupId }); onChanged(); }
+    catch (e: any) { setError(`그룹 이동 실패: ${e?.message ?? ''}`); }
+  };
+  const promoteToTop = async () => {
+    if (!canEdit || !item?.parentItemId) return;
+    if (!confirm('이 서브아이템을 최상위 아이템으로 승격할까요?')) return;
+    try { await pmApi.updateItem(itemId, { parentItemId: null as any }); onChanged(); }
+    catch (e: any) { setError(`승격 실패: ${e?.message ?? ''}`); }
   };
   const saveCell = async (col: PmColumn, raw: string) => {
     if (!canEdit) return;
@@ -147,8 +158,39 @@ export default function ItemDetailPanel({ boardData, itemId, canEdit, onClose, o
           </div>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-          <input value={name} onChange={(e) => setName(e.target.value)} onBlur={saveName} disabled={!canEdit}
-            className="w-full text-[18px] font-medium text-[#1A1A1A] outline-none border-b border-transparent focus:border-[#A50034] pb-1" />
+          <div className="group">
+            <div className="flex items-center gap-2">
+              <input value={name} onChange={(e) => setName(e.target.value)}
+                onBlur={saveName}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur(); } if (e.key === 'Escape') setName(item?.name ?? ''); }}
+                disabled={!canEdit}
+                placeholder="아이템 이름"
+                className="flex-1 text-[18px] font-medium text-[#1A1A1A] placeholder:text-[#B8B6AE] outline-none border border-transparent hover:border-[#E2DED4] focus:border-[#A50034] rounded px-1.5 py-1 -mx-1.5 transition-colors disabled:hover:border-transparent" />
+              {canEdit && (
+                <Pencil size={13} className="text-[#B8B6AE] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+              )}
+            </div>
+            {canEdit && (
+              <p className="font-mono text-[10px] text-[#888780] mt-1">클릭하여 편집 · Enter 저장 · Esc 취소</p>
+            )}
+          </div>
+
+          {/* 그룹 이동 + 서브 → 최상위 승격 */}
+          <div className="flex items-center gap-2 pb-1 border-b border-[#EFEDE6]">
+            <span className="font-mono text-[10.5px] text-[#888780] uppercase tracking-[0.1em] shrink-0">그룹</span>
+            <select value={item?.groupId ?? ''}
+              onChange={(e) => moveToGroup(Number(e.target.value))}
+              disabled={!canEdit}
+              className="flex-1 text-[12.5px] text-[#1A1A1A] border border-[#E2DED4] rounded px-2 py-1 outline-none focus:border-[#A50034] disabled:bg-[#FAFAF7]">
+              {boardData.groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+            </select>
+            {canEdit && item?.parentItemId != null && (
+              <button onClick={promoteToTop} title="이 서브아이템을 최상위 아이템으로 승격"
+                className="inline-flex items-center gap-1 text-[11px] text-[#5F5E5A] hover:text-[#A50034] px-2 py-1 border border-[#D3D1C7] hover:border-[#A50034] rounded">
+                <ArrowUpFromLine size={11} /> 최상위로
+              </button>
+            )}
+          </div>
           <div className="space-y-3">
             {cols.map((col) => (
               <div key={col.id} className="grid grid-cols-3 gap-3 items-start">

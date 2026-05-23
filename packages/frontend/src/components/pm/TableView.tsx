@@ -36,6 +36,17 @@ export default function TableView({ data, canEdit, onChanged, onOpenItem }: Prop
   const [anchor, setAnchor] = useState<Pos | null>(null);
   const [editing, setEditing] = useState<{ pos: Pos; draft: string } | null>(null);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  // 아이템 이름 인라인 편집 — 더블클릭으로 진입
+  const [editingItemName, setEditingItemName] = useState<{ id: number; draft: string } | null>(null);
+
+  const commitItemName = useCallback(async (it: PmItem) => {
+    if (!editingItemName || editingItemName.id !== it.id) return;
+    const v = editingItemName.draft.trim();
+    setEditingItemName(null);
+    if (v && v !== it.name) {
+      try { await pmApi.updateItem(it.id, { name: v }); onChanged(); } catch { /* noop */ }
+    }
+  }, [editingItemName, onChanged]);
   const gridRef = useRef<HTMLDivElement>(null);
 
   // 부모ID → 서브아이템 배열 (orderIndex 순)
@@ -343,8 +354,21 @@ export default function TableView({ data, canEdit, onChanged, onOpenItem }: Prop
                                 {isOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                               </button>
                             ) : <span className="w-[13px] shrink-0" />}
-                            <button onClick={() => onOpenItem(it.id)}
-                              className="text-left text-[#1A1A1A] hover:text-[#A50034] truncate">{it.name}</button>
+                            {editingItemName?.id === it.id ? (
+                              <input autoFocus value={editingItemName.draft}
+                                onChange={(e) => setEditingItemName({ id: it.id, draft: e.target.value })}
+                                onBlur={() => commitItemName(it)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+                                  else if (e.key === 'Escape') { e.preventDefault(); setEditingItemName(null); }
+                                }}
+                                className="flex-1 min-w-0 text-[#1A1A1A] outline-none border border-[#A50034] rounded px-1 py-0.5 bg-white" />
+                            ) : (
+                              <button onClick={() => onOpenItem(it.id)}
+                                onDoubleClick={(e) => { e.stopPropagation(); if (canEdit) setEditingItemName({ id: it.id, draft: it.name }); }}
+                                title={canEdit ? '클릭 = 상세 열기 · 더블클릭 = 이름 편집' : undefined}
+                                className="text-left text-[#1A1A1A] hover:text-[#A50034] truncate">{it.name}</button>
+                            )}
                             {subs.length > 0 && (
                               <span className="font-mono text-[10px] text-[#888780] shrink-0">{subs.length}</span>
                             )}
@@ -403,10 +427,26 @@ export default function TableView({ data, canEdit, onChanged, onOpenItem }: Prop
                       <tr key={`sub-${sub.id}`} className="bg-[#FAFAF7]/60">
                         <td className="border-b border-r border-[#EFEDE6] pl-9 pr-3 py-1 group/sub">
                           <div className="flex items-center justify-between gap-2">
-                            <button onClick={() => onOpenItem(sub.id)}
-                              className="inline-flex items-center gap-1.5 text-left text-[12px] text-[#5F5E5A] hover:text-[#A50034] truncate">
-                              <CornerDownRight size={11} className="text-[#B8B6AE]" /> {sub.name}
-                            </button>
+                            {editingItemName?.id === sub.id ? (
+                              <div className="flex-1 min-w-0 inline-flex items-center gap-1.5">
+                                <CornerDownRight size={11} className="text-[#B8B6AE]" />
+                                <input autoFocus value={editingItemName.draft}
+                                  onChange={(e) => setEditingItemName({ id: sub.id, draft: e.target.value })}
+                                  onBlur={() => commitItemName(sub)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+                                    else if (e.key === 'Escape') { e.preventDefault(); setEditingItemName(null); }
+                                  }}
+                                  className="flex-1 min-w-0 text-[12px] text-[#1A1A1A] outline-none border border-[#A50034] rounded px-1 py-0.5 bg-white" />
+                              </div>
+                            ) : (
+                              <button onClick={() => onOpenItem(sub.id)}
+                                onDoubleClick={(e) => { e.stopPropagation(); if (canEdit) setEditingItemName({ id: sub.id, draft: sub.name }); }}
+                                title={canEdit ? '클릭 = 상세 열기 · 더블클릭 = 이름 편집' : undefined}
+                                className="inline-flex items-center gap-1.5 text-left text-[12px] text-[#5F5E5A] hover:text-[#A50034] truncate">
+                                <CornerDownRight size={11} className="text-[#B8B6AE]" /> {sub.name}
+                              </button>
+                            )}
                             {canEdit && (
                               <button onClick={(e) => { e.stopPropagation(); void removeItem(sub.id, sub.name); }}
                                 className="text-[#B8B6AE] hover:text-[#A50034] opacity-0 group-hover/sub:opacity-100 transition-opacity" title="서브아이템 삭제">
