@@ -1,6 +1,6 @@
 'use client';
 // Timeline/Gantt 뷰 — timeline 막대 + 주/월/분기 축 + 마일스톤·오늘선 + 의존선(FS/SS/FF/SF).
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { pmApi, type BoardData, type DependencyType } from '@/lib/pm-api';
 
 type Unit = 'day' | 'week' | 'month' | 'quarter';
@@ -83,8 +83,34 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState<{ itemId: number; startX: number; periods: number; mode: 'move' | 'start' | 'end' } | null>(null);
   const [hoverItemId, setHoverItemId] = useState<number | null>(null);
+  // 의존선 drag-to-create: 핸들에서 시작 → 다른 막대 위에서 떼면 FS 의존 생성
+  const [linkDrag, setLinkDrag] = useState<{ sourceId: number; sx: number; sy: number; mx: number; my: number } | null>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   // '+' 버튼으로 기본 종료(2027-01) 이후 추가 연장한 개월 수
   const [extendMonths, setExtendMonths] = useState(0);
+
+  // linkDrag 진행 중 — 전역 mousemove/up 으로 끝점 추적 + drop 처리
+  useEffect(() => {
+    if (!linkDrag) return;
+    const onMove = (e: MouseEvent) => {
+      setLinkDrag((cur) => cur ? { ...cur, mx: e.clientX, my: e.clientY } : null);
+    };
+    const onUp = async (e: MouseEvent) => {
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const barEl = el?.closest('[data-pm-bar-itemid]') as HTMLElement | null;
+      const targetId = barEl ? Number(barEl.getAttribute('data-pm-bar-itemid')) : NaN;
+      setLinkDrag(null);
+      if (Number.isFinite(targetId) && targetId !== linkDrag.sourceId) {
+        try {
+          await pmApi.createDependency(board.id, { predecessorItemId: linkDrag.sourceId, successorItemId: targetId, type: 'FS' });
+          onChanged?.();
+        } catch (err: any) { alert(`의존선 생성 실패: ${err?.message ?? ''}`); }
+      }
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [linkDrag, board.id, onChanged]);
   const tCol = useMemo(() => data.columns.find((c) => c.type === 'timeline'), [data.columns]);
   const dCol = useMemo(() => data.columns.find((c) => c.type === 'date'), [data.columns]);
   const cv = (itemId: number, colId: number) => data.cells.find((x) => x.itemId === itemId && x.columnId === colId)?.value;
@@ -228,7 +254,7 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
       }
     }
 
-    return { periods, groups, idx, totalH: yCursor, links, familyMap, familyLinks };
+    return { periods, groups, idx, totalH: yCursor, links, familyMap, familyLinks, pos };
   }, [data, unit, tCol, dCol, numOf, extendMonths]);
 
   // 작업별 predecessor 코드 (막대 tooltip)
@@ -470,7 +496,7 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
                     if (b.milestone) {
                       // 마일스톤은 길이 조절 불가 — 이동만 허용
                       const msTransform = `translateX(${dx}px)${inFamily ? ' scale(1.25)' : ''}`;
-                      return <div key={b.it.id} title={tip} {...moveProps} {...familyHoverHandlers}
+                      return <div key={b.it.id} data-pm-bar-itemid={b.it.id} title={tip} {...moveProps} {...familyHoverHandlers}
                         className={`absolute transition-all duration-150 ${dragCls} ${inFamily ? 'drop-shadow-[0_0_4px_rgba(165,0,52,0.6)]' : ''}`}
                         style={{ left: baseLeft + 4, top: top + 2, transform: msTransform, zIndex: isDragging || inFamily ? 20 : undefined, opacity: dimmed ? 0.18 : 1 }}>
                         <div className={`${isSub ? 'w-2 h-2' : 'w-3 h-3'} bg-[#A50034] rotate-45 ${isSub ? 'opacity-70' : ''} ${isDragging ? 'ring-2 ring-[#A50034]/40' : ''}`} />
@@ -490,7 +516,7 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
                       ? 'ring-2 ring-[#A50034] shadow-[0_2px_8px_rgba(165,0,52,0.45)]'
                       : (isDragging ? 'ring-2 ring-[#A50034]/50' : '');
                     return (
-                      <div key={b.it.id} title={tip} {...moveProps} {...familyHoverHandlers}
+                      <div key={b.it.id} data-pm-bar-itemid={b.it.id} title={tip} {...moveProps} {...familyHoverHandlers}
                         className={`absolute rounded text-[10.5px] font-medium flex items-center overflow-hidden transition-all duration-150 ${dragCls} ${ringCls}`}
                         style={{ left, width: w, top: isSub ? top + 3 : top, height: isSub ? subBarH : laneH - 10, backgroundColor: barColor, color: txt.color, transform: `translateX(${dx}px)`, zIndex: isDragging || inFamily ? 20 : undefined, opacity: baseOpacity }}>
                         {canResize && (
@@ -563,6 +589,43 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
                         style={{ transition: 'opacity .15s, stroke .15s, stroke-width .15s' }} />
                     );
                   })}
+                </svg>
+              );
+            })()}
+            {/* 의존선 drag-to-create (REQ-14): 막대 우측 끝의 작은 핸들. 드래그하면 다른 막대에 떨어뜨려 FS 의존 생성 */}
+            {canEdit && (
+              <div ref={trackRef} className="absolute top-0 pointer-events-none"
+                style={{ left: labelW, width: model.periods.length * colW, height: model.totalH }}>
+                {Array.from(model.pos.entries()).map(([itemId, p]) => {
+                  // 호버 중인 막대 또는 linkDrag 진행 중이면 노출 (다른 막대 위에 떨어뜨릴 위치 표시 위해)
+                  const visible = hoverItemId === itemId || linkDrag !== null;
+                  return (
+                    <button
+                      key={`link-${itemId}`}
+                      title="드래그하여 의존선 생성 → 다른 막대에 놓기 (FS)"
+                      onMouseEnter={() => setHoverItemId(itemId)}
+                      onMouseDown={(e) => {
+                        e.preventDefault(); e.stopPropagation();
+                        setLinkDrag({ sourceId: itemId, sx: p.x1, sy: p.yc, mx: e.clientX, my: e.clientY });
+                      }}
+                      className="absolute pointer-events-auto w-3 h-3 rounded-full bg-[#9A6FB0] hover:bg-[#A50034] hover:scale-125 ring-2 ring-white transition-all cursor-crosshair"
+                      style={{ left: p.x1 - 6, top: p.yc - 6, zIndex: 25, opacity: visible ? 1 : 0 }}
+                    />
+                  );
+                })}
+              </div>
+            )}
+            {/* drag ghost line — linkDrag 진행 중에만 */}
+            {linkDrag && trackRef.current && (() => {
+              const rect = trackRef.current.getBoundingClientRect();
+              const ex = linkDrag.mx - rect.left;
+              const ey = linkDrag.my - rect.top;
+              return (
+                <svg className="absolute top-0 pointer-events-none z-30"
+                  style={{ left: labelW, width: model.periods.length * colW, height: model.totalH }}>
+                  <line x1={linkDrag.sx} y1={linkDrag.sy} x2={ex} y2={ey}
+                    stroke="#A50034" strokeWidth={1.8} strokeDasharray="5,4" />
+                  <circle cx={ex} cy={ey} r={4} fill="#A50034" />
                 </svg>
               );
             })()}
