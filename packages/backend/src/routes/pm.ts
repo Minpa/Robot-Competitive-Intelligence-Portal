@@ -5,7 +5,8 @@ import { and, asc, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import { authMiddleware } from './auth.js';
 import {
   pmProjects, pmMemberships, pmBoards, pmGroups, pmColumns,
-  pmItems, pmCells, pmUpdates, pmViews, pmActivityLog, pmDependencies, pmTemplates, users,
+  pmItems, pmCells, pmUpdates, pmViews, pmActivityLog, pmDependencies, pmTemplates,
+  pmAutomations, pmSnapshots, users,
 } from '../db/schema.js';
 import {
   getUserProjectRole, roleAtLeast, assembleBoardData, validateCellValue, logActivity,
@@ -340,6 +341,8 @@ export async function pmRoutes(fastify: FastifyInstance) {
     await db.insert(pmCells).values({ itemId, columnId, value })
       .onConflictDoUpdate({ target: [pmCells.itemId, pmCells.columnId], set: { value, updatedAt: new Date() } });
     await logActivity({ projectId: pid, itemId, userId: uid(request), action: 'set_cell', entityType: 'cell', diff: { columnId, value } });
+    // 자동화 평가 (REQ-21 MVP) — 같은 보드의 trigger 일치 시 actions 실행. 실패 silent.
+    try { await evaluateAutomations({ itemId, boardId: col.boardId, columnId, value, userId: uid(request) }); } catch { /* noop */ }
     return { ok: true };
   });
 
@@ -705,4 +708,151 @@ export async function pmRoutes(fastify: FastifyInstance) {
       entityType: 'project', diff: { templateId, templateName: tpl.name } });
     return { project: proj };
   });
+
+  // ─────────────── Automations (Phase 3 REQ-21 MVP) ───────────────
+  // 트리거: { type:'cell_changed_to', columnId:N, labelId:M }
+  // 액션:  [{ type:'set_cell', columnId:N, value:{...} }]
+  fastify.get('/boards/:id/automations', async (request, reply) => {
+    const bid = Number((request.params as any).id);
+    if (!(await guard(request, reply, await projectIdOfBoard(bid), 'viewer'))) return;
+    const rows = await db.select().from(pmAutomations).where(eq(pmAutomations.boardId, bid)).orderBy(asc(pmAutomations.id));
+    return { automations: rows };
+  });
+  fastify.post('/boards/:id/automations', async (request, reply) => {
+    const bid = Number((request.params as any).id);
+    if (!(await guard(request, reply, await projectIdOfBoard(bid), 'editor'))) return;
+    const b = request.body as any;
+    const [a] = await db.insert(pmAutomations).values({
+      boardId: bid, name: b.name || '새 자동화',
+      trigger: b.trigger ?? {}, actions: b.actions ?? [],
+      enabled: b.enabled !== false, createdBy: uid(request),
+    }).returning();
+    return { automation: a };
+  });
+  fastify.put('/automations/:id', async (request, reply) => {
+    const aid = Number((request.params as any).id);
+    const [a] = await db.select().from(pmAutomations).where(eq(pmAutomations.id, aid)).limit(1);
+    if (!a) return reply.code(404).send({ error: 'not found' });
+    if (!(await guard(request, reply, await projectIdOfBoard(a.boardId), 'editor'))) return;
+    const b = request.body as any;
+    const [upd] = await db.update(pmAutomations).set({
+      name: b.name ?? a.name,
+      trigger: b.trigger ?? a.trigger,
+      actions: b.actions ?? a.actions,
+      enabled: b.enabled ?? a.enabled,
+    }).where(eq(pmAutomations.id, aid)).returning();
+    return { automation: upd };
+  });
+  fastify.delete('/automations/:id', async (request, reply) => {
+    const aid = Number((request.params as any).id);
+    const [a] = await db.select().from(pmAutomations).where(eq(pmAutomations.id, aid)).limit(1);
+    if (!a) return reply.code(404).send({ error: 'not found' });
+    if (!(await guard(request, reply, await projectIdOfBoard(a.boardId), 'editor'))) return;
+    await db.delete(pmAutomations).where(eq(pmAutomations.id, aid));
+    return { ok: true };
+  });
+
+  // ─────────────── Snapshots (§10.3) ───────────────
+  // 보드 현재 상태를 통째로 JSON 으로 보관. diff 는 두 스냅샷 비교.
+  fastify.get('/boards/:id/snapshots', async (request, reply) => {
+    const bid = Number((request.params as any).id);
+    if (!(await guard(request, reply, await projectIdOfBoard(bid), 'viewer'))) return;
+    const rows = await db.select({ id: pmSnapshots.id, boardId: pmSnapshots.boardId, name: pmSnapshots.name,
+      takenAt: pmSnapshots.takenAt, takenBy: pmSnapshots.takenBy })
+      .from(pmSnapshots).where(eq(pmSnapshots.boardId, bid)).orderBy(desc(pmSnapshots.takenAt));
+    return { snapshots: rows };
+  });
+  fastify.post('/boards/:id/snapshots', async (request, reply) => {
+    const bid = Number((request.params as any).id);
+    if (!(await guard(request, reply, await projectIdOfBoard(bid), 'editor'))) return;
+    const data = await assembleBoardData(bid);
+    if (!data) return reply.code(404).send({ error: 'board not found' });
+    const b = request.body as any;
+    const [s] = await db.insert(pmSnapshots).values({
+      boardId: bid, name: b?.name || new Date().toISOString().slice(0, 10),
+      takenBy: uid(request), payload: data as any,
+    }).returning();
+    return { snapshot: { id: s!.id, boardId: s!.boardId, name: s!.name, takenAt: s!.takenAt, takenBy: s!.takenBy } };
+  });
+  fastify.get('/snapshots/:id', async (request, reply) => {
+    const sid = Number((request.params as any).id);
+    const [s] = await db.select().from(pmSnapshots).where(eq(pmSnapshots.id, sid)).limit(1);
+    if (!s) return reply.code(404).send({ error: 'not found' });
+    if (!(await guard(request, reply, await projectIdOfBoard(s.boardId), 'viewer'))) return;
+    return { snapshot: s };
+  });
+  fastify.delete('/snapshots/:id', async (request, reply) => {
+    const sid = Number((request.params as any).id);
+    const [s] = await db.select().from(pmSnapshots).where(eq(pmSnapshots.id, sid)).limit(1);
+    if (!s) return reply.code(404).send({ error: 'not found' });
+    if (!(await guard(request, reply, await projectIdOfBoard(s.boardId), 'editor'))) return;
+    await db.delete(pmSnapshots).where(eq(pmSnapshots.id, sid));
+    return { ok: true };
+  });
+  // diff: 두 스냅샷 간 아이템 추가/삭제/이름변경, 셀 값 변경
+  fastify.get('/snapshots/:id/diff', async (request, reply) => {
+    const sid = Number((request.params as any).id);
+    const otherId = Number((request.query as any).other);
+    if (!otherId) return reply.code(400).send({ error: 'other query required' });
+    const rows = await db.select().from(pmSnapshots)
+      .where(inArray(pmSnapshots.id, [sid, otherId]));
+    const a = rows.find((r) => r.id === sid);
+    const b = rows.find((r) => r.id === otherId);
+    if (!a || !b) return reply.code(404).send({ error: 'snapshot(s) not found' });
+    if (!(await guard(request, reply, await projectIdOfBoard(a.boardId), 'viewer'))) return;
+    return { diff: diffBoardPayloads(b.payload as any, a.payload as any) }; // b → a (오래된 → 새것)
+  });
+}
+
+// ── 자동화 평가 (헬퍼) — cell PUT 직후 호출 ──
+async function evaluateAutomations(ctx: { itemId: number; boardId: number; columnId: number; value: any; userId: string | null }) {
+  const list = await db.select().from(pmAutomations)
+    .where(and(eq(pmAutomations.boardId, ctx.boardId), eq(pmAutomations.enabled, true))!);
+  for (const a of list) {
+    const trig = (a.trigger ?? {}) as any;
+    if (trig.type !== 'cell_changed_to') continue;
+    if (Number(trig.columnId) !== ctx.columnId) continue;
+    if (trig.labelId != null && Number(trig.labelId) !== Number(ctx.value?.label_id)) continue;
+    const actions = Array.isArray(a.actions) ? a.actions : [];
+    for (const act of actions as any[]) {
+      if (act?.type !== 'set_cell') continue;
+      const targetCol = Number(act.columnId);
+      if (!Number.isFinite(targetCol)) continue;
+      try {
+        await db.insert(pmCells).values({ itemId: ctx.itemId, columnId: targetCol, value: act.value ?? {} })
+          .onConflictDoUpdate({ target: [pmCells.itemId, pmCells.columnId], set: { value: act.value ?? {}, updatedAt: new Date() } });
+        await logActivity({ boardId: ctx.boardId, itemId: ctx.itemId, userId: ctx.userId ?? null,
+          action: 'automation_set_cell', entityType: 'automation',
+          diff: { automationId: a.id, columnId: targetCol, value: act.value } });
+      } catch { /* noop */ }
+    }
+  }
+}
+
+// ── 스냅샷 diff 헬퍼 — 보드 payload(JSON) 간 아이템 변화 비교 ──
+function diffBoardPayloads(prev: any, next: any) {
+  const pItems = new Map<number, any>(((prev?.items as any[]) ?? []).map((i) => [i.id, i]));
+  const nItems = new Map<number, any>(((next?.items as any[]) ?? []).map((i) => [i.id, i]));
+  const added: any[] = [], removed: any[] = [], renamed: any[] = [];
+  for (const [id, n] of nItems) {
+    const p = pItems.get(id);
+    if (!p) { added.push({ id, name: n.name }); continue; }
+    if (p.name !== n.name) renamed.push({ id, from: p.name, to: n.name });
+  }
+  for (const [id, p] of pItems) {
+    if (!nItems.has(id)) removed.push({ id, name: p.name });
+  }
+  // 셀 변화
+  const cellKey = (c: any) => `${c.itemId}:${c.columnId}`;
+  const pCells = new Map<string, any>(((prev?.cells as any[]) ?? []).map((c) => [cellKey(c), c.value]));
+  const nCells = new Map<string, any>(((next?.cells as any[]) ?? []).map((c) => [cellKey(c), c.value]));
+  const cellChanges: any[] = [];
+  for (const [k, nv] of nCells) {
+    const pv = pCells.get(k);
+    if (JSON.stringify(pv) !== JSON.stringify(nv)) {
+      const [itemId, columnId] = k.split(':').map(Number);
+      cellChanges.push({ itemId, columnId, from: pv ?? null, to: nv });
+    }
+  }
+  return { added, removed, renamed, cellChanges };
 }

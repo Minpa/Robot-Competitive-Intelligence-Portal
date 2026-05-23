@@ -88,6 +88,17 @@ export const pmApi = {
   deleteView: (id: number) => req<{ ok: true }>(`/views/${id}`, { method: 'DELETE' }),
   activity: (pid: number) => req<{ activity: any[] }>(`/projects/${pid}/activity`),
   search: (q: string) => req<{ projects: PmProject[]; boards: PmBoard[]; items: any[] }>(`/search?q=${encodeURIComponent(q)}`),
+  // automations (Phase 3 REQ-21 MVP)
+  listAutomations: (bid: number) => req<{ automations: Array<{ id: number; boardId: number; name: string; trigger: any; actions: any[]; enabled: boolean; createdAt: string }> }>(`/boards/${bid}/automations`),
+  createAutomation: (bid: number, b: any) => req<{ automation: any }>(`/boards/${bid}/automations`, { method: 'POST', body: JSON.stringify(b) }),
+  updateAutomation: (id: number, b: any) => req<{ automation: any }>(`/automations/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
+  deleteAutomation: (id: number) => req<{ ok: true }>(`/automations/${id}`, { method: 'DELETE' }),
+  // snapshots (§10.3)
+  listSnapshots: (bid: number) => req<{ snapshots: Array<{ id: number; boardId: number; name: string | null; takenAt: string; takenBy: string | null }> }>(`/boards/${bid}/snapshots`),
+  createSnapshot: (bid: number, name?: string) => req<{ snapshot: any }>(`/boards/${bid}/snapshots`, { method: 'POST', body: JSON.stringify({ name }) }),
+  getSnapshot: (id: number) => req<{ snapshot: any }>(`/snapshots/${id}`),
+  deleteSnapshot: (id: number) => req<{ ok: true }>(`/snapshots/${id}`, { method: 'DELETE' }),
+  snapshotDiff: (id: number, otherId: number) => req<{ diff: { added: any[]; removed: any[]; renamed: any[]; cellChanges: any[] } }>(`/snapshots/${id}/diff?other=${otherId}`),
   // dashboard (Phase 3 REQ-22)
   dashboard: (pid: number) => req<{
     boards: Array<{ id: number; name: string }>;

@@ -2410,3 +2410,31 @@ export const pmTemplates = pgTable('pm_templates', {
   createdBy: uuid('created_by'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+// pm_automations — Phase 3 REQ-21 자동화 MVP.
+// trigger: { type: 'cell_changed_to', columnId, labelId } | { type: 'cell_set', columnId }
+// actions: [{ type: 'set_cell', columnId, value: {...} }]
+export const pmAutomations = pgTable('pm_automations', {
+  id: serial('id').primaryKey(),
+  boardId: integer('board_id')
+    .notNull()
+    .references(() => pmBoards.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 120 }).notNull(),
+  trigger: jsonb('trigger').$type<Record<string, unknown>>().default({}),
+  actions: jsonb('actions').$type<Array<Record<string, unknown>>>().default([]),
+  enabled: boolean('enabled').default(true).notNull(),
+  createdBy: uuid('created_by'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// pm_snapshots — 보고 스냅샷 (§10.3). payload 는 그 시점 보드 데이터 전체 JSON.
+export const pmSnapshots = pgTable('pm_snapshots', {
+  id: serial('id').primaryKey(),
+  boardId: integer('board_id')
+    .notNull()
+    .references(() => pmBoards.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 120 }),
+  takenAt: timestamp('taken_at').defaultNow().notNull(),
+  takenBy: uuid('taken_by'),
+  payload: jsonb('payload').$type<Record<string, unknown>>().default({}),
+});

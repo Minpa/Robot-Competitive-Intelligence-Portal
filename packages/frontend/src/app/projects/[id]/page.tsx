@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Trello, Users, History, Trash2, LayoutDashboard, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Trello, Users, History, Trash2, LayoutDashboard, AlertCircle, Zap } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { pmApi, type PmProject, type PmBoard, type PmMember } from '@/lib/pm-api';
 import CommandPalette from '@/components/pm/CommandPalette';
+import AutomationsTab from '@/components/pm/AutomationsTab';
 
 function ProjectDetailContent() {
   const params = useParams();
@@ -17,7 +18,7 @@ function ProjectDetailContent() {
   const [members, setMembers] = useState<PmMember[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
   const [dashboard, setDashboard] = useState<any | null>(null);
-  const [tab, setTab] = useState<'boards' | 'dashboard' | 'members' | 'activity'>('boards');
+  const [tab, setTab] = useState<'boards' | 'dashboard' | 'automations' | 'members' | 'activity'>('boards');
   const [err, setErr] = useState<string | null>(null);
   const [newBoard, setNewBoard] = useState('');
   const [newMemberId, setNewMemberId] = useState('');
@@ -60,7 +61,7 @@ function ProjectDetailContent() {
         {project.description && <p className="text-[13px] text-[#5F5E5A] mb-5">{project.description}</p>}
 
         <div className="flex gap-1 border-b border-[#E2DED4] mb-5">
-          {([['boards', '보드', Trello], ['dashboard', '대시보드', LayoutDashboard], ['members', '멤버', Users], ['activity', '활동 로그', History]] as const).map(([k, label, Icon]) => (
+          {([['boards', '보드', Trello], ['dashboard', '대시보드', LayoutDashboard], ['automations', '자동화', Zap], ['members', '멤버', Users], ['activity', '활동 로그', History]] as const).map(([k, label, Icon]) => (
             <button key={k} onClick={() => setTab(k)}
               className={`inline-flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors ${tab === k ? 'border-[#A50034] text-[#A50034]' : 'border-transparent text-[#5F5E5A] hover:text-[#1A1A1A]'}`}>
               <Icon size={14} /> {label}
@@ -91,6 +92,10 @@ function ProjectDetailContent() {
               {boards.length === 0 && <p className="text-[13px] text-[#888780] py-6">보드가 없습니다. 위에서 추가하세요.</p>}
             </div>
           </>
+        )}
+
+        {tab === 'automations' && (
+          <AutomationsTab projectId={id} boards={boards} canEdit={true} />
         )}
 
         {tab === 'dashboard' && (

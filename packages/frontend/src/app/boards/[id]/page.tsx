@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Table2, GanttChartSquare, KanbanSquare, CalendarDays, Plus, Download, Loader2, Lock } from 'lucide-react';
+import { ArrowLeft, Table2, GanttChartSquare, KanbanSquare, CalendarDays, Plus, Download, Loader2, Lock, Camera } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { api } from '@/lib/api';
 import { pmApi, type BoardData } from '@/lib/pm-api';
@@ -15,6 +15,7 @@ import ItemDetailPanel from '@/components/pm/ItemDetailPanel';
 import BoardFilters, { applyFilters, emptyFilters, type BoardFilterState } from '@/components/pm/BoardFilters';
 import SavedViewsMenu, { type ViewKind } from '@/components/pm/SavedViewsMenu';
 import CommandPalette from '@/components/pm/CommandPalette';
+import SnapshotsModal from '@/components/pm/SnapshotsModal';
 
 const COLUMN_TYPES = ['text', 'long_text', 'status', 'priority', 'person', 'date', 'timeline', 'number', 'dropdown', 'checkbox', 'reliability'] as const;
 
@@ -62,6 +63,7 @@ function BoardContent() {
   const [openItem, setOpenItem] = useState<number | null>(null);
   const [exporting, setExporting] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showSnapshots, setShowSnapshots] = useState(false);
   const [exportOpts, setExportOpts] = useState<any>({ view: 'timeline', axis_unit: 'month', confidentiality: 'internal', conclusion: '' });
   const [filters, setFilters] = useState<BoardFilterState>(emptyFilters);
   const filtered = useMemo(() => data ? applyFilters(data, filters) : null, [data, filters]);
@@ -152,9 +154,14 @@ function BoardContent() {
               {!canEdit && <span className="inline-flex items-center gap-1 font-mono text-[10px] text-[#888780] px-2 py-0.5 bg-[#F0EEE8] rounded"><Lock size={11} /> 읽기전용</span>}
             </div>
           </div>
-          <button onClick={() => setShowExport(true)} className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#A50034] hover:bg-[#8B1538] text-white text-[13px] font-medium rounded-md">
-            <Download size={15} /> 내보내기 (1장 PPTX)
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowSnapshots(true)} className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-[#D3D1C7] hover:border-[#A50034] text-[#5F5E5A] hover:text-[#A50034] text-[12.5px] font-medium rounded-md">
+              <Camera size={14} /> 스냅샷
+            </button>
+            <button onClick={() => setShowExport(true)} className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#A50034] hover:bg-[#8B1538] text-white text-[13px] font-medium rounded-md">
+              <Download size={15} /> 내보내기 (1장 PPTX)
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center justify-between mb-3">
@@ -205,6 +212,10 @@ function BoardContent() {
         {view === 'kanban' && <KanbanView data={filtered!} canEdit={canEdit} onChanged={load} onOpenItem={setOpenItem} />}
         {view === 'calendar' && <CalendarView data={filtered!} onOpenItem={setOpenItem} />}
       </div>
+
+      {showSnapshots && data && (
+        <SnapshotsModal boardId={id} canEdit={canEdit} onClose={() => setShowSnapshots(false)} />
+      )}
 
       {openItem != null && data && (
         <ItemDetailPanel boardData={data} itemId={openItem} canEdit={canEdit} onClose={() => setOpenItem(null)} onChanged={load} onOpenItem={setOpenItem} />
