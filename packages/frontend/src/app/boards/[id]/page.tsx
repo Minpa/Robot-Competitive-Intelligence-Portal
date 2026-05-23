@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Table2, GanttChartSquare, KanbanSquare, CalendarDays, Plus, Download, Loader2, Lock, Camera } from 'lucide-react';
+import { ArrowLeft, Table2, GanttChartSquare, KanbanSquare, CalendarDays, Plus, Download, Loader2, Lock, Camera, History } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { api } from '@/lib/api';
 import { pmApi, type BoardData } from '@/lib/pm-api';
@@ -16,6 +16,7 @@ import BoardFilters, { applyFilters, emptyFilters, type BoardFilterState } from 
 import SavedViewsMenu, { type ViewKind } from '@/components/pm/SavedViewsMenu';
 import CommandPalette from '@/components/pm/CommandPalette';
 import SnapshotsModal from '@/components/pm/SnapshotsModal';
+import BoardActivityModal from '@/components/pm/BoardActivityModal';
 
 const COLUMN_TYPES = ['text', 'long_text', 'status', 'priority', 'person', 'date', 'timeline', 'number', 'dropdown', 'checkbox', 'reliability'] as const;
 
@@ -64,6 +65,7 @@ function BoardContent() {
   const [exporting, setExporting] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showSnapshots, setShowSnapshots] = useState(false);
+  const [showActivity, setShowActivity] = useState(false);
   const [exportOpts, setExportOpts] = useState<any>({ view: 'timeline', axis_unit: 'month', confidentiality: 'internal', conclusion: '' });
   const [filters, setFilters] = useState<BoardFilterState>(emptyFilters);
   const filtered = useMemo(() => data ? applyFilters(data, filters) : null, [data, filters]);
@@ -155,6 +157,9 @@ function BoardContent() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={() => setShowActivity(true)} className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-[#D3D1C7] hover:border-[#A50034] text-[#5F5E5A] hover:text-[#A50034] text-[12.5px] font-medium rounded-md">
+              <History size={14} /> 업데이트 내역
+            </button>
             <button onClick={() => setShowSnapshots(true)} className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-[#D3D1C7] hover:border-[#A50034] text-[#5F5E5A] hover:text-[#A50034] text-[12.5px] font-medium rounded-md">
               <Camera size={14} /> 스냅샷
             </button>
@@ -215,6 +220,10 @@ function BoardContent() {
 
       {showSnapshots && data && (
         <SnapshotsModal boardId={id} canEdit={canEdit} onClose={() => setShowSnapshots(false)} />
+      )}
+
+      {showActivity && data && (
+        <BoardActivityModal boardId={id} onClose={() => setShowActivity(false)} onOpenItem={setOpenItem} />
       )}
 
       {openItem != null && data && (

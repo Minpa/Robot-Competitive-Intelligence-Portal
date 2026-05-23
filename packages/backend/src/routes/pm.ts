@@ -338,11 +338,21 @@ export async function pmRoutes(fastify: FastifyInstance) {
     const value = (request.body as any)?.value ?? {};
     const err = validateCellValue(col.type, value);
     if (err) return reply.code(400).send({ error: err });
+    // 이전 값 보존 → 의존 cascade 시 delta 계산에 사용
+    const [prevCell] = await db.select().from(pmCells)
+      .where(and(eq(pmCells.itemId, itemId), eq(pmCells.columnId, columnId))!).limit(1);
+    const prevValue = (prevCell?.value ?? {}) as any;
     await db.insert(pmCells).values({ itemId, columnId, value })
       .onConflictDoUpdate({ target: [pmCells.itemId, pmCells.columnId], set: { value, updatedAt: new Date() } });
     await logActivity({ projectId: pid, itemId, userId: uid(request), action: 'set_cell', entityType: 'cell', diff: { columnId, value } });
     // 자동화 평가 (REQ-21 MVP) — 같은 보드의 trigger 일치 시 actions 실행. 실패 silent.
     try { await evaluateAutomations({ itemId, boardId: col.boardId, columnId, value, userId: uid(request) }); } catch { /* noop */ }
+    // 의존 자동 시프트 — timeline 컬럼에서 start/end 변화 시 successor 일정 이동.
+    // 선행 end 가 그대로면 FS/FF successor 는 영향 없음 (의도된 보존 규칙).
+    if (col.type === 'timeline') {
+      try { await cascadeDependencyShifts({ itemId, columnId, prevValue, newValue: value, boardId: col.boardId, userId: uid(request) }); }
+      catch { /* noop */ }
+    }
     return { ok: true };
   });
 
@@ -499,6 +509,56 @@ export async function pmRoutes(fastify: FastifyInstance) {
     const rows = await db.select().from(pmActivityLog)
       .where(eq(pmActivityLog.projectId, id)).orderBy(desc(pmActivityLog.createdAt)).limit(200);
     return { activity: rows };
+  });
+
+  // 보드 업데이트 내역 — activity_log + item updates(코멘트) 통합 피드, newest first
+  fastify.get('/boards/:id/activity', async (request, reply) => {
+    const bid = Number((request.params as any).id);
+    if (!(await guard(request, reply, await projectIdOfBoard(bid), 'viewer'))) return;
+    // 1) activity log (board 직접 + 해당 보드의 item)
+    const itemIdsInBoard = await db.select({ id: pmItems.id }).from(pmItems).where(eq(pmItems.boardId, bid));
+    const itemIds = itemIdsInBoard.map((r) => r.id);
+    const logRows = await db.select({
+      id: pmActivityLog.id, action: pmActivityLog.action, entityType: pmActivityLog.entityType,
+      diff: pmActivityLog.diff, userId: pmActivityLog.userId, itemId: pmActivityLog.itemId,
+      createdAt: pmActivityLog.createdAt, email: users.email,
+    })
+      .from(pmActivityLog)
+      .leftJoin(users, eq(pmActivityLog.userId, users.id))
+      .where(or(
+        eq(pmActivityLog.boardId, bid),
+        itemIds.length ? inArray(pmActivityLog.itemId, itemIds) : sql`false`,
+      )!)
+      .orderBy(desc(pmActivityLog.createdAt)).limit(200);
+    // 2) 보드 아이템에 달린 코멘트 (Updates)
+    const upRows = itemIds.length
+      ? await db.select({
+          id: pmUpdates.id, body: pmUpdates.body, itemId: pmUpdates.itemId,
+          userId: pmUpdates.userId, createdAt: pmUpdates.createdAt, email: users.email,
+          itemName: pmItems.name,
+        })
+          .from(pmUpdates)
+          .leftJoin(users, eq(pmUpdates.userId, users.id))
+          .leftJoin(pmItems, eq(pmItems.id, pmUpdates.itemId))
+          .where(inArray(pmUpdates.itemId, itemIds))
+          .orderBy(desc(pmUpdates.createdAt)).limit(200)
+      : [];
+    // 3) 아이템명 lookup
+    const itemNameMap = new Map<number, string>();
+    if (itemIds.length) {
+      const itemRows = await db.select({ id: pmItems.id, name: pmItems.name }).from(pmItems).where(inArray(pmItems.id, itemIds));
+      for (const r of itemRows) itemNameMap.set(r.id, r.name);
+    }
+    // 4) 통합 피드 — 종류 표시 + 시간 desc
+    const merged = [
+      ...logRows.map((r) => ({ kind: 'log' as const, id: `l-${r.id}`, createdAt: r.createdAt,
+        actor: r.email?.split('@')[0] ?? null, action: r.action, entityType: r.entityType,
+        itemName: r.itemId ? (itemNameMap.get(r.itemId) ?? null) : null, diff: r.diff })),
+      ...upRows.map((r) => ({ kind: 'comment' as const, id: `u-${r.id}`, createdAt: r.createdAt,
+        actor: r.email?.split('@')[0] ?? null, body: r.body,
+        itemName: r.itemName ?? itemNameMap.get(r.itemId) ?? null, itemId: r.itemId })),
+    ].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)).slice(0, 200);
+    return { activity: merged };
   });
 
   // ─────────────── Search ───────────────
@@ -827,6 +887,82 @@ async function evaluateAutomations(ctx: { itemId: number; boardId: number; colum
       } catch { /* noop */ }
     }
   }
+}
+
+// ── 의존 자동 시프트 (REQ-14 cascade) ──
+// timeline 셀 변경 시 dependency 따라 successor 자동 이동.
+// 규칙: 선행의 anchor 점(end for FS/FF, start for SS/SF) 이 변하지 않았으면 successor 도 그대로.
+// 변했으면 변화량(days)만큼 successor 의 (start,end) 동시 이동 = 기간 보존.
+async function cascadeDependencyShifts(opts: {
+  itemId: number; columnId: number; prevValue: any; newValue: any;
+  boardId: number; userId: string | null; depth?: number; visited?: Set<number>;
+}) {
+  const depth = opts.depth ?? 0;
+  if (depth > 5) return; // 안전 한도
+  const visited = opts.visited ?? new Set<number>();
+  if (visited.has(opts.itemId)) return; // 순환 차단
+  visited.add(opts.itemId);
+
+  const prev = opts.prevValue ?? {};
+  const next = opts.newValue ?? {};
+  const startDelta = dayDelta(prev.start, next.start);
+  const endDelta = dayDelta(prev.end, next.end);
+  if ((startDelta == null || startDelta === 0) && (endDelta == null || endDelta === 0)) return;
+
+  const deps = await db.select().from(pmDependencies).where(and(
+    eq(pmDependencies.boardId, opts.boardId),
+    eq(pmDependencies.predecessorItemId, opts.itemId),
+  )!);
+  if (deps.length === 0) return;
+
+  // 보드의 timeline 컬럼 (successor 셀을 찾을 컬럼)
+  const [tcol] = await db.select().from(pmColumns).where(and(
+    eq(pmColumns.boardId, opts.boardId), eq(pmColumns.type, 'timeline'),
+  )!).limit(1);
+  if (!tcol) return;
+
+  for (const dep of deps) {
+    let delta: number | null = null;
+    if (dep.type === 'FS' || dep.type === 'FF') delta = endDelta;
+    else if (dep.type === 'SS' || dep.type === 'SF') delta = startDelta;
+    if (delta == null || delta === 0) continue; // 앵커 변화 없음 → skip
+
+    const [succCell] = await db.select().from(pmCells).where(and(
+      eq(pmCells.itemId, dep.successorItemId), eq(pmCells.columnId, tcol.id),
+    )!).limit(1);
+    const cv = (succCell?.value ?? {}) as any;
+    if (!cv.start || !cv.end) continue; // 일정 없는 succ 는 skip
+    const oldVal = { start: cv.start, end: cv.end };
+    const newVal = { start: shiftDate(cv.start, delta), end: shiftDate(cv.end, delta) };
+
+    await db.insert(pmCells).values({ itemId: dep.successorItemId, columnId: tcol.id, value: newVal })
+      .onConflictDoUpdate({ target: [pmCells.itemId, pmCells.columnId], set: { value: newVal, updatedAt: new Date() } });
+    await logActivity({ boardId: opts.boardId, itemId: dep.successorItemId, userId: opts.userId,
+      action: 'cascade_shift', entityType: 'cell',
+      diff: { from: { itemId: opts.itemId, depType: dep.type, deltaDays: delta }, prev: oldVal, next: newVal } });
+
+    // 재귀 — 이 successor 의 새 값을 기점으로 더 전파 (depth+1)
+    await cascadeDependencyShifts({
+      itemId: dep.successorItemId, columnId: tcol.id,
+      prevValue: oldVal, newValue: newVal,
+      boardId: opts.boardId, userId: opts.userId,
+      depth: depth + 1, visited,
+    });
+  }
+}
+
+function dayDelta(a?: string, b?: string): number | null {
+  if (!a || !b) return null;
+  const da = new Date(a), db = new Date(b);
+  if (Number.isNaN(da.getTime()) || Number.isNaN(db.getTime())) return null;
+  return Math.round((db.getTime() - da.getTime()) / 864e5);
+}
+
+function shiftDate(s: string, days: number): string {
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return s;
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 // ── 스냅샷 diff 헬퍼 — 보드 payload(JSON) 간 아이템 변화 비교 ──

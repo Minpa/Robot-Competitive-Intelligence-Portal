@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Trello, Users, History, Trash2, LayoutDashboard, AlertCircle, Zap } from 'lucide-react';
+import { ArrowLeft, Plus, Trello, Users, Trash2, LayoutDashboard, AlertCircle, Zap } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { pmApi, type PmProject, type PmBoard, type PmMember } from '@/lib/pm-api';
 import CommandPalette from '@/components/pm/CommandPalette';
@@ -16,9 +16,8 @@ function ProjectDetailContent() {
   const [project, setProject] = useState<PmProject | null>(null);
   const [boards, setBoards] = useState<PmBoard[]>([]);
   const [members, setMembers] = useState<PmMember[]>([]);
-  const [activity, setActivity] = useState<any[]>([]);
   const [dashboard, setDashboard] = useState<any | null>(null);
-  const [tab, setTab] = useState<'boards' | 'dashboard' | 'automations' | 'members' | 'activity'>('boards');
+  const [tab, setTab] = useState<'boards' | 'dashboard' | 'automations' | 'members'>('boards');
   const [err, setErr] = useState<string | null>(null);
   const [newBoard, setNewBoard] = useState('');
   const [newMemberId, setNewMemberId] = useState('');
@@ -32,7 +31,6 @@ function ProjectDetailContent() {
     } catch (e: any) { setErr(e.message); }
   };
   useEffect(() => { if (id) load(); }, [id]);
-  useEffect(() => { if (tab === 'activity' && id) pmApi.activity(id).then((r) => setActivity(r.activity)).catch(() => {}); }, [tab, id]);
   useEffect(() => { if (tab === 'dashboard' && id) pmApi.dashboard(id).then(setDashboard).catch(() => {}); }, [tab, id]);
 
   const addBoard = async () => {
@@ -61,7 +59,7 @@ function ProjectDetailContent() {
         {project.description && <p className="text-[13px] text-[#5F5E5A] mb-5">{project.description}</p>}
 
         <div className="flex gap-1 border-b border-[#E2DED4] mb-5">
-          {([['boards', '보드', Trello], ['dashboard', '대시보드', LayoutDashboard], ['automations', '자동화', Zap], ['members', '멤버', Users], ['activity', '활동 로그', History]] as const).map(([k, label, Icon]) => (
+          {([['boards', '보드', Trello], ['dashboard', '대시보드', LayoutDashboard], ['automations', '자동화', Zap], ['members', '멤버', Users]] as const).map(([k, label, Icon]) => (
             <button key={k} onClick={() => setTab(k)}
               className={`inline-flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium border-b-2 -mb-px transition-colors ${tab === k ? 'border-[#A50034] text-[#A50034]' : 'border-transparent text-[#5F5E5A] hover:text-[#1A1A1A]'}`}>
               <Icon size={14} /> {label}
@@ -174,17 +172,6 @@ function ProjectDetailContent() {
           </>
         )}
 
-        {tab === 'activity' && (
-          <div className="bg-white border border-[#E2DED4] rounded-lg divide-y divide-[#EFEDE6]">
-            {activity.length === 0 && <p className="text-[13px] text-[#888780] p-4">활동 기록이 없습니다.</p>}
-            {activity.map((a) => (
-              <div key={a.id} className="px-4 py-2.5 text-[12.5px] flex items-center justify-between">
-                <span><span className="font-mono text-[11px] text-[#A50034]">{a.action}</span> · {a.entityType}</span>
-                <span className="font-mono text-[10.5px] text-[#888780]">{new Date(a.createdAt).toLocaleString('ko-KR')}</span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );

@@ -87,6 +87,11 @@ export const pmApi = {
   updateView: (id: number, b: Partial<PmView>) => req<{ view: PmView }>(`/views/${id}`, { method: 'PUT', body: JSON.stringify(b) }),
   deleteView: (id: number) => req<{ ok: true }>(`/views/${id}`, { method: 'DELETE' }),
   activity: (pid: number) => req<{ activity: any[] }>(`/projects/${pid}/activity`),
+  boardActivity: (bid: number) => req<{ activity: Array<{
+    kind: 'log' | 'comment'; id: string; createdAt: string; actor: string | null;
+    action?: string; entityType?: string; itemName?: string | null;
+    body?: string; itemId?: number; diff?: any;
+  }> }>(`/boards/${bid}/activity`),
   search: (q: string) => req<{ projects: PmProject[]; boards: PmBoard[]; items: any[] }>(`/search?q=${encodeURIComponent(q)}`),
   // automations (Phase 3 REQ-21 MVP)
   listAutomations: (bid: number) => req<{ automations: Array<{ id: number; boardId: number; name: string; trigger: any; actions: any[]; enabled: boolean; createdAt: string }> }>(`/boards/${bid}/automations`),
