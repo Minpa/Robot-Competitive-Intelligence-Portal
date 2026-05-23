@@ -1,7 +1,7 @@
 'use client';
 // 아이템 상세 패널 — 전체 필드 편집 + Updates 코멘트 스레드 (REQ-13).
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Send, CornerDownRight, Plus } from 'lucide-react';
+import { X, Send, CornerDownRight, Plus, Trash2 } from 'lucide-react';
 import { pmApi, type BoardData, type PmColumn } from '@/lib/pm-api';
 import { cellToText, textToCellValue, CellDisplay, DateCellEditor, ChoiceCellEditor, STATUS_PALETTE } from './cells';
 
@@ -100,6 +100,20 @@ export default function ItemDetailPanel({ boardData, itemId, canEdit, onClose, o
     } catch (e: any) { setError(`서브아이템 추가 실패: ${e?.message ?? ''}`); }
   };
 
+  const removeItem = async () => {
+    if (!canEdit || !item) return;
+    const subCount = subitems.length;
+    const msg = subCount > 0
+      ? `'${item.name}' 을(를) 삭제할까요? 서브아이템 ${subCount}개도 함께 삭제됩니다.`
+      : `'${item.name}' 을(를) 삭제할까요?`;
+    if (!confirm(msg)) return;
+    try {
+      await pmApi.deleteItem(itemId);
+      onChanged();
+      onClose();
+    } catch (e: any) { setError(`삭제 실패: ${e?.message ?? ''}`); }
+  };
+
   const postComment = async () => {
     const body = comment.trim();
     if (!body || sending) return;
@@ -122,7 +136,15 @@ export default function ItemDetailPanel({ boardData, itemId, canEdit, onClose, o
       <div className="w-full max-w-[480px] h-full bg-white shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#E2DED4]">
           <span className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.16em]">아이템 상세</span>
-          <button onClick={onClose} aria-label="닫기" className="text-[#888780] hover:text-[#1A1A1A]"><X size={18} /></button>
+          <div className="flex items-center gap-3">
+            {canEdit && (
+              <button onClick={removeItem} aria-label="아이템 삭제" title="아이템 삭제"
+                className="inline-flex items-center gap-1 text-[11.5px] text-[#888780] hover:text-[#A50034]">
+                <Trash2 size={14} /> 삭제
+              </button>
+            )}
+            <button onClick={onClose} aria-label="닫기" className="text-[#888780] hover:text-[#1A1A1A]"><X size={18} /></button>
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           <input value={name} onChange={(e) => setName(e.target.value)} onBlur={saveName} disabled={!canEdit}
