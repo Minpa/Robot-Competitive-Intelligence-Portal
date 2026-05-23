@@ -63,7 +63,9 @@ export default function BoardFilters({ data, value, onChange }: Props) {
       />
       {statusCol && labelsOf(statusCol).length > 0 && (
         <div className="inline-flex items-center gap-1">
-          <span className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.12em] mr-0.5">상태</span>
+          <span className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.12em] mr-0.5">
+            상태{labelsOf(statusCol).length > 0 && labelsOf(statusCol).every((l) => value.statusLabelIds.includes(l.id)) && <span className="text-[#3F8C6E] ml-0.5">(전체=필터 해제)</span>}
+          </span>
           {labelsOf(statusCol).map((l) => {
             const sel = value.statusLabelIds.includes(l.id);
             return (
@@ -82,7 +84,9 @@ export default function BoardFilters({ data, value, onChange }: Props) {
       )}
       {priorityCol && labelsOf(priorityCol).length > 0 && (
         <div className="inline-flex items-center gap-1">
-          <span className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.12em] mr-0.5">우선순위</span>
+          <span className="font-mono text-[10px] text-[#888780] uppercase tracking-[0.12em] mr-0.5">
+            우선순위{labelsOf(priorityCol).length > 0 && labelsOf(priorityCol).every((l) => value.priorityLabelIds.includes(l.id)) && <span className="text-[#3F8C6E] ml-0.5">(전체=필터 해제)</span>}
+          </span>
           {labelsOf(priorityCol).map((l) => {
             const sel = value.priorityLabelIds.includes(l.id);
             return (
@@ -130,19 +134,27 @@ export function applyFilters(data: BoardData, f: BoardFilterState): BoardData {
     const q = f.search.toLowerCase();
     items = items.filter((it) => it.name.toLowerCase().includes(q));
   }
-  // status
+  // status — 모든 라벨 칩이 켜져 있으면 필터 해제와 동일하게 동작 (NULL 값 아이템도 통과)
   if (f.statusLabelIds.length && statusCol) {
-    items = items.filter((it) => {
-      const v = cv(it.id, statusCol.id);
-      return v?.label_id != null && f.statusLabelIds.includes(v.label_id);
-    });
+    const all = (statusCol.settings?.labels || []) as Array<{ id: number }>;
+    const allSelected = all.length > 0 && all.every((l) => f.statusLabelIds.includes(l.id));
+    if (!allSelected) {
+      items = items.filter((it) => {
+        const v = cv(it.id, statusCol.id);
+        return v?.label_id != null && f.statusLabelIds.includes(v.label_id);
+      });
+    }
   }
-  // priority
+  // priority — 동일 규칙
   if (f.priorityLabelIds.length && priorityCol) {
-    items = items.filter((it) => {
-      const v = cv(it.id, priorityCol.id);
-      return v?.label_id != null && f.priorityLabelIds.includes(v.label_id);
-    });
+    const all = (priorityCol.settings?.labels || []) as Array<{ id: number }>;
+    const allSelected = all.length > 0 && all.every((l) => f.priorityLabelIds.includes(l.id));
+    if (!allSelected) {
+      items = items.filter((it) => {
+        const v = cv(it.id, priorityCol.id);
+        return v?.label_id != null && f.priorityLabelIds.includes(v.label_id);
+      });
+    }
   }
   // sort
   const cmp = (a: any, b: any) => (a == null ? 1 : b == null ? -1 : a < b ? -1 : a > b ? 1 : 0);
