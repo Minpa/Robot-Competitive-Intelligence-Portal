@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Table2, GanttChartSquare, KanbanSquare, CalendarDays, Plus, Download, Loader2, Lock, Camera, History } from 'lucide-react';
+import { ArrowLeft, Table2, GanttChartSquare, KanbanSquare, CalendarDays, Plus, Download, Loader2, Lock, Camera, History, Filter } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { api } from '@/lib/api';
 import { pmApi, type BoardData } from '@/lib/pm-api';
@@ -211,6 +211,25 @@ function BoardContent() {
         {err && <div className="bg-red-50 border border-red-200 text-red-700 text-[13px] rounded-md p-3 mb-3">{err}</div>}
 
         <BoardFilters data={data} value={filters} onChange={setFilters} />
+
+        {/* 필터 적용으로 가려진 아이템 안내 — '사라졌어'를 명시적으로 알림 */}
+        {filtered && filtered.items.length < data.items.length && (
+          <div className={`flex items-center gap-3 rounded-md px-3 py-1.5 mb-2 text-[12.5px] ${
+            filtered.items.length === 0
+              ? 'bg-[#FAEAE7] border border-[#A50034]/40 text-[#7a0f2c]'
+              : 'bg-[#FBF1D6]/60 border border-[#D4A22F]/40 text-[#5a3f0a]'
+          }`}>
+            <Filter size={13} className="shrink-0" />
+            <span className="flex-1">
+              필터 적용 중 — <b>{filtered.items.length}</b> / {data.items.length} 표시
+              {filtered.items.length === 0 && ' · 조건에 맞는 아이템이 없습니다'}
+            </span>
+            <button onClick={() => setFilters(emptyFilters)}
+              className="font-mono text-[11px] uppercase tracking-[0.1em] text-[#A50034] hover:underline shrink-0">
+              필터 초기화
+            </button>
+          </div>
+        )}
 
         {view === 'table' && <TableView data={filtered!} canEdit={canEdit} onChanged={load} onOpenItem={setOpenItem} />}
         {view === 'timeline' && <TimelineView data={filtered!} canEdit={canEdit} onChanged={load} />}
