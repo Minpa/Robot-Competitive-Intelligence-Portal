@@ -1,6 +1,7 @@
 'use client';
 // Timeline/Gantt 뷰 — timeline 막대 + 주/월/분기 축 + 마일스톤·오늘선 + 의존선(FS/SS/FF/SF).
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { pmApi, type BoardData, type DependencyType } from '@/lib/pm-api';
 
 type Unit = 'day' | 'week' | 'month' | 'quarter';
@@ -72,9 +73,9 @@ const DEP_LABEL: Record<DependencyType, string> = {
   SF: '선행이 시작해야 후행 종료',
 };
 
-interface Props { data: BoardData; canEdit?: boolean; onChanged?: () => void; }
+interface Props { data: BoardData; canEdit?: boolean; onChanged?: () => void; onOpenItem?: (id: number) => void; }
 
-export default function TimelineView({ data, canEdit = false, onChanged }: Props) {
+export default function TimelineView({ data, canEdit = false, onChanged, onOpenItem }: Props) {
   const board = data.board;
   const [unit, setUnit] = useState<Unit>(
     (board.reportCycle && board.reportCycle !== 'none' ? board.reportCycle : 'month') as Unit);
@@ -500,10 +501,15 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
                     const endDrag = async () => {
                       if (drag?.itemId !== b.it.id) return;
                       const p = drag.periods, m = drag.mode;
-                      // setDrag(null) 을 즉시 호출하면 preview transform 이 0 으로 돌아가
-                      // 'snap-back → 새 위치 로드' 의 시각 글리치 (반대로 갔다가 2칸 이동처럼 보임).
-                      // applyDrag/Resize 가 load() 완료까지 await 하도록 수정됐으므로,
-                      // 그 후에 setDrag(null) 하면 새 위치와 자연스럽게 이어짐.
+                      // 이동 0 인 단순 클릭(move 모드) → 상세 패널 열기 (드래그 진입점과 분리)
+                      if (p === 0 && m === 'move') {
+                        setDrag(null);
+                        onOpenItem?.(b.it.id);
+                        return;
+                      }
+                      // setDrag(null) 즉시 호출 시 preview transform 0 으로 돌아가 'snap-back → 새 위치'
+                      // 시각 글리치 발생. applyDrag/Resize 가 load() 완료까지 await 하므로 그 후에
+                      // setDrag(null) 하면 새 위치와 자연스럽게 이어짐.
                       if (m === 'move') await applyDrag(b.it.id, p);
                       else await applyResize(b.it.id, p, m);
                       setDrag(null);
@@ -651,6 +657,36 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
                 })}
               </div>
             )}
+            {/* 호버 시 편집/삭제 팝업 — 막대 바로 아래 위치, 호버 유지 위해 pointer-events-auto */}
+            {hoverItemId != null && !linkDrag && (() => {
+              const p = model.pos.get(hoverItemId);
+              const it = data.items.find((i) => i.id === hoverItemId);
+              if (!p || !it) return null;
+              const cx = (p.x0 + p.x1) / 2;
+              const cy = p.yc + 16; // 막대 아래
+              return (
+                <div className="absolute pointer-events-auto bg-white border border-[#E2DED4] rounded-md shadow-lg flex items-center gap-0.5 px-1 py-0.5 z-40"
+                  style={{ left: labelW + cx - 60, top: cy }}
+                  onMouseEnter={() => setHoverItemId(hoverItemId)}
+                  onMouseLeave={() => setHoverItemId(null)}>
+                  <span className="px-1.5 text-[10.5px] text-[#888780] truncate max-w-[140px]" title={it.name}>{it.name}</span>
+                  <button onClick={() => { onOpenItem?.(it.id); setHoverItemId(null); }}
+                    className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-[#5F5E5A] hover:text-[#A50034] hover:bg-[#FAFAF7] rounded">
+                    <Pencil size={11} /> 편집
+                  </button>
+                  {canEdit && (
+                    <button onClick={async () => {
+                      if (!confirm(`'${it.name}' 을(를) 삭제할까요?`)) return;
+                      try { await pmApi.deleteItem(it.id); const r = onChanged?.() as any; if (r && typeof r.then === 'function') await r; } catch {}
+                      setHoverItemId(null);
+                    }}
+                      className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-[#888780] hover:text-[#A50034] hover:bg-[#FAEAE7] rounded">
+                      <Trash2 size={11} /> 삭제
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
             {/* drag ghost line — linkDrag 진행 중에만 */}
             {linkDrag && trackRef.current && (() => {
               const rect = trackRef.current.getBoundingClientRect();

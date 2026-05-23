@@ -232,7 +232,7 @@ function BoardContent() {
         )}
 
         {view === 'table' && <TableView data={filtered!} canEdit={canEdit} onChanged={load} onOpenItem={setOpenItem} />}
-        {view === 'timeline' && <TimelineView data={filtered!} canEdit={canEdit} onChanged={load} />}
+        {view === 'timeline' && <TimelineView data={filtered!} canEdit={canEdit} onChanged={load} onOpenItem={setOpenItem} />}
         {view === 'kanban' && <KanbanView data={filtered!} canEdit={canEdit} onChanged={load} onOpenItem={setOpenItem} />}
         {view === 'calendar' && <CalendarView data={filtered!} onOpenItem={setOpenItem} />}
       </div>
