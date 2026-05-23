@@ -338,7 +338,9 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
       } else if (dv?.date && dCol) {
         await pmApi.setCell(itemId, dCol.id, { date: shiftStr(dv.date, periods, unit) });
       }
-      onChanged?.();
+      // load() 완료까지 await — 미완료 시 preview 가 사라지면서 snap-back 발생
+      const r = onChanged?.() as any;
+      if (r && typeof r.then === 'function') await r;
     } catch { /* noop */ } finally { setBusy(false); }
   };
 
@@ -359,7 +361,8 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
         if (toDate(newEnd)! < toDate(newStart)!) newEnd = newStart; // start 역전 금지
       }
       await pmApi.setCell(itemId, tCol.id, { start: newStart, end: newEnd });
-      onChanged?.();
+      const r = onChanged?.() as any;
+      if (r && typeof r.then === 'function') await r;
     } catch { /* noop */ } finally { setBusy(false); }
   };
 
@@ -494,12 +497,16 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
                       const p = Math.round((e.clientX - drag.startX) / colW);
                       if (p !== drag.periods) setDrag({ ...drag, periods: p });
                     };
-                    const endDrag = () => {
+                    const endDrag = async () => {
                       if (drag?.itemId !== b.it.id) return;
                       const p = drag.periods, m = drag.mode;
+                      // setDrag(null) 을 즉시 호출하면 preview transform 이 0 으로 돌아가
+                      // 'snap-back → 새 위치 로드' 의 시각 글리치 (반대로 갔다가 2칸 이동처럼 보임).
+                      // applyDrag/Resize 가 load() 완료까지 await 하도록 수정됐으므로,
+                      // 그 후에 setDrag(null) 하면 새 위치와 자연스럽게 이어짐.
+                      if (m === 'move') await applyDrag(b.it.id, p);
+                      else await applyResize(b.it.id, p, m);
                       setDrag(null);
-                      if (m === 'move') void applyDrag(b.it.id, p);
-                      else void applyResize(b.it.id, p, m);
                     };
 
                     const moveProps = canEdit ? {

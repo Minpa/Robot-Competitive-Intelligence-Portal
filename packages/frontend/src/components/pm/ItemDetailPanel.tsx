@@ -158,20 +158,20 @@ export default function ItemDetailPanel({ boardData, itemId, canEdit, onClose, o
           </div>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-          <div className="group">
-            <div className="flex items-center gap-2">
-              <input value={name} onChange={(e) => setName(e.target.value)}
-                onBlur={saveName}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur(); } if (e.key === 'Escape') setName(item?.name ?? ''); }}
-                disabled={!canEdit}
-                placeholder="아이템 이름"
-                className="flex-1 text-[18px] font-medium text-[#1A1A1A] placeholder:text-[#B8B6AE] outline-none border border-transparent hover:border-[#E2DED4] focus:border-[#A50034] rounded px-1.5 py-1 -mx-1.5 transition-colors disabled:hover:border-transparent" />
-              {canEdit && (
-                <Pencil size={13} className="text-[#B8B6AE] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-              )}
-            </div>
+          <div>
             {canEdit && (
-              <p className="font-mono text-[10px] text-[#888780] mt-1">클릭하여 편집 · Enter 저장 · Esc 취소</p>
+              <label className="block font-mono text-[10px] text-[#888780] uppercase tracking-[0.14em] mb-1">
+                <Pencil size={10} className="inline mr-1" /> 이름 (클릭하여 편집)
+              </label>
+            )}
+            <input value={name} onChange={(e) => setName(e.target.value)}
+              onBlur={saveName}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur(); } if (e.key === 'Escape') setName(item?.name ?? ''); }}
+              disabled={!canEdit}
+              placeholder="아이템 이름"
+              className="w-full text-[18px] font-medium text-[#1A1A1A] placeholder:text-[#B8B6AE] outline-none border border-[#E2DED4] hover:border-[#A50034]/60 focus:border-[#A50034] rounded px-2 py-1.5 transition-colors disabled:bg-[#FAFAF7] disabled:hover:border-[#E2DED4]" />
+            {canEdit && (
+              <p className="font-mono text-[10px] text-[#B8B6AE] mt-1">Enter 저장 · Esc 취소</p>
             )}
           </div>
 
