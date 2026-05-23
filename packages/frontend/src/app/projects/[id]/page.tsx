@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, Plus, Trello, Users, History, Trash2, LayoutDashboard, AlertCircle } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { pmApi, type PmProject, type PmBoard, type PmMember } from '@/lib/pm-api';
+import CommandPalette from '@/components/pm/CommandPalette';
 
 function ProjectDetailContent() {
   const params = useParams();
@@ -195,5 +196,5 @@ function StatCard({ label, value, note, accent }: { label: string; value: number
 }
 
 export default function ProjectDetailPage() {
-  return <AuthGuard><ProjectDetailContent /></AuthGuard>;
+  return <AuthGuard><ProjectDetailContent /><CommandPalette /></AuthGuard>;
 }

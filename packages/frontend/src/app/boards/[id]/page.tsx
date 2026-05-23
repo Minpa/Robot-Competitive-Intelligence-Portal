@@ -14,6 +14,7 @@ import CalendarView from '@/components/pm/CalendarView';
 import ItemDetailPanel from '@/components/pm/ItemDetailPanel';
 import BoardFilters, { applyFilters, emptyFilters, type BoardFilterState } from '@/components/pm/BoardFilters';
 import SavedViewsMenu, { type ViewKind } from '@/components/pm/SavedViewsMenu';
+import CommandPalette from '@/components/pm/CommandPalette';
 
 const COLUMN_TYPES = ['text', 'long_text', 'status', 'priority', 'person', 'date', 'timeline', 'number', 'dropdown', 'checkbox', 'reliability'] as const;
 
@@ -250,5 +251,5 @@ function BoardContent() {
 }
 
 export default function BoardPage() {
-  return <AuthGuard><BoardContent /></AuthGuard>;
+  return <AuthGuard><BoardContent /><CommandPalette /></AuthGuard>;
 }

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { LayoutGrid, ArrowLeft } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { pmApi, type PmProject } from '@/lib/pm-api';
+import CommandPalette from '@/components/pm/CommandPalette';
 
 type Item = { projectId: number; boardId: number; boardName: string; itemId: number; name: string; start: string; end: string; kind: 'range' | 'milestone' };
 type Unit = 'month' | 'quarter';
@@ -176,4 +177,4 @@ function PortfolioContent() {
   );
 }
 
-export default function PortfolioPage() { return <AuthGuard><PortfolioContent /></AuthGuard>; }
+export default function PortfolioPage() { return <AuthGuard><PortfolioContent /><CommandPalette /></AuthGuard>; }

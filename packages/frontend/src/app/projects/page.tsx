@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { FolderKanban, Plus, Search, FileStack } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { pmApi, type PmProject } from '@/lib/pm-api';
+import CommandPalette from '@/components/pm/CommandPalette';
 
 function ProjectsContent() {
   const [projects, setProjects] = useState<PmProject[]>([]);
@@ -151,5 +152,5 @@ function ProjectsContent() {
 }
 
 export default function ProjectsPage() {
-  return <AuthGuard><ProjectsContent /></AuthGuard>;
+  return <AuthGuard><ProjectsContent /><CommandPalette /></AuthGuard>;
 }
