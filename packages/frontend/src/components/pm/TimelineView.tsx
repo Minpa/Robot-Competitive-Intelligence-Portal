@@ -83,34 +83,63 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState<{ itemId: number; startX: number; periods: number; mode: 'move' | 'start' | 'end' } | null>(null);
   const [hoverItemId, setHoverItemId] = useState<number | null>(null);
-  // 의존선 drag-to-create: 핸들에서 시작 → 다른 막대 위에서 떼면 FS 의존 생성
-  const [linkDrag, setLinkDrag] = useState<{ sourceId: number; sx: number; sy: number; mx: number; my: number } | null>(null);
+  // 의존선 drag-to-create / click-to-create-next:
+  // sx,sy = svg 기준 좌표(고스트 라인 시작점). sx0,sy0 = 마우스 시작 좌표(클릭/드래그 판정용).
+  const [linkDrag, setLinkDrag] = useState<{ sourceId: number; sx: number; sy: number; sx0: number; sy0: number; mx: number; my: number } | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   // '+' 버튼으로 기본 종료(2027-01) 이후 추가 연장한 개월 수
   const [extendMonths, setExtendMonths] = useState(0);
 
-  // linkDrag 진행 중 — 전역 mousemove/up 으로 끝점 추적 + drop 처리
+  // linkDrag 진행 중 — 전역 mousemove/up 으로 끝점 추적 + drop 처리.
+  // 클릭(이동 < 5px) → 다음 아이템 자동 생성 + FS 의존 자동 연결.
+  // 드래그(이동 >= 5px) → ghost 라인 후 다른 막대에 드롭 → FS 의존 생성.
   useEffect(() => {
     if (!linkDrag) return;
     const onMove = (e: MouseEvent) => {
       setLinkDrag((cur) => cur ? { ...cur, mx: e.clientX, my: e.clientY } : null);
     };
     const onUp = async (e: MouseEvent) => {
-      const el = document.elementFromPoint(e.clientX, e.clientY);
-      const barEl = el?.closest('[data-pm-bar-itemid]') as HTMLElement | null;
-      const targetId = barEl ? Number(barEl.getAttribute('data-pm-bar-itemid')) : NaN;
+      const moved = Math.hypot(e.clientX - linkDrag.sx0, e.clientY - linkDrag.sy0);
+      const isClick = moved < 5;
       setLinkDrag(null);
-      if (Number.isFinite(targetId) && targetId !== linkDrag.sourceId) {
-        try {
-          await pmApi.createDependency(board.id, { predecessorItemId: linkDrag.sourceId, successorItemId: targetId, type: 'FS' });
-          onChanged?.();
-        } catch (err: any) { alert(`의존선 생성 실패: ${err?.message ?? ''}`); }
+      if (isClick) {
+        await createNextItemAfter(linkDrag.sourceId);
+      } else {
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const barEl = el?.closest('[data-pm-bar-itemid]') as HTMLElement | null;
+        const targetId = barEl ? Number(barEl.getAttribute('data-pm-bar-itemid')) : NaN;
+        if (Number.isFinite(targetId) && targetId !== linkDrag.sourceId) {
+          try {
+            await pmApi.createDependency(board.id, { predecessorItemId: linkDrag.sourceId, successorItemId: targetId, type: 'FS' });
+            onChanged?.();
+          } catch (err: any) { alert(`의존선 생성 실패: ${err?.message ?? ''}`); }
+        }
       }
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
   }, [linkDrag, board.id, onChanged]);
+
+  // 다음 아이템 자동 생성 — 선행의 그룹/타임라인을 기준으로 +1일~+8일로 시작, FS 의존 자동 연결.
+  const createNextItemAfter = async (sourceId: number) => {
+    if (!tCol) { alert('timeline 컬럼이 필요합니다.'); return; }
+    const src = data.items.find((i) => i.id === sourceId);
+    if (!src) return;
+    const srcV = cv(sourceId, tCol.id);
+    const endStr = srcV?.end || srcV?.start;
+    let nextStart = new Date(); let nextEnd = new Date();
+    if (endStr) {
+      const d = toDate(endStr);
+      if (d) { nextStart = addDays(d, 1); nextEnd = addDays(d, 8); }
+    } else { nextEnd = addDays(nextStart, 7); }
+    try {
+      const { item: newItem } = await pmApi.createItem(src.groupId, { name: '새 아이템' });
+      await pmApi.setCell(newItem.id, tCol.id, { start: fmtDate(nextStart), end: fmtDate(nextEnd) });
+      await pmApi.createDependency(board.id, { predecessorItemId: sourceId, successorItemId: newItem.id, type: 'FS' });
+      onChanged?.();
+    } catch (e: any) { alert(`다음 아이템 생성 실패: ${e?.message ?? ''}`); }
+  };
   const tCol = useMemo(() => data.columns.find((c) => c.type === 'timeline'), [data.columns]);
   const dCol = useMemo(() => data.columns.find((c) => c.type === 'date'), [data.columns]);
   const cv = (itemId: number, colId: number) => data.cells.find((x) => x.itemId === itemId && x.columnId === colId)?.value;
@@ -602,11 +631,11 @@ export default function TimelineView({ data, canEdit = false, onChanged }: Props
                   return (
                     <button
                       key={`link-${itemId}`}
-                      title="드래그하여 의존선 생성 → 다른 막대에 놓기 (FS)"
+                      title="클릭: 다음 아이템 추가 · 드래그: 의존선 생성 (다른 막대에 놓기)"
                       onMouseEnter={() => setHoverItemId(itemId)}
                       onMouseDown={(e) => {
                         e.preventDefault(); e.stopPropagation();
-                        setLinkDrag({ sourceId: itemId, sx: p.x1, sy: p.yc, mx: e.clientX, my: e.clientY });
+                        setLinkDrag({ sourceId: itemId, sx: p.x1, sy: p.yc, sx0: e.clientX, sy0: e.clientY, mx: e.clientX, my: e.clientY });
                       }}
                       className="absolute pointer-events-auto w-3 h-3 rounded-full bg-[#9A6FB0] hover:bg-[#A50034] hover:scale-125 ring-2 ring-white transition-all cursor-crosshair"
                       style={{ left: p.x1 - 6, top: p.yc - 6, zIndex: 25, opacity: visible ? 1 : 0 }}

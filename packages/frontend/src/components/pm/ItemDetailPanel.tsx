@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Send, CornerDownRight, Plus } from 'lucide-react';
 import { pmApi, type BoardData, type PmColumn } from '@/lib/pm-api';
-import { cellToText, textToCellValue, CellDisplay, DateCellEditor } from './cells';
+import { cellToText, textToCellValue, CellDisplay, DateCellEditor, ChoiceCellEditor, STATUS_PALETTE } from './cells';
+
+const CHOICE_TYPES = ['status', 'priority', 'dropdown'];
 
 interface Props {
   boardData: BoardData;
@@ -77,6 +79,17 @@ export default function ItemDetailPanel({ boardData, itemId, canEdit, onClose, o
     if (!canEdit) return;
     await pmApi.setCell(itemId, col.id, value); onChanged();
   };
+  // 선택형 컬럼에 새 옵션 추가 후 그 id 반환 (재사용 가능)
+  const addChoiceOption = async (col: PmColumn, name: string): Promise<number | null> => {
+    if (!canEdit) return null;
+    const isDropdown = col.type === 'dropdown';
+    const cur: any[] = isDropdown ? (col.settings?.options || []) : (col.settings?.labels || []);
+    if (cur.some((o) => o.name === name)) return cur.find((o) => o.name === name)?.id ?? null;
+    const id = cur.reduce((m, o) => Math.max(m, o.id || 0), 0) + 1;
+    const entry = isDropdown ? { id, name } : { id, name, color: STATUS_PALETTE[(id - 1) % STATUS_PALETTE.length] };
+    const settings = { ...(col.settings || {}), [isDropdown ? 'options' : 'labels']: [...cur, entry] };
+    try { await pmApi.updateColumn(col.id, { settings }); onChanged(); return id; } catch { return null; }
+  };
   const addSubitem = async () => {
     if (!canEdit || !item) return;
     const name = newSubitemName.trim() || '새 서브아이템';
@@ -116,20 +129,25 @@ export default function ItemDetailPanel({ boardData, itemId, canEdit, onClose, o
             className="w-full text-[18px] font-medium text-[#1A1A1A] outline-none border-b border-transparent focus:border-[#A50034] pb-1" />
           <div className="space-y-3">
             {cols.map((col) => (
-              <div key={col.id} className="grid grid-cols-3 gap-3 items-center">
-                <label className="font-mono text-[10.5px] text-[#888780] uppercase tracking-[0.1em]">{col.name}</label>
+              <div key={col.id} className="grid grid-cols-3 gap-3 items-start">
+                <label className="font-mono text-[10.5px] text-[#888780] uppercase tracking-[0.1em] pt-1.5">{col.name}</label>
                 <div className="col-span-2">
                   {!canEdit ? (
                     <CellDisplay col={col} value={cv(col.id)} />
                   ) : col.type === 'timeline' || col.type === 'date' ? (
                     <DateCellEditor col={col} value={cv(col.id)} autoFocus={false}
                       onSave={(val) => saveCellValue(col, val)} />
+                  ) : CHOICE_TYPES.includes(col.type) ? (
+                    <ChoiceCellEditor col={col} value={cv(col.id)}
+                      onSave={(val) => saveCellValue(col, val)}
+                      onAddOption={(name) => addChoiceOption(col, name)} />
                   ) : (
                     <input
+                      key={`${itemId}-${col.id}-${JSON.stringify(cv(col.id))}`}
                       defaultValue={cellToText(col, cv(col.id))}
                       placeholder={TYPE_PLACEHOLDER[col.type] ?? '입력'}
                       onBlur={(e) => saveCell(col, e.target.value)}
-                      className="w-full text-[13px] border border-[#E2DED4] rounded px-2 py-1.5 outline-none focus:border-[#A50034]" />
+                      className="w-full text-[13px] text-[#1A1A1A] placeholder:text-[#B8B6AE] border border-[#E2DED4] rounded px-2 py-1.5 outline-none focus:border-[#A50034]" />
                   )}
                 </div>
               </div>
