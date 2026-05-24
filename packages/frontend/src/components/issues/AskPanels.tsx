@@ -118,9 +118,10 @@ export function ConfirmDraftPanel({ draft, onConfirm }: {
           <label className="block text-[11px] font-medium text-slate-600 mb-1">유형</label>
           <select value={type} onChange={(e) => setType(e.target.value as IssueType)}
             className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400">
-            {(['task','research','response','epic'] as IssueType[]).map(t => (
-              <option key={t} value={t}>{TYPE_LABEL[t]}</option>
-            ))}
+            <option value="task">실행 (task)</option>
+            <option value="research">조사 (research)</option>
+            <option value="response">대응 (response)</option>
+            <option value="epic">Epic (컨테이너)</option>
           </select>
         </div>
         <div>

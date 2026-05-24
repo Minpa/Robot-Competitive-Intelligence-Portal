@@ -6,6 +6,7 @@ import {
   issuesApi, type IssueType, type Priority,
   PRIORITY_LABEL, TYPE_LABEL,
 } from '@/lib/issues-api';
+import { ParentTicketPicker } from '@/components/issues/ParentTicketPicker';
 
 function NewIssueForm() {
   const router = useRouter();
@@ -64,9 +65,10 @@ function NewIssueForm() {
           <label className="block text-[11px] font-medium text-slate-600 mb-1">유형</label>
           <select value={type} onChange={(e) => setType(e.target.value as IssueType)}
             className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400">
-            {(['task','research','response','epic'] as IssueType[]).map(t => (
-              <option key={t} value={t}>{TYPE_LABEL[t]}</option>
-            ))}
+            <option value="task">실행 (task) — 일반 작업</option>
+            <option value="research">조사 (research) — 정보 수집·분석</option>
+            <option value="response">대응 (response) — 외부 사건 대응</option>
+            <option value="epic">Epic — 여러 하위 작업을 묶는 컨테이너</option>
           </select>
         </div>
         <div>
@@ -87,10 +89,11 @@ function NewIssueForm() {
 
       <div>
         <label className="block text-[11px] font-medium text-slate-600 mb-1">부모 이슈 (선택)</label>
-        <input value={parentCode} onChange={(e) => setParentCode(e.target.value)}
-          placeholder="예: ARG-042 — Epic 또는 일반 이슈"
-          className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400 font-mono focus:outline-none focus:ring-1 focus:ring-blue-500" />
-        <p className="text-[10px] text-slate-500 mt-0.5">depth-2 까지만 허용 (sub-sub-task 금지)</p>
+        <ParentTicketPicker value={parentCode} onChange={setParentCode}
+          placeholder="없음 — 클릭해서 부모 이슈 선택…" />
+        <p className="text-[10px] text-slate-500 mt-0.5">
+          Epic 또는 일반 이슈를 부모로 지정 가능. depth-2 까지만 허용 (sub-sub-task 금지).
+        </p>
       </div>
 
       {err && <div className="text-xs text-red-600">{err}</div>}
