@@ -2439,3 +2439,146 @@ export const pmSnapshots = pgTable('pm_snapshots', {
   takenBy: uuid('taken_by'),
   payload: jsonb('payload').$type<Record<string, unknown>>().default({}),
 });
+
+// ════════════════════════════════════════════════════════════════
+// ARGOS Issue Tracking Module — spec docs/issues/SPEC.md
+// 테이블 프리픽스 issue_. user 참조는 ARGOS users.id (uuid).
+// ════════════════════════════════════════════════════════════════
+
+export interface AiSuggestedAction {
+  step: string;
+  rationale: string;
+  estimatedEffortHours: number | null;
+  requiresCompetitorData: boolean;
+}
+
+// 3.1.1 Tickets
+export const issueTickets = pgTable(
+  'issue_tickets',
+  {
+    id:          uuid('id').primaryKey().defaultRandom(),
+    code:        varchar('code', { length: 16 }).notNull().unique(), // ARG-001
+    title:       varchar('title', { length: 200 }).notNull(),
+    description: text('description').notNull().default(''),
+    priority:    varchar('priority', { length: 1 }).notNull(), // H|M|L
+    status:      varchar('status', { length: 16 }).notNull().default('draft'),
+    type:        varchar('type', { length: 16 }).notNull().default('task'), // task|research|response|epic
+    parentTicketId: uuid('parent_ticket_id'),
+    reporterId:  uuid('reporter_id').notNull(),
+    ownerId:     uuid('owner_id'),
+    linkedCompetitorIds:  jsonb('linked_competitor_ids').$type<string[]>().default([]),
+    linkedStrategyDocIds: jsonb('linked_strategy_doc_ids').$type<string[]>().default([]),
+    linkedKeywordIds:     jsonb('linked_keyword_ids').$type<number[]>().default([]),
+    aiSummary:            text('ai_summary'),
+    aiSuggestedActions:   jsonb('ai_suggested_actions').$type<AiSuggestedAction[]>(),
+    aiEnrichedAt:         timestamp('ai_enriched_at'),
+    dueAt:     timestamp('due_at'),
+    closedAt:  timestamp('closed_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => ({
+    reporterIdx: index('issue_tickets_reporter_idx').on(t.reporterId),
+    ownerIdx:    index('issue_tickets_owner_idx').on(t.ownerId),
+    statusIdx:   index('issue_tickets_status_idx').on(t.status),
+    priorityIdx: index('issue_tickets_priority_idx').on(t.priority),
+    typeIdx:     index('issue_tickets_type_idx').on(t.type),
+    parentIdx:   index('issue_tickets_parent_idx').on(t.parentTicketId),
+    createdIdx:  index('issue_tickets_created_idx').on(t.createdAt),
+  }),
+);
+
+// 3.1.2 Comments
+export const issueComments = pgTable(
+  'issue_comments',
+  {
+    id:               uuid('id').primaryKey().defaultRandom(),
+    ticketId:         uuid('ticket_id').notNull().references(() => issueTickets.id, { onDelete: 'cascade' }),
+    authorId:         uuid('author_id').notNull(),
+    body:             text('body').notNull(),
+    mentionedUserIds: jsonb('mentioned_user_ids').$type<string[]>().default([]),
+    isAiGenerated:    boolean('is_ai_generated').notNull().default(false),
+    createdAt:        timestamp('created_at').notNull().defaultNow(),
+    editedAt:         timestamp('edited_at'),
+  },
+  (t) => ({ ticketIdx: index('issue_comments_ticket_idx').on(t.ticketId, t.createdAt) }),
+);
+
+// 3.1.3 Activity log
+export const issueActivity = pgTable(
+  'issue_activity',
+  {
+    id:         uuid('id').primaryKey().defaultRandom(),
+    ticketId:   uuid('ticket_id').notNull().references(() => issueTickets.id, { onDelete: 'cascade' }),
+    actorId:    uuid('actor_id'), // null = system
+    actionType: varchar('action_type', { length: 32 }).notNull(),
+    payload:    jsonb('payload').notNull().default({}),
+    at:         timestamp('at').notNull().defaultNow(),
+  },
+  (t) => ({ ticketIdx: index('issue_activity_ticket_idx').on(t.ticketId, t.at) }),
+);
+
+// 3.1.4 Attachments
+export const issueAttachments = pgTable('issue_attachments', {
+  id:         uuid('id').primaryKey().defaultRandom(),
+  ticketId:   uuid('ticket_id').references(() => issueTickets.id, { onDelete: 'cascade' }),
+  commentId:  uuid('comment_id').references(() => issueComments.id, { onDelete: 'cascade' }),
+  fileUrl:    text('file_url').notNull(),
+  fileName:   varchar('file_name', { length: 255 }).notNull(),
+  mimeType:   varchar('mime_type', { length: 128 }).notNull(),
+  fileSize:   integer('file_size').notNull(),
+  uploadedBy: uuid('uploaded_by').notNull(),
+  at:         timestamp('at').notNull().defaultNow(),
+});
+
+// 3.1.5 Notifications (in-app)
+export const issueNotifications = pgTable(
+  'issue_notifications',
+  {
+    id:          uuid('id').primaryKey().defaultRandom(),
+    recipientId: uuid('recipient_id').notNull(),
+    ticketId:    uuid('ticket_id').references(() => issueTickets.id, { onDelete: 'cascade' }),
+    type:        varchar('type', { length: 32 }).notNull(), // assigned|mentioned|status_changed|overdue|comment
+    payload:     jsonb('payload').notNull().default({}),
+    readAt:      timestamp('read_at'),
+    createdAt:   timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => ({
+    recipIdx: index('issue_notif_recipient_idx').on(t.recipientId, t.createdAt),
+  }),
+);
+
+// 3.1.6 Ticket links (blocks / duplicates / relates_to)
+export const issueTicketLinks = pgTable(
+  'issue_ticket_links',
+  {
+    id:           uuid('id').primaryKey().defaultRandom(),
+    fromTicketId: uuid('from_ticket_id').notNull().references(() => issueTickets.id, { onDelete: 'cascade' }),
+    toTicketId:   uuid('to_ticket_id').notNull().references(() => issueTickets.id, { onDelete: 'cascade' }),
+    relation:     varchar('relation', { length: 16 }).notNull(), // blocks|duplicates|relates_to
+    createdBy:    uuid('created_by').notNull(),
+    createdAt:    timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => ({
+    uniqLink: uniqueIndex('issue_ticket_links_uniq').on(t.fromTicketId, t.toTicketId, t.relation),
+    fromIdx:  index('issue_ticket_links_from_idx').on(t.fromTicketId),
+    toIdx:    index('issue_ticket_links_to_idx').on(t.toTicketId),
+  }),
+);
+
+// 3.1.7 AI call log (cost circuit breaker)
+export const issueAiCallLog = pgTable(
+  'issue_ai_call_log',
+  {
+    id:           uuid('id').primaryKey().defaultRandom(),
+    callerUserId: uuid('caller_user_id'),
+    endpoint:     varchar('endpoint', { length: 64 }).notNull(), // 'ask'|'enrich'|'search'
+    model:        varchar('model', { length: 64 }).notNull(),
+    inputTokens:  integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    success:      boolean('success').notNull().default(true),
+    error:        text('error'),
+    at:           timestamp('at').notNull().defaultNow(),
+  },
+  (t) => ({ dayIdx: index('issue_ai_call_log_day_idx').on(t.at) }),
+);

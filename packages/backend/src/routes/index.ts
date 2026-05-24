@@ -34,6 +34,7 @@ import { eventRoutes } from './events.js';
 import { humanoidSpecRoutes } from './humanoid-specs.js';
 import { coverageFieldRoutes } from './coverage-field.js';
 import { pmRoutes } from './pm.js';
+import { issueRoutes } from './issues.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -103,4 +104,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // ARGOS Projects — 프로젝트·일정 통합 관리 (spec v2.1)
   fastify.register(pmRoutes, { prefix: '/api/pm' });
+
+  // ARGOS Issue Tracking — 티켓·이슈 (docs/issues/SPEC.md)
+  fastify.register(issueRoutes, { prefix: '/api/issues' });
 }
