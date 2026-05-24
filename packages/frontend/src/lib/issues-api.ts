@@ -163,6 +163,7 @@ export interface AskResult {
   answer?: AskLookupAnswer;
   draft?: AskDraft;
   fallback?: { action: string; label: string };
+  autoCreatedTicket?: { code: string; title: string; reason: string };
 }
 
 // ── 티켓 생성/수정 페이로드 ──

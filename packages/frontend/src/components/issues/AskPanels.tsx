@@ -8,7 +8,7 @@ import {
   type IssueType, type Priority, PRIORITY_LABEL, TYPE_LABEL, STATUS_LABEL, STATUS_COLOR,
 } from '@/lib/issues-api';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, ExternalLink, Sparkles, Building2, ArrowRight, Bot, Package, Newspaper } from 'lucide-react';
+import { CheckCircle2, ExternalLink, Sparkles, Building2, ArrowRight, Bot, Package, Newspaper, FilePlus2 } from 'lucide-react';
 
 export function LookupAnswerPanel({ answer, fallbackLabel, onCreateTicket }: {
   answer: AskLookupAnswer;
@@ -270,35 +270,59 @@ export function ConfirmDraftPanel({ draft, onConfirm }: {
   );
 }
 
+function AutoCreatedBanner({ t }: { t: { code: string; title: string; reason: string } }) {
+  return (
+    <div className="bg-emerald-50 border border-emerald-200 rounded-md p-3 flex items-start gap-3">
+      <FilePlus2 className="w-4 h-4 text-emerald-700 mt-0.5 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium text-emerald-900 flex items-center gap-2 flex-wrap">
+          조사 이슈 자동 생성됨
+          <Link href={`/issues/${t.code}`}
+            className="font-mono text-xs px-1.5 py-0.5 bg-white border border-emerald-300 text-emerald-800 rounded hover:bg-emerald-100">
+            {t.code}
+          </Link>
+          <span className="text-xs text-emerald-700">— {t.title}</span>
+        </div>
+        <div className="text-[11px] text-emerald-700 mt-0.5">{t.reason}</div>
+      </div>
+      <Link href={`/issues/${t.code}`}
+        className="text-xs text-emerald-800 hover:text-emerald-900 hover:underline inline-flex items-center gap-1 shrink-0">
+        이슈 열기 <ArrowRight className="w-3 h-3" />
+      </Link>
+    </div>
+  );
+}
+
 export function AskFlow({ result, onCreateBlank }: { result: AskResult; onCreateBlank: () => void }) {
   const router = useRouter();
   const onConfirm = ({ code }: { code: string }) => router.push(`/issues/${code}`);
 
-  if (result.intent === 'lookup' && result.answer) {
-    return (
-      <LookupAnswerPanel answer={result.answer}
-        fallbackLabel={result.fallback?.label}
-        onCreateTicket={onCreateBlank} />
-    );
-  }
-  if (result.intent === 'task' && result.draft) {
-    return <ConfirmDraftPanel draft={result.draft} onConfirm={onConfirm} />;
-  }
-  if (result.intent === 'ambiguous') {
-    return (
-      <div className="space-y-3">
-        <div className="text-xs text-slate-500 flex items-center gap-2">
-          <Sparkles className="w-3 h-3 text-amber-500" />
-          질의가 모호합니다 — 조회 결과와 이슈 초안 모두 보여드립니다.
-        </div>
-        {result.answer && (
-          <LookupAnswerPanel answer={result.answer}
-            fallbackLabel={result.fallback?.label}
-            onCreateTicket={onCreateBlank} />
-        )}
-        {result.draft && <ConfirmDraftPanel draft={result.draft} onConfirm={onConfirm} />}
-      </div>
-    );
-  }
-  return null;
+  return (
+    <div className="space-y-3">
+      {result.autoCreatedTicket && <AutoCreatedBanner t={result.autoCreatedTicket} />}
+
+      {result.intent === 'lookup' && result.answer && (
+        <LookupAnswerPanel answer={result.answer}
+          fallbackLabel={result.fallback?.label}
+          onCreateTicket={onCreateBlank} />
+      )}
+      {result.intent === 'task' && result.draft && (
+        <ConfirmDraftPanel draft={result.draft} onConfirm={onConfirm} />
+      )}
+      {result.intent === 'ambiguous' && (
+        <>
+          <div className="text-xs text-slate-500 flex items-center gap-2">
+            <Sparkles className="w-3 h-3 text-amber-500" />
+            질의가 모호합니다 — 조회 결과와 이슈 초안 모두 보여드립니다.
+          </div>
+          {result.answer && (
+            <LookupAnswerPanel answer={result.answer}
+              fallbackLabel={result.fallback?.label}
+              onCreateTicket={onCreateBlank} />
+          )}
+          {result.draft && <ConfirmDraftPanel draft={result.draft} onConfirm={onConfirm} />}
+        </>
+      )}
+    </div>
+  );
 }

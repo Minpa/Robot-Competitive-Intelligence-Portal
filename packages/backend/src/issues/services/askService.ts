@@ -11,6 +11,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { companies, issueTickets, issueAiCallLog, humanoidRobots, products, articles } from '../../db/schema.js';
+import { createTicket } from './ticketService.js';
 
 type Intent = 'lookup' | 'task' | 'ambiguous';
 
@@ -20,6 +21,7 @@ interface AskResult {
   answer?: any;
   draft?: any;
   fallback?: { action: string; label: string };
+  autoCreatedTicket?: { code: string; title: string; reason: string };
 }
 
 const MODEL = 'claude-opus-4-7';
@@ -194,15 +196,22 @@ async function classifyAndExtract(query: string, userId: string): Promise<AskRes
 2) search_terms 추출 — DB 검색에 사용할 핵심 엔티티만
    - 회사명/로봇명/제품명 (영문 고유명사는 원문 보존, 예: "ATLAS", "Figure 03", "Optimus")
    - 의미 있는 명사 (예: "휴머노이드", "산업용", "촉각센서")
-   - 한국어 조사·동사·어미·일반 부사 제외 (예: "정보", "찾아줘", "최근", "이번주" 등 제외)
-   - 2~5개 권장. 너무 일반적인 단어 (로봇, 회사, 정보 등) 는 검색 노이즈가 크니 제외
-3) task 또는 ambiguous 일 때만 task_* 필드 채움
+   - 한국어 조사·동사·어미·일반 부사 제외
+   - 2~5개 권장
+3) substantive: 임원이 진짜 정보를 찾으려는 질의인지 판단
+   - true: "Atlas 정보", "올해 출시 예정 휴머노이드", "Optimus 가격" 같이 실제 조사 가치가 있는 질의
+   - false: "test", "ㅋㅋ", "안녕", "뭐해" 같이 사소하거나 시스템 테스트성 질의
+4) research_title (substantive=true 이고 intent=lookup 일 때만): 정보가 부족할 경우 자동 생성될 조사 티켓 제목 (20자 이내)
+   예: "Atlas 최신 사양 조사", "Figure 03 가격 정책 조사"
+5) task 또는 ambiguous 일 때만 task_* 필드 채움
 
 출력 JSON 형식:
 {
   "intent": "lookup"|"task"|"ambiguous",
   "confidence": 0.0~1.0,
   "search_terms": ["...","..."],
+  "substantive": true|false,
+  "research_title": "20자 이내 (substantive=true 이고 lookup/ambiguous 일 때)",
   "task_title": "20자 이내 (task/ambiguous)",
   "task_description": "초안 본문 1~3문장 (task/ambiguous)",
   "priority": "H"|"M"|"L",
@@ -255,6 +264,45 @@ async function classifyAndExtract(query: string, userId: string): Promise<AskRes
       relatedTickets: r.tixs,
     };
     result.fallback = { action: 'create_ticket', label: '이 정보로 부족 — 이슈로 발행 →' };
+
+    // 자동 research 티켓 생성 — 결과 0건이고 Claude 가 substantive=true 로 판단한 경우
+    // 기존에 동일 검색어로 만들어진 자동 티켓이 있으면 중복 생성 방지
+    const totalHits = r.comps.length + r.robots.length + r.prods.length + r.arts.length + r.tixs.length;
+    const substantive = parsed.substantive === true;
+    const researchTitle = parsed.research_title ? String(parsed.research_title).slice(0, 200) : '';
+    if (substantive && researchTitle && totalHits === 0 && query.trim().length >= 3) {
+      try {
+        // 7일 이내 동일 제목 자동 티켓이 이미 있는지 체크 (중복 방지)
+        const dup = await db.select({ code: issueTickets.code }).from(issueTickets)
+          .where(sql`${issueTickets.title} = ${researchTitle} AND ${issueTickets.createdAt} > now() - interval '7 days'`)
+          .limit(1);
+        if (dup.length === 0) {
+          const created = await createTicket(userId, {
+            title: researchTitle,
+            description: `[Ask 자동 생성 — 사내 DB 결과 없음]
+
+임원 질의: ${query}
+
+검색 키워드: ${searchTerms.join(', ')}
+
+조사 결과를 코멘트로 첨부 후 상태를 'in_progress' → 'done' 으로 갱신해 주세요.`,
+            priority: 'M',
+            type: 'research',
+          });
+          result.autoCreatedTicket = {
+            code: created.code,
+            title: created.title,
+            reason: '사내 DB 에 관련 정보가 없어 조사 티켓이 자동 생성되었습니다.',
+          };
+        } else {
+          result.autoCreatedTicket = {
+            code: dup[0]!.code,
+            title: researchTitle,
+            reason: '동일 조사 티켓이 최근 7일 내 이미 생성되어 있어 재사용합니다.',
+          };
+        }
+      } catch { /* 실패 시 silently — fallback 버튼은 여전히 동작 */ }
+    }
   }
 
   if ((intent === 'task' || intent === 'ambiguous') && aiOk) {
