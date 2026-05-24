@@ -97,8 +97,8 @@ async function searchCatalog(terms: string[]) {
     prodWhere
       ? db.select({
           id: products.id, name: products.name, type: products.type,
-          companyName: companies.name, releaseDate: products.releaseDate,
-          status: products.status,
+          companyId: products.companyId, companyName: companies.name,
+          releaseDate: products.releaseDate, status: products.status,
         }).from(products)
           .leftJoin(companies, eq(companies.id, products.companyId))
           .where(prodWhere)

@@ -132,7 +132,8 @@ export interface AskLookupAnswer {
   }>;
   products?: Array<{
     id: string; name: string; type: string;
-    companyName: string | null; releaseDate: string | null; status: string | null;
+    companyId: string | null; companyName: string | null;
+    releaseDate: string | null; status: string | null;
   }>;
   recentArticles: Array<{
     id: string; title: string; source: string; url: string;
