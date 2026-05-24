@@ -69,11 +69,15 @@ function ilikeAnyField(terms: string[], fields: any[]): SQL<unknown> | undefined
 }
 
 async function searchCatalog(terms: string[]) {
-  const compWhere = ilikeAnyField(terms, [companies.name, companies.description, companies.mainBusiness]);
-  const robotWhere = ilikeAnyField(terms, [humanoidRobots.name, humanoidRobots.description, companies.name]);
-  const prodWhere = ilikeAnyField(terms, [products.name, products.series, companies.name]);
-  const artWhere = ilikeAnyField(terms, [articles.title, articles.summary]);
-  const tixWhere = ilikeAnyField(terms, [issueTickets.title, issueTickets.description, issueTickets.code]);
+  // 잡음 최소화 — description/summary/mainBusiness 같은 본문 필드는 제외하고
+  // 식별성 높은 name/title/code 필드만 검색. (예: '휴머노이드' 가 무관한
+  // 회사 description 에 있어 두산·삼성이 잡히는 문제 방지)
+  // 본문까지 보고 싶으면 /search 글로벌 검색 사용.
+  const compWhere = ilikeAnyField(terms, [companies.name]);
+  const robotWhere = ilikeAnyField(terms, [humanoidRobots.name, companies.name]);
+  const prodWhere = ilikeAnyField(terms, [products.name, companies.name]);
+  const artWhere = ilikeAnyField(terms, [articles.title]);
+  const tixWhere = ilikeAnyField(terms, [issueTickets.title, issueTickets.code]);
 
   const [comps, robots, prods, arts, tixs] = await Promise.all([
     compWhere
@@ -193,11 +197,15 @@ async function classifyAndExtract(query: string, userId: string): Promise<AskRes
    - "lookup": 단순 조회/검색 (예: "Atlas 정보", "Figure 03 사양", "최근 경쟁사 동향", "올해 출시 예정 로봇")
    - "task": 행동 필요 (예: "Atlas 대응 방안 검토", "이번 주 안에 NEO 가격 분석해줘", "보고서 만들어줘")
    - "ambiguous": 둘 다 가능
-2) search_terms 추출 — DB 검색에 사용할 핵심 엔티티만
-   - 회사명/로봇명/제품명 (영문 고유명사는 원문 보존, 예: "ATLAS", "Figure 03", "Optimus")
-   - 의미 있는 명사 (예: "휴머노이드", "산업용", "촉각센서")
-   - 한국어 조사·동사·어미·일반 부사 제외
-   - 2~5개 권장
+2) search_terms 추출 — 식별성 높은 고유명사만 (잡음 방지 매우 중요)
+   - 회사명/로봇명/제품명 (영문 고유명사는 원문 보존, 예: "ATLAS", "Figure 03", "Optimus", "NEO")
+   - 한국 회사명도 그대로 (예: "두산", "현대", "삼성")
+   - ❌ 일반 명사 절대 금지: "휴머노이드", "로봇", "회사", "산업", "정보", "스펙",
+        "가격", "동향", "현황", "기술", "센서", "모터", "AI" 등은 search_terms 에 넣지 마세요
+   - ❌ 형용사/부사 금지: "최근", "이번", "올해", "지난"
+   - 질의에 고유명사가 없으면 search_terms 는 [] 빈 배열로
+     (예: "최근 휴머노이드 동향" → search_terms: [], substantive: true, research_title: "최근 휴머노이드 동향 조사")
+   - 1~3개 권장. 정확도 우선
 3) substantive: 임원이 진짜 정보를 찾으려는 질의인지 판단
    - true: "Atlas 정보", "올해 출시 예정 휴머노이드", "Optimus 가격" 같이 실제 조사 가치가 있는 질의
    - false: "test", "ㅋㅋ", "안녕", "뭐해" 같이 사소하거나 시스템 테스트성 질의
@@ -245,9 +253,11 @@ async function classifyAndExtract(query: string, userId: string): Promise<AskRes
 
   const intent: Intent = ['lookup', 'task', 'ambiguous'].includes(parsed.intent) ? parsed.intent : 'lookup';
   const confidence = Math.min(1, Math.max(0, Number(parsed.confidence ?? 0.7)));
-  const searchTerms: string[] = Array.isArray(parsed.search_terms) && parsed.search_terms.length > 0
-    ? parsed.search_terms.map((s: any) => String(s)).filter(Boolean).slice(0, 8)
-    : naiveTerms(query); // Claude 가 비웠으면 fallback
+  // Claude 가 의도적으로 비울 수도 있음 (일반 질의 — 고유명사 없음).
+  // 그 경우 DB 검색 skip 하고 곧바로 research 티켓 자동 생성으로 넘어감.
+  const searchTerms: string[] = Array.isArray(parsed.search_terms)
+    ? parsed.search_terms.map((s: any) => String(s)).filter(Boolean).slice(0, 5)
+    : [];
 
   // DB 검색은 항상 수행 (lookup 답변 + task 의 회사 매칭에 사용)
   const r = await searchCatalog(searchTerms);

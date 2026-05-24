@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, Loader2, Sparkles } from 'lucide-react';
+import { Send, Loader2, Sparkles, RefreshCw, History } from 'lucide-react';
 import { issuesApi, type AskResult } from '@/lib/issues-api';
 import { AskFlow } from '@/components/issues/AskPanels';
 
@@ -12,22 +12,67 @@ const EXAMPLES = [
   '이번 주 안에 1X NEO 가격 분석해줘',
 ];
 
+// sessionStorage: 페이지를 떠났다 돌아와도 마지막 ask 가 유지되도록.
+// 30분 이내 결과만 복원 (오래된 컨텍스트는 무시).
+const STORAGE_KEY = 'argos_issues_ask_last_v1';
+const STORAGE_TTL_MS = 30 * 60 * 1000;
+
+interface SavedAsk { query: string; result: AskResult; ts: number; }
+
+function saveAsk(query: string, result: AskResult) {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ query, result, ts: Date.now() } as SavedAsk));
+  } catch {}
+}
+function loadAsk(): SavedAsk | null {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SavedAsk;
+    if (Date.now() - parsed.ts > STORAGE_TTL_MS) {
+      sessionStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    return parsed;
+  } catch { return null; }
+}
+function clearAsk() {
+  try { sessionStorage.removeItem(STORAGE_KEY); } catch {}
+}
+
 export default function AskPage() {
   const router = useRouter();
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<AskResult | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [restoredAt, setRestoredAt] = useState<number | null>(null);
 
-  const run = async () => {
-    const query = q.trim();
+  // 마운트 시 마지막 ask 복원
+  useEffect(() => {
+    const saved = loadAsk();
+    if (saved) {
+      setQ(saved.query);
+      setResult(saved.result);
+      setRestoredAt(saved.ts);
+    }
+  }, []);
+
+  const run = async (overrideQuery?: string) => {
+    const query = (overrideQuery ?? q).trim();
     if (!query) return;
-    setBusy(true); setErr(null); setResult(null);
+    setBusy(true); setErr(null); setResult(null); setRestoredAt(null);
     try {
       const r = await issuesApi.ask(query);
       setResult(r);
+      saveAsk(query, r);
     } catch (e: any) { setErr(e.message); }
     finally { setBusy(false); }
+  };
+
+  const reset = () => {
+    setQ(''); setResult(null); setErr(null); setRestoredAt(null);
+    clearAsk();
   };
 
   const createBlank = () => {
@@ -56,7 +101,7 @@ export default function AskPage() {
             className="flex-1 px-2 py-1.5 text-sm border-none focus:outline-none resize-none text-slate-900 placeholder:text-slate-400"
             disabled={busy}
           />
-          <button onClick={run} disabled={busy || !q.trim()}
+          <button onClick={() => run()} disabled={busy || !q.trim()}
             className="px-3 py-2 bg-slate-900 text-white text-sm rounded hover:bg-slate-800 disabled:opacity-50 inline-flex items-center gap-1.5 shrink-0">
             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
             {busy ? '분류 중…' : '실행'}
@@ -76,11 +121,33 @@ export default function AskPage() {
 
       {err && <div className="bg-red-50 border border-red-200 text-red-700 text-xs p-2 rounded">{err}</div>}
 
+      {restoredAt && result && (
+        <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 flex items-center gap-2 text-xs text-blue-800">
+          <History className="w-3 h-3 shrink-0" />
+          <span className="flex-1">
+            이전 검색 결과를 표시 중입니다 ({new Date(restoredAt).toLocaleTimeString('ko-KR')}). API 재호출 없이 캐시됨.
+          </span>
+          <button onClick={() => run()}
+            className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 hover:underline">
+            <RefreshCw className="w-3 h-3" /> 다시 실행
+          </button>
+          <button onClick={reset}
+            className="text-blue-700 hover:text-blue-900 hover:underline">
+            새 질문
+          </button>
+        </div>
+      )}
+
       {result && (
         <div className="space-y-3">
           <div className="text-[11px] text-slate-500 flex items-center gap-2">
             <span className="px-1.5 py-0.5 bg-slate-100 rounded font-medium">{result.intent}</span>
             <span>신뢰도 {(result.confidence * 100).toFixed(0)}%</span>
+            {!restoredAt && (
+              <button onClick={reset} className="ml-auto text-slate-400 hover:text-slate-700">
+                지우기
+              </button>
+            )}
           </div>
           <AskFlow result={result} onCreateBlank={createBlank} />
         </div>
