@@ -293,7 +293,9 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
     return { periods, groups, idx, totalH: yCursor, links, familyMap, familyLinks, pos };
   }, [data, unit, tCol, dCol, numOf, extendMonths]);
 
-  // 자동 배정된 lane을 한 번에 백엔드 영속화 — 이후 사용자가 명시 변경하기 전까지 자동 packing 영향 없음.
+  // 자동 배정된 lane을 백엔드에만 sync — onChanged 호출 안 함(=데이터 재로드 미발생).
+  // 데이터 재로드가 사용자 드래그와 race를 일으켜 점프 글리치를 만들 수 있어서.
+  // 다음 자연스러운 데이터 재로드(다른 사용자 액션) 시점에 lane이 박혀 반영됨.
   const laneSyncSigRef = useRef<string>('');
   useEffect(() => {
     if (!canEdit) return;
@@ -307,8 +309,8 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
     const sig = `${board.id}:` + pending.map((p) => `${p.id}=${p.lane}`).join(',');
     if (laneSyncSigRef.current === sig) return;
     laneSyncSigRef.current = sig;
-    pmApi.setItemLanes(board.id, pending).then(() => onChanged?.()).catch(() => { /* noop */ });
-  }, [model, canEdit, board.id, onChanged]);
+    pmApi.setItemLanes(board.id, pending).catch(() => { /* noop */ });
+  }, [model, canEdit, board.id]);
 
   // 작업별 predecessor 코드 (막대 tooltip)
   const predsOf = useMemo(() => {
@@ -530,10 +532,13 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
                     };
                     const moveDrag = (e: React.PointerEvent) => {
                       if (drag?.itemId !== b.it.id) return;
-                      const p = Math.round((e.clientX - drag.startX) / colW);
-                      // 세로 드래그 deadzone — 손떨림으로 의도치 않은 lane 변경 방지
+                      const dxRaw = e.clientX - drag.startX;
                       const dyRaw = e.clientY - drag.startY;
-                      const ld = drag.mode === 'move' && Math.abs(dyRaw) >= laneH * 0.7
+                      const p = Math.round(dxRaw / colW);
+                      // 가로 드래그 우세 시 (가로 > 세로*2) lane 변경 무시 — 가로 드래그 중 손떨림 보호.
+                      // 그 외엔 |dy| >= laneH 일 때만 lane 변경 (deadzone 30px).
+                      const horizontalDominant = Math.abs(dxRaw) > Math.abs(dyRaw) * 2;
+                      const ld = drag.mode === 'move' && !horizontalDominant && Math.abs(dyRaw) >= laneH
                         ? Math.round(dyRaw / laneH) : 0;
                       if (p !== drag.periods || ld !== drag.laneDelta) setDrag({ ...drag, periods: p, laneDelta: ld });
                     };
@@ -541,6 +546,10 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
                       if (drag?.itemId !== b.it.id) return;
                       const p = drag.periods, m = drag.mode;
                       const ld = m === 'move' ? Math.max(-b.lane, drag.laneDelta) : 0;
+                      // 진단 로그 — 사용자가 의도와 다른 이동을 보면 콘솔에서 실제 값 확인 가능
+                      if (m === 'move' && (p !== 0 || ld !== 0)) {
+                        console.log('[pm-gantt] drop', { itemId: b.it.id, name: b.it.name, periods: p, unit, laneDelta: ld, currentLane: b.lane });
+                      }
                       // 이동 0 인 단순 클릭(move 모드) → 상세 패널 열기 (드래그 진입점과 분리)
                       if (p === 0 && ld === 0 && m === 'move') {
                         setDrag(null);
