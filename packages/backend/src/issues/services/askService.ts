@@ -1,48 +1,16 @@
 // ARGOS Issue Tracking — /ask 의도 분류 + lookup 조립 + task 초안 enrichment (spec §7.2~7.4).
+//
+// 아키텍처 (단일 Claude 콜):
+//   1) Claude 가 자연어 질의 → JSON { intent, search_terms, task_draft? } 추출
+//   2) 백엔드가 search_terms 로 카탈로그 DB 검색 (다중 필드 OR-ILIKE)
+//   3) lookup: DB 결과를 구조화된 summary 로 합성 + 카드 리스트
+//      task:   Claude 의 draft 를 그대로 + 매칭된 회사 ID 부착
+//
+// 하드코딩 stopwords 가 없으므로 임원의 다양한 질의 패턴에 견고함.
 import Anthropic from '@anthropic-ai/sdk';
 import { desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { companies, issueTickets, issueAiCallLog, humanoidRobots, products, articles } from '../../db/schema.js';
-
-// 한국어 자연어 질의에서 검색용 키워드만 추출
-// "ATLAS 정보 찾아줘" → ["ATLAS"]
-// "Tesla Optimus 대응 방안 검토" → ["Tesla", "Optimus"]
-const KO_STOPWORDS = new Set([
-  '정보', '찾아줘', '보여줘', '알려줘', '검토', '분석', '대응', '방안',
-  '어때', '뭐', '뭐야', '뭐임', '어떤', '최근', '지난', '이번', '오늘',
-  '내일', '어제', '해줘', '해', '하자', '하기', '관련', '동향', '현황',
-  '가격', '대해', '에서', '에게', '으로', '에서의', '이번주', '이번달',
-  '주', '안에', '까지', '부터', '입니다', '있나', '있어', '있나요',
-  '없나', '없어', '검색', '찾기', '하나', '하나요', '진행', '준비',
-  '분석해줘', '확인해줘', '정리해줘', '요약해줘', '검토해줘', '리뷰',
-  '리뷰해줘', '리스트', '목록', '리포트', '보고서',
-]);
-
-function extractKeywords(query: string): string[] {
-  const tokens = query
-    .split(/[\s,.!?+/\\()[\]{}'"·:;~`@#$%^&*=|<>]+/)
-    .map(t => t.trim())
-    .filter(Boolean);
-  const kws: string[] = [];
-  for (const t of tokens) {
-    if (t.length < 2) continue;
-    if (KO_STOPWORDS.has(t)) continue;
-    // 순수 한글 동사/형용사 어미 류 (가벼운 휴리스틱)
-    if (/^[가-힣]+(요|음|임|냐|니|니까|네|네요|었|았)$/.test(t)) continue;
-    kws.push(t);
-  }
-  return kws.length > 0 ? kws : [query.trim()];
-}
-
-function ilikeAnyField(keywords: string[], fields: any[]): SQL<unknown> | undefined {
-  const conds: SQL<unknown>[] = [];
-  for (const kw of keywords) {
-    const pat = `%${kw}%`;
-    for (const f of fields) conds.push(ilike(f, pat));
-  }
-  if (conds.length === 0) return undefined;
-  return or(...conds);
-}
 
 type Intent = 'lookup' | 'task' | 'ambiguous';
 
@@ -54,7 +22,7 @@ interface AskResult {
   fallback?: { action: string; label: string };
 }
 
-const MODEL = 'claude-opus-4-7'; // 프로젝트 표준
+const MODEL = 'claude-opus-4-7';
 const DAILY_BUDGET = Number(process.env.ANTHROPIC_DAILY_TOKEN_BUDGET || 500000);
 
 async function aiBudgetExhausted(): Promise<boolean> {
@@ -84,21 +52,31 @@ function getClient(): Anthropic | null {
   return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 }
 
-// 공용 — 카탈로그(휴머노이드 로봇·제품·기사·회사) + 티켓 동시 검색
-// 자연어 질의에서 키워드 추출 후 각 테이블의 여러 필드에 OR-ILIKE
-async function searchCatalog(query: string) {
-  const keywords = extractKeywords(query);
+// ──────────────────────────────────────────────────────────────────
+// DB 검색 — Claude 가 추출한 search_terms 로 다중 필드 OR-ILIKE
+// ──────────────────────────────────────────────────────────────────
+function ilikeAnyField(terms: string[], fields: any[]): SQL<unknown> | undefined {
+  const conds: SQL<unknown>[] = [];
+  for (const t of terms) {
+    if (!t || t.trim().length < 1) continue;
+    const pat = `%${t.trim()}%`;
+    for (const f of fields) conds.push(ilike(f, pat));
+  }
+  if (conds.length === 0) return undefined;
+  return or(...conds);
+}
 
-  const compWhere = ilikeAnyField(keywords, [companies.name, companies.description, companies.mainBusiness]);
-  const robotWhere = ilikeAnyField(keywords, [humanoidRobots.name, humanoidRobots.description, companies.name]);
-  const prodWhere = ilikeAnyField(keywords, [products.name, products.series, companies.name]);
-  const artWhere = ilikeAnyField(keywords, [articles.title, articles.summary]);
-  const tixWhere = ilikeAnyField(keywords, [issueTickets.title, issueTickets.description, issueTickets.code]);
+async function searchCatalog(terms: string[]) {
+  const compWhere = ilikeAnyField(terms, [companies.name, companies.description, companies.mainBusiness]);
+  const robotWhere = ilikeAnyField(terms, [humanoidRobots.name, humanoidRobots.description, companies.name]);
+  const prodWhere = ilikeAnyField(terms, [products.name, products.series, companies.name]);
+  const artWhere = ilikeAnyField(terms, [articles.title, articles.summary]);
+  const tixWhere = ilikeAnyField(terms, [issueTickets.title, issueTickets.description, issueTickets.code]);
 
   const [comps, robots, prods, arts, tixs] = await Promise.all([
     compWhere
       ? db.select({ id: companies.id, name: companies.name, country: companies.country })
-          .from(companies).where(compWhere).limit(5)
+          .from(companies).where(compWhere).limit(8)
       : Promise.resolve([] as any[]),
     robotWhere
       ? db.select({
@@ -124,7 +102,7 @@ async function searchCatalog(query: string) {
         }).from(products)
           .leftJoin(companies, eq(companies.id, products.companyId))
           .where(prodWhere)
-          .limit(5)
+          .limit(8)
       : Promise.resolve([] as any[]),
     artWhere
       ? db.select({
@@ -133,88 +111,113 @@ async function searchCatalog(query: string) {
         }).from(articles)
           .where(artWhere)
           .orderBy(desc(articles.publishedAt))
-          .limit(5)
+          .limit(8)
       : Promise.resolve([] as any[]),
     tixWhere
       ? db.select({ id: issueTickets.id, code: issueTickets.code, title: issueTickets.title, status: issueTickets.status })
           .from(issueTickets)
           .where(tixWhere)
           .orderBy(desc(issueTickets.createdAt))
-          .limit(5)
+          .limit(8)
       : Promise.resolve([] as any[]),
   ]);
-  return { comps, robots, prods, arts, tixs, keywords };
+  return { comps, robots, prods, arts, tixs };
 }
 
-// 1) 키워드 기반 fallback (Claude 미가용·예산 소진 시)
-async function keywordFallback(query: string): Promise<AskResult> {
-  const { comps, robots, prods, arts, tixs, keywords } = await searchCatalog(query);
-  const hits = comps.length + robots.length + prods.length + arts.length + tixs.length;
-  const kwStr = keywords.join(', ');
+// 검색 결과를 자연어 summary 로 합성 (Claude 추가 호출 없이)
+function buildLookupSummary(terms: string[], r: Awaited<ReturnType<typeof searchCatalog>>): string {
+  const t = terms.filter(Boolean).join(', ') || '질의';
+  const total = r.robots.length + r.prods.length + r.comps.length + r.arts.length + r.tixs.length;
+  if (total === 0) return `사내 DB 에서 "${t}" 관련 데이터를 찾지 못했습니다. 이슈로 발행하면 팀이 조사를 시작합니다.`;
+
+  const parts: string[] = [];
+  if (r.robots.length > 0) {
+    const top = r.robots.slice(0, 3).map(x => {
+      const yq = x.announcementYear ? `${x.announcementYear}${x.announcementQuarter ? ' Q'+x.announcementQuarter : ''}` : '';
+      return `${x.name}${x.companyName ? ` (${x.companyName})` : ''}${yq ? ` · ${yq}` : ''}`;
+    }).join('; ');
+    parts.push(`로봇 ${r.robots.length}건 — ${top}${r.robots.length > 3 ? ' 외' : ''}`);
+  }
+  if (r.prods.length > 0) {
+    const top = r.prods.slice(0, 3).map(x => `${x.name}${x.companyName ? ` (${x.companyName})` : ''}`).join('; ');
+    parts.push(`제품 ${r.prods.length}건 — ${top}${r.prods.length > 3 ? ' 외' : ''}`);
+  }
+  if (r.comps.length > 0) {
+    parts.push(`회사 ${r.comps.length}건 — ${r.comps.slice(0, 3).map(x => x.name).join('; ')}${r.comps.length > 3 ? ' 외' : ''}`);
+  }
+  if (r.arts.length > 0) parts.push(`기사 ${r.arts.length}건`);
+  if (r.tixs.length > 0) parts.push(`기존 티켓 ${r.tixs.length}건`);
+  return `"${t}" 관련 사내 데이터 — ${parts.join(' · ')}. 상세는 아래 카드 참조.`;
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Fallback — Claude 미가용 시 단순 whitespace 분할 (휴리스틱 최소)
+// ──────────────────────────────────────────────────────────────────
+function naiveTerms(query: string): string[] {
+  return query
+    .split(/[\s,.!?+/\\()[\]{}'"·:;~`@#$%^&*=|<>]+/)
+    .map(t => t.trim())
+    .filter(t => t.length >= 2)
+    .slice(0, 6);
+}
+
+async function noAiFallback(query: string): Promise<AskResult> {
+  const terms = naiveTerms(query);
+  const r = await searchCatalog(terms);
   return {
-    intent: 'lookup', confidence: 0.4,
+    intent: 'lookup', confidence: 0.3,
     answer: {
-      summary: hits === 0
-        ? `AI 미가용 — 키워드 [${kwStr}] 검색 결과 없음`
-        : `AI 미가용 — 키워드 [${kwStr}] 검색: 로봇 ${robots.length}, 제품 ${prods.length}, 회사 ${comps.length}, 기사 ${arts.length}, 티켓 ${tixs.length}`,
-      competitors: comps,
-      robots,
-      products: prods,
-      recentArticles: arts,
-      relatedTickets: tixs,
+      summary: `(AI 미가용 — 단순 분할 검색) ${buildLookupSummary(terms, r)}`,
+      competitors: r.comps, robots: r.robots, products: r.prods,
+      recentArticles: r.arts, relatedTickets: r.tixs,
     },
     fallback: { action: 'create_ticket', label: '이 정보로 부족 — 이슈로 발행 →' },
   };
 }
 
-// 2) 의도 분류 + 기본 답변 — Claude 1콜
-async function classifyAndDraft(query: string, userId: string): Promise<AskResult> {
+// ──────────────────────────────────────────────────────────────────
+// 메인 — Claude 1콜: 의도 분류 + 검색 엔티티 추출 + task draft
+// ──────────────────────────────────────────────────────────────────
+async function classifyAndExtract(query: string, userId: string): Promise<AskResult> {
   const client = getClient();
-  if (!client) return keywordFallback(query);
-  if (await aiBudgetExhausted()) return keywordFallback(query);
+  if (!client) return noAiFallback(query);
+  if (await aiBudgetExhausted()) return noAiFallback(query);
 
-  // 관련 카탈로그 사전 조회 (context for Claude)
-  const { comps, robots, prods, arts, tixs, keywords } = await searchCatalog(query);
+  const sys = `당신은 ARGOS 워룸 휴머노이드 로봇 경쟁정보 시스템의 의도 분류·엔티티 추출 도우미입니다.
+사용자(임원진) 자연어 질의를 받아 JSON 만 출력하세요. 설명·코드블록 금지.
 
-  const sys = `당신은 ARGOS 워룸의 이슈 트래커 도우미입니다.
-사용자 질의를 받아 의도를 분류하고 JSON 만 출력하세요.
-참고 컨텍스트(사내 DB)에 실제 데이터가 있으면 summary 에 그 정보를 1~3문장으로 인용해 답변하세요.
+작업:
+1) intent 분류
+   - "lookup": 단순 조회/검색 (예: "Atlas 정보", "Figure 03 사양", "최근 경쟁사 동향", "올해 출시 예정 로봇")
+   - "task": 행동 필요 (예: "Atlas 대응 방안 검토", "이번 주 안에 NEO 가격 분석해줘", "보고서 만들어줘")
+   - "ambiguous": 둘 다 가능
+2) search_terms 추출 — DB 검색에 사용할 핵심 엔티티만
+   - 회사명/로봇명/제품명 (영문 고유명사는 원문 보존, 예: "ATLAS", "Figure 03", "Optimus")
+   - 의미 있는 명사 (예: "휴머노이드", "산업용", "촉각센서")
+   - 한국어 조사·동사·어미·일반 부사 제외 (예: "정보", "찾아줘", "최근", "이번주" 등 제외)
+   - 2~5개 권장. 너무 일반적인 단어 (로봇, 회사, 정보 등) 는 검색 노이즈가 크니 제외
+3) task 또는 ambiguous 일 때만 task_* 필드 채움
 
-intent:
-- "lookup": 단순 조회/검색 (예: "Figure 03 정보", "최근 경쟁사 동향")
-- "task": 행동 필요 (예: "Figure 03 대응 방안 검토", "이번 주 안에 ~ 해줘")
-- "ambiguous": 둘 다 가능 (모호)
-
-출력 JSON 형식 (다른 텍스트 금지):
+출력 JSON 형식:
 {
   "intent": "lookup"|"task"|"ambiguous",
   "confidence": 0.0~1.0,
-  "summary": "조회 요약 — 컨텍스트의 실제 데이터를 인용해 1~3문장 (lookup/ambiguous)",
-  "task_title": "20자 이내 (task/ambiguous 일 때)",
-  "task_description": "초안 본문 1~3문장 (task/ambiguous 일 때)",
+  "search_terms": ["...","..."],
+  "task_title": "20자 이내 (task/ambiguous)",
+  "task_description": "초안 본문 1~3문장 (task/ambiguous)",
   "priority": "H"|"M"|"L",
   "type_recommended": "task"|"research"|"response"|"epic",
-  "due_days": 1~30 (task 일 때 권장 마감일까지 일수),
-  "competitor_keywords": ["...","..."] (이름으로 매칭 시도 — 회사 ID 매칭은 호출자가 처리)
+  "due_days": 1~30
 }`;
 
-  const ctxBlocks = [
-    `[추출된 검색 키워드] ${keywords.join(', ')}`,
-    `[휴머노이드 로봇]\n${robots.map(r =>
-      `- ${r.name} (${r.companyName ?? '?'}) — ${r.announcementYear ?? '?'}${r.announcementQuarter ? ' Q'+r.announcementQuarter : ''} · ${r.stage ?? r.status ?? ''} · ${r.purpose ?? ''} · ${r.dataType ?? ''}${r.description ? ` — ${r.description.slice(0, 200)}` : ''}`,
-    ).join('\n') || '(없음)'}`,
-    `[제품]\n${prods.map(p => `- ${p.name} (${p.companyName ?? '?'}) — ${p.type} · ${p.releaseDate ?? ''} · ${p.status ?? ''}`).join('\n') || '(없음)'}`,
-    `[회사]\n${comps.map(c => `- ${c.name} (${c.country})`).join('\n') || '(없음)'}`,
-    `[최근 기사]\n${arts.map(a => `- ${a.title} (${a.source}, ${a.publishedAt ? new Date(a.publishedAt).toISOString().slice(0,10) : '?'})`).join('\n') || '(없음)'}`,
-    `[관련 티켓]\n${tixs.map(t => `- ${t.code} ${t.title} [${t.status}]`).join('\n') || '(없음)'}`,
-  ].join('\n\n');
-
+  let parsed: any = null;
+  let aiOk = false;
   try {
     const resp = await client.messages.create({
       model: MODEL,
-      max_tokens: 800,
+      max_tokens: 500,
       system: sys,
-      messages: [{ role: 'user', content: `질의: ${query}\n\n참고 컨텍스트:\n${ctxBlocks}` }],
+      messages: [{ role: 'user', content: `질의: ${query}` }],
     });
     const text = (resp.content[0] as any)?.text ?? '';
     await logAiCall({
@@ -222,54 +225,62 @@ intent:
       inputTokens: resp.usage.input_tokens, outputTokens: resp.usage.output_tokens,
       success: true,
     });
-    // JSON 추출 (앞뒤 백틱·텍스트 허용)
     const m = text.match(/\{[\s\S]*\}/);
     if (!m) throw new Error('AI 응답 파싱 실패');
-    const parsed = JSON.parse(m[0]);
-    const intent: Intent = ['lookup', 'task', 'ambiguous'].includes(parsed.intent) ? parsed.intent : 'lookup';
-    const confidence = Math.min(1, Math.max(0, Number(parsed.confidence ?? 0.6)));
-    const result: AskResult = { intent, confidence };
-    if (intent === 'lookup' || intent === 'ambiguous') {
-      result.answer = {
-        summary: String(parsed.summary ?? '검색 결과 요약을 준비 중입니다.'),
-        competitors: comps,
-        robots,
-        products: prods,
-        recentArticles: arts,
-        relatedTickets: tixs,
-      };
-      result.fallback = { action: 'create_ticket', label: '이 정보로 부족 — 이슈로 발행 →' };
-    }
-    if (intent === 'task' || intent === 'ambiguous') {
-      const days = Math.max(1, Math.min(30, Number(parsed.due_days ?? 7)));
-      const due = new Date(Date.now() + days * 864e5);
-      // 회사 키워드로 competitor 매칭
-      const compKw: string[] = Array.isArray(parsed.competitor_keywords) ? parsed.competitor_keywords : [];
-      const matched = comps.filter(c => compKw.some(k => c.name.toLowerCase().includes(String(k).toLowerCase())));
-      result.draft = {
-        title: String(parsed.task_title ?? query).slice(0, 200),
-        description: String(parsed.task_description ?? ''),
-        priority: ['H', 'M', 'L'].includes(parsed.priority) ? parsed.priority : 'M',
-        priorityRationale: '',
-        suggestedOwnerId: null,
-        ownerRationale: '',
-        type_recommended: ['task', 'research', 'response', 'epic'].includes(parsed.type_recommended) ? parsed.type_recommended : 'task',
-        linkedCompetitorIds: matched.map(c => c.id),
-        linkedStrategyDocIds: [],
-        suggestedDueAt: due.toISOString(),
-        suggestedActions: [],
-        suggested_links: [], // v1
-      };
-    }
-    return result;
+    parsed = JSON.parse(m[0]);
+    aiOk = true;
   } catch (e: any) {
     await logAiCall({ userId, endpoint: 'ask', inputTokens: 0, outputTokens: 0, success: false, error: e?.message });
-    return keywordFallback(query);
+    return noAiFallback(query);
   }
+
+  const intent: Intent = ['lookup', 'task', 'ambiguous'].includes(parsed.intent) ? parsed.intent : 'lookup';
+  const confidence = Math.min(1, Math.max(0, Number(parsed.confidence ?? 0.7)));
+  const searchTerms: string[] = Array.isArray(parsed.search_terms) && parsed.search_terms.length > 0
+    ? parsed.search_terms.map((s: any) => String(s)).filter(Boolean).slice(0, 8)
+    : naiveTerms(query); // Claude 가 비웠으면 fallback
+
+  // DB 검색은 항상 수행 (lookup 답변 + task 의 회사 매칭에 사용)
+  const r = await searchCatalog(searchTerms);
+
+  const result: AskResult = { intent, confidence };
+
+  if (intent === 'lookup' || intent === 'ambiguous') {
+    result.answer = {
+      summary: buildLookupSummary(searchTerms, r),
+      competitors: r.comps,
+      robots: r.robots,
+      products: r.prods,
+      recentArticles: r.arts,
+      relatedTickets: r.tixs,
+    };
+    result.fallback = { action: 'create_ticket', label: '이 정보로 부족 — 이슈로 발행 →' };
+  }
+
+  if ((intent === 'task' || intent === 'ambiguous') && aiOk) {
+    const days = Math.max(1, Math.min(30, Number(parsed.due_days ?? 7)));
+    const due = new Date(Date.now() + days * 864e5);
+    // Claude search_terms 로 검색된 회사를 그대로 연결 (별도 keyword 매칭 불필요)
+    result.draft = {
+      title: String(parsed.task_title ?? query).slice(0, 200),
+      description: String(parsed.task_description ?? ''),
+      priority: ['H', 'M', 'L'].includes(parsed.priority) ? parsed.priority : 'M',
+      priorityRationale: '',
+      suggestedOwnerId: null,
+      ownerRationale: '',
+      type_recommended: ['task', 'research', 'response', 'epic'].includes(parsed.type_recommended) ? parsed.type_recommended : 'task',
+      linkedCompetitorIds: r.comps.map(c => c.id),
+      linkedStrategyDocIds: [],
+      suggestedDueAt: due.toISOString(),
+      suggestedActions: [],
+      suggested_links: [],
+    };
+  }
+  return result;
 }
 
 export async function askEntry(query: string, userId: string): Promise<AskResult> {
-  return classifyAndDraft(query, userId);
+  return classifyAndExtract(query, userId);
 }
 
 // 기존 티켓 재 enrichment — summary + suggestedActions 만 갱신
