@@ -82,7 +82,7 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
   const [showDeps, setShowDeps] = useState(true);
   const [draft, setDraft] = useState<{ pred: string; succ: string; type: DependencyType }>({ pred: '', succ: '', type: 'FS' });
   const [busy, setBusy] = useState(false);
-  const [drag, setDrag] = useState<{ itemId: number; startX: number; periods: number; mode: 'move' | 'start' | 'end' } | null>(null);
+  const [drag, setDrag] = useState<{ itemId: number; startX: number; startY: number; periods: number; laneDelta: number; mode: 'move' | 'start' | 'end' } | null>(null);
   const [hoverItemId, setHoverItemId] = useState<number | null>(null);
   // 의존선 drag-to-create / click-to-create-next:
   // sx,sy = svg 기준 좌표(고스트 라인 시작점). sx0,sy0 = 마우스 시작 좌표(클릭/드래그 판정용).
@@ -194,8 +194,8 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
         const subs = (subitemsByParent.get(p.id) ?? []).sort((a, b) => a.orderIndex - b.orderIndex);
         return [{ it: p, isSub: false }, ...subs.map((s) => ({ it: s, isSub: true }))];
       });
-      const laneEnd: number[] = [];
-      const bars = gItems
+      // 1) 좌표 산출 + null/지정 lane 분리. 2) 명시 lane은 고정 배치 후, null만 빈 차선으로 packing.
+      const raw = gItems
         .map(({ it, isSub }) => {
           const tv = tCol ? cv(it.id, tCol.id) : null;
           const dv = dCol ? cv(it.id, dCol.id) : null;
@@ -203,19 +203,25 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
           const ed = toDate(tv?.end) || toDate(dv?.date);
           if (!sd) return null;
           const s = idx(sd), e = ed ? idx(ed) : s;
-          // 마일스톤 판정은 실제 날짜 기준 (기간 인덱스 뭉침으로 강등 금지)
           const milestone = !ed || sd.getTime() === ed.getTime();
-          return { it, s, e, milestone, isSub };
+          const fixedLane = typeof it.lane === 'number' ? it.lane : null;
+          return { it, s, e, milestone, isSub, fixedLane };
         })
-        .filter(Boolean)
-        .sort((a, b) => a!.s - b!.s)
-        .map((b) => {
-          let lane = 0;
-          while (lane < laneEnd.length && (laneEnd[lane] ?? -1) >= b!.s) lane++;
-          laneEnd[lane] = b!.e;
-          return { ...b!, lane };
-        });
-      const laneCount = Math.max(1, laneEnd.length);
+        .filter(Boolean) as Array<{ it: typeof data.items[number]; s: number; e: number; milestone: boolean; isSub: boolean; fixedLane: number | null }>;
+      // 명시 lane 우선 배치 — 같은 lane에 겹쳐도 사용자 의도이므로 허용.
+      const fixed = raw.filter((b) => b.fixedLane !== null);
+      const auto = raw.filter((b) => b.fixedLane === null).sort((a, b) => a.s - b.s);
+      const laneOccupancy = new Map<number, number>(); // lane -> 마지막 end (auto packing 용)
+      for (const b of fixed) laneOccupancy.set(b.fixedLane!, Math.max(laneOccupancy.get(b.fixedLane!) ?? -1, b.e));
+      const bars: Array<typeof raw[number] & { lane: number; autoAssigned: boolean }> = [];
+      for (const b of fixed) bars.push({ ...b, lane: b.fixedLane!, autoAssigned: false });
+      for (const b of auto) {
+        let lane = 0;
+        while ((laneOccupancy.get(lane) ?? -1) >= b.s) lane++;
+        laneOccupancy.set(lane, b.e);
+        bars.push({ ...b, lane, autoAssigned: true });
+      }
+      const laneCount = Math.max(1, (laneOccupancy.size ? Math.max(...laneOccupancy.keys()) : 0) + 1);
       // 전역 위치 등록
       for (const b of bars) {
         const left = b.s * colW + 4;
@@ -287,6 +293,23 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
     return { periods, groups, idx, totalH: yCursor, links, familyMap, familyLinks, pos };
   }, [data, unit, tCol, dCol, numOf, extendMonths]);
 
+  // 자동 배정된 lane을 한 번에 백엔드 영속화 — 이후 사용자가 명시 변경하기 전까지 자동 packing 영향 없음.
+  const laneSyncSigRef = useRef<string>('');
+  useEffect(() => {
+    if (!canEdit) return;
+    const pending: Array<{ id: number; lane: number }> = [];
+    for (const gl of model.groups) {
+      for (const b of gl.bars) {
+        if ((b as any).autoAssigned) pending.push({ id: b.it.id, lane: b.lane });
+      }
+    }
+    if (pending.length === 0) return;
+    const sig = `${board.id}:` + pending.map((p) => `${p.id}=${p.lane}`).join(',');
+    if (laneSyncSigRef.current === sig) return;
+    laneSyncSigRef.current = sig;
+    pmApi.setItemLanes(board.id, pending).then(() => onChanged?.()).catch(() => { /* noop */ });
+  }, [model, canEdit, board.id, onChanged]);
+
   // 작업별 predecessor 코드 (막대 tooltip)
   const predsOf = useMemo(() => {
     const m = new Map<number, string[]>();
@@ -323,21 +346,28 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
     try { await pmApi.deleteDependency(id); onChanged?.(); } catch { /* noop */ } finally { setBusy(false); }
   };
 
-  // 드래그로 일정 이동 — 축 단위 N칸만큼 시작/끝(또는 날짜)을 평행 이동, 기간 보존
-  const applyDrag = async (itemId: number, periods: number) => {
-    if (!canEdit || periods === 0 || busy) return;
+  // 드래그로 일정 이동 — 가로(periods) = 시작/끝 날짜 평행 이동(기간 보존), 세로(laneDelta) = lane 변경.
+  // lane은 사용자가 명시 변경 전까지 유지 — 가로만 이동 시 lane 자동 재배치 없음.
+  const applyDrag = async (itemId: number, periods: number, laneDelta: number, currentLane: number) => {
+    if (!canEdit || (periods === 0 && laneDelta === 0) || busy) return;
     setBusy(true);
     try {
-      const tv = tCol ? cv(itemId, tCol.id) : null;
-      const dv = dCol ? cv(itemId, dCol.id) : null;
-      if (tv?.start && tCol) {
-        const newStart = shiftStr(tv.start, periods, unit);
-        const dd = diffDays(newStart, tv.start);
-        const next: any = { start: newStart };
-        if (tv.end) next.end = fmtDate(addDays(toDate(tv.end)!, dd));
-        await pmApi.setCell(itemId, tCol.id, next);
-      } else if (dv?.date && dCol) {
-        await pmApi.setCell(itemId, dCol.id, { date: shiftStr(dv.date, periods, unit) });
+      if (periods !== 0) {
+        const tv = tCol ? cv(itemId, tCol.id) : null;
+        const dv = dCol ? cv(itemId, dCol.id) : null;
+        if (tv?.start && tCol) {
+          const newStart = shiftStr(tv.start, periods, unit);
+          const dd = diffDays(newStart, tv.start);
+          const next: any = { start: newStart };
+          if (tv.end) next.end = fmtDate(addDays(toDate(tv.end)!, dd));
+          await pmApi.setCell(itemId, tCol.id, next);
+        } else if (dv?.date && dCol) {
+          await pmApi.setCell(itemId, dCol.id, { date: shiftStr(dv.date, periods, unit) });
+        }
+      }
+      if (laneDelta !== 0) {
+        const newLane = Math.max(0, currentLane + laneDelta);
+        await pmApi.updateItem(itemId, { lane: newLane });
       }
       // load() 완료까지 await — 미완료 시 preview 가 사라지면서 snap-back 발생
       const r = onChanged?.() as any;
@@ -461,11 +491,15 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
                     const mode = isDragging ? drag!.mode : null;
                     const unitLabel = unit === 'day' ? '일' : unit === 'week' ? '주' : unit === 'month' ? '개월' : '분기';
 
-                    // 미리보기 위치/크기 — 모드별 클램프
-                    let left = baseLeft, w = baseW, dx = 0;
+                    // 미리보기 위치/크기 — 모드별 클램프. lane은 move 모드에서만 변경 가능.
+                    let left = baseLeft, w = baseW, dx = 0, dy = 0;
                     let previewPeriods = isDragging ? drag!.periods : 0;
+                    let previewLaneDelta = isDragging && mode === 'move' ? drag!.laneDelta : 0;
+                    // lane은 0 미만으로 못 내려감 (음수 lane 의미 없음)
+                    if (previewLaneDelta !== 0) previewLaneDelta = Math.max(-b.lane, previewLaneDelta);
                     if (mode === 'move') {
                       dx = previewPeriods * colW;
+                      dy = previewLaneDelta * laneH;
                     } else if (mode === 'start') {
                       const span = b.e - b.s; // 보존되는 칸 수 (양쪽 포함이면 span+1칸)
                       const p = Math.max(-b.s, Math.min(previewPeriods, span));
@@ -480,29 +514,35 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
                     }
 
                     const sign = previewPeriods > 0 ? '+' : '';
-                    const shiftHint = isDragging && previewPeriods !== 0
+                    const laneSign = previewLaneDelta > 0 ? '+' : '';
+                    const shiftHint = isDragging && (previewPeriods !== 0 || previewLaneDelta !== 0)
                       ? (mode === 'start' ? ` (시작 ${sign}${previewPeriods}${unitLabel})`
                         : mode === 'end' ? ` (종료 ${sign}${previewPeriods}${unitLabel})`
-                        : ` (${sign}${previewPeriods}${unitLabel})`)
+                        : ` (${previewPeriods !== 0 ? `${sign}${previewPeriods}${unitLabel}` : ''}${previewPeriods !== 0 && previewLaneDelta !== 0 ? ', ' : ''}${previewLaneDelta !== 0 ? `차선 ${laneSign}${previewLaneDelta}` : ''})`)
                       : '';
-                    const tip = `${b.it.name}${preds ? ` · 선행 ${preds.join(', ')}` : ''}${canEdit ? ' · 본문 드래그=이동, 양 끝 화살표=길이 조절' : ''}`;
+                    const tip = `${b.it.name}${preds ? ` · 선행 ${preds.join(', ')}` : ''}${canEdit ? ' · 가로 드래그=일정 이동, 세로 드래그=차선 변경, 양 끝 화살표=길이 조절' : ''}`;
 
                     const startDrag = (e: React.PointerEvent, m: 'move' | 'start' | 'end') => {
                       e.preventDefault();
                       e.stopPropagation();
                       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-                      setDrag({ itemId: b.it.id, startX: e.clientX, periods: 0, mode: m });
+                      setDrag({ itemId: b.it.id, startX: e.clientX, startY: e.clientY, periods: 0, laneDelta: 0, mode: m });
                     };
                     const moveDrag = (e: React.PointerEvent) => {
                       if (drag?.itemId !== b.it.id) return;
                       const p = Math.round((e.clientX - drag.startX) / colW);
-                      if (p !== drag.periods) setDrag({ ...drag, periods: p });
+                      // 세로 드래그 deadzone — 손떨림으로 의도치 않은 lane 변경 방지
+                      const dyRaw = e.clientY - drag.startY;
+                      const ld = drag.mode === 'move' && Math.abs(dyRaw) >= laneH * 0.7
+                        ? Math.round(dyRaw / laneH) : 0;
+                      if (p !== drag.periods || ld !== drag.laneDelta) setDrag({ ...drag, periods: p, laneDelta: ld });
                     };
                     const endDrag = async () => {
                       if (drag?.itemId !== b.it.id) return;
                       const p = drag.periods, m = drag.mode;
+                      const ld = m === 'move' ? Math.max(-b.lane, drag.laneDelta) : 0;
                       // 이동 0 인 단순 클릭(move 모드) → 상세 패널 열기 (드래그 진입점과 분리)
-                      if (p === 0 && m === 'move') {
+                      if (p === 0 && ld === 0 && m === 'move') {
                         setDrag(null);
                         onOpenItem?.(b.it.id);
                         return;
@@ -510,7 +550,7 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
                       // setDrag(null) 즉시 호출 시 preview transform 0 으로 돌아가 'snap-back → 새 위치'
                       // 시각 글리치 발생. applyDrag/Resize 가 load() 완료까지 await 하므로 그 후에
                       // setDrag(null) 하면 새 위치와 자연스럽게 이어짐.
-                      if (m === 'move') await applyDrag(b.it.id, p);
+                      if (m === 'move') await applyDrag(b.it.id, p, ld, b.lane);
                       else await applyResize(b.it.id, p, m);
                       setDrag(null);
                     };
@@ -537,7 +577,7 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
                     };
                     if (b.milestone) {
                       // 마일스톤은 길이 조절 불가 — 이동만 허용
-                      const msTransform = `translateX(${dx}px)${inFamily ? ' scale(1.25)' : ''}`;
+                      const msTransform = `translate(${dx}px, ${dy}px)${inFamily ? ' scale(1.25)' : ''}`;
                       return <div key={b.it.id} data-pm-bar-itemid={b.it.id} title={tip} {...moveProps} {...familyHoverHandlers}
                         className={`absolute transition-all duration-150 ${dragCls} ${inFamily ? 'drop-shadow-[0_0_4px_rgba(165,0,52,0.6)]' : ''}`}
                         style={{ left: baseLeft + 4, top: top + 2, transform: msTransform, zIndex: isDragging || inFamily ? 20 : undefined, opacity: dimmed ? 0.18 : 1 }}>
@@ -560,7 +600,7 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
                     return (
                       <div key={b.it.id} data-pm-bar-itemid={b.it.id} title={tip} {...moveProps} {...familyHoverHandlers}
                         className={`absolute rounded text-[10.5px] font-medium flex items-center overflow-hidden transition-all duration-150 ${dragCls} ${ringCls}`}
-                        style={{ left, width: w, top: isSub ? top + 3 : top, height: isSub ? subBarH : laneH - 10, backgroundColor: barColor, color: txt.color, transform: `translateX(${dx}px)`, zIndex: isDragging || inFamily ? 20 : undefined, opacity: baseOpacity }}>
+                        style={{ left, width: w, top: isSub ? top + 3 : top, height: isSub ? subBarH : laneH - 10, backgroundColor: barColor, color: txt.color, transform: `translate(${dx}px, ${dy}px)`, zIndex: isDragging || inFamily ? 20 : undefined, opacity: baseOpacity }}>
                         {canResize && (
                           <button
                             type="button"

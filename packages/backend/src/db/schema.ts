@@ -2305,6 +2305,7 @@ export const pmItems = pgTable(
     parentItemId: integer('parent_item_id'),
     name: varchar('name', { length: 300 }).notNull(),
     orderIndex: integer('order_index').default(0).notNull(),
+    lane: integer('lane'),
     createdBy: uuid('created_by'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),

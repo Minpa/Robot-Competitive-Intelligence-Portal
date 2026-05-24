@@ -31,7 +31,7 @@ export interface PmMember { id: number; projectId: number; userId: string; role:
 export interface PmBoard { id: number; projectId: number; name: string; description?: string | null; reportCycle?: string | null; orderIndex: number; }
 export interface PmGroup { id: number; boardId: number; name: string; color?: string | null; orderIndex: number; collapsed: boolean; }
 export interface PmColumn { id: number; boardId: number; name: string; type: ColumnType; settings?: any; orderIndex: number; width: number; }
-export interface PmItem { id: number; boardId: number; groupId: number; parentItemId?: number | null; name: string; orderIndex: number; }
+export interface PmItem { id: number; boardId: number; groupId: number; parentItemId?: number | null; name: string; orderIndex: number; lane?: number | null; }
 export interface PmCell { itemId: number; columnId: number; value: any; }
 export interface PmView { id: number; boardId: number; name: string; type: 'table' | 'timeline' | 'kanban' | 'calendar'; config: any; isDefault: boolean; scope: string; }
 export type DependencyType = 'FS' | 'SS' | 'FF' | 'SF';
@@ -74,6 +74,9 @@ export const pmApi = {
   bulkCells: (itemId: number, cells: Array<{ itemId: number; columnId: number; value: any }>) => req<{ ok: true; count: number }>(`/items/${itemId}/cells/bulk`, { method: 'POST', body: JSON.stringify({ cells }) }),
   // reorder
   reorderItems: (bid: number, order: Array<{ id: number; groupId: number; orderIndex: number }>) => req<{ ok: true }>(`/boards/${bid}/items/reorder`, { method: 'PUT', body: JSON.stringify({ order }) }),
+  // Gantt lane 일괄 영속화
+  setItemLanes: (bid: number, lanes: Array<{ id: number; lane: number | null }>) =>
+    req<{ ok: true; count: number }>(`/boards/${bid}/items/lanes`, { method: 'PUT', body: JSON.stringify({ lanes }) }),
   reorderColumns: (bid: number, order: Array<{ id: number; orderIndex: number }>) => req<{ ok: true }>(`/boards/${bid}/columns/reorder`, { method: 'PUT', body: JSON.stringify({ order }) }),
   // updates / activity / search
   listUpdates: (itemId: number) => req<{ updates: any[] }>(`/items/${itemId}/updates`),

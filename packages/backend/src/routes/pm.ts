@@ -311,11 +311,32 @@ export async function pmRoutes(fastify: FastifyInstance) {
     const pid = await projectIdOfItem(id);
     if (!(await guard(request, reply, pid, 'editor'))) return;
     const b = request.body as any;
-    const [it] = await db.update(pmItems).set({
-      name: b.name, groupId: b.groupId, orderIndex: b.orderIndex, updatedAt: new Date(),
-    }).where(eq(pmItems.id, id)).returning();
+    const patch: any = { updatedAt: new Date() };
+    if (b.name !== undefined) patch.name = b.name;
+    if (b.groupId !== undefined) patch.groupId = b.groupId;
+    if (b.orderIndex !== undefined) patch.orderIndex = b.orderIndex;
+    if (b.lane !== undefined) patch.lane = b.lane === null ? null : Number(b.lane);
+    const [it] = await db.update(pmItems).set(patch).where(eq(pmItems.id, id)).returning();
     await logActivity({ projectId: pid, itemId: id, userId: uid(request), action: 'update', entityType: 'item' });
     return { item: it };
+  });
+
+  // Gantt lane 일괄 영속화 — TimelineView 첫 렌더 시 자동 배정된 lane 값을 한 번에 sync.
+  fastify.put('/boards/:id/items/lanes', async (request, reply) => {
+    const bid = Number((request.params as any).id);
+    const pid = await projectIdOfBoard(bid);
+    if (!(await guard(request, reply, pid, 'editor'))) return;
+    const lanes = (request.body as any)?.lanes as Array<{ id: number; lane: number | null }>;
+    if (!Array.isArray(lanes) || lanes.length === 0) return { ok: true, count: 0 };
+    let count = 0;
+    for (const { id, lane } of lanes) {
+      if (!Number.isFinite(id)) continue;
+      await db.update(pmItems)
+        .set({ lane: lane === null ? null : Number(lane), updatedAt: new Date() })
+        .where(and(eq(pmItems.id, id), eq(pmItems.boardId, bid)));
+      count++;
+    }
+    return { ok: true, count };
   });
 
   fastify.delete('/items/:id', async (request, reply) => {
