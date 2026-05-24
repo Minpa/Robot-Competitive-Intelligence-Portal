@@ -630,7 +630,7 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
                       // 마일스톤은 길이 조절 불가 — 이동만 허용
                       const msTransform = `translate(${dx}px, ${dy}px)${inFamily ? ' scale(1.25)' : ''}`;
                       return <div key={b.it.id} data-pm-bar-itemid={b.it.id} title={tip} {...moveProps} {...familyHoverHandlers}
-                        className={`absolute transition-all duration-150 ${dragCls} ${inFamily ? 'drop-shadow-[0_0_4px_rgba(165,0,52,0.6)]' : ''}`}
+                        className={`absolute transition-[opacity,filter] duration-150 ${dragCls} ${inFamily ? 'drop-shadow-[0_0_4px_rgba(165,0,52,0.6)]' : ''}`}
                         style={{ left: baseLeft + 4, top: top + 2, transform: msTransform, zIndex: isDragging || inFamily ? 20 : undefined, opacity: dimmed ? 0.18 : 1 }}>
                         <div className={`${isSub ? 'w-2 h-2' : 'w-3 h-3'} bg-[#A50034] rotate-45 ${isSub ? 'opacity-70' : ''} ${isDragging ? 'ring-2 ring-[#A50034]/40' : ''}`} />
                         <span className={`absolute ${isSub ? 'left-4' : 'left-5'} top-0 whitespace-nowrap text-[10.5px] font-medium ${isSub ? 'text-[#5F5E5A]' : 'text-[#1A1A1A]'}`}
@@ -650,7 +650,7 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
                       : (isDragging ? 'ring-2 ring-[#A50034]/50' : '');
                     return (
                       <div key={b.it.id} data-pm-bar-itemid={b.it.id} title={tip} {...moveProps} {...familyHoverHandlers}
-                        className={`absolute rounded text-[10.5px] font-medium flex items-center overflow-hidden transition-all duration-150 ${dragCls} ${ringCls}`}
+                        className={`absolute rounded text-[10.5px] font-medium flex items-center overflow-hidden transition-[box-shadow,opacity,background-color,color] duration-150 ${dragCls} ${ringCls}`}
                         style={{ left, width: w, top: isSub ? top + 3 : top, height: isSub ? subBarH : laneH - 10, backgroundColor: barColor, color: txt.color, transform: `translate(${dx}px, ${dy}px)`, zIndex: isDragging || inFamily ? 20 : undefined, opacity: baseOpacity }}>
                         {canResize && (
                           <button
