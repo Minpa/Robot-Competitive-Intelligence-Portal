@@ -1,6 +1,6 @@
 'use client';
 // Timeline/Gantt 뷰 — timeline 막대 + 주/월/분기 축 + 마일스톤·오늘선 + 의존선(FS/SS/FF/SF).
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import { pmApi, type BoardData, type DependencyType } from '@/lib/pm-api';
 
@@ -104,6 +104,16 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
   const minAnchorRef = useRef<Date | null>(null);
   // 보드 변경 시 anchor 초기화 (다른 보드의 시점을 이어쓰면 안 됨)
   useEffect(() => { minAnchorRef.current = null; }, [board.id]);
+  // 드래그 커밋 → 데이터 reload 사이의 렌더 race 방지:
+  // applyDrag/Resize 가 onChanged 를 await 해도, 부모의 setBoard 와 우리 setDrag(null) 사이에
+  // 한 프레임 commit 이 끼어들어 막대가 (새 baseLeft + 옛 dx) 위치로 잠깐 점프함.
+  // pendingCommitRef 를 세팅한 뒤 useLayoutEffect 로 데이터 갱신 직후(paint 전) drag 를 클리어.
+  const pendingCommitRef = useRef<number | null>(null); // pending 인 itemId (다중 드래그 방어용)
+  useLayoutEffect(() => {
+    if (pendingCommitRef.current == null) return;
+    pendingCommitRef.current = null;
+    setDrag(null);
+  }, [data]);
 
   // linkDrag 진행 중 — 전역 mousemove/up 으로 끝점 추적 + drop 처리.
   // 클릭(이동 < 5px) → 다음 아이템 자동 생성 + FS 의존 자동 연결.
@@ -397,11 +407,13 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
         const newLane = Math.max(0, currentLane + laneDelta);
         await pmApi.updateItem(itemId, { lane: newLane });
       }
-      // load() 완료까지 await — 미완료 시 preview 가 사라지면서 snap-back 발생
+      // load() 완료까지 await — 미완료 시 preview 가 사라지면서 snap-back 발생.
+      // pendingCommitRef 세팅: 다음 data 갱신 시 useLayoutEffect 가 paint 전에 drag 클리어.
+      pendingCommitRef.current = itemId;
       const r = onChanged?.() as any;
       if (r && typeof r.then === 'function') await r;
       console.log('[pm-gantt] applyDrag done — data reloaded', { itemId });
-    } catch (err) { console.error('[pm-gantt] applyDrag failed', err); } finally { setBusy(false); }
+    } catch (err) { console.error('[pm-gantt] applyDrag failed', err); pendingCommitRef.current = null; } finally { setBusy(false); }
   };
 
   // 화살표 핸들로 길이 조절 — 시작 또는 끝 한쪽만 N칸 이동 (timeline 컬럼 전용)
@@ -421,9 +433,10 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
         if (toDate(newEnd)! < toDate(newStart)!) newEnd = newStart; // start 역전 금지
       }
       await pmApi.setCell(itemId, tCol.id, { start: newStart, end: newEnd });
+      pendingCommitRef.current = itemId;
       const r = onChanged?.() as any;
       if (r && typeof r.then === 'function') await r;
-    } catch { /* noop */ } finally { setBusy(false); }
+    } catch { pendingCommitRef.current = null; } finally { setBusy(false); }
   };
 
   const itemOpts = data.items.filter((i) => !i.parentItemId);
@@ -586,12 +599,11 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
                         onOpenItem?.(b.it.id);
                         return;
                       }
-                      // setDrag(null) 즉시 호출 시 preview transform 0 으로 돌아가 'snap-back → 새 위치'
-                      // 시각 글리치 발생. applyDrag/Resize 가 load() 완료까지 await 하므로 그 후에
-                      // setDrag(null) 하면 새 위치와 자연스럽게 이어짐.
+                      // drag 클리어는 useLayoutEffect 가 data 갱신 직후(paint 전)에 동기적으로 수행.
+                      // 여기서 await 뒤에 setDrag(null) 하면 새 데이터 commit 과 setDrag 사이에 한 프레임
+                      // (새 baseLeft + 옛 dx) 잘못된 위치가 paint 되는 race 발생.
                       if (m === 'move') await applyDrag(b.it.id, p, ld, b.lane);
                       else await applyResize(b.it.id, p, m);
-                      setDrag(null);
                     };
 
                     const moveProps = canEdit ? {
