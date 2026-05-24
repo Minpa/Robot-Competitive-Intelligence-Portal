@@ -377,9 +377,12 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
           const dd = diffDays(newStart, tv.start);
           const next: any = { start: newStart };
           if (tv.end) next.end = fmtDate(addDays(toDate(tv.end)!, dd));
+          console.log('[pm-gantt] applyDrag→setCell(timeline)', { itemId, periods, unit, oldStart: tv.start, newStart, oldEnd: tv.end, newEnd: next.end });
           await pmApi.setCell(itemId, tCol.id, next);
         } else if (dv?.date && dCol) {
-          await pmApi.setCell(itemId, dCol.id, { date: shiftStr(dv.date, periods, unit) });
+          const newDate = shiftStr(dv.date, periods, unit);
+          console.log('[pm-gantt] applyDrag→setCell(date)', { itemId, periods, unit, oldDate: dv.date, newDate });
+          await pmApi.setCell(itemId, dCol.id, { date: newDate });
         }
       }
       if (laneDelta !== 0) {
@@ -389,7 +392,8 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
       // load() 완료까지 await — 미완료 시 preview 가 사라지면서 snap-back 발생
       const r = onChanged?.() as any;
       if (r && typeof r.then === 'function') await r;
-    } catch { /* noop */ } finally { setBusy(false); }
+      console.log('[pm-gantt] applyDrag done — data reloaded', { itemId });
+    } catch (err) { console.error('[pm-gantt] applyDrag failed', err); } finally { setBusy(false); }
   };
 
   // 화살표 핸들로 길이 조절 — 시작 또는 끝 한쪽만 N칸 이동 (timeline 컬럼 전용)
@@ -543,6 +547,7 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
                       e.preventDefault();
                       e.stopPropagation();
                       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                      console.log('[pm-gantt] startDrag', { itemId: b.it.id, name: b.it.name, mode: m, startX: e.clientX, startY: e.clientY, colW, unit, currentBs: b.s, currentBe: b.e, currentLane: b.lane });
                       setDrag({ itemId: b.it.id, startX: e.clientX, startY: e.clientY, periods: 0, laneDelta: 0, mode: m });
                     };
                     const moveDrag = (e: React.PointerEvent) => {
@@ -563,7 +568,9 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
                       const ld = m === 'move' ? Math.max(-b.lane, drag.laneDelta) : 0;
                       // 진단 로그 — 사용자가 의도와 다른 이동을 보면 콘솔에서 실제 값 확인 가능
                       if (m === 'move' && (p !== 0 || ld !== 0)) {
-                        console.log('[pm-gantt] drop', { itemId: b.it.id, name: b.it.name, periods: p, unit, laneDelta: ld, currentLane: b.lane });
+                        console.log('[pm-gantt] drop(move)', { itemId: b.it.id, name: b.it.name, periods: p, unit, colW, laneDelta: ld, currentLane: b.lane, currentBs: b.s, expectedNewBs: b.s + p });
+                      } else if (m !== 'move' && p !== 0) {
+                        console.log('[pm-gantt] drop(resize)', { itemId: b.it.id, name: b.it.name, mode: m, periods: p, unit, colW, currentBs: b.s, currentBe: b.e });
                       }
                       // 이동 0 인 단순 클릭(move 모드) → 상세 패널 열기 (드래그 진입점과 분리)
                       if (p === 0 && ld === 0 && m === 'move') {
