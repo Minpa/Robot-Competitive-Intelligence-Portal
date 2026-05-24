@@ -8,7 +8,7 @@ import {
   type IssueType, type Priority, PRIORITY_LABEL, TYPE_LABEL, STATUS_LABEL, STATUS_COLOR,
 } from '@/lib/issues-api';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, ExternalLink, Sparkles, Building2, ArrowRight } from 'lucide-react';
+import { CheckCircle2, ExternalLink, Sparkles, Building2, ArrowRight, Bot, Package, Newspaper } from 'lucide-react';
 
 export function LookupAnswerPanel({ answer, fallbackLabel, onCreateTicket }: {
   answer: AskLookupAnswer;
@@ -21,17 +21,84 @@ export function LookupAnswerPanel({ answer, fallbackLabel, onCreateTicket }: {
         <Sparkles className="w-4 h-4 text-amber-500" />
         <h2 className="text-sm font-semibold text-slate-900">조회 결과</h2>
       </div>
-      <p className="text-sm text-slate-700 leading-relaxed">{answer.summary}</p>
+      <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{answer.summary}</p>
+
+      {answer.robots && answer.robots.length > 0 && (
+        <div>
+          <h3 className="text-[11px] uppercase tracking-wider font-medium text-slate-500 mb-2 inline-flex items-center gap-1">
+            <Bot className="w-3 h-3" /> 휴머노이드 로봇 ({answer.robots.length})
+          </h3>
+          <div className="space-y-1.5">
+            {answer.robots.map((r) => (
+              <div key={r.id} className="px-2 py-1.5 bg-blue-50/30 border border-blue-100 rounded">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-medium text-slate-900">{r.name}</span>
+                  {r.companyName && <span className="text-[11px] text-slate-500">· {r.companyName}</span>}
+                  {r.announcementYear && (
+                    <span className="text-[10px] text-slate-500">
+                      {r.announcementYear}{r.announcementQuarter ? ` Q${r.announcementQuarter}` : ''}
+                    </span>
+                  )}
+                  {r.stage && <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded">{r.stage}</span>}
+                  {r.purpose && <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded">{r.purpose}</span>}
+                  {r.dataType === 'forecast' && <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded">예측</span>}
+                </div>
+                {r.description && (
+                  <div className="text-[11px] text-slate-600 mt-1 line-clamp-2">{r.description}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {answer.products && answer.products.length > 0 && (
+        <div>
+          <h3 className="text-[11px] uppercase tracking-wider font-medium text-slate-500 mb-2 inline-flex items-center gap-1">
+            <Package className="w-3 h-3" /> 제품 ({answer.products.length})
+          </h3>
+          <div className="space-y-1">
+            {answer.products.map((p) => (
+              <div key={p.id} className="px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs flex items-center gap-2 flex-wrap">
+                <span className="font-medium text-slate-900">{p.name}</span>
+                {p.companyName && <span className="text-slate-500">· {p.companyName}</span>}
+                <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 rounded">{p.type}</span>
+                {p.releaseDate && <span className="text-[10px] text-slate-500">{p.releaseDate}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {answer.competitors.length > 0 && (
         <div>
-          <h3 className="text-[11px] uppercase tracking-wider font-medium text-slate-500 mb-2">관련 경쟁사</h3>
+          <h3 className="text-[11px] uppercase tracking-wider font-medium text-slate-500 mb-2 inline-flex items-center gap-1">
+            <Building2 className="w-3 h-3" /> 관련 회사 ({answer.competitors.length})
+          </h3>
           <div className="flex flex-wrap gap-2">
             {answer.competitors.map((c) => (
               <span key={c.id} className="inline-flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs">
-                <Building2 className="w-3 h-3 text-slate-500" />
                 {c.name} <span className="text-slate-400 text-[10px]">({c.country})</span>
               </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {answer.recentArticles && answer.recentArticles.length > 0 && (
+        <div>
+          <h3 className="text-[11px] uppercase tracking-wider font-medium text-slate-500 mb-2 inline-flex items-center gap-1">
+            <Newspaper className="w-3 h-3" /> 최근 기사 ({answer.recentArticles.length})
+          </h3>
+          <div className="space-y-1">
+            {answer.recentArticles.map((a) => (
+              <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer"
+                className="block px-2 py-1.5 border border-slate-200 rounded hover:bg-slate-50">
+                <div className="text-xs text-slate-900 truncate">{a.title}</div>
+                <div className="text-[10px] text-slate-500 mt-0.5">
+                  {a.source}{a.publishedAt ? ` · ${a.publishedAt.slice(0, 10)}` : ''}
+                </div>
+              </a>
             ))}
           </div>
         </div>

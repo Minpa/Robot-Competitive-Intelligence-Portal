@@ -124,7 +124,20 @@ export interface DashboardOverview {
 export interface AskLookupAnswer {
   summary: string;
   competitors: Array<{ id: string; name: string; country: string }>;
-  recentArticles: any[];
+  robots?: Array<{
+    id: string; name: string; companyName: string | null;
+    announcementYear: number | null; announcementQuarter: number | null;
+    status: string | null; purpose: string | null; stage: string | null;
+    dataType: string | null; description: string | null;
+  }>;
+  products?: Array<{
+    id: string; name: string; type: string;
+    companyName: string | null; releaseDate: string | null; status: string | null;
+  }>;
+  recentArticles: Array<{
+    id: string; title: string; source: string; url: string;
+    publishedAt: string | null;
+  }>;
   relatedTickets: Array<{ id: string; code: string; title: string; status: IssueStatus }>;
 }
 

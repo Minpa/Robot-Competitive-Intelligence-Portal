@@ -1,8 +1,8 @@
 // ARGOS Issue Tracking — /ask 의도 분류 + lookup 조립 + task 초안 enrichment (spec §7.2~7.4).
 import Anthropic from '@anthropic-ai/sdk';
-import { desc, sql } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { companies, issueTickets, issueAiCallLog } from '../../db/schema.js';
+import { companies, issueTickets, issueAiCallLog, humanoidRobots, products, articles } from '../../db/schema.js';
 
 type Intent = 'lookup' | 'task' | 'ambiguous';
 
@@ -44,21 +44,66 @@ function getClient(): Anthropic | null {
   return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 }
 
-// 1) 키워드 기반 fallback (Claude 미가용·예산 소진 시)
-async function keywordFallback(query: string): Promise<AskResult> {
-  const like = `%${query.split(/\s+/)[0] ?? query}%`;
-  const [comps, tixs] = await Promise.all([
+// 공용 — 카탈로그(휴머노이드 로봇·제품·기사·회사) + 티켓 동시 검색
+async function searchCatalog(query: string) {
+  const like = `%${query}%`;
+  const firstWord = query.split(/\s+/)[0] ?? query;
+  const likeFw = `%${firstWord}%`;
+  const [comps, robots, prods, arts, tixs] = await Promise.all([
     db.select({ id: companies.id, name: companies.name, country: companies.country })
       .from(companies).where(sql`${companies.name} ILIKE ${like}`).limit(5),
+    db.select({
+      id: humanoidRobots.id, name: humanoidRobots.name,
+      companyId: humanoidRobots.companyId, companyName: companies.name,
+      announcementYear: humanoidRobots.announcementYear,
+      announcementQuarter: humanoidRobots.announcementQuarter,
+      status: humanoidRobots.status, purpose: humanoidRobots.purpose,
+      stage: humanoidRobots.commercializationStage,
+      dataType: humanoidRobots.dataType,
+      description: humanoidRobots.description,
+    }).from(humanoidRobots)
+      .leftJoin(companies, eq(companies.id, humanoidRobots.companyId))
+      .where(sql`${humanoidRobots.name} ILIKE ${like} OR ${companies.name} ILIKE ${likeFw}`)
+      .orderBy(desc(humanoidRobots.announcementYear), desc(humanoidRobots.announcementQuarter))
+      .limit(8),
+    db.select({
+      id: products.id, name: products.name, type: products.type,
+      companyName: companies.name, releaseDate: products.releaseDate,
+      status: products.status,
+    }).from(products)
+      .leftJoin(companies, eq(companies.id, products.companyId))
+      .where(sql`${products.name} ILIKE ${like} OR ${companies.name} ILIKE ${likeFw}`)
+      .limit(5),
+    db.select({
+      id: articles.id, title: articles.title, source: articles.source,
+      url: articles.url, publishedAt: articles.publishedAt,
+    }).from(articles)
+      .where(sql`${articles.title} ILIKE ${like}`)
+      .orderBy(desc(articles.publishedAt))
+      .limit(5),
     db.select({ id: issueTickets.id, code: issueTickets.code, title: issueTickets.title, status: issueTickets.status })
-      .from(issueTickets).where(sql`${issueTickets.title} ILIKE ${like}`).limit(5),
+      .from(issueTickets)
+      .where(sql`${issueTickets.title} ILIKE ${like}`)
+      .orderBy(desc(issueTickets.createdAt))
+      .limit(5),
   ]);
+  return { comps, robots, prods, arts, tixs };
+}
+
+// 1) 키워드 기반 fallback (Claude 미가용·예산 소진 시)
+async function keywordFallback(query: string): Promise<AskResult> {
+  const { comps, robots, prods, arts, tixs } = await searchCatalog(query);
+  const hits = comps.length + robots.length + prods.length + arts.length + tixs.length;
   return {
     intent: 'lookup', confidence: 0.4,
     answer: {
-      summary: 'AI 미가용 — 키워드 검색 결과',
+      summary: hits === 0
+        ? 'AI 미가용 — 검색 결과 없음'
+        : `AI 미가용 — 키워드 검색: 로봇 ${robots.length}, 제품 ${prods.length}, 회사 ${comps.length}, 기사 ${arts.length}, 티켓 ${tixs.length}`,
       competitors: comps,
-      recentArticles: [],
+      robots,
+      products: prods,
+      recentArticles: arts,
       relatedTickets: tixs,
     },
     fallback: { action: 'create_ticket', label: '이 정보로 부족 — 이슈로 발행 →' },
@@ -71,22 +116,12 @@ async function classifyAndDraft(query: string, userId: string): Promise<AskResul
   if (!client) return keywordFallback(query);
   if (await aiBudgetExhausted()) return keywordFallback(query);
 
-  // 관련 회사·티켓 사전 조회 (context for Claude)
-  const lower = query.toLowerCase();
-  const [comps, tixs] = await Promise.all([
-    db.select({ id: companies.id, name: companies.name, country: companies.country })
-      .from(companies)
-      .where(sql`lower(${companies.name}) ILIKE ${'%' + lower + '%'}`)
-      .limit(8),
-    db.select({ id: issueTickets.id, code: issueTickets.code, title: issueTickets.title, status: issueTickets.status })
-      .from(issueTickets)
-      .where(sql`lower(${issueTickets.title}) ILIKE ${'%' + lower + '%'}`)
-      .orderBy(desc(issueTickets.createdAt))
-      .limit(8),
-  ]);
+  // 관련 카탈로그 사전 조회 (context for Claude)
+  const { comps, robots, prods, arts, tixs } = await searchCatalog(query);
 
   const sys = `당신은 ARGOS 워룸의 이슈 트래커 도우미입니다.
 사용자 질의를 받아 의도를 분류하고 JSON 만 출력하세요.
+참고 컨텍스트(사내 DB)에 실제 데이터가 있으면 summary 에 그 정보를 1~3문장으로 인용해 답변하세요.
 
 intent:
 - "lookup": 단순 조회/검색 (예: "Figure 03 정보", "최근 경쟁사 동향")
@@ -97,7 +132,7 @@ intent:
 {
   "intent": "lookup"|"task"|"ambiguous",
   "confidence": 0.0~1.0,
-  "summary": "조회 요약 1~2문장 (lookup/ambiguous 일 때)",
+  "summary": "조회 요약 — 컨텍스트의 실제 데이터를 인용해 1~3문장 (lookup/ambiguous)",
   "task_title": "20자 이내 (task/ambiguous 일 때)",
   "task_description": "초안 본문 1~3문장 (task/ambiguous 일 때)",
   "priority": "H"|"M"|"L",
@@ -107,8 +142,13 @@ intent:
 }`;
 
   const ctxBlocks = [
-    `사내에 검색된 회사 후보:\n${comps.map(c => `- ${c.name} (${c.country})`).join('\n') || '(없음)'}`,
-    `사내에 검색된 관련 티켓:\n${tixs.map(t => `- ${t.code} ${t.title} [${t.status}]`).join('\n') || '(없음)'}`,
+    `[휴머노이드 로봇]\n${robots.map(r =>
+      `- ${r.name} (${r.companyName ?? '?'}) — ${r.announcementYear ?? '?'}${r.announcementQuarter ? ' Q'+r.announcementQuarter : ''} · ${r.stage ?? r.status ?? ''} · ${r.purpose ?? ''} · ${r.dataType ?? ''}${r.description ? ` — ${r.description.slice(0, 200)}` : ''}`,
+    ).join('\n') || '(없음)'}`,
+    `[제품]\n${prods.map(p => `- ${p.name} (${p.companyName ?? '?'}) — ${p.type} · ${p.releaseDate ?? ''} · ${p.status ?? ''}`).join('\n') || '(없음)'}`,
+    `[회사]\n${comps.map(c => `- ${c.name} (${c.country})`).join('\n') || '(없음)'}`,
+    `[최근 기사]\n${arts.map(a => `- ${a.title} (${a.source}, ${a.publishedAt ? new Date(a.publishedAt).toISOString().slice(0,10) : '?'})`).join('\n') || '(없음)'}`,
+    `[관련 티켓]\n${tixs.map(t => `- ${t.code} ${t.title} [${t.status}]`).join('\n') || '(없음)'}`,
   ].join('\n\n');
 
   try {
@@ -134,7 +174,11 @@ intent:
     if (intent === 'lookup' || intent === 'ambiguous') {
       result.answer = {
         summary: String(parsed.summary ?? '검색 결과 요약을 준비 중입니다.'),
-        competitors: comps, recentArticles: [], relatedTickets: tixs,
+        competitors: comps,
+        robots,
+        products: prods,
+        recentArticles: arts,
+        relatedTickets: tixs,
       };
       result.fallback = { action: 'create_ticket', label: '이 정보로 부족 — 이슈로 발행 →' };
     }
