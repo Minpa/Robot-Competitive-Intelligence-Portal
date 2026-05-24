@@ -1,8 +1,48 @@
 // ARGOS Issue Tracking — /ask 의도 분류 + lookup 조립 + task 초안 enrichment (spec §7.2~7.4).
 import Anthropic from '@anthropic-ai/sdk';
-import { desc, eq, sql } from 'drizzle-orm';
+import { desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { companies, issueTickets, issueAiCallLog, humanoidRobots, products, articles } from '../../db/schema.js';
+
+// 한국어 자연어 질의에서 검색용 키워드만 추출
+// "ATLAS 정보 찾아줘" → ["ATLAS"]
+// "Tesla Optimus 대응 방안 검토" → ["Tesla", "Optimus"]
+const KO_STOPWORDS = new Set([
+  '정보', '찾아줘', '보여줘', '알려줘', '검토', '분석', '대응', '방안',
+  '어때', '뭐', '뭐야', '뭐임', '어떤', '최근', '지난', '이번', '오늘',
+  '내일', '어제', '해줘', '해', '하자', '하기', '관련', '동향', '현황',
+  '가격', '대해', '에서', '에게', '으로', '에서의', '이번주', '이번달',
+  '주', '안에', '까지', '부터', '입니다', '있나', '있어', '있나요',
+  '없나', '없어', '검색', '찾기', '하나', '하나요', '진행', '준비',
+  '분석해줘', '확인해줘', '정리해줘', '요약해줘', '검토해줘', '리뷰',
+  '리뷰해줘', '리스트', '목록', '리포트', '보고서',
+]);
+
+function extractKeywords(query: string): string[] {
+  const tokens = query
+    .split(/[\s,.!?+/\\()[\]{}'"·:;~`@#$%^&*=|<>]+/)
+    .map(t => t.trim())
+    .filter(Boolean);
+  const kws: string[] = [];
+  for (const t of tokens) {
+    if (t.length < 2) continue;
+    if (KO_STOPWORDS.has(t)) continue;
+    // 순수 한글 동사/형용사 어미 류 (가벼운 휴리스틱)
+    if (/^[가-힣]+(요|음|임|냐|니|니까|네|네요|었|았)$/.test(t)) continue;
+    kws.push(t);
+  }
+  return kws.length > 0 ? kws : [query.trim()];
+}
+
+function ilikeAnyField(keywords: string[], fields: any[]): SQL<unknown> | undefined {
+  const conds: SQL<unknown>[] = [];
+  for (const kw of keywords) {
+    const pat = `%${kw}%`;
+    for (const f of fields) conds.push(ilike(f, pat));
+  }
+  if (conds.length === 0) return undefined;
+  return or(...conds);
+}
 
 type Intent = 'lookup' | 'task' | 'ambiguous';
 
@@ -45,61 +85,78 @@ function getClient(): Anthropic | null {
 }
 
 // 공용 — 카탈로그(휴머노이드 로봇·제품·기사·회사) + 티켓 동시 검색
+// 자연어 질의에서 키워드 추출 후 각 테이블의 여러 필드에 OR-ILIKE
 async function searchCatalog(query: string) {
-  const like = `%${query}%`;
-  const firstWord = query.split(/\s+/)[0] ?? query;
-  const likeFw = `%${firstWord}%`;
+  const keywords = extractKeywords(query);
+
+  const compWhere = ilikeAnyField(keywords, [companies.name, companies.description, companies.mainBusiness]);
+  const robotWhere = ilikeAnyField(keywords, [humanoidRobots.name, humanoidRobots.description, companies.name]);
+  const prodWhere = ilikeAnyField(keywords, [products.name, products.series, companies.name]);
+  const artWhere = ilikeAnyField(keywords, [articles.title, articles.summary]);
+  const tixWhere = ilikeAnyField(keywords, [issueTickets.title, issueTickets.description, issueTickets.code]);
+
   const [comps, robots, prods, arts, tixs] = await Promise.all([
-    db.select({ id: companies.id, name: companies.name, country: companies.country })
-      .from(companies).where(sql`${companies.name} ILIKE ${like}`).limit(5),
-    db.select({
-      id: humanoidRobots.id, name: humanoidRobots.name,
-      companyId: humanoidRobots.companyId, companyName: companies.name,
-      announcementYear: humanoidRobots.announcementYear,
-      announcementQuarter: humanoidRobots.announcementQuarter,
-      status: humanoidRobots.status, purpose: humanoidRobots.purpose,
-      stage: humanoidRobots.commercializationStage,
-      dataType: humanoidRobots.dataType,
-      description: humanoidRobots.description,
-    }).from(humanoidRobots)
-      .leftJoin(companies, eq(companies.id, humanoidRobots.companyId))
-      .where(sql`${humanoidRobots.name} ILIKE ${like} OR ${companies.name} ILIKE ${likeFw}`)
-      .orderBy(desc(humanoidRobots.announcementYear), desc(humanoidRobots.announcementQuarter))
-      .limit(8),
-    db.select({
-      id: products.id, name: products.name, type: products.type,
-      companyName: companies.name, releaseDate: products.releaseDate,
-      status: products.status,
-    }).from(products)
-      .leftJoin(companies, eq(companies.id, products.companyId))
-      .where(sql`${products.name} ILIKE ${like} OR ${companies.name} ILIKE ${likeFw}`)
-      .limit(5),
-    db.select({
-      id: articles.id, title: articles.title, source: articles.source,
-      url: articles.url, publishedAt: articles.publishedAt,
-    }).from(articles)
-      .where(sql`${articles.title} ILIKE ${like}`)
-      .orderBy(desc(articles.publishedAt))
-      .limit(5),
-    db.select({ id: issueTickets.id, code: issueTickets.code, title: issueTickets.title, status: issueTickets.status })
-      .from(issueTickets)
-      .where(sql`${issueTickets.title} ILIKE ${like}`)
-      .orderBy(desc(issueTickets.createdAt))
-      .limit(5),
+    compWhere
+      ? db.select({ id: companies.id, name: companies.name, country: companies.country })
+          .from(companies).where(compWhere).limit(5)
+      : Promise.resolve([] as any[]),
+    robotWhere
+      ? db.select({
+          id: humanoidRobots.id, name: humanoidRobots.name,
+          companyId: humanoidRobots.companyId, companyName: companies.name,
+          announcementYear: humanoidRobots.announcementYear,
+          announcementQuarter: humanoidRobots.announcementQuarter,
+          status: humanoidRobots.status, purpose: humanoidRobots.purpose,
+          stage: humanoidRobots.commercializationStage,
+          dataType: humanoidRobots.dataType,
+          description: humanoidRobots.description,
+        }).from(humanoidRobots)
+          .leftJoin(companies, eq(companies.id, humanoidRobots.companyId))
+          .where(robotWhere)
+          .orderBy(desc(humanoidRobots.announcementYear), desc(humanoidRobots.announcementQuarter))
+          .limit(8)
+      : Promise.resolve([] as any[]),
+    prodWhere
+      ? db.select({
+          id: products.id, name: products.name, type: products.type,
+          companyName: companies.name, releaseDate: products.releaseDate,
+          status: products.status,
+        }).from(products)
+          .leftJoin(companies, eq(companies.id, products.companyId))
+          .where(prodWhere)
+          .limit(5)
+      : Promise.resolve([] as any[]),
+    artWhere
+      ? db.select({
+          id: articles.id, title: articles.title, source: articles.source,
+          url: articles.url, publishedAt: articles.publishedAt,
+        }).from(articles)
+          .where(artWhere)
+          .orderBy(desc(articles.publishedAt))
+          .limit(5)
+      : Promise.resolve([] as any[]),
+    tixWhere
+      ? db.select({ id: issueTickets.id, code: issueTickets.code, title: issueTickets.title, status: issueTickets.status })
+          .from(issueTickets)
+          .where(tixWhere)
+          .orderBy(desc(issueTickets.createdAt))
+          .limit(5)
+      : Promise.resolve([] as any[]),
   ]);
-  return { comps, robots, prods, arts, tixs };
+  return { comps, robots, prods, arts, tixs, keywords };
 }
 
 // 1) 키워드 기반 fallback (Claude 미가용·예산 소진 시)
 async function keywordFallback(query: string): Promise<AskResult> {
-  const { comps, robots, prods, arts, tixs } = await searchCatalog(query);
+  const { comps, robots, prods, arts, tixs, keywords } = await searchCatalog(query);
   const hits = comps.length + robots.length + prods.length + arts.length + tixs.length;
+  const kwStr = keywords.join(', ');
   return {
     intent: 'lookup', confidence: 0.4,
     answer: {
       summary: hits === 0
-        ? 'AI 미가용 — 검색 결과 없음'
-        : `AI 미가용 — 키워드 검색: 로봇 ${robots.length}, 제품 ${prods.length}, 회사 ${comps.length}, 기사 ${arts.length}, 티켓 ${tixs.length}`,
+        ? `AI 미가용 — 키워드 [${kwStr}] 검색 결과 없음`
+        : `AI 미가용 — 키워드 [${kwStr}] 검색: 로봇 ${robots.length}, 제품 ${prods.length}, 회사 ${comps.length}, 기사 ${arts.length}, 티켓 ${tixs.length}`,
       competitors: comps,
       robots,
       products: prods,
@@ -117,7 +174,7 @@ async function classifyAndDraft(query: string, userId: string): Promise<AskResul
   if (await aiBudgetExhausted()) return keywordFallback(query);
 
   // 관련 카탈로그 사전 조회 (context for Claude)
-  const { comps, robots, prods, arts, tixs } = await searchCatalog(query);
+  const { comps, robots, prods, arts, tixs, keywords } = await searchCatalog(query);
 
   const sys = `당신은 ARGOS 워룸의 이슈 트래커 도우미입니다.
 사용자 질의를 받아 의도를 분류하고 JSON 만 출력하세요.
@@ -142,6 +199,7 @@ intent:
 }`;
 
   const ctxBlocks = [
+    `[추출된 검색 키워드] ${keywords.join(', ')}`,
     `[휴머노이드 로봇]\n${robots.map(r =>
       `- ${r.name} (${r.companyName ?? '?'}) — ${r.announcementYear ?? '?'}${r.announcementQuarter ? ' Q'+r.announcementQuarter : ''} · ${r.stage ?? r.status ?? ''} · ${r.purpose ?? ''} · ${r.dataType ?? ''}${r.description ? ` — ${r.description.slice(0, 200)}` : ''}`,
     ).join('\n') || '(없음)'}`,
