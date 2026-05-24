@@ -54,7 +54,7 @@ export function StatusControls({ ticket, onReload }: Props) {
         <div>
           <label className="block text-[11px] uppercase tracking-wider font-medium text-slate-500 mb-1">우선순위</label>
           <select value={ticket.priority} onChange={(e) => patch({ priority: e.target.value as Priority })} disabled={busy}
-            className="w-full px-2 py-1 text-sm border border-slate-300 rounded">
+            className="w-full px-2 py-1 text-sm border border-slate-300 rounded text-slate-900">
             {(['H','M','L'] as Priority[]).map(p => (
               <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>
             ))}
@@ -63,7 +63,7 @@ export function StatusControls({ ticket, onReload }: Props) {
         <div>
           <label className="block text-[11px] uppercase tracking-wider font-medium text-slate-500 mb-1">유형</label>
           <select value={ticket.type} onChange={(e) => patch({ type: e.target.value as IssueType })} disabled={busy}
-            className="w-full px-2 py-1 text-sm border border-slate-300 rounded">
+            className="w-full px-2 py-1 text-sm border border-slate-300 rounded text-slate-900">
             {(['task','research','response','epic'] as IssueType[]).map(t => (
               <option key={t} value={t}>{TYPE_LABEL[t]}</option>
             ))}
@@ -77,7 +77,7 @@ export function StatusControls({ ticket, onReload }: Props) {
           value={ticket.dueAt ? ticket.dueAt.slice(0, 10) : ''}
           onChange={(e) => patch({ dueAt: e.target.value ? new Date(e.target.value).toISOString() : null })}
           disabled={busy}
-          className="w-full px-2 py-1 text-sm border border-slate-300 rounded" />
+          className="w-full px-2 py-1 text-sm border border-slate-300 rounded text-slate-900" />
       </div>
 
       {err && <div className="text-xs text-red-600">{err}</div>}

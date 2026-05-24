@@ -41,9 +41,9 @@ export function LinkList({ ticketCode, links, onReload }: Props) {
         <div className="flex items-center gap-2">
           <input value={toCode} onChange={(e) => setToCode(e.target.value)}
             placeholder="ARG-NNN"
-            className="px-2 py-1 text-sm border border-slate-300 rounded w-32 font-mono focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            className="px-2 py-1 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400 w-32 font-mono focus:outline-none focus:ring-1 focus:ring-blue-500" />
           <select value={relation} onChange={(e) => setRelation(e.target.value as LinkRelation)}
-            className="px-2 py-1 text-sm border border-slate-300 rounded">
+            className="px-2 py-1 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400">
             <option value="blocks">차단함 (blocks)</option>
             <option value="duplicates">중복 (duplicates)</option>
             <option value="relates_to">관련 (relates_to)</option>

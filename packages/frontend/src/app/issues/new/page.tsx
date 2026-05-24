@@ -49,21 +49,21 @@ function NewIssueForm() {
       <div>
         <label className="block text-[11px] font-medium text-slate-600 mb-1">제목 *</label>
         <input value={title} onChange={(e) => setTitle(e.target.value)}
-          className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500" />
       </div>
 
       <div>
         <label className="block text-[11px] font-medium text-slate-600 mb-1">설명</label>
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={6}
           placeholder="Markdown 가능 (v1 은 plaintext 렌더)"
-          className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500" />
       </div>
 
       <div className="grid grid-cols-3 gap-3">
         <div>
           <label className="block text-[11px] font-medium text-slate-600 mb-1">유형</label>
           <select value={type} onChange={(e) => setType(e.target.value as IssueType)}
-            className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded">
+            className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400">
             {(['task','research','response','epic'] as IssueType[]).map(t => (
               <option key={t} value={t}>{TYPE_LABEL[t]}</option>
             ))}
@@ -72,7 +72,7 @@ function NewIssueForm() {
         <div>
           <label className="block text-[11px] font-medium text-slate-600 mb-1">우선순위</label>
           <select value={priority} onChange={(e) => setPriority(e.target.value as Priority)}
-            className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded">
+            className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400">
             {(['H','M','L'] as Priority[]).map(p => (
               <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>
             ))}
@@ -81,7 +81,7 @@ function NewIssueForm() {
         <div>
           <label className="block text-[11px] font-medium text-slate-600 mb-1">마감일</label>
           <input type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)}
-            className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded" />
+            className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400" />
         </div>
       </div>
 
@@ -89,7 +89,7 @@ function NewIssueForm() {
         <label className="block text-[11px] font-medium text-slate-600 mb-1">부모 이슈 (선택)</label>
         <input value={parentCode} onChange={(e) => setParentCode(e.target.value)}
           placeholder="예: ARG-042 — Epic 또는 일반 이슈"
-          className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded font-mono focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400 font-mono focus:outline-none focus:ring-1 focus:ring-blue-500" />
         <p className="text-[10px] text-slate-500 mt-0.5">depth-2 까지만 허용 (sub-sub-task 금지)</p>
       </div>
 

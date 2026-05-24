@@ -104,20 +104,20 @@ export function ConfirmDraftPanel({ draft, onConfirm }: {
       <div>
         <label className="block text-[11px] font-medium text-slate-600 mb-1">제목</label>
         <input value={title} onChange={(e) => setTitle(e.target.value)}
-          className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500" />
       </div>
 
       <div>
         <label className="block text-[11px] font-medium text-slate-600 mb-1">설명</label>
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4}
-          className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500" />
       </div>
 
       <div className="grid grid-cols-3 gap-2">
         <div>
           <label className="block text-[11px] font-medium text-slate-600 mb-1">유형</label>
           <select value={type} onChange={(e) => setType(e.target.value as IssueType)}
-            className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded">
+            className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400">
             {(['task','research','response','epic'] as IssueType[]).map(t => (
               <option key={t} value={t}>{TYPE_LABEL[t]}</option>
             ))}
@@ -126,7 +126,7 @@ export function ConfirmDraftPanel({ draft, onConfirm }: {
         <div>
           <label className="block text-[11px] font-medium text-slate-600 mb-1">우선순위</label>
           <select value={priority} onChange={(e) => setPriority(e.target.value as Priority)}
-            className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded">
+            className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400">
             {(['H','M','L'] as Priority[]).map(p => (
               <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>
             ))}
@@ -135,7 +135,7 @@ export function ConfirmDraftPanel({ draft, onConfirm }: {
         <div>
           <label className="block text-[11px] font-medium text-slate-600 mb-1">마감일</label>
           <input type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)}
-            className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded" />
+            className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400" />
         </div>
       </div>
 

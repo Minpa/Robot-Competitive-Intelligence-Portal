@@ -53,7 +53,7 @@ export default function AskPage() {
             onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) run(); }}
             placeholder="예: Figure 03 정보 / Tesla Optimus 대응 방안 검토 / 이번 주 안에 ~ 해줘"
             rows={2}
-            className="flex-1 px-2 py-1.5 text-sm border-none focus:outline-none resize-none"
+            className="flex-1 px-2 py-1.5 text-sm border-none focus:outline-none resize-none text-slate-900 placeholder:text-slate-400"
             disabled={busy}
           />
           <button onClick={run} disabled={busy || !q.trim()}

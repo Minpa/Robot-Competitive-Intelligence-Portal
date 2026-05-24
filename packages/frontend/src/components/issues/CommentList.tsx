@@ -51,7 +51,7 @@ export function CommentList({ ticketCode, comments, onReload, currentUserId }: P
       <div className="bg-white border border-slate-200 rounded-md p-3">
         <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3}
           placeholder="코멘트… (작성 후 15분 이내 수정 가능)"
-          className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500" />
         <div className="flex items-center justify-between mt-2">
           {err && <span className="text-xs text-red-600">{err}</span>}
           <button onClick={submit} disabled={busy || !body.trim()}
@@ -85,7 +85,7 @@ export function CommentList({ ticketCode, comments, onReload, currentUserId }: P
               {editingId === c.id ? (
                 <div>
                   <textarea value={editBody} onChange={(e) => setEditBody(e.target.value)} rows={3}
-                    className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded" />
+                    className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400" />
                   <div className="flex items-center gap-2 mt-1.5">
                     <button onClick={saveEdit}
                       className="px-2 py-0.5 bg-blue-600 text-white text-xs rounded">저장</button>

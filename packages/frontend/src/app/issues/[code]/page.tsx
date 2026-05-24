@@ -124,7 +124,7 @@ export default function TicketDetailPage() {
           <div className="flex items-center gap-2">
             <input value={titleDraft} onChange={(e) => setTitleDraft(e.target.value)} autoFocus
               onKeyDown={(e) => { if (e.key === 'Enter') saveTitle(); if (e.key === 'Escape') setEditingTitle(false); }}
-              className="flex-1 px-2 py-1 text-xl font-semibold border border-slate-300 rounded" />
+              className="flex-1 px-2 py-1 text-xl font-semibold border border-slate-300 rounded text-slate-900 placeholder:text-slate-400" />
             <button onClick={saveTitle} className="p-1 text-blue-600 hover:bg-blue-50 rounded"><Save className="w-4 h-4" /></button>
             <button onClick={() => setEditingTitle(false)} className="p-1 text-slate-500 hover:bg-slate-100 rounded"><X className="w-4 h-4" /></button>
           </div>
@@ -161,7 +161,7 @@ export default function TicketDetailPage() {
             {editingDesc ? (
               <div>
                 <textarea value={descDraft} onChange={(e) => setDescDraft(e.target.value)} rows={6}
-                  className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded" />
+                  className="w-full px-2 py-1.5 text-sm border border-slate-300 rounded text-slate-900 placeholder:text-slate-400" />
                 <div className="flex items-center gap-2 mt-2">
                   <button onClick={saveDesc} className="px-2 py-1 bg-blue-600 text-white text-xs rounded">저장</button>
                   <button onClick={() => setEditingDesc(false)} className="px-2 py-1 text-xs text-slate-600">취소</button>
