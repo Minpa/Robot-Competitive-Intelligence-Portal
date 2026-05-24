@@ -75,10 +75,18 @@ const DEP_LABEL: Record<DependencyType, string> = {
 
 interface Props { data: BoardData; canEdit?: boolean; onChanged?: () => void; onOpenItem?: (id: number) => void; }
 
+// board.reportCycle 은 'weekly'|'monthly'|'quarterly'|'none' (백엔드 enum) — Unit 으로 매핑.
+// 매핑 누락 시 모든 'week'/'month'/'quarter' 비교가 미스되어 shiftStr 가 quarter 폴백(×3개월)으로 빠짐.
+function reportCycleToUnit(rc?: string | null): Unit {
+  if (rc === 'weekly') return 'week';
+  if (rc === 'quarterly') return 'quarter';
+  if (rc === 'daily') return 'day';
+  return 'month'; // 'monthly' | 'none' | unknown
+}
+
 export default function TimelineView({ data, canEdit = false, onChanged, onOpenItem }: Props) {
   const board = data.board;
-  const [unit, setUnit] = useState<Unit>(
-    (board.reportCycle && board.reportCycle !== 'none' ? board.reportCycle : 'month') as Unit);
+  const [unit, setUnit] = useState<Unit>(reportCycleToUnit(board.reportCycle));
   const [showDeps, setShowDeps] = useState(true);
   const [draft, setDraft] = useState<{ pred: string; succ: string; type: DependencyType }>({ pred: '', succ: '', type: 'FS' });
   const [busy, setBusy] = useState(false);
