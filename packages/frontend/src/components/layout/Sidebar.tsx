@@ -29,6 +29,7 @@ import {
   Hand,
   Grab,
   FolderKanban,
+  Inbox,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -82,6 +83,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: 'ARGOS Projects', href: '/projects', icon: FolderKanban },
       { name: '포트폴리오', href: '/portfolio', icon: LayoutDashboard },
+      { name: '이슈 트래커', href: '/issues', icon: Inbox },
     ],
   },
   {
