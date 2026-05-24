@@ -90,6 +90,12 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
   const trackRef = useRef<HTMLDivElement>(null);
   // '+' 버튼으로 기본 종료(2027-01) 이후 추가 연장한 개월 수
   const [extendMonths, setExtendMonths] = useState(0);
+  // 축 시작점 anchor — 한 번 정해지면 더 이른 데이터가 들어올 때만 좌측 확장, 우측 슬라이드는 안 함.
+  // 이유: 가장 이른 아이템을 드래그하면 데이터 min 이 따라 옮겨가 축 전체가 슬라이드 → 막대가
+  // 시각적으로 제자리(원래 칸)로 보이는 글리치 발생. anchor 잠금으로 축 안정성 보장.
+  const minAnchorRef = useRef<Date | null>(null);
+  // 보드 변경 시 anchor 초기화 (다른 보드의 시점을 이어쓰면 안 됨)
+  useEffect(() => { minAnchorRef.current = null; }, [board.id]);
 
   // linkDrag 진행 중 — 전역 mousemove/up 으로 끝점 추적 + drop 처리.
   // 클릭(이동 < 5px) → 다음 아이템 자동 생성 + FS 의존 자동 연결.
@@ -156,16 +162,25 @@ export default function TimelineView({ data, canEdit = false, onChanged, onOpenI
   }, [data.items]);
 
   const model = useMemo(() => {
-    let min: Date | null = null, max: Date | null = null;
+    let computedMin: Date | null = null, max: Date | null = null;
     for (const it of data.items) {
       const tv = tCol ? cv(it.id, tCol.id) : null;
       const dv = dCol ? cv(it.id, dCol.id) : null;
       const s = toDate(tv?.start) || toDate(dv?.date);
       const e = toDate(tv?.end) || toDate(dv?.date);
-      if (s && (!min || s < min)) min = s;
+      if (s && (!computedMin || s < computedMin)) computedMin = s;
       if (e && (!max || e > max)) max = e;
     }
-    if (!min) min = new Date();
+    // 축 시작점: anchor 가 잠겨있으면 그대로 사용, 단 더 이른 데이터가 들어오면 anchor 확장.
+    let min: Date;
+    if (!computedMin) {
+      min = minAnchorRef.current ?? new Date();
+    } else if (minAnchorRef.current && minAnchorRef.current <= computedMin) {
+      min = minAnchorRef.current;
+    } else {
+      min = computedMin;
+      minAnchorRef.current = computedMin;
+    }
     // 기본 종료선: 2027-01 까지 보장 + '+' 버튼으로 연장한 개월 수
     const floorEnd = addMonths(new Date(2027, 0, 31), extendMonths);
     if (!max || max < floorEnd) max = floorEnd;
