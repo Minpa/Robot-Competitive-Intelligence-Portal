@@ -141,7 +141,7 @@ export default function AskPage() {
               {ex}
             </button>
           ))}
-          <span className="ml-auto text-slate-400">⌘+Enter 로 실행</span>
+          <span className="ml-auto text-slate-400">Ctrl+Enter (또는 ⌘+Enter) 로 실행</span>
         </div>
       </div>
 
