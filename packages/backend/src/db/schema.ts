@@ -2582,3 +2582,21 @@ export const issueAiCallLog = pgTable(
   },
   (t) => ({ dayIdx: index('issue_ai_call_log_day_idx').on(t.at) }),
 );
+
+// 3.1.8 Ask 질의 이력 — 사용자별 자연어 질의 기록
+export const issueAskHistory = pgTable(
+  'issue_ask_history',
+  {
+    id:                    uuid('id').primaryKey().defaultRandom(),
+    userId:                uuid('user_id').notNull(),
+    query:                 text('query').notNull(),
+    intent:                varchar('intent', { length: 16 }), // lookup|task|ambiguous
+    confidence:            integer('confidence'), // 0~100
+    hitCount:              integer('hit_count').notNull().default(0),
+    autoCreatedTicketCode: varchar('auto_created_ticket_code', { length: 16 }),
+    at:                    timestamp('at').notNull().defaultNow(),
+  },
+  (t) => ({
+    userIdx: index('issue_ask_history_user_idx').on(t.userId, t.at),
+  }),
+);

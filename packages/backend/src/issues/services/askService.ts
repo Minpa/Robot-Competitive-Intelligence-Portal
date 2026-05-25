@@ -10,7 +10,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { desc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { companies, issueTickets, issueAiCallLog, humanoidRobots, products, articles } from '../../db/schema.js';
+import { companies, issueTickets, issueAiCallLog, issueAskHistory, humanoidRobots, products, articles } from '../../db/schema.js';
 import { createTicket } from './ticketService.js';
 
 type Intent = 'lookup' | 'task' | 'ambiguous';
@@ -338,7 +338,49 @@ async function classifyAndExtract(query: string, userId: string): Promise<AskRes
 }
 
 export async function askEntry(query: string, userId: string): Promise<AskResult> {
-  return classifyAndExtract(query, userId);
+  const result = await classifyAndExtract(query, userId);
+  // 사용자별 질의 이력 기록 (실패해도 응답에는 영향 없음)
+  try {
+    const hits = (result.answer?.competitors?.length ?? 0)
+      + (result.answer?.robots?.length ?? 0)
+      + (result.answer?.products?.length ?? 0)
+      + (result.answer?.recentArticles?.length ?? 0)
+      + (result.answer?.relatedTickets?.length ?? 0);
+    await db.insert(issueAskHistory).values({
+      userId, query,
+      intent: result.intent,
+      confidence: Math.round(result.confidence * 100),
+      hitCount: hits,
+      autoCreatedTicketCode: result.autoCreatedTicket?.code ?? null,
+    });
+  } catch { /* silent */ }
+  return result;
+}
+
+// 사용자 질의 이력 (본인 것만)
+export async function listAskHistory(userId: string, limit = 30) {
+  return db.select({
+    id: issueAskHistory.id,
+    query: issueAskHistory.query,
+    intent: issueAskHistory.intent,
+    confidence: issueAskHistory.confidence,
+    hitCount: issueAskHistory.hitCount,
+    autoCreatedTicketCode: issueAskHistory.autoCreatedTicketCode,
+    at: issueAskHistory.at,
+  }).from(issueAskHistory)
+    .where(sql`${issueAskHistory.userId} = ${userId}`)
+    .orderBy(sql`${issueAskHistory.at} DESC`)
+    .limit(limit);
+}
+
+export async function deleteAskHistory(userId: string, id: string) {
+  await db.delete(issueAskHistory)
+    .where(sql`${issueAskHistory.id} = ${id} AND ${issueAskHistory.userId} = ${userId}`);
+}
+
+export async function clearAskHistory(userId: string) {
+  await db.delete(issueAskHistory)
+    .where(sql`${issueAskHistory.userId} = ${userId}`);
 }
 
 // 기존 티켓 재 enrichment — summary + suggestedActions 만 갱신

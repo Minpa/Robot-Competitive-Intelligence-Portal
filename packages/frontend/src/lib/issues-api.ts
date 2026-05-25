@@ -274,7 +274,23 @@ export const issuesApi = {
   // ask
   ask: (query: string) =>
     req<AskResult>('/ask', { method: 'POST', body: JSON.stringify({ query }) }),
+  askHistory: () =>
+    req<{ items: AskHistoryItem[] }>('/ask/history'),
+  deleteAskHistoryItem: (id: string) =>
+    req<{ ok: true }>(`/ask/history/${id}`, { method: 'DELETE' }),
+  clearAskHistory: () =>
+    req<{ ok: true }>('/ask/history', { method: 'DELETE' }),
 };
+
+export interface AskHistoryItem {
+  id: string;
+  query: string;
+  intent: 'lookup' | 'task' | 'ambiguous' | null;
+  confidence: number | null; // 0~100
+  hitCount: number;
+  autoCreatedTicketCode: string | null;
+  at: string;
+}
 
 // ── 유틸 (공용 표시 라벨/색) ──
 export const STATUS_LABEL: Record<IssueStatus, string> = {

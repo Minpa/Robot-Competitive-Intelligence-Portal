@@ -13,7 +13,7 @@ import {
   createTicket, getTicketByIdOrCode, getTicketDetail, patchTicket, listTickets,
   listChildren, listLinks, createLink, deleteLink, logActivity, searchTickets,
 } from '../issues/services/ticketService.js';
-import { askEntry } from '../issues/services/askService.js';
+import { askEntry, listAskHistory, deleteAskHistory, clearAskHistory } from '../issues/services/askService.js';
 
 function uid(r: FastifyRequest) { return r.user!.userId as string; }
 
@@ -225,6 +225,22 @@ export async function issueRoutes(fastify: FastifyInstance) {
     } catch (e: any) {
       return reply.code(500).send({ error: e?.message ?? 'ask failed' });
     }
+  });
+
+  // 사용자별 Ask 질의 이력
+  fastify.get('/ask/history', async (request) => {
+    const items = await listAskHistory(uid(request), 30);
+    return { items };
+  });
+
+  fastify.delete<{ Params: { id: string } }>('/ask/history/:id', async (request) => {
+    await deleteAskHistory(uid(request), request.params.id);
+    return { ok: true };
+  });
+
+  fastify.delete('/ask/history', async (request) => {
+    await clearAskHistory(uid(request));
+    return { ok: true };
   });
 
   // 재 enrichment — MVP 는 동기 호출, 상세 페이지에서 트리거
