@@ -164,6 +164,11 @@ export interface AskResult {
   draft?: AskDraft;
   fallback?: { action: string; label: string };
   autoCreatedTicket?: { code: string; title: string; reason: string };
+  clarification?: {
+    question: string;
+    options: string[];
+    reasoning?: string;
+  };
 }
 
 // ── 티켓 생성/수정 페이로드 ──
@@ -272,8 +277,8 @@ export const issuesApi = {
     req<{ items: IssueTicket[] }>(`/search?q=${encodeURIComponent(q)}`),
 
   // ask
-  ask: (query: string) =>
-    req<AskResult>('/ask', { method: 'POST', body: JSON.stringify({ query }) }),
+  ask: (query: string, opts?: { skipClarification?: boolean }) =>
+    req<AskResult>('/ask', { method: 'POST', body: JSON.stringify({ query, skipClarification: opts?.skipClarification ?? false }) }),
   askHistory: () =>
     req<{ items: AskHistoryItem[] }>('/ask/history'),
   deleteAskHistoryItem: (id: string) =>

@@ -220,7 +220,7 @@ export async function issueRoutes(fastify: FastifyInstance) {
     const parsed = AskSchema.safeParse(request.body);
     if (!parsed.success) return badRequest(reply, parsed.error.message);
     try {
-      const result = await askEntry(parsed.data.query, uid(request));
+      const result = await askEntry(parsed.data.query, uid(request), parsed.data.skipClarification ?? false);
       return result;
     } catch (e: any) {
       return reply.code(500).send({ error: e?.message ?? 'ask failed' });

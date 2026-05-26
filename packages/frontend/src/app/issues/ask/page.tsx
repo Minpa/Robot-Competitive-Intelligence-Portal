@@ -68,18 +68,29 @@ export default function AskPage() {
 
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
-  const run = async (overrideQuery?: string) => {
+  // run() — overrideQuery 가 주어지면 그것으로 실행, skipClarification 으로 명확화 우회 가능
+  const run = async (overrideQuery?: string, opts?: { skipClarification?: boolean }) => {
     const query = (overrideQuery ?? q).trim();
     if (!query) return;
     setBusy(true); setErr(null); setResult(null); setRestoredAt(null);
     if (overrideQuery) setQ(overrideQuery);
     try {
-      const r = await issuesApi.ask(query);
+      const r = await issuesApi.ask(query, { skipClarification: opts?.skipClarification });
       setResult(r);
       saveAsk(query, r);
-      loadHistory(); // 이력 새로고침
+      // clarification 응답은 미완료 턴 — 이력에 안 남으므로 새로고침 불필요
+      if (!r.clarification) loadHistory();
     } catch (e: any) { setErr(e.message); }
     finally { setBusy(false); }
+  };
+
+  // 명확화 옵션 선택/자유 입력 — refined 질의로 재호출 (이번엔 클라리피케이션 우회)
+  const refineFromClarify = (refinedQuery: string) => {
+    run(refinedQuery, { skipClarification: true });
+  };
+  // 명확화 무시하고 원 질의 그대로 강제 검색
+  const skipClarify = () => {
+    if (q.trim()) run(q, { skipClarification: true });
   };
 
   const deleteOne = async (id: string) => {
@@ -229,7 +240,14 @@ export default function AskPage() {
               </button>
             )}
           </div>
-          <AskFlow result={result} onCreateBlank={createBlank} />
+          <AskFlow
+            result={result}
+            originalQuery={q}
+            onCreateBlank={createBlank}
+            onRefine={refineFromClarify}
+            onSkipClarify={skipClarify}
+            busy={busy}
+          />
         </div>
       )}
 

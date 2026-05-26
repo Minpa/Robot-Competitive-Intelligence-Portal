@@ -8,7 +8,7 @@ import {
   type IssueType, type Priority, PRIORITY_LABEL, TYPE_LABEL, STATUS_LABEL, STATUS_COLOR,
 } from '@/lib/issues-api';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, ExternalLink, Sparkles, Building2, ArrowRight, Bot, Package, Newspaper, FilePlus2 } from 'lucide-react';
+import { CheckCircle2, ExternalLink, Sparkles, Building2, ArrowRight, Bot, Package, Newspaper, FilePlus2, HelpCircle, SkipForward, Send } from 'lucide-react';
 
 export function LookupAnswerPanel({ answer, fallbackLabel, onCreateTicket }: {
   answer: AskLookupAnswer;
@@ -293,9 +293,93 @@ function AutoCreatedBanner({ t }: { t: { code: string; title: string; reason: st
   );
 }
 
-export function AskFlow({ result, onCreateBlank }: { result: AskResult; onCreateBlank: () => void }) {
+export function ClarifyPanel({ clarification, originalQuery, onRefine, onSkip, busy }: {
+  clarification: { question: string; options: string[]; reasoning?: string };
+  originalQuery: string;
+  /** 옵션 클릭/자유 입력 시 — 원 질의에 합쳐 재호출하라는 콜백 */
+  onRefine: (refinedQuery: string) => void;
+  /** 명확화 무시하고 원 질의 그대로 강제 검색 */
+  onSkip: () => void;
+  busy?: boolean;
+}) {
+  const [free, setFree] = useState('');
+
+  const pick = (option: string) => {
+    if (busy) return;
+    onRefine(`${originalQuery} — ${option}`);
+  };
+  const submitFree = () => {
+    if (busy || !free.trim()) return;
+    onRefine(`${originalQuery} — ${free.trim()}`);
+    setFree('');
+  };
+
+  return (
+    <div className="bg-amber-50/60 border border-amber-200 rounded-md p-4 space-y-3">
+      <div className="flex items-start gap-2">
+        <HelpCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+        <div className="flex-1">
+          <h2 className="text-sm font-semibold text-slate-900">{clarification.question}</h2>
+          {clarification.reasoning && (
+            <p className="text-[11px] text-slate-600 mt-1">{clarification.reasoning}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {clarification.options.map((opt) => (
+          <button key={opt} onClick={() => pick(opt)} disabled={busy}
+            className="px-2.5 py-1.5 text-xs bg-white border border-amber-300 text-amber-900 rounded hover:bg-amber-100 hover:border-amber-500 disabled:opacity-50">
+            {opt}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2 pt-2 border-t border-amber-100">
+        <input value={free} onChange={(e) => setFree(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') submitFree(); }}
+          placeholder="또는 직접 입력 (선택지에 없는 경우)"
+          disabled={busy}
+          className="flex-1 px-2 py-1.5 text-xs border border-amber-200 rounded text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-amber-500" />
+        <button onClick={submitFree} disabled={busy || !free.trim()}
+          className="px-2.5 py-1.5 text-xs bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50 inline-flex items-center gap-1">
+          <Send className="w-3 h-3" />
+          전송
+        </button>
+        <button onClick={onSkip} disabled={busy} type="button"
+          className="px-2.5 py-1.5 text-xs bg-white border border-slate-300 text-slate-700 rounded hover:bg-slate-100 disabled:opacity-50 inline-flex items-center gap-1"
+          title="명확화 없이 원 질의 그대로 검색">
+          <SkipForward className="w-3 h-3" />
+          그대로 검색
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function AskFlow({ result, originalQuery, onCreateBlank, onRefine, onSkipClarify, busy }: {
+  result: AskResult;
+  originalQuery: string;
+  onCreateBlank: () => void;
+  onRefine: (refinedQuery: string) => void;
+  onSkipClarify: () => void;
+  busy?: boolean;
+}) {
   const router = useRouter();
   const onConfirm = ({ code }: { code: string }) => router.push(`/issues/${code}`);
+
+  // 명확화가 있으면 그것만 노출 (다른 패널 숨김)
+  if (result.clarification) {
+    return (
+      <ClarifyPanel
+        clarification={result.clarification}
+        originalQuery={originalQuery}
+        onRefine={onRefine}
+        onSkip={onSkipClarify}
+        busy={busy}
+      />
+    );
+  }
 
   return (
     <div className="space-y-3">

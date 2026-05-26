@@ -45,6 +45,7 @@ export const CommentCreateSchema = z.object({
 
 export const AskSchema = z.object({
   query: z.string().min(1).max(2000),
+  skipClarification: z.boolean().optional(),
 });
 
 export type TicketCreate = z.infer<typeof TicketCreateSchema>;

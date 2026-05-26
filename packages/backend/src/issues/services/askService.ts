@@ -22,6 +22,12 @@ interface AskResult {
   draft?: any;
   fallback?: { action: string; label: string };
   autoCreatedTicket?: { code: string; title: string; reason: string };
+  // 모호 질의 명확화 — 이 필드가 있으면 프론트는 답변 대신 명확화 패널을 표시
+  clarification?: {
+    question: string;
+    options: string[]; // 2~4개 칩 옵션
+    reasoning?: string;
+  };
 }
 
 const MODEL = 'claude-opus-4-7';
@@ -184,7 +190,7 @@ async function noAiFallback(query: string): Promise<AskResult> {
 // ──────────────────────────────────────────────────────────────────
 // 메인 — Claude 1콜: 의도 분류 + 검색 엔티티 추출 + task draft
 // ──────────────────────────────────────────────────────────────────
-async function classifyAndExtract(query: string, userId: string): Promise<AskResult> {
+async function classifyAndExtract(query: string, userId: string, skipClarification = false): Promise<AskResult> {
   const client = getClient();
   if (!client) return noAiFallback(query);
   if (await aiBudgetExhausted()) return noAiFallback(query);
@@ -212,6 +218,14 @@ async function classifyAndExtract(query: string, userId: string): Promise<AskRes
 4) research_title (substantive=true 이고 intent=lookup 일 때만): 정보가 부족할 경우 자동 생성될 조사 티켓 제목 (20자 이내)
    예: "Atlas 최신 사양 조사", "Figure 03 가격 정책 조사"
 5) task 또는 ambiguous 일 때만 task_* 필드 채움
+6) clarification — 진짜 모호한 질의일 때만 채움 (대부분 null)
+   기준: 검색·답변 정확도가 명확히 떨어질 정도로 모호한 경우만.
+   - 예 "모호함": "Tesla 어때?" → Tesla 회사/Tesla bot/주가/기술? 어떤 측면?
+   - 예 "모호함": "최근 동향 보여줘" → 어느 회사/제품군 동향?
+   - 예 "모호하지 않음": "Atlas 정보", "Figure 03 가격", "올해 출시 예정 휴머노이드"
+     (이런 건 그냥 답변. 명확화 금지)
+   options 는 2~4개의 짧은 한국어 선택지 (각 12자 이내).
+   사용자가 옵션 클릭하면 원 질의에 합쳐서 재호출됨.
 
 출력 JSON 형식:
 {
@@ -224,7 +238,12 @@ async function classifyAndExtract(query: string, userId: string): Promise<AskRes
   "task_description": "초안 본문 1~3문장 (task/ambiguous)",
   "priority": "H"|"M"|"L",
   "type_recommended": "task"|"research"|"response"|"epic",
-  "due_days": 1~30
+  "due_days": 1~30,
+  "clarification": null | {
+    "question": "사용자에게 던질 한 줄 질문 (40자 이내)",
+    "options": ["옵션1","옵션2","옵션3"],
+    "reasoning": "왜 모호한지 1문장 (선택)"
+  }
 }`;
 
   let parsed: any = null;
@@ -253,6 +272,26 @@ async function classifyAndExtract(query: string, userId: string): Promise<AskRes
 
   const intent: Intent = ['lookup', 'task', 'ambiguous'].includes(parsed.intent) ? parsed.intent : 'lookup';
   const confidence = Math.min(1, Math.max(0, Number(parsed.confidence ?? 0.7)));
+
+  // 모호 질의 명확화 — Claude 가 clarification 을 채웠고 사용자가 skip 안 했으면
+  // DB 검색·task draft 모두 skip 하고 명확화만 반환 (저렴, 빠름).
+  if (!skipClarification
+      && parsed.clarification
+      && typeof parsed.clarification === 'object'
+      && parsed.clarification.question
+      && Array.isArray(parsed.clarification.options)
+      && parsed.clarification.options.length >= 2) {
+    return {
+      intent, confidence,
+      clarification: {
+        question: String(parsed.clarification.question).slice(0, 200),
+        options: parsed.clarification.options
+          .map((o: any) => String(o).trim()).filter(Boolean).slice(0, 4),
+        reasoning: parsed.clarification.reasoning ? String(parsed.clarification.reasoning).slice(0, 200) : undefined,
+      },
+    };
+  }
+
   // Claude 가 의도적으로 비울 수도 있음 (일반 질의 — 고유명사 없음).
   // 그 경우 DB 검색 skip 하고 곧바로 research 티켓 자동 생성으로 넘어감.
   const searchTerms: string[] = Array.isArray(parsed.search_terms)
@@ -337,9 +376,11 @@ async function classifyAndExtract(query: string, userId: string): Promise<AskRes
   return result;
 }
 
-export async function askEntry(query: string, userId: string): Promise<AskResult> {
-  const result = await classifyAndExtract(query, userId);
-  // 사용자별 질의 이력 기록 (실패해도 응답에는 영향 없음)
+export async function askEntry(query: string, userId: string, skipClarification = false): Promise<AskResult> {
+  const result = await classifyAndExtract(query, userId, skipClarification);
+  // 사용자별 질의 이력 기록 — clarification 응답은 미완료 턴이므로 기록 skip.
+  // 사용자가 옵션 클릭 후 재호출되는 최종 답변 턴에서만 이력 남김.
+  if (result.clarification) return result;
   try {
     const hits = (result.answer?.competitors?.length ?? 0)
       + (result.answer?.robots?.length ?? 0)
