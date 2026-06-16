@@ -28,7 +28,6 @@ import {
   Bot,
   Hand,
   Grab,
-  Cpu,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -112,16 +111,18 @@ const navigationGroups: NavGroup[] = [
     subtitle: 'Simulation',
     items: [
       { name: '전시/운영 시뮬레이션', href: '/cloid-simulator', icon: Boxes },
-      { name: '제품 기획 시뮬레이션', href: '/argos-designer', icon: Wrench },
+      // 제품 기획 시뮬레이션 메뉴 숨김 처리 (요청에 따라 비활성화)
+      // { name: '제품 기획 시뮬레이션', href: '/argos-designer', icon: Wrench },
     ],
   },
-  {
-    title: '데이터 팩토리',
-    subtitle: 'Data Factory',
-    items: [
-      { name: 'Data Pipeline', href: '/data-factory', icon: Cpu },
-    ],
-  },
+  // 데이터 팩토리 메뉴 그룹 숨김 처리 (요청에 따라 비활성화)
+  // {
+  //   title: '데이터 팩토리',
+  //   subtitle: 'Data Factory',
+  //   items: [
+  //     { name: 'Data Pipeline', href: '/data-factory', icon: Cpu },
+  //   ],
+  // },
   {
     title: '검색',
     subtitle: 'Search',
