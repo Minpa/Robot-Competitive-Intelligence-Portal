@@ -16,10 +16,6 @@ import {
   Globe,
   List,
   Zap,
-  LayoutDashboard,
-  Bell,
-  CheckSquare,
-  Database,
   Presentation,
   Boxes,
   CalendarDays,
@@ -95,17 +91,18 @@ const navigationGroups: NavGroup[] = [
       { name: '이벤트 캘린더', href: '/event-calendar', icon: CalendarDays },
     ],
   },
-  {
-    title: '컴플라이언스',
-    subtitle: 'Compliance',
-    items: [
-      { name: '규제 대시보드', href: '/compliance', icon: LayoutDashboard },
-      { name: '규제 업데이트 피드', href: '/compliance/updates', icon: Bell },
-      { name: 'LG 체크리스트', href: '/compliance/checklist', icon: CheckSquare },
-      { name: '규제 상세 DB', href: '/compliance/regulations', icon: Database },
-      { name: '규제 문서 라이브러리', href: '/compliance/documents', icon: FileText },
-    ],
-  },
+  // 컴플라이언스 메뉴 그룹 숨김 처리 (요청에 따라 비활성화)
+  // {
+  //   title: '컴플라이언스',
+  //   subtitle: 'Compliance',
+  //   items: [
+  //     { name: '규제 대시보드', href: '/compliance', icon: LayoutDashboard },
+  //     { name: '규제 업데이트 피드', href: '/compliance/updates', icon: Bell },
+  //     { name: 'LG 체크리스트', href: '/compliance/checklist', icon: CheckSquare },
+  //     { name: '규제 상세 DB', href: '/compliance/regulations', icon: Database },
+  //     { name: '규제 문서 라이브러리', href: '/compliance/documents', icon: FileText },
+  //   ],
+  // },
   {
     title: '시뮬레이션',
     subtitle: 'Simulation',
