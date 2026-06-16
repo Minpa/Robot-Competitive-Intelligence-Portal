@@ -28,8 +28,6 @@ import {
   Bot,
   Hand,
   Grab,
-  FolderKanban,
-  Inbox,
   Cpu,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -78,15 +76,16 @@ const navigationGroups: NavGroup[] = [
       { name: 'LGE 세탁기 공정', href: '/business-strategy/lge-processes', icon: Wrench },
     ],
   },
-  {
-    title: '프로젝트 관리',
-    subtitle: 'Project Management',
-    items: [
-      { name: 'ARGOS Projects', href: '/projects', icon: FolderKanban },
-      { name: '포트폴리오', href: '/portfolio', icon: LayoutDashboard },
-      { name: '이슈 트래커', href: '/issues', icon: Inbox },
-    ],
-  },
+  // 프로젝트 관리 메뉴 숨김 처리 (요청에 따라 비활성화)
+  // {
+  //   title: '프로젝트 관리',
+  //   subtitle: 'Project Management',
+  //   items: [
+  //     { name: 'ARGOS Projects', href: '/projects', icon: FolderKanban },
+  //     { name: '포트폴리오', href: '/portfolio', icon: LayoutDashboard },
+  //     { name: '이슈 트래커', href: '/issues', icon: Inbox },
+  //   ],
+  // },
   {
     title: '정보 수집',
     subtitle: 'Intelligence Feed',
