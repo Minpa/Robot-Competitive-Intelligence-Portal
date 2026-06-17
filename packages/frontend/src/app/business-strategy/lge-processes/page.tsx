@@ -15,6 +15,7 @@ import {
   type MotionGroup,
 } from '@/components/cloid-coverage/lge-washer-processes';
 import type { TaskCategory } from '@/components/cloid-coverage/data-v13';
+import { BcgPocRoadmap } from '@/components/cloid-coverage/BcgPocRoadmap';
 
 const CATEGORY_COLOR: Record<TaskCategory, { bg: string; border: string; text: string }> = {
   '단순 이재': { bg: '#E8F5EE', border: '#3F8C6E', text: '#0F4F32' },
@@ -101,9 +102,13 @@ function LgeProcessesContent() {
             (4) 하네스 체결 결선 난이도 sub-task로 분류. 매트릭스 ⑤ 나사 / ⑥ 커넥터 / ⑦ 케이블 셀과 연결.
           </p>
           <p className="font-mono text-[10.5px] text-[#A0764A] mt-2">
-            ⚠️ 동작군·RFM 태그·하네스 sub-type 은 참조 로드맵 자료 + 공정 작업내용 기반 1차 매핑(추정). 원본 표 입수 시 정밀 보정 예정.
+            ⚠️ 좌측 세탁기 라인의 동작군·RFM 태그·하네스 sub-type 은 공정 작업내용 기반 1차 매핑(추정).
+            아래 <strong>BCG 공정 Task PoC 로드맵</strong>(원본 출처)의 동작군 정의·난이도·Takt·Payload 기준으로 정밀 보정 중.
           </p>
         </div>
+
+        {/* BCG 원본 출처 — 공정 Task PoC 로드맵 (정확도 보정 기준) */}
+        <BcgPocRoadmap />
 
         {/* Stats cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
