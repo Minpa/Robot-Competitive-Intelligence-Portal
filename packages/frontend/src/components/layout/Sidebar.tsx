@@ -24,6 +24,10 @@ import {
   Bot,
   Hand,
   Grab,
+  Newspaper,
+  Building2,
+  Cpu,
+  Factory,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -42,24 +46,47 @@ interface NavGroup {
 
 const navigationGroups: NavGroup[] = [
   {
-    title: '제품 카탈로그',
-    subtitle: 'Product Catalog',
+    title: '동향 브리핑',
+    subtitle: 'Daily Brief',
     items: [
-      { name: '로봇 타임라인', href: '/robot-evolution', icon: GitBranch },
-      { name: '로봇 리스트', href: '/humanoid-robots', icon: List },
-      { name: '핸드 리스트', href: '/hand-registry', icon: Hand },
-      { name: '그리퍼 리스트', href: '/gripper-registry', icon: Grab },
+      { name: '동향 브리핑', href: '/trend-brief', icon: Newspaper },
+      { name: '이벤트 캘린더', href: '/event-calendar', icon: CalendarDays },
     ],
   },
   {
-    title: '경쟁비교',
-    subtitle: 'Competitive Compare',
+    title: '경쟁사',
+    subtitle: 'Companies',
     items: [
+      { name: '기업 리스트', href: '/companies', icon: Building2 },
+    ],
+  },
+  {
+    title: '로봇',
+    subtitle: 'Robots',
+    items: [
+      { name: '로봇 리스트', href: '/humanoid-robots', icon: List },
+      { name: '로봇 타임라인', href: '/robot-evolution', icon: GitBranch },
       { name: '로봇 레이더 비교', href: '/humanoid-trend', icon: Radar },
       { name: '로봇 항목별 매트릭스', href: '/compare/matrix', icon: Table2 },
       { name: '로봇 Perfect 분석', href: '/compare/benchmark', icon: Target },
-      { name: '핸드 Perfect 분석', href: '/compare/hand-benchmark', icon: Hand },
       { name: 'CLOiD 개선 항목 분석', href: '/action-items', icon: Zap },
+    ],
+  },
+  {
+    title: '기술',
+    subtitle: 'Technology',
+    items: [
+      { name: '핸드 리스트', href: '/hand-registry', icon: Hand },
+      { name: '그리퍼 리스트', href: '/gripper-registry', icon: Grab },
+      { name: '핸드 Perfect 분석', href: '/compare/hand-benchmark', icon: Hand },
+      { name: '컴포넌트 트렌드', href: '/components-trend', icon: Cpu },
+    ],
+  },
+  {
+    title: '양산·사업화',
+    subtitle: 'Production & Business',
+    items: [
+      { name: '도입/적용 사례', href: '/application-cases', icon: Factory },
     ],
   },
   // 프로젝트 관리 메뉴 숨김 처리 (요청에 따라 비활성화)
@@ -79,7 +106,6 @@ const navigationGroups: NavGroup[] = [
       { name: 'AI 활용 / 기사 입력', href: '/insight-pipeline', icon: FlaskConical },
       { name: '국내 국책과제 검색', href: '/national-projects', icon: Globe },
       { name: 'Report / AI 현황분석', href: '/reports', icon: Presentation },
-      { name: '이벤트 캘린더', href: '/event-calendar', icon: CalendarDays },
     ],
   },
   // 컴플라이언스 메뉴 그룹 숨김 처리 (요청에 따라 비활성화)
@@ -154,7 +180,7 @@ export function Sidebar() {
     <aside className="w-60 bg-brand text-brand-ink min-h-screen flex flex-col">
       {/* Logo Block */}
       <div className="px-5 pt-6 pb-5 border-b border-white/10">
-        <Link href="/robot-evolution" className="block">
+        <Link href="/trend-brief" className="block">
           <div className="flex items-baseline gap-2">
             <h1 className="font-serif text-[22px] font-semibold tracking-tight leading-none text-white">
               ARGOS

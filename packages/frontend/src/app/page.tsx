@@ -9,7 +9,7 @@ export default function RootPage() {
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     if (token) {
-      router.replace('/robot-evolution');
+      router.replace('/trend-brief');
     } else {
       router.replace('/login');
     }
