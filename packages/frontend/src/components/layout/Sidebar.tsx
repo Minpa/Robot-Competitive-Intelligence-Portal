@@ -62,15 +62,6 @@ const navigationGroups: NavGroup[] = [
       { name: 'CLOiD 개선 항목 분석', href: '/action-items', icon: Zap },
     ],
   },
-  {
-    title: '산업(제조) 분야 진입 분석',
-    subtitle: 'Industrial Entry Analysis',
-    items: [
-      { name: '진입 매트릭스', href: '/business-strategy/matrix', icon: Grid3x3 },
-      { name: 'CLOiD 커버리지', href: '/business-strategy/cloid-coverage/v13', icon: Wrench },
-      { name: 'LGE 세탁기 공정', href: '/business-strategy/lge-processes', icon: Wrench },
-    ],
-  },
   // 프로젝트 관리 메뉴 숨김 처리 (요청에 따라 비활성화)
   // {
   //   title: '프로젝트 관리',
@@ -120,6 +111,15 @@ const navigationGroups: NavGroup[] = [
   //     { name: 'Data Pipeline', href: '/data-factory', icon: Cpu },
   //   ],
   // },
+  {
+    title: '레거시 메뉴',
+    subtitle: 'Legacy',
+    items: [
+      { name: '진입 매트릭스', href: '/business-strategy/matrix', icon: Grid3x3 },
+      { name: 'CLOiD 커버리지', href: '/business-strategy/cloid-coverage/v13', icon: Wrench },
+      { name: 'LGE 세탁기 공정', href: '/business-strategy/lge-processes', icon: Wrench },
+    ],
+  },
   {
     title: '검색',
     subtitle: 'Search',
