@@ -6,6 +6,7 @@ import { CiMatrixTable } from '@/components/ci-update/CiMatrixTable';
 import { AddCompetitorModal } from '@/components/ci-update/AddCompetitorModal';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { RobotCompareNav } from '@/components/shared/RobotCompareNav';
 
 function MatrixContent() {
   const [showAddCompetitor, setShowAddCompetitor] = useState(false);
@@ -36,6 +37,8 @@ function MatrixContent() {
           </>
         }
       />
+
+      <RobotCompareNav />
 
       {isLoading && (
         <div className="flex items-center justify-center py-20">

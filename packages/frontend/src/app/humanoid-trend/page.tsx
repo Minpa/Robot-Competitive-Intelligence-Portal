@@ -11,6 +11,7 @@ import AdminDataPanel from '@/components/humanoid-trend/AdminDataPanel';
 import PptDownloadButton from '@/components/humanoid-trend/PptDownloadButton';
 import RubricPanel from '@/components/humanoid-trend/RubricPanel';
 import { Panel, SectionHeader, Kicker } from '@/components/ui';
+import { RobotCompareNav } from '@/components/shared/RobotCompareNav';
 
 function ChartSection({
   id,
@@ -68,6 +69,7 @@ function HumanoidTrendContent() {
       <SectionNav />
 
       <div className="max-w-[1400px] mx-auto px-2 py-8 space-y-8">
+        <RobotCompareNav />
         <SectionHeader
           number="§ INTELLIGENCE · V4.2"
           kicker="Competitive Comparison"
