@@ -3,6 +3,7 @@
 import { PerfectRobotBenchmark } from '@/components/ci-update/PerfectRobotBenchmark';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { RobotCompareNav } from '@/components/shared/RobotCompareNav';
 
 function BenchmarkContent() {
   return (
@@ -12,6 +13,8 @@ function BenchmarkContent() {
         titleEn="BENCHMARK ANALYSIS"
         description="이상적 로봇 스펙 대비 각 경쟁사 제품의 차이점 및 LG 개발 필요 항목 분석"
       />
+
+      <RobotCompareNav />
 
       <PerfectRobotBenchmark />
     </div>
