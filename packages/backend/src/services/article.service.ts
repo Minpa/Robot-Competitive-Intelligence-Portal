@@ -1,5 +1,5 @@
 import { read, utils } from 'xlsx';
-import { eq, and, sql, desc, asc, gte, lte } from 'drizzle-orm';
+import { eq, and, sql, desc, asc, gte, lte, isNotNull } from 'drizzle-orm';
 import { db, articles, companies, products } from '../db/index.js';
 import type {
   Article,
@@ -303,6 +303,35 @@ export class ArticleService {
       pageSize,
       totalPages: Math.ceil(total / pageSize),
     };
+  }
+
+  /**
+   * 기업별 수집 신선도 — 커버리지 매트릭스용.
+   * 각 기업의 마지막 기사 수집 시점과 누적 건수를 반환한다.
+   */
+  async getCompanyFreshness(): Promise<
+    { companyId: string; companyName: string; lastPublishedAt: string | null; articleCount: number }[]
+  > {
+    const rows = await db
+      .select({
+        companyId: articles.companyId,
+        companyName: companies.name,
+        lastPublishedAt: sql<string | null>`max(${articles.publishedAt})`,
+        articleCount: sql<number>`count(*)::int`,
+      })
+      .from(articles)
+      .innerJoin(companies, eq(articles.companyId, companies.id))
+      .where(isNotNull(articles.companyId))
+      .groupBy(articles.companyId, companies.name);
+
+    return rows
+      .filter((r) => r.companyId !== null)
+      .map((r) => ({
+        companyId: r.companyId as string,
+        companyName: r.companyName,
+        lastPublishedAt: r.lastPublishedAt ? new Date(r.lastPublishedAt).toISOString() : null,
+        articleCount: Number(r.articleCount),
+      }));
   }
 
   async getByProduct(productId: string): Promise<Article[]> {

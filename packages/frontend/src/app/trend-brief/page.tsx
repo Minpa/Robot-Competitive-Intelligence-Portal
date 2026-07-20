@@ -82,6 +82,11 @@ export default function TrendBriefPage() {
     queryFn: () => api.getCompanies({ pageSize: '200' }),
   });
 
+  const freshnessQuery = useQuery({
+    queryKey: ['trend-brief-freshness'],
+    queryFn: () => api.getCompanyFreshness(),
+  });
+
   const companies: { id: string; name: string }[] = useMemo(() => {
     const raw: any = companiesQuery.data;
     const list = Array.isArray(raw) ? raw : raw?.items ?? [];
@@ -142,6 +147,21 @@ export default function TrendBriefPage() {
     };
   }, [allItems]);
 
+  const coverage = useMemo(() => {
+    const rows = freshnessQuery.data ?? [];
+    const now = Date.now();
+    const withDays = rows.map((r) => ({
+      ...r,
+      days: r.lastPublishedAt
+        ? Math.floor((now - new Date(r.lastPublishedAt).getTime()) / (24 * 60 * 60 * 1000))
+        : null,
+    }));
+    // 오래된 순 정렬 (수집 이력 없는 곳이 가장 위)
+    withDays.sort((a, b) => (b.days ?? 9999) - (a.days ?? 9999));
+    const stale = withDays.filter((r) => r.days === null || r.days > 14);
+    return { all: withDays, stale };
+  }, [freshnessQuery.data]);
+
   return (
     <AuthGuard>
       <div className="max-w-5xl mx-auto px-4 py-8">
@@ -158,6 +178,38 @@ export default function TrendBriefPage() {
           <KpiTile label="이번 주 커버 기업" value={stats.weekCompanies} unit="개사" />
           <KpiTile label="최신 업데이트" value={stats.latestDate} />
         </div>
+
+        {/* Coverage Freshness */}
+        {coverage.all.length > 0 && (
+          <Panel
+            kicker="Coverage Monitor"
+            title="수집 커버리지 현황"
+            subtitle="기업별 마지막 수집 시점입니다. 14일 이상 업데이트가 없으면 커버리지 공백입니다."
+            padding="compact"
+            className="mb-6"
+          >
+            <div className="flex flex-wrap gap-1.5">
+              {coverage.all.map((c) => {
+                const tone =
+                  c.days === null || c.days > 14 ? 'neg' : c.days > 7 ? 'warn' : 'pos';
+                return (
+                  <Link key={c.companyId} href={`/companies/${c.companyId}`}>
+                    <Tag tone={tone} size="sm" dot>
+                      {c.companyName}
+                      {' · '}
+                      {c.days === null ? '이력 없음' : c.days === 0 ? '오늘' : `${c.days}일 전`}
+                    </Tag>
+                  </Link>
+                );
+              })}
+            </div>
+            {coverage.stale.length > 0 && (
+              <p className="mt-3 text-[11.5px] text-ink-500">
+                ⚠ {coverage.stale.length}개 기업이 14일 이상 미수집 상태입니다. 다음 데이터 업데이트에서 우선 보강이 필요합니다.
+              </p>
+            )}
+          </Panel>
+        )}
 
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2 mb-6">

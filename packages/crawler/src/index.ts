@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import cron from 'node-cron';
 import { crawlerService } from './services/crawler.service.js';
 import { schedulerService } from './services/scheduler.service.js';
 import { errorLogger } from './services/error-logger.js';
@@ -135,6 +136,25 @@ const start = async () => {
     // } else {
     //   console.log('DATABASE_URL not set, auto-crawler disabled');
     // }
+
+    // 합법 데이터 수집기(공식 API: arXiv/GitHub/SEC/USPTO) 일일 크론
+    // HTML 크롤러와 달리 공식 공개 API만 사용하므로 법적 검토 대상이 아님.
+    // LEGAL_COLLECT_CRON으로 스케줄 변경, DISABLE_LEGAL_COLLECT=true로 비활성화.
+    if (process.env.DATABASE_URL && process.env.DISABLE_LEGAL_COLLECT !== 'true') {
+      const schedule = process.env.LEGAL_COLLECT_CRON || '0 3 * * *'; // 매일 03:00 KST
+      cron.schedule(schedule, async () => {
+        console.log('[LegalCollector] Daily collection starting...');
+        try {
+          const result = await legalDataCollector.collectAll();
+          console.log('[LegalCollector] Daily collection done:', JSON.stringify(result));
+        } catch (err) {
+          console.error('[LegalCollector] Daily collection failed:', err);
+        }
+      }, { scheduled: true, timezone: 'Asia/Seoul' });
+      console.log(`[LegalCollector] Daily cron scheduled (${schedule}, Asia/Seoul)`);
+    } else {
+      console.log('[LegalCollector] Cron disabled (no DATABASE_URL or DISABLE_LEGAL_COLLECT=true)');
+    }
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

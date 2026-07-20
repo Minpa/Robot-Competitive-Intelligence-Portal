@@ -10,6 +10,7 @@ import { seedCiData } from './db/seed-ci.js';
 import { dataGeneratorService } from './services/data-generator.service.js';
 import { coverageFieldService } from './services/coverage-field.service.js';
 import { handBenchmarkService } from './services/hand-benchmark.service.js';
+import { schedulerService } from './services/scheduler.service.js';
 
 const fastify = Fastify({
   logger: true,
@@ -91,6 +92,13 @@ const start = async () => {
     }
     await fastify.listen({ port, host: '0.0.0.0' });
     console.log(`Backend server running on port ${port}`);
+
+    // 주간 자동화(스코어링/감사/브리핑) 크론 가동 — DISABLE_SCHEDULER=true로 비활성화 가능
+    if (process.env.DISABLE_SCHEDULER !== 'true') {
+      schedulerService.init();
+    } else {
+      console.log('[Scheduler] Disabled via DISABLE_SCHEDULER env');
+    }
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
