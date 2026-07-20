@@ -4,6 +4,7 @@ import { crawlerService } from './services/crawler.service.js';
 import { schedulerService } from './services/scheduler.service.js';
 import { errorLogger } from './services/error-logger.js';
 import { legalDataCollector } from './services/legal-data-collector.js';
+import { youtubeCollectorService } from './services/youtube-collector.service.js';
 import type { CrawlJobConfig, TargetUrl } from './types.js';
 
 const fastify = Fastify({ 
@@ -120,6 +121,7 @@ fastify.post('/legal/arxiv', async () => legalDataCollector.collectArxiv());
 fastify.post('/legal/github', async () => legalDataCollector.collectGitHub());
 fastify.post('/legal/sec-edgar', async () => legalDataCollector.collectSecEdgar());
 fastify.post('/legal/patents', async () => legalDataCollector.collectPatents());
+fastify.post('/legal/youtube', async () => youtubeCollectorService.collect());
 
 // Start server
 const start = async () => {
@@ -149,6 +151,11 @@ const start = async () => {
           console.log('[LegalCollector] Daily collection done:', JSON.stringify(result));
         } catch (err) {
           console.error('[LegalCollector] Daily collection failed:', err);
+        }
+        try {
+          await youtubeCollectorService.collect(); // 공식 채널 데모 영상 (채널 RSS)
+        } catch (err) {
+          console.error('[YouTube] Daily collection failed:', err);
         }
       }, { scheduled: true, timezone: 'Asia/Seoul' });
       console.log(`[LegalCollector] Daily cron scheduled (${schedule}, Asia/Seoul)`);

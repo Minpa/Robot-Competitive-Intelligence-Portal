@@ -25,10 +25,12 @@ export const crawlTargets = pgTable('crawl_targets', {
 });
 
 // Articles table for storing crawled content
+// (백엔드 마이그레이션이 소유한 테이블 — 여기서는 크롤러가 쓰는 컬럼만 매핑)
 export const articles = pgTable(
   'articles',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    companyId: uuid('company_id'),
     title: varchar('title', { length: 500 }).notNull(),
     source: varchar('source', { length: 255 }).notNull(),
     url: varchar('url', { length: 1000 }).notNull(),
@@ -37,7 +39,9 @@ export const articles = pgTable(
     content: text('content'),
     language: varchar('language', { length: 10 }).default('en'),
     category: varchar('category', { length: 50 }).default('other'), // product, technology, industry, other
+    productType: varchar('product_type', { length: 50 }),
     contentHash: varchar('content_hash', { length: 64 }).notNull(),
+    extractedMetadata: jsonb('extracted_metadata'),
     collectedAt: timestamp('collected_at').defaultNow().notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },

@@ -28,6 +28,7 @@ import {
   Building2,
   Cpu,
   Factory,
+  PlayCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -50,6 +51,7 @@ const navigationGroups: NavGroup[] = [
     subtitle: 'Daily Brief',
     items: [
       { name: '동향 브리핑', href: '/trend-brief', icon: Newspaper },
+      { name: '데모 영상', href: '/videos', icon: PlayCircle },
       { name: '이벤트 캘린더', href: '/event-calendar', icon: CalendarDays },
     ],
   },

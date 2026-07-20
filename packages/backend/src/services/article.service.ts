@@ -265,6 +265,12 @@ export class ArticleService {
     if (filters.source) {
       conditions.push(eq(articles.source, filters.source));
     }
+    if (filters.category) {
+      conditions.push(eq(articles.category, filters.category));
+    }
+    if (filters.productType) {
+      conditions.push(eq(articles.productType, filters.productType));
+    }
     if (filters.language) {
       conditions.push(eq(articles.language, filters.language));
     }
