@@ -28,6 +28,15 @@ fastify.get('/health', async () => {
   return { status: 'ok', service: 'crawler', timestamp: new Date().toISOString() };
 });
 
+// ============================================================
+// HTML 크롤링 관련 엔드포인트 — 법무 검토 전까지 봉인
+// ENABLE_HTML_CRAWLER=true 를 명시적으로 설정한 경우에만 노출된다.
+// (과거 법적 리스크로 크롤러 서비스를 내린 이력에 따른 안전장치.
+//  이 게이트가 꺼져 있으면 배포된 서비스는 공식 API/RSS 수집(/legal/*)만 가능)
+// ============================================================
+const HTML_CRAWLER_ENABLED = process.env.ENABLE_HTML_CRAWLER === 'true';
+
+if (HTML_CRAWLER_ENABLED) {
 // Execute crawl job
 fastify.post<{ Body: CrawlJobConfig }>('/crawl', async (request, reply) => {
   try {
@@ -99,6 +108,7 @@ fastify.delete<{ Params: { scheduleId: string } }>(
     return { message: 'Schedule removed' };
   }
 );
+} // end HTML_CRAWLER_ENABLED gate
 
 // Error logs
 fastify.get<{
@@ -133,6 +143,11 @@ const start = async () => {
 
     // 크롤러 비활성화 - 법적 검토 완료 후 활성화
     console.log('[Crawler] Auto-crawler is DISABLED for legal review');
+    console.log(
+      HTML_CRAWLER_ENABLED
+        ? '[Crawler] WARNING: HTML crawler endpoints are ENABLED (ENABLE_HTML_CRAWLER=true)'
+        : '[Crawler] Legal-safe mode: HTML crawler endpoints sealed — only official API/RSS collection (/legal/*) available'
+    );
     // if (process.env.DATABASE_URL) {
     //   console.log('DATABASE_URL found, initializing auto-crawler...');
     //   await autoCrawlerService.initialize();
