@@ -126,7 +126,8 @@ fastify.post('/legal/youtube', async () => youtubeCollectorService.collect());
 // Start server
 const start = async () => {
   try {
-    const port = parseInt(process.env.CRAWLER_PORT || '3003', 10);
+    // Railway 등 PaaS는 PORT를 주입하므로 CRAWLER_PORT → PORT → 3003 순으로 사용
+    const port = parseInt(process.env.CRAWLER_PORT || process.env.PORT || '3003', 10);
     await fastify.listen({ port, host: '0.0.0.0' });
     console.log(`Crawler service running on port ${port}`);
 
