@@ -15,6 +15,11 @@ export async function articleRoutes(fastify: FastifyInstance) {
     return articleService.list(filters, pagination);
   });
 
+  // 기업별 수집 신선도 (커버리지 매트릭스)
+  fastify.get('/freshness/by-company', async () => {
+    return articleService.getCompanyFreshness();
+  });
+
   // Get article by ID
   fastify.get<{ Params: { id: string } }>('/:id', async (request, reply) => {
     const article = await articleService.getById(request.params.id);

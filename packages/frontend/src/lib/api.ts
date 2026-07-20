@@ -145,6 +145,12 @@ class ApiClient {
     return this.request<any>(`/articles/${id}`);
   }
 
+  async getCompanyFreshness() {
+    return this.request<
+      { companyId: string; companyName: string; lastPublishedAt: string | null; articleCount: number }[]
+    >(`/articles/freshness/by-company`);
+  }
+
   async importArticlesFromExcel(file: File, updateExisting = true) {
     const url = `${API_BASE}/articles/import-excel`;
     const token = this.getToken();
