@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -10,8 +10,8 @@ import {
 import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Panel, Tag, KpiTile } from '@/components/ui';
-import { ExternalLink, FileText, Play } from 'lucide-react';
+import { Panel, Tag, KpiTile, InsightBox } from '@/components/ui';
+import { ExternalLink, FileText, Play, X } from 'lucide-react';
 
 /**
  * 단위기술 트렌드 페이지 — 로봇(완제품)과 분리해 기술 축별로
@@ -43,7 +43,6 @@ const DOMAIN_CONFIGS: Record<string, DomainConfig> = {
     paperRegex: /\bhand\b|gripper|finger|tactile|dexter|grasp|manipulat|in-hand/i,
     quickLinks: [
       { name: '핸드 리스트', href: '/hand-registry' },
-      { name: '그리퍼 리스트', href: '/gripper-registry' },
       { name: '핸드 Perfect 분석', href: '/compare/hand-benchmark' },
     ],
   },
@@ -105,16 +104,30 @@ function formatDate(value?: string | null) {
   return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+function getVideoId(v: Row): string | null {
+  if (v.extractedMetadata?.videoId) return v.extractedMetadata.videoId;
+  const m = v.url?.match(/[?&]v=([\w-]{11})/) ?? v.url?.match(/youtu\.be\/([\w-]{11})/);
+  return m?.[1] ?? null;
+}
+
 function getThumbnail(v: Row): string | null {
   if (v.extractedMetadata?.thumbnail) return v.extractedMetadata.thumbnail;
-  if (v.extractedMetadata?.videoId) return `https://i.ytimg.com/vi/${v.extractedMetadata.videoId}/mqdefault.jpg`;
-  return null;
+  const vid = getVideoId(v);
+  return vid ? `https://i.ytimg.com/vi/${vid}/mqdefault.jpg` : null;
 }
 
 export default function TechDomainPage() {
   const params = useParams();
   const domain = params.domain as string;
   const config = DOMAIN_CONFIGS[domain];
+  const [playing, setPlaying] = useState<Row | null>(null);
+
+  const summaryQuery = useQuery({
+    queryKey: ['tech-summary', domain],
+    queryFn: () => api.getTechTrendSummary(domain),
+    enabled: !!config,
+    staleTime: 30 * 60 * 1000,
+  });
 
   const videosQuery = useQuery({
     queryKey: ['tech-videos'],
@@ -211,6 +224,15 @@ export default function TechDomainPage() {
           }
         />
 
+        {/* AI Trend Summary */}
+        <InsightBox label="AI Trend Summary" tone="gold" title={`최근 60일 ${config.titleKo}`}>
+          <p className="text-[13px] leading-relaxed">
+            {summaryQuery.isLoading
+              ? '요약을 생성하는 중...'
+              : summaryQuery.data?.summary ?? '요약을 불러오지 못했습니다.'}
+          </p>
+        </InsightBox>
+
         {/* KPI */}
         <div className="grid grid-cols-3 gap-3">
           <KpiTile label="최근 90일 데모 영상" value={stats.videos} unit="건" />
@@ -256,6 +278,47 @@ export default function TechDomainPage() {
             </Link>
           }
         >
+          {/* Inline player */}
+          {playing && getVideoId(playing) && (
+            <div className="mb-4 border border-ink-200">
+              <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                <iframe
+                  className="absolute inset-0 w-full h-full"
+                  src={`https://www.youtube.com/embed/${getVideoId(playing)}?autoplay=1`}
+                  title={playing.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+              <div className="flex items-start justify-between gap-4 px-4 py-3">
+                <div className="min-w-0">
+                  <h3 className="text-[13.5px] font-semibold text-ink-900 leading-snug">{playing.title}</h3>
+                  <div className="mt-1 flex items-center gap-3 text-[11px] text-ink-500">
+                    {playing.extractedMetadata?.channel && <span>{playing.extractedMetadata.channel}</span>}
+                    <span>{formatDate(playing.publishedAt)}</span>
+                    {playing.url && (
+                      <a
+                        href={playing.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-info hover:underline"
+                      >
+                        YouTube에서 보기 <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setPlaying(null)}
+                  className="shrink-0 p-1 text-ink-400 hover:text-ink-900 transition-colors"
+                  aria-label="닫기"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {videos.length === 0 ? (
             <div className="py-8 text-center text-ink-400 text-sm">
               {isLoading
@@ -263,41 +326,45 @@ export default function TechDomainPage() {
                 : '아직 수집된 영상이 없습니다. 전문 채널 수집은 다음 크론(매일 03:00)부터 시작됩니다.'}
             </div>
           ) : (
-            <div className="space-y-2">
-              {videos.slice(0, 12).map((v) => {
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {videos.slice(0, 24).map((v) => {
                 const thumb = getThumbnail(v);
                 return (
-                  <a
+                  <button
                     key={v.id}
-                    href={v.url ?? '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 border-b border-ink-100 pb-2 last:border-b-0 hover:bg-paper transition-colors px-1"
+                    onClick={() => setPlaying(v)}
+                    className="text-left bg-white border border-ink-200 hover:border-ink-400 transition-colors group"
                   >
-                    {thumb ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={thumb} alt="" loading="lazy" className="w-20 aspect-video object-cover shrink-0 bg-ink-100" />
-                    ) : (
-                      <span className="w-20 aspect-video flex items-center justify-center bg-ink-100 shrink-0">
-                        <Play className="w-4 h-4 text-ink-400" />
-                      </span>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[12.5px] font-medium text-ink-900 leading-snug line-clamp-2">{v.title}</p>
-                      <div className="mt-1 flex items-center gap-2 flex-wrap">
+                    <div className="relative aspect-video bg-ink-100 overflow-hidden">
+                      {thumb ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={thumb} alt={v.title} loading="lazy" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="w-full h-full flex items-center justify-center">
+                          <Play className="w-6 h-6 text-ink-400" />
+                        </span>
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors">
+                        <span className="flex items-center justify-center w-10 h-10 rounded-full bg-black/60 text-white opacity-80 group-hover:opacity-100 transition-opacity">
+                          <Play className="w-4 h-4 ml-0.5" fill="currentColor" />
+                        </span>
+                      </div>
+                    </div>
+                    <div className="px-3 py-2.5">
+                      <p className="text-[12.5px] font-semibold text-ink-900 leading-snug line-clamp-2">{v.title}</p>
+                      <div className="mt-1.5 flex items-center gap-2 flex-wrap">
                         {v.extractedMetadata?.channel && (
                           <Tag tone="neutral" size="sm">{v.extractedMetadata.channel}</Tag>
                         )}
                         <span className="text-[11px] text-ink-400">{formatDate(v.publishedAt)}</span>
                         {typeof v.extractedMetadata?.views === 'number' && (
-                          <span className="text-[11px] text-ink-400">
+                          <span className="text-[11px] text-ink-400 ml-auto">
                             {v.extractedMetadata.views.toLocaleString()}회
                           </span>
                         )}
                       </div>
                     </div>
-                    <ExternalLink className="w-3.5 h-3.5 shrink-0 text-ink-400" />
-                  </a>
+                  </button>
                 );
               })}
             </div>
