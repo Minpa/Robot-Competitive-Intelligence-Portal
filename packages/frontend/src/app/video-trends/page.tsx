@@ -46,8 +46,17 @@ interface VideoRow {
   extractedMetadata?: {
     channel?: string;
     views?: number | null;
+    videoId?: string;
+    thumbnail?: string;
     aiTags?: { taskTypes?: string[] };
   } | null;
+}
+
+function getThumbnail(v: VideoRow): string | null {
+  if (v.extractedMetadata?.thumbnail) return v.extractedMetadata.thumbnail;
+  if (v.extractedMetadata?.videoId) return `https://i.ytimg.com/vi/${v.extractedMetadata.videoId}/mqdefault.jpg`;
+  const m = v.url?.match(/[?&]v=([\w-]{11})/);
+  return m ? `https://i.ytimg.com/vi/${m[1]}/mqdefault.jpg` : null;
 }
 
 function monthKey(value?: string | null) {
@@ -300,25 +309,37 @@ export default function VideoTrendsPage() {
                 </button>
               </div>
               <div className="divide-y divide-ink-100">
-                {popoverVideos.map((v) => (
-                  <a
-                    key={v.id}
-                    href={v.url ?? '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 px-5 py-3 hover:bg-paper transition-colors"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[12.5px] font-medium text-ink-900 leading-snug">{v.title}</p>
-                      <p className="mt-0.5 text-[11px] text-ink-500">
-                        {v.publishedAt ? new Date(v.publishedAt).toLocaleDateString('ko-KR') : ''}
-                        {typeof v.extractedMetadata?.views === 'number' &&
-                          ` · ${v.extractedMetadata.views.toLocaleString()}회`}
-                      </p>
-                    </div>
-                    <ExternalLink className="w-3.5 h-3.5 shrink-0 text-ink-400" />
-                  </a>
-                ))}
+                {popoverVideos.map((v) => {
+                  const thumb = getThumbnail(v);
+                  return (
+                    <a
+                      key={v.id}
+                      href={v.url ?? '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 px-5 py-3 hover:bg-paper transition-colors"
+                    >
+                      {thumb && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={thumb}
+                          alt=""
+                          loading="lazy"
+                          className="w-24 aspect-video object-cover shrink-0 bg-ink-100"
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[12.5px] font-medium text-ink-900 leading-snug">{v.title}</p>
+                        <p className="mt-0.5 text-[11px] text-ink-500">
+                          {v.publishedAt ? new Date(v.publishedAt).toLocaleDateString('ko-KR') : ''}
+                          {typeof v.extractedMetadata?.views === 'number' &&
+                            ` · ${v.extractedMetadata.views.toLocaleString()}회`}
+                        </p>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 shrink-0 text-ink-400" />
+                    </a>
+                  );
+                })}
               </div>
               <div className="px-5 py-2.5 border-t border-ink-200 bg-paper">
                 <Link
