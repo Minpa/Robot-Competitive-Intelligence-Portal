@@ -99,7 +99,8 @@ const navigationGroups: NavGroup[] = [
     title: '양산 적용',
     subtitle: 'Production Watch',
     items: [
-      { name: '양산 트렌드', href: '/tech/production', icon: Factory },
+      { name: '양산 트렌드 (기사)', href: '/tech/production', icon: Factory },
+      { name: '양산 영상', href: '/tech/production/videos', icon: PlayCircle },
       { name: '도입/적용 사례', href: '/application-cases', icon: Factory },
     ],
   },
