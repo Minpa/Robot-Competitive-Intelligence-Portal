@@ -175,6 +175,19 @@ const start = async () => {
         }
       }, { scheduled: true, timezone: 'Asia/Seoul' });
       console.log(`[LegalCollector] Daily cron scheduled (${schedule}, Asia/Seoul)`);
+
+      // 기동 30초 후 유튜브 수집 1회 자동 실행 (멱등 — 중복 삽입 없음)
+      // 터미널 없이도 배포만으로 첫 수집이 이뤄지도록 한다. COLLECT_ON_STARTUP=false로 끌 수 있음.
+      if (process.env.COLLECT_ON_STARTUP !== 'false') {
+        setTimeout(() => {
+          console.log('[YouTube] Startup collection starting...');
+          youtubeCollectorService
+            .collect()
+            .then((r) => console.log('[YouTube] Startup collection done:', JSON.stringify(r)))
+            .catch((err) => console.error('[YouTube] Startup collection failed:', err));
+        }, 30_000);
+        console.log('[YouTube] Startup collection scheduled in 30s');
+      }
     } else {
       console.log('[LegalCollector] Cron disabled (no DATABASE_URL or DISABLE_LEGAL_COLLECT=true)');
     }
