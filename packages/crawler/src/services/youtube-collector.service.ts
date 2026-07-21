@@ -117,21 +117,47 @@ class YoutubeCollectorService {
 
   /**
    * @handle → channelId 해석 (YouTube Data API v3, 공식 API)
+   * 핸들이 틀렸을 경우 채널명 검색으로 폴백한다.
    */
-  private async resolveChannelId(handle: string): Promise<string | null> {
-    const cached = this.resolvedIds.get(handle);
+  private async resolveChannelId(channel: YoutubeChannel): Promise<string | null> {
+    const cached = this.resolvedIds.get(channel.handle);
     if (cached) return cached;
 
     const apiKey = process.env.YOUTUBE_API_KEY;
     if (!apiKey) return null;
 
     try {
-      const url = `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${encodeURIComponent(handle)}&key=${apiKey}`;
+      const url = `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${encodeURIComponent(channel.handle)}&key=${apiKey}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = (await res.json()) as { items?: { id?: string }[] };
+        const id: string | null = data.items?.[0]?.id ?? null;
+        if (id) {
+          this.resolvedIds.set(channel.handle, id);
+          return id;
+        }
+      }
+    } catch {
+      // fall through to search
+    }
+
+    // 폴백: 채널명 검색 (핸들 오기 대응) — 정확히 일치하는 제목 우선
+    try {
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&maxResults=3&q=${encodeURIComponent(channel.channelName)}&key=${apiKey}`;
       const res = await fetch(url);
       if (!res.ok) return null;
-      const data = (await res.json()) as { items?: { id?: string }[] };
-      const id: string | null = data.items?.[0]?.id ?? null;
-      if (id) this.resolvedIds.set(handle, id);
+      const data = (await res.json()) as {
+        items?: { id?: { channelId?: string }; snippet?: { channelTitle?: string } }[];
+      };
+      const items = data.items ?? [];
+      const exact = items.find(
+        (i) => i.snippet?.channelTitle?.toLowerCase() === channel.channelName.toLowerCase()
+      );
+      const id = (exact ?? items[0])?.id?.channelId ?? null;
+      if (id) {
+        console.log(`[YouTube] Resolved "${channel.channelName}" via search fallback → ${id}`);
+        this.resolvedIds.set(channel.handle, id);
+      }
       return id;
     } catch {
       return null;
@@ -143,6 +169,76 @@ class YoutubeCollectorService {
     if (item.id?.startsWith('yt:video:')) return item.id.slice('yt:video:'.length);
     const m = item.link?.match(/[?&]v=([\w-]{11})/);
     return m?.[1] ?? null;
+  }
+
+  /**
+   * 업로드 재생목록 딥 백필 (공식 Data API) — RSS의 최신 15개 제한을 넘어
+   * 채널당 과거 영상까지 수집한다. YOUTUBE_BACKFILL_PAGES 페이지 × 50개 (기본 2 = 100개).
+   */
+  private async backfillFromPlaylist(
+    db: ReturnType<typeof getDb>,
+    channel: YoutubeChannel,
+    channelId: string,
+    companyId: string | null,
+    result: CollectResult
+  ): Promise<void> {
+    const apiKey = process.env.YOUTUBE_API_KEY;
+    if (!apiKey) return;
+
+    const pages = Math.max(1, parseInt(process.env.YOUTUBE_BACKFILL_PAGES || '2', 10));
+    const uploadsPlaylist = 'UU' + channelId.slice(2); // UCxxxx → UUxxxx (업로드 재생목록)
+    let pageToken: string | undefined;
+
+    for (let p = 0; p < pages; p++) {
+      const url =
+        `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${uploadsPlaylist}&key=${apiKey}` +
+        (pageToken ? `&pageToken=${pageToken}` : '');
+      const res = await fetch(url);
+      if (!res.ok) break;
+      const data = (await res.json()) as {
+        nextPageToken?: string;
+        items?: { snippet?: { title?: string; description?: string; publishedAt?: string; resourceId?: { videoId?: string } } }[];
+      };
+
+      for (const item of data.items ?? []) {
+        const sn = item.snippet;
+        const videoId = sn?.resourceId?.videoId;
+        if (!videoId || !sn?.title) continue;
+        result.videosFound++;
+
+        const contentHash = createHash('md5').update(`yt-video-${videoId}`).digest('hex');
+        const inserted = await db
+          .insert(articles)
+          .values({
+            companyId: companyId ?? undefined,
+            title: sn.title,
+            source: `YouTube — ${channel.channelName}`,
+            url: `https://www.youtube.com/watch?v=${videoId}`,
+            publishedAt: sn.publishedAt ? new Date(sn.publishedAt) : undefined,
+            summary: null,
+            language: 'en',
+            category: 'product',
+            productType: 'video',
+            contentHash,
+            extractedMetadata: {
+              videoId,
+              channel: channel.channelName,
+              channelId,
+              domain: channel.domain,
+              thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+              mentionedCompanies: [channel.company],
+              description: sn.description ? sn.description.slice(0, 1200) : null,
+            },
+          })
+          .onConflictDoNothing()
+          .returning({ id: articles.id });
+
+        if (inserted.length > 0) result.videosInserted++;
+      }
+
+      pageToken = data.nextPageToken;
+      if (!pageToken) break;
+    }
   }
 
   private async findCompanyId(db: ReturnType<typeof getDb>, companyName: string): Promise<string | null> {
@@ -173,18 +269,26 @@ class YoutubeCollectorService {
     };
 
     for (const channel of YOUTUBE_CHANNELS) {
-      const channelId = channel.channelId ?? (await this.resolveChannelId(channel.handle));
+      const channelId = channel.channelId ?? (await this.resolveChannelId(channel));
       if (!channelId) {
         result.channelsSkipped++;
         result.skippedChannels.push(`${channel.channelName} (@${channel.handle})`);
-        continue; // channelId 해석 실패 (핸들 오류 또는 API 키 없음) → 스킵
+        continue; // channelId 해석 실패 (핸들 오류 + 검색 실패, 또는 API 키 없음) → 스킵
+      }
+
+      const companyId = await this.findCompanyId(db, channel.company);
+
+      // 딥 백필 (공식 API): RSS 최신 15개 제한을 넘어 과거 영상 수집 — BotQ 등 유명 과거 영상 포함
+      try {
+        await this.backfillFromPlaylist(db, channel, channelId, companyId, result);
+      } catch (err) {
+        result.errors.push(`${channel.channelName} (backfill): ${(err as Error).message}`);
       }
 
       try {
         const feed = await this.parser.parseURL(
           `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`
         );
-        const companyId = await this.findCompanyId(db, channel.company);
         result.channelsProcessed++;
 
         for (const item of feed.items ?? []) {
