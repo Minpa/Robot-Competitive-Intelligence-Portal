@@ -60,6 +60,7 @@ const DOMAIN_CONFIGS: Record<string, DomainConfig> = {
     second: 'papers',
     secondLabel: '논문',
     paperRegex: /\bhand\b|gripper|finger|tactile|dexter|grasp|manipulat|in-hand/i,
+    splitVideos: true,
     quickLinks: [
       { name: '핸드 리스트', href: '/hand-registry' },
       { name: '핸드 Perfect 분석', href: '/compare/hand-benchmark' },
@@ -76,6 +77,7 @@ const DOMAIN_CONFIGS: Record<string, DomainConfig> = {
     secondLabel: '논문',
     paperRegex:
       /foundation model|vision.language.action|\bVLA\b|imitation learning|reinforcement learning|diffusion policy|world model|embodied|manipulation policy|sim.to.real/i,
+    splitVideos: true,
     quickLinks: [{ name: '컴포넌트 트렌드', href: '/components-trend' }],
   },
   actuator: {
@@ -88,6 +90,7 @@ const DOMAIN_CONFIGS: Record<string, DomainConfig> = {
     secondLabel: '논문',
     paperRegex:
       /actuator|\bmotor\b|gearbox|harmonic drive|transmission|joint torque|quasi.direct|proprioceptive|series elastic/i,
+    splitVideos: true,
     quickLinks: [{ name: '컴포넌트 트렌드', href: '/components-trend' }],
   },
   expo: {
@@ -103,6 +106,7 @@ const DOMAIN_CONFIGS: Record<string, DomainConfig> = {
     secondLabel: '기사',
     newsRegex:
       /\bCES\b|\bexpo\b|exhibition|booth|\bIROS\b|\bICRA\b|hannover|world robot conference|\bWRC\b|\bGTC\b|trade show|robocup|전시회|박람회/i,
+    splitVideos: true,
     quickLinks: [{ name: '이벤트 캘린더', href: '/event-calendar' }],
   },
   production: {
