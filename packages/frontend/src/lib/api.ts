@@ -151,6 +151,12 @@ class ApiClient {
     >(`/articles/freshness/by-company`);
   }
 
+  async getVideoTrendSummary() {
+    return this.request<{ summary: string; generatedAt: string; source: string }>(
+      `/articles/video-trends/summary`
+    );
+  }
+
   async importArticlesFromExcel(file: File, updateExisting = true) {
     const url = `${API_BASE}/articles/import-excel`;
     const token = this.getToken();

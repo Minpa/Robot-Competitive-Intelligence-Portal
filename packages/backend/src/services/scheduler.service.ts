@@ -12,6 +12,7 @@ import { scoringPipelineService } from './scoring-pipeline.service.js';
 import { dataAuditService } from './data-audit.service.js';
 import { strategicAIAgentService } from './strategic-ai-agent.service.js';
 import { warRoomLgRobotService } from './war-room-lg-robot.service.js';
+import { videoTaggingService } from './video-tagging.service.js';
 
 // ── Types ──
 
@@ -57,6 +58,7 @@ export interface PipelineHistoryEntry {
 const SCHEDULE_SCORING = process.env.CRON_SCORING || '0 2 * * 1';       // Mon 02:00
 const SCHEDULE_AUDIT = process.env.CRON_AUDIT || '0 3 * * 1';           // Mon 03:00
 const SCHEDULE_BRIEFING = process.env.CRON_BRIEFING || '0 4 * * 1';     // Mon 04:00
+const SCHEDULE_VIDEO_TAGGING = process.env.CRON_VIDEO_TAGGING || '0 4 * * *'; // 매일 04:00 (크롤러 수집 후)
 
 class SchedulerService {
   private tasks: Map<string, ScheduledTask> = new Map();
@@ -73,8 +75,9 @@ class SchedulerService {
     this.registerTask('scoring', '스코어링 파이프라인', SCHEDULE_SCORING, () => this.runScoring());
     this.registerTask('audit', '데이터 감사', SCHEDULE_AUDIT, () => this.runAudit());
     this.registerTask('briefing', '전략 AI 브리핑', SCHEDULE_BRIEFING, () => this.runBriefing());
+    this.registerTask('video-tagging', '영상 AI 태깅', SCHEDULE_VIDEO_TAGGING, () => this.runVideoTagging());
 
-    console.log('[Scheduler] Initialized with 3 tasks');
+    console.log('[Scheduler] Initialized with 4 tasks');
   }
 
   private registerTask(name: string, label: string, cronExpr: string, handler: () => Promise<void>) {
@@ -126,6 +129,7 @@ class SchedulerService {
           case 'scoring': await this.runScoring(); break;
           case 'audit': await this.runAudit(); break;
           case 'briefing': await this.runBriefing(); break;
+          case 'video-tagging': await this.runVideoTagging(); break;
         }
         task.lastRun = new Date();
       } catch (err) {
@@ -207,6 +211,10 @@ class SchedulerService {
 
   private async runAudit() {
     await dataAuditService.runFullAudit();
+  }
+
+  private async runVideoTagging() {
+    await videoTaggingService.run();
   }
 
   private async runBriefing() {

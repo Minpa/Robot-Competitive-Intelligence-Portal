@@ -20,6 +20,12 @@ export async function articleRoutes(fastify: FastifyInstance) {
     return articleService.getCompanyFreshness();
   });
 
+  // 데모 영상 트렌드 AI 요약 (최근 60일, 6시간 캐시)
+  fastify.get('/video-trends/summary', async () => {
+    const { videoTaggingService } = await import('../services/video-tagging.service.js');
+    return videoTaggingService.getTrendSummary();
+  });
+
   // Get article by ID
   fastify.get<{ Params: { id: string } }>('/:id', async (request, reply) => {
     const article = await articleService.getById(request.params.id);
