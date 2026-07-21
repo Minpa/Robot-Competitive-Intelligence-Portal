@@ -36,6 +36,12 @@ interface DomainConfig {
   paperRegex?: RegExp;
   /** 기사 필터 (제목+요약) — second가 news일 때 */
   newsRegex?: RegExp;
+  /** 영상 채널 도메인 제한 (설정 시 이 도메인 채널의 영상만 포함) */
+  videoChannelDomains?: string[];
+  /** competitive_alerts 타입 — 설정 시 알림 섹션 표시 */
+  alertsType?: string;
+  /** 기사 섹션을 영상보다 먼저 배치 */
+  newsFirst?: boolean;
   quickLinks: { name: string; href: string }[];
 }
 
@@ -87,7 +93,8 @@ const DOMAIN_CONFIGS: Record<string, DomainConfig> = {
       'CES·IROS·ICRA·하노버메세·WRC 등 전시회와 학회에서의 로봇 시연 영상과 관련 기사를 취합합니다.',
     videoDomain: 'expo',
     videoTextRegex:
-      /\bCES\b|\bexpo\b|exhibition|booth|\bIROS\b|\bICRA\b|hannover|world robot conference|\bWRC\b|\bGTC\b|trade show|robocup|automatica|automate 20|world artificial intelligence/i,
+      /\bCES\b|\bexpo\b|exhibition|booth|\bIROS\b|\bICRA\b|hannover|world robot conference|\bWRC\b|trade show|robocup|automatica|automate 20|world artificial intelligence/i,
+    videoChannelDomains: ['robot'],
     second: 'news',
     secondLabel: '기사',
     newsRegex:
@@ -98,15 +105,17 @@ const DOMAIN_CONFIGS: Record<string, DomainConfig> = {
     titleKo: '양산 트렌드',
     titleEn: 'Production Watch',
     description:
-      '경쟁사 로봇의 공장 투입, 양산 램프업, 현장 배치 관련 영상과 기사를 취합합니다.',
+      '경쟁사 로봇 제품의 양산 현황을 추적합니다 — 생산라인 구축, 생산능력, 램프업 목표, 출하·납품량, 판매 가격.',
     videoDomain: 'production',
     videoTextRegex:
-      /factory|mass.?produc|production line|assembly|plant\b|warehouse|logistics|deploy|fleet|shift\b|fulfillment/i,
-    extraTaskTypes: ['공장/산업 작업'],
+      /mass.?produc|production (line|ramp|facility|capacity)|start of production|robofab|botq|factory tour|manufacturing (line|facility|plant)|assembly line for|robot factory|생산라인|양산/i,
+    videoChannelDomains: ['robot'],
     second: 'news',
     secondLabel: '기사',
     newsRegex:
-      /factory|mass.?produc|production|assembly|plant\b|deployment|ramp|units per|fleet|양산|공장|배치/i,
+      /mass.?produc|production (line|ramp|capacity|target|start)|units? (per|a) (week|month|year)|\d[\d,]* units|annual capacity|manufacturing (facility|capacity|plant)|robofab|botq|start.{0,12}production|deliver(y|ies|ed)|shipment|price[sd]? at|양산|생산능력|생산라인|출하|납품/i,
+    alertsType: 'mass_production',
+    newsFirst: true,
     quickLinks: [{ name: '도입/적용 사례', href: '/application-cases' }],
   },
 };
@@ -181,6 +190,13 @@ export default function TechDomainPage() {
     enabled: !!config,
   });
 
+  const alertsQuery = useQuery({
+    queryKey: ['tech-alerts', config?.alertsType ?? 'none'],
+    queryFn: () => api.getWarRoomAlerts({ type: config!.alertsType! }),
+    enabled: !!config?.alertsType,
+    retry: false,
+  });
+
   const secondaryQuery = useQuery({
     queryKey: ['tech-secondary', config?.second ?? 'papers'],
     queryFn: () =>
@@ -196,6 +212,10 @@ export default function TechDomainPage() {
     return all
       .filter((v) => {
         const meta = v.extractedMetadata;
+        // 채널 도메인 제한: 지정된 도메인 채널의 영상만 후보로 (예: 양산 축은 완제품사 채널만)
+        if (config.videoChannelDomains && !config.videoChannelDomains.includes(meta?.domain ?? '')) {
+          return false;
+        }
         if (meta?.domain === config.videoDomain) return true;
         if (config.extraTaskTypes?.some((t) => meta?.aiTags?.taskTypes?.includes(t))) return true;
         if (config.extraTechTags?.some((t) => meta?.aiTags?.techTags?.includes(t))) return true;
@@ -265,7 +285,7 @@ export default function TechDomainPage() {
 
   return (
     <AuthGuard>
-      <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+      <div className="max-w-6xl mx-auto px-4 py-8 flex flex-col gap-6">
         <PageHeader
           module="Unit Technology"
           titleKo={config.titleKo}
@@ -302,6 +322,37 @@ export default function TechDomainPage() {
           <KpiTile label="활동 채널" value={stats.channels} unit="곳" />
         </div>
 
+        {/* Alerts (양산 등 — alertsType 설정 시) */}
+        {config.alertsType && Array.isArray(alertsQuery.data) && alertsQuery.data.length > 0 && (
+          <Panel
+            kicker="Competitive Alerts"
+            title={`양산 경쟁 알림 (${alertsQuery.data.length}건)`}
+            subtitle="수집 파이프라인이 감지한 경쟁사 양산 관련 주요 이벤트입니다."
+          >
+            <div className="space-y-3">
+              {alertsQuery.data.slice(0, 8).map((a: any) => (
+                <div key={a.id} className="flex items-start gap-3 border-b border-ink-100 pb-3 last:border-b-0">
+                  <Tag
+                    size="sm"
+                    tone={a.severity === 'critical' ? 'neg' : a.severity === 'warning' ? 'warn' : 'info'}
+                  >
+                    {a.severity ?? 'info'}
+                  </Tag>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[12.5px] font-semibold text-ink-900 leading-snug">{a.title}</p>
+                    {a.summary && (
+                      <p className="mt-1 text-[11.5px] text-ink-600 leading-relaxed line-clamp-2">{a.summary}</p>
+                    )}
+                    {a.createdAt && (
+                      <span className="mt-1 inline-block text-[11px] text-ink-400">{formatDate(a.createdAt)}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        )}
+
         {/* Quarterly activity */}
         <Panel
           kicker="Activity Sensing"
@@ -331,9 +382,14 @@ export default function TechDomainPage() {
 
         {/* Videos */}
         <Panel
+          className={config.newsFirst ? 'order-2' : undefined}
           kicker="Demo Videos"
-          title={`데모 영상 (${videos.length}건)`}
-          subtitle="전문 채널 영상 + 완제품사 영상 중 이 기술 축에 해당하는 시연입니다."
+          title={`관련 영상 (${videos.length}건)`}
+          subtitle={
+            config.alertsType
+              ? '로봇 생산라인·제조 공정 관련 영상만 엄격히 필터링합니다. 이 축은 영상이 드문 것이 정상입니다.'
+              : '전문 채널 영상 + 완제품사 영상 중 이 축에 해당하는 시연입니다.'
+          }
           headerRight={
             <Link href="/videos" className="text-[11.5px] text-info hover:underline">
               갤러리 →
@@ -435,6 +491,7 @@ export default function TechDomainPage() {
 
         {/* Secondary: 논문 또는 기사 */}
         <Panel
+          className={config.newsFirst ? 'order-1' : undefined}
           kicker={config.second === 'papers' ? 'Research Papers' : 'Related News'}
           title={`관련 ${secondLabel} (${secondary.length}${config.second === 'papers' ? '편' : '건'})`}
           subtitle={

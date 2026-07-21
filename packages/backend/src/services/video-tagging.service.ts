@@ -290,20 +290,18 @@ ${JSON.stringify(videos)}`,
       actuator: 'actuator|motor|gearbox|harmonic drive|transmission|joint torque|quasi.direct|series elastic',
     };
     const TOPIC_REGEX: Record<string, string> = {
-      expo: 'ces|expo|exhibition|booth|iros|icra|hannover|world robot conference|gtc|trade show|robocup|automatica|전시회|박람회',
-      production: 'factory|mass produc|production|assembly|plant|warehouse|logistics|deploy|fleet|fulfillment|양산|공장|배치',
+      expo: 'ces|expo|exhibition|booth|iros|icra|hannover|world robot conference|trade show|robocup|automatica|전시회|박람회',
+      // production = 로봇 "제품"의 양산 (생산라인·생산능력·출하) — 로봇의 공장 "투입"(도입)과 구분
+      production:
+        'mass produc|production (line|ramp|capacity|target|start)|units (per|a) (week|month|year)|annual capacity|manufacturing (facility|capacity|plant)|robofab|botq|robot factory|deliver|shipment|양산|생산능력|생산라인|출하|납품',
     };
     const isTopic = domain === 'expo' || domain === 'production';
 
-    // 영상 조건: 기술 축은 채널 도메인, 주제 축은 제목/설명 키워드 + AI 태그
+    // 영상 조건: 기술 축은 채널 도메인, 주제 축은 완제품사 채널 한정 + 제목/설명 키워드
     let videoCond;
     if (isTopic) {
       const re = TOPIC_REGEX[domain]!;
-      const extra =
-        domain === 'production'
-          ? sql` OR extracted_metadata->'aiTags'->'taskTypes' ? '공장/산업 작업'`
-          : sql``;
-      videoCond = sql`(title ~* ${re} OR COALESCE(extracted_metadata->>'description','') ~* ${re}${extra})`;
+      videoCond = sql`(extracted_metadata->>'domain' = 'robot' AND (title ~* ${re} OR COALESCE(extracted_metadata->>'description','') ~* ${re}))`;
     } else {
       const extraVideoCond =
         domain === 'hand'
@@ -382,7 +380,13 @@ ${JSON.stringify(videos)}`,
           messages: [
             {
               role: 'user',
-              content: `다음은 최근 60일간 수집된 ${DOMAIN_LABEL[domain]} 분야의 데모 영상과 arXiv 논문 데이터다. LG 로봇 전략팀 엔지니어를 위해 이 기술 축의 현재 트렌드를 한국어 4~6문장으로 요약하라. 어떤 업체/랩이 활발한지, 기술적으로 어떤 방향이 부상하는지 중심으로. 과장 없이 데이터에 근거해서만.
+              content: `다음은 최근 60일간 수집된 ${DOMAIN_LABEL[domain]} 분야의 영상과 ${secondLabel} 데이터다. LG 로봇 전략팀을 위해 현재 트렌드를 한국어 4~6문장으로 요약하라. ${
+                domain === 'production'
+                  ? '경쟁사 로봇 제품의 양산 현황 중심으로: 어느 회사가 생산라인을 구축/가동 중인지, 생산능력·램프업 목표, 출하/납품량, 가격 동향. 로봇이 남의 공장에 투입되는 것(도입 사례)은 양산이 아니므로 제외하라.'
+                  : domain === 'expo'
+                    ? '어떤 전시회/학회에서 어느 회사가 무엇을 시연했는지 중심으로.'
+                    : '어떤 업체/랩이 활발한지, 기술적으로 어떤 방향이 부상하는지 중심으로.'
+              } 과장 없이 데이터에 근거해서만.
 
 영상 (${videos.length}건): ${JSON.stringify(videos)}
 ${secondLabel} 제목 (${papers.length}건): ${JSON.stringify(papers.slice(0, 40))}`,
