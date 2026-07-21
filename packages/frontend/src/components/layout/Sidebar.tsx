@@ -80,7 +80,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: '로봇 리스트', href: '/humanoid-robots', icon: List },
       { name: '로봇 타임라인', href: '/robot-evolution', icon: GitBranch },
-      { name: '영상 갤러리', href: '/videos', icon: PlayCircle },
+      { name: '영상 트렌드', href: '/videos', icon: PlayCircle },
       { name: '로봇 레이더 비교', href: '/humanoid-trend', icon: Radar },
       { name: '로봇 항목별 매트릭스', href: '/compare/matrix', icon: Table2 },
       { name: '로봇 Perfect 분석', href: '/compare/benchmark', icon: Target },
