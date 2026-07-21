@@ -55,7 +55,6 @@ const navigationGroups: NavGroup[] = [
       { name: '동향 브리핑', href: '/trend-brief', icon: Newspaper },
       { name: '데모 영상', href: '/videos', icon: PlayCircle },
       { name: '영상 트렌드', href: '/video-trends', icon: TrendingUp },
-      { name: '이벤트 캘린더', href: '/event-calendar', icon: CalendarDays },
     ],
   },
   {
@@ -89,9 +88,18 @@ const navigationGroups: NavGroup[] = [
     ],
   },
   {
-    title: '양산·사업화',
-    subtitle: 'Production & Business',
+    title: '전시회 동향',
+    subtitle: 'Exhibition Watch',
     items: [
+      { name: '전시회 트렌드', href: '/tech/expo', icon: Presentation },
+      { name: '이벤트 캘린더', href: '/event-calendar', icon: CalendarDays },
+    ],
+  },
+  {
+    title: '양산 적용',
+    subtitle: 'Production Watch',
+    items: [
+      { name: '양산 트렌드', href: '/tech/production', icon: Factory },
       { name: '도입/적용 사례', href: '/application-cases', icon: Factory },
     ],
   },
