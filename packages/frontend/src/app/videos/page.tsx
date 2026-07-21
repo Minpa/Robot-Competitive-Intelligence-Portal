@@ -49,7 +49,7 @@ export default function VideosPage() {
       api.getArticles({
         productType: 'video',
         page: '1',
-        pageSize: '100',
+        pageSize: '500',
         sortBy: 'publishedAt',
         sortOrder: 'desc',
       }),
