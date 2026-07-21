@@ -43,6 +43,7 @@ export const YOUTUBE_CHANNELS: YoutubeChannel[] = [
 interface CollectResult {
   channelsProcessed: number;
   channelsSkipped: number;
+  skippedChannels: string[];
   videosFound: number;
   videosInserted: number;
   errors: string[];
@@ -115,6 +116,7 @@ class YoutubeCollectorService {
     const result: CollectResult = {
       channelsProcessed: 0,
       channelsSkipped: 0,
+      skippedChannels: [],
       videosFound: 0,
       videosInserted: 0,
       errors: [],
@@ -124,7 +126,8 @@ class YoutubeCollectorService {
       const channelId = channel.channelId ?? (await this.resolveChannelId(channel.handle));
       if (!channelId) {
         result.channelsSkipped++;
-        continue; // channelId 미지정 + API 키 없음 → 스킵
+        result.skippedChannels.push(`${channel.channelName} (@${channel.handle})`);
+        continue; // channelId 해석 실패 (핸들 오류 또는 API 키 없음) → 스킵
       }
 
       try {
@@ -173,7 +176,8 @@ class YoutubeCollectorService {
 
     console.log(
       `[YouTube] channels ${result.channelsProcessed} ok / ${result.channelsSkipped} skipped, ` +
-        `videos ${result.videosInserted} new / ${result.videosFound} seen, errors ${result.errors.length}`
+        `videos ${result.videosInserted} new / ${result.videosFound} seen, errors ${result.errors.length}` +
+        (result.skippedChannels.length > 0 ? ` — skipped: ${result.skippedChannels.join(', ')}` : '')
     );
     return result;
   }
