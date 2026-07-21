@@ -81,7 +81,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: '로봇 리스트', href: '/humanoid-robots', icon: List },
       { name: '로봇 타임라인', href: '/robot-evolution', icon: GitBranch },
-      { name: '데모 영상', href: '/videos', icon: PlayCircle },
+      { name: '영상 갤러리', href: '/videos', icon: PlayCircle },
       { name: '영상 트렌드', href: '/video-trends', icon: TrendingUp },
       { name: '로봇 레이더 비교', href: '/humanoid-trend', icon: Radar },
       { name: '로봇 항목별 매트릭스', href: '/compare/matrix', icon: Table2 },
@@ -97,8 +97,8 @@ const navigationGroups: NavGroup[] = [
         name: '핸드',
         icon: Hand,
         children: [
-          { name: '트렌드 (논문)', href: '/tech/hand', icon: TrendingUp },
-          { name: '영상', href: '/tech/hand/videos', icon: PlayCircle },
+          { name: '논문 트렌드', href: '/tech/hand', icon: TrendingUp },
+          { name: '영상 트렌드', href: '/tech/hand/videos', icon: PlayCircle },
           { name: '리스트', href: '/hand-registry', icon: List },
         ],
       },
@@ -106,16 +106,16 @@ const navigationGroups: NavGroup[] = [
         name: 'RFM',
         icon: Brain,
         children: [
-          { name: '트렌드 (논문)', href: '/tech/rfm', icon: TrendingUp },
-          { name: '영상', href: '/tech/rfm/videos', icon: PlayCircle },
+          { name: '논문 트렌드', href: '/tech/rfm', icon: TrendingUp },
+          { name: '영상 트렌드', href: '/tech/rfm/videos', icon: PlayCircle },
         ],
       },
       {
         name: '액추에이터',
         icon: Cog,
         children: [
-          { name: '트렌드 (논문)', href: '/tech/actuator', icon: TrendingUp },
-          { name: '영상', href: '/tech/actuator/videos', icon: PlayCircle },
+          { name: '논문 트렌드', href: '/tech/actuator', icon: TrendingUp },
+          { name: '영상 트렌드', href: '/tech/actuator/videos', icon: PlayCircle },
         ],
       },
       { name: '컴포넌트 트렌드', href: '/components-trend', icon: Cpu },
@@ -125,8 +125,8 @@ const navigationGroups: NavGroup[] = [
     title: '전시회 동향',
     subtitle: 'Exhibition Watch',
     items: [
-      { name: '전시회 트렌드 (기사)', href: '/tech/expo', icon: Presentation },
-      { name: '전시회 영상', href: '/tech/expo/videos', icon: PlayCircle },
+      { name: '기사 트렌드', href: '/tech/expo', icon: Presentation },
+      { name: '영상 트렌드', href: '/tech/expo/videos', icon: PlayCircle },
       { name: '이벤트 캘린더', href: '/event-calendar', icon: CalendarDays },
     ],
   },
@@ -134,8 +134,8 @@ const navigationGroups: NavGroup[] = [
     title: '양산 적용',
     subtitle: 'Production Watch',
     items: [
-      { name: '양산 트렌드 (기사)', href: '/tech/production', icon: Factory },
-      { name: '양산 영상', href: '/tech/production/videos', icon: PlayCircle },
+      { name: '기사 트렌드', href: '/tech/production', icon: Factory },
+      { name: '영상 트렌드', href: '/tech/production/videos', icon: PlayCircle },
       { name: '도입/적용 사례', href: '/application-cases', icon: Factory },
     ],
   },
