@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import {
@@ -10,7 +10,7 @@ import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Panel, InsightBox } from '@/components/ui';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, X } from 'lucide-react';
 
 const TASK_TYPES = [
   '보행/이동',
@@ -22,6 +22,17 @@ const TASK_TYPES = [
   '제품 공개',
   '기타',
 ];
+
+const TASK_TYPE_DESCRIPTIONS: Record<string, string> = {
+  '보행/이동': '걷기, 달리기, 계단 오르기, 험지 주행, 파쿠르 등 이동 능력을 보여주는 시연',
+  '파지/조작': '손이나 그리퍼로 물체를 집고, 옮기고, 다루는 능력을 보여주는 시연',
+  '전신 작업': '이동과 팔 조작을 동시에 수행하는 전신 협응(loco-manipulation) 시연',
+  '공장/산업 작업': '공장·물류센터 등 산업 현장 투입 또는 실제 작업 라인 수행 시연',
+  '가사/서비스': '가정·매장 등 생활 공간에서 청소, 정리, 서빙 같은 작업 시연',
+  '상호작용/데모쇼': '사람과의 대화, 춤·퍼포먼스, 전시 부스 등 볼거리 중심의 영상. 기술 검증보다 마케팅 성격이 강함',
+  '제품 공개': '신제품·신형 모델을 처음 공개하는 발표 영상',
+  '기타': '위 유형에 명확히 속하지 않는 영상',
+};
 
 const CHART_COLORS = [
   '#1f3a5f', '#b8860b', '#2e7d32', '#c62828', '#6a1b9a', '#00838f', '#ef6c00', '#546e7a',
@@ -70,10 +81,11 @@ export default function VideoTrendsPage() {
     [videosQuery.data]
   );
 
-  // 회사(채널) × 작업유형 히트맵 (최근 6개월)
+  // 회사(채널) × 작업유형 히트맵 (최근 6개월) — 셀별 영상 리스트도 함께 보관
   const heatmap = useMemo(() => {
     const sixMonthsAgo = Date.now() - 183 * 24 * 60 * 60 * 1000;
     const counts = new Map<string, Map<string, number>>();
+    const cellVideos = new Map<string, VideoRow[]>();
     let maxCount = 0;
 
     for (const v of videos) {
@@ -88,6 +100,9 @@ export default function VideoTrendsPage() {
         const next = (row.get(task) ?? 0) + 1;
         row.set(task, next);
         if (next > maxCount) maxCount = next;
+        const key = `${channel}|${task}`;
+        if (!cellVideos.has(key)) cellVideos.set(key, []);
+        cellVideos.get(key)!.push(v);
       }
     }
 
@@ -97,8 +112,13 @@ export default function VideoTrendsPage() {
       return totalB - totalA;
     });
 
-    return { counts, channels, maxCount };
+    return { counts, channels, maxCount, cellVideos };
   }, [videos]);
+
+  const [cellPopover, setCellPopover] = useState<{ channel: string; task: string } | null>(null);
+  const popoverVideos = cellPopover
+    ? heatmap.cellVideos.get(`${cellPopover.channel}|${cellPopover.task}`) ?? []
+    : [];
 
   // 월별 × 채널 공개 빈도 (최근 6개월, 상위 8개 채널)
   const cadence = useMemo(() => {
@@ -202,7 +222,12 @@ export default function VideoTrendsPage() {
                     <th className="text-left py-2 pr-3 text-ink-500 font-medium whitespace-nowrap">채널</th>
                     {TASK_TYPES.map((t) => (
                       <th key={t} className="px-1.5 py-2 text-ink-500 font-medium whitespace-nowrap text-center">
-                        {t}
+                        <span className="relative group cursor-help border-b border-dotted border-ink-300">
+                          {t}
+                          <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-1.5 hidden w-52 -translate-x-1/2 whitespace-normal bg-brand px-3 py-2 text-left text-[11px] font-normal leading-relaxed text-white shadow-lg group-hover:block">
+                            {TASK_TYPE_DESCRIPTIONS[t]}
+                          </span>
+                        </span>
                       </th>
                     ))}
                   </tr>
@@ -218,16 +243,23 @@ export default function VideoTrendsPage() {
                           const intensity = heatmap.maxCount > 0 ? count / heatmap.maxCount : 0;
                           return (
                             <td key={task} className="px-1.5 py-1.5">
-                              <div
-                                className="h-7 flex items-center justify-center font-mono text-[10.5px]"
-                                style={{
-                                  backgroundColor:
-                                    count === 0 ? 'transparent' : `rgba(31, 58, 95, ${0.12 + intensity * 0.78})`,
-                                  color: intensity > 0.5 ? '#fff' : count > 0 ? '#1f3a5f' : '#c4c4c4',
-                                }}
-                              >
-                                {count > 0 ? count : '·'}
-                              </div>
+                              {count > 0 ? (
+                                <button
+                                  onClick={() => setCellPopover({ channel, task })}
+                                  className="w-full h-7 flex items-center justify-center font-mono text-[10.5px] cursor-pointer hover:ring-1 hover:ring-gold transition-shadow"
+                                  style={{
+                                    backgroundColor: `rgba(31, 58, 95, ${0.12 + intensity * 0.78})`,
+                                    color: intensity > 0.5 ? '#fff' : '#1f3a5f',
+                                  }}
+                                  title={`${channel} — ${task} 영상 ${count}건 보기`}
+                                >
+                                  {count}
+                                </button>
+                              ) : (
+                                <div className="h-7 flex items-center justify-center font-mono text-[10.5px] text-ink-200">
+                                  ·
+                                </div>
+                              )}
                             </td>
                           );
                         })}
@@ -239,6 +271,67 @@ export default function VideoTrendsPage() {
             </div>
           )}
         </Panel>
+
+        {/* Cell popover: 채널 × 작업유형 영상 리스트 */}
+        {cellPopover && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onClick={() => setCellPopover(null)}
+          >
+            <div
+              className="w-full max-w-lg max-h-[70vh] overflow-y-auto bg-white border border-ink-200 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="sticky top-0 flex items-center justify-between gap-3 bg-brand px-5 py-3">
+                <div className="min-w-0">
+                  <p className="font-mono text-[9px] text-gold uppercase tracking-[0.22em]">
+                    {cellPopover.task}
+                  </p>
+                  <h3 className="text-[14px] font-semibold text-white truncate">
+                    {cellPopover.channel} · {popoverVideos.length}건
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setCellPopover(null)}
+                  className="shrink-0 p-1 text-white/70 hover:text-white transition-colors"
+                  aria-label="닫기"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="divide-y divide-ink-100">
+                {popoverVideos.map((v) => (
+                  <a
+                    key={v.id}
+                    href={v.url ?? '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 px-5 py-3 hover:bg-paper transition-colors"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[12.5px] font-medium text-ink-900 leading-snug">{v.title}</p>
+                      <p className="mt-0.5 text-[11px] text-ink-500">
+                        {v.publishedAt ? new Date(v.publishedAt).toLocaleDateString('ko-KR') : ''}
+                        {typeof v.extractedMetadata?.views === 'number' &&
+                          ` · ${v.extractedMetadata.views.toLocaleString()}회`}
+                      </p>
+                    </div>
+                    <ExternalLink className="w-3.5 h-3.5 shrink-0 text-ink-400" />
+                  </a>
+                ))}
+              </div>
+              <div className="px-5 py-2.5 border-t border-ink-200 bg-paper">
+                <Link
+                  href="/videos"
+                  className="text-[11.5px] text-info hover:underline"
+                  onClick={() => setCellPopover(null)}
+                >
+                  갤러리에서 필터로 보기 →
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Cadence chart */}
         <Panel
