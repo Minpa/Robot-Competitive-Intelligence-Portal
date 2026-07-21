@@ -193,7 +193,7 @@ export function TechDomainView({ view = 'main' }: { view?: 'main' | 'videos' }) 
   const videosQuery = useQuery({
     queryKey: ['tech-videos'],
     queryFn: () =>
-      api.getArticles({ productType: 'video', page: '1', pageSize: '200', sortBy: 'publishedAt', sortOrder: 'desc' }),
+      api.getArticles({ productType: 'video', page: '1', pageSize: '1000', sortBy: 'publishedAt', sortOrder: 'desc' }),
     enabled: !!config,
   });
 

@@ -73,7 +73,7 @@ export default function VideoTrendsPage() {
       api.getArticles({
         productType: 'video',
         page: '1',
-        pageSize: '200',
+        pageSize: '500',
         sortBy: 'publishedAt',
         sortOrder: 'desc',
       }),
