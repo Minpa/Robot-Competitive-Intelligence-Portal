@@ -156,7 +156,7 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
   }
 
   /** 미태깅 영상 태깅 실행 */
-  async run(limit = 100): Promise<{ tagged: number; method: string }> {
+  async run(limit = 300): Promise<{ tagged: number; method: string }> {
     const pending = await this.getPending(limit);
     if (pending.length === 0) return { tagged: 0, method: 'none' };
 

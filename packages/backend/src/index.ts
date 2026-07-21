@@ -101,7 +101,7 @@ const start = async () => {
       if (process.env.TAG_VIDEOS_ON_STARTUP !== 'false') {
         setTimeout(() => {
           import('./services/video-tagging.service.js')
-            .then(({ videoTaggingService }) => videoTaggingService.run(200))
+            .then(({ videoTaggingService }) => videoTaggingService.run(1500))
             .then((r) => console.log('[VideoTagging] Startup run done:', JSON.stringify(r)))
             .catch((err) => console.error('[VideoTagging] Startup run failed:', err));
         }, 60_000);
