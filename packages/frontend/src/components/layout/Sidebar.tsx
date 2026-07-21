@@ -41,10 +41,23 @@ interface NavItem {
   icon: any;
 }
 
+// 접을 수 있는 서브 그룹 (예: 기술 > 핸드 > 트렌드/영상/리스트)
+interface NavSubGroup {
+  name: string;
+  icon: any;
+  children: NavItem[];
+}
+
+type NavEntry = NavItem | NavSubGroup;
+
+function isSubGroup(entry: NavEntry): entry is NavSubGroup {
+  return 'children' in entry;
+}
+
 interface NavGroup {
   title: string;
   subtitle?: string;
-  items: NavItem[];
+  items: NavEntry[];
 }
 
 const navigationGroups: NavGroup[] = [
@@ -80,13 +93,31 @@ const navigationGroups: NavGroup[] = [
     title: '기술 (단위기술)',
     subtitle: 'Technology',
     items: [
-      { name: '핸드 트렌드 (논문)', href: '/tech/hand', icon: Hand },
-      { name: '핸드 영상', href: '/tech/hand/videos', icon: PlayCircle },
-      { name: '핸드 리스트', href: '/hand-registry', icon: Hand },
-      { name: 'RFM 트렌드 (논문)', href: '/tech/rfm', icon: Brain },
-      { name: 'RFM 영상', href: '/tech/rfm/videos', icon: PlayCircle },
-      { name: '액추에이터 트렌드 (논문)', href: '/tech/actuator', icon: Cog },
-      { name: '액추에이터 영상', href: '/tech/actuator/videos', icon: PlayCircle },
+      {
+        name: '핸드',
+        icon: Hand,
+        children: [
+          { name: '트렌드 (논문)', href: '/tech/hand', icon: TrendingUp },
+          { name: '영상', href: '/tech/hand/videos', icon: PlayCircle },
+          { name: '리스트', href: '/hand-registry', icon: List },
+        ],
+      },
+      {
+        name: 'RFM',
+        icon: Brain,
+        children: [
+          { name: '트렌드 (논문)', href: '/tech/rfm', icon: TrendingUp },
+          { name: '영상', href: '/tech/rfm/videos', icon: PlayCircle },
+        ],
+      },
+      {
+        name: '액추에이터',
+        icon: Cog,
+        children: [
+          { name: '트렌드 (논문)', href: '/tech/actuator', icon: TrendingUp },
+          { name: '영상', href: '/tech/actuator/videos', icon: PlayCircle },
+        ],
+      },
       { name: '컴포넌트 트렌드', href: '/components-trend', icon: Cpu },
     ],
   },
@@ -185,6 +216,8 @@ const navigationGroups: NavGroup[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  // 서브 그룹 접힘 상태 — 명시 토글이 없으면 활성 항목 포함 여부로 자동 결정
+  const [subGroupOpen, setSubGroupOpen] = useState<Record<string, boolean>>({});
 
   const toggleGroup = (title: string) => {
     setCollapsedGroups(prev => {
@@ -194,6 +227,9 @@ export function Sidebar() {
       return next;
     });
   };
+
+  const isItemActive = (item: NavItem) =>
+    pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
 
   return (
     <aside className="w-60 bg-brand text-brand-ink min-h-screen flex flex-col">
@@ -218,9 +254,8 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
         {navigationGroups.map((group) => {
           const isCollapsed = collapsedGroups.has(group.title);
-          const hasActiveItem = group.items.some(
-            item => pathname === item.href ||
-              (item.href !== '/' && pathname.startsWith(item.href))
+          const hasActiveItem = group.items.some((entry) =>
+            isSubGroup(entry) ? entry.children.some(isItemActive) : isItemActive(entry)
           );
 
           return (
@@ -254,36 +289,79 @@ export function Sidebar() {
               {/* Group Items */}
               {!isCollapsed && (
                 <div className="mt-1.5 space-y-px">
-                  {group.items.map((item) => {
-                    const isActive = pathname === item.href ||
-                      (item.href !== '/' && pathname.startsWith(item.href));
+                  {group.items.map((entry) => {
+                    const renderLink = (item: NavItem, indented = false) => {
+                      const isActive = isItemActive(item);
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          className={cn(
+                            'relative flex items-center gap-2.5 pr-3 py-2 text-[12.5px] font-medium transition-colors',
+                            indented ? 'pl-9' : 'pl-4',
+                            isActive
+                              ? 'bg-white/[0.08] text-white'
+                              : 'text-white/65 hover:bg-white/[0.04] hover:text-white'
+                          )}
+                        >
+                          {isActive && (
+                            <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-gold" />
+                          )}
+                          {item.icon && (
+                            <item.icon
+                              className={cn(
+                                'w-[14px] h-[14px] shrink-0',
+                                isActive ? 'text-gold' : 'text-white/50'
+                              )}
+                              strokeWidth={isActive ? 2.25 : 1.75}
+                            />
+                          )}
+                          <span className="truncate">{item.name}</span>
+                        </Link>
+                      );
+                    };
 
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        className={cn(
-                          'relative flex items-center gap-2.5 pl-4 pr-3 py-2 text-[12.5px] font-medium transition-colors',
-                          isActive
-                            ? 'bg-white/[0.08] text-white'
-                            : 'text-white/65 hover:bg-white/[0.04] hover:text-white'
-                        )}
-                      >
-                        {isActive && (
-                          <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-gold" />
-                        )}
-                        {item.icon && (
-                          <item.icon
+                    if (isSubGroup(entry)) {
+                      const key = `${group.title}/${entry.name}`;
+                      const hasActiveChild = entry.children.some(isItemActive);
+                      const isOpen = subGroupOpen[key] ?? hasActiveChild;
+                      return (
+                        <div key={entry.name}>
+                          <button
+                            onClick={() =>
+                              setSubGroupOpen((prev) => ({ ...prev, [key]: !isOpen }))
+                            }
                             className={cn(
-                              'w-[14px] h-[14px] shrink-0',
-                              isActive ? 'text-gold' : 'text-white/50'
+                              'w-full flex items-center gap-2.5 pl-4 pr-3 py-2 text-[12.5px] font-medium transition-colors',
+                              hasActiveChild
+                                ? 'text-white'
+                                : 'text-white/65 hover:bg-white/[0.04] hover:text-white'
                             )}
-                            strokeWidth={isActive ? 2.25 : 1.75}
-                          />
-                        )}
-                        <span className="truncate">{item.name}</span>
-                      </Link>
-                    );
+                          >
+                            <entry.icon
+                              className={cn(
+                                'w-[14px] h-[14px] shrink-0',
+                                hasActiveChild ? 'text-gold' : 'text-white/50'
+                              )}
+                              strokeWidth={hasActiveChild ? 2.25 : 1.75}
+                            />
+                            <span className="truncate flex-1 text-left">{entry.name}</span>
+                            {isOpen ? (
+                              <ChevronDown className="w-3 h-3 text-white/40 shrink-0" />
+                            ) : (
+                              <ChevronRight className="w-3 h-3 text-white/40 shrink-0" />
+                            )}
+                          </button>
+                          {isOpen && (
+                            <div className="space-y-px">
+                              {entry.children.map((child) => renderLink(child, true))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    return renderLink(entry);
                   })}
                 </div>
               )}
