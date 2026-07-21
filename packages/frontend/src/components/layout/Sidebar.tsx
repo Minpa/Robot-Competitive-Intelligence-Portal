@@ -53,8 +53,6 @@ const navigationGroups: NavGroup[] = [
     subtitle: 'Daily Brief',
     items: [
       { name: '동향 브리핑', href: '/trend-brief', icon: Newspaper },
-      { name: '데모 영상', href: '/videos', icon: PlayCircle },
-      { name: '영상 트렌드', href: '/video-trends', icon: TrendingUp },
     ],
   },
   {
@@ -70,6 +68,8 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: '로봇 리스트', href: '/humanoid-robots', icon: List },
       { name: '로봇 타임라인', href: '/robot-evolution', icon: GitBranch },
+      { name: '데모 영상', href: '/videos', icon: PlayCircle },
+      { name: '영상 트렌드', href: '/video-trends', icon: TrendingUp },
       { name: '로봇 레이더 비교', href: '/humanoid-trend', icon: Radar },
       { name: '로봇 항목별 매트릭스', href: '/compare/matrix', icon: Table2 },
       { name: '로봇 Perfect 분석', href: '/compare/benchmark', icon: Target },
@@ -80,10 +80,13 @@ const navigationGroups: NavGroup[] = [
     title: '기술 (단위기술)',
     subtitle: 'Technology',
     items: [
-      { name: '핸드 트렌드', href: '/tech/hand', icon: Hand },
+      { name: '핸드 트렌드 (논문)', href: '/tech/hand', icon: Hand },
+      { name: '핸드 영상', href: '/tech/hand/videos', icon: PlayCircle },
       { name: '핸드 리스트', href: '/hand-registry', icon: Hand },
-      { name: 'RFM 트렌드', href: '/tech/rfm', icon: Brain },
-      { name: '액추에이터 트렌드', href: '/tech/actuator', icon: Cog },
+      { name: 'RFM 트렌드 (논문)', href: '/tech/rfm', icon: Brain },
+      { name: 'RFM 영상', href: '/tech/rfm/videos', icon: PlayCircle },
+      { name: '액추에이터 트렌드 (논문)', href: '/tech/actuator', icon: Cog },
+      { name: '액추에이터 영상', href: '/tech/actuator/videos', icon: PlayCircle },
       { name: '컴포넌트 트렌드', href: '/components-trend', icon: Cpu },
     ],
   },
@@ -91,7 +94,8 @@ const navigationGroups: NavGroup[] = [
     title: '전시회 동향',
     subtitle: 'Exhibition Watch',
     items: [
-      { name: '전시회 트렌드', href: '/tech/expo', icon: Presentation },
+      { name: '전시회 트렌드 (기사)', href: '/tech/expo', icon: Presentation },
+      { name: '전시회 영상', href: '/tech/expo/videos', icon: PlayCircle },
       { name: '이벤트 캘린더', href: '/event-calendar', icon: CalendarDays },
     ],
   },

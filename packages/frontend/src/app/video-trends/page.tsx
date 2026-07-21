@@ -86,7 +86,12 @@ export default function VideoTrendsPage() {
   });
 
   const videos: VideoRow[] = useMemo(
-    () => (videosQuery.data?.items ?? []) as VideoRow[],
+    () =>
+      ((videosQuery.data?.items ?? []) as VideoRow[]).filter((v) => {
+        // 로봇(완제품) 채널만 — 단위기술 영상은 각 기술 축 페이지가 담당
+        const domain = (v.extractedMetadata as { domain?: string } | null)?.domain;
+        return !domain || domain === 'robot';
+      }),
     [videosQuery.data]
   );
 

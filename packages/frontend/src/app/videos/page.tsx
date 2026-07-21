@@ -56,7 +56,13 @@ export default function VideosPage() {
   });
 
   const items: VideoItem[] = useMemo(
-    () => ((videosQuery.data?.items ?? []) as VideoItem[]).filter((v) => getVideoId(v)),
+    () =>
+      ((videosQuery.data?.items ?? []) as VideoItem[]).filter((v) => {
+        if (!getVideoId(v)) return false;
+        // 로봇(완제품) 채널만 — 단위기술 채널 영상은 각 기술 축 페이지에서 표시
+        const domain = (v.extractedMetadata as { domain?: string } | null)?.domain;
+        return !domain || domain === 'robot';
+      }),
     [videosQuery.data]
   );
 
@@ -94,7 +100,7 @@ export default function VideosPage() {
           module="Demo Videos"
           titleKo="데모 영상"
           titleEn="Demo Library"
-          description="경쟁사 공식 유튜브 채널의 기술 데모를 모아 보여줍니다. 카드를 클릭하면 페이지 안에서 바로 재생됩니다."
+          description="경쟁사 로봇(완제품) 공식 유튜브 채널의 기술 데모를 모아 보여줍니다. 카드를 클릭하면 페이지 안에서 바로 재생됩니다. 핸드·RFM 등 단위기술 영상은 각 기술 축 페이지에 있습니다."
         />
 
         {/* Player */}
