@@ -27,8 +27,15 @@ interface DomainConfig {
   /** 영상 보조 필터: 로봇 완제품 채널 영상 중 이 태그가 있으면 포함 */
   extraTaskTypes?: string[];
   extraTechTags?: string[];
-  /** 논문 필터 (제목+초록) */
-  paperRegex: RegExp;
+  /** 영상 보조 필터: 제목+설명 키워드 매칭 (주제 축용) */
+  videoTextRegex?: RegExp;
+  /** 보조 자료 종류: 논문(arXiv) 또는 뉴스 기사 */
+  second: 'papers' | 'news';
+  secondLabel: string;
+  /** 논문 필터 (제목+초록) — second가 papers일 때 */
+  paperRegex?: RegExp;
+  /** 기사 필터 (제목+요약) — second가 news일 때 */
+  newsRegex?: RegExp;
   quickLinks: { name: string; href: string }[];
 }
 
@@ -40,6 +47,8 @@ const DOMAIN_CONFIGS: Record<string, DomainConfig> = {
       '로봇 핸드·그리퍼 전문사의 데모 영상과 관련 논문을 취합합니다. 완제품사 영상 중 파지/조작 시연도 포함됩니다.',
     videoDomain: 'hand',
     extraTaskTypes: ['파지/조작'],
+    second: 'papers',
+    secondLabel: '논문',
     paperRegex: /\bhand\b|gripper|finger|tactile|dexter|grasp|manipulat|in-hand/i,
     quickLinks: [
       { name: '핸드 리스트', href: '/hand-registry' },
@@ -53,6 +62,8 @@ const DOMAIN_CONFIGS: Record<string, DomainConfig> = {
       '로봇 파운데이션 모델 랩의 데모 영상과 관련 논문을 취합합니다. RFM은 논문·코드 발표 비중이 커서 논문 신호가 특히 중요합니다.',
     videoDomain: 'rfm',
     extraTechTags: ['VLA', '파운데이션모델', '강화학습', 'End-to-End'],
+    second: 'papers',
+    secondLabel: '논문',
     paperRegex:
       /foundation model|vision.language.action|\bVLA\b|imitation learning|reinforcement learning|diffusion policy|world model|embodied|manipulation policy|sim.to.real/i,
     quickLinks: [{ name: '컴포넌트 트렌드', href: '/components-trend' }],
@@ -63,9 +74,40 @@ const DOMAIN_CONFIGS: Record<string, DomainConfig> = {
     description:
       '액추에이터·구동계 업체의 데모 영상과 관련 논문을 취합합니다. 부품 축은 공개 빈도가 낮아 분기 단위로 보는 것이 적절합니다.',
     videoDomain: 'actuator',
+    second: 'papers',
+    secondLabel: '논문',
     paperRegex:
       /actuator|\bmotor\b|gearbox|harmonic drive|transmission|joint torque|quasi.direct|proprioceptive|series elastic/i,
     quickLinks: [{ name: '컴포넌트 트렌드', href: '/components-trend' }],
+  },
+  expo: {
+    titleKo: '전시회 트렌드',
+    titleEn: 'Exhibition Watch',
+    description:
+      'CES·IROS·ICRA·하노버메세·WRC 등 전시회와 학회에서의 로봇 시연 영상과 관련 기사를 취합합니다.',
+    videoDomain: 'expo',
+    videoTextRegex:
+      /\bCES\b|\bexpo\b|exhibition|booth|\bIROS\b|\bICRA\b|hannover|world robot conference|\bWRC\b|\bGTC\b|trade show|robocup|automatica|automate 20|world artificial intelligence/i,
+    second: 'news',
+    secondLabel: '기사',
+    newsRegex:
+      /\bCES\b|\bexpo\b|exhibition|booth|\bIROS\b|\bICRA\b|hannover|world robot conference|\bWRC\b|\bGTC\b|trade show|robocup|전시회|박람회/i,
+    quickLinks: [{ name: '이벤트 캘린더', href: '/event-calendar' }],
+  },
+  production: {
+    titleKo: '양산 트렌드',
+    titleEn: 'Production Watch',
+    description:
+      '경쟁사 로봇의 공장 투입, 양산 램프업, 현장 배치 관련 영상과 기사를 취합합니다.',
+    videoDomain: 'production',
+    videoTextRegex:
+      /factory|mass.?produc|production line|assembly|plant\b|warehouse|logistics|deploy|fleet|shift\b|fulfillment/i,
+    extraTaskTypes: ['공장/산업 작업'],
+    second: 'news',
+    secondLabel: '기사',
+    newsRegex:
+      /factory|mass.?produc|production|assembly|plant\b|deployment|ramp|units per|fleet|양산|공장|배치/i,
+    quickLinks: [{ name: '도입/적용 사례', href: '/application-cases' }],
   },
 };
 
@@ -76,12 +118,15 @@ interface Row {
   summary?: string | null;
   publishedAt?: string | null;
   collectedAt?: string | null;
+  source?: string | null;
+  productType?: string | null;
   extractedMetadata?: {
     channel?: string;
     domain?: string;
     views?: number | null;
     videoId?: string;
     thumbnail?: string;
+    description?: string;
     aiTags?: { taskTypes?: string[]; techTags?: string[] };
   } | null;
 }
@@ -136,10 +181,12 @@ export default function TechDomainPage() {
     enabled: !!config,
   });
 
-  const papersQuery = useQuery({
-    queryKey: ['tech-papers'],
+  const secondaryQuery = useQuery({
+    queryKey: ['tech-secondary', config?.second ?? 'papers'],
     queryFn: () =>
-      api.getArticles({ source: 'arxiv', page: '1', pageSize: '200', sortBy: 'publishedAt', sortOrder: 'desc' }),
+      config?.second === 'news'
+        ? api.getArticles({ page: '1', pageSize: '200', sortBy: 'publishedAt', sortOrder: 'desc' })
+        : api.getArticles({ source: 'arxiv', page: '1', pageSize: '200', sortBy: 'publishedAt', sortOrder: 'desc' }),
     enabled: !!config,
   });
 
@@ -152,43 +199,58 @@ export default function TechDomainPage() {
         if (meta?.domain === config.videoDomain) return true;
         if (config.extraTaskTypes?.some((t) => meta?.aiTags?.taskTypes?.includes(t))) return true;
         if (config.extraTechTags?.some((t) => meta?.aiTags?.techTags?.includes(t))) return true;
+        if (config.videoTextRegex?.test(`${v.title} ${meta?.description ?? ''}`)) return true;
         return false;
       })
       .sort((a, b) => rowDate(b) - rowDate(a));
   }, [videosQuery.data, config]);
 
-  const papers = useMemo(() => {
+  const NON_NEWS_SOURCES = ['arxiv', 'github', 'sec_edgar', 'patent'];
+
+  const secondary = useMemo(() => {
     if (!config) return [];
-    const all = (papersQuery.data?.items ?? []) as Row[];
+    const all = (secondaryQuery.data?.items ?? []) as Row[];
+    if (config.second === 'news') {
+      return all
+        .filter(
+          (p) =>
+            p.productType !== 'video' &&
+            !NON_NEWS_SOURCES.includes(p.source ?? '') &&
+            (config.newsRegex?.test(`${p.title} ${p.summary ?? ''}`) ?? false)
+        )
+        .sort((a, b) => rowDate(b) - rowDate(a));
+    }
     return all
-      .filter((p) => config.paperRegex.test(`${p.title} ${p.summary ?? ''}`))
+      .filter((p) => config.paperRegex?.test(`${p.title} ${p.summary ?? ''}`) ?? false)
       .sort((a, b) => rowDate(b) - rowDate(a));
-  }, [papersQuery.data, config]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [secondaryQuery.data, config]);
 
   const stats = useMemo(() => {
     const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
     const recentVideos = videos.filter((v) => rowDate(v) >= ninetyDaysAgo);
-    const recentPapers = papers.filter((p) => rowDate(p) >= ninetyDaysAgo);
+    const recentSecondary = secondary.filter((p) => rowDate(p) >= ninetyDaysAgo);
     const channels = new Set(recentVideos.map((v) => v.extractedMetadata?.channel).filter(Boolean));
-    return { videos: recentVideos.length, papers: recentPapers.length, channels: channels.size };
-  }, [videos, papers]);
+    return { videos: recentVideos.length, secondary: recentSecondary.length, channels: channels.size };
+  }, [videos, secondary]);
 
-  // 분기별 활동량 (최근 4분기): 영상 vs 논문
+  // 분기별 활동량 (최근 4분기): 영상 vs 보조자료(논문/기사)
+  const secondLabel = config?.secondLabel ?? '자료';
   const quarterly = useMemo(() => {
-    const counts = new Map<string, { videos: number; papers: number }>();
+    const counts = new Map<string, { videos: number; secondary: number }>();
     const yearAgo = Date.now() - 370 * 24 * 60 * 60 * 1000;
-    const add = (ts: number, kind: 'videos' | 'papers') => {
+    const add = (ts: number, kind: 'videos' | 'secondary') => {
       if (ts < yearAgo || ts === 0) return;
       const key = quarterKey(ts);
-      if (!counts.has(key)) counts.set(key, { videos: 0, papers: 0 });
+      if (!counts.has(key)) counts.set(key, { videos: 0, secondary: 0 });
       counts.get(key)![kind]++;
     };
     videos.forEach((v) => add(rowDate(v), 'videos'));
-    papers.forEach((p) => add(rowDate(p), 'papers'));
+    secondary.forEach((p) => add(rowDate(p), 'secondary'));
     return [...counts.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([quarter, c]) => ({ quarter, 영상: c.videos, 논문: c.papers }));
-  }, [videos, papers]);
+      .map(([quarter, c]) => ({ quarter, 영상: c.videos, [secondLabel]: c.secondary }));
+  }, [videos, secondary, secondLabel]);
 
   if (!config) {
     return (
@@ -199,7 +261,7 @@ export default function TechDomainPage() {
     );
   }
 
-  const isLoading = videosQuery.isLoading || papersQuery.isLoading;
+  const isLoading = videosQuery.isLoading || secondaryQuery.isLoading;
 
   return (
     <AuthGuard>
@@ -236,15 +298,15 @@ export default function TechDomainPage() {
         {/* KPI */}
         <div className="grid grid-cols-3 gap-3">
           <KpiTile label="최근 90일 데모 영상" value={stats.videos} unit="건" />
-          <KpiTile label="최근 90일 관련 논문" value={stats.papers} unit="편" />
+          <KpiTile label={`최근 90일 관련 ${secondLabel}`} value={stats.secondary} unit={config.second === 'papers' ? '편' : '건'} />
           <KpiTile label="활동 채널" value={stats.channels} unit="곳" />
         </div>
 
         {/* Quarterly activity */}
         <Panel
           kicker="Activity Sensing"
-          title="분기별 활동량 — 영상 vs 논문"
-          subtitle="단위기술 축은 공개 빈도가 낮아 분기 단위로 집계합니다. 영상·논문이 함께 늘면 해당 기술이 가열되는 신호입니다."
+          title={`분기별 활동량 — 영상 vs ${secondLabel}`}
+          subtitle={`공개 빈도를 분기 단위로 집계합니다. 영상·${secondLabel}가 함께 늘면 해당 축이 가열되는 신호입니다.`}
         >
           {quarterly.length === 0 ? (
             <div className="py-8 text-center text-ink-400 text-sm">
@@ -260,7 +322,7 @@ export default function TechDomainPage() {
                   <Tooltip />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                   <Bar dataKey="영상" fill="#1f3a5f" />
-                  <Bar dataKey="논문" fill="#b8860b" />
+                  <Bar dataKey={secondLabel} fill="#b8860b" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -371,19 +433,27 @@ export default function TechDomainPage() {
           )}
         </Panel>
 
-        {/* Papers */}
+        {/* Secondary: 논문 또는 기사 */}
         <Panel
-          kicker="Research Papers"
-          title={`관련 논문 (${papers.length}편)`}
-          subtitle="arXiv 공식 API로 수집된 로봇 분야 논문 중 이 기술 축 키워드에 해당하는 것입니다."
+          kicker={config.second === 'papers' ? 'Research Papers' : 'Related News'}
+          title={`관련 ${secondLabel} (${secondary.length}${config.second === 'papers' ? '편' : '건'})`}
+          subtitle={
+            config.second === 'papers'
+              ? 'arXiv 공식 API로 수집된 로봇 분야 논문 중 이 기술 축 키워드에 해당하는 것입니다.'
+              : '수집된 뉴스·인텔리전스 중 이 주제 키워드에 해당하는 기사입니다.'
+          }
         >
-          {papers.length === 0 ? (
+          {secondary.length === 0 ? (
             <div className="py-8 text-center text-ink-400 text-sm">
-              {isLoading ? '불러오는 중...' : '아직 수집된 논문이 없습니다. arXiv 수집은 매일 03:00에 실행됩니다.'}
+              {isLoading
+                ? '불러오는 중...'
+                : config.second === 'papers'
+                  ? '아직 수집된 논문이 없습니다. arXiv 수집은 매일 03:00에 실행됩니다.'
+                  : '아직 해당하는 기사가 없습니다.'}
             </div>
           ) : (
             <div className="space-y-3">
-              {papers.slice(0, 12).map((p) => (
+              {secondary.slice(0, 12).map((p) => (
                 <a
                   key={p.id}
                   href={p.url ?? '#'}
@@ -398,7 +468,8 @@ export default function TechDomainPage() {
                       <p className="mt-1 text-[11.5px] text-ink-500 leading-relaxed line-clamp-2">{p.summary}</p>
                     )}
                     <span className="mt-1 inline-block text-[11px] text-ink-400">
-                      {formatDate(p.publishedAt ?? p.collectedAt)} · arXiv
+                      {formatDate(p.publishedAt ?? p.collectedAt)} ·{' '}
+                      {config.second === 'papers' ? 'arXiv' : p.source ?? '수집 기사'}
                     </span>
                   </div>
                   <ExternalLink className="w-3.5 h-3.5 shrink-0 text-ink-400 mt-0.5" />

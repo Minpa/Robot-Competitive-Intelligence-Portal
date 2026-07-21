@@ -29,12 +29,14 @@ export async function articleRoutes(fastify: FastifyInstance) {
   // 단위기술 축(핸드/RFM/액추에이터) 트렌드 AI 요약
   fastify.get<{ Params: { domain: string } }>('/tech-trends/:domain/summary', async (request, reply) => {
     const { domain } = request.params;
-    if (!['hand', 'rfm', 'actuator'].includes(domain)) {
+    if (!['hand', 'rfm', 'actuator', 'expo', 'production'].includes(domain)) {
       reply.status(400).send({ error: 'Invalid domain' });
       return;
     }
     const { videoTaggingService } = await import('../services/video-tagging.service.js');
-    return videoTaggingService.getTechTrendSummary(domain as 'hand' | 'rfm' | 'actuator');
+    return videoTaggingService.getTechTrendSummary(
+      domain as 'hand' | 'rfm' | 'actuator' | 'expo' | 'production'
+    );
   });
 
   // Get article by ID
