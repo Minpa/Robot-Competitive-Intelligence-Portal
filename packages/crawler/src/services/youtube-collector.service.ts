@@ -46,6 +46,7 @@ interface CollectResult {
   skippedChannels: string[];
   videosFound: number;
   videosInserted: number;
+  videosUpdated: number;
   errors: string[];
 }
 
@@ -54,8 +55,31 @@ type YtFeedItem = {
   link?: string;
   isoDate?: string;
   id?: string; // "yt:video:VIDEOID"
-  mediaDescription?: string;
+  mediaGroup?: Record<string, unknown>;
 };
+
+/** RSS media:group에서 영상 설명·조회수 추출 (유튜브가 피드에 공식 포함하는 데이터) */
+function extractMediaInfo(mediaGroup: Record<string, unknown> | undefined): {
+  description: string | null;
+  views: number | null;
+} {
+  if (!mediaGroup) return { description: null, views: null };
+  const unwrap = (node: unknown): any => (Array.isArray(node) ? node[0] : node);
+  const mg = mediaGroup as Record<string, any>;
+
+  const descNode = unwrap(mg['media:description']);
+  const description =
+    typeof descNode === 'string'
+      ? descNode.slice(0, 1200)
+      : typeof descNode?._ === 'string'
+        ? descNode._.slice(0, 1200)
+        : null;
+
+  const statsNode = unwrap(unwrap(mg['media:community'])?.['media:statistics']);
+  const rawViews = statsNode?.['$']?.views ?? statsNode?.views;
+  const views = rawViews != null && !Number.isNaN(Number(rawViews)) ? Number(rawViews) : null;
+  return { description, views };
+}
 
 class YoutubeCollectorService {
   private parser = new Parser<Record<string, unknown>, YtFeedItem>({
@@ -119,6 +143,7 @@ class YoutubeCollectorService {
       skippedChannels: [],
       videosFound: 0,
       videosInserted: 0,
+      videosUpdated: 0,
       errors: [],
     };
 
@@ -143,6 +168,7 @@ class YoutubeCollectorService {
           result.videosFound++;
 
           const contentHash = createHash('md5').update(`yt-video-${videoId}`).digest('hex');
+          const media = extractMediaInfo((item as YtFeedItem).mediaGroup);
           const inserted = await db
             .insert(articles)
             .values({
@@ -162,12 +188,28 @@ class YoutubeCollectorService {
                 channelId,
                 thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
                 mentionedCompanies: [channel.company],
+                description: media.description,
+                views: media.views,
+                viewsUpdatedAt: new Date().toISOString(),
               },
             })
             .onConflictDoNothing()
             .returning({ id: articles.id });
 
-          if (inserted.length > 0) result.videosInserted++;
+          if (inserted.length > 0) {
+            result.videosInserted++;
+          } else {
+            // 이미 수집된 영상 — 설명·조회수만 최신값으로 병합 (aiTags 등 기존 키 보존)
+            const patch: Record<string, unknown> = { viewsUpdatedAt: new Date().toISOString() };
+            if (media.description) patch.description = media.description;
+            if (media.views != null) patch.views = media.views;
+            await db.execute(sql`
+              UPDATE articles
+              SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb) || ${JSON.stringify(patch)}::jsonb
+              WHERE content_hash = ${contentHash} AND product_type = 'video'
+            `);
+            result.videosUpdated++;
+          }
         }
       } catch (err) {
         result.errors.push(`${channel.channelName}: ${(err as Error).message}`);
@@ -176,7 +218,7 @@ class YoutubeCollectorService {
 
     console.log(
       `[YouTube] channels ${result.channelsProcessed} ok / ${result.channelsSkipped} skipped, ` +
-        `videos ${result.videosInserted} new / ${result.videosFound} seen, errors ${result.errors.length}` +
+        `videos ${result.videosInserted} new / ${result.videosUpdated} updated / ${result.videosFound} seen, errors ${result.errors.length}` +
         (result.skippedChannels.length > 0 ? ` — skipped: ${result.skippedChannels.join(', ')}` : '')
     );
     return result;

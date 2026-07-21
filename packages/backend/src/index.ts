@@ -93,9 +93,20 @@ const start = async () => {
     await fastify.listen({ port, host: '0.0.0.0' });
     console.log(`Backend server running on port ${port}`);
 
-    // 주간 자동화(스코어링/감사/브리핑) 크론 가동 — DISABLE_SCHEDULER=true로 비활성화 가능
+    // 주간 자동화(스코어링/감사/브리핑) + 일일 영상 태깅 크론 가동 — DISABLE_SCHEDULER=true로 비활성화 가능
     if (process.env.DISABLE_SCHEDULER !== 'true') {
       schedulerService.init();
+
+      // 기동 60초 후 미태깅 영상 태깅 1회 실행 (배포 직후 백로그 해소용, 멱등)
+      if (process.env.TAG_VIDEOS_ON_STARTUP !== 'false') {
+        setTimeout(() => {
+          import('./services/video-tagging.service.js')
+            .then(({ videoTaggingService }) => videoTaggingService.run(200))
+            .then((r) => console.log('[VideoTagging] Startup run done:', JSON.stringify(r)))
+            .catch((err) => console.error('[VideoTagging] Startup run failed:', err));
+        }, 60_000);
+        console.log('[VideoTagging] Startup run scheduled in 60s');
+      }
     } else {
       console.log('[Scheduler] Disabled via DISABLE_SCHEDULER env');
     }

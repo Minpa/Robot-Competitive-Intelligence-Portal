@@ -20,6 +20,8 @@ interface VideoItem {
     videoId?: string;
     channel?: string;
     thumbnail?: string;
+    views?: number | null;
+    aiTags?: { taskTypes?: string[]; techTags?: string[]; robots?: string[] };
   } | null;
 }
 
@@ -38,6 +40,7 @@ function formatDate(value?: string | null) {
 
 export default function VideosPage() {
   const [channelFilter, setChannelFilter] = useState<string>('all');
+  const [taskFilter, setTaskFilter] = useState<string>('all');
   const [playing, setPlaying] = useState<VideoItem | null>(null);
 
   const videosQuery = useQuery({
@@ -66,12 +69,20 @@ export default function VideosPage() {
     return Array.from(set).sort();
   }, [items]);
 
+  const taskTypes = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach((v) => v.extractedMetadata?.aiTags?.taskTypes?.forEach((t) => set.add(t)));
+    return Array.from(set).sort();
+  }, [items]);
+
   const filtered = useMemo(
     () =>
-      channelFilter === 'all'
-        ? items
-        : items.filter((v) => v.extractedMetadata?.channel === channelFilter),
-    [items, channelFilter]
+      items.filter((v) => {
+        if (channelFilter !== 'all' && v.extractedMetadata?.channel !== channelFilter) return false;
+        if (taskFilter !== 'all' && !v.extractedMetadata?.aiTags?.taskTypes?.includes(taskFilter)) return false;
+        return true;
+      }),
+    [items, channelFilter, taskFilter]
   );
 
   const playingVideoId = playing ? getVideoId(playing) : null;
@@ -158,6 +169,38 @@ export default function VideosPage() {
           </div>
         )}
 
+        {/* Task type filter (AI 태깅 결과) */}
+        {taskTypes.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 mb-6 -mt-3">
+            <span className="font-mono text-[10px] text-ink-400 uppercase tracking-[0.18em] mr-1">작업 유형</span>
+            <button
+              onClick={() => setTaskFilter('all')}
+              className={cn(
+                'px-2.5 py-1 text-[11px] font-medium border transition-colors',
+                taskFilter === 'all'
+                  ? 'bg-gold text-brand border-gold'
+                  : 'bg-white text-ink-500 border-ink-200 hover:border-ink-400'
+              )}
+            >
+              전체
+            </button>
+            {taskTypes.map((t) => (
+              <button
+                key={t}
+                onClick={() => setTaskFilter(t)}
+                className={cn(
+                  'px-2.5 py-1 text-[11px] font-medium border transition-colors',
+                  taskFilter === t
+                    ? 'bg-gold text-brand border-gold'
+                    : 'bg-white text-ink-500 border-ink-200 hover:border-ink-400'
+                )}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Grid */}
         {videosQuery.isLoading && (
           <Panel><div className="py-12 text-center text-ink-400 text-sm">영상을 불러오는 중...</div></Panel>
@@ -202,11 +245,19 @@ export default function VideosPage() {
                   <h3 className="text-[13px] font-semibold text-ink-900 leading-snug line-clamp-2">
                     {video.title}
                   </h3>
-                  <div className="mt-1.5 flex items-center gap-2">
+                  <div className="mt-1.5 flex items-center gap-2 flex-wrap">
                     {video.extractedMetadata?.channel && (
                       <Tag tone="neutral" size="sm">{video.extractedMetadata.channel}</Tag>
                     )}
+                    {video.extractedMetadata?.aiTags?.taskTypes?.slice(0, 2).map((t) => (
+                      <Tag key={t} tone="gold" size="sm">{t}</Tag>
+                    ))}
                     <span className="text-[11px] text-ink-400">{formatDate(video.publishedAt)}</span>
+                    {typeof video.extractedMetadata?.views === 'number' && (
+                      <span className="text-[11px] text-ink-400 ml-auto">
+                        {video.extractedMetadata.views.toLocaleString()}회
+                      </span>
+                    )}
                   </div>
                 </div>
               </button>

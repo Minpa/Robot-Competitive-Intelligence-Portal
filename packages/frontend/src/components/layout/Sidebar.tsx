@@ -29,6 +29,7 @@ import {
   Cpu,
   Factory,
   PlayCircle,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -52,6 +53,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: '동향 브리핑', href: '/trend-brief', icon: Newspaper },
       { name: '데모 영상', href: '/videos', icon: PlayCircle },
+      { name: '영상 트렌드', href: '/video-trends', icon: TrendingUp },
       { name: '이벤트 캘린더', href: '/event-calendar', icon: CalendarDays },
     ],
   },
