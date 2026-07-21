@@ -30,6 +30,8 @@ import {
   Factory,
   PlayCircle,
   TrendingUp,
+  Brain,
+  Cog,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -77,9 +79,12 @@ const navigationGroups: NavGroup[] = [
     ],
   },
   {
-    title: '기술',
+    title: '기술 (단위기술)',
     subtitle: 'Technology',
     items: [
+      { name: '핸드 트렌드', href: '/tech/hand', icon: Hand },
+      { name: 'RFM 트렌드', href: '/tech/rfm', icon: Brain },
+      { name: '액추에이터 트렌드', href: '/tech/actuator', icon: Cog },
       { name: '핸드 리스트', href: '/hand-registry', icon: Hand },
       { name: '그리퍼 리스트', href: '/gripper-registry', icon: Grab },
       { name: '핸드 Perfect 분석', href: '/compare/hand-benchmark', icon: Hand },

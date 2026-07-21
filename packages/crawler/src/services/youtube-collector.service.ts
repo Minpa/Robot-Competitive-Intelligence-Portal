@@ -13,31 +13,56 @@ import { getDb, articles } from '../db/index.js';
  * - channelId가 없는 채널은 YouTube Data API(YOUTUBE_API_KEY, 공식 API)로 핸들을 해석
  */
 
+export type ChannelDomain = 'robot' | 'hand' | 'rfm' | 'actuator';
+
 export interface YoutubeChannel {
   company: string;      // companies.name 매칭용 (ILIKE)
   channelName: string;  // 표시용 채널명
   handle: string;       // @handle (channelId 해석용)
   channelId: string | null; // UC... (알고 있으면 직접 지정 — API 없이 동작)
+  domain: ChannelDomain; // 기술 축 분류 (robot=완제품, hand=핸드/그리퍼, rfm=파운데이션모델, actuator=구동계)
 }
 
-// 경쟁사 공식 유튜브 채널 목록
+// 경쟁사/기술 생태계 공식 유튜브 채널 목록
 // channelId가 null인 항목은 YOUTUBE_API_KEY가 설정된 경우에만 수집된다.
 export const YOUTUBE_CHANNELS: YoutubeChannel[] = [
-  { company: 'Boston Dynamics', channelName: 'Boston Dynamics', handle: 'BostonDynamics', channelId: 'UC7vVhkEfw4nOGp8TyDk7RcQ' },
-  { company: 'Tesla', channelName: 'Tesla', handle: 'Tesla', channelId: null },
-  { company: 'Figure AI', channelName: 'Figure', handle: 'figureai', channelId: null },
-  { company: 'Unitree', channelName: 'Unitree Robotics', handle: 'UnitreeRobotics', channelId: null },
-  { company: '1X Technologies', channelName: '1X', handle: '1x-tech', channelId: null },
-  { company: 'Agility Robotics', channelName: 'Agility Robotics', handle: 'agilityrobotics', channelId: null },
-  { company: 'Apptronik', channelName: 'Apptronik', handle: 'apptronik', channelId: null },
-  { company: 'Agibot', channelName: 'AgiBot', handle: 'AgiBot', channelId: null },
-  { company: 'XPeng', channelName: 'XPeng', handle: 'XPengMotorsGlobal', channelId: null },
-  { company: 'UBTECH', channelName: 'UBTECH Robotics', handle: 'UBTECHRobotics', channelId: null },
-  { company: 'Galbot', channelName: 'Galbot', handle: 'Galbot', channelId: null },
-  { company: 'Booster Robotics', channelName: 'Booster Robotics', handle: 'BoosterRobotics', channelId: null },
-  { company: 'LimX Dynamics', channelName: 'LimX Dynamics', handle: 'LimXDynamics', channelId: null },
-  { company: 'Neura Robotics', channelName: 'NEURA Robotics', handle: 'NEURArobotics', channelId: null },
-  { company: 'Rainbow Robotics', channelName: 'Rainbow Robotics', handle: 'rainbowrobotics', channelId: null },
+  // ── 로봇 완제품 (robot) ──
+  { company: 'Boston Dynamics', channelName: 'Boston Dynamics', handle: 'BostonDynamics', channelId: 'UC7vVhkEfw4nOGp8TyDk7RcQ', domain: 'robot' },
+  { company: 'Tesla', channelName: 'Tesla', handle: 'Tesla', channelId: null, domain: 'robot' },
+  { company: 'Figure AI', channelName: 'Figure', handle: 'figureai', channelId: null, domain: 'robot' },
+  { company: 'Unitree', channelName: 'Unitree Robotics', handle: 'UnitreeRobotics', channelId: null, domain: 'robot' },
+  { company: '1X Technologies', channelName: '1X', handle: '1x-tech', channelId: null, domain: 'robot' },
+  { company: 'Agility Robotics', channelName: 'Agility Robotics', handle: 'agilityrobotics', channelId: null, domain: 'robot' },
+  { company: 'Apptronik', channelName: 'Apptronik', handle: 'apptronik', channelId: null, domain: 'robot' },
+  { company: 'Agibot', channelName: 'AgiBot', handle: 'AgiBot', channelId: null, domain: 'robot' },
+  { company: 'XPeng', channelName: 'XPeng', handle: 'XPengMotorsGlobal', channelId: null, domain: 'robot' },
+  { company: 'UBTECH', channelName: 'UBTECH Robotics', handle: 'UBTECHRobotics', channelId: null, domain: 'robot' },
+  { company: 'Galbot', channelName: 'Galbot', handle: 'Galbot', channelId: null, domain: 'robot' },
+  { company: 'Booster Robotics', channelName: 'Booster Robotics', handle: 'BoosterRobotics', channelId: null, domain: 'robot' },
+  { company: 'LimX Dynamics', channelName: 'LimX Dynamics', handle: 'LimXDynamics', channelId: null, domain: 'robot' },
+  { company: 'Neura Robotics', channelName: 'NEURA Robotics', handle: 'NEURArobotics', channelId: null, domain: 'robot' },
+  { company: 'Rainbow Robotics', channelName: 'Rainbow Robotics', handle: 'rainbowrobotics', channelId: null, domain: 'robot' },
+
+  // ── 핸드/그리퍼 (hand) ──
+  { company: 'PSYONIC', channelName: 'PSYONIC', handle: 'psyonicinc', channelId: null, domain: 'hand' },
+  { company: 'Shadow Robot', channelName: 'Shadow Robot', handle: 'ShadowRobotCompany', channelId: null, domain: 'hand' },
+  { company: 'Inspire Robots', channelName: 'Inspire Robots', handle: 'InspireRobots', channelId: null, domain: 'hand' },
+  { company: 'Robotiq', channelName: 'Robotiq', handle: 'Robotiq', channelId: null, domain: 'hand' },
+  { company: 'Tesollo', channelName: 'Tesollo', handle: 'tesollo', channelId: null, domain: 'hand' },
+  { company: 'Wonik Robotics', channelName: 'Wonik Robotics', handle: 'wonikrobotics', channelId: null, domain: 'hand' },
+
+  // ── 로봇 파운데이션 모델 (rfm) ──
+  { company: 'Google DeepMind', channelName: 'Google DeepMind', handle: 'GoogleDeepMind', channelId: null, domain: 'rfm' },
+  { company: 'NVIDIA', channelName: 'NVIDIA Developer', handle: 'NVIDIADeveloper', channelId: null, domain: 'rfm' },
+  { company: 'Toyota Research Institute', channelName: 'Toyota Research Institute', handle: 'ToyotaResearchInstitute', channelId: null, domain: 'rfm' },
+  { company: 'Physical Intelligence', channelName: 'Physical Intelligence', handle: 'PhysicalIntelligence', channelId: null, domain: 'rfm' },
+  { company: 'Skild AI', channelName: 'Skild AI', handle: 'SkildAI', channelId: null, domain: 'rfm' },
+  { company: 'Boston Dynamics', channelName: 'The AI Institute', handle: 'theaiinstitute', channelId: null, domain: 'rfm' },
+
+  // ── 액추에이터/구동계 (actuator) ──
+  { company: 'HEBI Robotics', channelName: 'HEBI Robotics', handle: 'HEBIRobotics', channelId: null, domain: 'actuator' },
+  { company: 'maxon', channelName: 'maxon group', handle: 'maxongroup', channelId: null, domain: 'actuator' },
+  { company: 'Harmonic Drive', channelName: 'Harmonic Drive', handle: 'harmonicdrivellc', channelId: null, domain: 'actuator' },
 ];
 
 interface CollectResult {
@@ -186,6 +211,7 @@ class YoutubeCollectorService {
                 videoId,
                 channel: channel.channelName,
                 channelId,
+                domain: channel.domain,
                 thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
                 mentionedCompanies: [channel.company],
                 description: media.description,
@@ -200,7 +226,10 @@ class YoutubeCollectorService {
             result.videosInserted++;
           } else {
             // 이미 수집된 영상 — 설명·조회수만 최신값으로 병합 (aiTags 등 기존 키 보존)
-            const patch: Record<string, unknown> = { viewsUpdatedAt: new Date().toISOString() };
+            const patch: Record<string, unknown> = {
+              viewsUpdatedAt: new Date().toISOString(),
+              domain: channel.domain,
+            };
             if (media.description) patch.description = media.description;
             if (media.views != null) patch.views = media.views;
             await db.execute(sql`

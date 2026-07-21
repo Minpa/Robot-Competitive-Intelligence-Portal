@@ -61,7 +61,10 @@ export class ArxivCollector {
           type: 'research_paper',
           title: title.replace(/\s+/g, ' ').trim(),
           url: id,
-          metadata: { abstract: (this.tag(entry, 'summary') ?? '').substring(0, 500) },
+          metadata: {
+            abstract: (this.tag(entry, 'summary') ?? '').substring(0, 500),
+            published: this.tag(entry, 'published') ?? undefined,
+          },
           collectedAt: new Date(),
         });
       }
@@ -243,11 +246,18 @@ async function saveToDatabase(items: CollectedData[]): Promise<{ saved: number; 
           'patent': 'technology',
         };
 
+        const publishedRaw = item.metadata.published;
+        const publishedAt =
+          typeof publishedRaw === 'string' && !Number.isNaN(new Date(publishedRaw).getTime())
+            ? new Date(publishedRaw)
+            : null;
+
         await db.insert(articles).values({
           title: item.title.substring(0, 500),
           source: item.source,
           url: item.url,
-          summary: typeof item.metadata.abstract === 'string' ? item.metadata.abstract : 
+          publishedAt,
+          summary: typeof item.metadata.abstract === 'string' ? item.metadata.abstract :
                    typeof item.metadata.description === 'string' ? item.metadata.description : null,
           contentHash: item.id,
           category: categoryMap[item.source] || 'other',
