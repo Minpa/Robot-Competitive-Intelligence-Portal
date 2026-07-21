@@ -23,7 +23,6 @@ import {
   Grid3x3,
   Bot,
   Hand,
-  Newspaper,
   Building2,
   Cpu,
   Factory,
@@ -65,7 +64,7 @@ const navigationGroups: NavGroup[] = [
     title: '동향 브리핑',
     subtitle: 'Daily Brief',
     items: [
-      { name: '동향 브리핑', href: '/trend-brief', icon: Newspaper },
+      { name: '영상기반 경쟁사 트렌드', href: '/video-trends', icon: TrendingUp },
     ],
   },
   {
@@ -82,7 +81,6 @@ const navigationGroups: NavGroup[] = [
       { name: '로봇 리스트', href: '/humanoid-robots', icon: List },
       { name: '로봇 타임라인', href: '/robot-evolution', icon: GitBranch },
       { name: '영상 갤러리', href: '/videos', icon: PlayCircle },
-      { name: '영상 트렌드', href: '/video-trends', icon: TrendingUp },
       { name: '로봇 레이더 비교', href: '/humanoid-trend', icon: Radar },
       { name: '로봇 항목별 매트릭스', href: '/compare/matrix', icon: Table2 },
       { name: '로봇 Perfect 분석', href: '/compare/benchmark', icon: Target },
@@ -235,7 +233,7 @@ export function Sidebar() {
     <aside className="w-60 bg-brand text-brand-ink min-h-screen flex flex-col">
       {/* Logo Block */}
       <div className="px-5 pt-6 pb-5 border-b border-white/10">
-        <Link href="/trend-brief" className="block">
+        <Link href="/video-trends" className="block">
           <div className="flex items-baseline gap-2">
             <h1 className="font-serif text-[22px] font-semibold tracking-tight leading-none text-white">
               ARGOS

@@ -190,7 +190,7 @@ export default function VideoTrendsPage() {
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
         <PageHeader
           module="Video Intelligence"
-          titleKo="영상 트렌드"
+          titleKo="영상기반 경쟁사 트렌드"
           titleEn="Demo Trend Analysis"
           description="경쟁사 공식 유튜브 데모 영상의 시연 주제·공개 빈도·시장 관심도를 분석합니다. 데이터는 공식 채널 피드 기반입니다."
           actions={
