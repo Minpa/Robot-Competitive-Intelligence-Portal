@@ -263,6 +263,125 @@ ${JSON.stringify(videos)}`,
     return { summary, generatedAt: new Date().toISOString(), source };
   }
 
+  // ── 단위기술 축 트렌드 요약 (핸드/RFM/액추에이터) ──
+
+  private techSummaryCache = new Map<string, { text: string; generatedAt: number }>();
+
+  /** 단위기술 축별 트렌드 요약 — 영상 + arXiv 논문 취합 (6시간 캐시) */
+  async getTechTrendSummary(
+    domain: 'hand' | 'rfm' | 'actuator'
+  ): Promise<{ summary: string; generatedAt: string; source: 'llm' | 'template' | 'cache' }> {
+    const SIX_HOURS = 6 * 60 * 60 * 1000;
+    const cached = this.techSummaryCache.get(domain);
+    if (cached && Date.now() - cached.generatedAt < SIX_HOURS) {
+      return { summary: cached.text, generatedAt: new Date(cached.generatedAt).toISOString(), source: 'cache' };
+    }
+
+    const DOMAIN_LABEL: Record<string, string> = { hand: '로봇 핸드', rfm: '로봇 파운데이션 모델', actuator: '액추에이터/구동계' };
+    const PAPER_REGEX: Record<string, string> = {
+      hand: 'hand|gripper|finger|tactile|dexter|grasp|manipulat',
+      rfm: 'foundation model|vision.language.action|vla|imitation learning|reinforcement learning|diffusion policy|world model|embodied',
+      actuator: 'actuator|motor|gearbox|harmonic drive|transmission|joint torque|quasi.direct|series elastic',
+    };
+
+    // 영상: 채널 도메인 일치 + (핸드는 완제품사 파지/조작 시연 포함)
+    const extraVideoCond =
+      domain === 'hand'
+        ? sql` OR extracted_metadata->'aiTags'->'taskTypes' ? '파지/조작'`
+        : domain === 'rfm'
+          ? sql` OR extracted_metadata->'aiTags'->'techTags' ?| array['VLA','파운데이션모델','강화학습','End-to-End']`
+          : sql``;
+
+    const videoRows = await db
+      .select({ title: articles.title, extractedMetadata: articles.extractedMetadata, publishedAt: articles.publishedAt })
+      .from(articles)
+      .where(
+        and(
+          eq(articles.productType, 'video'),
+          sql`published_at > now() - interval '60 days'`,
+          sql`(extracted_metadata->>'domain' = ${domain}${extraVideoCond})`
+        )
+      )
+      .orderBy(desc(articles.publishedAt))
+      .limit(60);
+
+    const paperRows = await db
+      .select({ title: articles.title, publishedAt: articles.publishedAt, collectedAt: articles.collectedAt })
+      .from(articles)
+      .where(
+        and(
+          eq(articles.source, 'arxiv'),
+          sql`COALESCE(published_at, collected_at) > now() - interval '60 days'`,
+          sql`(title ~* ${PAPER_REGEX[domain]} OR COALESCE(summary,'') ~* ${PAPER_REGEX[domain]})`
+        )
+      )
+      .orderBy(desc(articles.collectedAt))
+      .limit(60);
+
+    const videos = videoRows.map((r) => {
+      const meta = (r.extractedMetadata ?? {}) as Record<string, any>;
+      return { title: r.title, channel: meta.channel ?? '', views: meta.views ?? null };
+    });
+    const papers = paperRows.map((r) => r.title);
+
+    if (videos.length === 0 && papers.length === 0) {
+      return {
+        summary: `최근 60일 내 수집된 ${DOMAIN_LABEL[domain]} 관련 영상·논문이 없습니다. 수집이 쌓이면 요약이 생성됩니다.`,
+        generatedAt: new Date().toISOString(),
+        source: 'template',
+      };
+    }
+
+    let summary: string;
+    let source: 'llm' | 'template' = 'template';
+
+    if (this.client) {
+      try {
+        const response = await this.client.messages.create({
+          model: TAGGING_MODEL,
+          max_tokens: 800,
+          messages: [
+            {
+              role: 'user',
+              content: `다음은 최근 60일간 수집된 ${DOMAIN_LABEL[domain]} 분야의 데모 영상과 arXiv 논문 데이터다. LG 로봇 전략팀 엔지니어를 위해 이 기술 축의 현재 트렌드를 한국어 4~6문장으로 요약하라. 어떤 업체/랩이 활발한지, 기술적으로 어떤 방향이 부상하는지 중심으로. 과장 없이 데이터에 근거해서만.
+
+영상 (${videos.length}건): ${JSON.stringify(videos)}
+논문 제목 (${papers.length}편): ${JSON.stringify(papers.slice(0, 40))}`,
+            },
+          ],
+        });
+        const text = response.content
+          .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+          .map((b) => b.text)
+          .join('')
+          .trim();
+        if (text) {
+          summary = text;
+          source = 'llm';
+        } else {
+          summary = this.techTemplateSummary(DOMAIN_LABEL[domain]!, videos, papers.length);
+        }
+      } catch {
+        summary = this.techTemplateSummary(DOMAIN_LABEL[domain]!, videos, papers.length);
+      }
+    } else {
+      summary = this.techTemplateSummary(DOMAIN_LABEL[domain]!, videos, papers.length);
+    }
+
+    this.techSummaryCache.set(domain, { text: summary, generatedAt: Date.now() });
+    return { summary, generatedAt: new Date().toISOString(), source };
+  }
+
+  private techTemplateSummary(label: string, videos: { channel: string }[], paperCount: number): string {
+    const byChannel = new Map<string, number>();
+    for (const v of videos) if (v.channel) byChannel.set(v.channel, (byChannel.get(v.channel) ?? 0) + 1);
+    const top = [...byChannel.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+    return (
+      `최근 60일간 ${label} 분야에서 데모 영상 ${videos.length}건, 관련 논문 ${paperCount}편이 수집되었습니다.` +
+      (top.length > 0 ? ` 활발한 채널: ${top.map(([c, n]) => `${c}(${n}건)`).join(', ')}.` : '')
+    );
+  }
+
   private templateSummary(videos: { channel: string; taskTypes: string[] }[]): string {
     const byChannel = new Map<string, number>();
     const byTask = new Map<string, number>();

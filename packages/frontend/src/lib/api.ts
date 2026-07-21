@@ -157,6 +157,12 @@ class ApiClient {
     );
   }
 
+  async getTechTrendSummary(domain: string) {
+    return this.request<{ summary: string; generatedAt: string; source: string }>(
+      `/articles/tech-trends/${domain}/summary`
+    );
+  }
+
   async importArticlesFromExcel(file: File, updateExisting = true) {
     const url = `${API_BASE}/articles/import-excel`;
     const token = this.getToken();
