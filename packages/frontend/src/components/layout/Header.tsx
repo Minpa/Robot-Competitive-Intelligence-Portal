@@ -2,42 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Search, Bell, LogOut, Sun, Moon, HelpCircle, Settings as SettingsIcon } from 'lucide-react';
-import { useRouter, usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 type Theme = 'dark' | 'light';
-
-const TOP_NAV = [
-  { label: 'Fleet',        href: '/robot-evolution' },
-  { label: 'Telemetry',    href: '/humanoid-robots' },
-  { label: 'Intelligence', href: '/humanoid-trend' },
-  { label: 'Strategy',     href: '/action-items' },
-  { label: 'Compliance',   href: '/compliance' },
-];
-
-const BREADCRUMBS: Record<string, string> = {
-  '/robot-evolution':    'FLEET › EVOLUTION',
-  '/humanoid-robots':    'TELEMETRY › REGISTRY',
-  '/humanoid-trend':     'INTELLIGENCE › TREND',
-  '/compare/matrix':     'INTELLIGENCE › MATRIX',
-  '/compare/benchmark':  'INTELLIGENCE › BENCHMARK',
-  '/action-items':       'STRATEGY › ACTION',
-  '/insight-pipeline':   'INTELLIGENCE › PIPELINE',
-  '/national-projects':  'INTELLIGENCE › R&D',
-  '/reports':            'INTELLIGENCE › REPORTS',
-  '/compliance':         'COMPLIANCE › DASHBOARD',
-  '/search':             'SEARCH',
-  '/admin':              'ADMIN',
-};
-
-function resolveBreadcrumb(pathname: string): string {
-  const direct = BREADCRUMBS[pathname];
-  if (direct) return direct;
-  const match = Object.keys(BREADCRUMBS)
-    .filter(k => pathname.startsWith(k))
-    .sort((a, b) => b.length - a.length)[0];
-  return match ? BREADCRUMBS[match] : 'ARGOS';
-}
 
 export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,7 +12,6 @@ export function Header() {
   const [userRole, setUserRole] = useState('ARCHITECT_01');
   const [theme, setTheme] = useState<Theme>('light');
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
     try {
@@ -90,41 +56,11 @@ export function Header() {
   };
 
   const initials = (userName[0] || 'U').toUpperCase();
-  const breadcrumb = resolveBreadcrumb(pathname);
 
   return (
     <header className="h-16 bg-white border-b border-ink-200 px-7 flex items-center gap-6">
-      {/* Breadcrumb */}
-      <div className="shrink-0">
-        <p className="font-mono text-[10px] font-medium text-ink-500 uppercase tracking-[0.22em]">
-          {breadcrumb}
-        </p>
-      </div>
-
-      {/* Top nav (horizontal module selector) */}
-      <nav className="flex items-center gap-4 shrink-0 border-l border-ink-200 pl-6 h-full">
-        {TOP_NAV.map((item) => {
-          const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'relative h-full flex items-center text-[12px] font-medium tracking-wide transition-colors',
-                isActive ? 'text-ink-900 font-semibold' : 'text-ink-600 hover:text-ink-900'
-              )}
-            >
-              {item.label}
-              {isActive && (
-                <span className="absolute left-0 right-0 -bottom-px h-[2px] bg-ink-900" />
-              )}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Search (center-ish, flex-grow) */}
-      <form onSubmit={handleSearch} className="flex-1 max-w-md mx-auto">
+      {/* Search */}
+      <form onSubmit={handleSearch} className="flex-1 max-w-md">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-400" />
           <input
@@ -201,8 +137,4 @@ function IconBtn({
       {dot && <span className="absolute top-1.5 right-1.5 w-[7px] h-[7px] bg-ink-500 rounded-full" />}
     </button>
   );
-}
-
-function cn(...cls: (string | false | undefined)[]) {
-  return cls.filter(Boolean).join(' ');
 }
