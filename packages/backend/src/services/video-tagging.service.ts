@@ -75,7 +75,7 @@ class VideoTaggingService {
   private client: Anthropic | null = null;
   private summaryCache: CachedSummary | null = null;
 
-  /** LLM으로 구조화 요약 생성 — {headline, points[]} JSON 강제, 실패 시 평문 폴백 */
+  /** LLM으로 구조화 요약 생성 — {headline, points[]} JSON 강제, 잘린 응답도 복원 */
   private async generateStructured(
     prompt: string
   ): Promise<{ text: string; headline?: string; points?: SummaryPoint[] } | null> {
@@ -83,7 +83,7 @@ class VideoTaggingService {
     try {
       const response = await this.client.messages.create({
         model: TAGGING_MODEL,
-        max_tokens: 900,
+        max_tokens: 2000,
         messages: [{ role: 'user', content: prompt }],
       });
       const raw = response.content
@@ -91,24 +91,53 @@ class VideoTaggingService {
         .map((b) => b.text)
         .join('')
         .trim();
-      const m = raw.match(/\{[\s\S]*\}/);
+      // 코드펜스 제거
+      const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+
+      const build = (headline: string | undefined, points: SummaryPoint[]) => {
+        const capped = points
+          .map((p) => ({ title: p.title.slice(0, 60), body: p.body.slice(0, 300) }))
+          .slice(0, 6);
+        const text = [headline, ...capped.map((p) => `${p.title}: ${p.body}`)].filter(Boolean).join(' ');
+        return { text, headline: headline?.slice(0, 200), points: capped };
+      };
+
+      // 1차: 정상 JSON 파싱
+      const m = cleaned.match(/\{[\s\S]*\}/);
       if (m) {
         try {
           const parsed = JSON.parse(m[0]) as { headline?: string; points?: { title?: string; body?: string }[] };
           const points = (parsed.points ?? [])
             .filter((p) => p?.title && p?.body)
-            .map((p) => ({ title: String(p.title).slice(0, 60), body: String(p.body).slice(0, 300) }))
-            .slice(0, 6);
+            .map((p) => ({ title: String(p.title), body: String(p.body) }));
           if (points.length > 0) {
-            const headline = typeof parsed.headline === 'string' ? parsed.headline.slice(0, 200) : undefined;
-            const text = [headline, ...points.map((p) => `${p.title}: ${p.body}`)].filter(Boolean).join(' ');
-            return { text, headline, points };
+            return build(typeof parsed.headline === 'string' ? parsed.headline : undefined, points);
           }
         } catch {
-          // JSON 파싱 실패 → 평문 폴백
+          // 2차 복원으로 진행
         }
       }
-      return raw ? { text: raw } : null;
+
+      // 2차: 응답이 잘렸더라도 완성된 title/body 쌍만 정규식으로 복원
+      const unesc = (s: string) => {
+        try { return JSON.parse(`"${s}"`) as string; } catch { return s; }
+      };
+      const headlineMatch = cleaned.match(/"headline"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+      const points: SummaryPoint[] = [];
+      const pointRe = /"title"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,\s*"body"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
+      let pm;
+      while ((pm = pointRe.exec(cleaned)) !== null) {
+        points.push({ title: unesc(pm[1] ?? ''), body: unesc(pm[2] ?? '') });
+      }
+      if (points.length >= 2) {
+        return build(headlineMatch ? unesc(headlineMatch[1] ?? '') : undefined, points);
+      }
+
+      // 3차: JSON 형태 원문은 절대 노출하지 않음 → 템플릿 폴백 유도
+      if (cleaned.startsWith('{') || cleaned.includes('"points"') || raw.startsWith('```')) {
+        return null;
+      }
+      return cleaned ? { text: cleaned } : null;
     } catch {
       return null;
     }
@@ -277,7 +306,7 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
     generatedAt: string;
     source: 'llm' | 'template' | 'cache';
   }> {
-    const CACHE_KEY = 'video-trend-summary:v2';
+    const CACHE_KEY = 'video-trend-summary:v3';
     if (!this.summaryCache) {
       this.summaryCache = await this.loadPersistedSummary(CACHE_KEY);
     }
@@ -360,7 +389,7 @@ points는 4~6개. 마크다운 기호(#, **) 사용 금지.`
     generatedAt: string;
     source: 'llm' | 'template' | 'cache';
   }> {
-    const cacheKey = `video-trend-summary:v2:${domain}`;
+    const cacheKey = `video-trend-summary:v3:${domain}`;
     let cached = this.techSummaryCache.get(domain);
     if (!cached) {
       const persisted = await this.loadPersistedSummary(cacheKey);
