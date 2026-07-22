@@ -12,11 +12,15 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { sql, eq, and, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { articles } from '../db/schema.js';
+import { articles, viewCache } from '../db/schema.js';
 
 // 저비용 반복 태깅 작업이므로 소형 모델을 기본값으로 사용
 const TAGGING_MODEL = process.env.VIDEO_TAGGING_MODEL || 'claude-haiku-4-5-20251001';
 const BATCH_SIZE = 20;
+
+// 트렌드 요약 갱신 주기 — 기본 72시간(3일). 매 방문·매일 생성할 필요가 없는 저변동 콘텐츠.
+const SUMMARY_TTL_MS =
+  Math.max(1, parseInt(process.env.VIDEO_SUMMARY_TTL_HOURS || '72', 10)) * 3_600_000;
 
 export const VIDEO_TASK_TYPES = [
   '보행/이동',
@@ -58,6 +62,33 @@ const HEURISTIC_RULES: { pattern: RegExp; taskType: (typeof VIDEO_TASK_TYPES)[nu
 class VideoTaggingService {
   private client: Anthropic | null = null;
   private summaryCache: { text: string; generatedAt: number } | null = null;
+
+  // ── 요약 영속 캐시 (view_cache) — 서버 재시작에도 유지 ──
+
+  private async loadPersistedSummary(key: string): Promise<{ text: string; generatedAt: number } | null> {
+    try {
+      const [row] = await db.select().from(viewCache).where(eq(viewCache.viewName, key)).limit(1);
+      const data = row?.data as { text?: string } | undefined;
+      if (!row || typeof data?.text !== 'string') return null;
+      return { text: data.text, generatedAt: row.cachedAt.getTime() };
+    } catch {
+      return null;
+    }
+  }
+
+  private async persistSummary(key: string, text: string): Promise<void> {
+    try {
+      await db
+        .insert(viewCache)
+        .values({ viewName: key, data: { text }, ttlMs: SUMMARY_TTL_MS })
+        .onConflictDoUpdate({
+          target: viewCache.viewName,
+          set: { data: { text }, cachedAt: new Date(), ttlMs: SUMMARY_TTL_MS },
+        });
+    } catch {
+      // 캐시 저장 실패는 치명적이지 않음
+    }
+  }
 
   constructor() {
     if (process.env.ANTHROPIC_API_KEY) {
@@ -182,10 +213,13 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
     return { tagged, method };
   }
 
-  /** 최근 60일 영상 트렌드 한국어 요약 (6시간 캐시) */
+  /** 최근 60일 영상 트렌드 한국어 요약 (기본 3일 캐시, 재시작에도 유지) */
   async getTrendSummary(): Promise<{ summary: string; generatedAt: string; source: 'llm' | 'template' | 'cache' }> {
-    const SIX_HOURS = 6 * 60 * 60 * 1000;
-    if (this.summaryCache && Date.now() - this.summaryCache.generatedAt < SIX_HOURS) {
+    const CACHE_KEY = 'video-trend-summary';
+    if (!this.summaryCache) {
+      this.summaryCache = await this.loadPersistedSummary(CACHE_KEY);
+    }
+    if (this.summaryCache && Date.now() - this.summaryCache.generatedAt < SUMMARY_TTL_MS) {
       return {
         summary: this.summaryCache.text,
         generatedAt: new Date(this.summaryCache.generatedAt).toISOString(),
@@ -260,6 +294,7 @@ ${JSON.stringify(videos)}`,
     }
 
     this.summaryCache = { text: summary, generatedAt: Date.now() };
+    await this.persistSummary(CACHE_KEY, summary);
     return { summary, generatedAt: new Date().toISOString(), source };
   }
 
@@ -271,9 +306,16 @@ ${JSON.stringify(videos)}`,
   async getTechTrendSummary(
     domain: 'hand' | 'rfm' | 'actuator' | 'expo' | 'production'
   ): Promise<{ summary: string; generatedAt: string; source: 'llm' | 'template' | 'cache' }> {
-    const SIX_HOURS = 6 * 60 * 60 * 1000;
-    const cached = this.techSummaryCache.get(domain);
-    if (cached && Date.now() - cached.generatedAt < SIX_HOURS) {
+    const cacheKey = `video-trend-summary:${domain}`;
+    let cached = this.techSummaryCache.get(domain);
+    if (!cached) {
+      const persisted = await this.loadPersistedSummary(cacheKey);
+      if (persisted) {
+        this.techSummaryCache.set(domain, persisted);
+        cached = persisted;
+      }
+    }
+    if (cached && Date.now() - cached.generatedAt < SUMMARY_TTL_MS) {
       return { summary: cached.text, generatedAt: new Date(cached.generatedAt).toISOString(), source: 'cache' };
     }
 
@@ -412,6 +454,7 @@ ${secondLabel} 제목 (${papers.length}건): ${JSON.stringify(papers.slice(0, 40
     }
 
     this.techSummaryCache.set(domain, { text: summary, generatedAt: Date.now() });
+    await this.persistSummary(cacheKey, summary);
     return { summary, generatedAt: new Date().toISOString(), source };
   }
 
