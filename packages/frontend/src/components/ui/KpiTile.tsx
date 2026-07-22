@@ -37,13 +37,13 @@ export function KpiTile({
   return (
     <div
       className={cn(
-        'bg-white border border-ink-200 p-5 flex flex-col gap-3',
+        'bg-white border border-ink-200 rounded-[14px] shadow-report p-5 flex flex-col gap-3',
         className
       )}
     >
       <Kicker>{label}</Kicker>
       <div className="flex items-baseline gap-1.5">
-        <span className="font-serif text-[32px] font-semibold leading-none text-ink-900 tracking-tight">
+        <span className="text-[38px] font-bold leading-none text-ink-900 tracking-tight">
           {value}
         </span>
         {unit && (

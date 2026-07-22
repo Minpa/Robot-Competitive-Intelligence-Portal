@@ -93,7 +93,7 @@ export function Header() {
   const breadcrumb = resolveBreadcrumb(pathname);
 
   return (
-    <header className="h-14 bg-paper border-b border-ink-200 px-6 flex items-center gap-6">
+    <header className="h-16 bg-white border-b border-ink-200 px-7 flex items-center gap-6">
       {/* Breadcrumb */}
       <div className="shrink-0">
         <p className="font-mono text-[10px] font-medium text-ink-500 uppercase tracking-[0.22em]">
@@ -111,12 +111,12 @@ export function Header() {
               href={item.href}
               className={cn(
                 'relative h-full flex items-center text-[12px] font-medium tracking-wide transition-colors',
-                isActive ? 'text-ink-900' : 'text-ink-500 hover:text-ink-800'
+                isActive ? 'text-ink-900 font-semibold' : 'text-ink-600 hover:text-ink-900'
               )}
             >
               {item.label}
               {isActive && (
-                <span className="absolute left-0 right-0 -bottom-px h-[2px] bg-gold" />
+                <span className="absolute left-0 right-0 -bottom-px h-[2px] bg-ink-900" />
               )}
             </Link>
           );
@@ -132,7 +132,7 @@ export function Header() {
             placeholder="Search fleet, reports, regulations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 h-8 bg-white border border-ink-200 text-[12px] text-ink-800 placeholder:text-ink-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 transition-colors font-sans"
+            className="w-full pl-9 pr-4 h-9 bg-paper border border-ink-200 rounded-[9px] text-[13px] text-ink-800 placeholder:text-ink-400 focus:outline-none focus:border-ink-400 focus:ring-1 focus:ring-ink-300 transition-colors font-sans"
           />
         </div>
       </form>
@@ -159,7 +159,7 @@ export function Header() {
             <div className="font-mono text-[10px] font-semibold text-ink-800 tracking-[0.14em]">{userRole}</div>
             <div className="text-[10px] text-ink-500">{userName}</div>
           </div>
-          <div className="w-8 h-8 bg-brand flex items-center justify-center text-white font-mono text-[11px] font-semibold">
+          <div className="w-[34px] h-[34px] rounded-full bg-[#2F333A] flex items-center justify-center text-white text-[13px] font-semibold">
             {initials}
           </div>
         </div>
@@ -170,7 +170,7 @@ export function Header() {
             localStorage.removeItem('user');
             window.location.href = '/login';
           }}
-          className="ml-1 p-2 text-ink-500 hover:text-neg hover:bg-neg-soft transition-colors"
+          className="ml-1 p-2 rounded-lg text-ink-500 hover:text-neg hover:bg-neg-soft transition-colors"
           title="로그아웃"
         >
           <LogOut className="w-4 h-4" />
@@ -195,10 +195,10 @@ function IconBtn({
     <button
       onClick={onClick}
       title={title}
-      className="relative p-2 text-ink-500 hover:text-ink-900 hover:bg-ink-100 transition-colors"
+      className="relative p-2 rounded-lg text-ink-500 hover:text-ink-900 hover:bg-ink-100 transition-colors"
     >
       {children}
-      {dot && <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-gold rounded-full" />}
+      {dot && <span className="absolute top-1.5 right-1.5 w-[7px] h-[7px] bg-ink-500 rounded-full" />}
     </button>
   );
 }

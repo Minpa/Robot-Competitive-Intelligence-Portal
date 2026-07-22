@@ -391,8 +391,8 @@ export function TechDomainView({ view = 'main' }: { view?: 'main' | 'videos' }) 
                   <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
                   <Tooltip />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="영상" fill="#1f3a5f" />
-                  <Bar dataKey={secondLabel} fill="#b8860b" />
+                  <Bar dataKey="영상" fill="#3A3F47" />
+                  <Bar dataKey={secondLabel} fill="#C2C7CF" />
                 </BarChart>
               </ResponsiveContainer>
             </div>

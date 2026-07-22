@@ -31,7 +31,7 @@ export function InsightBox({
   return (
     <aside
       className={cn(
-        'relative border px-5 py-4',
+        'relative border rounded-[14px] px-5 py-4 overflow-hidden',
         t.border,
         t.bg,
         className
