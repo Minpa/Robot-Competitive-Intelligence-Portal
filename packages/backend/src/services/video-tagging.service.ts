@@ -306,7 +306,7 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
     generatedAt: string;
     source: 'llm' | 'template' | 'cache';
   }> {
-    const CACHE_KEY = 'video-trend-summary:v3';
+    const CACHE_KEY = 'video-trend-summary:v4';
     if (!this.summaryCache) {
       this.summaryCache = await this.loadPersistedSummary(CACHE_KEY);
     }
@@ -342,7 +342,6 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
         title: r.title,
         channel: meta.channel ?? '',
         taskTypes: meta.aiTags?.taskTypes ?? [],
-        views: meta.views ?? null,
         publishedAt: r.publishedAt?.toISOString().slice(0, 10) ?? '',
       };
     });
@@ -352,7 +351,7 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
     }
 
     const generated = await this.generateStructured(
-      `다음은 최근 60일간 휴머노이드 로봇 경쟁사들이 유튜브에 공개한 데모 영상 데이터다. LG 로봇 전략팀 엔지니어를 위해 시연 트렌드를 한국어로 요약하라. 어떤 회사가 어떤 작업 유형의 시연에 집중하는지, 눈에 띄는 변화나 시사점이 무엇인지 중심으로. 과장 없이 데이터에 근거해서만.
+      `다음은 최근 60일간 휴머노이드 로봇 경쟁사들이 유튜브에 공개한 데모 영상 데이터다. LG 로봇 전략팀 엔지니어를 위해 시연 트렌드를 한국어로 요약하라. 포인트는 오직 (1) 기술 역량의 변화(새로 가능해진 작업, 자율성·조작 수준의 진전)와 (2) 산업 적용(현장 투입, 실증, 상용 배치) 트렌드만 다뤄라. 조회수·인기·마케팅·엔터테인먼트 관련 내용은 절대 포함하지 말라. 과장 없이 데이터에 근거해서만.
 
 ${JSON.stringify(videos)}
 
@@ -389,7 +388,7 @@ points는 4~6개. 마크다운 기호(#, **) 사용 금지.`
     generatedAt: string;
     source: 'llm' | 'template' | 'cache';
   }> {
-    const cacheKey = `video-trend-summary:v3:${domain}`;
+    const cacheKey = `video-trend-summary:v4:${domain}`;
     let cached = this.techSummaryCache.get(domain);
     if (!cached) {
       const persisted = await this.loadPersistedSummary(cacheKey);
@@ -486,7 +485,7 @@ points는 4~6개. 마크다운 기호(#, **) 사용 금지.`
 
     const videos = videoRows.map((r) => {
       const meta = (r.extractedMetadata ?? {}) as Record<string, any>;
-      return { title: r.title, channel: meta.channel ?? '', views: meta.views ?? null };
+      return { title: r.title, channel: meta.channel ?? '' };
     });
     const papers = paperRows.map((r) => r.title);
 
@@ -507,7 +506,7 @@ points는 4~6개. 마크다운 기호(#, **) 사용 금지.`
           : domain === 'expo'
             ? '어떤 전시회/학회에서 어느 회사가 무엇을 시연했는지 중심으로.'
             : '어떤 업체/랩이 활발한지, 기술적으로 어떤 방향이 부상하는지 중심으로.'
-      } 과장 없이 데이터에 근거해서만.
+      } 포인트는 기술 역량 변화와 산업 적용 트렌드만 다루고, 조회수·인기·마케팅 관련 내용은 절대 포함하지 말라. 과장 없이 데이터에 근거해서만.
 
 영상 (${videos.length}건): ${JSON.stringify(videos)}
 ${secondLabel} 제목 (${papers.length}건): ${JSON.stringify(papers.slice(0, 40))}
