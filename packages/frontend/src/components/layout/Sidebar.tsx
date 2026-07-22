@@ -23,6 +23,7 @@ import {
   Grid3x3,
   Bot,
   Hand,
+  Newspaper,
   Building2,
   Cpu,
   Factory,
@@ -80,6 +81,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: '로봇 리스트', href: '/humanoid-robots', icon: List },
       { name: '로봇 타임라인', href: '/robot-evolution', icon: GitBranch },
+      { name: '기사 트렌드', href: '/trend-brief', icon: Newspaper },
       { name: '영상 트렌드', href: '/videos', icon: PlayCircle },
       { name: '로봇 레이더 비교', href: '/humanoid-trend', icon: Radar },
       { name: '로봇 항목별 매트릭스', href: '/compare/matrix', icon: Table2 },
