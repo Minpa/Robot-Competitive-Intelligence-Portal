@@ -9,7 +9,7 @@ import {
 import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Panel, InsightBox } from '@/components/ui';
+import { Panel, InsightBox, Tag } from '@/components/ui';
 import { ExternalLink, X } from 'lucide-react';
 
 const TASK_TYPES = [
@@ -43,6 +43,7 @@ interface VideoRow {
   title: string;
   url?: string | null;
   publishedAt?: string | null;
+  collectedAt?: string | null;
   extractedMetadata?: {
     channel?: string;
     views?: number | null;
@@ -66,7 +67,27 @@ function monthKey(value?: string | null) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+const LAST_VISIT_KEY = 'video-trends-last-visit';
+
 export default function VideoTrendsPage() {
+  // 이전 방문 시각 — 그 이후 수집된 영상을 NEW로 표시.
+  // 30분 이내 재방문은 기준을 갱신하지 않아 새로고침해도 NEW 표시가 유지된다.
+  const [lastVisit] = useState<number>(() => {
+    if (typeof window === 'undefined') return 0;
+    const stored = window.localStorage.getItem(LAST_VISIT_KEY);
+    const prev = stored ? Number(stored) : 0;
+    if (!prev || Date.now() - prev > 30 * 60 * 1000) {
+      window.localStorage.setItem(LAST_VISIT_KEY, String(Date.now()));
+    }
+    return Number.isNaN(prev) ? 0 : prev;
+  });
+
+  const isNewVideo = (v: VideoRow) => {
+    if (!lastVisit || !v.collectedAt) return false;
+    const t = new Date(v.collectedAt).getTime();
+    return !Number.isNaN(t) && t > lastVisit;
+  };
+
   const videosQuery = useQuery({
     queryKey: ['video-trends-videos'],
     queryFn: () =>
@@ -95,11 +116,25 @@ export default function VideoTrendsPage() {
     [videosQuery.data]
   );
 
-  // 회사(채널) × 작업유형 히트맵 (최근 6개월) — 셀별 영상 리스트도 함께 보관
+  // 데이터 최신성 — 상단 표시용
+  const updateInfo = useMemo(() => {
+    let latest = 0;
+    let newCount = 0;
+    for (const v of videos) {
+      const t = v.collectedAt ? new Date(v.collectedAt).getTime() : 0;
+      if (t > latest) latest = t;
+      if (isNewVideo(v)) newCount++;
+    }
+    return { latest, newCount };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videos, lastVisit]);
+
+  // 회사(채널) × 작업유형 히트맵 (최근 6개월) — 셀별 영상 리스트·신규 수도 함께 보관
   const heatmap = useMemo(() => {
     const sixMonthsAgo = Date.now() - 183 * 24 * 60 * 60 * 1000;
     const counts = new Map<string, Map<string, number>>();
     const cellVideos = new Map<string, VideoRow[]>();
+    const cellNew = new Map<string, number>();
     let maxCount = 0;
 
     for (const v of videos) {
@@ -117,6 +152,7 @@ export default function VideoTrendsPage() {
         const key = `${channel}|${task}`;
         if (!cellVideos.has(key)) cellVideos.set(key, []);
         cellVideos.get(key)!.push(v);
+        if (isNewVideo(v)) cellNew.set(key, (cellNew.get(key) ?? 0) + 1);
       }
     }
 
@@ -126,8 +162,9 @@ export default function VideoTrendsPage() {
       return totalB - totalA;
     });
 
-    return { counts, channels, maxCount, cellVideos };
-  }, [videos]);
+    return { counts, channels, maxCount, cellVideos, cellNew };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videos, lastVisit]);
 
   const [cellPopover, setCellPopover] = useState<{ channel: string; task: string } | null>(null);
   const popoverVideos = cellPopover
@@ -203,6 +240,28 @@ export default function VideoTrendsPage() {
           }
         />
 
+        {/* 데이터 최신성 */}
+        <p className="text-[11.5px] text-ink-500 -mt-3">
+          마지막 수집:{' '}
+          {updateInfo.latest
+            ? new Date(updateInfo.latest).toLocaleString('ko-KR', {
+                month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
+              })
+            : '—'}
+          {' · '}요약 생성:{' '}
+          {summaryQuery.data?.generatedAt
+            ? new Date(summaryQuery.data.generatedAt).toLocaleString('ko-KR', {
+                month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
+              })
+            : '—'}
+          {updateInfo.newCount > 0 && (
+            <>
+              {' · '}
+              <span className="text-gold font-semibold">지난 방문 이후 신규 영상 +{updateInfo.newCount}건</span>
+            </>
+          )}
+        </p>
+
         {/* AI Summary */}
         <InsightBox label="AI Trend Summary" tone="gold" title="최근 60일 시연 트렌드">
           <p className="text-[13px] leading-relaxed">
@@ -268,6 +327,14 @@ export default function VideoTrendsPage() {
                                   title={`${channel} — ${task} 영상 ${count}건 보기`}
                                 >
                                   {count}
+                                  {(heatmap.cellNew.get(`${channel}|${task}`) ?? 0) > 0 && (
+                                    <span
+                                      className="ml-0.5 text-[8.5px] font-semibold"
+                                      style={{ color: intensity > 0.5 ? '#ffd66e' : '#b8860b' }}
+                                    >
+                                      +{heatmap.cellNew.get(`${channel}|${task}`)}
+                                    </span>
+                                  )}
                                 </button>
                               ) : (
                                 <div className="h-7 flex items-center justify-center font-mono text-[10.5px] text-ink-200">
@@ -334,7 +401,12 @@ export default function VideoTrendsPage() {
                         />
                       )}
                       <div className="min-w-0 flex-1">
-                        <p className="text-[12.5px] font-medium text-ink-900 leading-snug">{v.title}</p>
+                        <p className="text-[12.5px] font-medium text-ink-900 leading-snug">
+                          {isNewVideo(v) && (
+                            <Tag tone="gold" size="sm" className="mr-1.5 align-middle">NEW</Tag>
+                          )}
+                          {v.title}
+                        </p>
                         <p className="mt-0.5 text-[11px] text-ink-500">
                           {v.publishedAt ? new Date(v.publishedAt).toLocaleDateString('ko-KR') : ''}
                           {typeof v.extractedMetadata?.views === 'number' &&
