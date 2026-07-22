@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
-import { DemoBanner } from '../shared/DemoBanner';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -73,7 +72,6 @@ export function MainLayout({ children }: MainLayoutProps) {
     <div className="flex min-h-screen bg-paper">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
-        <DemoBanner />
         <Header />
         <main className="flex-1 p-8 bg-paper">
           {children}
