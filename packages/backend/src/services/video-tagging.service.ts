@@ -277,7 +277,7 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
     generatedAt: string;
     source: 'llm' | 'template' | 'cache';
   }> {
-    const CACHE_KEY = 'video-trend-summary';
+    const CACHE_KEY = 'video-trend-summary:v2';
     if (!this.summaryCache) {
       this.summaryCache = await this.loadPersistedSummary(CACHE_KEY);
     }
@@ -360,7 +360,7 @@ points는 4~6개. 마크다운 기호(#, **) 사용 금지.`
     generatedAt: string;
     source: 'llm' | 'template' | 'cache';
   }> {
-    const cacheKey = `video-trend-summary:${domain}`;
+    const cacheKey = `video-trend-summary:v2:${domain}`;
     let cached = this.techSummaryCache.get(domain);
     if (!cached) {
       const persisted = await this.loadPersistedSummary(cacheKey);
