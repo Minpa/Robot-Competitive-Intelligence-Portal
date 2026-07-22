@@ -166,10 +166,10 @@ export default function TrendBriefPage() {
     <AuthGuard>
       <div className="max-w-5xl mx-auto px-4 py-8">
         <PageHeader
-          module="Daily Brief"
-          titleKo="동향 브리핑"
-          titleEn="Trend Brief"
-          description="전세계 경쟁사 로봇 · 기술 · 양산 동향을 최신순으로 모아 보여줍니다. 회사와 카테고리로 필터링할 수 있습니다."
+          module="Robots"
+          titleKo="기사 트렌드"
+          titleEn="News Trend"
+          description="전세계 경쟁사 로봇 관련 수집 기사를 최신순으로 모아 보여줍니다. 회사와 카테고리로 필터링할 수 있습니다."
         />
 
         {/* KPI Row */}
