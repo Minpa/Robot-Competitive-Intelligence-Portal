@@ -10,7 +10,8 @@ import {
 import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Panel, Tag, KpiTile, InsightBox } from '@/components/ui';
+import { Panel, Tag, KpiTile } from '@/components/ui';
+import { TrendSummaryCard } from '@/components/shared/TrendSummaryCard';
 import { ExternalLink, FileText, Play, X } from 'lucide-react';
 
 /**
@@ -323,13 +324,11 @@ export function TechDomainView({ view = 'main' }: { view?: 'main' | 'videos' }) 
 
         {/* AI Trend Summary */}
         {!isVideosView && (
-        <InsightBox label="AI Trend Summary" tone="gold" title={`최근 60일 ${config.titleKo}`}>
-          <p className="text-[13px] leading-relaxed">
-            {summaryQuery.isLoading
-              ? '요약을 생성하는 중...'
-              : summaryQuery.data?.summary ?? '요약을 불러오지 못했습니다.'}
-          </p>
-        </InsightBox>
+        <TrendSummaryCard
+          title={`최근 60일 ${config.titleKo}`}
+          loading={summaryQuery.isLoading}
+          data={summaryQuery.data}
+        />
         )}
 
         {/* KPI */}

@@ -152,15 +152,23 @@ class ApiClient {
   }
 
   async getVideoTrendSummary() {
-    return this.request<{ summary: string; generatedAt: string; source: string }>(
-      `/articles/video-trends/summary`
-    );
+    return this.request<{
+      summary: string;
+      headline?: string;
+      points?: { title: string; body: string }[];
+      generatedAt: string;
+      source: string;
+    }>(`/articles/video-trends/summary`);
   }
 
   async getTechTrendSummary(domain: string) {
-    return this.request<{ summary: string; generatedAt: string; source: string }>(
-      `/articles/tech-trends/${domain}/summary`
-    );
+    return this.request<{
+      summary: string;
+      headline?: string;
+      points?: { title: string; body: string }[];
+      generatedAt: string;
+      source: string;
+    }>(`/articles/tech-trends/${domain}/summary`);
   }
 
   async importArticlesFromExcel(file: File, updateExisting = true) {
