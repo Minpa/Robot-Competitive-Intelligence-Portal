@@ -35,8 +35,9 @@ const TASK_TYPE_DESCRIPTIONS: Record<string, string> = {
   '기타': '위 유형에 명확히 속하지 않는 영상',
 };
 
-const CHART_COLORS = [
-  '#1F2328', '#5C636E', '#8A909A', '#C2C7CF', '#3A3F47', '#7B8290', '#A9ADB4', '#DDDFE3',
+// 월별 순차 램프 — 밝음(과거) → 어두움(최근). 순차 데이터라 그레이로도 구분된다.
+const MONTH_RAMP = [
+  '#E4E6E9', '#C6CAD0', '#A9ADB4', '#8A909A', '#5C636E', '#3A3F47', '#1F2328',
 ];
 
 interface VideoRow {
@@ -192,18 +193,21 @@ export default function VideoTrendsPage() {
 
     const topChannels = [...channelTotals.entries()]
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
+      .slice(0, 10)
       .map(([c]) => c);
 
     const months = [...byMonthChannel.keys()].sort();
-    const data = months.map((m) => {
-      const row: Record<string, string | number> = { month: m };
-      const channelRow = byMonthChannel.get(m)!;
-      for (const c of topChannels) row[c] = channelRow.get(c) ?? 0;
+
+    // 횡 막대: 행 = 채널, 세그먼트 = 월 (밝음→어두움 = 과거→최근)
+    const data = topChannels.map((channel) => {
+      const row: Record<string, string | number> = { channel };
+      for (const m of months) {
+        row[m] = byMonthChannel.get(m)?.get(channel) ?? 0;
+      }
       return row;
     });
 
-    return { data, topChannels };
+    return { data, months, topChannels };
   }, [videos]);
 
   // 관심도 상위 (조회수, 최근 90일)
@@ -433,26 +437,35 @@ export default function VideoTrendsPage() {
         {/* Cadence chart */}
         <Panel
           kicker="Release Cadence"
-          title="월별 데모 공개 빈도 (최근 6개월)"
-          subtitle="공개 주기가 급격히 빨라지는 회사는 대형 발표의 전조일 수 있습니다."
+          title="채널별 데모 공개 빈도 (최근 6개월)"
+          subtitle="막대 세그먼트는 월 단위이며 진할수록 최근입니다. 오른쪽 끝이 진한 회사 = 최근 공개가 활발한 회사이고, 급격히 빨라지면 대형 발표의 전조일 수 있습니다."
         >
           {cadence.data.length === 0 ? (
             <div className="py-8 text-center text-ink-400 text-sm">데이터가 부족합니다.</div>
           ) : (
-            <div className="h-72">
+            <div style={{ height: Math.max(240, cadence.data.length * 36 + 60) }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={cadence.data} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                <BarChart
+                  layout="vertical"
+                  data={cadence.data}
+                  margin={{ top: 5, right: 20, bottom: 5, left: 10 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F1F2" horizontal={false} />
+                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
+                  <YAxis
+                    type="category"
+                    dataKey="channel"
+                    width={130}
+                    tick={{ fontSize: 11.5 }}
+                  />
                   <Tooltip />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  {cadence.topChannels.map((channel, i) => (
+                  {cadence.months.map((month, i) => (
                     <Bar
-                      key={channel}
-                      dataKey={channel}
+                      key={month}
+                      dataKey={month}
                       stackId="a"
-                      fill={CHART_COLORS[i % CHART_COLORS.length]}
+                      fill={MONTH_RAMP[Math.min(i, MONTH_RAMP.length - 1)]}
                     />
                   ))}
                 </BarChart>
