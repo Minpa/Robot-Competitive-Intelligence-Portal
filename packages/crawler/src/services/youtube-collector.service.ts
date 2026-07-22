@@ -21,6 +21,12 @@ export interface YoutubeChannel {
   handle: string;       // @handle (channelId 해석용)
   channelId: string | null; // UC... (알고 있으면 직접 지정 — API 없이 동작)
   domain: ChannelDomain; // 기술 축 분류 (robot=완제품, hand=핸드/그리퍼, rfm=파운데이션모델, actuator=구동계)
+  /**
+   * 혼합 콘텐츠 채널용 필터 (POSIX/JS 겸용 정규식 소스, 대소문자 무시).
+   * 자동차 회사·범용 AI 랩처럼 로봇 외 콘텐츠가 많은 채널은
+   * 제목+설명이 이 패턴에 걸리는 영상만 수집하고, 기존 비매칭 수집분은 정리한다.
+   */
+  onlyMatching?: string;
 }
 
 // 경쟁사/기술 생태계 공식 유튜브 채널 목록
@@ -28,14 +34,14 @@ export interface YoutubeChannel {
 export const YOUTUBE_CHANNELS: YoutubeChannel[] = [
   // ── 로봇 완제품 (robot) ──
   { company: 'Boston Dynamics', channelName: 'Boston Dynamics', handle: 'BostonDynamics', channelId: 'UC7vVhkEfw4nOGp8TyDk7RcQ', domain: 'robot' },
-  { company: 'Tesla', channelName: 'Tesla', handle: 'Tesla', channelId: null, domain: 'robot' },
+  { company: 'Tesla', channelName: 'Tesla', handle: 'Tesla', channelId: null, domain: 'robot', onlyMatching: 'robot|humanoid|optimus' },
   { company: 'Figure AI', channelName: 'Figure', handle: 'figureai', channelId: null, domain: 'robot' },
   { company: 'Unitree', channelName: 'Unitree Robotics', handle: 'UnitreeRobotics', channelId: null, domain: 'robot' },
   { company: '1X Technologies', channelName: '1X', handle: '1x-tech', channelId: null, domain: 'robot' },
   { company: 'Agility Robotics', channelName: 'Agility Robotics', handle: 'agilityrobotics', channelId: null, domain: 'robot' },
   { company: 'Apptronik', channelName: 'Apptronik', handle: 'apptronik', channelId: null, domain: 'robot' },
   { company: 'Agibot', channelName: 'AgiBot', handle: 'AgiBot', channelId: null, domain: 'robot' },
-  { company: 'XPeng', channelName: 'XPeng', handle: 'XPengMotorsGlobal', channelId: null, domain: 'robot' },
+  { company: 'XPeng', channelName: 'XPeng', handle: 'XPengMotorsGlobal', channelId: null, domain: 'robot', onlyMatching: 'robot|humanoid|iron' },
   { company: 'UBTECH', channelName: 'UBTECH Robotics', handle: 'UBTECHRobotics', channelId: null, domain: 'robot' },
   { company: 'Galbot', channelName: 'Galbot', handle: 'Galbot', channelId: null, domain: 'robot' },
   { company: 'Booster Robotics', channelName: 'Booster Robotics', handle: 'BoosterRobotics', channelId: null, domain: 'robot' },
@@ -52,9 +58,9 @@ export const YOUTUBE_CHANNELS: YoutubeChannel[] = [
   { company: 'Wonik Robotics', channelName: 'Wonik Robotics', handle: 'wonikrobotics', channelId: null, domain: 'hand' },
 
   // ── 로봇 파운데이션 모델 (rfm) ──
-  { company: 'Google DeepMind', channelName: 'Google DeepMind', handle: 'GoogleDeepMind', channelId: null, domain: 'rfm' },
-  { company: 'NVIDIA', channelName: 'NVIDIA Developer', handle: 'NVIDIADeveloper', channelId: null, domain: 'rfm' },
-  { company: 'Toyota Research Institute', channelName: 'Toyota Research Institute', handle: 'ToyotaResearchInstitute', channelId: null, domain: 'rfm' },
+  { company: 'Google DeepMind', channelName: 'Google DeepMind', handle: 'GoogleDeepMind', channelId: null, domain: 'rfm', onlyMatching: 'robot|humanoid|embodied|manipulat' },
+  { company: 'NVIDIA', channelName: 'NVIDIA Developer', handle: 'NVIDIADeveloper', channelId: null, domain: 'rfm', onlyMatching: 'robot|humanoid|gr00t|groot|isaac|embodied|manipulat' },
+  { company: 'Toyota Research Institute', channelName: 'Toyota Research Institute', handle: 'ToyotaResearchInstitute', channelId: null, domain: 'rfm', onlyMatching: 'robot|humanoid|embodied|manipulat|dexter' },
   { company: 'Physical Intelligence', channelName: 'Physical Intelligence', handle: 'PhysicalIntelligence', channelId: null, domain: 'rfm' },
   { company: 'Skild AI', channelName: 'Skild AI', handle: 'SkildAI', channelId: null, domain: 'rfm' },
   { company: 'Boston Dynamics', channelName: 'The AI Institute', handle: 'theaiinstitute', channelId: null, domain: 'rfm' },
@@ -72,6 +78,7 @@ interface CollectResult {
   videosFound: number;
   videosInserted: number;
   videosUpdated: number;
+  videosCleaned: number;
   errors: string[];
 }
 
@@ -185,6 +192,7 @@ class YoutubeCollectorService {
     const apiKey = process.env.YOUTUBE_API_KEY;
     if (!apiKey) return;
 
+    const gate = channel.onlyMatching ? new RegExp(channel.onlyMatching, 'i') : null;
     const pages = Math.max(1, parseInt(process.env.YOUTUBE_BACKFILL_PAGES || '2', 10));
     const uploadsPlaylist = 'UU' + channelId.slice(2); // UCxxxx → UUxxxx (업로드 재생목록)
     let pageToken: string | undefined;
@@ -204,6 +212,7 @@ class YoutubeCollectorService {
         const sn = item.snippet;
         const videoId = sn?.resourceId?.videoId;
         if (!videoId || !sn?.title) continue;
+        if (gate && !gate.test(`${sn.title} ${sn.description ?? ''}`)) continue;
         result.videosFound++;
 
         const contentHash = createHash('md5').update(`yt-video-${videoId}`).digest('hex');
@@ -265,6 +274,7 @@ class YoutubeCollectorService {
       videosFound: 0,
       videosInserted: 0,
       videosUpdated: 0,
+      videosCleaned: 0,
       errors: [],
     };
 
@@ -277,6 +287,26 @@ class YoutubeCollectorService {
       }
 
       const companyId = await this.findCompanyId(db, channel.company);
+
+      // 혼합 콘텐츠 채널: 기존 수집분 중 로봇 무관 영상 정리 (자동차·범용 AI 영상 등)
+      const gate = channel.onlyMatching ? new RegExp(channel.onlyMatching, 'i') : null;
+      if (channel.onlyMatching) {
+        try {
+          const cleaned = await db.execute(sql`
+            DELETE FROM articles
+            WHERE product_type = 'video'
+              AND extracted_metadata->>'channel' = ${channel.channelName}
+              AND NOT (title ~* ${channel.onlyMatching} OR COALESCE(extracted_metadata->>'description','') ~* ${channel.onlyMatching})
+          `);
+          const n = (cleaned as unknown as { rowCount?: number }).rowCount ?? 0;
+          if (n > 0) {
+            result.videosCleaned += n;
+            console.log(`[YouTube] Cleaned ${n} off-topic video(s) from ${channel.channelName}`);
+          }
+        } catch (err) {
+          result.errors.push(`${channel.channelName} (cleanup): ${(err as Error).message}`);
+        }
+      }
 
       // 딥 백필 (공식 API): RSS 최신 15개 제한을 넘어 과거 영상 수집 — BotQ 등 유명 과거 영상 포함
       try {
@@ -296,8 +326,11 @@ class YoutubeCollectorService {
           if (!videoId || !item.title) continue;
           result.videosFound++;
 
-          const contentHash = createHash('md5').update(`yt-video-${videoId}`).digest('hex');
           const media = extractMediaInfo((item as YtFeedItem).mediaGroup);
+          // 혼합 채널 게이트: 로봇 관련 영상만 수집
+          if (gate && !gate.test(`${item.title} ${media.description ?? ''}`)) continue;
+
+          const contentHash = createHash('md5').update(`yt-video-${videoId}`).digest('hex');
           const inserted = await db
             .insert(articles)
             .values({
@@ -351,7 +384,7 @@ class YoutubeCollectorService {
 
     console.log(
       `[YouTube] channels ${result.channelsProcessed} ok / ${result.channelsSkipped} skipped, ` +
-        `videos ${result.videosInserted} new / ${result.videosUpdated} updated / ${result.videosFound} seen, errors ${result.errors.length}` +
+        `videos ${result.videosInserted} new / ${result.videosUpdated} updated / ${result.videosCleaned} cleaned / ${result.videosFound} seen, errors ${result.errors.length}` +
         (result.skippedChannels.length > 0 ? ` — skipped: ${result.skippedChannels.join(', ')}` : '')
     );
     return result;
