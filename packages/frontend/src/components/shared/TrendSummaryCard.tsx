@@ -15,34 +15,70 @@ interface Props {
   windowLabel?: string;
 }
 
-/** 구버전(평문+마크다운 기호) 요약 폴백 렌더링 — #/불릿 제거, **강조** 변환 */
-function LegacyText({ text }: { text: string }) {
+/**
+ * 구버전(평문+마크다운) 요약을 라인 단위로 분해 —
+ * **굵은 구절**을 키워드로 보고 다음 굵은 구절 전까지를 설명으로 묶는다.
+ */
+function parseLegacy(text: string): { lede: string; items: { title: string; body: string }[] } {
   const cleaned = text
     .replace(/^#+\s*/gm, '')
     .replace(/^[-*]\s+/gm, '')
     .trim();
-  const segments = cleaned.split(/\*\*(.+?)\*\*/g);
+  const parts = cleaned.split(/\*\*(.+?)\*\*/g);
+  const lede = (parts[0] ?? '').trim();
+  const items: { title: string; body: string }[] = [];
+  for (let i = 1; i < parts.length; i += 2) {
+    const title = (parts[i] ?? '').replace(/[:：]\s*$/, '').trim();
+    const body = (parts[i + 1] ?? '').replace(/^[\s:：—-]+/, '').trim();
+    if (title) items.push({ title, body });
+  }
+  return { lede, items };
+}
+
+function PointLine({ title, body }: { title: string; body: string }) {
   return (
-    <p className="text-[14px] leading-relaxed text-ink-700">
-      {segments.map((seg, i) =>
-        i % 2 === 1 ? (
-          <strong key={i} className="font-semibold text-ink-900">
-            {seg}
-          </strong>
-        ) : (
-          <span key={i}>{seg}</span>
-        )
-      )}
-    </p>
+    <div className="flex gap-3">
+      <span className="shrink-0 text-[13px] text-ink-400 mt-0.5" aria-hidden>
+        ◆
+      </span>
+      <p className="text-[13px] leading-relaxed text-ink-600 min-w-0">
+        <strong className="font-semibold text-[13.5px] text-ink-900">{title}</strong>
+        {body && (
+          <>
+            <span className="text-ink-300 mx-2">—</span>
+            {body}
+          </>
+        )}
+      </p>
+    </div>
   );
 }
 
 /**
  * AI 트렌드 요약 카드 (뉴트럴 디자인)
- * 헤더(닷 + 라벨 + 기간) → 리드 문장 → 2열 하이라이트(◆ 소제목 — 설명).
- * 구조가 없는 응답(구버전 캐시)은 마크다운 기호를 정리한 평문으로 표시한다.
+ * 헤더(닷 + 라벨 + 기간) → 리드 문장 → "키워드 — 설명" 라인 목록.
+ * 구조화 응답(points)이 없으면 구버전 산문을 굵은 구절 기준으로 분해해 같은 형식으로 표시한다.
  */
 export function TrendSummaryCard({ loading, data, windowLabel = '최근 60일' }: Props) {
+  let lede: string | undefined;
+  let items: { title: string; body: string }[] = [];
+  let fallbackText: string | null = null;
+
+  if (data) {
+    if (data.points && data.points.length > 0) {
+      lede = data.headline;
+      items = data.points;
+    } else {
+      const parsed = parseLegacy(data.summary);
+      if (parsed.items.length > 0) {
+        lede = parsed.lede || undefined;
+        items = parsed.items;
+      } else {
+        fallbackText = parsed.lede || data.summary;
+      }
+    }
+  }
+
   return (
     <section className="bg-white border border-ink-200 rounded-[14px] shadow-report px-7 py-[26px]">
       {/* Header row */}
@@ -58,29 +94,21 @@ export function TrendSummaryCard({ loading, data, windowLabel = '최근 60일' }
         <p className="text-[14px] text-ink-500">요약을 생성하는 중...</p>
       ) : !data ? (
         <p className="text-[14px] text-ink-500">요약을 불러오지 못했습니다.</p>
-      ) : data.points && data.points.length > 0 ? (
+      ) : items.length > 0 ? (
         <>
-          {data.headline && (
+          {lede && (
             <p className="text-[16px] font-medium leading-relaxed text-ink-800 max-w-[820px] mb-5">
-              {data.headline}
+              {lede}
             </p>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3.5 gap-x-8">
-            {data.points.map((p, i) => (
-              <div key={i} className="flex gap-3">
-                <span className="shrink-0 text-[13px] text-ink-400 mt-0.5" aria-hidden>
-                  ◆
-                </span>
-                <div className="min-w-0">
-                  <p className="text-[13.5px] font-semibold text-ink-900 mb-0.5">{p.title}</p>
-                  <p className="text-[13px] leading-relaxed text-ink-600">{p.body}</p>
-                </div>
-              </div>
+          <div className="space-y-3">
+            {items.map((p, i) => (
+              <PointLine key={i} title={p.title} body={p.body} />
             ))}
           </div>
         </>
       ) : (
-        <LegacyText text={data.summary} />
+        <p className="text-[14px] leading-relaxed text-ink-700">{fallbackText}</p>
       )}
     </section>
   );
