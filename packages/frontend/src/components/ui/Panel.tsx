@@ -42,7 +42,7 @@ export function Panel({
   return (
     <section
       className={cn(
-        'border flex flex-col',
+        'border rounded-[14px] shadow-report overflow-hidden flex flex-col',
         VARIANT_CLASSES[variant],
         className
       )}

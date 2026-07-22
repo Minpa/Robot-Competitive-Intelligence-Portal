@@ -36,7 +36,7 @@ const TASK_TYPE_DESCRIPTIONS: Record<string, string> = {
 };
 
 const CHART_COLORS = [
-  '#1f3a5f', '#b8860b', '#2e7d32', '#c62828', '#6a1b9a', '#00838f', '#ef6c00', '#546e7a',
+  '#1F2328', '#5C636E', '#8A909A', '#C2C7CF', '#3A3F47', '#7B8290', '#A9ADB4', '#DDDFE3',
 ];
 
 interface VideoRow {
@@ -320,8 +320,8 @@ export default function VideoTrendsPage() {
                                   onClick={() => setCellPopover({ channel, task })}
                                   className="w-full h-7 flex items-center justify-center font-mono text-[10.5px] cursor-pointer hover:ring-1 hover:ring-gold transition-shadow"
                                   style={{
-                                    backgroundColor: `rgba(31, 58, 95, ${0.12 + intensity * 0.78})`,
-                                    color: intensity > 0.5 ? '#fff' : '#1f3a5f',
+                                    backgroundColor: `rgba(31, 35, 40, ${0.1 + intensity * 0.8})`,
+                                    color: intensity > 0.5 ? '#fff' : '#1F2328',
                                   }}
                                   title={`${channel} — ${task} 영상 ${count}건 보기`}
                                 >
@@ -329,7 +329,7 @@ export default function VideoTrendsPage() {
                                   {(heatmap.cellNew.get(`${channel}|${task}`) ?? 0) > 0 && (
                                     <span
                                       className="ml-0.5 text-[8.5px] font-semibold"
-                                      style={{ color: intensity > 0.5 ? '#ffd66e' : '#b8860b' }}
+                                      style={{ color: intensity > 0.5 ? '#C6CAD0' : '#5C636E' }}
                                     >
                                       +{heatmap.cellNew.get(`${channel}|${task}`)}
                                     </span>

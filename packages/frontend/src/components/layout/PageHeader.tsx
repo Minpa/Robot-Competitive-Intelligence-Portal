@@ -16,21 +16,21 @@ export function PageHeader({ module, titleKo, titleEn, description, actions }: P
       <div className="flex items-start justify-between gap-6">
         <div className="flex-1 min-w-0">
           {module && (
-            <div className="font-mono text-[10px] font-medium text-gold uppercase tracking-[0.22em] mb-2">
+            <div className="text-[11px] font-semibold text-ink-400 uppercase tracking-[2.5px] mb-3">
               {module}
             </div>
           )}
-          <h1 className="font-serif text-[28px] font-semibold text-ink-900 tracking-tight leading-tight">
+          <h1 className="font-serif text-[34px] font-semibold text-ink-900 tracking-tight leading-[1.15]">
             <span>{titleKo}</span>
             {titleEn && (
               <>
                 <span className="text-ink-300 font-normal mx-3">/</span>
-                <span className="uppercase">{titleEn}</span>
+                <span className="uppercase text-[22px] tracking-[0.5px] text-ink-600">{titleEn}</span>
               </>
             )}
           </h1>
           {description && (
-            <p className="mt-2 text-[13px] text-ink-500 max-w-2xl leading-relaxed">
+            <p className="mt-2 text-[14.5px] text-ink-600 max-w-[640px] leading-[1.65]">
               {description}
             </p>
           )}

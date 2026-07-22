@@ -230,19 +230,19 @@ export function Sidebar() {
     pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
 
   return (
-    <aside className="w-60 bg-brand text-brand-ink min-h-screen flex flex-col">
+    <aside className="w-[264px] bg-ink-50 text-ink-600 min-h-screen flex flex-col border-r border-ink-200">
       {/* Logo Block */}
-      <div className="px-5 pt-6 pb-5 border-b border-white/10">
+      <div className="px-5 pt-6 pb-5 border-b border-ink-200">
         <Link href="/video-trends" className="block">
           <div className="flex items-baseline gap-2">
-            <h1 className="font-serif text-[22px] font-semibold tracking-tight leading-none text-white">
+            <h1 className="font-mono text-[22px] font-semibold tracking-[3px] leading-none text-ink-900">
               ARGOS
             </h1>
           </div>
-          <p className="font-mono text-[9px] text-white/50 uppercase tracking-[0.22em] mt-2">
+          <p className="font-mono text-[10px] text-ink-400 uppercase tracking-[2px] mt-2">
             Robot Intelligence
           </p>
-          <p className="font-mono text-[9px] text-white/35 mt-1">
+          <p className="font-mono text-[9px] text-ink-300 mt-1">
             MODE v4.2
           </p>
         </Link>
@@ -266,21 +266,21 @@ export function Sidebar() {
                 <div className="flex flex-col items-start">
                   <span className={cn(
                     'font-mono text-[9px] font-medium uppercase tracking-[0.22em]',
-                    hasActiveItem ? 'text-gold' : 'text-white/45'
+                    hasActiveItem ? 'text-ink-900' : 'text-ink-400'
                   )}>
                     {group.subtitle}
                   </span>
                   <span className={cn(
                     'text-[11.5px] font-medium mt-1',
-                    hasActiveItem ? 'text-white' : 'text-white/70 group-hover:text-white'
+                    hasActiveItem ? 'text-ink-900' : 'text-ink-500 group-hover:text-ink-900'
                   )}>
                     {group.title}
                   </span>
                 </div>
                 {isCollapsed ? (
-                  <ChevronRight className="w-3.5 h-3.5 text-white/40" />
+                  <ChevronRight className="w-3.5 h-3.5 text-ink-400" />
                 ) : (
-                  <ChevronDown className="w-3.5 h-3.5 text-white/40" />
+                  <ChevronDown className="w-3.5 h-3.5 text-ink-400" />
                 )}
               </button>
 
@@ -295,21 +295,18 @@ export function Sidebar() {
                           key={item.name}
                           href={item.href}
                           className={cn(
-                            'relative flex items-center gap-2.5 pr-3 py-2 text-[12.5px] font-medium transition-colors',
+                            'relative flex items-center gap-2.5 pr-3 py-2 text-[13px] rounded-lg transition-colors',
                             indented ? 'pl-9' : 'pl-4',
                             isActive
-                              ? 'bg-white/[0.08] text-white'
-                              : 'text-white/65 hover:bg-white/[0.04] hover:text-white'
+                              ? 'bg-ink-100 text-ink-900 font-semibold shadow-[inset_3px_0_0_#1F2328]'
+                              : 'text-ink-600 font-medium hover:bg-ink-100 hover:text-ink-900'
                           )}
                         >
-                          {isActive && (
-                            <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-gold" />
-                          )}
                           {item.icon && (
                             <item.icon
                               className={cn(
                                 'w-[14px] h-[14px] shrink-0',
-                                isActive ? 'text-gold' : 'text-white/50'
+                                isActive ? 'text-ink-900' : 'text-ink-500'
                               )}
                               strokeWidth={isActive ? 2.25 : 1.75}
                             />
@@ -330,24 +327,24 @@ export function Sidebar() {
                               setSubGroupOpen((prev) => ({ ...prev, [key]: !isOpen }))
                             }
                             className={cn(
-                              'w-full flex items-center gap-2.5 pl-4 pr-3 py-2 text-[12.5px] font-medium transition-colors',
+                              'w-full flex items-center gap-2.5 pl-4 pr-3 py-2 text-[13px] rounded-lg transition-colors',
                               hasActiveChild
-                                ? 'text-white'
-                                : 'text-white/65 hover:bg-white/[0.04] hover:text-white'
+                                ? 'text-ink-900 font-semibold'
+                                : 'text-ink-600 font-medium hover:bg-ink-100 hover:text-ink-900'
                             )}
                           >
                             <entry.icon
                               className={cn(
                                 'w-[14px] h-[14px] shrink-0',
-                                hasActiveChild ? 'text-gold' : 'text-white/50'
+                                hasActiveChild ? 'text-ink-900' : 'text-ink-500'
                               )}
                               strokeWidth={hasActiveChild ? 2.25 : 1.75}
                             />
                             <span className="truncate flex-1 text-left">{entry.name}</span>
                             {isOpen ? (
-                              <ChevronDown className="w-3 h-3 text-white/40 shrink-0" />
+                              <ChevronDown className="w-3 h-3 text-ink-400 shrink-0" />
                             ) : (
-                              <ChevronRight className="w-3 h-3 text-white/40 shrink-0" />
+                              <ChevronRight className="w-3 h-3 text-ink-400 shrink-0" />
                             )}
                           </button>
                           {isOpen && (
@@ -369,8 +366,8 @@ export function Sidebar() {
       </nav>
 
       {/* Footer — Generate Report CTA */}
-      <div className="p-4 border-t border-white/10">
-        <button className="w-full flex items-center justify-center gap-2 bg-gold hover:bg-gold/90 text-brand font-mono text-[10px] font-semibold uppercase tracking-[0.18em] py-2.5 transition-colors">
+      <div className="p-4 border-t border-ink-200">
+        <button className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-[#111417] text-white font-mono text-[10px] font-semibold uppercase tracking-[0.18em] py-2.5 rounded-[9px] transition-colors">
           <FileText className="w-3.5 h-3.5" strokeWidth={2.25} />
           Generate Report
         </button>
