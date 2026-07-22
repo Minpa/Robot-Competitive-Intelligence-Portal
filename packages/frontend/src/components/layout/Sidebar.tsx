@@ -321,7 +321,8 @@ export function Sidebar() {
                     if (isSubGroup(entry)) {
                       const key = `${group.title}/${entry.name}`;
                       const hasActiveChild = entry.children.some(isItemActive);
-                      const isOpen = subGroupOpen[key] ?? hasActiveChild;
+                      // 기본 펼침 — 사용자가 명시적으로 접은 경우에만 접힌다
+                      const isOpen = subGroupOpen[key] ?? true;
                       return (
                         <div key={entry.name}>
                           <button
