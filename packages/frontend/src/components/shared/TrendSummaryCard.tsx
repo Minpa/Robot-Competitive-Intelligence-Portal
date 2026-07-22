@@ -20,6 +20,23 @@ interface Props {
  * **굵은 구절**을 키워드로 보고 다음 굵은 구절 전까지를 설명으로 묶는다.
  */
 function parseLegacy(text: string): { lede: string; items: { title: string; body: string }[] } {
+  // JSON형 텍스트(생성 실패로 원문이 저장된 경우) — title/body 쌍을 복원
+  if (/"title"\s*:/.test(text)) {
+    const unesc = (s: string) => {
+      try { return JSON.parse(`"${s}"`) as string; } catch { return s; }
+    };
+    const headlineMatch = text.match(/"headline"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    const items: { title: string; body: string }[] = [];
+    const pointRe = /"title"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,\s*"body"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
+    let m;
+    while ((m = pointRe.exec(text)) !== null) {
+      items.push({ title: unesc(m[1] ?? ''), body: unesc(m[2] ?? '') });
+    }
+    if (items.length > 0) {
+      return { lede: headlineMatch ? unesc(headlineMatch[1] ?? '') : '', items };
+    }
+  }
+
   const cleaned = text
     .replace(/^#+\s*/gm, '')
     .replace(/^[-*]\s+/gm, '')
