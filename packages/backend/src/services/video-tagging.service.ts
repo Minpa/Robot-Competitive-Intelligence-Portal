@@ -59,31 +59,87 @@ const HEURISTIC_RULES: { pattern: RegExp; taskType: (typeof VIDEO_TASK_TYPES)[nu
   { pattern: /introduc|unveil|reveal|announc|launch|meet |all.?new|generation/i, taskType: '제품 공개' },
 ];
 
+export interface SummaryPoint {
+  title: string;
+  body: string;
+}
+
+interface CachedSummary {
+  text: string;
+  headline?: string;
+  points?: SummaryPoint[];
+  generatedAt: number;
+}
+
 class VideoTaggingService {
   private client: Anthropic | null = null;
-  private summaryCache: { text: string; generatedAt: number } | null = null;
+  private summaryCache: CachedSummary | null = null;
 
-  // ── 요약 영속 캐시 (view_cache) — 서버 재시작에도 유지 ──
-
-  private async loadPersistedSummary(key: string): Promise<{ text: string; generatedAt: number } | null> {
+  /** LLM으로 구조화 요약 생성 — {headline, points[]} JSON 강제, 실패 시 평문 폴백 */
+  private async generateStructured(
+    prompt: string
+  ): Promise<{ text: string; headline?: string; points?: SummaryPoint[] } | null> {
+    if (!this.client) return null;
     try {
-      const [row] = await db.select().from(viewCache).where(eq(viewCache.viewName, key)).limit(1);
-      const data = row?.data as { text?: string } | undefined;
-      if (!row || typeof data?.text !== 'string') return null;
-      return { text: data.text, generatedAt: row.cachedAt.getTime() };
+      const response = await this.client.messages.create({
+        model: TAGGING_MODEL,
+        max_tokens: 900,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      const raw = response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map((b) => b.text)
+        .join('')
+        .trim();
+      const m = raw.match(/\{[\s\S]*\}/);
+      if (m) {
+        try {
+          const parsed = JSON.parse(m[0]) as { headline?: string; points?: { title?: string; body?: string }[] };
+          const points = (parsed.points ?? [])
+            .filter((p) => p?.title && p?.body)
+            .map((p) => ({ title: String(p.title).slice(0, 60), body: String(p.body).slice(0, 300) }))
+            .slice(0, 6);
+          if (points.length > 0) {
+            const headline = typeof parsed.headline === 'string' ? parsed.headline.slice(0, 200) : undefined;
+            const text = [headline, ...points.map((p) => `${p.title}: ${p.body}`)].filter(Boolean).join(' ');
+            return { text, headline, points };
+          }
+        } catch {
+          // JSON 파싱 실패 → 평문 폴백
+        }
+      }
+      return raw ? { text: raw } : null;
     } catch {
       return null;
     }
   }
 
-  private async persistSummary(key: string, text: string): Promise<void> {
+  // ── 요약 영속 캐시 (view_cache) — 서버 재시작에도 유지 ──
+
+  private async loadPersistedSummary(key: string): Promise<CachedSummary | null> {
+    try {
+      const [row] = await db.select().from(viewCache).where(eq(viewCache.viewName, key)).limit(1);
+      const data = row?.data as { text?: string; headline?: string; points?: SummaryPoint[] } | undefined;
+      if (!row || typeof data?.text !== 'string') return null;
+      return {
+        text: data.text,
+        headline: data.headline,
+        points: Array.isArray(data.points) ? data.points : undefined,
+        generatedAt: row.cachedAt.getTime(),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private async persistSummary(key: string, entry: { text: string; headline?: string; points?: SummaryPoint[] }): Promise<void> {
     try {
       await db
         .insert(viewCache)
-        .values({ viewName: key, data: { text }, ttlMs: SUMMARY_TTL_MS })
+        .values({ viewName: key, data: entry, ttlMs: SUMMARY_TTL_MS })
         .onConflictDoUpdate({
           target: viewCache.viewName,
-          set: { data: { text }, cachedAt: new Date(), ttlMs: SUMMARY_TTL_MS },
+          set: { data: entry, cachedAt: new Date(), ttlMs: SUMMARY_TTL_MS },
         });
     } catch {
       // 캐시 저장 실패는 치명적이지 않음
@@ -214,7 +270,13 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
   }
 
   /** 최근 60일 영상 트렌드 한국어 요약 (기본 3일 캐시, 재시작에도 유지) */
-  async getTrendSummary(): Promise<{ summary: string; generatedAt: string; source: 'llm' | 'template' | 'cache' }> {
+  async getTrendSummary(): Promise<{
+    summary: string;
+    headline?: string;
+    points?: SummaryPoint[];
+    generatedAt: string;
+    source: 'llm' | 'template' | 'cache';
+  }> {
     const CACHE_KEY = 'video-trend-summary';
     if (!this.summaryCache) {
       this.summaryCache = await this.loadPersistedSummary(CACHE_KEY);
@@ -222,6 +284,8 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
     if (this.summaryCache && Date.now() - this.summaryCache.generatedAt < SUMMARY_TTL_MS) {
       return {
         summary: this.summaryCache.text,
+        headline: this.summaryCache.headline,
+        points: this.summaryCache.points,
         generatedAt: new Date(this.summaryCache.generatedAt).toISOString(),
         source: 'cache',
       };
@@ -258,54 +322,44 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
       return { summary: '최근 60일 내 수집된 데모 영상이 없습니다.', generatedAt: new Date().toISOString(), source: 'template' };
     }
 
-    let summary: string;
-    let source: 'llm' | 'template' = 'template';
+    const generated = await this.generateStructured(
+      `다음은 최근 60일간 휴머노이드 로봇 경쟁사들이 유튜브에 공개한 데모 영상 데이터다. LG 로봇 전략팀 엔지니어를 위해 시연 트렌드를 한국어로 요약하라. 어떤 회사가 어떤 작업 유형의 시연에 집중하는지, 눈에 띄는 변화나 시사점이 무엇인지 중심으로. 과장 없이 데이터에 근거해서만.
 
-    if (this.client) {
-      try {
-        const response = await this.client.messages.create({
-          model: TAGGING_MODEL,
-          max_tokens: 800,
-          messages: [
-            {
-              role: 'user',
-              content: `다음은 최근 60일간 휴머노이드 로봇 경쟁사들이 유튜브에 공개한 데모 영상 데이터다. LG 로봇 전략팀 엔지니어를 위해 시연 트렌드를 한국어 4~6문장으로 요약하라. 어떤 회사가 어떤 작업 유형의 시연에 집중하는지, 눈에 띄는 변화나 시사점이 무엇인지 중심으로. 과장 없이 데이터에 근거해서만.
+${JSON.stringify(videos)}
 
-${JSON.stringify(videos)}`,
-            },
-          ],
-        });
-        const text = response.content
-          .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-          .map((b) => b.text)
-          .join('')
-          .trim();
-        if (text) {
-          summary = text;
-          source = 'llm';
-        } else {
-          summary = this.templateSummary(videos);
-        }
-      } catch {
-        summary = this.templateSummary(videos);
-      }
-    } else {
-      summary = this.templateSummary(videos);
-    }
+JSON으로만 응답하라. 다른 텍스트 없이:
+{"headline":"한 문장 총평","points":[{"title":"2~6단어 소제목","body":"1~2문장 설명"}]}
+points는 4~6개. 마크다운 기호(#, **) 사용 금지.`
+    );
 
-    this.summaryCache = { text: summary, generatedAt: Date.now() };
-    await this.persistSummary(CACHE_KEY, summary);
-    return { summary, generatedAt: new Date().toISOString(), source };
+    const entry = generated ?? { text: this.templateSummary(videos) };
+    const source: 'llm' | 'template' = generated ? 'llm' : 'template';
+
+    this.summaryCache = { ...entry, generatedAt: Date.now() };
+    await this.persistSummary(CACHE_KEY, entry);
+    return {
+      summary: entry.text,
+      headline: entry.headline,
+      points: entry.points,
+      generatedAt: new Date().toISOString(),
+      source,
+    };
   }
 
   // ── 단위기술 축 트렌드 요약 (핸드/RFM/액추에이터) ──
 
-  private techSummaryCache = new Map<string, { text: string; generatedAt: number }>();
+  private techSummaryCache = new Map<string, CachedSummary>();
 
   /** 단위기술/주제 축별 트렌드 요약 — 영상 + 논문(기술 축) 또는 기사(주제 축) 취합 (6시간 캐시) */
   async getTechTrendSummary(
     domain: 'hand' | 'rfm' | 'actuator' | 'expo' | 'production'
-  ): Promise<{ summary: string; generatedAt: string; source: 'llm' | 'template' | 'cache' }> {
+  ): Promise<{
+    summary: string;
+    headline?: string;
+    points?: SummaryPoint[];
+    generatedAt: string;
+    source: 'llm' | 'template' | 'cache';
+  }> {
     const cacheKey = `video-trend-summary:${domain}`;
     let cached = this.techSummaryCache.get(domain);
     if (!cached) {
@@ -316,7 +370,13 @@ ${JSON.stringify(videos)}`,
       }
     }
     if (cached && Date.now() - cached.generatedAt < SUMMARY_TTL_MS) {
-      return { summary: cached.text, generatedAt: new Date(cached.generatedAt).toISOString(), source: 'cache' };
+      return {
+        summary: cached.text,
+        headline: cached.headline,
+        points: cached.points,
+        generatedAt: new Date(cached.generatedAt).toISOString(),
+        source: 'cache',
+      };
     }
 
     const DOMAIN_LABEL: Record<string, string> = {
@@ -411,51 +471,35 @@ ${JSON.stringify(videos)}`,
       };
     }
 
-    let summary: string;
-    let source: 'llm' | 'template' = 'template';
-
-    if (this.client) {
-      try {
-        const response = await this.client.messages.create({
-          model: TAGGING_MODEL,
-          max_tokens: 800,
-          messages: [
-            {
-              role: 'user',
-              content: `다음은 최근 60일간 수집된 ${DOMAIN_LABEL[domain]} 분야의 영상과 ${secondLabel} 데이터다. LG 로봇 전략팀을 위해 현재 트렌드를 한국어 4~6문장으로 요약하라. ${
-                domain === 'production'
-                  ? '경쟁사 로봇 제품의 양산 현황 중심으로: 어느 회사가 생산라인을 구축/가동 중인지, 생산능력·램프업 목표, 출하/납품량, 가격 동향. 로봇이 남의 공장에 투입되는 것(도입 사례)은 양산이 아니므로 제외하라.'
-                  : domain === 'expo'
-                    ? '어떤 전시회/학회에서 어느 회사가 무엇을 시연했는지 중심으로.'
-                    : '어떤 업체/랩이 활발한지, 기술적으로 어떤 방향이 부상하는지 중심으로.'
-              } 과장 없이 데이터에 근거해서만.
+    const generated = await this.generateStructured(
+      `다음은 최근 60일간 수집된 ${DOMAIN_LABEL[domain]} 분야의 영상과 ${secondLabel} 데이터다. LG 로봇 전략팀을 위해 현재 트렌드를 한국어로 요약하라. ${
+        domain === 'production'
+          ? '경쟁사 로봇 제품의 양산 현황 중심으로: 어느 회사가 생산라인을 구축/가동 중인지, 생산능력·램프업 목표, 출하/납품량, 가격 동향. 로봇이 남의 공장에 투입되는 것(도입 사례)은 양산이 아니므로 제외하라.'
+          : domain === 'expo'
+            ? '어떤 전시회/학회에서 어느 회사가 무엇을 시연했는지 중심으로.'
+            : '어떤 업체/랩이 활발한지, 기술적으로 어떤 방향이 부상하는지 중심으로.'
+      } 과장 없이 데이터에 근거해서만.
 
 영상 (${videos.length}건): ${JSON.stringify(videos)}
-${secondLabel} 제목 (${papers.length}건): ${JSON.stringify(papers.slice(0, 40))}`,
-            },
-          ],
-        });
-        const text = response.content
-          .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-          .map((b) => b.text)
-          .join('')
-          .trim();
-        if (text) {
-          summary = text;
-          source = 'llm';
-        } else {
-          summary = this.techTemplateSummary(DOMAIN_LABEL[domain]!, videos, papers.length);
-        }
-      } catch {
-        summary = this.techTemplateSummary(DOMAIN_LABEL[domain]!, videos, papers.length);
-      }
-    } else {
-      summary = this.techTemplateSummary(DOMAIN_LABEL[domain]!, videos, papers.length);
-    }
+${secondLabel} 제목 (${papers.length}건): ${JSON.stringify(papers.slice(0, 40))}
 
-    this.techSummaryCache.set(domain, { text: summary, generatedAt: Date.now() });
-    await this.persistSummary(cacheKey, summary);
-    return { summary, generatedAt: new Date().toISOString(), source };
+JSON으로만 응답하라. 다른 텍스트 없이:
+{"headline":"한 문장 총평","points":[{"title":"2~6단어 소제목","body":"1~2문장 설명"}]}
+points는 4~6개. 마크다운 기호(#, **) 사용 금지.`
+    );
+
+    const entry = generated ?? { text: this.techTemplateSummary(DOMAIN_LABEL[domain]!, videos, papers.length) };
+    const source: 'llm' | 'template' = generated ? 'llm' : 'template';
+
+    this.techSummaryCache.set(domain, { ...entry, generatedAt: Date.now() });
+    await this.persistSummary(cacheKey, entry);
+    return {
+      summary: entry.text,
+      headline: entry.headline,
+      points: entry.points,
+      generatedAt: new Date().toISOString(),
+      source,
+    };
   }
 
   private techTemplateSummary(label: string, videos: { channel: string }[], paperCount: number): string {

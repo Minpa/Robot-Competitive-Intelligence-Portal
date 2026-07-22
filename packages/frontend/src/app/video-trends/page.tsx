@@ -9,7 +9,8 @@ import {
 import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Panel, InsightBox, Tag } from '@/components/ui';
+import { Panel, Tag } from '@/components/ui';
+import { TrendSummaryCard } from '@/components/shared/TrendSummaryCard';
 import { ExternalLink, X } from 'lucide-react';
 
 const TASK_TYPES = [
@@ -263,13 +264,11 @@ export default function VideoTrendsPage() {
         </p>
 
         {/* AI Summary */}
-        <InsightBox label="AI Trend Summary" tone="gold" title="최근 60일 시연 트렌드">
-          <p className="text-[13px] leading-relaxed">
-            {summaryQuery.isLoading
-              ? '요약을 생성하는 중...'
-              : summaryQuery.data?.summary ?? '요약을 불러오지 못했습니다.'}
-          </p>
-        </InsightBox>
+        <TrendSummaryCard
+          title="최근 60일 시연 트렌드"
+          loading={summaryQuery.isLoading}
+          data={summaryQuery.data}
+        />
 
         {untaggedCount > 0 && (
           <p className="text-[11.5px] text-ink-500">
