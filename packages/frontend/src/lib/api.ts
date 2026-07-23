@@ -161,6 +161,23 @@ class ApiClient {
     }>(`/articles/video-trends/summary`);
   }
 
+  // ── 영상 → DB 연동 (로봇 후보큐) ──
+  async getRobotCandidates() {
+    return this.request<any[]>(`/video-sync/robot-candidates`);
+  }
+  async runVideoSync() {
+    return this.request<any>(`/video-sync/run`, { method: 'POST' });
+  }
+  async approveRobotCandidate(id: string, body?: Record<string, unknown>) {
+    return this.request<any>(`/video-sync/robot-candidates/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(body ?? {}),
+    });
+  }
+  async rejectRobotCandidate(id: string) {
+    return this.request<any>(`/video-sync/robot-candidates/${id}/reject`, { method: 'POST' });
+  }
+
   async getTechTrendSummary(domain: string) {
     return this.request<{
       summary: string;

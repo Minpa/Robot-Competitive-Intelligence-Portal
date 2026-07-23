@@ -13,6 +13,7 @@ import { dataAuditService } from './data-audit.service.js';
 import { strategicAIAgentService } from './strategic-ai-agent.service.js';
 import { warRoomLgRobotService } from './war-room-lg-robot.service.js';
 import { videoTaggingService } from './video-tagging.service.js';
+import { videoDbSyncService } from './video-db-sync.service.js';
 
 // ── Types ──
 
@@ -215,6 +216,12 @@ class SchedulerService {
 
   private async runVideoTagging() {
     await videoTaggingService.run();
+    // 태깅 직후 카탈로그 연동 (기업 자동생성/영상-로봇 링크/후보큐)
+    try {
+      await videoDbSyncService.run();
+    } catch (err) {
+      console.error('[Scheduler] Video DB sync failed:', err);
+    }
   }
 
   private async runBriefing() {

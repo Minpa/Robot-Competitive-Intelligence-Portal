@@ -28,6 +28,7 @@ import { seedScoresRoutes } from './seed-scores.js';
 import { ciUpdateRoutes } from './ci-update.js';
 import { complianceRoutes } from './compliance.js';
 import { regulatoryDocumentRoutes } from './regulatory-documents.js';
+import { videoSyncRoutes } from './video-sync.js';
 import { designerRoutes } from './designer/index.js';
 import { cloidSimulatorRoutes } from './cloid-simulator.js';
 import { eventRoutes } from './events.js';
@@ -86,6 +87,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // 규제 문서 라이브러리
   fastify.register(regulatoryDocumentRoutes, { prefix: '/api/regulatory-documents' });
+  fastify.register(videoSyncRoutes, { prefix: '/api/video-sync' });
 
   // ARGOS-Designer (Phase 1 PoC, microservice-isolated under services/designer/)
   fastify.register(designerRoutes, { prefix: '/api/designer' });

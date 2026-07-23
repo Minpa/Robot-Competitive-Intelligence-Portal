@@ -208,6 +208,7 @@ const navigationGroups: NavGroup[] = [
     subtitle: 'Administration',
     items: [
       { name: 'LG 휴머노이드 스펙 입력', href: '/lg-humanoid-specs', icon: Bot },
+      { name: '영상 감지 로봇 후보', href: '/admin/robot-candidates', icon: Bot },
       { name: '관리자 설정', href: '/admin', icon: Settings },
     ],
   },

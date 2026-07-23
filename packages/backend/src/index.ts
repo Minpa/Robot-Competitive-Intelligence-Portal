@@ -103,7 +103,10 @@ const start = async () => {
           import('./services/video-tagging.service.js')
             .then(({ videoTaggingService }) => videoTaggingService.run(1500))
             .then((r) => console.log('[VideoTagging] Startup run done:', JSON.stringify(r)))
-            .catch((err) => console.error('[VideoTagging] Startup run failed:', err));
+            .then(() => import('./services/video-db-sync.service.js'))
+            .then(({ videoDbSyncService }) => videoDbSyncService.run())
+            .then((r) => console.log('[VideoDbSync] Startup run done:', JSON.stringify(r)))
+            .catch((err) => console.error('[VideoTagging/DbSync] Startup run failed:', err));
         }, 60_000);
         console.log('[VideoTagging] Startup run scheduled in 60s');
       }
