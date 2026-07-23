@@ -222,7 +222,7 @@ export default function HumanoidRobotDetailPage() {
                       <KpiCard icon={Zap} label="최고 속도" value={robot.bodySpec?.maxSpeed} unit="m/s" color="green" />
                       <KpiCard icon={Clock} label="연속 동작" value={robot.bodySpec?.operationTime || robot.powerSpec?.operationTime} unit="h" color="orange" />
                       <KpiCard icon={Target} label="반복 정밀도" value={(robot.bodySpec as any)?.repeatability} unit="mm" color="cyan" />
-                      <KpiCard icon={Shield} label="보호 등급" value={(robot.bodySpec as any)?.ipRating || 'IP54'} color="slate" />
+                      <KpiCard icon={Shield} label="보호 등급" value={(robot.bodySpec as any)?.ipRating} color="slate" />
                     </div>
                   </div>
 
@@ -637,12 +637,14 @@ function KpiCard({ icon: Icon, label, value, unit, color }: {
       <div className={`inline-flex p-2 rounded-lg mb-2 ${colorClasses[color]}`}>
         <Icon className="w-5 h-5" />
       </div>
-      <p className="text-2xl font-bold text-ink-900">
-        {value !== null && value !== undefined ? value : '-'}
-        {value !== null && value !== undefined && unit && (
-          <span className="text-sm font-normal text-ink-500 ml-1">{unit}</span>
-        )}
-      </p>
+      {value !== null && value !== undefined && value !== '' ? (
+        <p className="text-2xl font-bold text-ink-900">
+          {value}
+          {unit && <span className="text-sm font-normal text-ink-500 ml-1">{unit}</span>}
+        </p>
+      ) : (
+        <p className="text-[11px] font-medium text-ink-400 leading-tight py-1.5">공개데이터없음</p>
+      )}
       <p className="text-xs text-ink-400 mt-1">{label}</p>
     </div>
   );
@@ -654,7 +656,11 @@ function SpecRow({ label, value, unit }: { label: string; value: any; unit?: str
     <tr className="border-b border-ink-100 last:border-0">
       <td className="px-4 py-3 text-sm text-ink-500 w-1/3">{label}</td>
       <td className="px-4 py-3 text-sm text-ink-700">
-        {value !== null && value !== undefined ? `${value}${unit ? ` ${unit}` : ''}` : '-'}
+        {value !== null && value !== undefined && value !== '' ? (
+          `${value}${unit ? ` ${unit}` : ''}`
+        ) : (
+          <span className="text-ink-400">공개데이터없음</span>
+        )}
       </td>
     </tr>
   );

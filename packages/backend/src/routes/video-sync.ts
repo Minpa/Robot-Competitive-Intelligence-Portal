@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { videoDbSyncService } from '../services/video-db-sync.service.js';
+import { specEnrichmentService } from '../services/spec-enrichment.service.js';
 import { authMiddleware, requireRole } from './auth.js';
 
 const adminOrAnalyst = [authMiddleware, requireRole('admin', 'analyst')];
@@ -14,6 +15,11 @@ export async function videoSyncRoutes(fastify: FastifyInstance) {
   // 연동 수동 실행
   fastify.post('/run', { preHandler: adminOnly }, async () => {
     return videoDbSyncService.run();
+  });
+
+  // 스펙 자동 보강 수동 실행
+  fastify.post('/enrich-specs', { preHandler: adminOnly }, async () => {
+    return specEnrichmentService.run();
   });
 
   // 후보 승인 → 카탈로그 승격

@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Panel, Tag } from '@/components/ui';
-import { ExternalLink, Check, X, RefreshCw } from 'lucide-react';
+import { ExternalLink, Check, X, RefreshCw, Sparkles } from 'lucide-react';
 
 interface Candidate {
   id: string;
@@ -34,6 +34,10 @@ export default function RobotCandidatesPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['robot-candidates'] }),
   });
 
+  const enrichSpecs = useMutation({
+    mutationFn: () => api.enrichRobotSpecs(),
+  });
+
   const approve = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) =>
       api.approveRobotCandidate(id, body),
@@ -56,16 +60,33 @@ export default function RobotCandidatesPage() {
           titleEn="Robot Candidates"
           description="영상 채널에서 감지되었으나 카탈로그에 없는 로봇입니다. 승인하면 로봇 리스트·타임라인에 추가되고, 최초 감지 영상이 연결됩니다."
           actions={
-            <button
-              onClick={() => runSync.mutate()}
-              disabled={runSync.isPending}
-              className="inline-flex items-center gap-2 px-3 py-2 text-[12px] font-medium border border-ink-200 bg-white text-ink-700 hover:border-ink-400 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${runSync.isPending ? 'animate-spin' : ''}`} />
-              지금 연동 실행
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => enrichSpecs.mutate()}
+                disabled={enrichSpecs.isPending}
+                className="inline-flex items-center gap-2 px-3 py-2 text-[12px] font-medium border border-ink-200 bg-white text-ink-700 hover:border-ink-400 transition-colors disabled:opacity-50"
+              >
+                <Sparkles className={`w-3.5 h-3.5 ${enrichSpecs.isPending ? 'animate-pulse' : ''}`} />
+                스펙 자동 보강
+              </button>
+              <button
+                onClick={() => runSync.mutate()}
+                disabled={runSync.isPending}
+                className="inline-flex items-center gap-2 px-3 py-2 text-[12px] font-medium border border-ink-200 bg-white text-ink-700 hover:border-ink-400 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${runSync.isPending ? 'animate-spin' : ''}`} />
+                지금 연동 실행
+              </button>
+            </div>
           }
         />
+
+        {enrichSpecs.data && (
+          <div className="text-[12px] text-ink-600 bg-ink-50 border border-ink-200 rounded-lg px-4 py-2.5">
+            스펙 보강 완료 — 로봇 {enrichSpecs.data.robotsScanned}개 검토, {enrichSpecs.data.robotsEnriched}개 보강,{' '}
+            필드 {enrichSpecs.data.fieldsFilled}개 채움.
+          </div>
+        )}
 
         <Panel kicker="Review Queue" title={`검토 대기 (${candidates.length}건)`}>
           {isLoading ? (

@@ -168,6 +168,9 @@ class ApiClient {
   async runVideoSync() {
     return this.request<any>(`/video-sync/run`, { method: 'POST' });
   }
+  async enrichRobotSpecs() {
+    return this.request<any>(`/video-sync/enrich-specs`, { method: 'POST' });
+  }
   async approveRobotCandidate(id: string, body?: Record<string, unknown>) {
     return this.request<any>(`/video-sync/robot-candidates/${id}/approve`, {
       method: 'POST',

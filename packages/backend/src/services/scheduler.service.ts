@@ -14,6 +14,7 @@ import { strategicAIAgentService } from './strategic-ai-agent.service.js';
 import { warRoomLgRobotService } from './war-room-lg-robot.service.js';
 import { videoTaggingService } from './video-tagging.service.js';
 import { videoDbSyncService } from './video-db-sync.service.js';
+import { specEnrichmentService } from './spec-enrichment.service.js';
 
 // ── Types ──
 
@@ -221,6 +222,12 @@ class SchedulerService {
       await videoDbSyncService.run();
     } catch (err) {
       console.error('[Scheduler] Video DB sync failed:', err);
+    }
+    // 연동 직후 스펙 미확보 로봇 자동 보강
+    try {
+      await specEnrichmentService.run();
+    } catch (err) {
+      console.error('[Scheduler] Spec enrichment failed:', err);
     }
   }
 
