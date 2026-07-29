@@ -26,6 +26,12 @@ export async function articleRoutes(fastify: FastifyInstance) {
     return videoTaggingService.getTrendSummary();
   });
 
+  // 데모 영상 최근 7일 급상승 Top 10
+  fastify.get('/video-trends/top', async () => {
+    const { videoTaggingService } = await import('../services/video-tagging.service.js');
+    return videoTaggingService.getTopTrendingVideos();
+  });
+
   // 단위기술 축(핸드/RFM/액추에이터) 트렌드 AI 요약
   fastify.get<{ Params: { domain: string } }>('/tech-trends/:domain/summary', async (request, reply) => {
     const { domain } = request.params;

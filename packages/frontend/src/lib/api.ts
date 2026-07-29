@@ -161,6 +161,19 @@ class ApiClient {
     }>(`/articles/video-trends/summary`);
   }
 
+  async getVideoTrendTopVideos() {
+    return this.request<{
+      id: string;
+      title: string;
+      url: string;
+      thumbnail: string | null;
+      views: number;
+      growthRate: number;
+      publishedAt: string | null;
+      channel?: string;
+    }[]>(`/articles/video-trends/top`);
+  }
+
   // ── 영상 → DB 연동 (로봇 후보큐) ──
   async getRobotCandidates() {
     return this.request<any[]>(`/video-sync/robot-candidates`);
