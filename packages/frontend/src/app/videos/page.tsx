@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Panel, Tag } from '@/components/ui';
 import { Play, ExternalLink, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getVideoIdFromItem, usePlayableFilter } from '@/lib/usePlayableVideos';
 
 interface VideoItem {
   id: string;
@@ -25,11 +26,6 @@ interface VideoItem {
   } | null;
 }
 
-function getVideoId(item: VideoItem): string | null {
-  if (item.extractedMetadata?.videoId) return item.extractedMetadata.videoId;
-  const m = item.url?.match(/[?&]v=([\w-]{11})/) ?? item.url?.match(/youtu\.be\/([\w-]{11})/);
-  return m ? m[1] : null;
-}
 
 function formatDate(value?: string | null) {
   if (!value) return '';
@@ -55,16 +51,16 @@ export default function VideosPage() {
       }),
   });
 
-  const items: VideoItem[] = useMemo(
-    () =>
-      ((videosQuery.data?.items ?? []) as VideoItem[]).filter((v) => {
-        if (!getVideoId(v)) return false;
-        // 로봇(완제품) 채널만 — 단위기술 채널 영상은 각 기술 축 페이지에서 표시
-        const domain = (v.extractedMetadata as { domain?: string } | null)?.domain;
-        return !domain || domain === 'robot';
-      }),
+  const rawItems: VideoItem[] = useMemo(
+    () => ((videosQuery.data?.items ?? []) as VideoItem[]).filter((v) => {
+      // 로봇(완제품) 채널만 — 단위기술 채널 영상은 각 기술 축 페이지에서 표시
+      const domain = (v.extractedMetadata as { domain?: string } | null)?.domain;
+      return !domain || domain === 'robot';
+    }),
     [videosQuery.data]
   );
+
+  const { filtered: items } = usePlayableFilter<VideoItem>(rawItems, (v) => getVideoIdFromItem(v));
 
   const channels = useMemo(() => {
     const set = new Set<string>();
@@ -91,7 +87,7 @@ export default function VideosPage() {
     [items, channelFilter, taskFilter]
   );
 
-  const playingVideoId = playing ? getVideoId(playing) : null;
+  const playingVideoId = playing ? getVideoIdFromItem(playing) : null;
 
   return (
     <AuthGuard>

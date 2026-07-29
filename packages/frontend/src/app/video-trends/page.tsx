@@ -12,6 +12,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Panel, Tag } from '@/components/ui';
 import { TrendSummaryCard } from '@/components/shared/TrendSummaryCard';
 import { ExternalLink, X } from 'lucide-react';
+import { getVideoIdFromItem, usePlayableFilter } from '@/lib/usePlayableVideos';
 
 const TASK_TYPES = [
   '보행/이동',
@@ -108,15 +109,16 @@ export default function VideoTrendsPage() {
     staleTime: 30 * 60 * 1000,
   });
 
-  const videos: VideoRow[] = useMemo(
-    () =>
-      ((videosQuery.data?.items ?? []) as VideoRow[]).filter((v) => {
-        // 로봇(완제품) 채널만 — 단위기술 영상은 각 기술 축 페이지가 담당
-        const domain = (v.extractedMetadata as { domain?: string } | null)?.domain;
-        return !domain || domain === 'robot';
-      }),
+  const rawVideos: VideoRow[] = useMemo(
+    () => ((videosQuery.data?.items ?? []) as VideoRow[]).filter((v) => {
+      // 로봇(완제품) 채널만 — 단위기술 영상은 각 기술 축 페이지가 담당
+      const domain = (v.extractedMetadata as { domain?: string } | null)?.domain;
+      return !domain || domain === 'robot';
+    }),
     [videosQuery.data]
   );
+
+  const { filtered: videos } = usePlayableFilter<VideoRow>(rawVideos, (v) => getVideoIdFromItem(v));
 
   // 데이터 최신성 — 상단 표시용
   const updateInfo = useMemo(() => {
