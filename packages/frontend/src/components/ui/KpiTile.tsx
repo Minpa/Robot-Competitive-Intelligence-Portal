@@ -11,6 +11,7 @@ interface KpiTileProps {
   trend?: Trend;
   context?: string;
   className?: string;
+  onClick?: () => void;
 }
 
 const TREND_CLASSES: Record<Trend, string> = {
@@ -33,14 +34,10 @@ export function KpiTile({
   trend,
   context,
   className,
+  onClick,
 }: KpiTileProps) {
-  return (
-    <div
-      className={cn(
-        'bg-white border border-ink-200 rounded-[14px] shadow-report p-5 flex flex-col gap-3',
-        className
-      )}
-    >
+  const content = (
+    <>
       <Kicker>{label}</Kicker>
       <div className="flex items-baseline gap-1.5">
         <span className="text-[38px] font-bold leading-none text-ink-900 tracking-tight">
@@ -66,6 +63,32 @@ export function KpiTile({
           )}
         </div>
       )}
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn(
+          'bg-white border border-ink-200 rounded-[14px] shadow-report p-5 flex flex-col gap-3 w-full text-left cursor-pointer hover:ring-1 hover:ring-warn transition-shadow',
+          className
+        )}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        'bg-white border border-ink-200 rounded-[14px] shadow-report p-5 flex flex-col gap-3',
+        className
+      )}
+    >
+      {content}
     </div>
   );
 }

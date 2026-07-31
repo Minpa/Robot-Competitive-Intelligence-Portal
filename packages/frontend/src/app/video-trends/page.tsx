@@ -57,6 +57,13 @@ interface VideoRow {
   } | null;
 }
 
+interface VideoPopoverState {
+  kicker: string;
+  title: string;
+  videos: VideoRow[];
+  emptyMessage?: string;
+}
+
 function getThumbnail(v: VideoRow): string | null {
   if (v.extractedMetadata?.thumbnail) return v.extractedMetadata.thumbnail;
   if (v.extractedMetadata?.videoId) return `https://i.ytimg.com/vi/${v.extractedMetadata.videoId}/mqdefault.jpg`;
@@ -142,57 +149,66 @@ export default function VideoTrendsPage() {
   // 데이터 최신성 — 상단 표시용
   const updateInfo = useMemo(() => {
     let latest = 0;
-    let newCount = 0;
+    const newVideos: VideoRow[] = [];
     for (const v of videos) {
       const t = v.collectedAt ? new Date(v.collectedAt).getTime() : 0;
       if (t > latest) latest = t;
-      if (isNewVideo(v)) newCount++;
+      if (isNewVideo(v)) newVideos.push(v);
     }
-    return { latest, newCount };
+    return { latest, newCount: newVideos.length, newVideos };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videos, lastVisit]);
 
-  // 이번 달(최근 30일) 채널별 활동 건수 — 하이라이트 KPI/Top3 랭킹용
-  const monthlyChannelCounts = useMemo(() => {
+  // 이번 달(최근 30일) 채널별 활동 건수·영상 목록 — 하이라이트 KPI/Top3 랭킹용
+  const monthlyChannelActivity = useMemo(() => {
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const counts = new Map<string, number>();
+    const videosByChannel = new Map<string, VideoRow[]>();
     for (const v of videos) {
       const t = v.publishedAt ? new Date(v.publishedAt).getTime() : 0;
       if (t < thirtyDaysAgo) continue;
       const ch = v.extractedMetadata?.channel;
       if (!ch) continue;
       counts.set(ch, (counts.get(ch) ?? 0) + 1);
+      if (!videosByChannel.has(ch)) videosByChannel.set(ch, []);
+      videosByChannel.get(ch)!.push(v);
     }
-    return counts;
+    return { counts, videos: videosByChannel };
   }, [videos]);
 
   const topChannelThisMonth = useMemo(() => {
-    const entries = [...monthlyChannelCounts.entries()].sort((a, b) => b[1] - a[1]);
+    const entries = [...monthlyChannelActivity.counts.entries()].sort((a, b) => b[1] - a[1]);
     return entries[0] ?? null;
-  }, [monthlyChannelCounts]);
+  }, [monthlyChannelActivity]);
 
   const top3Channels = useMemo(
     () =>
-      [...monthlyChannelCounts.entries()]
+      [...monthlyChannelActivity.counts.entries()]
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
         .map(([channel, count]) => ({ channel, count })),
-    [monthlyChannelCounts]
+    [monthlyChannelActivity]
   );
 
   // 최근 30일 대비 이전 30일(31~60일 전) 시연 유형 증감 — 급상승 시연 유형 KPI용
-  const taskTypeDelta = useMemo(() => {
+  const taskTypeActivity = useMemo(() => {
     const now = Date.now();
     const d30 = now - 30 * 24 * 60 * 60 * 1000;
     const d60 = now - 60 * 24 * 60 * 60 * 1000;
     const recent = new Map<string, number>();
     const prior = new Map<string, number>();
+    const recentVideosByTask = new Map<string, VideoRow[]>();
     for (const v of videos) {
       const t = v.publishedAt ? new Date(v.publishedAt).getTime() : 0;
       const tasks = v.extractedMetadata?.aiTags?.taskTypes ?? [];
       for (const task of tasks) {
-        if (t >= d30) recent.set(task, (recent.get(task) ?? 0) + 1);
-        else if (t >= d60) prior.set(task, (prior.get(task) ?? 0) + 1);
+        if (t >= d30) {
+          recent.set(task, (recent.get(task) ?? 0) + 1);
+          if (!recentVideosByTask.has(task)) recentVideosByTask.set(task, []);
+          recentVideosByTask.get(task)!.push(v);
+        } else if (t >= d60) {
+          prior.set(task, (prior.get(task) ?? 0) + 1);
+        }
       }
     }
     let best: { task: string; delta: number } | null = null;
@@ -201,7 +217,7 @@ export default function VideoTrendsPage() {
       const delta = (recent.get(task) ?? 0) - (prior.get(task) ?? 0);
       if (!best || delta > best.delta) best = { task, delta };
     }
-    return best;
+    return { best, recentVideosByTask };
   }, [videos]);
 
   // 회사(채널) × 작업유형 히트맵 (최근 6개월) — 셀별 영상 리스트·신규 수도 함께 보관
@@ -241,10 +257,7 @@ export default function VideoTrendsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videos, lastVisit]);
 
-  const [cellPopover, setCellPopover] = useState<{ channel: string; task: string } | null>(null);
-  const popoverVideos = cellPopover
-    ? heatmap.cellVideos.get(`${cellPopover.channel}|${cellPopover.task}`) ?? []
-    : [];
+  const [videoPopover, setVideoPopover] = useState<VideoPopoverState | null>(null);
 
   // 월별 × 채널 공개 빈도 (최근 6개월, 상위 8개 채널)
   const cadence = useMemo(() => {
@@ -340,43 +353,95 @@ export default function VideoTrendsPage() {
                   ? undefined
                   : `${topChannelThisMonth[1]}건`
               }
+              onClick={
+                !videosQuery.isLoading && topChannelThisMonth
+                  ? () => {
+                      const [channel, count] = topChannelThisMonth;
+                      setVideoPopover({
+                        kicker: '이번 달 최다 활동 회사',
+                        title: `${channel} · ${count}건`,
+                        videos: monthlyChannelActivity.videos.get(channel) ?? [],
+                      });
+                    }
+                  : undefined
+              }
             />
             <KpiTile
               label="급상승 시연 유형"
               value={
                 videosQuery.isLoading
                   ? '—'
-                  : taskTypeDelta
-                    ? taskTypeDelta.task
+                  : taskTypeActivity.best
+                    ? taskTypeActivity.best.task
                     : '데이터 없음'
               }
               context={
-                videosQuery.isLoading || !taskTypeDelta
+                videosQuery.isLoading || !taskTypeActivity.best
                   ? undefined
-                  : taskTypeDelta.delta > 0
-                    ? `+${taskTypeDelta.delta}건`
+                  : taskTypeActivity.best.delta > 0
+                    ? `+${taskTypeActivity.best.delta}건`
                     : '변화 없음'
+              }
+              onClick={
+                !videosQuery.isLoading && taskTypeActivity.best
+                  ? () => {
+                      const { task } = taskTypeActivity.best!;
+                      const recentVideos = taskTypeActivity.recentVideosByTask.get(task) ?? [];
+                      setVideoPopover({
+                        kicker: '급상승 시연 유형 · 최근 30일',
+                        title: `${task} · ${recentVideos.length}건`,
+                        videos: recentVideos,
+                      });
+                    }
+                  : undefined
               }
             />
             <KpiTile
               label="신규 영상"
               value={videosQuery.isLoading ? '—' : updateInfo.newCount}
               unit="건"
+              onClick={
+                !videosQuery.isLoading
+                  ? () => {
+                      setVideoPopover({
+                        kicker: '신규 영상',
+                        title: `신규 영상 · ${updateInfo.newVideos.length}건`,
+                        videos: updateInfo.newVideos,
+                        emptyMessage: '지난 방문 이후 새로 수집된 영상이 없습니다.',
+                      });
+                    }
+                  : undefined
+              }
             />
           </div>
 
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
             {top3Channels.map((c, i) => (
-              <div
+              <button
                 key={c.channel}
-                className="bg-white border border-ink-200 rounded-[14px] shadow-report p-4 flex items-center gap-3"
+                type="button"
+                onClick={
+                  videosQuery.isLoading
+                    ? undefined
+                    : () =>
+                        setVideoPopover({
+                          kicker: `TOP${i + 1} · 이번 달 활발한 회사`,
+                          title: `${c.channel} · ${c.count}건`,
+                          videos: monthlyChannelActivity.videos.get(c.channel) ?? [],
+                        })
+                }
+                aria-label={`${c.channel} 이번 달 발행 영상 보기`}
+                className={cn(
+                  'bg-white border border-ink-200 rounded-[14px] shadow-report p-4 flex items-center gap-3 w-full text-left',
+                  !videosQuery.isLoading && 'cursor-pointer hover:ring-1 hover:ring-warn transition-shadow'
+                )}
               >
                 <RankBadge rank={(i + 1) as 1 | 2 | 3} />
                 <div className="min-w-0 flex-1">
                   <p className="text-[13.5px] font-semibold text-ink-900 truncate">{c.channel}</p>
                   <p className="text-[11px] text-ink-500 truncate">최근 30일 {c.count}건</p>
                 </div>
-              </div>
+              </button>
             ))}
             {top3Channels.length === 0 && (
               <p className="col-span-3 text-[12px] text-ink-400 py-3">
@@ -467,7 +532,13 @@ export default function VideoTrendsPage() {
                             <td key={task} className="px-1.5 py-1.5">
                               {count > 0 ? (
                                 <button
-                                  onClick={() => setCellPopover({ channel, task })}
+                                  onClick={() =>
+                                    setVideoPopover({
+                                      kicker: task,
+                                      title: `${channel} · ${count}건`,
+                                      videos: heatmap.cellVideos.get(`${channel}|${task}`) ?? [],
+                                    })
+                                  }
                                   className="w-full h-7 flex items-center justify-center font-mono text-[10.5px] cursor-pointer hover:ring-1 hover:ring-warn transition-shadow"
                                   style={{
                                     backgroundColor: `rgba(179, 138, 31, ${0.12 + intensity * 0.78})`,
@@ -502,11 +573,11 @@ export default function VideoTrendsPage() {
           )}
         </Panel>
 
-        {/* Cell popover: 채널 × 작업유형 영상 리스트 */}
-        {cellPopover && (
+        {/* Video popover: KPI/랭킹/히트맵 셀 클릭 시 근거 영상 리스트 */}
+        {videoPopover && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-            onClick={() => setCellPopover(null)}
+            onClick={() => setVideoPopover(null)}
           >
             <div
               className="w-full max-w-lg max-h-[70vh] overflow-y-auto bg-white border border-ink-200 shadow-xl"
@@ -515,63 +586,69 @@ export default function VideoTrendsPage() {
               <div className="sticky top-0 flex items-center justify-between gap-3 bg-brand px-5 py-3">
                 <div className="min-w-0">
                   <p className="font-mono text-[9px] text-gold uppercase tracking-[0.22em]">
-                    {cellPopover.task}
+                    {videoPopover.kicker}
                   </p>
                   <h3 className="text-[14px] font-semibold text-white truncate">
-                    {cellPopover.channel} · {popoverVideos.length}건
+                    {videoPopover.title}
                   </h3>
                 </div>
                 <button
-                  onClick={() => setCellPopover(null)}
+                  onClick={() => setVideoPopover(null)}
                   className="shrink-0 p-1 text-white/70 hover:text-white transition-colors"
                   aria-label="닫기"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <div className="divide-y divide-ink-100">
-                {popoverVideos.map((v) => {
-                  const thumb = getThumbnail(v);
-                  return (
-                    <a
-                      key={v.id}
-                      href={v.url ?? '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 px-5 py-3 hover:bg-paper transition-colors"
-                    >
-                      {thumb && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={thumb}
-                          alt=""
-                          loading="lazy"
-                          className="w-24 aspect-video object-cover shrink-0 bg-ink-100"
-                        />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[12.5px] font-medium text-ink-900 leading-snug">
-                          {isNewVideo(v) && (
-                            <Tag tone="gold" size="sm" className="mr-1.5 align-middle">NEW</Tag>
-                          )}
-                          {v.title}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-ink-500">
-                          {v.publishedAt ? new Date(v.publishedAt).toLocaleDateString('ko-KR') : ''}
-                          {typeof v.extractedMetadata?.views === 'number' &&
-                            ` · ${v.extractedMetadata.views.toLocaleString()}회`}
-                        </p>
-                      </div>
-                      <ExternalLink className="w-3.5 h-3.5 shrink-0 text-ink-400" />
-                    </a>
-                  );
-                })}
-              </div>
+              {videoPopover.videos.length === 0 ? (
+                <div className="py-8 text-center text-ink-400 text-sm">
+                  {videoPopover.emptyMessage ?? '표시할 영상이 없습니다.'}
+                </div>
+              ) : (
+                <div className="divide-y divide-ink-100">
+                  {videoPopover.videos.map((v) => {
+                    const thumb = getThumbnail(v);
+                    return (
+                      <a
+                        key={v.id}
+                        href={v.url ?? '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 px-5 py-3 hover:bg-paper transition-colors"
+                      >
+                        {thumb && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={thumb}
+                            alt=""
+                            loading="lazy"
+                            className="w-24 aspect-video object-cover shrink-0 bg-ink-100"
+                          />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[12.5px] font-medium text-ink-900 leading-snug">
+                            {isNewVideo(v) && (
+                              <Tag tone="gold" size="sm" className="mr-1.5 align-middle">NEW</Tag>
+                            )}
+                            {v.title}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-ink-500">
+                            {v.publishedAt ? new Date(v.publishedAt).toLocaleDateString('ko-KR') : ''}
+                            {typeof v.extractedMetadata?.views === 'number' &&
+                              ` · ${v.extractedMetadata.views.toLocaleString()}회`}
+                          </p>
+                        </div>
+                        <ExternalLink className="w-3.5 h-3.5 shrink-0 text-ink-400" />
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
               <div className="px-5 py-2.5 border-t border-ink-200 bg-paper">
                 <Link
                   href="/videos"
                   className="text-[11.5px] text-info hover:underline"
-                  onClick={() => setCellPopover(null)}
+                  onClick={() => setVideoPopover(null)}
                 >
                   갤러리에서 필터로 보기 →
                 </Link>
