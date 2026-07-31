@@ -218,7 +218,7 @@ export default function VideosPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((video) => {
-            const vid = getVideoId(video)!;
+            const vid = getVideoIdFromItem(video)!;
             const thumb = video.extractedMetadata?.thumbnail || `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`;
             return (
               <button
