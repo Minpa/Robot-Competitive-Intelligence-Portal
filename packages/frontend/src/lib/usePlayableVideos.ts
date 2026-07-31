@@ -13,7 +13,8 @@ function checkThumbnailExists(videoId: string, timeout = 5000): Promise<boolean>
     img.onload = () => {
       if (!settled) {
         settled = true;
-        resolve(true);
+        const isGenericPlaceholder = img.naturalWidth === 120 && img.naturalHeight === 90;
+        resolve(!isGenericPlaceholder);
       }
     };
     img.onerror = () => {
