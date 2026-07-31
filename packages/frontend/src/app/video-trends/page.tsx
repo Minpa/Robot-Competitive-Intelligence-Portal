@@ -9,10 +9,11 @@ import {
 import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Panel, Tag } from '@/components/ui';
+import { Panel, Tag, KpiTile, SectionHeader } from '@/components/ui';
 import { TrendSummaryCard } from '@/components/shared/TrendSummaryCard';
 import { ExternalLink, X } from 'lucide-react';
 import { getVideoIdFromItem, usePlayableFilter } from '@/lib/usePlayableVideos';
+import { cn } from '@/lib/utils';
 
 const TASK_TYPES = [
   '보행/이동',
@@ -36,9 +37,9 @@ const TASK_TYPE_DESCRIPTIONS: Record<string, string> = {
   '기타': '위 유형에 명확히 속하지 않는 영상',
 };
 
-// 월별 순차 램프 — 밝음(과거) → 어두움(최근). 순차 데이터라 그레이로도 구분된다.
+// 월별 순차 램프 — 밝음(과거) → 어두움(최근). 골드/브랜드 톤 그라데이션.
 const MONTH_RAMP = [
-  '#E4E6E9', '#C6CAD0', '#A9ADB4', '#8A909A', '#5C636E', '#3A3F47', '#1F2328',
+  '#F7EFDC', '#EFE0BC', '#E6CE93', '#D9B968', '#C7A03D', '#B38A1F', '#8C6816',
 ];
 
 interface VideoRow {
@@ -71,6 +72,24 @@ function monthKey(value?: string | null) {
 }
 
 const LAST_VISIT_KEY = 'video-trends-last-visit';
+
+function RankBadge({ rank }: { rank: 1 | 2 | 3 }) {
+  const styles = {
+    1: 'bg-warn text-white',
+    2: 'bg-warn-soft text-warn',
+    3: 'bg-ink-100 text-ink-600',
+  }[rank];
+  return (
+    <span
+      className={cn(
+        'shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full font-mono text-[11px] font-bold',
+        styles
+      )}
+    >
+      {rank}
+    </span>
+  );
+}
 
 export default function VideoTrendsPage() {
   // 이전 방문 시각 — 그 이후 수집된 영상을 NEW로 표시.
@@ -132,6 +151,58 @@ export default function VideoTrendsPage() {
     return { latest, newCount };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videos, lastVisit]);
+
+  // 이번 달(최근 30일) 채널별 활동 건수 — 하이라이트 KPI/Top3 랭킹용
+  const monthlyChannelCounts = useMemo(() => {
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const counts = new Map<string, number>();
+    for (const v of videos) {
+      const t = v.publishedAt ? new Date(v.publishedAt).getTime() : 0;
+      if (t < thirtyDaysAgo) continue;
+      const ch = v.extractedMetadata?.channel;
+      if (!ch) continue;
+      counts.set(ch, (counts.get(ch) ?? 0) + 1);
+    }
+    return counts;
+  }, [videos]);
+
+  const topChannelThisMonth = useMemo(() => {
+    const entries = [...monthlyChannelCounts.entries()].sort((a, b) => b[1] - a[1]);
+    return entries[0] ?? null;
+  }, [monthlyChannelCounts]);
+
+  const top3Channels = useMemo(
+    () =>
+      [...monthlyChannelCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([channel, count]) => ({ channel, count })),
+    [monthlyChannelCounts]
+  );
+
+  // 최근 30일 대비 이전 30일(31~60일 전) 시연 유형 증감 — 급상승 시연 유형 KPI용
+  const taskTypeDelta = useMemo(() => {
+    const now = Date.now();
+    const d30 = now - 30 * 24 * 60 * 60 * 1000;
+    const d60 = now - 60 * 24 * 60 * 60 * 1000;
+    const recent = new Map<string, number>();
+    const prior = new Map<string, number>();
+    for (const v of videos) {
+      const t = v.publishedAt ? new Date(v.publishedAt).getTime() : 0;
+      const tasks = v.extractedMetadata?.aiTags?.taskTypes ?? [];
+      for (const task of tasks) {
+        if (t >= d30) recent.set(task, (recent.get(task) ?? 0) + 1);
+        else if (t >= d60) prior.set(task, (prior.get(task) ?? 0) + 1);
+      }
+    }
+    let best: { task: string; delta: number } | null = null;
+    const allTasks = new Set([...recent.keys(), ...prior.keys()]);
+    for (const task of allTasks) {
+      const delta = (recent.get(task) ?? 0) - (prior.get(task) ?? 0);
+      if (!best || delta > best.delta) best = { task, delta };
+    }
+    return best;
+  }, [videos]);
 
   // 회사(채널) × 작업유형 히트맵 (최근 6개월) — 셀별 영상 리스트·신규 수도 함께 보관
   const heatmap = useMemo(() => {
@@ -247,6 +318,74 @@ export default function VideoTrendsPage() {
           }
         />
 
+        {/* 하이라이트: 이번 달 한눈에 보기 */}
+        <section>
+          <SectionHeader
+            kicker="Monthly Snapshot"
+            title="이번 달 한눈에 보기"
+            subtitle="최근 30일 활동을 기준으로 가장 활발한 회사와 시연 트렌드를 요약합니다."
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <KpiTile
+              label="이번 달 최다 활동 회사"
+              value={
+                videosQuery.isLoading
+                  ? '—'
+                  : topChannelThisMonth
+                    ? topChannelThisMonth[0]
+                    : '데이터 없음'
+              }
+              context={
+                videosQuery.isLoading || !topChannelThisMonth
+                  ? undefined
+                  : `${topChannelThisMonth[1]}건`
+              }
+            />
+            <KpiTile
+              label="급상승 시연 유형"
+              value={
+                videosQuery.isLoading
+                  ? '—'
+                  : taskTypeDelta
+                    ? taskTypeDelta.task
+                    : '데이터 없음'
+              }
+              context={
+                videosQuery.isLoading || !taskTypeDelta
+                  ? undefined
+                  : taskTypeDelta.delta > 0
+                    ? `+${taskTypeDelta.delta}건`
+                    : '변화 없음'
+              }
+            />
+            <KpiTile
+              label="신규 영상"
+              value={videosQuery.isLoading ? '—' : updateInfo.newCount}
+              unit="건"
+            />
+          </div>
+
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {top3Channels.map((c, i) => (
+              <div
+                key={c.channel}
+                className="bg-white border border-ink-200 rounded-[14px] shadow-report p-4 flex items-center gap-3"
+              >
+                <RankBadge rank={(i + 1) as 1 | 2 | 3} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13.5px] font-semibold text-ink-900 truncate">{c.channel}</p>
+                  <p className="text-[11px] text-ink-500 truncate">최근 30일 {c.count}건</p>
+                </div>
+              </div>
+            ))}
+            {top3Channels.length === 0 && (
+              <p className="col-span-3 text-[12px] text-ink-400 py-3">
+                최근 30일 활동 데이터가 부족합니다.
+              </p>
+            )}
+          </div>
+        </section>
+
         {/* 데이터 최신성 */}
         <p className="text-[11.5px] text-ink-500 -mt-3">
           마지막 수집:{' '}
@@ -311,11 +450,16 @@ export default function VideoTrendsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {heatmap.channels.map((channel) => {
+                  {heatmap.channels.map((channel, idx) => {
                     const row = heatmap.counts.get(channel)!;
                     return (
                       <tr key={channel} className="border-t border-ink-100">
-                        <td className="py-1.5 pr-3 font-medium text-ink-900 whitespace-nowrap">{channel}</td>
+                        <td className="py-1.5 pr-3 font-medium text-ink-900 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            {idx < 3 && <RankBadge rank={(idx + 1) as 1 | 2 | 3} />}
+                            <span>{channel}</span>
+                          </div>
+                        </td>
                         {TASK_TYPES.map((task) => {
                           const count = row.get(task) ?? 0;
                           const intensity = heatmap.maxCount > 0 ? count / heatmap.maxCount : 0;
@@ -324,9 +468,9 @@ export default function VideoTrendsPage() {
                               {count > 0 ? (
                                 <button
                                   onClick={() => setCellPopover({ channel, task })}
-                                  className="w-full h-7 flex items-center justify-center font-mono text-[10.5px] cursor-pointer hover:ring-1 hover:ring-gold transition-shadow"
+                                  className="w-full h-7 flex items-center justify-center font-mono text-[10.5px] cursor-pointer hover:ring-1 hover:ring-warn transition-shadow"
                                   style={{
-                                    backgroundColor: `rgba(31, 35, 40, ${0.1 + intensity * 0.8})`,
+                                    backgroundColor: `rgba(179, 138, 31, ${0.12 + intensity * 0.78})`,
                                     color: intensity > 0.5 ? '#fff' : '#1F2328',
                                   }}
                                   title={`${channel} — ${task} 영상 ${count}건 보기`}
@@ -335,7 +479,7 @@ export default function VideoTrendsPage() {
                                   {(heatmap.cellNew.get(`${channel}|${task}`) ?? 0) > 0 && (
                                     <span
                                       className="ml-0.5 text-[8.5px] font-semibold"
-                                      style={{ color: intensity > 0.5 ? '#C6CAD0' : '#5C636E' }}
+                                      style={{ color: intensity > 0.55 ? '#F1E5C1' : '#8C6816' }}
                                     >
                                       +{heatmap.cellNew.get(`${channel}|${task}`)}
                                     </span>
