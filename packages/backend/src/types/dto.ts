@@ -172,6 +172,7 @@ export const ArticleFiltersSchema = z.object({
   category: z.string().optional(),
   productType: z.string().optional(),
   excludeProductType: z.string().optional(),
+  excludeSources: z.string().optional(), // 콤마 구분 — 제외할 source 목록 (예: arxiv,github,sec_edgar,patent)
   language: z.enum(['ko', 'en']).optional(),
   publishedAfter: z.string().datetime().optional(),
   publishedBefore: z.string().datetime().optional(),

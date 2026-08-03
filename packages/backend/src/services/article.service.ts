@@ -275,6 +275,13 @@ export class ArticleService {
       // NULL product_type(뉴스 기사)도 유지되도록 IS DISTINCT FROM 사용
       conditions.push(sql`${articles.productType} IS DISTINCT FROM ${filters.excludeProductType}`);
     }
+    if (filters.excludeSources) {
+      // 공식 API 소스(arxiv/github/sec_edgar/patent 등) 제외 — 뉴스 피드 전용
+      const list = filters.excludeSources.split(',').map((s) => s.trim()).filter(Boolean);
+      if (list.length > 0) {
+        conditions.push(sql`${articles.source} NOT IN (${sql.join(list.map((s) => sql`${s}`), sql`, `)})`);
+      }
+    }
     if (filters.language) {
       conditions.push(eq(articles.language, filters.language));
     }
@@ -336,8 +343,14 @@ export class ArticleService {
       })
       .from(articles)
       .innerJoin(companies, eq(articles.companyId, companies.id))
-      // 뉴스 커버리지 지표이므로 영상(video)은 제외 — 영상은 영상 트렌드가 담당
-      .where(and(isNotNull(articles.companyId), sql`${articles.productType} IS DISTINCT FROM 'video'`))
+      // 뉴스 커버리지 지표 — 영상·논문·공시 등 비뉴스 소스 제외
+      .where(
+        and(
+          isNotNull(articles.companyId),
+          sql`${articles.productType} IS DISTINCT FROM 'video'`,
+          sql`${articles.source} NOT IN ('arxiv','github','sec_edgar','patent')`
+        )
+      )
       .groupBy(articles.companyId, companies.name);
 
     return rows

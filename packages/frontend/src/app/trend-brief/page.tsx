@@ -74,7 +74,8 @@ export default function TrendBriefPage() {
         pageSize: '100',
         sortBy: 'publishedAt',
         sortOrder: 'desc',
-        excludeProductType: 'video', // 기사 트렌드는 뉴스만 (영상은 영상 트렌드)
+        excludeProductType: 'video', // 영상은 영상 트렌드
+        excludeSources: 'arxiv,github,sec_edgar,patent', // 논문·코드·공시는 각 전용 페이지 (기사 트렌드는 뉴스만)
       }),
   });
 
