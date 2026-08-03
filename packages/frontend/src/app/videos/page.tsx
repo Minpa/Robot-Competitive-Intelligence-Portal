@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Panel, Tag } from '@/components/ui';
 import { Play, ExternalLink, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getVideoIdFromItem, usePlayableFilter } from '@/lib/usePlayableVideos';
 
 interface VideoItem {
   id: string;
@@ -25,11 +26,18 @@ interface VideoItem {
   } | null;
 }
 
-function getVideoId(item: VideoItem): string | null {
-  if (item.extractedMetadata?.videoId) return item.extractedMetadata.videoId;
-  const m = item.url?.match(/[?&]v=([\w-]{11})/) ?? item.url?.match(/youtu\.be\/([\w-]{11})/);
-  return m ? m[1] : null;
+interface TrendingVideo {
+  id: string;
+  title: string;
+  url: string;
+  thumbnail: string | null;
+  views: number;
+  growthRate: number;
+  publishedAt: string | null;
+  channel?: string;
+  rank: number;
 }
+
 
 function formatDate(value?: string | null) {
   if (!value) return '';
@@ -55,16 +63,30 @@ export default function VideosPage() {
       }),
   });
 
-  const items: VideoItem[] = useMemo(
-    () =>
-      ((videosQuery.data?.items ?? []) as VideoItem[]).filter((v) => {
-        if (!getVideoId(v)) return false;
-        // 로봇(완제품) 채널만 — 단위기술 채널 영상은 각 기술 축 페이지에서 표시
-        const domain = (v.extractedMetadata as { domain?: string } | null)?.domain;
-        return !domain || domain === 'robot';
-      }),
+  const topVideosQuery = useQuery({
+    queryKey: ['video-trends-top-videos'],
+    queryFn: () => api.getVideoTrendTopVideos(),
+    staleTime: 30 * 60 * 1000,
+  });
+
+  const topVideos: TrendingVideo[] = useMemo(
+    () => (topVideosQuery.data ?? []).map((item, index) => ({
+      ...item,
+      rank: index + 1,
+    })),
+    [topVideosQuery.data]
+  );
+
+  const rawItems: VideoItem[] = useMemo(
+    () => ((videosQuery.data?.items ?? []) as VideoItem[]).filter((v) => {
+      // 로봇(완제품) 채널만 — 단위기술 채널 영상은 각 기술 축 페이지에서 표시
+      const domain = (v.extractedMetadata as { domain?: string } | null)?.domain;
+      return !domain || domain === 'robot';
+    }),
     [videosQuery.data]
   );
+
+  const { filtered: items } = usePlayableFilter<VideoItem>(rawItems, (v) => getVideoIdFromItem(v));
 
   const channels = useMemo(() => {
     const set = new Set<string>();
@@ -91,7 +113,7 @@ export default function VideosPage() {
     [items, channelFilter, taskFilter]
   );
 
-  const playingVideoId = playing ? getVideoId(playing) : null;
+  const playingVideoId = playing ? getVideoIdFromItem(playing) : null;
 
   return (
     <AuthGuard>
@@ -102,6 +124,68 @@ export default function VideosPage() {
           titleEn="Demo Library"
           description="경쟁사 로봇(완제품) 공식 유튜브 채널의 기술 데모를 모아 보여줍니다. 카드를 클릭하면 페이지 안에서 바로 재생됩니다. 핸드·RFM 등 단위기술 영상은 각 기술 축 페이지에 있습니다."
         />
+
+        <Panel
+          kicker="Trending Videos"
+          title="최근 7일 급상승 영상 Top 10"
+          subtitle="최근 7일간 수집된 영상 중 조회수 기반으로 급상승 가능성이 높은 영상들을 보여줍니다."
+          className="mb-6"
+        >
+          {topVideosQuery.isLoading ? (
+            <div className="py-8 text-center text-ink-400 text-sm">로딩 중...</div>
+          ) : topVideos.length === 0 ? (
+            <div className="py-8 text-center text-ink-400 text-sm">
+              최근 7일 급상승 영상 데이터가 없습니다.
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {topVideos.map((video) => (
+                <a
+                  key={video.id}
+                  href={video.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block overflow-hidden rounded-3xl border border-ink-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="relative overflow-hidden bg-ink-100 aspect-video">
+                    {video.thumbnail ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={video.thumbnail}
+                        alt={video.title}
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-[11px] text-ink-400">
+                        썸네일 없음
+                      </div>
+                    )}
+                    <span className="absolute left-3 top-3 rounded-full bg-gold px-3 py-1 text-[11px] font-semibold text-black shadow-sm">
+                      #{video.rank}
+                    </span>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-sm font-semibold text-ink-900 leading-snug line-clamp-2">
+                      {video.title}
+                    </p>
+                    <p className="mt-2 text-[11.5px] text-ink-500">
+                      {video.channel ? `${video.channel} · ` : ''}
+                      {video.publishedAt ? new Date(video.publishedAt).toLocaleDateString('ko-KR') : '날짜 없음'}
+                    </p>
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <span className="font-mono text-[12px] text-ink-900">
+                        {video.views.toLocaleString()}회
+                      </span>
+                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-[12px] font-semibold text-emerald-700">
+                        조회수 성장 지수 {video.growthRate.toFixed(1)}
+                      </span>
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+        </Panel>
 
         {/* Player */}
         {playing && playingVideoId && (
@@ -222,7 +306,7 @@ export default function VideosPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((video) => {
-            const vid = getVideoId(video)!;
+            const vid = getVideoIdFromItem(video)!;
             const thumb = video.extractedMetadata?.thumbnail || `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`;
             return (
               <button

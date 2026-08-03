@@ -20,7 +20,7 @@ export default function MatrixHeader({ mode, onModeChange }: Props) {
         <span className="w-2 h-2 rounded-full bg-[#8B1538]" />
         <div className="flex items-baseline gap-3 flex-wrap">
           <h1 className="font-medium text-[24px] text-[#2C2C2A] tracking-tight">
-            휴머노이드 진입성 매트릭스
+            휴머노이드 진입 매트릭스
           </h1>
           <span className="font-mono text-[11px] font-medium text-[#8B1538] tracking-[0.16em] uppercase">
             v11

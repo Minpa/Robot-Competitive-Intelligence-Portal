@@ -10,7 +10,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { sql, eq, and, desc } from 'drizzle-orm';
+import { sql, eq, and, desc, isNotNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { articles, viewCache } from '../db/schema.js';
 
@@ -39,6 +39,17 @@ export interface VideoAiTags {
   robots: string[];
   taggedAt: string;
   method: 'llm' | 'heuristic';
+}
+
+interface TrendingVideo {
+  id: string;
+  title: string;
+  url: string;
+  thumbnail: string | null;
+  views: number;
+  growthRate: number;
+  publishedAt: string | null;
+  channel?: string;
 }
 
 interface PendingVideo {
@@ -372,6 +383,58 @@ points는 4~6개. 마크다운 기호(#, **) 사용 금지.`
       generatedAt: new Date().toISOString(),
       source,
     };
+  }
+
+  async getTopTrendingVideos(): Promise<TrendingVideo[]> {
+    const rows = await db
+      .select({
+        id: articles.id,
+        title: articles.title,
+        url: articles.url,
+        publishedAt: articles.publishedAt,
+        extractedMetadata: articles.extractedMetadata,
+        views: sql<number>`COALESCE((articles.extracted_metadata->>'views')::int, 0)`,
+        growthScore: sql<number>`COALESCE(
+          ((articles.extracted_metadata->>'views')::numeric)
+          / GREATEST(EXTRACT(EPOCH FROM (now() - articles.published_at)) / 86400, 1),
+        0)`,
+      })
+      .from(articles)
+      .where(
+        and(
+          eq(articles.productType, 'video'),
+          isNotNull(articles.publishedAt),
+          sql`articles.extracted_metadata ? 'views'`,
+          sql`articles.published_at > now() - interval '7 days'`
+        )
+      )
+      .orderBy(desc(
+        sql`COALESCE(
+          ((articles.extracted_metadata->>'views')::numeric)
+          / GREATEST(EXTRACT(EPOCH FROM (now() - articles.published_at)) / 86400, 1),
+        0)`
+      ))
+      .limit(10);
+
+    return rows.map((row) => {
+      const meta = (row.extractedMetadata ?? {}) as Record<string, any>;
+      const thumbnail =
+        typeof meta.thumbnail === 'string'
+          ? meta.thumbnail
+          : typeof meta.videoId === 'string'
+            ? `https://i.ytimg.com/vi/${meta.videoId}/mqdefault.jpg`
+            : null;
+      return {
+        id: row.id,
+        title: row.title,
+        url: row.url,
+        thumbnail,
+        views: Number(row.views ?? 0),
+        growthRate: Number(row.growthScore ?? 0),
+        publishedAt: row.publishedAt ? row.publishedAt.toISOString() : null,
+        channel: typeof meta.channel === 'string' ? meta.channel : undefined,
+      };
+    });
   }
 
   // ── 단위기술 축 트렌드 요약 (핸드/RFM/액추에이터) ──
