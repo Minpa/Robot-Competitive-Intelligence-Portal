@@ -184,6 +184,18 @@ class ApiClient {
   async enrichRobotSpecs() {
     return this.request<any>(`/video-sync/enrich-specs`, { method: 'POST' });
   }
+  async getAppCaseCandidates() {
+    return this.request<any[]>(`/video-sync/app-case-candidates`);
+  }
+  async extractAppCases() {
+    return this.request<any>(`/video-sync/extract-app-cases`, { method: 'POST' });
+  }
+  async approveAppCase(id: string) {
+    return this.request<any>(`/video-sync/app-case-candidates/${id}/approve`, { method: 'POST' });
+  }
+  async rejectAppCase(id: string) {
+    return this.request<any>(`/video-sync/app-case-candidates/${id}/reject`, { method: 'POST' });
+  }
   async approveRobotCandidate(id: string, body?: Record<string, unknown>) {
     return this.request<any>(`/video-sync/robot-candidates/${id}/approve`, {
       method: 'POST',

@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { videoDbSyncService } from '../services/video-db-sync.service.js';
 import { specEnrichmentService } from '../services/spec-enrichment.service.js';
+import { applicationCaseExtractionService } from '../services/application-case-extraction.service.js';
 import { authMiddleware, requireRole } from './auth.js';
 
 const adminOrAnalyst = [authMiddleware, requireRole('admin', 'analyst')];
@@ -41,6 +42,33 @@ export async function videoSyncRoutes(fastify: FastifyInstance) {
     { preHandler: adminOnly },
     async (request) => {
       return videoDbSyncService.rejectRobotCandidate(request.params.id);
+    }
+  );
+
+  // ── 적용 사례 후보큐 ──
+  fastify.get('/app-case-candidates', { preHandler: adminOrAnalyst }, async () => {
+    return applicationCaseExtractionService.listCandidates();
+  });
+  fastify.post('/extract-app-cases', { preHandler: adminOnly }, async () => {
+    return applicationCaseExtractionService.run();
+  });
+  fastify.post<{ Params: { id: string } }>(
+    '/app-case-candidates/:id/approve',
+    { preHandler: adminOnly },
+    async (request, reply) => {
+      const r = await applicationCaseExtractionService.approve(request.params.id);
+      if ('error' in r) {
+        reply.status(400).send(r);
+        return;
+      }
+      return r;
+    }
+  );
+  fastify.post<{ Params: { id: string } }>(
+    '/app-case-candidates/:id/reject',
+    { preHandler: adminOnly },
+    async (request) => {
+      return applicationCaseExtractionService.reject(request.params.id);
     }
   );
 }

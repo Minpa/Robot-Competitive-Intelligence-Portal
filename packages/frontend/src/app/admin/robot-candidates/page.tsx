@@ -38,6 +38,24 @@ export default function RobotCandidatesPage() {
     mutationFn: () => api.enrichRobotSpecs(),
   });
 
+  const { data: appCases } = useQuery({
+    queryKey: ['app-case-candidates'],
+    queryFn: () => api.getAppCaseCandidates(),
+  });
+  const extractCases = useMutation({
+    mutationFn: () => api.extractAppCases(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['app-case-candidates'] }),
+  });
+  const approveCase = useMutation({
+    mutationFn: (id: string) => api.approveAppCase(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['app-case-candidates'] }),
+  });
+  const rejectCase = useMutation({
+    mutationFn: (id: string) => api.rejectAppCase(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['app-case-candidates'] }),
+  });
+  const appCaseList: any[] = Array.isArray(appCases) ? appCases : [];
+
   const approve = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) =>
       api.approveRobotCandidate(id, body),
@@ -182,6 +200,77 @@ export default function RobotCandidatesPage() {
           승인된 로봇은{' '}
           <Link href="/humanoid-robots" className="text-info hover:underline">로봇 리스트</Link> 및{' '}
           <Link href="/robot-evolution" className="text-info hover:underline">로봇 타임라인</Link>에 즉시 반영됩니다.
+        </p>
+
+        {/* 적용 사례 후보큐 */}
+        <Panel
+          kicker="Application Cases"
+          title={`적용 사례 후보 (${appCaseList.length}건)`}
+          subtitle="수집 기사·영상에서 감지된 로봇 도입/배치 사례입니다. 승인하면 적용 사례 목록에 추가됩니다."
+          headerRight={
+            <button
+              onClick={() => extractCases.mutate()}
+              disabled={extractCases.isPending}
+              className="inline-flex items-center gap-2 px-3 py-2 text-[12px] font-medium border border-ink-200 bg-white text-ink-700 hover:border-ink-400 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${extractCases.isPending ? 'animate-spin' : ''}`} />
+              지금 추출 실행
+            </button>
+          }
+        >
+          {appCaseList.length === 0 ? (
+            <div className="py-8 text-center text-ink-400 text-sm">
+              검토할 적용 사례 후보가 없습니다. 도입/배치 관련 기사·영상이 수집되면 여기에 쌓입니다.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {appCaseList.map((c) => (
+                <div key={c.id} className="border border-ink-200 rounded-lg p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-[14px] font-semibold text-ink-900">{c.robotName}</h3>
+                        {c.deploymentStatus && (
+                          <Tag tone={c.deploymentStatus === 'production' ? 'pos' : c.deploymentStatus === 'pilot' ? 'info' : 'neutral'} size="sm">
+                            {c.deploymentStatus === 'production' ? '상용' : c.deploymentStatus === 'pilot' ? '파일럿' : '컨셉'}
+                          </Tag>
+                        )}
+                      </div>
+                      <p className="mt-1 text-[12px] text-ink-600">
+                        {[c.environmentType, c.taskType].filter(Boolean).join(' · ')}
+                        {c.demoEvent ? ` — ${c.demoEvent}` : ''}
+                        {c.demoDate ? ` (${c.demoDate})` : ''}
+                      </p>
+                      {c.taskDescription && (
+                        <p className="mt-1 text-[12px] text-ink-500">{c.taskDescription}</p>
+                      )}
+                    </div>
+                    <div className="shrink-0 flex items-center gap-2">
+                      <button
+                        onClick={() => rejectCase.mutate(c.id)}
+                        disabled={rejectCase.isPending}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium border border-ink-200 text-ink-600 hover:border-neg hover:text-neg transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" /> 반려
+                      </button>
+                      <button
+                        onClick={() => approveCase.mutate(c.id)}
+                        disabled={approveCase.isPending}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium bg-brand text-white hover:bg-[#111417] transition-colors"
+                      >
+                        <Check className="w-3.5 h-3.5" /> 승인 · 사례 추가
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Panel>
+
+        <p className="text-[11.5px] text-ink-500">
+          승인된 적용 사례는{' '}
+          <Link href="/application-cases" className="text-info hover:underline">도입/적용 사례</Link> 페이지에 즉시 반영됩니다.
         </p>
       </div>
     </AuthGuard>

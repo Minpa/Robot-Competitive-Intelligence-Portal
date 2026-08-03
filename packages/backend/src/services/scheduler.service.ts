@@ -16,6 +16,7 @@ import { videoTaggingService } from './video-tagging.service.js';
 import { videoDbSyncService } from './video-db-sync.service.js';
 import { specEnrichmentService } from './spec-enrichment.service.js';
 import { paperSummaryService } from './paper-summary.service.js';
+import { applicationCaseExtractionService } from './application-case-extraction.service.js';
 
 // ── Types ──
 
@@ -235,6 +236,12 @@ class SchedulerService {
       await paperSummaryService.run();
     } catch (err) {
       console.error('[Scheduler] Paper summary failed:', err);
+    }
+    // 기사·영상에서 도입/적용 사례 추출 → 후보큐
+    try {
+      await applicationCaseExtractionService.run();
+    } catch (err) {
+      console.error('[Scheduler] App case extraction failed:', err);
     }
   }
 
