@@ -271,6 +271,10 @@ export class ArticleService {
     if (filters.productType) {
       conditions.push(eq(articles.productType, filters.productType));
     }
+    if (filters.excludeProductType) {
+      // NULL product_type(뉴스 기사)도 유지되도록 IS DISTINCT FROM 사용
+      conditions.push(sql`${articles.productType} IS DISTINCT FROM ${filters.excludeProductType}`);
+    }
     if (filters.language) {
       conditions.push(eq(articles.language, filters.language));
     }
@@ -293,12 +297,17 @@ export class ArticleService {
     const orderByColumn =
       sortBy === 'title' ? articles.title : sortBy === 'source' ? articles.source : articles.publishedAt;
     const orderDirection = sortOrder === 'asc' ? asc : desc;
+    // publishedAt 정렬 시 NULL을 항상 마지막으로 (Postgres 기본은 DESC→NULLS FIRST라 날짜 없는 항목이 위로 올라옴)
+    const orderByClause =
+      orderByColumn === articles.publishedAt
+        ? sql`${articles.publishedAt} ${sortOrder === 'asc' ? sql`asc` : sql`desc`} nulls last`
+        : orderDirection(orderByColumn);
 
     const items = await db
       .select()
       .from(articles)
       .where(whereClause)
-      .orderBy(orderDirection(orderByColumn))
+      .orderBy(orderByClause)
       .limit(pageSize)
       .offset(offset);
 
@@ -327,7 +336,8 @@ export class ArticleService {
       })
       .from(articles)
       .innerJoin(companies, eq(articles.companyId, companies.id))
-      .where(isNotNull(articles.companyId))
+      // 뉴스 커버리지 지표이므로 영상(video)은 제외 — 영상은 영상 트렌드가 담당
+      .where(and(isNotNull(articles.companyId), sql`${articles.productType} IS DISTINCT FROM 'video'`))
       .groupBy(articles.companyId, companies.name);
 
     return rows

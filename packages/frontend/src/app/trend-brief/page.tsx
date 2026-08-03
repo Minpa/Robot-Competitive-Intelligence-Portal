@@ -74,6 +74,7 @@ export default function TrendBriefPage() {
         pageSize: '100',
         sortBy: 'publishedAt',
         sortOrder: 'desc',
+        excludeProductType: 'video', // 기사 트렌드는 뉴스만 (영상은 영상 트렌드)
       }),
   });
 

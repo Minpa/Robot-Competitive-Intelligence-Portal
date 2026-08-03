@@ -171,6 +171,7 @@ export const ArticleFiltersSchema = z.object({
   source: z.string().optional(),
   category: z.string().optional(),
   productType: z.string().optional(),
+  excludeProductType: z.string().optional(),
   language: z.enum(['ko', 'en']).optional(),
   publishedAfter: z.string().datetime().optional(),
   publishedBefore: z.string().datetime().optional(),
