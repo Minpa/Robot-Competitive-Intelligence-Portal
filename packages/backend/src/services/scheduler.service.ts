@@ -15,6 +15,7 @@ import { warRoomLgRobotService } from './war-room-lg-robot.service.js';
 import { videoTaggingService } from './video-tagging.service.js';
 import { videoDbSyncService } from './video-db-sync.service.js';
 import { specEnrichmentService } from './spec-enrichment.service.js';
+import { paperSummaryService } from './paper-summary.service.js';
 
 // ── Types ──
 
@@ -228,6 +229,12 @@ class SchedulerService {
       await specEnrichmentService.run();
     } catch (err) {
       console.error('[Scheduler] Spec enrichment failed:', err);
+    }
+    // arXiv 논문 한글 요약 보강
+    try {
+      await paperSummaryService.run();
+    } catch (err) {
+      console.error('[Scheduler] Paper summary failed:', err);
     }
   }
 

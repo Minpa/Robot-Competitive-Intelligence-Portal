@@ -148,6 +148,7 @@ interface Row {
     thumbnail?: string;
     description?: string;
     aiTags?: { taskTypes?: string[]; techTags?: string[] };
+    aiSummaryKo?: string;
   } | null;
 }
 
@@ -544,6 +545,14 @@ export function TechDomainView({ view = 'main' }: { view?: 'main' | 'videos' }) 
                   <FileText className="w-4 h-4 shrink-0 text-gold mt-0.5" />
                   <div className="min-w-0 flex-1">
                     <p className="text-[12.5px] font-medium text-ink-900 leading-snug">{p.title}</p>
+                    {config.second === 'papers' && p.extractedMetadata?.aiSummaryKo && (
+                      <div className="mt-1.5 flex items-start gap-1.5">
+                        <Tag tone="info" size="sm" className="shrink-0 mt-px">AI 요약</Tag>
+                        <p className="text-[12px] text-ink-700 leading-relaxed">
+                          {p.extractedMetadata.aiSummaryKo}
+                        </p>
+                      </div>
+                    )}
                     {p.summary && (
                       <p className="mt-1 text-[11.5px] text-ink-500 leading-relaxed line-clamp-2">{p.summary}</p>
                     )}

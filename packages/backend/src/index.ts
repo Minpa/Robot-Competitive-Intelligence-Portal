@@ -109,7 +109,10 @@ const start = async () => {
             .then(() => import('./services/spec-enrichment.service.js'))
             .then(({ specEnrichmentService }) => specEnrichmentService.run())
             .then((r) => console.log('[SpecEnrich] Startup run done:', JSON.stringify(r)))
-            .catch((err) => console.error('[VideoTagging/DbSync/SpecEnrich] Startup run failed:', err));
+            .then(() => import('./services/paper-summary.service.js'))
+            .then(({ paperSummaryService }) => paperSummaryService.run(1500))
+            .then((r) => console.log('[PaperSummary] Startup run done:', JSON.stringify(r)))
+            .catch((err) => console.error('[VideoTagging/DbSync/SpecEnrich/PaperSummary] Startup run failed:', err));
         }, 60_000);
         console.log('[VideoTagging] Startup run scheduled in 60s');
       }
