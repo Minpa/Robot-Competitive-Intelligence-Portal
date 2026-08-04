@@ -11,10 +11,11 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { sql, eq, and, desc, isNotNull } from 'drizzle-orm';
+import { sql, eq, and, desc, isNotNull, like } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { articles, viewCache } from '../db/schema.js';
 import { youtubeCaptionService } from './youtube-caption.service.js';
+import { videoDbSyncService } from './video-db-sync.service.js';
 
 // 저비용 반복 태깅 작업이므로 소형 모델을 기본값으로 사용
 const TAGGING_MODEL = process.env.VIDEO_TAGGING_MODEL || 'claude-haiku-4-5-20251001';
@@ -264,6 +265,147 @@ class VideoTaggingService {
       }
     }
     console.log(`[VideoTagging] Captions fetched for ${fetched}/${targets.length} video(s) (rest: no caption available)`);
+  }
+
+  /**
+   * 자막 백필 대상 조회 — aiTags 유무와 무관하게 최근 N일 이내 영상을 모두 포함한다
+   * (getPending()과 달리 이미 태깅된 영상도 대상에 포함해 자막 반영 재태깅을 유도).
+   * force가 아니면 이미 백필 완료 마커(captionBackfillTaggedAt)가 있는 영상은 제외한다.
+   */
+  private async getBackfillTargets(days: number, limit: number, force: boolean): Promise<PendingVideo[]> {
+    const conditions = [
+      eq(articles.productType, 'video'),
+      sql`published_at > now() - make_interval(days => ${days})`,
+    ];
+    if (!force) {
+      conditions.push(sql`(extracted_metadata->'captionBackfillTaggedAt') IS NULL`);
+    }
+
+    const rows = await db
+      .select({
+        id: articles.id,
+        title: articles.title,
+        extractedMetadata: articles.extractedMetadata,
+      })
+      .from(articles)
+      .where(and(...conditions))
+      .orderBy(desc(articles.publishedAt))
+      .limit(limit);
+
+    return rows.map((r) => {
+      const meta = (r.extractedMetadata ?? {}) as Record<string, unknown>;
+      return {
+        id: r.id,
+        title: r.title,
+        description: typeof meta.description === 'string' ? meta.description.slice(0, 500) : '',
+        channel: typeof meta.channel === 'string' ? meta.channel : '',
+        videoId: typeof meta.videoId === 'string' ? meta.videoId : null,
+        caption: typeof meta.caption === 'string' ? meta.caption : null,
+        captionFetchedAt: typeof meta.captionFetchedAt === 'string' ? meta.captionFetchedAt : null,
+      };
+    });
+  }
+
+  /**
+   * 1회성 소급 백필: 자막 기능 배포 이전 태깅된 영상들도 자막을 조회하고
+   * 자막 내용을 반영해 재태깅한다. 개별 영상 실패는 failed에 집계하고 계속 진행한다.
+   */
+  async backfillCaptions(
+    options: { days?: number; limit?: number; dryRun?: boolean; force?: boolean } = {}
+  ): Promise<{ scanned: number; captionsFetched: number; retagged: number; failed: number; method: string }> {
+    const days = options.days ?? 90;
+    const limit = options.limit ?? 200;
+    const dryRun = options.dryRun ?? false;
+    const force = options.force ?? false;
+
+    const targets = await this.getBackfillTargets(days, limit, force);
+    console.log(
+      `[VideoTagging] Backfill scan: ${targets.length} candidate video(s) (days=${days}, limit=${limit}, force=${force})`
+    );
+
+    if (dryRun) {
+      if (!force) {
+        try {
+          const skipRes = await db.execute(sql`
+            SELECT count(*)::int AS skipped
+            FROM articles
+            WHERE product_type = 'video'
+              AND published_at > now() - make_interval(days => ${days})
+              AND (extracted_metadata->'captionBackfillTaggedAt') IS NOT NULL
+          `);
+          const skipped = Number((skipRes.rows[0] as any)?.skipped ?? 0);
+          console.log(`[VideoTagging] Backfill dry-run: ${skipped} video(s) would be skipped (already backfilled marker).`);
+        } catch (err) {
+          console.error('[VideoTagging] Backfill dry-run skip-count query failed:', (err as Error).message);
+        }
+      }
+      console.log(`[VideoTagging] Backfill dry-run: ${targets.length} video(s) would be processed (no DB writes).`);
+      return { scanned: targets.length, captionsFetched: 0, retagged: 0, failed: 0, method: 'dry-run' };
+    }
+
+    if (targets.length === 0) {
+      return { scanned: 0, captionsFetched: 0, retagged: 0, failed: 0, method: 'none' };
+    }
+
+    // 이미 captionFetchedAt 있는 영상은 재조회하지 않음 (기존 로직 재사용)
+    const beforeCaptionCount = targets.filter((v) => v.caption).length;
+    await this.ensureCaptions(targets);
+    const afterCaptionCount = targets.filter((v) => v.caption).length;
+    const captionsFetched = Math.max(0, afterCaptionCount - beforeCaptionCount);
+
+    let retagged = 0;
+    let failed = 0;
+    const method = this.client ? 'llm' : 'heuristic';
+
+    for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+      const batch = targets.slice(i, i + BATCH_SIZE);
+      let llmResults = new Map<string, VideoAiTags>();
+      try {
+        llmResults = this.client ? await this.llmTagBatch(batch) : new Map<string, VideoAiTags>();
+      } catch (err) {
+        console.error('[VideoTagging] Backfill LLM batch failed:', (err as Error).message);
+      }
+
+      for (const video of batch) {
+        try {
+          const tags = llmResults.get(video.id) ?? this.heuristicTags(video);
+          const now = new Date().toISOString();
+          await db.execute(sql`
+            UPDATE articles
+            SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb) || ${JSON.stringify({
+              aiTags: tags,
+              captionBackfillTaggedAt: now,
+            })}::jsonb
+            WHERE id = ${video.id}
+          `);
+          retagged++;
+        } catch (err) {
+          failed++;
+          console.error(`[VideoTagging] Backfill retag failed for ${video.id}:`, (err as Error).message);
+        }
+      }
+    }
+
+    // 카탈로그 연동 갱신 (기업 자동생성/영상-로봇 링크/후보큐) — 기존 스케줄러 패턴과 일관성 유지
+    try {
+      await videoDbSyncService.run();
+    } catch (err) {
+      console.error('[VideoTagging] Backfill video DB sync failed:', (err as Error).message);
+    }
+
+    // 트렌드 요약 캐시 무효화 — 자막 반영으로 태그가 바뀌었으므로 다음 조회 시 재생성되도록
+    try {
+      await db.delete(viewCache).where(like(viewCache.viewName, 'video-trend-summary:%'));
+    } catch (err) {
+      console.error('[VideoTagging] Backfill cache invalidation failed:', (err as Error).message);
+    }
+    this.summaryCache = null;
+    this.techSummaryCache.clear();
+
+    console.log(
+      `[VideoTagging] Backfill complete: scanned=${targets.length}, captionsFetched=${captionsFetched}, retagged=${retagged}, failed=${failed}, method=${method}`
+    );
+    return { scanned: targets.length, captionsFetched, retagged, failed, method };
   }
 
   private heuristicTags(video: PendingVideo): VideoAiTags {
