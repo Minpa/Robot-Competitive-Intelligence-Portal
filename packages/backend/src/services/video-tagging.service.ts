@@ -21,6 +21,15 @@ import { videoDbSyncService } from './video-db-sync.service.js';
 const TAGGING_MODEL = process.env.VIDEO_TAGGING_MODEL || 'claude-haiku-4-5-20251001';
 const BATCH_SIZE = 20;
 
+// 자막 조회 시 유튜브 요청 간 지연 — 빠르고 저비용을 유지하면서 봇 차단(429) 유발을 완화
+const CAPTION_REQUEST_DELAY_MS = 500;
+// 연속 429 발생 시 "IP 차단됨"으로 판단해 배치를 중단하는 기준 횟수
+const CAPTION_CIRCUIT_BREAKER_THRESHOLD = 5;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // 트렌드 요약 갱신 주기 — 기본 72시간(3일). 매 방문·매일 생성할 필요가 없는 저변동 콘텐츠.
 const SUMMARY_TTL_MS =
   Math.max(1, parseInt(process.env.VIDEO_SUMMARY_TTL_HOURS || '72', 10)) * 3_600_000;
@@ -238,14 +247,30 @@ class VideoTaggingService {
    * 자막 미조회 영상의 자막을 timedtext 엔드포인트로 조회해 extracted_metadata에 캐시한다.
    * 이미 조회 이력(captionFetchedAt)이 있는 영상은 성공/실패 여부와 무관하게 재조회하지 않는다.
    * 실패한 영상도 에러 없이 스킵되며(youtubeCaptionService가 null 반환), 제목+설명 폴백은 그대로 유지된다.
+   *
+   * 유튜브의 봇 차단(429) 대응:
+   * - 영상 간 CAPTION_REQUEST_DELAY_MS 지연을 둔다.
+   * - 연속 CAPTION_CIRCUIT_BREAKER_THRESHOLD회 429가 발생하면 "IP 차단됨"으로 판단해
+   *   해당 실행의 나머지 영상은 아예 조회를 시도하지 않고 건너뛴다. 이 경우
+   *   captionFetchedAt을 기록하지 않아 다음 실행(자동 태깅/백필)에서 재시도 대상으로 남는다.
+   *   circuit breaker 발동 전에 개별적으로 재시도까지 실패한 영상은 기존처럼
+   *   captionFetchedAt을 기록해 재조회 대상에서 제외한다.
    */
   private async ensureCaptions(videos: PendingVideo[]): Promise<void> {
     const targets = videos.filter((v) => !v.captionFetchedAt && v.videoId);
     if (targets.length === 0) return;
 
     let fetched = 0;
-    for (const video of targets) {
+    let attempted = 0;
+    let consecutive429 = 0;
+
+    for (let i = 0; i < targets.length; i++) {
+      const video = targets[i]!;
+      attempted++;
+
       const caption = await youtubeCaptionService.fetchCaption(video.videoId!);
+      const rateLimited = youtubeCaptionService.wasRateLimited();
+
       const now = new Date().toISOString();
       const stored = caption ? caption.slice(0, this.CAPTION_STORE_MAX) : null;
       video.caption = stored;
@@ -263,8 +288,23 @@ class VideoTaggingService {
       } catch (err) {
         console.error(`[VideoTagging] Failed to persist caption for ${video.id}:`, (err as Error).message);
       }
+
+      consecutive429 = !caption && rateLimited ? consecutive429 + 1 : 0;
+
+      if (consecutive429 >= CAPTION_CIRCUIT_BREAKER_THRESHOLD) {
+        const remaining = targets.length - attempted;
+        console.log(
+          `[VideoTagging] Circuit breaker triggered: ${CAPTION_CIRCUIT_BREAKER_THRESHOLD} consecutive 429s, skipping remaining ${remaining} video(s)`
+        );
+        break;
+      }
+
+      if (i < targets.length - 1) {
+        await sleep(CAPTION_REQUEST_DELAY_MS);
+      }
     }
-    console.log(`[VideoTagging] Captions fetched for ${fetched}/${targets.length} video(s) (rest: no caption available)`);
+
+    console.log(`[VideoTagging] Captions fetched for ${fetched}/${attempted} video(s) attempted (rest: no caption available)`);
   }
 
   /**
