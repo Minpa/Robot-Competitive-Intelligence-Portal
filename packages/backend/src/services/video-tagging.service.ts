@@ -1,7 +1,8 @@
 /**
  * VideoTaggingService — 데모 영상 AI 태깅 및 트렌드 요약
  *
- * 합법 수집된 영상 메타데이터(제목·설명 텍스트)만 분석한다.
+ * 합법 수집된 영상 메타데이터(제목·설명 텍스트) + 자막 텍스트를 분석한다.
+ * 자막은 비공식 timedtext 엔드포인트(youtube-caption.service)로 조회하지만,
  * 영상 파일 다운로드/프레임 분석은 하지 않는다 (유튜브 약관 준수).
  *
  * - 태깅: 작업 유형 / 기술 키워드 / 로봇 모델을 extracted_metadata.aiTags에 저장
@@ -13,6 +14,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { sql, eq, and, desc, isNotNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { articles, viewCache } from '../db/schema.js';
+import { youtubeCaptionService } from './youtube-caption.service.js';
 
 // 저비용 반복 태깅 작업이므로 소형 모델을 기본값으로 사용
 const TAGGING_MODEL = process.env.VIDEO_TAGGING_MODEL || 'claude-haiku-4-5-20251001';
@@ -57,6 +59,11 @@ interface PendingVideo {
   title: string;
   description: string;
   channel: string;
+  videoId: string | null;
+  /** 자막 전문(캐시, 최대 CAPTION_STORE_MAX자) — 없으면 null */
+  caption: string | null;
+  /** 자막 조회 시각 ISO 문자열 — 있으면 재조회하지 않음(성공/실패 무관) */
+  captionFetchedAt: string | null;
 }
 
 // 휴리스틱 폴백용 키워드 매핑 (영문 제목 기준)
@@ -85,6 +92,13 @@ interface CachedSummary {
 class VideoTaggingService {
   private client: Anthropic | null = null;
   private summaryCache: CachedSummary | null = null;
+
+  // 자막 텍스트 길이 상한 — 토큰 폭증 방지용 트렁케이션 기준
+  // 저장용(캐시): JSONB 비대화 방지를 위한 상한. 개별 영상 태깅용: 영상 1건당 프롬프트에 포함.
+  // 취합 요약용: 최대 120개 영상을 한 프롬프트에 모으므로 훨씬 짧은 발췌만 사용.
+  private readonly CAPTION_STORE_MAX = 8000;
+  private readonly CAPTION_TAG_MAX = 2000;
+  private readonly CAPTION_SUMMARY_EXCERPT_MAX = 220;
 
   /** LLM으로 구조화 요약 생성 — {headline, points[]} JSON 강제, 잘린 응답도 복원 */
   private async generateStructured(
@@ -212,8 +226,44 @@ class VideoTaggingService {
         title: r.title,
         description: typeof meta.description === 'string' ? meta.description.slice(0, 500) : '',
         channel: typeof meta.channel === 'string' ? meta.channel : '',
+        videoId: typeof meta.videoId === 'string' ? meta.videoId : null,
+        caption: typeof meta.caption === 'string' ? meta.caption : null,
+        captionFetchedAt: typeof meta.captionFetchedAt === 'string' ? meta.captionFetchedAt : null,
       };
     });
+  }
+
+  /**
+   * 자막 미조회 영상의 자막을 timedtext 엔드포인트로 조회해 extracted_metadata에 캐시한다.
+   * 이미 조회 이력(captionFetchedAt)이 있는 영상은 성공/실패 여부와 무관하게 재조회하지 않는다.
+   * 실패한 영상도 에러 없이 스킵되며(youtubeCaptionService가 null 반환), 제목+설명 폴백은 그대로 유지된다.
+   */
+  private async ensureCaptions(videos: PendingVideo[]): Promise<void> {
+    const targets = videos.filter((v) => !v.captionFetchedAt && v.videoId);
+    if (targets.length === 0) return;
+
+    let fetched = 0;
+    for (const video of targets) {
+      const caption = await youtubeCaptionService.fetchCaption(video.videoId!);
+      const now = new Date().toISOString();
+      const stored = caption ? caption.slice(0, this.CAPTION_STORE_MAX) : null;
+      video.caption = stored;
+      video.captionFetchedAt = now;
+      if (stored) fetched++;
+      try {
+        await db.execute(sql`
+          UPDATE articles
+          SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb) || ${JSON.stringify({
+            caption: stored,
+            captionFetchedAt: now,
+          })}::jsonb
+          WHERE id = ${video.id}
+        `);
+      } catch (err) {
+        console.error(`[VideoTagging] Failed to persist caption for ${video.id}:`, (err as Error).message);
+      }
+    }
+    console.log(`[VideoTagging] Captions fetched for ${fetched}/${targets.length} video(s) (rest: no caption available)`);
   }
 
   private heuristicTags(video: PendingVideo): VideoAiTags {
@@ -238,8 +288,16 @@ class VideoTaggingService {
 기술 태그(techTags): 영상에서 드러나는 기술 키워드 0~4개 (예: 강화학습, 원격조작, End-to-End, 촉각센서, 자율주행, VLA, 파운데이션모델)
 로봇 모델(robots): 언급된 로봇 모델명 0~3개 (예: Atlas, Optimus, Figure 03)
 
-영상 목록:
-${JSON.stringify(videos.map((v) => ({ id: v.id, channel: v.channel, title: v.title, description: v.description })))}
+영상 목록 (caption은 자막 발췌이며 없을 수 있음):
+${JSON.stringify(
+  videos.map((v) => ({
+    id: v.id,
+    channel: v.channel,
+    title: v.title,
+    description: v.description,
+    caption: v.caption ? v.caption.slice(0, this.CAPTION_TAG_MAX) : undefined,
+  }))
+)}
 
 JSON 배열로만 응답하라. 다른 텍스트 없이:
 [{"id":"...","taskTypes":["..."],"techTags":["..."],"robots":["..."]}]`;
@@ -286,6 +344,9 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
   async run(limit = 300): Promise<{ tagged: number; method: string }> {
     const pending = await this.getPending(limit);
     if (pending.length === 0) return { tagged: 0, method: 'none' };
+
+    // 자막(스크립트) 조회 — 실패/없음은 에러 없이 스킵되고 제목+설명 폴백 유지
+    await this.ensureCaptions(pending);
 
     let tagged = 0;
     const method = this.client ? 'llm' : 'heuristic';
@@ -349,11 +410,14 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
 
     const videos = rows.map((r) => {
       const meta = (r.extractedMetadata ?? {}) as Record<string, any>;
+      const captionExcerpt =
+        typeof meta.caption === 'string' ? meta.caption.slice(0, this.CAPTION_SUMMARY_EXCERPT_MAX) : undefined;
       return {
         title: r.title,
         channel: meta.channel ?? '',
         taskTypes: meta.aiTags?.taskTypes ?? [],
         publishedAt: r.publishedAt?.toISOString().slice(0, 10) ?? '',
+        ...(captionExcerpt ? { captionExcerpt } : {}),
       };
     });
 
@@ -548,7 +612,9 @@ points는 4~6개. 마크다운 기호(#, **) 사용 금지.`
 
     const videos = videoRows.map((r) => {
       const meta = (r.extractedMetadata ?? {}) as Record<string, any>;
-      return { title: r.title, channel: meta.channel ?? '' };
+      const captionExcerpt =
+        typeof meta.caption === 'string' ? meta.caption.slice(0, this.CAPTION_SUMMARY_EXCERPT_MAX) : undefined;
+      return { title: r.title, channel: meta.channel ?? '', ...(captionExcerpt ? { captionExcerpt } : {}) };
     });
     const papers = paperRows.map((r) => r.title);
 
