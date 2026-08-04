@@ -1,8 +1,7 @@
 /**
  * VideoTaggingService — 데모 영상 AI 태깅 및 트렌드 요약
  *
- * 합법 수집된 영상 메타데이터(제목·설명 텍스트) + 자막 텍스트를 분석한다.
- * 자막은 비공식 timedtext 엔드포인트(youtube-caption.service)로 조회하지만,
+ * 합법 수집된 영상 메타데이터(제목·설명 텍스트)만 분석한다.
  * 영상 파일 다운로드/프레임 분석은 하지 않는다 (유튜브 약관 준수).
  *
  * - 태깅: 작업 유형 / 기술 키워드 / 로봇 모델을 extracted_metadata.aiTags에 저장
@@ -11,24 +10,13 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { sql, eq, and, desc, isNotNull, like } from 'drizzle-orm';
+import { sql, eq, and, desc, isNotNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { articles, viewCache } from '../db/schema.js';
-import { youtubeCaptionService } from './youtube-caption.service.js';
-import { videoDbSyncService } from './video-db-sync.service.js';
 
 // 저비용 반복 태깅 작업이므로 소형 모델을 기본값으로 사용
 const TAGGING_MODEL = process.env.VIDEO_TAGGING_MODEL || 'claude-haiku-4-5-20251001';
 const BATCH_SIZE = 20;
-
-// 자막 조회 시 유튜브 요청 간 지연 — 빠르고 저비용을 유지하면서 봇 차단(429) 유발을 완화
-const CAPTION_REQUEST_DELAY_MS = 500;
-// 연속 429 발생 시 "IP 차단됨"으로 판단해 배치를 중단하는 기준 횟수
-const CAPTION_CIRCUIT_BREAKER_THRESHOLD = 5;
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 // 트렌드 요약 갱신 주기 — 기본 72시간(3일). 매 방문·매일 생성할 필요가 없는 저변동 콘텐츠.
 const SUMMARY_TTL_MS =
@@ -69,11 +57,6 @@ interface PendingVideo {
   title: string;
   description: string;
   channel: string;
-  videoId: string | null;
-  /** 자막 전문(캐시, 최대 CAPTION_STORE_MAX자) — 없으면 null */
-  caption: string | null;
-  /** 자막 조회 시각 ISO 문자열 — 있으면 재조회하지 않음(성공/실패 무관) */
-  captionFetchedAt: string | null;
 }
 
 // 휴리스틱 폴백용 키워드 매핑 (영문 제목 기준)
@@ -102,13 +85,6 @@ interface CachedSummary {
 class VideoTaggingService {
   private client: Anthropic | null = null;
   private summaryCache: CachedSummary | null = null;
-
-  // 자막 텍스트 길이 상한 — 토큰 폭증 방지용 트렁케이션 기준
-  // 저장용(캐시): JSONB 비대화 방지를 위한 상한. 개별 영상 태깅용: 영상 1건당 프롬프트에 포함.
-  // 취합 요약용: 최대 120개 영상을 한 프롬프트에 모으므로 훨씬 짧은 발췌만 사용.
-  private readonly CAPTION_STORE_MAX = 8000;
-  private readonly CAPTION_TAG_MAX = 2000;
-  private readonly CAPTION_SUMMARY_EXCERPT_MAX = 220;
 
   /** LLM으로 구조화 요약 생성 — {headline, points[]} JSON 강제, 잘린 응답도 복원 */
   private async generateStructured(
@@ -236,216 +212,8 @@ class VideoTaggingService {
         title: r.title,
         description: typeof meta.description === 'string' ? meta.description.slice(0, 500) : '',
         channel: typeof meta.channel === 'string' ? meta.channel : '',
-        videoId: typeof meta.videoId === 'string' ? meta.videoId : null,
-        caption: typeof meta.caption === 'string' ? meta.caption : null,
-        captionFetchedAt: typeof meta.captionFetchedAt === 'string' ? meta.captionFetchedAt : null,
       };
     });
-  }
-
-  /**
-   * 자막 미조회 영상의 자막을 timedtext 엔드포인트로 조회해 extracted_metadata에 캐시한다.
-   * 이미 조회 이력(captionFetchedAt)이 있는 영상은 성공/실패 여부와 무관하게 재조회하지 않는다.
-   * 실패한 영상도 에러 없이 스킵되며(youtubeCaptionService가 null 반환), 제목+설명 폴백은 그대로 유지된다.
-   *
-   * 유튜브의 봇 차단(429) 대응:
-   * - 영상 간 CAPTION_REQUEST_DELAY_MS 지연을 둔다.
-   * - 연속 CAPTION_CIRCUIT_BREAKER_THRESHOLD회 429가 발생하면 "IP 차단됨"으로 판단해
-   *   해당 실행의 나머지 영상은 아예 조회를 시도하지 않고 건너뛴다. 이 경우
-   *   captionFetchedAt을 기록하지 않아 다음 실행(자동 태깅/백필)에서 재시도 대상으로 남는다.
-   *   circuit breaker 발동 전에 개별적으로 재시도까지 실패한 영상은 기존처럼
-   *   captionFetchedAt을 기록해 재조회 대상에서 제외한다.
-   */
-  private async ensureCaptions(videos: PendingVideo[]): Promise<void> {
-    const targets = videos.filter((v) => !v.captionFetchedAt && v.videoId);
-    if (targets.length === 0) return;
-
-    let fetched = 0;
-    let attempted = 0;
-    let consecutive429 = 0;
-
-    for (let i = 0; i < targets.length; i++) {
-      const video = targets[i]!;
-      attempted++;
-
-      const caption = await youtubeCaptionService.fetchCaption(video.videoId!);
-      const rateLimited = youtubeCaptionService.wasRateLimited();
-
-      const now = new Date().toISOString();
-      const stored = caption ? caption.slice(0, this.CAPTION_STORE_MAX) : null;
-      video.caption = stored;
-      video.captionFetchedAt = now;
-      if (stored) fetched++;
-      try {
-        await db.execute(sql`
-          UPDATE articles
-          SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb) || ${JSON.stringify({
-            caption: stored,
-            captionFetchedAt: now,
-          })}::jsonb
-          WHERE id = ${video.id}
-        `);
-      } catch (err) {
-        console.error(`[VideoTagging] Failed to persist caption for ${video.id}:`, (err as Error).message);
-      }
-
-      consecutive429 = !caption && rateLimited ? consecutive429 + 1 : 0;
-
-      if (consecutive429 >= CAPTION_CIRCUIT_BREAKER_THRESHOLD) {
-        const remaining = targets.length - attempted;
-        console.log(
-          `[VideoTagging] Circuit breaker triggered: ${CAPTION_CIRCUIT_BREAKER_THRESHOLD} consecutive 429s, skipping remaining ${remaining} video(s)`
-        );
-        break;
-      }
-
-      if (i < targets.length - 1) {
-        await sleep(CAPTION_REQUEST_DELAY_MS);
-      }
-    }
-
-    console.log(`[VideoTagging] Captions fetched for ${fetched}/${attempted} video(s) attempted (rest: no caption available)`);
-  }
-
-  /**
-   * 자막 백필 대상 조회 — aiTags 유무와 무관하게 최근 N일 이내 영상을 모두 포함한다
-   * (getPending()과 달리 이미 태깅된 영상도 대상에 포함해 자막 반영 재태깅을 유도).
-   * force가 아니면 이미 백필 완료 마커(captionBackfillTaggedAt)가 있는 영상은 제외한다.
-   */
-  private async getBackfillTargets(days: number, limit: number, force: boolean): Promise<PendingVideo[]> {
-    const conditions = [
-      eq(articles.productType, 'video'),
-      sql`published_at > now() - make_interval(days => ${days})`,
-    ];
-    if (!force) {
-      conditions.push(sql`(extracted_metadata->'captionBackfillTaggedAt') IS NULL`);
-    }
-
-    const rows = await db
-      .select({
-        id: articles.id,
-        title: articles.title,
-        extractedMetadata: articles.extractedMetadata,
-      })
-      .from(articles)
-      .where(and(...conditions))
-      .orderBy(desc(articles.publishedAt))
-      .limit(limit);
-
-    return rows.map((r) => {
-      const meta = (r.extractedMetadata ?? {}) as Record<string, unknown>;
-      return {
-        id: r.id,
-        title: r.title,
-        description: typeof meta.description === 'string' ? meta.description.slice(0, 500) : '',
-        channel: typeof meta.channel === 'string' ? meta.channel : '',
-        videoId: typeof meta.videoId === 'string' ? meta.videoId : null,
-        caption: typeof meta.caption === 'string' ? meta.caption : null,
-        captionFetchedAt: typeof meta.captionFetchedAt === 'string' ? meta.captionFetchedAt : null,
-      };
-    });
-  }
-
-  /**
-   * 1회성 소급 백필: 자막 기능 배포 이전 태깅된 영상들도 자막을 조회하고
-   * 자막 내용을 반영해 재태깅한다. 개별 영상 실패는 failed에 집계하고 계속 진행한다.
-   */
-  async backfillCaptions(
-    options: { days?: number; limit?: number; dryRun?: boolean; force?: boolean } = {}
-  ): Promise<{ scanned: number; captionsFetched: number; retagged: number; failed: number; method: string }> {
-    const days = options.days ?? 90;
-    const limit = options.limit ?? 200;
-    const dryRun = options.dryRun ?? false;
-    const force = options.force ?? false;
-
-    const targets = await this.getBackfillTargets(days, limit, force);
-    console.log(
-      `[VideoTagging] Backfill scan: ${targets.length} candidate video(s) (days=${days}, limit=${limit}, force=${force})`
-    );
-
-    if (dryRun) {
-      if (!force) {
-        try {
-          const skipRes = await db.execute(sql`
-            SELECT count(*)::int AS skipped
-            FROM articles
-            WHERE product_type = 'video'
-              AND published_at > now() - make_interval(days => ${days})
-              AND (extracted_metadata->'captionBackfillTaggedAt') IS NOT NULL
-          `);
-          const skipped = Number((skipRes.rows[0] as any)?.skipped ?? 0);
-          console.log(`[VideoTagging] Backfill dry-run: ${skipped} video(s) would be skipped (already backfilled marker).`);
-        } catch (err) {
-          console.error('[VideoTagging] Backfill dry-run skip-count query failed:', (err as Error).message);
-        }
-      }
-      console.log(`[VideoTagging] Backfill dry-run: ${targets.length} video(s) would be processed (no DB writes).`);
-      return { scanned: targets.length, captionsFetched: 0, retagged: 0, failed: 0, method: 'dry-run' };
-    }
-
-    if (targets.length === 0) {
-      return { scanned: 0, captionsFetched: 0, retagged: 0, failed: 0, method: 'none' };
-    }
-
-    // 이미 captionFetchedAt 있는 영상은 재조회하지 않음 (기존 로직 재사용)
-    const beforeCaptionCount = targets.filter((v) => v.caption).length;
-    await this.ensureCaptions(targets);
-    const afterCaptionCount = targets.filter((v) => v.caption).length;
-    const captionsFetched = Math.max(0, afterCaptionCount - beforeCaptionCount);
-
-    let retagged = 0;
-    let failed = 0;
-    const method = this.client ? 'llm' : 'heuristic';
-
-    for (let i = 0; i < targets.length; i += BATCH_SIZE) {
-      const batch = targets.slice(i, i + BATCH_SIZE);
-      let llmResults = new Map<string, VideoAiTags>();
-      try {
-        llmResults = this.client ? await this.llmTagBatch(batch) : new Map<string, VideoAiTags>();
-      } catch (err) {
-        console.error('[VideoTagging] Backfill LLM batch failed:', (err as Error).message);
-      }
-
-      for (const video of batch) {
-        try {
-          const tags = llmResults.get(video.id) ?? this.heuristicTags(video);
-          const now = new Date().toISOString();
-          await db.execute(sql`
-            UPDATE articles
-            SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb) || ${JSON.stringify({
-              aiTags: tags,
-              captionBackfillTaggedAt: now,
-            })}::jsonb
-            WHERE id = ${video.id}
-          `);
-          retagged++;
-        } catch (err) {
-          failed++;
-          console.error(`[VideoTagging] Backfill retag failed for ${video.id}:`, (err as Error).message);
-        }
-      }
-    }
-
-    // 카탈로그 연동 갱신 (기업 자동생성/영상-로봇 링크/후보큐) — 기존 스케줄러 패턴과 일관성 유지
-    try {
-      await videoDbSyncService.run();
-    } catch (err) {
-      console.error('[VideoTagging] Backfill video DB sync failed:', (err as Error).message);
-    }
-
-    // 트렌드 요약 캐시 무효화 — 자막 반영으로 태그가 바뀌었으므로 다음 조회 시 재생성되도록
-    try {
-      await db.delete(viewCache).where(like(viewCache.viewName, 'video-trend-summary:%'));
-    } catch (err) {
-      console.error('[VideoTagging] Backfill cache invalidation failed:', (err as Error).message);
-    }
-    this.summaryCache = null;
-    this.techSummaryCache.clear();
-
-    console.log(
-      `[VideoTagging] Backfill complete: scanned=${targets.length}, captionsFetched=${captionsFetched}, retagged=${retagged}, failed=${failed}, method=${method}`
-    );
-    return { scanned: targets.length, captionsFetched, retagged, failed, method };
   }
 
   private heuristicTags(video: PendingVideo): VideoAiTags {
@@ -470,14 +238,13 @@ class VideoTaggingService {
 기술 태그(techTags): 영상에서 드러나는 기술 키워드 0~4개 (예: 강화학습, 원격조작, End-to-End, 촉각센서, 자율주행, VLA, 파운데이션모델)
 로봇 모델(robots): 언급된 로봇 모델명 0~3개 (예: Atlas, Optimus, Figure 03)
 
-영상 목록 (caption은 자막 발췌이며 없을 수 있음):
+영상 목록:
 ${JSON.stringify(
   videos.map((v) => ({
     id: v.id,
     channel: v.channel,
     title: v.title,
     description: v.description,
-    caption: v.caption ? v.caption.slice(0, this.CAPTION_TAG_MAX) : undefined,
   }))
 )}
 
@@ -527,9 +294,6 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
     const pending = await this.getPending(limit);
     if (pending.length === 0) return { tagged: 0, method: 'none' };
 
-    // 자막(스크립트) 조회 — 실패/없음은 에러 없이 스킵되고 제목+설명 폴백 유지
-    await this.ensureCaptions(pending);
-
     let tagged = 0;
     const method = this.client ? 'llm' : 'heuristic';
 
@@ -560,7 +324,7 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
     generatedAt: string;
     source: 'llm' | 'template' | 'cache';
   }> {
-    const CACHE_KEY = 'video-trend-summary:v4';
+    const CACHE_KEY = 'video-trend-summary:v5';
     if (!this.summaryCache) {
       this.summaryCache = await this.loadPersistedSummary(CACHE_KEY);
     }
@@ -592,14 +356,11 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
 
     const videos = rows.map((r) => {
       const meta = (r.extractedMetadata ?? {}) as Record<string, any>;
-      const captionExcerpt =
-        typeof meta.caption === 'string' ? meta.caption.slice(0, this.CAPTION_SUMMARY_EXCERPT_MAX) : undefined;
       return {
         title: r.title,
         channel: meta.channel ?? '',
         taskTypes: meta.aiTags?.taskTypes ?? [],
         publishedAt: r.publishedAt?.toISOString().slice(0, 10) ?? '',
-        ...(captionExcerpt ? { captionExcerpt } : {}),
       };
     });
 
@@ -697,7 +458,7 @@ points는 4~6개. 마크다운 기호(#, **) 사용 금지.`
     generatedAt: string;
     source: 'llm' | 'template' | 'cache';
   }> {
-    const cacheKey = `video-trend-summary:v4:${domain}`;
+    const cacheKey = `video-trend-summary:v5:${domain}`;
     let cached = this.techSummaryCache.get(domain);
     if (!cached) {
       const persisted = await this.loadPersistedSummary(cacheKey);
@@ -794,9 +555,7 @@ points는 4~6개. 마크다운 기호(#, **) 사용 금지.`
 
     const videos = videoRows.map((r) => {
       const meta = (r.extractedMetadata ?? {}) as Record<string, any>;
-      const captionExcerpt =
-        typeof meta.caption === 'string' ? meta.caption.slice(0, this.CAPTION_SUMMARY_EXCERPT_MAX) : undefined;
-      return { title: r.title, channel: meta.channel ?? '', ...(captionExcerpt ? { captionExcerpt } : {}) };
+      return { title: r.title, channel: meta.channel ?? '' };
     });
     const papers = paperRows.map((r) => r.title);
 
