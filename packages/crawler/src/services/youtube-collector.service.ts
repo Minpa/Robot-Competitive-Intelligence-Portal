@@ -1,6 +1,6 @@
 import Parser from 'rss-parser';
 import { createHash } from 'crypto';
-import { sql } from 'drizzle-orm';
+import { sql, inArray } from 'drizzle-orm';
 import { getDb, articles } from '../db/index.js';
 
 /**
@@ -302,7 +302,7 @@ class YoutubeCollectorService {
             .filter((r) => !gate.test(`${r.title} ${r.description}`))
             .map((r) => r.id);
           if (badIds.length > 0) {
-            await db.execute(sql`DELETE FROM articles WHERE id = ANY(${badIds}::uuid[])`);
+            await db.delete(articles).where(inArray(articles.id, badIds));
             result.videosCleaned += badIds.length;
             console.log(`[YouTube] Cleaned ${badIds.length} off-topic video(s) from ${channel.channelName}`);
           }
