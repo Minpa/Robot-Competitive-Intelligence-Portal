@@ -161,7 +161,12 @@ class VideoContentAnalysisService {
         and(
           sql`product_type = 'video'`,
           sql`(extracted_metadata->>'geminiAnalyzedAt') IS NULL`,
-          sql`(extracted_metadata->>'domain') = ANY(${DOMAIN_FILTER})`,
+          DOMAIN_FILTER.length > 0
+            ? sql`(extracted_metadata->>'domain') IN (${sql.join(
+                DOMAIN_FILTER.map((d) => sql`${d}`),
+                sql`, `
+              )})`
+            : sql`TRUE`,
           REQUIRE_DEMO_SIGNAL ? sql`(extracted_metadata->'aiTags') IS NOT NULL` : sql`TRUE`,
           sql`COALESCE((extracted_metadata->>'geminiAnalysisAttempts')::int, 0) < ${MAX_ATTEMPTS}`
         )
