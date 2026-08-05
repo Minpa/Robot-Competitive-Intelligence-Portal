@@ -293,6 +293,41 @@ class VideoContentAnalysisService {
 
     return { ok: true, analysis };
   }
+
+  /** Gemini로 상세 분석 완료된 영상 목록 (최신 분석순) — 트렌드 페이지 노출용 */
+  async listAnalyzed(limit = 30) {
+    const rows = await db
+      .select({
+        id: articles.id,
+        title: articles.title,
+        url: articles.url,
+        publishedAt: articles.publishedAt,
+        meta: articles.extractedMetadata,
+      })
+      .from(articles)
+      .where(and(sql`product_type = 'video'`, sql`(extracted_metadata->'geminiAnalysis') IS NOT NULL`))
+      .orderBy(sql`(extracted_metadata->>'geminiAnalyzedAt') DESC NULLS LAST`)
+      .limit(limit);
+
+    return rows.map((r) => {
+      const meta = (r.meta ?? {}) as Record<string, any>;
+      const g = (meta.geminiAnalysis ?? {}) as Record<string, any>;
+      return {
+        id: r.id,
+        title: r.title,
+        url: r.url,
+        channel: typeof meta.channel === 'string' ? meta.channel : null,
+        publishedAt: r.publishedAt,
+        task: typeof g.task === 'string' ? g.task : null,
+        environment: typeof g.environment === 'string' ? g.environment : null,
+        autonomy: typeof g.autonomy === 'string' ? g.autonomy : null,
+        robotCount: typeof g.robotCount === 'number' ? g.robotCount : null,
+        capabilities: Array.isArray(g.capabilities) ? g.capabilities.slice(0, 8) : [],
+        summaryKo: typeof g.summaryKo === 'string' ? g.summaryKo : null,
+        analyzedAt: typeof meta.geminiAnalyzedAt === 'string' ? meta.geminiAnalyzedAt : null,
+      };
+    });
+  }
 }
 
 export const videoContentAnalysisService = new VideoContentAnalysisService();

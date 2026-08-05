@@ -93,4 +93,9 @@ export async function videoSyncRoutes(fastify: FastifyInstance) {
       return videoContentAnalysisService.run(request.body?.limit);
     }
   );
+
+  // Gemini 상세 분석 완료된 영상 목록 (트렌드 페이지 노출용)
+  fastify.get('/analyzed-videos', { preHandler: adminOrAnalyst }, async () => {
+    return videoContentAnalysisService.listAnalyzed(30);
+  });
 }

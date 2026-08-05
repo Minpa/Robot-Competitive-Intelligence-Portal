@@ -135,6 +135,13 @@ export default function VideoTrendsPage() {
     staleTime: 30 * 60 * 1000,
   });
 
+  const analyzedQuery = useQuery({
+    queryKey: ['video-trends-analyzed'],
+    queryFn: () => api.getAnalyzedVideos(),
+    staleTime: 10 * 60 * 1000,
+  });
+  const analyzedVideos: any[] = Array.isArray(analyzedQuery.data) ? analyzedQuery.data : [];
+
   const rawVideos: VideoRow[] = useMemo(
     () => ((videosQuery.data?.items ?? []) as VideoRow[]).filter((v) => {
       // 로봇(완제품) 채널만 — 단위기술 영상은 각 기술 축 페이지가 담당
@@ -479,6 +486,71 @@ export default function VideoTrendsPage() {
           loading={summaryQuery.isLoading}
           data={summaryQuery.data}
         />
+
+        {/* Gemini 영상 내용 상세 분석 */}
+        <Panel
+          kicker="Video Content Analysis (Gemini)"
+          title={`영상 내용 상세 분석 (${analyzedVideos.length}건)`}
+          subtitle="공개 데모 영상을 Gemini가 직접 분석해 로봇의 실제 작업·환경·자율성을 요약합니다. (제목·설명이 아닌 영상 내용 기반)"
+        >
+          {analyzedQuery.isLoading ? (
+            <div className="py-8 text-center text-ink-400 text-sm">불러오는 중...</div>
+          ) : analyzedVideos.length === 0 ? (
+            <div className="py-8 text-center text-ink-400 text-sm">
+              아직 상세 분석된 영상이 없습니다. 매일 자동 분석되며, 관리자 페이지에서 즉시 실행할 수도 있습니다.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {analyzedVideos.map((v) => {
+                const tone =
+                  v.autonomy === 'autonomous' ? 'pos' : v.autonomy === 'teleoperated' ? 'warn' : 'neutral';
+                const autoLabel =
+                  v.autonomy === 'autonomous'
+                    ? '자율'
+                    : v.autonomy === 'teleoperated'
+                      ? '원격조작'
+                      : v.autonomy === 'assisted'
+                        ? '보조'
+                        : '불명확';
+                return (
+                  <div key={v.id} className="border border-ink-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <a
+                        href={v.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[13.5px] font-semibold text-ink-900 hover:text-info hover:underline"
+                      >
+                        {v.title}
+                      </a>
+                      {v.autonomy && (
+                        <Tag tone={tone} size="sm">
+                          {autoLabel}
+                        </Tag>
+                      )}
+                    </div>
+                    <p className="mt-1 text-[11.5px] text-ink-500">
+                      {[v.channel, v.environment, v.task].filter(Boolean).join(' · ')}
+                      {typeof v.robotCount === 'number' ? ` · 로봇 ${v.robotCount}대` : ''}
+                    </p>
+                    {v.summaryKo && (
+                      <p className="mt-2 text-[12.5px] text-ink-700 leading-relaxed">{v.summaryKo}</p>
+                    )}
+                    {Array.isArray(v.capabilities) && v.capabilities.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {v.capabilities.map((c: string) => (
+                          <Tag key={c} tone="neutral" size="sm">
+                            {c}
+                          </Tag>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Panel>
 
         {untaggedCount > 0 && (
           <p className="text-[11.5px] text-ink-500">

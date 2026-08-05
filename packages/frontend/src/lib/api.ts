@@ -211,6 +211,9 @@ class ApiClient {
   async runVideoContentAnalysisBatch(limit?: number) {
     return this.request<any>(`/video-sync/analyze-videos`, { method: 'POST', body: JSON.stringify({ limit }) });
   }
+  async getAnalyzedVideos() {
+    return this.request<any[]>(`/video-sync/analyzed-videos`);
+  }
 
   async getTechTrendSummary(domain: string) {
     return this.request<{
