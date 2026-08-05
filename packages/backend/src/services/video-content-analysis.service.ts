@@ -177,8 +177,8 @@ class VideoContentAnalysisService {
     return rows.map((r) => ({ id: r.id, title: r.title, url: r.url }));
   }
 
-  /** 단일 영상 Gemini 분석 — 실패 시 null */
-  private async analyzeOne(video: PendingVideo): Promise<GeminiVideoAnalysis | null> {
+  /** 단일 영상 Gemini 분석 — 실패 시 null, 쿼터 소진 시 'quota' (재시도 카운트에서 제외) */
+  private async analyzeOne(video: PendingVideo): Promise<GeminiVideoAnalysis | 'quota' | null> {
     if (!this.client) return null;
     try {
       const response = await this.client.models.generateContent({
@@ -198,7 +198,13 @@ class VideoContentAnalysisService {
       if (!text) return null;
       return parseAnalysis(text, MODEL);
     } catch (err) {
-      console.error(`[VideoContentAnalysis] analyzeOne failed for ${video.id}:`, (err as Error).message);
+      const msg = (err as Error).message ?? '';
+      // 무료 티어 일일 쿼터/레이트리밋(429)은 영상 문제가 아니므로 attempts를 올리지 않는다
+      if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
+        console.warn(`[VideoContentAnalysis] quota exhausted (429) — batch will stop early`);
+        return 'quota';
+      }
+      console.error(`[VideoContentAnalysis] analyzeOne failed for ${video.id}:`, msg);
       return null;
     }
   }
@@ -211,13 +217,20 @@ class VideoContentAnalysisService {
     const pending = await this.getPending(limit);
     if (pending.length === 0) return res;
 
-    for (let i = 0; i < pending.length; i += CONCURRENCY) {
+    let quotaHit = false;
+    for (let i = 0; i < pending.length && !quotaHit; i += CONCURRENCY) {
       const batch = pending.slice(i, i + CONCURRENCY);
       const results = await Promise.all(
         batch.map(async (video) => ({ video, analysis: await this.analyzeOne(video) }))
       );
 
       for (const { video, analysis } of results) {
+        if (analysis === 'quota') {
+          // 쿼터 소진: attempts 미증가(불이익 없음) + 남은 배치 중단, 다음 실행 때 자연 재시도
+          quotaHit = true;
+          res.skipped++;
+          continue;
+        }
         if (analysis) {
           await db.execute(sql`
             UPDATE articles
@@ -268,6 +281,9 @@ class VideoContentAnalysisService {
     }
 
     const analysis = await this.analyzeOne({ id: row.id, title: row.title, url: row.url });
+    if (analysis === 'quota') {
+      return { ok: false, error: 'Gemini 일일 쿼터 소진 — 잠시 후(또는 내일) 다시 시도하거나 유료 티어(billing)를 활성화하세요.' };
+    }
     if (!analysis) {
       await db.execute(sql`
         UPDATE articles
