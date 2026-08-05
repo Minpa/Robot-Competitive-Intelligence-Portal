@@ -495,6 +495,16 @@ export default function VideoTrendsPage() {
         >
           {analyzedQuery.isLoading ? (
             <div className="py-8 text-center text-ink-400 text-sm">불러오는 중...</div>
+          ) : analyzedQuery.isError ? (
+            <div className="py-8 text-center text-sm">
+              <p className="text-neg font-medium">분석 결과를 불러오지 못했습니다.</p>
+              <p className="mt-1 text-[11.5px] text-ink-500 font-mono">
+                {(analyzedQuery.error as Error)?.message ?? 'Unknown error'}
+              </p>
+              <p className="mt-2 text-[11.5px] text-ink-400">
+                &quot;HTTP 404&quot;라면 백엔드가 아직 최신 버전으로 재배포되지 않은 상태입니다.
+              </p>
+            </div>
           ) : analyzedVideos.length === 0 ? (
             <div className="py-8 text-center text-ink-400 text-sm">
               아직 상세 분석된 영상이 없습니다. 매일 자동 분석되며, 관리자 페이지에서 즉시 실행할 수도 있습니다.
@@ -514,37 +524,65 @@ export default function VideoTrendsPage() {
                         : '불명확';
                 return (
                   <div key={v.id} className="border border-ink-200 rounded-lg p-4">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      {/* 썸네일 (좌측) */}
                       <a
                         href={v.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[13.5px] font-semibold text-ink-900 hover:text-info hover:underline"
+                        className="shrink-0 block w-full sm:w-48"
                       >
-                        {v.title}
+                        <div className="relative aspect-video overflow-hidden rounded-md bg-ink-100">
+                          {v.thumbnail ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={v.thumbnail}
+                              alt={v.title}
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-[11px] text-ink-400">
+                              썸네일 없음
+                            </div>
+                          )}
+                        </div>
                       </a>
-                      {v.autonomy && (
-                        <Tag tone={tone} size="sm">
-                          {autoLabel}
-                        </Tag>
-                      )}
-                    </div>
-                    <p className="mt-1 text-[11.5px] text-ink-500">
-                      {[v.channel, v.environment, v.task].filter(Boolean).join(' · ')}
-                      {typeof v.robotCount === 'number' ? ` · 로봇 ${v.robotCount}대` : ''}
-                    </p>
-                    {v.summaryKo && (
-                      <p className="mt-2 text-[12.5px] text-ink-700 leading-relaxed">{v.summaryKo}</p>
-                    )}
-                    {Array.isArray(v.capabilities) && v.capabilities.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {v.capabilities.map((c: string) => (
-                          <Tag key={c} tone="neutral" size="sm">
-                            {c}
-                          </Tag>
-                        ))}
+                      {/* 분석 내용 (우측) */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <a
+                            href={v.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[13.5px] font-semibold text-ink-900 hover:text-info hover:underline"
+                          >
+                            {v.title}
+                          </a>
+                          {v.autonomy && (
+                            <Tag tone={tone} size="sm">
+                              {autoLabel}
+                            </Tag>
+                          )}
+                        </div>
+                        <p className="mt-1 text-[11.5px] text-ink-500">
+                          {[v.channel, v.environment, v.task].filter(Boolean).join(' · ')}
+                          {typeof v.robotCount === 'number' ? ` · 로봇 ${v.robotCount}대` : ''}
+                        </p>
+                        {v.summaryKo && (
+                          <p className="mt-2 text-[12.5px] text-ink-700 leading-relaxed">{v.summaryKo}</p>
+                        )}
+                        {Array.isArray(v.capabilities) && v.capabilities.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {v.capabilities.map((c: string) => (
+                              <Tag key={c} tone="neutral" size="sm">
+                                {c}
+                              </Tag>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 );
               })}

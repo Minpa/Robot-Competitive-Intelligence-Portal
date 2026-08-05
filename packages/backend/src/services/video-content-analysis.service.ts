@@ -312,10 +312,17 @@ class VideoContentAnalysisService {
     return rows.map((r) => {
       const meta = (r.meta ?? {}) as Record<string, any>;
       const g = (meta.geminiAnalysis ?? {}) as Record<string, any>;
+      const videoId = typeof meta.videoId === 'string' ? meta.videoId : null;
       return {
         id: r.id,
         title: r.title,
         url: r.url,
+        thumbnail:
+          typeof meta.thumbnail === 'string'
+            ? meta.thumbnail
+            : videoId
+              ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+              : null,
         channel: typeof meta.channel === 'string' ? meta.channel : null,
         publishedAt: r.publishedAt,
         task: typeof g.task === 'string' ? g.task : null,
