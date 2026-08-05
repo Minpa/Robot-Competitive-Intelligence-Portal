@@ -1,14 +1,28 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Panel, Tag } from '@/components/ui';
-import { Play, ExternalLink, X } from 'lucide-react';
+import { Play, ExternalLink, X, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getVideoIdFromItem, usePlayableFilter } from '@/lib/usePlayableVideos';
+
+interface GeminiVideoAnalysis {
+  task: string;
+  environment: string;
+  autonomy: 'autonomous' | 'teleoperated' | 'assisted' | 'unclear';
+  autonomyEvidence?: string;
+  robotCount: number | null;
+  durationSec: number | null;
+  capabilities: string[];
+  keyMoments: { timestampSec: number; description: string }[];
+  summaryKo: string;
+  model: string;
+  analyzedAt: string;
+}
 
 interface VideoItem {
   id: string;
@@ -23,7 +37,29 @@ interface VideoItem {
     thumbnail?: string;
     views?: number | null;
     aiTags?: { taskTypes?: string[]; techTags?: string[]; robots?: string[] };
+    geminiAnalysis?: GeminiVideoAnalysis;
   } | null;
+}
+
+const AUTONOMY_LABEL: Record<GeminiVideoAnalysis['autonomy'], string> = {
+  autonomous: '자율',
+  teleoperated: '원격조작',
+  assisted: '보조',
+  unclear: '불명확',
+};
+
+const AUTONOMY_TONE: Record<GeminiVideoAnalysis['autonomy'], 'pos' | 'warn' | 'neutral'> = {
+  autonomous: 'pos',
+  teleoperated: 'warn',
+  assisted: 'neutral',
+  unclear: 'neutral',
+};
+
+function formatDuration(sec?: number | null) {
+  if (sec === null || sec === undefined || !Number.isFinite(sec)) return null;
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
 interface TrendingVideo {
@@ -47,9 +83,13 @@ function formatDate(value?: string | null) {
 }
 
 export default function VideosPage() {
+  const qc = useQueryClient();
   const [channelFilter, setChannelFilter] = useState<string>('all');
   const [taskFilter, setTaskFilter] = useState<string>('all');
   const [playing, setPlaying] = useState<VideoItem | null>(null);
+
+  const meQuery = useQuery({ queryKey: ['me'], queryFn: () => api.getMe() });
+  const isAdmin = (meQuery.data as any)?.role === 'admin';
 
   const videosQuery = useQuery({
     queryKey: ['demo-videos'],
@@ -61,6 +101,11 @@ export default function VideosPage() {
         sortBy: 'publishedAt',
         sortOrder: 'desc',
       }),
+  });
+
+  const analyzeVideo = useMutation({
+    mutationFn: (articleId: string) => api.analyzeVideoContent(articleId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['demo-videos'] }),
   });
 
   const topVideosQuery = useQuery({
@@ -113,7 +158,10 @@ export default function VideosPage() {
     [items, channelFilter, taskFilter]
   );
 
-  const playingVideoId = playing ? getVideoIdFromItem(playing) : null;
+  // 재생 중인 영상의 최신 데이터(Gemini 분석 반영)를 목록에서 다시 조회
+  const playingLive = playing ? (items.find((v) => v.id === playing.id) ?? playing) : null;
+  const playingVideoId = playingLive ? getVideoIdFromItem(playingLive) : null;
+  const geminiAnalysis = playingLive?.extractedMetadata?.geminiAnalysis ?? null;
 
   return (
     <AuthGuard>
@@ -188,26 +236,26 @@ export default function VideosPage() {
         </Panel>
 
         {/* Player */}
-        {playing && playingVideoId && (
+        {playingLive && playingVideoId && (
           <Panel padding="none" className="mb-6">
             <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
               <iframe
                 className="absolute inset-0 w-full h-full"
                 src={`https://www.youtube.com/embed/${playingVideoId}?autoplay=1`}
-                title={playing.title}
+                title={playingLive.title}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
             </div>
             <div className="flex items-start justify-between gap-4 px-5 py-4">
               <div className="min-w-0">
-                <h2 className="text-[15px] font-semibold text-ink-900 leading-snug">{playing.title}</h2>
+                <h2 className="text-[15px] font-semibold text-ink-900 leading-snug">{playingLive.title}</h2>
                 <div className="mt-1 flex items-center gap-3 text-[11.5px] text-ink-500">
-                  {playing.extractedMetadata?.channel && <span>{playing.extractedMetadata.channel}</span>}
-                  <span>{formatDate(playing.publishedAt)}</span>
-                  {playing.url && (
+                  {playingLive.extractedMetadata?.channel && <span>{playingLive.extractedMetadata.channel}</span>}
+                  <span>{formatDate(playingLive.publishedAt)}</span>
+                  {playingLive.url && (
                     <a
-                      href={playing.url}
+                      href={playingLive.url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-info hover:underline"
@@ -224,6 +272,82 @@ export default function VideosPage() {
               >
                 <X className="w-4 h-4" />
               </button>
+            </div>
+
+            {/* Gemini 영상 내용 상세 분석 */}
+            <div className="border-t border-ink-100 px-5 py-4">
+              {geminiAnalysis ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Tag tone={AUTONOMY_TONE[geminiAnalysis.autonomy]} size="sm">
+                      {AUTONOMY_LABEL[geminiAnalysis.autonomy]}
+                    </Tag>
+                    {typeof geminiAnalysis.robotCount === 'number' && (
+                      <span className="text-[11.5px] text-ink-500">로봇 {geminiAnalysis.robotCount}대</span>
+                    )}
+                    {formatDuration(geminiAnalysis.durationSec) && (
+                      <span className="text-[11.5px] text-ink-500">
+                        작업 구간 {formatDuration(geminiAnalysis.durationSec)}
+                      </span>
+                    )}
+                  </div>
+
+                  {geminiAnalysis.summaryKo && (
+                    <p className="text-[13px] text-ink-700 leading-relaxed">{geminiAnalysis.summaryKo}</p>
+                  )}
+
+                  {geminiAnalysis.capabilities.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {geminiAnalysis.capabilities.map((cap) => (
+                        <Tag key={cap} tone="neutral" size="sm">{cap}</Tag>
+                      ))}
+                    </div>
+                  )}
+
+                  {geminiAnalysis.autonomyEvidence && (
+                    <p className="text-[11.5px] text-ink-400">자율성 근거: {geminiAnalysis.autonomyEvidence}</p>
+                  )}
+
+                  {geminiAnalysis.keyMoments.length > 0 && (
+                    <div className="pt-1">
+                      <p className="font-mono text-[10px] text-ink-400 uppercase tracking-[0.18em] mb-1.5">
+                        핵심 순간
+                      </p>
+                      <ul className="space-y-1">
+                        {geminiAnalysis.keyMoments.map((m, idx) => (
+                          <li key={idx}>
+                            <a
+                              href={`${playingLive!.url}&t=${m.timestampSec}s`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-start gap-2 text-[12px] text-ink-600 hover:text-info"
+                            >
+                              <span className="font-mono text-[11px] text-info shrink-0">
+                                {formatDuration(m.timestampSec)}
+                              </span>
+                              <span>{m.description}</span>
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[12px] text-ink-400">아직 상세 분석되지 않은 영상입니다.</p>
+                  {isAdmin && (
+                    <button
+                      onClick={() => analyzeVideo.mutate(playingLive!.id)}
+                      disabled={analyzeVideo.isPending}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium border border-ink-200 bg-white text-ink-700 hover:border-ink-400 transition-colors disabled:opacity-50"
+                    >
+                      <Sparkles className={cn('w-3.5 h-3.5', analyzeVideo.isPending && 'animate-pulse')} />
+                      {analyzeVideo.isPending ? '분석 중...' : '지금 분석하기'}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </Panel>
         )}

@@ -73,7 +73,28 @@ class ApplicationCaseExtractionService {
     return rows.map((r) => {
       const meta = (r.meta ?? {}) as Record<string, any>;
       const desc = typeof meta.description === 'string' ? meta.description : '';
-      return { articleId: r.id, title: r.title, text: [r.summary, desc].filter(Boolean).join(' ').slice(0, 800) };
+      const baseText = [r.summary, desc].filter(Boolean).join(' ').slice(0, 800);
+
+      // Gemini 영상 상세 분석 결과가 있으면 보조 컨텍스트로 덧붙여 추출 정확도를 높인다 (옵션 B)
+      const gemini = meta.geminiAnalysis as
+        | { summaryKo?: string; capabilities?: string[]; autonomy?: string; autonomyEvidence?: string }
+        | undefined;
+      let text = baseText;
+      if (gemini && typeof gemini === 'object') {
+        const parts: string[] = [];
+        if (gemini.summaryKo) parts.push(gemini.summaryKo);
+        if (Array.isArray(gemini.capabilities) && gemini.capabilities.length > 0) {
+          parts.push(`능력: ${gemini.capabilities.join(', ')}`);
+        }
+        if (gemini.autonomy) {
+          parts.push(`자율성: ${gemini.autonomy}${gemini.autonomyEvidence ? ` (${gemini.autonomyEvidence})` : ''}`);
+        }
+        if (parts.length > 0) {
+          text = `${baseText} [Gemini 영상 분석] ${parts.join('; ')}`.slice(0, 1400);
+        }
+      }
+
+      return { articleId: r.id, title: r.title, text };
     });
   }
 

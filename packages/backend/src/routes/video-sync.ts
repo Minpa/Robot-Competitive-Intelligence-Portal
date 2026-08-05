@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { videoDbSyncService } from '../services/video-db-sync.service.js';
 import { specEnrichmentService } from '../services/spec-enrichment.service.js';
 import { applicationCaseExtractionService } from '../services/application-case-extraction.service.js';
+import { videoContentAnalysisService } from '../services/video-content-analysis.service.js';
 import { authMiddleware, requireRole } from './auth.js';
 
 const adminOrAnalyst = [authMiddleware, requireRole('admin', 'analyst')];
@@ -69,6 +70,27 @@ export async function videoSyncRoutes(fastify: FastifyInstance) {
     { preHandler: adminOnly },
     async (request) => {
       return applicationCaseExtractionService.reject(request.params.id);
+    }
+  );
+
+  // ── 영상 내용 상세 분석 (Gemini) ──
+  fastify.post<{ Params: { id: string } }>(
+    '/analyze-video/:id',
+    { preHandler: adminOnly },
+    async (request, reply) => {
+      const result = await videoContentAnalysisService.analyzeSingle(request.params.id);
+      if (!result.ok) {
+        reply.status(400).send(result);
+        return;
+      }
+      return result;
+    }
+  );
+  fastify.post<{ Body: { limit?: number } }>(
+    '/analyze-videos',
+    { preHandler: adminOnly },
+    async (request) => {
+      return videoContentAnalysisService.run(request.body?.limit);
     }
   );
 }

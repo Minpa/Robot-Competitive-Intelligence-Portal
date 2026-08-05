@@ -56,6 +56,10 @@ export default function RobotCandidatesPage() {
   });
   const appCaseList: any[] = Array.isArray(appCases) ? appCases : [];
 
+  const runVideoAnalysis = useMutation({
+    mutationFn: (limit?: number) => api.runVideoContentAnalysisBatch(limit),
+  });
+
   const approve = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) =>
       api.approveRobotCandidate(id, body),
@@ -272,6 +276,34 @@ export default function RobotCandidatesPage() {
           승인된 적용 사례는{' '}
           <Link href="/application-cases" className="text-info hover:underline">도입/적용 사례</Link> 페이지에 즉시 반영됩니다.
         </p>
+
+        {/* 영상 상세분석 (Gemini) */}
+        <Panel
+          kicker="Gemini"
+          title="영상 상세분석 (Gemini)"
+          subtitle="공개 유튜브 영상을 Gemini로 분석해 작업/환경/자율성/핵심 순간을 추출합니다. 로봇 도메인·텍스트 태깅 완료 영상 중 미분석 영상을 배치 상한 내에서 처리합니다."
+          headerRight={
+            <button
+              onClick={() => runVideoAnalysis.mutate(undefined)}
+              disabled={runVideoAnalysis.isPending}
+              className="inline-flex items-center gap-2 px-3 py-2 text-[12px] font-medium border border-ink-200 bg-white text-ink-700 hover:border-ink-400 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${runVideoAnalysis.isPending ? 'animate-spin' : ''}`} />
+              배치 실행
+            </button>
+          }
+        >
+          {runVideoAnalysis.data ? (
+            <div className="text-[12px] text-ink-600 bg-ink-50 border border-ink-200 rounded-lg px-4 py-2.5">
+              분석 완료 — 성공 {runVideoAnalysis.data.analyzed}건, 실패 {runVideoAnalysis.data.failed}건, 건너뜀{' '}
+              {runVideoAnalysis.data.skipped}건.
+            </div>
+          ) : (
+            <div className="py-4 text-center text-ink-400 text-sm">
+              배치 실행 결과가 여기에 표시됩니다.
+            </div>
+          )}
+        </Panel>
       </div>
     </AuthGuard>
   );

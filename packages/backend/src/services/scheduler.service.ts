@@ -17,6 +17,7 @@ import { videoDbSyncService } from './video-db-sync.service.js';
 import { specEnrichmentService } from './spec-enrichment.service.js';
 import { paperSummaryService } from './paper-summary.service.js';
 import { applicationCaseExtractionService } from './application-case-extraction.service.js';
+import { videoContentAnalysisService } from './video-content-analysis.service.js';
 
 // ── Types ──
 
@@ -242,6 +243,12 @@ class SchedulerService {
       await applicationCaseExtractionService.run();
     } catch (err) {
       console.error('[Scheduler] App case extraction failed:', err);
+    }
+    // 영상 내용 상세 분석 (Gemini) — 텍스트 태깅 이후 실행
+    try {
+      await videoContentAnalysisService.run();
+    } catch (err) {
+      console.error('[Scheduler] Video content analysis failed:', err);
     }
   }
 

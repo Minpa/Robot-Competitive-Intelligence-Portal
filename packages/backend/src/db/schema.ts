@@ -158,6 +158,22 @@ export interface ExtractedMetadata {
   technologies?: string[];
   marketInsights?: string[];
   keyPoints?: string[];
+  // Gemini 영상 내용 상세 분석 (video-content-analysis.service.ts)
+  geminiAnalysis?: {
+    task: string;
+    environment: string;
+    autonomy: 'autonomous' | 'teleoperated' | 'assisted' | 'unclear';
+    autonomyEvidence?: string;
+    robotCount: number | null;
+    durationSec: number | null;
+    capabilities: string[];
+    keyMoments: { timestampSec: number; description: string }[];
+    summaryKo: string;
+    model: string;
+    analyzedAt: string;
+  };
+  geminiAnalyzedAt?: string;
+  geminiAnalysisAttempts?: number;
 }
 
 // Keyword entity

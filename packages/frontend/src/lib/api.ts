@@ -205,6 +205,12 @@ class ApiClient {
   async rejectRobotCandidate(id: string) {
     return this.request<any>(`/video-sync/robot-candidates/${id}/reject`, { method: 'POST' });
   }
+  async analyzeVideoContent(articleId: string) {
+    return this.request<any>(`/video-sync/analyze-video/${articleId}`, { method: 'POST' });
+  }
+  async runVideoContentAnalysisBatch(limit?: number) {
+    return this.request<any>(`/video-sync/analyze-videos`, { method: 'POST', body: JSON.stringify({ limit }) });
+  }
 
   async getTechTrendSummary(domain: string) {
     return this.request<{
