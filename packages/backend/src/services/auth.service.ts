@@ -72,7 +72,8 @@ export class AuthService {
     }
 
     const passwordHash = this.hashPassword(data.password);
-    const role = data.role || 'viewer';
+    // 슈퍼 관리자 이메일은 항상 admin으로 가입 (기본은 viewer)
+    const role: UserRole = isSuperAdminEmail(data.email) ? 'admin' : data.role || 'viewer';
     const permissions = ROLE_PERMISSIONS[role];
 
     const [user] = await db
@@ -227,6 +228,17 @@ export class AuthService {
     if (!isAllowed) {
       await this.logAction(null, 'login_blocked', 'user', user.id, { email: credentials.email, reason: 'not_in_allowed_list' });
       throw new Error('이 계정은 더 이상 접근이 허용되지 않습니다. 관리자에게 문의하세요.');
+    }
+
+    // 슈퍼 관리자 이메일인데 role이 admin이 아니면 자동 승격 (기존 viewer 가입분 self-heal)
+    if (isSuperAdminEmail(credentials.email) && user.role !== 'admin') {
+      user.role = 'admin';
+      user.permissions = ROLE_PERMISSIONS.admin;
+      await db
+        .update(users)
+        .set({ role: 'admin', permissions: ROLE_PERMISSIONS.admin })
+        .where(eq(users.id, user.id));
+      await this.logAction(user.id, 'role_promoted_super_admin', 'user', user.id);
     }
 
     // Update last login
