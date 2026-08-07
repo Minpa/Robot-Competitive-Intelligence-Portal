@@ -80,6 +80,22 @@ function monthKey(value?: string | null) {
 
 const LAST_VISIT_KEY = 'video-trends-last-visit';
 
+const MATURITY_LABEL: Record<string, string> = {
+  'staged-demo': '연출 데모',
+  lab: '실험실',
+  'pilot-field': '현장 파일럿',
+  production: '상용 운영',
+  unclear: '불명확',
+};
+
+const MATURITY_TONE: Record<string, 'pos' | 'warn' | 'neutral' | 'info'> = {
+  'staged-demo': 'warn',
+  lab: 'neutral',
+  'pilot-field': 'info',
+  production: 'pos',
+  unclear: 'neutral',
+};
+
 function RankBadge({ rank }: { rank: 1 | 2 | 3 }) {
   const styles = {
     1: 'bg-warn text-white',
@@ -579,6 +595,65 @@ export default function VideoTrendsPage() {
                                 {c}
                               </Tag>
                             ))}
+                          </div>
+                        )}
+                        {v.technicalAnalysis && (
+                          <div className="mt-3 pt-3 border-t border-ink-100">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-mono text-[10px] text-ink-400 uppercase tracking-[0.18em]">
+                                기술 분석
+                              </p>
+                              <Tag tone={MATURITY_TONE[v.technicalAnalysis.maturity] ?? 'neutral'} size="sm">
+                                {MATURITY_LABEL[v.technicalAnalysis.maturity] ?? v.technicalAnalysis.maturity}
+                              </Tag>
+                            </div>
+                            <dl className="mt-2 space-y-1 text-[12px]">
+                              {v.technicalAnalysis.locomotion && (
+                                <div className="flex gap-1.5">
+                                  <dt className="shrink-0 text-ink-400">이동:</dt>
+                                  <dd className="text-ink-700">{v.technicalAnalysis.locomotion}</dd>
+                                </div>
+                              )}
+                              {v.technicalAnalysis.manipulation && (
+                                <div className="flex gap-1.5">
+                                  <dt className="shrink-0 text-ink-400">조작:</dt>
+                                  <dd className="text-ink-700">{v.technicalAnalysis.manipulation}</dd>
+                                </div>
+                              )}
+                              {v.technicalAnalysis.hardware && (
+                                <div className="flex gap-1.5">
+                                  <dt className="shrink-0 text-ink-400">하드웨어:</dt>
+                                  <dd className="text-ink-700">{v.technicalAnalysis.hardware}</dd>
+                                </div>
+                              )}
+                              {v.technicalAnalysis.controlNotes && (
+                                <div className="flex gap-1.5">
+                                  <dt className="shrink-0 text-ink-400">제어:</dt>
+                                  <dd className="text-ink-700">{v.technicalAnalysis.controlNotes}</dd>
+                                </div>
+                              )}
+                            </dl>
+                            {Array.isArray(v.technicalAnalysis.technicalHighlights) &&
+                              v.technicalAnalysis.technicalHighlights.length > 0 && (
+                                <ul className="mt-2 list-disc list-inside text-[12px] text-ink-700 space-y-0.5">
+                                  {v.technicalAnalysis.technicalHighlights.map((h: string, idx: number) => (
+                                    <li key={idx}>{h}</li>
+                                  ))}
+                                </ul>
+                              )}
+                            {Array.isArray(v.technicalAnalysis.limitations) &&
+                              v.technicalAnalysis.limitations.length > 0 && (
+                                <ul className="mt-1.5 list-disc list-inside text-[12px] text-ink-500 space-y-0.5">
+                                  {v.technicalAnalysis.limitations.map((l: string, idx: number) => (
+                                    <li key={idx}>{l}</li>
+                                  ))}
+                                </ul>
+                              )}
+                            {v.technicalAnalysis.maturityEvidence && (
+                              <p className="mt-1.5 text-[11px] text-ink-400">
+                                {v.technicalAnalysis.maturityEvidence}
+                              </p>
+                            )}
                           </div>
                         )}
                       </div>

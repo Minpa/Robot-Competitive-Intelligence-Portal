@@ -36,6 +36,126 @@ describe('VideoContentAnalysisService (no GEMINI_API_KEY)', () => {
   });
 });
 
+describe('parseAnalysis technicalAnalysis normalization', () => {
+  let parseAnalysis: typeof import('../../services/video-content-analysis.service.js')['parseAnalysis'];
+
+  beforeAll(async () => {
+    const mod = await import('../../services/video-content-analysis.service.js');
+    parseAnalysis = mod.parseAnalysis;
+  });
+
+  // parseAnalysis의 필수 파싱 대상 필드(task/environment/autonomy/capabilities/keyMoments/summaryKo)를
+  // 최소한으로 채운 유효 JSON에 technicalAnalysis만 바꿔가며 검증한다.
+  function baseJson(technicalAnalysis: Record<string, unknown>) {
+    return JSON.stringify({
+      task: '테스트 작업',
+      environment: '테스트 환경',
+      autonomy: 'autonomous',
+      autonomyEvidence: '근거',
+      robotCount: 1,
+      durationSec: 10,
+      capabilities: ['보행'],
+      keyMoments: [{ timestampSec: 0, description: '시작' }],
+      summaryKo: '요약',
+      technicalAnalysis,
+    });
+  }
+
+  it('caps string fields to their max length', () => {
+    const result = parseAnalysis(
+      baseJson({
+        locomotion: 'a'.repeat(300),
+        manipulation: '조작 설명',
+        hardware: '',
+        controlNotes: null,
+        technicalHighlights: [],
+        limitations: [],
+        maturity: 'lab',
+        maturityEvidence: 'e'.repeat(300),
+      }),
+      'gemini-flash-latest'
+    );
+
+    expect(result?.technicalAnalysis?.locomotion).toHaveLength(200);
+    expect(result?.technicalAnalysis?.locomotion).toBe('a'.repeat(200));
+    expect(result?.technicalAnalysis?.hardware).toBeNull();
+    expect(result?.technicalAnalysis?.manipulation).toBe('조작 설명');
+    expect(result?.technicalAnalysis?.controlNotes).toBeNull();
+    expect(result?.technicalAnalysis?.maturityEvidence).toHaveLength(150);
+    expect(result?.technicalAnalysis?.maturityEvidence).toBe('e'.repeat(150));
+  });
+
+  it('caps technicalHighlights to 4 items of 80 chars each', () => {
+    const result = parseAnalysis(
+      baseJson({
+        locomotion: null,
+        manipulation: null,
+        hardware: null,
+        controlNotes: null,
+        technicalHighlights: ['h'.repeat(100), 'two', 'three', 'four', 'five'],
+        limitations: [],
+        maturity: 'unclear',
+        maturityEvidence: null,
+      }),
+      'gemini-flash-latest'
+    );
+
+    expect(result?.technicalAnalysis?.technicalHighlights).toHaveLength(4);
+    expect(result?.technicalAnalysis?.technicalHighlights?.[0]).toHaveLength(80);
+    expect(result?.technicalAnalysis?.technicalHighlights?.[0]).toBe('h'.repeat(80));
+  });
+
+  it('caps limitations to 3 items', () => {
+    const result = parseAnalysis(
+      baseJson({
+        locomotion: null,
+        manipulation: null,
+        hardware: null,
+        controlNotes: null,
+        technicalHighlights: [],
+        limitations: ['one', 'two', 'three', 'four'],
+        maturity: 'unclear',
+        maturityEvidence: null,
+      }),
+      'gemini-flash-latest'
+    );
+
+    expect(result?.technicalAnalysis?.limitations).toHaveLength(3);
+    expect(result?.technicalAnalysis?.limitations).toEqual(['one', 'two', 'three']);
+  });
+
+  it('falls back invalid maturity values to "unclear"', () => {
+    const result = parseAnalysis(
+      baseJson({
+        locomotion: null,
+        manipulation: null,
+        hardware: null,
+        controlNotes: null,
+        technicalHighlights: [],
+        limitations: [],
+        maturity: 'invalid-value',
+        maturityEvidence: null,
+      }),
+      'gemini-flash-latest'
+    );
+
+    expect(result?.technicalAnalysis?.maturity).toBe('unclear');
+  });
+
+  it('leaves technicalAnalysis undefined when the key is absent from the response', () => {
+    const json = JSON.stringify({
+      task: '테스트 작업',
+      environment: '테스트 환경',
+      autonomy: 'autonomous',
+      capabilities: [],
+      keyMoments: [],
+      summaryKo: '요약',
+    });
+    const result = parseAnalysis(json, 'gemini-flash-latest');
+    expect(result?.technicalAnalysis).toBeUndefined();
+  });
+});
+
 describe('Public YouTube watch URL validation (same pattern as service)', () => {
   // video-content-analysis.service.ts 의 YOUTUBE_WATCH_URL_RE 와 동일한 패턴
   const YOUTUBE_WATCH_URL_RE = /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[\w-]+/i;

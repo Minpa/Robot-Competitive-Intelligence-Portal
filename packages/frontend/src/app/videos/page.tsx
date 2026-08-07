@@ -10,6 +10,19 @@ import { Play, ExternalLink, X, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getVideoIdFromItem, usePlayableFilter } from '@/lib/usePlayableVideos';
 
+type TechnicalMaturity = 'staged-demo' | 'lab' | 'pilot-field' | 'production' | 'unclear';
+
+interface GeminiTechnicalAnalysis {
+  locomotion: string | null;
+  manipulation: string | null;
+  hardware: string | null;
+  controlNotes: string | null;
+  technicalHighlights: string[];
+  limitations: string[];
+  maturity: TechnicalMaturity;
+  maturityEvidence: string | null;
+}
+
 interface GeminiVideoAnalysis {
   task: string;
   environment: string;
@@ -22,6 +35,7 @@ interface GeminiVideoAnalysis {
   summaryKo: string;
   model: string;
   analyzedAt: string;
+  technicalAnalysis?: GeminiTechnicalAnalysis;
 }
 
 interface VideoItem {
@@ -52,6 +66,22 @@ const AUTONOMY_TONE: Record<GeminiVideoAnalysis['autonomy'], 'pos' | 'warn' | 'n
   autonomous: 'pos',
   teleoperated: 'warn',
   assisted: 'neutral',
+  unclear: 'neutral',
+};
+
+const MATURITY_LABEL: Record<TechnicalMaturity, string> = {
+  'staged-demo': '연출 데모',
+  lab: '실험실',
+  'pilot-field': '현장 파일럿',
+  production: '상용 운영',
+  unclear: '불명확',
+};
+
+const MATURITY_TONE: Record<TechnicalMaturity, 'pos' | 'warn' | 'neutral' | 'info'> = {
+  'staged-demo': 'warn',
+  lab: 'neutral',
+  'pilot-field': 'info',
+  production: 'pos',
   unclear: 'neutral',
 };
 
@@ -330,6 +360,50 @@ export default function VideosPage() {
                           </li>
                         ))}
                       </ul>
+                    </div>
+                  )}
+
+                  {geminiAnalysis.technicalAnalysis && (
+                    <div className="pt-2 border-t border-ink-100">
+                      <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                        <p className="font-mono text-[10px] text-ink-400 uppercase tracking-[0.18em]">
+                          기술 분석
+                        </p>
+                        <Tag tone={MATURITY_TONE[geminiAnalysis.technicalAnalysis.maturity]} size="sm">
+                          {MATURITY_LABEL[geminiAnalysis.technicalAnalysis.maturity]}
+                        </Tag>
+                      </div>
+                      {[
+                        geminiAnalysis.technicalAnalysis.locomotion,
+                        geminiAnalysis.technicalAnalysis.manipulation,
+                        geminiAnalysis.technicalAnalysis.hardware,
+                        geminiAnalysis.technicalAnalysis.controlNotes,
+                      ].filter(Boolean).length > 0 && (
+                        <p className="text-[12px] text-ink-700 leading-relaxed">
+                          {[
+                            geminiAnalysis.technicalAnalysis.locomotion,
+                            geminiAnalysis.technicalAnalysis.manipulation,
+                            geminiAnalysis.technicalAnalysis.hardware,
+                            geminiAnalysis.technicalAnalysis.controlNotes,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </p>
+                      )}
+                      {geminiAnalysis.technicalAnalysis.technicalHighlights.length > 0 && (
+                        <ul className="mt-1.5 list-disc list-inside text-[12px] text-ink-700 space-y-0.5">
+                          {geminiAnalysis.technicalAnalysis.technicalHighlights.map((h, idx) => (
+                            <li key={idx}>{h}</li>
+                          ))}
+                        </ul>
+                      )}
+                      {geminiAnalysis.technicalAnalysis.limitations.length > 0 && (
+                        <ul className="mt-1.5 list-disc list-inside text-[12px] text-ink-500 space-y-0.5">
+                          {geminiAnalysis.technicalAnalysis.limitations.map((l, idx) => (
+                            <li key={idx}>{l}</li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                   )}
                 </div>

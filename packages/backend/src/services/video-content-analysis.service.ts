@@ -28,6 +28,19 @@ const CONCURRENCY = Math.max(1, parseInt(process.env.GEMINI_VIDEO_CONCURRENCY ||
 // 공개 YouTube watch URL만 허용 (다운로드 없이 fileUri로 그대로 전달)
 const YOUTUBE_WATCH_URL_RE = /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[\w-]+/i;
 
+export type TechnicalMaturity = 'staged-demo' | 'lab' | 'pilot-field' | 'production' | 'unclear';
+
+export interface GeminiTechnicalAnalysis {
+  locomotion: string | null; // ≤200자
+  manipulation: string | null; // ≤200자
+  hardware: string | null; // ≤200자
+  controlNotes: string | null; // ≤200자
+  technicalHighlights: string[]; // ≤4개, 각 ≤80자
+  limitations: string[]; // ≤3개, 각 ≤80자
+  maturity: TechnicalMaturity;
+  maturityEvidence: string | null; // ≤150자
+}
+
 export interface GeminiVideoAnalysis {
   task: string;
   environment: string;
@@ -40,6 +53,7 @@ export interface GeminiVideoAnalysis {
   summaryKo: string;
   model: string;
   analyzedAt: string;
+  technicalAnalysis?: GeminiTechnicalAnalysis;
 }
 
 interface PendingVideo {
@@ -63,9 +77,20 @@ const PROMPT_KO = `이 영상은 로봇 데모 영상이다. 영상 내용을 �
   "durationSec": "작업 수행 구간 길이(초, 모르면 null)",
   "capabilities": ["영상에서 확인되는 능력 키워드, 최대 8개, 각 40자 이내"],
   "keyMoments": [{"timestampSec": 0, "description": "핵심 순간 설명(80자 이내)"}],
-  "summaryKo": "사실 기반 한국어 요약 (400자 이내)"
+  "summaryKo": "사실 기반 한국어 요약 (400자 이내)",
+  "technicalAnalysis": {
+    "locomotion": "이동방식 (보행 게이트, 바퀴, 궤도 등)과 이동 품질에 대한 관찰 (200자 이내, 모르면 null)",
+    "manipulation": "조작/파지 동작과 그 정확도·안정성에 대한 관찰 (200자 이내, 모르면 null)",
+    "hardware": "영상에서 확인되는 하드웨어 단서 — 액추에이터, 센서, 그리퍼 형태 등 (200자 이내, 모르면 null)",
+    "controlNotes": "제어 방식에 대한 단서 — 지연, 부자연스러운 동작, 원격조작 흔적 등 (200자 이내, 모르면 null)",
+    "technicalHighlights": ["영상에서 확인되는 기술적으로 인상적인 포인트, 최대 4개, 각 80자 이내"],
+    "limitations": ["영상에서 확인되는 기술적 한계나 아쉬운 점, 최대 3개, 각 80자 이내"],
+    "maturity": "staged-demo|lab|pilot-field|production|unclear 중 하나 — 기술 성숙도",
+    "maturityEvidence": "성숙도 판단 근거 1문장 (150자 이내, 모르면 null)"
+  }
 }
 keyMoments는 최대 6개, timestampSec는 영상 시작 기준 초 단위 정수로 추정하라.
+technicalAnalysis의 모든 값은 반드시 영상에서 실제로 보이거나 들리는 것에 근거해야 한다. 추측하지 말고, 확인할 수 없으면 해당 필드를 null 또는 빈 배열로, maturity는 "unclear"로 응답하라. 자막 전문이나 장문 전사를 포함하지 말라.
 JSON 객체만 응답하고 다른 텍스트는 포함하지 말라.`;
 
 function truncate(s: unknown, max: number): string {
@@ -73,7 +98,49 @@ function truncate(s: unknown, max: number): string {
   return s.slice(0, max);
 }
 
-function parseAnalysis(text: string, model: string): GeminiVideoAnalysis | null {
+const MATURITY_VALUES: TechnicalMaturity[] = ['staged-demo', 'lab', 'pilot-field', 'production', 'unclear'];
+
+function nullableTruncate(s: unknown, max: number): string | null {
+  if (typeof s !== 'string' || s.length === 0) return null;
+  return s.slice(0, max);
+}
+
+function parseTechnicalAnalysis(raw: unknown): GeminiTechnicalAnalysis | undefined {
+  if (typeof raw !== 'object' || raw === null) return undefined;
+  const r = raw as Record<string, unknown>;
+
+  const technicalHighlights = Array.isArray(r.technicalHighlights)
+    ? (r.technicalHighlights as unknown[])
+        .filter((c): c is string => typeof c === 'string')
+        .map((c) => truncate(c, 80))
+        .slice(0, 4)
+    : [];
+
+  const limitations = Array.isArray(r.limitations)
+    ? (r.limitations as unknown[])
+        .filter((c): c is string => typeof c === 'string')
+        .map((c) => truncate(c, 80))
+        .slice(0, 3)
+    : [];
+
+  const maturityRaw = typeof r.maturity === 'string' ? r.maturity : 'unclear';
+  const maturity: TechnicalMaturity = MATURITY_VALUES.includes(maturityRaw as TechnicalMaturity)
+    ? (maturityRaw as TechnicalMaturity)
+    : 'unclear';
+
+  return {
+    locomotion: nullableTruncate(r.locomotion, 200),
+    manipulation: nullableTruncate(r.manipulation, 200),
+    hardware: nullableTruncate(r.hardware, 200),
+    controlNotes: nullableTruncate(r.controlNotes, 200),
+    technicalHighlights,
+    limitations,
+    maturity,
+    maturityEvidence: nullableTruncate(r.maturityEvidence, 150),
+  };
+}
+
+export function parseAnalysis(text: string, model: string): GeminiVideoAnalysis | null {
   const tryParse = (raw: string): Record<string, unknown> | null => {
     try {
       return JSON.parse(raw) as Record<string, unknown>;
@@ -136,6 +203,7 @@ function parseAnalysis(text: string, model: string): GeminiVideoAnalysis | null 
     summaryKo: truncate(parsed.summaryKo, 400),
     model,
     analyzedAt: new Date().toISOString(),
+    technicalAnalysis: parseTechnicalAnalysis(parsed.technicalAnalysis),
   };
 }
 
@@ -348,6 +416,26 @@ class VideoContentAnalysisService {
         capabilities: Array.isArray(g.capabilities) ? g.capabilities.slice(0, 8) : [],
         summaryKo: typeof g.summaryKo === 'string' ? g.summaryKo : null,
         analyzedAt: typeof meta.geminiAnalyzedAt === 'string' ? meta.geminiAnalyzedAt : null,
+        technicalAnalysis:
+          typeof g.technicalAnalysis === 'object' && g.technicalAnalysis !== null
+            ? {
+                locomotion: typeof g.technicalAnalysis.locomotion === 'string' ? g.technicalAnalysis.locomotion : null,
+                manipulation:
+                  typeof g.technicalAnalysis.manipulation === 'string' ? g.technicalAnalysis.manipulation : null,
+                hardware: typeof g.technicalAnalysis.hardware === 'string' ? g.technicalAnalysis.hardware : null,
+                controlNotes:
+                  typeof g.technicalAnalysis.controlNotes === 'string' ? g.technicalAnalysis.controlNotes : null,
+                technicalHighlights: Array.isArray(g.technicalAnalysis.technicalHighlights)
+                  ? g.technicalAnalysis.technicalHighlights.slice(0, 4)
+                  : [],
+                limitations: Array.isArray(g.technicalAnalysis.limitations)
+                  ? g.technicalAnalysis.limitations.slice(0, 3)
+                  : [],
+                maturity: typeof g.technicalAnalysis.maturity === 'string' ? g.technicalAnalysis.maturity : 'unclear',
+                maturityEvidence:
+                  typeof g.technicalAnalysis.maturityEvidence === 'string' ? g.technicalAnalysis.maturityEvidence : null,
+              }
+            : null,
       };
     });
   }
