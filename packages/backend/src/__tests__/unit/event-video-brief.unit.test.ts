@@ -124,3 +124,12 @@ describe('parseTitleTranslations', () => {
     expect(parseTitleTranslations('not json at all')).toEqual([]);
   });
 });
+
+describe('decodeHtmlEntities', () => {
+  it('decodes numeric and named entities', async () => {
+    const { decodeHtmlEntities } = await import('../../services/event-video-brief.service.js');
+    expect(decodeHtmlEntities("Here&#39;s Why &amp; More &quot;quoted&quot;")).toBe(`Here's Why & More "quoted"`);
+    expect(decodeHtmlEntities('A &lt;B&gt; &nbsp;C')).toBe('A <B>  C');
+    expect(decodeHtmlEntities('평범한 제목')).toBe('평범한 제목');
+  });
+});

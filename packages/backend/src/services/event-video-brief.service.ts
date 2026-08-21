@@ -53,6 +53,21 @@ export interface EventVideoBrief {
   model: string;
 }
 
+/** 유튜브 검색 API 등이 제목에 남기는 HTML 엔티티(&#39; &amp; 등)를 일반 문자로 복원 */
+export function decodeHtmlEntities(s: string): string {
+  return s
+    .replace(/&#(\d+);/g, (_, n) => {
+      const code = Number(n);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : _;
+    })
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;|&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&');
+}
+
 function capList(raw: unknown, maxItems: number, maxLen: number): string[] {
   if (!Array.isArray(raw)) return [];
   return (raw as unknown[])
@@ -254,7 +269,7 @@ class EventVideoBriefService {
         : [];
       return {
         id: r.id,
-        title: r.title,
+        title: decodeHtmlEntities(r.title),
         titleKo: typeof meta.titleKo === 'string' ? meta.titleKo : null,
         url: r.url,
         thumbnail:
@@ -360,7 +375,7 @@ class EventVideoBriefService {
 
       const prompt =
         '다음 로봇 전시회 영상 제목들을 자연스러운 한국어로 번역하라. 회사명·로봇 모델명·고유명사는 원문 표기를 유지한다. JSON 배열만 응답: [{"id":"...","titleKo":"..."}] 각 titleKo는 150자 이내.' +
-        JSON.stringify(rows.map((r) => ({ id: r.id, title: r.title })));
+        JSON.stringify(rows.map((r) => ({ id: r.id, title: decodeHtmlEntities(r.title) })));
 
       const response = await this.anthropicClient.messages.create({
         model: TREND_MODEL,
