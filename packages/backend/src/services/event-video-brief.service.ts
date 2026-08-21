@@ -201,6 +201,10 @@ class EventVideoBriefService {
               briefedAt: typeof (rawBrief as any).briefedAt === 'string' ? (rawBrief as any).briefedAt : null,
             }
           : null;
+      const rawTaskTypes = meta.aiTags?.taskTypes;
+      const taskTypes = Array.isArray(rawTaskTypes)
+        ? (rawTaskTypes as unknown[]).filter((t): t is string => typeof t === 'string').slice(0, 3)
+        : [];
       return {
         id: r.id,
         title: r.title,
@@ -215,6 +219,7 @@ class EventVideoBriefService {
         publishedAt: r.publishedAt,
         brief,
         thirdParty: meta.thirdParty === true,
+        taskTypes,
       };
     });
   }
