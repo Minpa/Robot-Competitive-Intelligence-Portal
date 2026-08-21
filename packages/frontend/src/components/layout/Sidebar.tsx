@@ -66,6 +66,7 @@ const navigationGroups: NavGroup[] = [
     subtitle: 'Daily Brief',
     items: [
       { name: '영상기반 경쟁사 트렌드', href: '/video-trends', icon: TrendingUp },
+      { name: 'WRC 2026 특집', href: '/events/wrc2026', icon: CalendarDays },
     ],
   },
   {

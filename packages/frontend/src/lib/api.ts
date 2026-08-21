@@ -214,6 +214,15 @@ class ApiClient {
   async getAnalyzedVideos() {
     return this.request<any[]>(`/video-sync/analyzed-videos`);
   }
+  async getEventVideos(eventKey: string) {
+    return this.request<any[]>(`/video-sync/event-videos/${eventKey}`);
+  }
+  async runEventBriefBatch(eventKey?: string, limit?: number) {
+    return this.request<any>(`/video-sync/brief-event-videos`, { method: 'POST', body: JSON.stringify({ eventKey, limit }) });
+  }
+  async briefEventVideo(id: string, eventKey?: string) {
+    return this.request<any>(`/video-sync/event-videos/${id}/brief`, { method: 'POST', body: JSON.stringify({ eventKey }) });
+  }
 
   async getTechTrendSummary(domain: string) {
     return this.request<{

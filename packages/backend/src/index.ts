@@ -118,6 +118,9 @@ const start = async () => {
             .then(() => import('./services/video-content-analysis.service.js'))
             .then(({ videoContentAnalysisService }) => videoContentAnalysisService.run())
             .then((r) => console.log('[VideoContentAnalysis] Startup run done:', JSON.stringify(r)))
+            .then(() => import('./services/event-video-brief.service.js'))
+            .then(({ eventVideoBriefService }) => eventVideoBriefService.run())
+            .then((r) => console.log('[EventBrief] Startup run done:', JSON.stringify(r)))
             .catch((err) => console.error('[Startup pipeline] run failed:', err));
         }, 60_000);
         console.log('[VideoTagging] Startup run scheduled in 60s');

@@ -18,6 +18,7 @@ import { specEnrichmentService } from './spec-enrichment.service.js';
 import { paperSummaryService } from './paper-summary.service.js';
 import { applicationCaseExtractionService } from './application-case-extraction.service.js';
 import { videoContentAnalysisService } from './video-content-analysis.service.js';
+import { eventVideoBriefService } from './event-video-brief.service.js';
 
 // ── Types ──
 
@@ -249,6 +250,12 @@ class SchedulerService {
       await videoContentAnalysisService.run();
     } catch (err) {
       console.error('[Scheduler] Video content analysis failed:', err);
+    }
+    // 이벤트 특집 영상 브리프 (예: WRC 2026)
+    try {
+      await eventVideoBriefService.run();
+    } catch (err) {
+      console.error('[Scheduler] Event video brief failed:', err);
     }
   }
 

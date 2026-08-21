@@ -3,6 +3,7 @@ import { videoDbSyncService } from '../services/video-db-sync.service.js';
 import { specEnrichmentService } from '../services/spec-enrichment.service.js';
 import { applicationCaseExtractionService } from '../services/application-case-extraction.service.js';
 import { videoContentAnalysisService } from '../services/video-content-analysis.service.js';
+import { eventVideoBriefService } from '../services/event-video-brief.service.js';
 import { authMiddleware, requireRole } from './auth.js';
 
 const adminOrAnalyst = [authMiddleware, requireRole('admin', 'analyst')];
@@ -98,4 +99,32 @@ export async function videoSyncRoutes(fastify: FastifyInstance) {
   fastify.get('/analyzed-videos', { preHandler: authMiddleware }, async () => {
     return videoContentAnalysisService.listAnalyzed(30);
   });
+
+  // ── 이벤트 특집 영상 브리프 (예: WRC 2026) ──
+  fastify.get<{ Params: { eventKey: string } }>(
+    '/event-videos/:eventKey',
+    { preHandler: authMiddleware },
+    async (request) => {
+      return eventVideoBriefService.listEventVideos(request.params.eventKey);
+    }
+  );
+  fastify.post<{ Body: { eventKey?: string; limit?: number } }>(
+    '/brief-event-videos',
+    { preHandler: adminOnly },
+    async (request) => {
+      return eventVideoBriefService.run(request.body?.eventKey, request.body?.limit);
+    }
+  );
+  fastify.post<{ Params: { id: string }; Body: { eventKey?: string } }>(
+    '/event-videos/:id/brief',
+    { preHandler: adminOnly },
+    async (request, reply) => {
+      const r = await eventVideoBriefService.briefSingle(request.params.id, request.body?.eventKey);
+      if (!r.ok) {
+        reply.status(400).send(r);
+        return;
+      }
+      return r;
+    }
+  );
 }
