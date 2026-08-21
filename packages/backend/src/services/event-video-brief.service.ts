@@ -123,6 +123,34 @@ export function parseEventTrendSummary(text: string): { headline: string; points
   return { headline, points };
 }
 
+/** Anthropic 응답에서 [{id, titleKo}] 제목 번역 JSON 배열 파싱 (주변 텍스트 포함 응답도 복원) */
+export function parseTitleTranslations(text: string): { id: string; titleKo: string }[] {
+  const tryParse = (raw: string): unknown => {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  };
+  let parsed = tryParse(text.trim());
+  if (!Array.isArray(parsed)) {
+    const m = text.match(/\[[\s\S]*\]/);
+    if (m) parsed = tryParse(m[0]);
+  }
+  if (!Array.isArray(parsed)) return [];
+
+  return (parsed as unknown[])
+    .filter(
+      (item): item is { id: string; titleKo: string } =>
+        !!item &&
+        typeof item === 'object' &&
+        typeof (item as any).id === 'string' &&
+        typeof (item as any).titleKo === 'string' &&
+        (item as any).titleKo.trim().length > 0
+    )
+    .map((item) => ({ id: item.id, titleKo: item.titleKo.slice(0, 200) }));
+}
+
 function buildTrendPrompt(
   briefs: { title: string; channel: string | null; mainProducts: string[]; demoContents: string[]; insights: string[] }[]
 ): string {
@@ -208,6 +236,7 @@ class EventVideoBriefService {
       return {
         id: r.id,
         title: r.title,
+        titleKo: typeof meta.titleKo === 'string' ? meta.titleKo : null,
         url: r.url,
         thumbnail:
           typeof meta.thumbnail === 'string'
@@ -286,9 +315,77 @@ class EventVideoBriefService {
     `);
   }
 
+  /** 이벤트 영상 제목을 한국어로 번역해 extracted_metadata.titleKo에 저장 */
+  async translateTitles(eventKey = 'wrc2026', limit = 40): Promise<{ translated: number; skipped: number }> {
+    const res = { translated: 0, skipped: 0 };
+    if (!this.anthropicClient) return res;
+    const event = getEventConfig(eventKey);
+    if (!event) return res;
+
+    try {
+      const rows = await db
+        .select({ id: articles.id, title: articles.title })
+        .from(articles)
+        .where(
+          and(
+            sql`product_type = 'video'`,
+            sql`published_at >= ${event.since}::date`,
+            sql`(title ~* ${event.pattern} OR COALESCE(extracted_metadata->>'description','') ~* ${event.pattern} OR extracted_metadata->>'event' = ${event.key})`,
+            sql`(extracted_metadata->>'titleKo') IS NULL`
+          )
+        )
+        .orderBy(sql`published_at DESC NULLS LAST`)
+        .limit(limit);
+
+      if (rows.length === 0) return res;
+
+      const prompt =
+        '다음 로봇 전시회 영상 제목들을 자연스러운 한국어로 번역하라. 회사명·로봇 모델명·고유명사는 원문 표기를 유지한다. JSON 배열만 응답: [{"id":"...","titleKo":"..."}] 각 titleKo는 150자 이내.' +
+        JSON.stringify(rows.map((r) => ({ id: r.id, title: r.title })));
+
+      const response = await this.anthropicClient.messages.create({
+        model: TREND_MODEL,
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      const text = response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map((b) => b.text)
+        .join('')
+        .trim();
+
+      const translations = parseTitleTranslations(text);
+      const validIds = new Set(rows.map((r) => r.id));
+      let saved = 0;
+      for (const t of translations) {
+        if (!validIds.has(t.id)) continue;
+        await db.execute(sql`
+          UPDATE articles
+          SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb)
+            || jsonb_build_object('titleKo', ${t.titleKo}::text)
+          WHERE id = ${t.id}
+        `);
+        saved++;
+      }
+      res.translated = saved;
+      res.skipped = rows.length - saved;
+      console.log(`[EventBrief] titles translated ${event.key}: translated ${res.translated}, skipped ${res.skipped}`);
+    } catch (err) {
+      console.error('[EventBrief] translateTitles failed:', (err as Error).message);
+    }
+    return res;
+  }
+
   /** 배치 실행 */
   async run(eventKey = 'wrc2026', limit = BATCH_LIMIT): Promise<{ briefed: number; failed: number; skipped: number }> {
     const res = { briefed: 0, failed: 0, skipped: 0 };
+
+    try {
+      await this.translateTitles(eventKey);
+    } catch (err) {
+      console.error('[EventBrief] translateTitles (run) failed:', (err as Error).message);
+    }
+
     if (!this.client) return res;
     const event = getEventConfig(eventKey);
     if (!event) return res;

@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { parseEventBrief, getEventConfig, parseEventTrendSummary } from '../../services/event-video-brief.service.js';
+import {
+  parseEventBrief,
+  getEventConfig,
+  parseEventTrendSummary,
+  parseTitleTranslations,
+} from '../../services/event-video-brief.service.js';
 
 describe('parseEventBrief', () => {
   it('caps lists at 3 items and 120 chars each', () => {
@@ -79,5 +84,43 @@ describe('parseEventTrendSummary', () => {
     expect(parsed).not.toBeNull();
     expect(parsed!.headline).toBe('핵심 트렌드 요약');
     expect(parsed!.points).toEqual(['포인트 1', '포인트 2']);
+  });
+});
+
+describe('parseTitleTranslations', () => {
+  it('parses a valid array and caps titleKo at 200 chars', () => {
+    const text = JSON.stringify([
+      { id: 'a1', titleKo: '제목 번역 1' },
+      { id: 'a2', titleKo: '가'.repeat(250) },
+    ]);
+    const result = parseTitleTranslations(text);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({ id: 'a1', titleKo: '제목 번역 1' });
+    expect(result[1].id).toBe('a2');
+    expect(result[1].titleKo.length).toBe(200);
+  });
+
+  it('filters out invalid entries (missing id / empty titleKo / non-string)', () => {
+    const text = JSON.stringify([
+      { id: 'ok', titleKo: '정상 번역' },
+      { titleKo: 'id 없음' },
+      { id: 'empty', titleKo: '   ' },
+      { id: 'num', titleKo: 42 },
+      { id: 123, titleKo: '숫자 id' },
+      null,
+      'not-an-object',
+    ]);
+    const result = parseTitleTranslations(text);
+    expect(result).toEqual([{ id: 'ok', titleKo: '정상 번역' }]);
+  });
+
+  it('recovers a JSON array embedded in surrounding text', () => {
+    const text = '번역 결과입니다\n[{"id":"x1","titleKo":"안녕하세요"}]\n끝.';
+    const result = parseTitleTranslations(text);
+    expect(result).toEqual([{ id: 'x1', titleKo: '안녕하세요' }]);
+  });
+
+  it('returns an empty array for unparseable text', () => {
+    expect(parseTitleTranslations('not json at all')).toEqual([]);
   });
 });
