@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Panel, Tag } from '@/components/ui';
-import { Check, Copy, ExternalLink, Play, RefreshCw, Sparkles, X } from 'lucide-react';
+import { Check, Copy, Download, ExternalLink, Loader2, Play, RefreshCw, Sparkles, X } from 'lucide-react';
 
 const EVENT_KEY = 'wrc2026';
 
@@ -101,6 +101,20 @@ function CopyUrlButton({ url }: { url: string }) {
 export default function Wrc2026Page() {
   const qc = useQueryClient();
   const [playing, setPlaying] = useState<EventVideo | null>(null);
+  const [pptLoading, setPptLoading] = useState(false);
+  const [pptError, setPptError] = useState<string | null>(null);
+
+  const handlePptDownload = async () => {
+    setPptLoading(true);
+    setPptError(null);
+    try {
+      await api.downloadEventPpt(EVENT_KEY);
+    } catch (e) {
+      setPptError((e as Error)?.message ?? 'PPT 생성에 실패했습니다.');
+    } finally {
+      setPptLoading(false);
+    }
+  };
 
   const videosQuery = useQuery({
     queryKey: ['event-videos', EVENT_KEY],
@@ -151,16 +165,33 @@ export default function Wrc2026Page() {
           titleEn="World Robot Conference 2026"
           description="WRC 2026(세계 로봇 대회) 관련 수집 영상을 모아, Gemini 영상 분석으로 주요 제품·시연 내용·기술 관점 시사점을 정리합니다."
           actions={
-            isAdmin ? (
-              <button
-                onClick={() => runBatch.mutate()}
-                disabled={runBatch.isPending}
-                className="inline-flex items-center gap-2 px-3 py-2 text-[12px] font-medium border border-ink-200 bg-white text-ink-700 hover:border-ink-400 transition-colors disabled:opacity-50"
-              >
-                <Sparkles className={`w-3.5 h-3.5 ${runBatch.isPending ? 'animate-pulse' : ''}`} />
-                브리프 일괄 생성
-              </button>
-            ) : undefined
+            <>
+              <div className="flex flex-col items-end gap-1">
+                <button
+                  onClick={handlePptDownload}
+                  disabled={pptLoading}
+                  className="inline-flex items-center gap-2 px-3 py-2 text-[12px] font-medium border border-ink-200 bg-white text-ink-700 hover:border-ink-400 transition-colors disabled:opacity-50"
+                >
+                  {pptLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  PPT 다운로드
+                </button>
+                {pptError && <p className="text-[10.5px] text-neg">{pptError}</p>}
+              </div>
+              {isAdmin && (
+                <button
+                  onClick={() => runBatch.mutate()}
+                  disabled={runBatch.isPending}
+                  className="inline-flex items-center gap-2 px-3 py-2 text-[12px] font-medium border border-ink-200 bg-white text-ink-700 hover:border-ink-400 transition-colors disabled:opacity-50"
+                >
+                  <Sparkles className={`w-3.5 h-3.5 ${runBatch.isPending ? 'animate-pulse' : ''}`} />
+                  브리프 일괄 생성
+                </button>
+              )}
+            </>
           }
         />
 

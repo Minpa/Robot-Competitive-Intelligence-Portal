@@ -4,6 +4,7 @@ import { specEnrichmentService } from '../services/spec-enrichment.service.js';
 import { applicationCaseExtractionService } from '../services/application-case-extraction.service.js';
 import { videoContentAnalysisService } from '../services/video-content-analysis.service.js';
 import { eventVideoBriefService } from '../services/event-video-brief.service.js';
+import { eventVideoPptService } from '../services/event-video-ppt.service.js';
 import { authMiddleware, requireRole } from './auth.js';
 
 const adminOrAnalyst = [authMiddleware, requireRole('admin', 'analyst')];
@@ -133,6 +134,22 @@ export async function videoSyncRoutes(fastify: FastifyInstance) {
     async (request) => {
       const summary = await eventVideoBriefService.getTrendSummary(request.params.eventKey);
       return { summary };
+    }
+  );
+
+  // 이벤트 영상 리스트 PPT 다운로드 (Analyst + Admin only)
+  fastify.post<{ Params: { eventKey: string } }>(
+    '/event-videos/:eventKey/export-ppt',
+    { preHandler: adminOrAnalyst },
+    async (request, reply) => {
+      const buffer = await eventVideoPptService.generate(request.params.eventKey);
+      if (!buffer) {
+        reply.status(404).send({ error: 'Unknown event' });
+        return;
+      }
+      reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+      reply.header('Content-Disposition', 'attachment; filename="wrc2026-videos.pptx"');
+      return reply.send(buffer);
     }
   );
 }

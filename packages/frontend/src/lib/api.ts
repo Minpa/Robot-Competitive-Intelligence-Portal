@@ -228,6 +228,21 @@ class ApiClient {
       summary: { headline: string; points: string[]; basedOn: number; generatedAt: string } | null;
     }>(`/video-sync/event-videos/${eventKey}/trend-summary`);
   }
+  async downloadEventPpt(eventKey: string): Promise<void> {
+    const token = this.getToken();
+    const res = await fetch(`${API_BASE}/video-sync/event-videos/${eventKey}/export-ppt`, {
+      method: 'POST',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+    if (!res.ok) throw new Error('PPT 생성 실패');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'wrc2026-videos.pptx';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   async getTechTrendSummary(domain: string) {
     return this.request<{
