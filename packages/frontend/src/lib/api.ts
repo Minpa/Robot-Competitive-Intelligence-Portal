@@ -223,6 +223,11 @@ class ApiClient {
   async briefEventVideo(id: string, eventKey?: string) {
     return this.request<any>(`/video-sync/event-videos/${id}/brief`, { method: 'POST', body: JSON.stringify({ eventKey }) });
   }
+  async getEventTrendSummary(eventKey: string) {
+    return this.request<{
+      summary: { headline: string; points: string[]; basedOn: number; generatedAt: string } | null;
+    }>(`/video-sync/event-videos/${eventKey}/trend-summary`);
+  }
 
   async getTechTrendSummary(domain: string) {
     return this.request<{

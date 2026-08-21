@@ -12,13 +12,16 @@
  */
 
 import { GoogleGenAI } from '@google/genai';
-import { sql, and } from 'drizzle-orm';
+import Anthropic from '@anthropic-ai/sdk';
+import { sql, and, eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { articles } from '../db/schema.js';
+import { articles, viewCache } from '../db/schema.js';
 
 const MODEL = process.env.GEMINI_VIDEO_MODEL || 'gemini-flash-latest';
 const BATCH_LIMIT = Math.max(1, parseInt(process.env.GEMINI_EVENT_BRIEF_BATCH_LIMIT || '10', 10));
 const MAX_ATTEMPTS = Math.max(1, parseInt(process.env.GEMINI_VIDEO_MAX_ATTEMPTS || '2', 10));
+const TREND_MODEL = process.env.EVENT_TREND_MODEL || 'claude-haiku-4-5-20251001';
+const TREND_TTL_MS = 12 * 3_600_000; // 12시간
 
 const YOUTUBE_WATCH_URL_RE = /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[\w-]+/i;
 
@@ -85,6 +88,49 @@ export function parseEventBrief(text: string, model: string): EventVideoBrief | 
   return brief;
 }
 
+export interface EventTrendSummary {
+  headline: string;
+  points: string[];
+  basedOn: number;
+  generatedAt: string;
+}
+
+/** Anthropic 응답에서 {headline, points[]} 트렌드 요약 JSON 파싱 (주변 텍스트 포함 응답도 복원) */
+export function parseEventTrendSummary(text: string): { headline: string; points: string[] } | null {
+  const tryParse = (raw: string): Record<string, unknown> | null => {
+    try {
+      return JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  };
+  let parsed = tryParse(text.trim());
+  if (!parsed) {
+    const m = text.match(/\{[\s\S]*\}/);
+    if (m) parsed = tryParse(m[0]);
+  }
+  if (!parsed) return null;
+
+  const headline = typeof parsed.headline === 'string' ? parsed.headline.trim().slice(0, 120) : '';
+  const points = Array.isArray(parsed.points)
+    ? (parsed.points as unknown[])
+        .filter((p): p is string => typeof p === 'string' && p.trim().length > 0)
+        .map((p) => p.slice(0, 160))
+        .slice(0, 6)
+    : [];
+
+  if (!headline || points.length === 0) return null;
+  return { headline, points };
+}
+
+function buildTrendPrompt(
+  briefs: { title: string; channel: string | null; mainProducts: string[]; demoContents: string[]; insights: string[] }[]
+): string {
+  return `다음은 WRC 2026(세계 로봇 대회) 관련 영상들의 분석 브리프다. 전시회 전체를 관통하는 기술·제품 트렌드를 요약하라. JSON만: {"headline": "한 문장 핵심 트렌드 (120자 이내)", "points": ["트렌드 포인트, 최대 6개, 각 160자 이내, 한국어"]} 브리프에 근거한 내용만, 추측 금지.
+
+${JSON.stringify(briefs)}`;
+}
+
 function buildPrompt(event: EventConfig): string {
   return `이 영상은 로봇 전시회 '${event.label}' 관련 영상이다. 영상 내용을 분석해 아래 JSON 스키마로만 응답하라.
 경쟁사 분석 보고서에 들어갈 요약이므로, 영상에서 실제로 보이거나 들리는 것에만 근거하고 추측·과장은 금지한다.
@@ -106,10 +152,14 @@ interface PendingVideo {
 
 class EventVideoBriefService {
   private client: GoogleGenAI | null = null;
+  private anthropicClient: Anthropic | null = null;
 
   constructor() {
     if (process.env.GEMINI_API_KEY) {
       this.client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    }
+    if (process.env.ANTHROPIC_API_KEY) {
+      this.anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     }
   }
 
@@ -132,7 +182,7 @@ class EventVideoBriefService {
         and(
           sql`product_type = 'video'`,
           sql`published_at >= ${event.since}::date`,
-          sql`(title ~* ${event.pattern} OR COALESCE(extracted_metadata->>'description','') ~* ${event.pattern})`
+          sql`(title ~* ${event.pattern} OR COALESCE(extracted_metadata->>'description','') ~* ${event.pattern} OR extracted_metadata->>'event' = ${event.key})`
         )
       )
       .orderBy(sql`published_at DESC NULLS LAST`)
@@ -164,6 +214,7 @@ class EventVideoBriefService {
         channel: typeof meta.channel === 'string' ? meta.channel : null,
         publishedAt: r.publishedAt,
         brief,
+        thirdParty: meta.thirdParty === true,
       };
     });
   }
@@ -179,7 +230,7 @@ class EventVideoBriefService {
         and(
           sql`product_type = 'video'`,
           sql`published_at >= ${event.since}::date`,
-          sql`(title ~* ${event.pattern} OR COALESCE(extracted_metadata->>'description','') ~* ${event.pattern})`,
+          sql`(title ~* ${event.pattern} OR COALESCE(extracted_metadata->>'description','') ~* ${event.pattern} OR extracted_metadata->>'event' = ${event.key})`,
           sql`(extracted_metadata->${briefKey}) IS NULL`,
           sql`COALESCE((extracted_metadata->>${attemptsKey})::int, 0) < ${MAX_ATTEMPTS}`
         )
@@ -269,6 +320,77 @@ class EventVideoBriefService {
 
     console.log(`[EventBrief] ${event.key}: briefed ${res.briefed}, failed ${res.failed}, skipped ${res.skipped}`);
     return res;
+  }
+
+  /** 이벤트 전체를 관통하는 AI 트렌드 요약 (브리프 완료 영상 기반, 12시간 캐시) */
+  async getTrendSummary(eventKey: string): Promise<EventTrendSummary | null> {
+    const event = getEventConfig(eventKey);
+    if (!event) return null;
+
+    const cacheKey = `event-trend-${eventKey}`;
+    try {
+      const [cached] = await db.select().from(viewCache).where(eq(viewCache.viewName, cacheKey)).limit(1);
+      if (cached && Date.now() - cached.cachedAt.getTime() < TREND_TTL_MS) {
+        return cached.data as unknown as EventTrendSummary;
+      }
+    } catch {
+      // 캐시 조회 실패는 무시하고 재생성 진행
+    }
+
+    if (!this.anthropicClient) return null;
+
+    const videos = await this.listEventVideos(eventKey);
+    const briefed = videos.filter((v) => v.brief);
+    if (briefed.length < 3) return null;
+
+    const briefs = briefed.slice(0, 30).map((v) => ({
+      title: v.title,
+      channel: v.channel,
+      mainProducts: v.brief!.mainProducts,
+      demoContents: v.brief!.demoContents,
+      insights: v.brief!.insights,
+    }));
+
+    let parsed: { headline: string; points: string[] } | null = null;
+    try {
+      const response = await this.anthropicClient.messages.create({
+        model: TREND_MODEL,
+        max_tokens: 1500,
+        messages: [{ role: 'user', content: buildTrendPrompt(briefs) }],
+      });
+      const text = response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map((b) => b.text)
+        .join('')
+        .trim();
+      parsed = parseEventTrendSummary(text);
+    } catch (err) {
+      console.error('[EventBrief] getTrendSummary failed:', (err as Error).message);
+      return null;
+    }
+
+    if (!parsed) return null;
+
+    const summary: EventTrendSummary = {
+      headline: parsed.headline,
+      points: parsed.points,
+      basedOn: briefed.length,
+      generatedAt: new Date().toISOString(),
+    };
+
+    try {
+      await db
+        .insert(viewCache)
+        .values({ viewName: cacheKey, data: summary, ttlMs: TREND_TTL_MS })
+        .onConflictDoUpdate({
+          target: viewCache.viewName,
+          set: { data: summary, cachedAt: new Date(), ttlMs: TREND_TTL_MS },
+        });
+    } catch {
+      // 캐시 저장 실패는 치명적이지 않음
+    }
+
+    return summary;
   }
 
   /** 관리자 온디맨드 단건 (기존 브리프 덮어씀) */

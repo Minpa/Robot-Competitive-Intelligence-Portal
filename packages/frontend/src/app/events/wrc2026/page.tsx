@@ -25,6 +25,14 @@ interface EventVideo {
   channel: string | null;
   publishedAt: string | null;
   brief: EventBrief | null;
+  thirdParty?: boolean;
+}
+
+interface EventTrendSummary {
+  headline: string;
+  points: string[];
+  basedOn: number;
+  generatedAt: string;
 }
 
 function formatDate(value?: string | null) {
@@ -70,6 +78,13 @@ export default function Wrc2026Page() {
   const videos: EventVideo[] = Array.isArray(videosQuery.data) ? (videosQuery.data as EventVideo[]) : [];
   const briefedCount = videos.filter((v) => v.brief).length;
 
+  const trendQuery = useQuery({
+    queryKey: ['event-trend', EVENT_KEY],
+    queryFn: () => api.getEventTrendSummary(EVENT_KEY),
+    staleTime: 30 * 60 * 1000,
+  });
+  const trend: EventTrendSummary | null = trendQuery.data?.summary ?? null;
+
   const meQuery = useQuery({ queryKey: ['me'], queryFn: () => api.getMe(), staleTime: 10 * 60 * 1000 });
   const isAdmin = meQuery.data?.user?.role === 'admin' || meQuery.data?.role === 'admin';
 
@@ -106,6 +121,22 @@ export default function Wrc2026Page() {
             ) : undefined
           }
         />
+
+        {trend && (
+          <Panel kicker="AI Trend Summary" title={trend.headline}>
+            <ul className="space-y-1.5">
+              {trend.points.map((p, i) => (
+                <li key={i} className="flex gap-1.5 text-[12.5px] text-ink-700 leading-relaxed">
+                  <span className="text-ink-400">•</span>
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-right text-[10.5px] text-ink-400">
+              브리프 {trend.basedOn}건 기반 · {formatDate(trend.generatedAt)}
+            </p>
+          </Panel>
+        )}
 
         {runBatch.data && (
           <div className="text-[12px] text-ink-600 bg-ink-50 border border-ink-200 rounded-lg px-4 py-2.5">
@@ -205,6 +236,11 @@ export default function Wrc2026Page() {
                           <Tag tone="pos" size="sm">브리프 완료</Tag>
                         ) : (
                           <Tag tone="neutral" size="sm">브리프 생성 전</Tag>
+                        )}
+                        {v.thirdParty ? (
+                          <Tag tone="warn" size="sm">외부 채널</Tag>
+                        ) : (
+                          <Tag tone="neutral" size="sm">공식 채널</Tag>
                         )}
                         {isAdmin && (
                           <button

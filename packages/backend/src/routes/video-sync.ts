@@ -127,4 +127,12 @@ export async function videoSyncRoutes(fastify: FastifyInstance) {
       return r;
     }
   );
+  fastify.get<{ Params: { eventKey: string } }>(
+    '/event-videos/:eventKey/trend-summary',
+    { preHandler: authMiddleware },
+    async (request) => {
+      const summary = await eventVideoBriefService.getTrendSummary(request.params.eventKey);
+      return { summary };
+    }
+  );
 }
