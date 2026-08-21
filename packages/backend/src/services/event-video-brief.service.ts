@@ -33,7 +33,7 @@ export const EVENTS: EventConfig[] = [
   {
     key: 'wrc2026',
     label: 'WRC 2026 (World Robot Conference)',
-    pattern: '\\mwrc\\M|world robot conference|世界机器人大会|세계 ?로봇 ?(대회|콘퍼런스)',
+    pattern: '\\mwrc\\M|wrc[ _-]?2026|world robot conference|世界机器人大会|세계 ?로봇 ?(대회|콘퍼런스)',
     since: '2026-07-01',
   },
 ];
