@@ -81,6 +81,15 @@ function BriefRow({ label, items }: { label: string; items: string[] }) {
   );
 }
 
+function thumbFallback(e: React.SyntheticEvent<HTMLImageElement>) {
+  const img = e.currentTarget;
+  if (img.src.includes('hqdefault')) {
+    img.src = img.src.replace('hqdefault', 'mqdefault');
+  } else {
+    img.style.display = 'none';
+  }
+}
+
 function CopyUrlButton({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
   return (
@@ -338,7 +347,7 @@ export default function Wrc2026Page() {
                   <div className="relative aspect-video bg-ink-100 overflow-hidden">
                     {v.thumbnail ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={v.thumbnail} alt={v.title} className="h-full w-full object-cover" loading="lazy" />
+                      <img src={v.thumbnail} alt={v.title} className="h-full w-full object-cover" loading="lazy" onError={thumbFallback} />
                     ) : (
                       <div className="flex h-full items-center justify-center text-[11px] text-ink-400">
                         썸네일 없음
@@ -406,6 +415,7 @@ export default function Wrc2026Page() {
                                 {v.thumbnail ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img
+                                    onError={thumbFallback}
                                     src={v.thumbnail}
                                     alt={v.title}
                                     className="w-28 aspect-video object-cover rounded"

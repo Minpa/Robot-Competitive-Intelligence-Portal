@@ -51,7 +51,7 @@ function extractVideoId(url: string): string | null {
   return m?.[1] ?? null;
 }
 
-async function fetchThumbnailDataUri(url: string): Promise<string | null> {
+async function fetchOnce(url: string): Promise<string | null> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), THUMBNAIL_TIMEOUT_MS);
@@ -67,6 +67,19 @@ async function fetchThumbnailDataUri(url: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+async function fetchThumbnailDataUri(url: string): Promise<string | null> {
+  // hqdefault가 없는 영상(삭제·저해상도만 존재)은 저해상도로 순차 폴백
+  const candidates = [url];
+  if (url.includes('hqdefault')) {
+    candidates.push(url.replace('hqdefault', 'mqdefault'), url.replace('hqdefault', 'default'));
+  }
+  for (const candidate of candidates) {
+    const data = await fetchOnce(candidate);
+    if (data) return data;
+  }
+  return null;
 }
 
 function briefLines(brief: NonNullable<EventVideo['brief']>): string[] {
