@@ -105,6 +105,11 @@ export default function Wrc2026Page() {
   const videosQuery = useQuery({
     queryKey: ['event-videos', EVENT_KEY],
     queryFn: () => api.getEventVideos(EVENT_KEY),
+    // 목록 조회가 서버측 백그라운드 제목 번역을 트리거하므로, 미번역 제목이 남아 있는 동안 주기적으로 갱신
+    refetchInterval: (query) => {
+      const data = query.state.data as EventVideo[] | undefined;
+      return Array.isArray(data) && data.some((v) => !v.titleKo) ? 15_000 : false;
+    },
   });
   const videos: EventVideo[] = Array.isArray(videosQuery.data) ? (videosQuery.data as EventVideo[]) : [];
   const briefedCount = videos.filter((v) => v.brief).length;

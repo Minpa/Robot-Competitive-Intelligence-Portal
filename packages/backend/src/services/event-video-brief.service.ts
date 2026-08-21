@@ -137,6 +137,11 @@ export function parseTitleTranslations(text: string): { id: string; titleKo: str
     const m = text.match(/\[[\s\S]*\]/);
     if (m) parsed = tryParse(m[0]);
   }
+  if (!Array.isArray(parsed)) {
+    // 응답이 max_tokens에 잘려 배열이 안 닫힌 경우 — 완결된 객체만 개별 복구
+    const objects = text.match(/\{\s*"id"\s*:\s*"[^"]+"\s*,\s*"titleKo"\s*:\s*"(?:[^"\\]|\\.)*"\s*\}/g);
+    if (objects) parsed = objects.map((o) => tryParse(o)).filter(Boolean);
+  }
   if (!Array.isArray(parsed)) return [];
 
   return (parsed as unknown[])
@@ -181,6 +186,8 @@ interface PendingVideo {
 class EventVideoBriefService {
   private client: GoogleGenAI | null = null;
   private anthropicClient: Anthropic | null = null;
+  /** 이벤트별 제목 번역 in-flight 가드 (목록 조회 시 lazy 번역 중복 실행 방지) */
+  private translatingEvents = new Set<string>();
 
   constructor() {
     if (process.env.GEMINI_API_KEY) {
@@ -215,6 +222,18 @@ class EventVideoBriefService {
       )
       .orderBy(sql`published_at DESC NULLS LAST`)
       .limit(100);
+
+    // 미번역 제목이 있으면 백그라운드로 번역 실행 (버튼·스케줄 없이도 페이지 조회만으로 채워짐)
+    const untranslated = rows.filter((r) => {
+      const meta = (r.meta ?? {}) as Record<string, any>;
+      return typeof meta.titleKo !== 'string';
+    }).length;
+    if (untranslated > 0 && this.anthropicClient && !this.translatingEvents.has(event.key)) {
+      this.translatingEvents.add(event.key);
+      void this.translateTitles(event.key)
+        .catch(() => {})
+        .finally(() => this.translatingEvents.delete(event.key));
+    }
 
     return rows.map((r) => {
       const meta = (r.meta ?? {}) as Record<string, any>;
@@ -316,7 +335,7 @@ class EventVideoBriefService {
   }
 
   /** 이벤트 영상 제목을 한국어로 번역해 extracted_metadata.titleKo에 저장 */
-  async translateTitles(eventKey = 'wrc2026', limit = 40): Promise<{ translated: number; skipped: number }> {
+  async translateTitles(eventKey = 'wrc2026', limit = 25): Promise<{ translated: number; skipped: number }> {
     const res = { translated: 0, skipped: 0 };
     if (!this.anthropicClient) return res;
     const event = getEventConfig(eventKey);
@@ -345,7 +364,7 @@ class EventVideoBriefService {
 
       const response = await this.anthropicClient.messages.create({
         model: TREND_MODEL,
-        max_tokens: 2000,
+        max_tokens: 8000,
         messages: [{ role: 'user', content: prompt }],
       });
       const text = response.content
