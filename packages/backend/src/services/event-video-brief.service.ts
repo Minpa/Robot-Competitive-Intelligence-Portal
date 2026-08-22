@@ -341,7 +341,8 @@ class EventVideoBriefService {
     } catch (err) {
       const msg = (err as Error).message ?? '';
       if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
-        console.warn(`[EventBrief] quota exhausted (429) — batch will stop early`);
+        // 어떤 쿼터(FreeTier/PaidTier 등)에 걸렸는지 원문 일부를 남겨 결제 적용 여부 진단
+        console.warn(`[EventBrief] quota exhausted (429) — batch will stop early. detail: ${msg.slice(0, 500)}`);
         return 'quota';
       }
       console.error(`[EventBrief] briefOne failed for ${video.id}:`, msg);

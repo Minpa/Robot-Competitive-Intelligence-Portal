@@ -279,7 +279,7 @@ class VideoContentAnalysisService {
       const msg = (err as Error).message ?? '';
       // 무료 티어 일일 쿼터/레이트리밋(429)은 영상 문제가 아니므로 attempts를 올리지 않는다
       if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
-        console.warn(`[VideoContentAnalysis] quota exhausted (429) — batch will stop early`);
+        console.warn(`[VideoContentAnalysis] quota exhausted (429) — batch will stop early. detail: ${msg.slice(0, 500)}`);
         return 'quota';
       }
       console.error(`[VideoContentAnalysis] analyzeOne failed for ${video.id}:`, msg);
