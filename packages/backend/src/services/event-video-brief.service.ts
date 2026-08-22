@@ -455,7 +455,17 @@ class EventVideoBriefService {
     }
 
     console.log(`[EventBrief] ${event.key}: briefed ${res.briefed}, failed ${res.failed}, skipped ${res.skipped}`);
+    if (res.briefed > 0) await this.invalidateTrendCache(eventKey);
     return res;
+  }
+
+  /** 새 브리프 반영 시 트렌드 요약 캐시 무효화 — 다음 조회 때 즉시 재생성 */
+  private async invalidateTrendCache(eventKey: string) {
+    try {
+      await db.delete(viewCache).where(eq(viewCache.viewName, `event-trend-${eventKey}`));
+    } catch (err) {
+      console.error('[EventBrief] trend cache invalidation failed:', (err as Error).message);
+    }
   }
 
   /** 이벤트 전체를 관통하는 AI 트렌드 요약 (브리프 완료 영상 기반, 12시간 캐시) */
@@ -555,6 +565,7 @@ class EventVideoBriefService {
     if (!brief) return { ok: false, error: 'Gemini brief generation failed' };
 
     await this.saveBrief(event.key, row.id, brief);
+    await this.invalidateTrendCache(eventKey);
     return { ok: true, brief };
   }
 }
