@@ -119,7 +119,6 @@ class EventVideoPptService {
     (pptx as any).layout = 'LAYOUT_WIDE'; // 16:9
 
     this.addCoverSlide(pptx, videos.length);
-    if (trend) this.addTrendSlide(pptx, trend);
 
     const groups = TASK_TYPE_ORDER.map((cat) => ({
       cat,
@@ -129,6 +128,9 @@ class EventVideoPptService {
     for (const g of groups) {
       this.addCategorySlides(pptx, g.cat, g.items, thumbMap);
     }
+
+    // 마지막 장: AI 분석 기반 트렌드 요약 정리
+    this.addTrendSlide(pptx, trend);
 
     const buffer = (await pptx.write({ outputType: 'nodebuffer' })) as Buffer;
     return buffer;
@@ -158,12 +160,31 @@ class EventVideoPptService {
     });
   }
 
-  private addTrendSlide(pptx: PptxGenJS, trend: NonNullable<EventTrendSummary>) {
+  /** 마지막 장: AI가 분석한 영상 기반 트렌드 요약. 요약이 아직 없으면 안내 문구를 담는다 */
+  private addTrendSlide(pptx: PptxGenJS, trend: EventTrendSummary) {
     const slide = pptx.addSlide();
     slide.background = { color: BG };
 
+    slide.addText('WRC 2026 영상 기반 트렌드 요약 (AI 분석)', {
+      x: 0.8, y: 0.35, w: 11.7, h: 0.5,
+      fontSize: 14, fontFace: 'Arial', color: ACCENT_COLOR, bold: true,
+    });
+
+    slide.addShape('rect' as any, {
+      x: 0.8, y: 0.85, w: 2.4, h: 0.035, fill: { color: ACCENT_COLOR },
+    });
+
+    if (!trend) {
+      slide.addText('트렌드 요약이 아직 생성되지 않았습니다.\n영상 브리프가 3건 이상 생성되면 AI 트렌드 요약이 자동으로 제공됩니다.', {
+        x: 0.8, y: 2.5, w: 11.7, h: 1.5,
+        fontSize: 16, fontFace: 'Arial', color: SUBTLE_COLOR,
+        valign: 'top', lineSpacingMultiple: 1.4,
+      });
+      return;
+    }
+
     slide.addText(trend.headline.slice(0, 120), {
-      x: 0.8, y: 0.4, w: 11.7, h: 1.0,
+      x: 0.8, y: 1.05, w: 11.7, h: 1.0,
       fontSize: 22, fontFace: 'Arial', color: TITLE_COLOR, bold: true,
       valign: 'top', wrap: true, fit: 'shrink',
     });
@@ -174,9 +195,18 @@ class EventVideoPptService {
     }));
 
     slide.addText(bulletParas as any, {
-      x: 0.8, y: 1.6, w: 11.7, h: 5.0,
+      x: 0.8, y: 2.15, w: 11.7, h: 4.4,
       fontSize: 14, fontFace: 'Arial', color: TEXT_COLOR,
       valign: 'top', lineSpacingMultiple: 1.3,
+    });
+
+    const generatedDate = formatDate(trend.generatedAt);
+    const caption = [`브리프 ${trend.basedOn}건 기반`, generatedDate ? `생성일 ${generatedDate}` : null]
+      .filter((p): p is string => !!p)
+      .join(' · ');
+    slide.addText(caption, {
+      x: 0.8, y: 6.85, w: 11.7, h: 0.35,
+      fontSize: 10, fontFace: 'Arial', color: SUBTLE_COLOR,
     });
   }
 
