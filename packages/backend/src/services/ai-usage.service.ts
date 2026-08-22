@@ -6,21 +6,48 @@
 import { db, aiUsageLogs } from '../db/index.js';
 import { sql, desc, gte, lte, and } from 'drizzle-orm';
 
+// Gemini 단가 (USD per 1M tokens) — 모듈 로드 시 1회 평가
+function parsePriceEnv(value: string | undefined, fallback: number): number {
+  const n = value !== undefined ? Number(value) : NaN;
+  return Number.isFinite(n) ? n : fallback;
+}
+
+const GEMINI_PRICE_INPUT = parsePriceEnv(process.env.GEMINI_PRICE_INPUT_PER_1M, 1.50);
+const GEMINI_PRICE_OUTPUT = parsePriceEnv(process.env.GEMINI_PRICE_OUTPUT_PER_1M, 7.50);
+
 // 모델별 가격 (USD per 1M tokens)
 const PRICING: Record<string, { input: number; output: number; webSearchPerQuery?: number }> = {
   'gpt-4o-mini': { input: 0.15, output: 0.60 },
   'gpt-4o-mini-search': { input: 0.15, output: 0.60 },
   'claude-sonnet-4-20250514': { input: 3.0, output: 15.0, webSearchPerQuery: 0.01 },
   'claude-opus-4-7': { input: 15.0, output: 75.0, webSearchPerQuery: 0.01 },
+  'gemini-flash-latest': { input: GEMINI_PRICE_INPUT, output: GEMINI_PRICE_OUTPUT },
+  'gemini-3.6-flash': { input: GEMINI_PRICE_INPUT, output: GEMINI_PRICE_OUTPUT },
+  'claude-haiku-4-5-20251001': { input: 1.00, output: 5.00 },
 };
 
 export interface AIUsageLogEntry {
-  provider: 'chatgpt' | 'claude';
+  provider: 'chatgpt' | 'claude' | 'gemini';
   model: string;
   webSearch: boolean;
   inputTokens: number;
   outputTokens: number;
   query?: string;
+}
+
+/**
+ * 비용 추정 (USD) — 순수 함수
+ * PRICING에 없는 모델은 provider가 'gemini'면 Gemini 기본 단가, 그 외엔 기존 폴백 단가를 사용한다.
+ */
+export function estimateCost(entry: Pick<AIUsageLogEntry, 'provider' | 'model' | 'webSearch' | 'inputTokens' | 'outputTokens'>): number {
+  const fallback: { input: number; output: number; webSearchPerQuery?: number } = entry.provider === 'gemini'
+    ? { input: GEMINI_PRICE_INPUT, output: GEMINI_PRICE_OUTPUT }
+    : { input: 3.0, output: 15.0 };
+  const pricing = PRICING[entry.model] || fallback;
+  const inputCost = (entry.inputTokens / 1_000_000) * pricing.input;
+  const outputCost = (entry.outputTokens / 1_000_000) * pricing.output;
+  const webSearchCost = entry.webSearch && pricing.webSearchPerQuery ? pricing.webSearchPerQuery : 0;
+  return inputCost + outputCost + webSearchCost;
 }
 
 export interface AIUsageSummary {
@@ -63,7 +90,7 @@ export class AIUsageService {
    */
   async logUsage(entry: AIUsageLogEntry): Promise<void> {
     try {
-      const cost = this.estimateCost(entry);
+      const cost = estimateCost(entry);
       await db.insert(aiUsageLogs).values({
         provider: entry.provider,
         model: entry.model,
@@ -77,17 +104,6 @@ export class AIUsageService {
       // 로깅 실패가 메인 기능을 방해하면 안 됨
       console.error('[AIUsage] 사용량 기록 실패:', (err as Error).message);
     }
-  }
-
-  /**
-   * 비용 추정 (USD)
-   */
-  private estimateCost(entry: AIUsageLogEntry): number {
-    const pricing = PRICING[entry.model] || { input: 3.0, output: 15.0 };
-    const inputCost = (entry.inputTokens / 1_000_000) * pricing.input;
-    const outputCost = (entry.outputTokens / 1_000_000) * pricing.output;
-    const webSearchCost = entry.webSearch && pricing.webSearchPerQuery ? pricing.webSearchPerQuery : 0;
-    return inputCost + outputCost + webSearchCost;
   }
 
   /**

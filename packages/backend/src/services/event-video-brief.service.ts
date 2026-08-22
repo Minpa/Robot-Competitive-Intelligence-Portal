@@ -16,6 +16,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { sql, and, eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { articles, viewCache } from '../db/schema.js';
+import { aiUsageService } from './ai-usage.service.js';
 
 const MODEL = process.env.GEMINI_VIDEO_MODEL || 'gemini-flash-latest';
 const BATCH_LIMIT = Math.max(1, parseInt(process.env.GEMINI_EVENT_BRIEF_BATCH_LIMIT || '10', 10));
@@ -325,6 +326,15 @@ class EventVideoBriefService {
         ],
         config: { responseMimeType: 'application/json' },
       });
+      const usage = response.usageMetadata;
+      aiUsageService.logUsage({
+        provider: 'gemini',
+        model: MODEL,
+        webSearch: false,
+        inputTokens: usage?.promptTokenCount ?? 0,
+        outputTokens: usage?.candidatesTokenCount ?? 0,
+        query: `[wrc-brief] ${video.title.slice(0, 80)}`,
+      }).catch(() => {});
       const text = response.text;
       if (!text) return null;
       return parseEventBrief(text, MODEL);
@@ -382,6 +392,14 @@ class EventVideoBriefService {
         max_tokens: 8000,
         messages: [{ role: 'user', content: prompt }],
       });
+      aiUsageService.logUsage({
+        provider: 'claude',
+        model: TREND_MODEL,
+        webSearch: false,
+        inputTokens: response.usage?.input_tokens ?? 0,
+        outputTokens: response.usage?.output_tokens ?? 0,
+        query: `[title-translate] ${rows.length}건`,
+      }).catch(() => {});
       const text = response.content
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')
         .map((b) => b.text)
@@ -504,6 +522,14 @@ class EventVideoBriefService {
         max_tokens: 1500,
         messages: [{ role: 'user', content: buildTrendPrompt(briefs) }],
       });
+      aiUsageService.logUsage({
+        provider: 'claude',
+        model: TREND_MODEL,
+        webSearch: false,
+        inputTokens: response.usage?.input_tokens ?? 0,
+        outputTokens: response.usage?.output_tokens ?? 0,
+        query: `[event-trend] ${eventKey}`,
+      }).catch(() => {});
       const text = response.content
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')
         .map((b) => b.text)

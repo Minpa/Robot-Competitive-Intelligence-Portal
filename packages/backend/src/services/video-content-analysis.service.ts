@@ -14,6 +14,7 @@ import { GoogleGenAI } from '@google/genai';
 import { sql, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { articles } from '../db/schema.js';
+import { aiUsageService } from './ai-usage.service.js';
 
 const MODEL = process.env.GEMINI_VIDEO_MODEL || 'gemini-flash-latest';
 const BATCH_LIMIT = Math.max(1, parseInt(process.env.GEMINI_VIDEO_CONTENT_ANALYSIS_BATCH_LIMIT || '20', 10));
@@ -262,6 +263,15 @@ class VideoContentAnalysisService {
         ],
         config: { responseMimeType: 'application/json' },
       });
+      const usage = response.usageMetadata;
+      aiUsageService.logUsage({
+        provider: 'gemini',
+        model: MODEL,
+        webSearch: false,
+        inputTokens: usage?.promptTokenCount ?? 0,
+        outputTokens: usage?.candidatesTokenCount ?? 0,
+        query: `[video-analysis] ${video.title.slice(0, 80)}`,
+      }).catch(() => {});
       const text = response.text;
       if (!text) return null;
       return parseAnalysis(text, MODEL);
