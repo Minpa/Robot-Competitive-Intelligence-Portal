@@ -12,8 +12,9 @@ function parsePriceEnv(value: string | undefined, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-const GEMINI_PRICE_INPUT = parsePriceEnv(process.env.GEMINI_PRICE_INPUT_PER_1M, 1.50);
-const GEMINI_PRICE_OUTPUT = parsePriceEnv(process.env.GEMINI_PRICE_OUTPUT_PER_1M, 7.50);
+// gemini-flash-latest는 현재 gemini-3.7-flash로 해석됨 (2026-08 공시가: $0.75 / $3.75, 2027-01-01부터 2배 예정)
+const GEMINI_PRICE_INPUT = parsePriceEnv(process.env.GEMINI_PRICE_INPUT_PER_1M, 0.75);
+const GEMINI_PRICE_OUTPUT = parsePriceEnv(process.env.GEMINI_PRICE_OUTPUT_PER_1M, 3.75);
 
 // 모델별 가격 (USD per 1M tokens)
 const PRICING: Record<string, { input: number; output: number; webSearchPerQuery?: number }> = {
@@ -22,7 +23,8 @@ const PRICING: Record<string, { input: number; output: number; webSearchPerQuery
   'claude-sonnet-4-20250514': { input: 3.0, output: 15.0, webSearchPerQuery: 0.01 },
   'claude-opus-4-7': { input: 15.0, output: 75.0, webSearchPerQuery: 0.01 },
   'gemini-flash-latest': { input: GEMINI_PRICE_INPUT, output: GEMINI_PRICE_OUTPUT },
-  'gemini-3.6-flash': { input: GEMINI_PRICE_INPUT, output: GEMINI_PRICE_OUTPUT },
+  'gemini-3.7-flash': { input: GEMINI_PRICE_INPUT, output: GEMINI_PRICE_OUTPUT },
+  'gemini-3.6-flash': { input: 1.50, output: 7.50 },
   'claude-haiku-4-5-20251001': { input: 1.00, output: 5.00 },
 };
 

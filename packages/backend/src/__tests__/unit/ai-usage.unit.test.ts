@@ -11,7 +11,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { estimateCost } from '../../services/ai-usage.service.js';
 
 describe('estimateCost', () => {
-  it('gemini-flash-latest — env 미설정 시 기본 단가 1.50/7.50 적용', () => {
+  it('gemini-flash-latest — env 미설정 시 기본 단가 0.75/3.75 적용 (= gemini-3.7-flash)', () => {
     const cost = estimateCost({
       provider: 'gemini',
       model: 'gemini-flash-latest',
@@ -19,10 +19,21 @@ describe('estimateCost', () => {
       inputTokens: 1_000_000,
       outputTokens: 1_000_000,
     });
-    expect(cost).toBeCloseTo(1.5 + 7.5, 6);
+    expect(cost).toBeCloseTo(0.75 + 3.75, 6);
   });
 
-  it('gemini-3.6-flash — env 미설정 시 동일 단가 1.50/7.50 적용', () => {
+  it('gemini-3.7-flash — env 미설정 시 동일 단가 0.75/3.75 적용', () => {
+    const cost = estimateCost({
+      provider: 'gemini',
+      model: 'gemini-3.7-flash',
+      webSearch: false,
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+    });
+    expect(cost).toBeCloseTo(0.75 + 3.75, 6);
+  });
+
+  it('gemini-3.6-flash — 고정 단가 1.50/7.50 적용', () => {
     const cost = estimateCost({
       provider: 'gemini',
       model: 'gemini-3.6-flash',
@@ -49,7 +60,7 @@ describe('estimateCost', () => {
         inputTokens: 1_000_000,
         outputTokens: 1_000_000,
       });
-      expect(cost).toBeCloseTo(2.5 + 7.5, 6);
+      expect(cost).toBeCloseTo(2.5 + 3.75, 6);
     });
 
     it('output만 오버라이드', async () => {
@@ -63,7 +74,7 @@ describe('estimateCost', () => {
         inputTokens: 1_000_000,
         outputTokens: 1_000_000,
       });
-      expect(cost).toBeCloseTo(1.5 + 10, 6);
+      expect(cost).toBeCloseTo(0.75 + 10, 6);
     });
 
     it('input/output 모두 오버라이드', async () => {
@@ -82,7 +93,7 @@ describe('estimateCost', () => {
     });
   });
 
-  it('provider gemini + 미등록 모델 — gemini 기본 단가(1.50/7.50) 적용 (3.0/15.0 아님)', () => {
+  it('provider gemini + 미등록 모델 — gemini 기본 단가(0.75/3.75) 적용 (3.0/15.0 아님)', () => {
     const cost = estimateCost({
       provider: 'gemini',
       model: 'gemini-unknown-model',
@@ -90,7 +101,7 @@ describe('estimateCost', () => {
       inputTokens: 1_000_000,
       outputTokens: 1_000_000,
     });
-    expect(cost).toBeCloseTo(1.5 + 7.5, 6);
+    expect(cost).toBeCloseTo(0.75 + 3.75, 6);
     expect(cost).not.toBeCloseTo(3.0 + 15.0, 6);
   });
 
