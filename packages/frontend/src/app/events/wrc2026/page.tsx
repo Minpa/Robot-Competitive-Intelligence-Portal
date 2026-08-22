@@ -141,6 +141,8 @@ export default function Wrc2026Page() {
     queryKey: ['event-trend', EVENT_KEY],
     queryFn: () => api.getEventTrendSummary(EVENT_KEY),
     staleTime: 30 * 60 * 1000,
+    // 요약이 아직 없으면(브리프 축적 전) 30초마다 재시도 — 생성되는 즉시 상단에 표시
+    refetchInterval: (query) => ((query.state.data as any)?.summary ? false : 30_000),
   });
   const trend: EventTrendSummary | null = trendQuery.data?.summary ?? null;
 
@@ -149,12 +151,18 @@ export default function Wrc2026Page() {
 
   const runBatch = useMutation({
     mutationFn: () => api.runEventBriefBatch(EVENT_KEY),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['event-videos', EVENT_KEY] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['event-videos', EVENT_KEY] });
+      qc.invalidateQueries({ queryKey: ['event-trend', EVENT_KEY] });
+    },
   });
 
   const briefOne = useMutation({
     mutationFn: (id: string) => api.briefEventVideo(id, EVENT_KEY),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['event-videos', EVENT_KEY] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['event-videos', EVENT_KEY] });
+      qc.invalidateQueries({ queryKey: ['event-trend', EVENT_KEY] });
+    },
   });
 
   const playingVideoId = playing ? getVideoId(playing.url) : null;
@@ -205,7 +213,7 @@ export default function Wrc2026Page() {
         />
 
         {trend && (
-          <Panel kicker="AI Trend Summary" title={trend.headline}>
+          <Panel kicker="WRC 2026 영상 기반 트렌드 요약 (AI 분석)" title={trend.headline}>
             <ul className="space-y-1.5">
               {trend.points.map((p, i) => (
                 <li key={i} className="flex gap-1.5 text-[12.5px] text-ink-700 leading-relaxed">
@@ -220,13 +228,18 @@ export default function Wrc2026Page() {
           </Panel>
         )}
 
-        {runBatch.data && (
-          <div className="text-[12px] text-ink-600 bg-ink-50 border border-ink-200 rounded-lg px-4 py-2.5">
-            브리프 생성 완료 — 성공 {runBatch.data.briefed}건, 실패 {runBatch.data.failed}건, 건너뜀{' '}
-            {runBatch.data.skipped}건.
-            {runBatch.data.skipped > 0 && ' (건너뜀은 대부분 Gemini 일일 쿼터 소진 — 내일 자동 재시도)'}
-          </div>
-        )}
+        {runBatch.data &&
+          (runBatch.data.alreadyRunning ? (
+            <div className="text-[12px] text-ink-600 bg-ink-50 border border-ink-200 rounded-lg px-4 py-2.5">
+              브리프 생성이 이미 진행 중입니다 — 잠시 후 목록이 자동 갱신됩니다. (중복 분석은 실행되지 않았습니다)
+            </div>
+          ) : (
+            <div className="text-[12px] text-ink-600 bg-ink-50 border border-ink-200 rounded-lg px-4 py-2.5">
+              브리프 생성 완료 — 성공 {runBatch.data.briefed}건, 실패 {runBatch.data.failed}건, 건너뜀{' '}
+              {runBatch.data.skipped}건.
+              {runBatch.data.skipped > 0 && ' (건너뜀은 대부분 Gemini 일일 쿼터 소진 — 내일 자동 재시도)'}
+            </div>
+          ))}
 
         {/* Player + 선택 영상 브리프 */}
         {playing && playingVideoId && playingCurrent && (

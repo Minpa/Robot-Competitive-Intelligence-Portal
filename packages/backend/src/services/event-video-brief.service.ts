@@ -204,6 +204,8 @@ class EventVideoBriefService {
   private anthropicClient: Anthropic | null = null;
   /** 이벤트별 제목 번역 in-flight 가드 (목록 조회 시 lazy 번역 중복 실행 방지) */
   private translatingEvents = new Set<string>();
+  /** 이벤트별 브리프 배치 in-flight 가드 (버튼 연타·자동 실행 겹침 시 동일 영상 중복 분석 방지) */
+  private runningBriefBatches = new Set<string>();
 
   constructor() {
     if (process.env.GEMINI_API_KEY) {
@@ -429,53 +431,65 @@ class EventVideoBriefService {
     return res;
   }
 
-  /** 배치 실행 */
-  async run(eventKey = 'wrc2026', limit = BATCH_LIMIT): Promise<{ briefed: number; failed: number; skipped: number }> {
+  /** 배치 실행 — 동일 이벤트 배치가 이미 진행 중이면 중복 실행하지 않는다 */
+  async run(
+    eventKey = 'wrc2026',
+    limit = BATCH_LIMIT
+  ): Promise<{ briefed: number; failed: number; skipped: number; alreadyRunning?: boolean }> {
     const res = { briefed: 0, failed: 0, skipped: 0 };
 
+    if (this.runningBriefBatches.has(eventKey)) {
+      console.warn(`[EventBrief] ${eventKey}: batch already running — duplicate request ignored`);
+      return { ...res, alreadyRunning: true };
+    }
+    this.runningBriefBatches.add(eventKey);
     try {
-      await this.translateTitles(eventKey);
-    } catch (err) {
-      console.error('[EventBrief] translateTitles (run) failed:', (err as Error).message);
-    }
-
-    if (!this.client) return res;
-    const event = getEventConfig(eventKey);
-    if (!event) return res;
-
-    const pending = await this.getPending(event, limit);
-    if (pending.length === 0) return res;
-
-    const attemptsKey = `eventBriefAttempts_${event.key}`;
-    let quotaHit = false;
-    for (const video of pending) {
-      if (quotaHit) break;
-      const brief = await this.briefOne(event, video);
-      if (brief === 'quota') {
-        quotaHit = true;
-        res.skipped++;
-        continue;
+      try {
+        await this.translateTitles(eventKey);
+      } catch (err) {
+        console.error('[EventBrief] translateTitles (run) failed:', (err as Error).message);
       }
-      if (brief) {
-        await this.saveBrief(event.key, video.id, brief);
-        res.briefed++;
-      } else {
-        await db.execute(sql`
-          UPDATE articles
-          SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb)
-            || jsonb_build_object(
-              ${attemptsKey}::text,
-              COALESCE((extracted_metadata->>${attemptsKey})::int, 0) + 1
-            )
-          WHERE id = ${video.id}
-        `);
-        res.failed++;
-      }
-    }
 
-    console.log(`[EventBrief] ${event.key}: briefed ${res.briefed}, failed ${res.failed}, skipped ${res.skipped}`);
-    if (res.briefed > 0) await this.invalidateTrendCache(eventKey);
-    return res;
+      if (!this.client) return res;
+      const event = getEventConfig(eventKey);
+      if (!event) return res;
+
+      const pending = await this.getPending(event, limit);
+      if (pending.length === 0) return res;
+
+      const attemptsKey = `eventBriefAttempts_${event.key}`;
+      let quotaHit = false;
+      for (const video of pending) {
+        if (quotaHit) break;
+        const brief = await this.briefOne(event, video);
+        if (brief === 'quota') {
+          quotaHit = true;
+          res.skipped++;
+          continue;
+        }
+        if (brief) {
+          await this.saveBrief(event.key, video.id, brief);
+          res.briefed++;
+        } else {
+          await db.execute(sql`
+            UPDATE articles
+            SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb)
+              || jsonb_build_object(
+                ${attemptsKey}::text,
+                COALESCE((extracted_metadata->>${attemptsKey})::int, 0) + 1
+              )
+            WHERE id = ${video.id}
+          `);
+          res.failed++;
+        }
+      }
+
+      console.log(`[EventBrief] ${event.key}: briefed ${res.briefed}, failed ${res.failed}, skipped ${res.skipped}`);
+      if (res.briefed > 0) await this.invalidateTrendCache(eventKey);
+      return res;
+    } finally {
+      this.runningBriefBatches.delete(eventKey);
+    }
   }
 
   /** 새 브리프 반영 시 트렌드 요약 캐시 무효화 — 다음 조회 때 즉시 재생성 */
