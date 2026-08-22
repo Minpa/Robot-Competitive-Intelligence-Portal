@@ -225,8 +225,26 @@ class ApiClient {
   }
   async getEventTrendSummary(eventKey: string) {
     return this.request<{
-      summary: { headline: string; points: string[]; basedOn: number; generatedAt: string } | null;
+      summary: {
+        headline: string;
+        points: (string | { text: string; videoIds: string[] })[];
+        techPoints?: (string | { text: string; videoIds: string[] })[];
+        basedOn: number;
+        generatedAt: string;
+        trendVersion?: 2;
+      } | null;
     }>(`/video-sync/event-videos/${eventKey}/trend-summary`);
+  }
+  async getEventStats(eventKey: string) {
+    return this.request<{
+      totalVideos: number;
+      briefedVideos: number;
+      categoryDistribution: { category: string; count: number }[];
+      topCompanies: { name: string; count: number }[];
+      topKeywords: { name: string; count: number }[];
+      uniqueCompanyCount: number;
+      uniqueKeywordCount: number;
+    }>(`/video-sync/event-videos/${eventKey}/stats`);
   }
   async downloadEventPpt(eventKey: string): Promise<void> {
     const token = this.getToken();

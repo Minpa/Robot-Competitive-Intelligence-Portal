@@ -1,12 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Panel, Tag } from '@/components/ui';
-import { Check, Copy, Download, ExternalLink, Loader2, Play, RefreshCw, Sparkles, X } from 'lucide-react';
+import { Check, Copy, Cpu, Download, ExternalLink, Loader2, Play, RefreshCw, Sparkles, X } from 'lucide-react';
+import { TrendHeadlinePanel } from './components/TrendHeadlinePanel';
+import { TrendPointCards } from './components/TrendPointCards';
+import { TagCloud } from './components/TagCloud';
+import { BriefPanel } from './components/BriefPanel';
+import { formatDate, getVideoId, thumbFallback } from './utils';
+import type { EventVideo } from './types';
 
 const EVENT_KEY = 'wrc2026';
 
@@ -21,74 +27,6 @@ const TASK_TYPE_ORDER = [
   '기타',
   '미분류',
 ];
-
-interface EventBrief {
-  mainProducts: string[];
-  demoContents: string[];
-  insights: string[];
-  briefedAt: string | null;
-}
-
-interface EventVideo {
-  id: string;
-  title: string;
-  titleKo?: string | null;
-  url: string;
-  thumbnail: string | null;
-  channel: string | null;
-  publishedAt: string | null;
-  brief: EventBrief | null;
-  thirdParty?: boolean;
-  taskTypes?: string[];
-}
-
-interface EventTrendSummary {
-  headline: string;
-  points: string[];
-  basedOn: number;
-  generatedAt: string;
-}
-
-function formatDate(value?: string | null) {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
-function getVideoId(url: string): string | null {
-  const m = url.match(/[?&]v=([\w-]{11})/);
-  return m ? m[1] : null;
-}
-
-/** 스크린샷 스타일: 좌측 라벨 박스 + 우측 불릿 리스트 */
-function BriefRow({ label, items }: { label: string; items: string[] }) {
-  if (items.length === 0) return null;
-  return (
-    <div className="flex gap-3">
-      <div className="shrink-0 w-24 self-start border border-ink-300 px-2 py-1.5 text-center text-[12px] font-semibold text-ink-900 leading-snug">
-        {label}
-      </div>
-      <ul className="flex-1 space-y-1 pt-0.5">
-        {items.map((it, i) => (
-          <li key={i} className="flex gap-1.5 text-[12.5px] text-ink-700 leading-relaxed">
-            <span className="text-ink-400">•</span>
-            <span>{it}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function thumbFallback(e: React.SyntheticEvent<HTMLImageElement>) {
-  const img = e.currentTarget;
-  if (img.src.includes('hqdefault')) {
-    img.src = img.src.replace('hqdefault', 'mqdefault');
-  } else {
-    img.style.display = 'none';
-  }
-}
 
 function CopyUrlButton({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
@@ -136,6 +74,7 @@ export default function Wrc2026Page() {
   });
   const videos: EventVideo[] = Array.isArray(videosQuery.data) ? (videosQuery.data as EventVideo[]) : [];
   const briefedCount = videos.filter((v) => v.brief).length;
+  const videoMap = useMemo(() => new Map(videos.map((v) => [v.id, v])), [videos]);
 
   const trendQuery = useQuery({
     queryKey: ['event-trend', EVENT_KEY],
@@ -144,7 +83,13 @@ export default function Wrc2026Page() {
     // 요약이 아직 없으면(브리프 축적 전) 30초마다 재시도 — 생성되는 즉시 상단에 표시
     refetchInterval: (query) => ((query.state.data as any)?.summary ? false : 30_000),
   });
-  const trend: EventTrendSummary | null = trendQuery.data?.summary ?? null;
+  const trend = trendQuery.data?.summary ?? null;
+
+  const statsQuery = useQuery({
+    queryKey: ['event-stats', EVENT_KEY],
+    queryFn: () => api.getEventStats(EVENT_KEY),
+  });
+  const stats = statsQuery.data ?? null;
 
   const meQuery = useQuery({ queryKey: ['me'], queryFn: () => api.getMe(), staleTime: 10 * 60 * 1000 });
   const isAdmin = meQuery.data?.user?.role === 'admin' || meQuery.data?.role === 'admin';
@@ -154,6 +99,7 @@ export default function Wrc2026Page() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['event-videos', EVENT_KEY] });
       qc.invalidateQueries({ queryKey: ['event-trend', EVENT_KEY] });
+      qc.invalidateQueries({ queryKey: ['event-stats', EVENT_KEY] });
     },
   });
 
@@ -162,6 +108,7 @@ export default function Wrc2026Page() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['event-videos', EVENT_KEY] });
       qc.invalidateQueries({ queryKey: ['event-trend', EVENT_KEY] });
+      qc.invalidateQueries({ queryKey: ['event-stats', EVENT_KEY] });
     },
   });
 
@@ -212,21 +159,32 @@ export default function Wrc2026Page() {
           }
         />
 
+        {/* AI 트렌드 헤드라인 + 통계 타일 + 카테고리 분포 (트렌드가 없어도 stats만으로 표시 가능) */}
+        <TrendHeadlinePanel trend={trend} stats={stats} />
+
+        {/* 트렌드 포인트 카드 — 종합(제품·시장·서비스) / 기술 관점 2축, 근거 썸네일 클릭 시 해당 영상 재생 */}
         {trend && (
-          <Panel kicker="WRC 2026 영상 기반 트렌드 요약 (AI 분석)" title={trend.headline}>
-            <ul className="space-y-1.5">
-              {trend.points.map((p, i) => (
-                <li key={i} className="flex gap-1.5 text-[12.5px] text-ink-700 leading-relaxed">
-                  <span className="text-ink-400">•</span>
-                  <span>{p}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 text-right text-[10.5px] text-ink-400">
-              브리프 {trend.basedOn}건 기반 · {formatDate(trend.generatedAt)}
-            </p>
-          </Panel>
+          <TrendPointCards
+            points={trend.points}
+            videoMap={videoMap}
+            onSelectVideo={(v) => setPlaying(v)}
+            kicker="Trend Points — Overview"
+            title="종합 트렌드"
+          />
         )}
+        {trend?.techPoints && trend.techPoints.length > 0 && (
+          <TrendPointCards
+            points={trend.techPoints}
+            videoMap={videoMap}
+            onSelectVideo={(v) => setPlaying(v)}
+            kicker="Trend Points — Technical"
+            title="기술 트렌드"
+            icon={Cpu}
+          />
+        )}
+
+        {/* 기업/기술 키워드 태그 클라우드 */}
+        <TagCloud stats={stats} />
 
         {runBatch.data &&
           (runBatch.data.alreadyRunning ? (
@@ -311,18 +269,7 @@ export default function Wrc2026Page() {
                   {(briefOne.error as Error)?.message ?? '브리프 생성 실패'}
                 </p>
               )}
-              {playingCurrent.brief && (
-                <div className="border-t border-ink-100 pt-3 space-y-3">
-                  <BriefRow label="주요 제품" items={playingCurrent.brief.mainProducts} />
-                  <BriefRow label="시연 내용" items={playingCurrent.brief.demoContents} />
-                  <BriefRow label="기술 관점 시사점" items={playingCurrent.brief.insights} />
-                  {playingCurrent.brief.briefedAt && (
-                    <p className="text-right text-[10.5px] text-ink-400">
-                      Gemini 영상 분석 · {formatDate(playingCurrent.brief.briefedAt)}
-                    </p>
-                  )}
-                </div>
-              )}
+              {playingCurrent.brief && <BriefPanel brief={playingCurrent.brief} />}
             </div>
           </Panel>
         )}
@@ -387,6 +334,9 @@ export default function Wrc2026Page() {
                       )}
                       {v.brief && <Tag tone="pos" size="sm">브리프</Tag>}
                     </div>
+                    {v.brief?.highlight && (
+                      <p className="mt-1 text-[10.5px] italic text-ink-500 line-clamp-1">{v.brief.highlight}</p>
+                    )}
                   </div>
                 </button>
               ))}

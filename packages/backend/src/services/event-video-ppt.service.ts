@@ -6,7 +6,7 @@
  */
 
 import PptxGenJS from 'pptxgenjs';
-import { eventVideoBriefService, getEventConfig } from './event-video-brief.service.js';
+import { eventVideoBriefService, getEventConfig, type EventTrendPoint } from './event-video-brief.service.js';
 
 const TASK_TYPE_ORDER = [
   '보행/이동',
@@ -80,6 +80,11 @@ async function fetchThumbnailDataUri(url: string): Promise<string | null> {
     if (data) return data;
   }
   return null;
+}
+
+/** trend.points 원소(문자열 또는 v2 {text, videoIds} 객체)에서 표시용 텍스트만 추출(160자 캡) */
+export function trendPointText(p: string | EventTrendPoint): string {
+  return (typeof p === 'string' ? p : p.text).slice(0, 160);
 }
 
 function briefLines(brief: NonNullable<EventVideo['brief']>): string[] {
@@ -189,16 +194,25 @@ class EventVideoPptService {
       valign: 'top', wrap: true, fit: 'shrink',
     });
 
-    const bulletParas = trend.points.slice(0, 6).map((p) => ({
-      text: p.slice(0, 160),
-      options: { bullet: true, breakLine: true, paraSpaceAfter: 8 },
-    }));
+    const hasTechPoints = Array.isArray(trend.techPoints) && trend.techPoints.length > 0;
 
-    slide.addText(bulletParas as any, {
-      x: 0.8, y: 2.15, w: 11.7, h: 4.4,
-      fontSize: 14, fontFace: 'Arial', color: TEXT_COLOR,
-      valign: 'top', lineSpacingMultiple: 1.3,
-    });
+    if (hasTechPoints) {
+      // 좌: 종합 트렌드 / 우: 기술 트렌드 — 2단 구성
+      this.addTrendColumn(slide, '종합 트렌드', trend.points, 0.8, 2.1, 5.6);
+      this.addTrendColumn(slide, '기술 트렌드', trend.techPoints!, 6.9, 2.1, 5.6);
+    } else {
+      // techPoints가 없는 구형 캐시는 기존처럼 points 단일 전폭 레이아웃 유지
+      const bulletParas = trend.points.slice(0, 6).map((p) => ({
+        text: trendPointText(p),
+        options: { bullet: true, breakLine: true, paraSpaceAfter: 8 },
+      }));
+
+      slide.addText(bulletParas as any, {
+        x: 0.8, y: 2.15, w: 11.7, h: 4.4,
+        fontSize: 14, fontFace: 'Arial', color: TEXT_COLOR,
+        valign: 'top', lineSpacingMultiple: 1.3,
+      });
+    }
 
     const generatedDate = formatDate(trend.generatedAt);
     const caption = [`브리프 ${trend.basedOn}건 기반`, generatedDate ? `생성일 ${generatedDate}` : null]
@@ -207,6 +221,32 @@ class EventVideoPptService {
     slide.addText(caption, {
       x: 0.8, y: 6.85, w: 11.7, h: 0.35,
       fontSize: 10, fontFace: 'Arial', color: SUBTLE_COLOR,
+    });
+  }
+
+  /** 트렌드 슬라이드 2단 구성용 한 단: 섹션 라벨 + 불릿(최대 5개) */
+  private addTrendColumn(
+    slide: any,
+    label: string,
+    points: (string | EventTrendPoint)[],
+    x: number,
+    y: number,
+    w: number
+  ) {
+    slide.addText(label, {
+      x, y, w, h: 0.35,
+      fontSize: 12, fontFace: 'Arial', color: ACCENT_COLOR, bold: true,
+    });
+
+    const bulletParas = points.slice(0, 5).map((p) => ({
+      text: trendPointText(p),
+      options: { bullet: true, breakLine: true, paraSpaceAfter: 8 },
+    }));
+
+    slide.addText(bulletParas as any, {
+      x, y: y + 0.45, w, h: 4.1,
+      fontSize: 12, fontFace: 'Arial', color: TEXT_COLOR,
+      valign: 'top', lineSpacingMultiple: 1.3,
     });
   }
 

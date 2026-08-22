@@ -136,6 +136,19 @@ export async function videoSyncRoutes(fastify: FastifyInstance) {
       return { summary };
     }
   );
+  // 이벤트 통계(카테고리 분포·기업/키워드 태그 클라우드용)
+  fastify.get<{ Params: { eventKey: string } }>(
+    '/event-videos/:eventKey/stats',
+    { preHandler: authMiddleware },
+    async (request, reply) => {
+      const stats = await eventVideoBriefService.getStats(request.params.eventKey);
+      if (!stats) {
+        reply.status(404).send({ error: 'Unknown event' });
+        return;
+      }
+      return stats;
+    }
+  );
 
   // 이벤트 영상 리스트 PPT 다운로드 (Analyst + Admin only)
   fastify.post<{ Params: { eventKey: string } }>(
