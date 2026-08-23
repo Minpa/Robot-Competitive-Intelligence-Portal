@@ -170,7 +170,7 @@ export async function videoSyncRoutes(fastify: FastifyInstance) {
   // 참관 업체 임원 보고서 PPT 다운로드 (Analyst + Admin only)
   fastify.post<{ Params: { eventKey: string } }>(
     '/event-videos/:eventKey/export-report-ppt',
-    { preHandler: adminOrAnalyst },
+    { preHandler: adminOnly },
     async (request, reply) => {
       const { eventKey } = request.params;
       if (eventCompanyReportService.isGenerating(eventKey)) {

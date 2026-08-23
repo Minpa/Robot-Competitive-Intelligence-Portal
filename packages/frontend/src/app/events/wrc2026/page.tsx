@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
@@ -9,7 +9,7 @@ import { Panel, Tag } from '@/components/ui';
 import { Check, Copy, Cpu, Download, ExternalLink, Loader2, Play, RefreshCw, Sparkles, X } from 'lucide-react';
 import { TrendHeadlinePanel } from './components/TrendHeadlinePanel';
 import { TrendPointCards } from './components/TrendPointCards';
-import { TagCloud } from './components/TagCloud';
+import { TagCloud, type TagSelection } from './components/TagCloud';
 import { BriefPanel } from './components/BriefPanel';
 import { formatDate, getVideoId, thumbFallback } from './utils';
 import type { EventVideo } from './types';
@@ -52,6 +52,8 @@ export default function Wrc2026Page() {
   const [pptError, setPptError] = useState<string | null>(null);
   const [reportPptLoading, setReportPptLoading] = useState(false);
   const [reportPptError, setReportPptError] = useState<string | null>(null);
+  const [tagFilter, setTagFilter] = useState<TagSelection | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const handlePptDownload = async () => {
     setPptLoading(true);
@@ -129,6 +131,22 @@ export default function Wrc2026Page() {
   const playingVideoId = playing ? getVideoId(playing.url) : null;
   const playingCurrent = playing ? (videos.find((v) => v.id === playing.id) ?? playing) : null;
 
+  // 태그 클라우드 필터: 선택된 기업/키워드가 브리프에 태그된 영상만 그리드에 표시
+  const filteredVideos = useMemo(() => {
+    if (!tagFilter) return videos;
+    const target = tagFilter.name.trim().toLowerCase();
+    return videos.filter((v) => {
+      const tags = tagFilter.type === 'company' ? v.brief?.companies : v.brief?.techKeywords;
+      return (tags ?? []).some((t) => t.trim().toLowerCase() === target);
+    });
+  }, [videos, tagFilter]);
+
+  const handleTagSelect = (tag: TagSelection) => {
+    setTagFilter((prev) => (prev && prev.type === tag.type && prev.name === tag.name ? null : tag));
+    // 필터 적용 직후 영상 리스트로 스크롤
+    setTimeout(() => gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  };
+
   const groups = TASK_TYPE_ORDER.map((cat) => ({
     cat,
     items: videos.filter((v) => (v.taskTypes && v.taskTypes[0] ? v.taskTypes[0] : '미분류') === cat),
@@ -159,24 +177,26 @@ export default function Wrc2026Page() {
                 </button>
                 {pptError && <p className="text-[10.5px] text-neg">{pptError}</p>}
               </div>
-              <div className="flex flex-col items-end gap-1">
-                <button
-                  onClick={handleReportPptDownload}
-                  disabled={reportPptLoading}
-                  className="inline-flex items-center gap-2 px-3 py-2 text-[12px] font-medium border border-ink-200 bg-white text-ink-700 hover:border-ink-400 transition-colors disabled:opacity-50"
-                >
-                  {reportPptLoading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Download className="w-3.5 h-3.5" />
+              {isAdmin && (
+                <div className="flex flex-col items-end gap-1">
+                  <button
+                    onClick={handleReportPptDownload}
+                    disabled={reportPptLoading}
+                    className="inline-flex items-center gap-2 px-3 py-2 text-[12px] font-medium border border-ink-200 bg-white text-ink-700 hover:border-ink-400 transition-colors disabled:opacity-50"
+                  >
+                    {reportPptLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5" />
+                    )}
+                    임원 보고서 PPT
+                  </button>
+                  {reportPptLoading && (
+                    <p className="text-[10.5px] text-ink-400">최초 생성은 수 분 정도 걸릴 수 있습니다.</p>
                   )}
-                  임원 보고서 PPT
-                </button>
-                {reportPptLoading && (
-                  <p className="text-[10.5px] text-ink-400">최초 생성은 수 분 정도 걸릴 수 있습니다.</p>
-                )}
-                {reportPptError && <p className="text-[10.5px] text-neg">{reportPptError}</p>}
-              </div>
+                  {reportPptError && <p className="text-[10.5px] text-neg">{reportPptError}</p>}
+                </div>
+              )}
               {isAdmin && (
                 <button
                   onClick={() => runBatch.mutate()}
@@ -215,8 +235,8 @@ export default function Wrc2026Page() {
           />
         )}
 
-        {/* 기업/기술 키워드 태그 클라우드 */}
-        <TagCloud stats={stats} />
+        {/* 기업/기술 키워드 태그 클라우드 — 칩 클릭 시 영상 리스트 필터 */}
+        <TagCloud stats={stats} selected={tagFilter} onSelect={handleTagSelect} />
 
         {runBatch.data &&
           (runBatch.data.alreadyRunning ? (
@@ -307,11 +327,31 @@ export default function Wrc2026Page() {
         )}
 
         {/* 영상 그리드 */}
+        <div ref={gridRef} className="scroll-mt-4">
         <Panel
           kicker="WRC 2026 Videos"
-          title={`관련 영상 (${videos.length}건 · 브리프 ${briefedCount}건)`}
+          title={
+            tagFilter
+              ? `관련 영상 (${filteredVideos.length}건 / 전체 ${videos.length}건)`
+              : `관련 영상 (${videos.length}건 · 브리프 ${briefedCount}건)`
+          }
           subtitle="제목·설명에 WRC/World Robot Conference/世界机器人大会가 포함된 2026년 7월 이후 수집 영상입니다. 브리프는 Gemini가 영상 내용을 직접 분석해 생성합니다."
         >
+          {tagFilter && (
+            <div className="mb-3 flex items-center gap-2 text-[12px] text-ink-700">
+              <span className="text-ink-500">{tagFilter.type === 'company' ? '기업 필터' : '키워드 필터'}:</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-ink-300 bg-ink-50 px-2.5 py-1 font-medium">
+                {tagFilter.name}
+                <button
+                  onClick={() => setTagFilter(null)}
+                  className="text-ink-400 hover:text-ink-900 transition-colors"
+                  aria-label="필터 해제"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            </div>
+          )}
           {videosQuery.isLoading ? (
             <div className="py-10 text-center text-ink-400 text-sm">불러오는 중...</div>
           ) : videosQuery.isError ? (
@@ -325,9 +365,13 @@ export default function Wrc2026Page() {
             <div className="py-10 text-center text-ink-400 text-sm">
               아직 WRC 2026 관련 영상이 수집되지 않았습니다. 공식 채널이 관련 영상을 올리면 매일 새벽 수집 후 여기에 표시됩니다.
             </div>
+          ) : filteredVideos.length === 0 ? (
+            <div className="py-10 text-center text-ink-400 text-sm">
+              선택한 태그가 붙은 영상이 없습니다. 필터를 해제하거나 다른 태그를 선택해 주세요.
+            </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {videos.map((v) => (
+              {filteredVideos.map((v) => (
                 <button
                   key={v.id}
                   onClick={() => {
@@ -375,6 +419,7 @@ export default function Wrc2026Page() {
             </div>
           )}
         </Panel>
+        </div>
 
         {/* 카테고리별 보고표 */}
         {groups.length > 0 && (
