@@ -137,7 +137,15 @@ export function sanitizeEnrichment(e: CompanyEnrichment): CompanyEnrichment {
 export interface CompanyThumbnail {
   videoId: string;
   url: string;
+  /** 원본 유튜브 영상 링크 (썸네일 하단에 표기) */
+  watchUrl: string;
   title: string;
+}
+
+/** youtube.com/watch?v=... 에서 11자리 영상 id 추출 (짧은 표기용) */
+function extractYoutubeId(url: string): string | null {
+  const m = url.match(/[?&]v=([\w-]{11})/);
+  return m?.[1] ?? null;
 }
 
 export interface CompanyAggregate {
@@ -216,7 +224,7 @@ export function aggregateCompanies(videos: AggregateVideoInput[]): CompanyAggreg
     demoContents: string[];
     insights: string[];
     techKeywords: string[];
-    thumbCandidates: { videoId: string; url: string; title: string; publishedAt: unknown }[];
+    thumbCandidates: { videoId: string; url: string; watchUrl: string; title: string; publishedAt: unknown }[];
     sampleVideoUrls: string[];
   }
 
@@ -269,6 +277,7 @@ export function aggregateCompanies(videos: AggregateVideoInput[]): CompanyAggreg
         entry.thumbCandidates.push({
           videoId: v.id,
           url: v.thumbnail,
+          watchUrl: v.url,
           title: (v.titleKo ?? v.title) || '',
           publishedAt: v.publishedAt,
         });
@@ -303,7 +312,7 @@ export function aggregateCompanies(videos: AggregateVideoInput[]): CompanyAggreg
         return (Number.isFinite(tb) ? tb : 0) - (Number.isFinite(ta) ? ta : 0);
       })
       .slice(0, 2)
-      .map(({ videoId, url, title }) => ({ videoId, url, title }));
+      .map(({ videoId, url, watchUrl, title }) => ({ videoId, url, watchUrl, title }));
 
     const seenKw = new Set<string>();
     const techKeywords: string[] = [];
@@ -819,6 +828,16 @@ class EventCompanyReportService {
         x: cursorX, y: rowY3, w: 0.55, h: 0.22,
         fontSize: 6, fontFace: 'Arial', color: TITLE_COLOR, align: 'center', valign: 'middle',
       });
+      // 썸네일 하단에 원본 유튜브 링크 (클릭 가능)
+      const ytId = extractYoutubeId(t.watchUrl);
+      const shortUrl = ytId ? `youtu.be/${ytId}` : t.watchUrl.slice(0, 30);
+      slide.addText(
+        [{ text: shortUrl, options: { hyperlink: { url: t.watchUrl }, color: ACCENT_COLOR, underline: true } }],
+        {
+          x: cursorX, y: rowY3 + thumbH + 0.01, w: thumbW, h: 0.16,
+          fontSize: 6.5, fontFace: 'Arial', valign: 'top', wrap: false, align: 'center',
+        }
+      );
       cursorX += thumbW + thumbGap;
     }
 
