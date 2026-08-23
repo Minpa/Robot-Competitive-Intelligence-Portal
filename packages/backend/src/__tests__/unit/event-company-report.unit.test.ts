@@ -237,3 +237,49 @@ describe('groupCompaniesForSlides / buildSlideTitle', () => {
     expect(buildSlideTitle(group)).toBe('주요 참관 업체 (보행/이동) – A');
   });
 });
+
+describe('stripCiteTags / sanitizeEnrichment', () => {
+  it('removes complete and truncated <cite> tags from text', async () => {
+    const { stripCiteTags } = await import('../../services/event-company-report.service.js');
+    expect(stripCiteTags('<cite index="1-1">Galaxea R1: 24자유도</cite> 휴머노이드')).toBe(
+      'Galaxea R1: 24자유도 휴머노이드'
+    );
+    expect(stripCiteTags('정밀 조립을 제공한다</ci')).toBe('정밀 조립을 제공한다');
+    expect(stripCiteTags('끝이 잘린 <cite index="25-4'
+    )).toBe('끝이 잘린');
+    expect(stripCiteTags('태그 없는 일반 문장')).toBe('태그 없는 일반 문장');
+  });
+
+  it('parseCompanyEnrichment strips cite tags from all fields', async () => {
+    const { parseCompanyEnrichment } = await import('../../services/event-company-report.service.js');
+    const text = JSON.stringify({
+      topline: '<cite index="1-1">핵심 한 줄</cite>',
+      products: ['<cite index="2-1">제품 A</cite>'],
+      techInsights: ['시사점 <cite index="3-1">근거</cite> 포함'],
+      demoNotes: ['시연</ci'],
+      sources: ['example.com'],
+    });
+    const parsed = parseCompanyEnrichment(text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.topline).toBe('핵심 한 줄');
+    expect(parsed!.products).toEqual(['제품 A']);
+    expect(parsed!.techInsights).toEqual(['시사점 근거 포함']);
+    expect(parsed!.demoNotes).toEqual(['시연']);
+  });
+
+  it('sanitizeEnrichment cleans tagged data loaded from old cache', async () => {
+    const { sanitizeEnrichment } = await import('../../services/event-company-report.service.js');
+    const cleaned = sanitizeEnrichment({
+      topline: '<cite index="1-1">캐시된 한 줄</cite>',
+      products: ['<cite index="9-1">제품</cite>'],
+      techInsights: [],
+      demoNotes: ['조립을 제공한다</ci'],
+      sources: [],
+      enrichedVia: 'web-search',
+    });
+    expect(cleaned.topline).toBe('캐시된 한 줄');
+    expect(cleaned.products).toEqual(['제품']);
+    expect(cleaned.demoNotes).toEqual(['조립을 제공한다']);
+    expect(cleaned.enrichedVia).toBe('web-search');
+  });
+});

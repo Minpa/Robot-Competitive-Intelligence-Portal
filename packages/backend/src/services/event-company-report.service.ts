@@ -107,6 +107,31 @@ function capList(raw: unknown, maxItems: number, maxLen: number): string[] {
     .slice(0, maxItems);
 }
 
+/** 웹 검색 응답 텍스트에 섞여 나오는 인용 마크업(<cite index="...">...</cite>)과 길이 캡으로 잘린 태그 조각 제거 */
+export function stripCiteTags(s: string): string {
+  return s
+    .replace(/<\/?cite\b[^>]*>?/g, '') // 완전한 태그 + 끝에서 '>' 없이 잘린 태그
+    .replace(/<\/?c(?:i(?:t(?:e)?)?)?$/, '') // 캡 절단으로 남은 짧은 조각 (예: "</ci")
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
+function stripCiteList(raw: unknown): unknown {
+  return Array.isArray(raw) ? raw.map((v) => (typeof v === 'string' ? stripCiteTags(v) : v)) : raw;
+}
+
+/** 저장/캐시된 보강 결과에도 태그가 남아있을 수 있어 읽기 경로에서 한 번 더 정리 */
+export function sanitizeEnrichment(e: CompanyEnrichment): CompanyEnrichment {
+  return {
+    ...e,
+    topline: stripCiteTags(e.topline ?? '').slice(0, 120),
+    products: (e.products ?? []).map((s) => stripCiteTags(s).slice(0, 180)),
+    techInsights: (e.techInsights ?? []).map((s) => stripCiteTags(s).slice(0, 180)),
+    demoNotes: (e.demoNotes ?? []).map((s) => stripCiteTags(s).slice(0, 160)),
+    sources: (e.sources ?? []).map((s) => stripCiteTags(s).slice(0, 200)),
+  };
+}
+
 // ── 타입 ──
 
 export interface CompanyThumbnail {
@@ -335,15 +360,15 @@ export function parseCompanyEnrichment(text: string): CompanyEnrichment | null {
   }
   if (!parsed) return null;
 
-  const topline = typeof parsed.topline === 'string' ? parsed.topline.trim().slice(0, 120) : '';
+  const topline = typeof parsed.topline === 'string' ? stripCiteTags(parsed.topline).slice(0, 120) : '';
   if (!topline) return null;
 
   return {
     topline,
-    products: capList(parsed.products, 2, 180),
-    techInsights: capList(parsed.techInsights, 2, 180),
-    demoNotes: capList(parsed.demoNotes, 2, 160),
-    sources: capList(parsed.sources, 3, 200),
+    products: capList(stripCiteList(parsed.products), 2, 180),
+    techInsights: capList(stripCiteList(parsed.techInsights), 2, 180),
+    demoNotes: capList(stripCiteList(parsed.demoNotes), 2, 160),
+    sources: capList(stripCiteList(parsed.sources), 3, 200),
     enrichedVia: 'web-search',
   };
 }
@@ -376,6 +401,7 @@ ${JSON.stringify(company.raw)}
 **작성 규칙:**
 - 공개 정보의 파생 요약만 작성한다. 원문 장문 복사 금지.
 - 확인되지 않는 내용은 추측하지 않는다.
+- 인용 태그(<cite> 등)나 각주·출처 마크업을 본문 텍스트에 포함하지 않는다. 출처는 sources 배열에만 적는다.
 - JSON 객체만 응답하고 다른 텍스트는 포함하지 않는다.
 
 **응답 JSON 스키마:**
@@ -513,7 +539,8 @@ class EventCompanyReportService {
     try {
       const [cached] = await db.select().from(viewCache).where(eq(viewCache.viewName, cacheKey)).limit(1);
       if (cached && Date.now() - cached.cachedAt.getTime() < ENRICH_TTL_MS) {
-        return cached.data as unknown as CompanyEnrichment;
+        // 이전 버전에서 캐시된 결과에 인용 태그가 남아있을 수 있어 읽기 시 정리
+        return sanitizeEnrichment(cached.data as unknown as CompanyEnrichment);
       }
     } catch {
       // 캐시 조회 실패는 무시하고 재생성 진행
