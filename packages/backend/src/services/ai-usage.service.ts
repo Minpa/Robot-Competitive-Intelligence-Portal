@@ -25,7 +25,7 @@ const PRICING: Record<string, { input: number; output: number; webSearchPerQuery
   'gemini-flash-latest': { input: GEMINI_PRICE_INPUT, output: GEMINI_PRICE_OUTPUT },
   'gemini-3.7-flash': { input: GEMINI_PRICE_INPUT, output: GEMINI_PRICE_OUTPUT },
   'gemini-3.6-flash': { input: 1.50, output: 7.50 },
-  'claude-haiku-4-5-20251001': { input: 1.00, output: 5.00 },
+  'claude-haiku-4-5-20251001': { input: 1.00, output: 5.00, webSearchPerQuery: 0.01 },
 };
 
 export interface AIUsageLogEntry {

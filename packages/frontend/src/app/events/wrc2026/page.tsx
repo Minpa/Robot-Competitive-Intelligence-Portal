@@ -50,6 +50,8 @@ export default function Wrc2026Page() {
   const [playing, setPlaying] = useState<EventVideo | null>(null);
   const [pptLoading, setPptLoading] = useState(false);
   const [pptError, setPptError] = useState<string | null>(null);
+  const [reportPptLoading, setReportPptLoading] = useState(false);
+  const [reportPptError, setReportPptError] = useState<string | null>(null);
 
   const handlePptDownload = async () => {
     setPptLoading(true);
@@ -60,6 +62,18 @@ export default function Wrc2026Page() {
       setPptError((e as Error)?.message ?? 'PPT 생성에 실패했습니다.');
     } finally {
       setPptLoading(false);
+    }
+  };
+
+  const handleReportPptDownload = async () => {
+    setReportPptLoading(true);
+    setReportPptError(null);
+    try {
+      await api.downloadEventReportPpt(EVENT_KEY);
+    } catch (e) {
+      setReportPptError((e as Error)?.message ?? '임원 보고서 PPT 생성에 실패했습니다.');
+    } finally {
+      setReportPptLoading(false);
     }
   };
 
@@ -141,9 +155,27 @@ export default function Wrc2026Page() {
                   ) : (
                     <Download className="w-3.5 h-3.5" />
                   )}
-                  PPT 다운로드
+                  영상 리스트 PPT
                 </button>
                 {pptError && <p className="text-[10.5px] text-neg">{pptError}</p>}
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <button
+                  onClick={handleReportPptDownload}
+                  disabled={reportPptLoading}
+                  className="inline-flex items-center gap-2 px-3 py-2 text-[12px] font-medium border border-ink-200 bg-white text-ink-700 hover:border-ink-400 transition-colors disabled:opacity-50"
+                >
+                  {reportPptLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  임원 보고서 PPT
+                </button>
+                {reportPptLoading && (
+                  <p className="text-[10.5px] text-ink-400">최초 생성은 수 분 정도 걸릴 수 있습니다.</p>
+                )}
+                {reportPptError && <p className="text-[10.5px] text-neg">{reportPptError}</p>}
               </div>
               {isAdmin && (
                 <button

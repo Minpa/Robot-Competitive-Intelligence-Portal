@@ -262,6 +262,25 @@ class ApiClient {
     URL.revokeObjectURL(url);
   }
 
+  async downloadEventReportPpt(eventKey: string): Promise<void> {
+    const token = this.getToken();
+    const res = await fetch(`${API_BASE}/video-sync/event-videos/${eventKey}/export-report-ppt`, {
+      method: 'POST',
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw new Error(body?.error || '임원 보고서 PPT 생성 실패');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'wrc2026-report.pptx';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async getTechTrendSummary(domain: string) {
     return this.request<{
       summary: string;

@@ -116,6 +116,17 @@ describe('estimateCost', () => {
     expect(cost).toBeCloseTo(1.0 + 5.0, 6);
   });
 
+  it('webSearch=true + claude-haiku-4-5-20251001 — webSearchPerQuery 0.01 합산', () => {
+    const cost = estimateCost({
+      provider: 'claude',
+      model: 'claude-haiku-4-5-20251001',
+      webSearch: true,
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+    });
+    expect(cost).toBeCloseTo(1.0 + 5.0 + 0.01, 6);
+  });
+
   describe('회귀 — 기존 provider/모델 단가 유지', () => {
     it('claude-sonnet-4-20250514 — 3.0/15.0', () => {
       const cost = estimateCost({

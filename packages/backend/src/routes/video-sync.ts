@@ -5,6 +5,7 @@ import { applicationCaseExtractionService } from '../services/application-case-e
 import { videoContentAnalysisService } from '../services/video-content-analysis.service.js';
 import { eventVideoBriefService } from '../services/event-video-brief.service.js';
 import { eventVideoPptService } from '../services/event-video-ppt.service.js';
+import { eventCompanyReportService } from '../services/event-company-report.service.js';
 import { authMiddleware, requireRole } from './auth.js';
 
 const adminOrAnalyst = [authMiddleware, requireRole('admin', 'analyst')];
@@ -163,6 +164,35 @@ export async function videoSyncRoutes(fastify: FastifyInstance) {
       reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
       reply.header('Content-Disposition', 'attachment; filename="wrc2026-videos.pptx"');
       return reply.send(buffer);
+    }
+  );
+
+  // 참관 업체 임원 보고서 PPT 다운로드 (Analyst + Admin only)
+  fastify.post<{ Params: { eventKey: string } }>(
+    '/event-videos/:eventKey/export-report-ppt',
+    { preHandler: adminOrAnalyst },
+    async (request, reply) => {
+      const { eventKey } = request.params;
+      if (eventCompanyReportService.isGenerating(eventKey)) {
+        reply.status(409).send({ error: '이미 리포트를 생성 중입니다. 잠시 후 다시 시도해주세요.' });
+        return;
+      }
+
+      const result = await eventCompanyReportService.generate(eventKey);
+      if (!result.ok) {
+        if (result.reason === 'unknown-event') {
+          reply.status(404).send({ error: 'Unknown event' });
+        } else {
+          reply
+            .status(404)
+            .send({ error: '기업 태그가 있는 브리프가 부족합니다. 브리프 일괄 생성 후 다시 시도해주세요.' });
+        }
+        return;
+      }
+
+      reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+      reply.header('Content-Disposition', 'attachment; filename="wrc2026-report.pptx"');
+      return reply.send(result.buffer);
     }
   );
 }
