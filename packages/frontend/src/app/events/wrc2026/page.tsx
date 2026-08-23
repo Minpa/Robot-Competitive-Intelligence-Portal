@@ -9,6 +9,7 @@ import { Panel, Tag } from '@/components/ui';
 import { Check, Copy, Cpu, Download, ExternalLink, Loader2, Play, RefreshCw, Sparkles, X } from 'lucide-react';
 import { TrendHeadlinePanel } from './components/TrendHeadlinePanel';
 import { TrendPointCards } from './components/TrendPointCards';
+import { TechAxisChart } from './components/TechAxisChart';
 import { TagCloud, type TagSelection } from './components/TagCloud';
 import { BriefPanel } from './components/BriefPanel';
 import { formatDate, getVideoId, thumbFallback } from './utils';
@@ -211,10 +212,10 @@ export default function Wrc2026Page() {
           }
         />
 
-        {/* AI 트렌드 헤드라인 + 통계 타일 + 카테고리 분포 (트렌드가 없어도 stats만으로 표시 가능) */}
-        <TrendHeadlinePanel trend={trend} stats={stats} />
+        {/* 히어로 숫자 밴드 + 기업/카테고리/주간 업로드 차트 (트렌드가 없어도 stats만으로 표시 가능) */}
+        <TrendHeadlinePanel trend={trend} stats={stats} onSelectTag={handleTagSelect} selectedTag={tagFilter} />
 
-        {/* 트렌드 포인트 카드 — 종합(제품·시장·서비스) / 기술 관점 2축, 근거 썸네일 클릭 시 해당 영상 재생 */}
+        {/* 트렌드 포인트 카드 — 종합(제품·시장·서비스) 관점, 근거 썸네일 클릭 시 해당 영상 재생 */}
         {trend && (
           <TrendPointCards
             points={trend.points}
@@ -224,6 +225,11 @@ export default function Wrc2026Page() {
             title="종합 트렌드"
           />
         )}
+
+        {/* 기술 요소 분포 — 브리프 키워드를 고정 기술 축으로 분류 */}
+        <TechAxisChart techAxes={stats?.techAxes ?? []} onSelectKeyword={handleTagSelect} selected={tagFilter} />
+
+        {/* 트렌드 포인트 카드 — 기술 관점, 근거 썸네일 클릭 시 해당 영상 재생 */}
         {trend?.techPoints && trend.techPoints.length > 0 && (
           <TrendPointCards
             points={trend.techPoints}

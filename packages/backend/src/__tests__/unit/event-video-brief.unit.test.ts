@@ -219,6 +219,7 @@ describe('computeEventStats', () => {
   const video = (overrides: any) => ({
     taskTypes: [],
     brief: null,
+    publishedAt: null,
     ...overrides,
   });
 
@@ -273,6 +274,178 @@ describe('computeEventStats', () => {
       topKeywords: [],
       uniqueCompanyCount: 0,
       uniqueKeywordCount: 0,
+      weeklyUploads: [],
+      techAxes: [],
+    });
+  });
+
+  describe('weeklyUploads', () => {
+    it('buckets a Wednesday publish into that week\'s Monday', () => {
+      const videos = [video({ publishedAt: '2026-07-08T10:00:00Z' })]; // Wed
+      const stats = computeEventStats(videos, '2026-07-08', '2026-07-08');
+      expect(stats.weeklyUploads).toEqual([{ weekStart: '2026-07-06', count: 1 }]);
+    });
+
+    it('sums multiple publishes within the same week into one bucket', () => {
+      const videos = [
+        video({ publishedAt: '2026-07-08T10:00:00Z' }), // Wed
+        video({ publishedAt: '2026-07-10T10:00:00Z' }), // Fri
+      ];
+      const stats = computeEventStats(videos, '2026-07-06', '2026-07-08');
+      expect(stats.weeklyUploads).toEqual([{ weekStart: '2026-07-06', count: 2 }]);
+    });
+
+    it('buckets a Sunday publish into the Monday of the week it belongs to (not the following week)', () => {
+      const videos = [video({ publishedAt: '2026-07-12T23:00:00Z' })]; // Sun
+      const stats = computeEventStats(videos, '2026-07-06', '2026-07-12');
+      expect(stats.weeklyUploads).toEqual([{ weekStart: '2026-07-06', count: 1 }]);
+    });
+
+    it('excludes videos with null publishedAt from the weekly bucket counts', () => {
+      const videos = [
+        video({ publishedAt: null }),
+        video({ publishedAt: '2026-07-08T10:00:00Z' }),
+      ];
+      const stats = computeEventStats(videos, '2026-07-06', '2026-07-08');
+      expect(stats.weeklyUploads).toEqual([{ weekStart: '2026-07-06', count: 1 }]);
+    });
+
+    it('fills gap weeks between publishes with count 0, staying contiguous', () => {
+      const videos = [
+        video({ publishedAt: '2026-07-06T10:00:00Z' }),
+        video({ publishedAt: '2026-07-20T10:00:00Z' }),
+      ];
+      const stats = computeEventStats(videos, '2026-07-06', '2026-07-20');
+      expect(stats.weeklyUploads).toEqual([
+        { weekStart: '2026-07-06', count: 1 },
+        { weekStart: '2026-07-13', count: 0 },
+        { weekStart: '2026-07-20', count: 1 },
+      ]);
+    });
+
+    it('returns an empty array for empty input', () => {
+      const stats = computeEventStats([], '2026-07-01');
+      expect(stats.weeklyUploads).toEqual([]);
+    });
+  });
+
+  describe('techAxes', () => {
+    it('classifies 이족보행 into 이동·보행 제어', () => {
+      const videos = [video({ brief: { techKeywords: ['이족보행'] } })];
+      const stats = computeEventStats(videos);
+      expect(stats.techAxes).toEqual([
+        { axis: '이동·보행 제어', count: 1, keywords: [{ name: '이족보행', count: 1 }] },
+      ]);
+    });
+
+    it('classifies 그리퍼 into 조작·핸드', () => {
+      const videos = [video({ brief: { techKeywords: ['그리퍼'] } })];
+      const stats = computeEventStats(videos);
+      expect(stats.techAxes).toEqual([
+        { axis: '조작·핸드', count: 1, keywords: [{ name: '그리퍼', count: 1 }] },
+      ]);
+    });
+
+    it('classifies VLA into AI·학습', () => {
+      const videos = [video({ brief: { techKeywords: ['VLA'] } })];
+      const stats = computeEventStats(videos);
+      expect(stats.techAxes).toEqual([
+        { axis: 'AI·학습', count: 1, keywords: [{ name: 'VLA', count: 1 }] },
+      ]);
+    });
+
+    it('classifies 라이다 into 센싱·인지', () => {
+      const videos = [video({ brief: { techKeywords: ['라이다'] } })];
+      const stats = computeEventStats(videos);
+      expect(stats.techAxes).toEqual([
+        { axis: '센싱·인지', count: 1, keywords: [{ name: '라이다', count: 1 }] },
+      ]);
+    });
+
+    it('classifies 액추에이터 into 하드웨어·구동계', () => {
+      const videos = [video({ brief: { techKeywords: ['액추에이터'] } })];
+      const stats = computeEventStats(videos);
+      expect(stats.techAxes).toEqual([
+        { axis: '하드웨어·구동계', count: 1, keywords: [{ name: '액추에이터', count: 1 }] },
+      ]);
+    });
+
+    it('classifies an unmatched keyword into 기타', () => {
+      const videos = [video({ brief: { techKeywords: ['미확인기술'] } })];
+      const stats = computeEventStats(videos);
+      expect(stats.techAxes).toEqual([
+        { axis: '기타', count: 1, keywords: [{ name: '미확인기술', count: 1 }] },
+      ]);
+    });
+
+    it('returns axes in the fixed order regardless of keyword insertion order', () => {
+      const videos = [
+        video({ brief: { techKeywords: ['미확인기술'] } }), // 기타
+        video({ brief: { techKeywords: ['액추에이터'] } }), // 하드웨어·구동계
+        video({ brief: { techKeywords: ['이족보행'] } }), // 이동·보행 제어
+        video({ brief: { techKeywords: ['VLA'] } }), // AI·학습
+      ];
+      const stats = computeEventStats(videos);
+      expect(stats.techAxes.map((a) => a.axis)).toEqual([
+        '이동·보행 제어',
+        'AI·학습',
+        '하드웨어·구동계',
+        '기타',
+      ]);
+    });
+
+    it('excludes axes with zero matched keywords', () => {
+      const videos = [
+        video({ brief: { techKeywords: ['이족보행'] } }),
+        video({ brief: { techKeywords: ['그리퍼'] } }),
+      ];
+      const stats = computeEventStats(videos);
+      expect(stats.techAxes).toHaveLength(2);
+      expect(stats.techAxes.map((a) => a.axis)).toEqual(['이동·보행 제어', '조작·핸드']);
+    });
+
+    it('caps keywords per axis at the top 5 by count, sorted desc', () => {
+      // 6개의 서로 다른 키워드(모두 이동·보행 제어 축), 각기 다른 빈도(6..1)로 등장시켜 top5 캡을 검증
+      const videos = Array.from({ length: 6 }, (_, i) => {
+        const count = 6 - i; // 이족보행-0: 6회, 이족보행-1: 5회, ..., 이족보행-5: 1회
+        return Array.from({ length: count }, () => video({ brief: { techKeywords: [`이족보행-${i}`] } }));
+      }).flat();
+      const stats = computeEventStats(videos);
+      const axis = stats.techAxes.find((a) => a.axis === '이동·보행 제어');
+      expect(axis).toBeDefined();
+      expect(axis!.keywords).toHaveLength(5);
+      expect(axis!.keywords.map((k) => k.name)).toEqual([
+        '이족보행-0',
+        '이족보행-1',
+        '이족보행-2',
+        '이족보행-3',
+        '이족보행-4',
+      ]);
+      for (let i = 1; i < axis!.keywords.length; i++) {
+        expect(axis!.keywords[i - 1].count).toBeGreaterThanOrEqual(axis!.keywords[i].count);
+      }
+    });
+
+    it('excludes videos without a brief from tech axis aggregation', () => {
+      const videos = [
+        video({ brief: null }),
+        video({ brief: { techKeywords: ['그리퍼'] } }),
+      ];
+      const stats = computeEventStats(videos);
+      expect(stats.techAxes).toEqual([
+        { axis: '조작·핸드', count: 1, keywords: [{ name: '그리퍼', count: 1 }] },
+      ]);
+    });
+
+    it('merges case-different variants of the same keyword and still matches its axis', () => {
+      const videos = [
+        video({ brief: { techKeywords: ['vla'] } }),
+        video({ brief: { techKeywords: ['VLA'] } }),
+      ];
+      const stats = computeEventStats(videos);
+      expect(stats.techAxes).toEqual([
+        { axis: 'AI·학습', count: 2, keywords: [{ name: 'vla', count: 2 }] },
+      ]);
     });
   });
 });

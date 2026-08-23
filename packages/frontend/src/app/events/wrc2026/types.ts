@@ -51,6 +51,10 @@ export interface EventStats {
   topKeywords: { name: string; count: number }[];
   uniqueCompanyCount: number;
   uniqueKeywordCount: number;
+  /** 주간(월요일 시작, UTC) 업로드 건수 — weekStart asc, 빈 주도 0으로 채워 연속 */
+  weeklyUploads: { weekStart: string; count: number }[];
+  /** 브리프 techKeywords를 고정 기술 축으로 분류한 분포. 고정 축 순서, count 0인 축 제외 */
+  techAxes: { axis: string; count: number; keywords: { name: string; count: number }[] }[];
 }
 
 /** 트렌드 포인트(문자열 또는 v2 객체)에서 표시용 텍스트만 추출 */

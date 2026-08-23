@@ -79,7 +79,7 @@ export function TagCloud({
     <Panel
       kicker="Tag Cloud"
       title="등장 기업 · 기술 키워드"
-      subtitle="브리프 완료 영상 기준 빈도 상위 태그입니다. 태그를 클릭하면 해당 영상만 모아 볼 수 있습니다."
+      subtitle="브리프 완료 영상 기준 빈도 상위 태그입니다. 태그를 클릭하면 해당 영상만 모아 볼 수 있습니다. 상단 차트에 없는 태그도 여기서 모두 확인·필터할 수 있습니다."
     >
       <div className="grid sm:grid-cols-2 gap-6">
         <ChipGroup title="참여 기업" type="company" items={stats.topCompanies} selected={selected} onSelect={onSelect} />

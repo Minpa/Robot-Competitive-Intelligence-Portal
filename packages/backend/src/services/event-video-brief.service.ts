@@ -272,15 +272,94 @@ export interface EventStats {
   topKeywords: { name: string; count: number }[];    // 상위 16, count desc
   uniqueCompanyCount: number;
   uniqueKeywordCount: number;
+  /** 주간(월요일 시작, UTC) 업로드 건수 — publishedAt 있는 영상만, since가 속한 주부터 현재 주까지 빈 주도 0으로 채워 연속. weekStart asc */
+  weeklyUploads: { weekStart: string; count: number }[];
+  /** 브리프 techKeywords를 결정적 정규식으로 고정 기술 축에 분류한 분포. 고정 축 순서, count 0인 축 제외 */
+  techAxes: { axis: string; count: number; keywords: { name: string; count: number }[] }[];
 }
 
 interface StatsVideoInput {
   taskTypes?: string[] | null;
   brief?: { companies?: string[] | null; techKeywords?: string[] | null } | null;
+  publishedAt?: string | Date | null;
+}
+
+/** 기술 축 고정 순서 — techAxes 반환도 항상 이 순서를 따른다(count 0인 축은 제외) */
+const TECH_AXIS_ORDER = ['이동·보행 제어', '조작·핸드', 'AI·학습', '센싱·인지', '하드웨어·구동계', '기타'] as const;
+
+/** techKeywords → 기술 축 결정적 매핑 (LLM 없음). 검사 우선순위 고정, 첫 매칭 축에 귀속. 매칭 없으면 '기타' */
+const TECH_AXIS_PATTERNS: { axis: (typeof TECH_AXIS_ORDER)[number]; re: RegExp }[] = [
+  { axis: '이동·보행 제어', re: /보행|이족|2족|4족|족보행|밸런싱|균형|모션\s*제어|낙법|주행|걷기|점프|계단/i },
+  { axis: '조작·핸드', re: /핸드|그리퍼|파지|촉각|손가락|손|매니퓰|조작/i },
+  { axis: 'AI·학습', re: /VLA|모방\s*학습|강화\s*학습|파운데이션|foundation|모델|AI|학습|임바디드|체화|비전\s*언어/i },
+  { axis: '센싱·인지', re: /센서|비전|라이다|LiDAR|카메라|인지|SLAM|깊이|IMU/i },
+  { axis: '하드웨어·구동계', re: /액추에이터|모터|자유도|관절|감속기|배터리|경량|하네스|서보|기구/i },
+];
+
+function classifyTechAxis(keyword: string): (typeof TECH_AXIS_ORDER)[number] {
+  for (const p of TECH_AXIS_PATTERNS) {
+    if (p.re.test(keyword)) return p.axis;
+  }
+  return '기타';
+}
+
+function toSafeDate(v: unknown): Date | null {
+  if (!v) return null;
+  const d = v instanceof Date ? v : new Date(v as string);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** UTC 기준 해당 날짜가 속한 주의 월요일(자정)을 반환 (일요일이면 -6, 그 외에는 1-day 보정) */
+function mondayOfUTC(d: Date): Date {
+  const day = d.getUTCDay(); // 0=일 ... 6=토
+  const offset = day === 0 ? -6 : 1 - day;
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + offset));
+}
+
+function formatDateUTC(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+/** publishedAt 있는 영상만으로 UTC 월요일 시작 주간 버킷 집계. since가 속한 주부터 now가 속한 주까지 빈 주도 0으로 채워 연속시킨다 */
+function computeWeeklyUploads(
+  videos: StatsVideoInput[],
+  since?: string,
+  now: Date | string = new Date()
+): { weekStart: string; count: number }[] {
+  const counts = new Map<string, number>();
+  let minMonday: Date | null = null;
+  for (const v of videos) {
+    const d = toSafeDate(v.publishedAt);
+    if (!d) continue;
+    const monday = mondayOfUTC(d);
+    const key = formatDateUTC(monday);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+    if (!minMonday || monday.getTime() < minMonday.getTime()) minMonday = monday;
+  }
+  if (!minMonday) return [];
+
+  const sinceDate = since ? toSafeDate(since) : null;
+  const startMonday = sinceDate ? mondayOfUTC(sinceDate) : minMonday;
+  const nowDate = toSafeDate(now) ?? new Date();
+  const endMonday = mondayOfUTC(nowDate);
+  const finalEnd = endMonday.getTime() >= startMonday.getTime() ? endMonday : startMonday;
+
+  const result: { weekStart: string; count: number }[] = [];
+  const cursor = new Date(startMonday.getTime());
+  while (cursor.getTime() <= finalEnd.getTime()) {
+    const key = formatDateUTC(cursor);
+    result.push({ weekStart: key, count: counts.get(key) ?? 0 });
+    cursor.setUTCDate(cursor.getUTCDate() + 7);
+  }
+  return result;
 }
 
 /** 이벤트 영상 목록(listEventVideos 결과)에서 카테고리·기업·기술 키워드 통계를 순수 계산한다 */
-export function computeEventStats(videos: StatsVideoInput[]): EventStats {
+export function computeEventStats(
+  videos: StatsVideoInput[],
+  since?: string,
+  now: Date | string = new Date()
+): EventStats {
   const totalVideos = videos.length;
   const briefedVideos = videos.filter((v) => !!v.brief).length;
 
@@ -325,6 +404,27 @@ export function computeEventStats(videos: StatsVideoInput[]): EventStats {
     .slice(0, 16)
     .map(({ display, count }) => ({ name: display, count }));
 
+  // 기술 키워드(keywordMap, 이미 대소문자 병합·브리프 없는 영상 제외 적용됨)를 고정 기술 축으로 분류
+  const axisAgg = new Map<string, { count: number; keywords: { display: string; count: number }[] }>();
+  for (const { display, count } of keywordMap.values()) {
+    const axis = classifyTechAxis(display);
+    if (!axisAgg.has(axis)) axisAgg.set(axis, { count: 0, keywords: [] });
+    const bucket = axisAgg.get(axis)!;
+    bucket.count += count;
+    bucket.keywords.push({ display, count });
+  }
+  const techAxes = TECH_AXIS_ORDER.flatMap((axis) => {
+    const bucket = axisAgg.get(axis);
+    if (!bucket || bucket.count === 0) return [];
+    const keywords = bucket.keywords
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5)
+      .map(({ display, count }) => ({ name: display, count }));
+    return [{ axis, count: bucket.count, keywords }];
+  });
+
+  const weeklyUploads = computeWeeklyUploads(videos, since, now);
+
   return {
     totalVideos,
     briefedVideos,
@@ -333,6 +433,8 @@ export function computeEventStats(videos: StatsVideoInput[]): EventStats {
     topKeywords,
     uniqueCompanyCount: companyMap.size,
     uniqueKeywordCount: keywordMap.size,
+    weeklyUploads,
+    techAxes,
   };
 }
 
@@ -437,7 +539,7 @@ class EventVideoBriefService {
     const event = getEventConfig(eventKey);
     if (!event) return null;
     const videos = await this.listEventVideos(eventKey);
-    return computeEventStats(videos);
+    return computeEventStats(videos, event.since);
   }
 
   /** 이벤트 매칭 공통 조건 (제목/설명/이벤트 태그) */

@@ -244,6 +244,8 @@ class ApiClient {
       topKeywords: { name: string; count: number }[];
       uniqueCompanyCount: number;
       uniqueKeywordCount: number;
+      weeklyUploads: { weekStart: string; count: number }[];
+      techAxes: { axis: string; count: number; keywords: { name: string; count: number }[] }[];
     }>(`/video-sync/event-videos/${eventKey}/stats`);
   }
   async downloadEventPpt(eventKey: string): Promise<void> {
