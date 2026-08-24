@@ -6,7 +6,7 @@
  * techAxes가 빈 배열이면 미표시.
  */
 
-import { Footprints, Hand, Brain, Eye, Cog, MoreHorizontal, type LucideIcon } from 'lucide-react';
+import { Footprints, Hand, Brain, Eye, Cog, MoreHorizontal, Sparkles, type LucideIcon } from 'lucide-react';
 import { Panel } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { CHART_HUE } from './chartColors';
@@ -21,13 +21,43 @@ const AXIS_ICON: Record<string, LucideIcon> = {
   기타: MoreHorizontal,
 };
 
+interface TechInsight {
+  points: string[];
+  sources: string[];
+}
+
 interface Props {
   techAxes: { axis: string; count: number; keywords: { name: string; count: number }[] }[];
   onSelectKeyword: (tag: TagSelection) => void;
   selected: TagSelection | null;
+  insight?: TechInsight | null;
 }
 
-export function TechAxisChart({ techAxes, onSelectKeyword, selected }: Props) {
+/** 기술 요소 분포에 대한 AI 인사이트(웹 검색 보완) — 축 리스트 하단에 표시 */
+function TechInsightBox({ insight }: { insight: TechInsight }) {
+  return (
+    <div className="border-l-2 border-info pl-4 py-1">
+      <div className="flex items-center gap-1.5 text-info text-[11px] font-semibold">
+        <Sparkles className="w-3 h-3" />
+        산업·경쟁 관점 인사이트 (AI 분석 · 웹 보완)
+      </div>
+      <ul className="mt-1.5 space-y-1">
+        {insight.points.map((p, i) => (
+          <li key={i} className="text-[12.5px] text-ink-700 leading-relaxed">
+            <span className="mr-1.5">•</span>
+            {p}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-1.5 text-[10.5px] text-ink-400">
+        일부 내용은 공개 웹 정보로 보완되었으며 부정확할 수 있습니다.
+        {insight.sources.length > 0 && ` · 참고: ${insight.sources.join(', ')}`}
+      </p>
+    </div>
+  );
+}
+
+export function TechAxisChart({ techAxes, onSelectKeyword, selected, insight }: Props) {
   if (techAxes.length === 0) return null;
   const maxCount = Math.max(...techAxes.map((a) => a.count));
 
@@ -78,6 +108,11 @@ export function TechAxisChart({ techAxes, onSelectKeyword, selected }: Props) {
           );
         })}
       </div>
+      {insight && insight.points.length > 0 && (
+        <div className="mt-4">
+          <TechInsightBox insight={insight} />
+        </div>
+      )}
     </Panel>
   );
 }

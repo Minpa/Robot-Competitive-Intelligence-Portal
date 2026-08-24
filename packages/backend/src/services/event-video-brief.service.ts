@@ -13,7 +13,7 @@
 
 import { GoogleGenAI } from '@google/genai';
 import Anthropic from '@anthropic-ai/sdk';
-import { sql, and, eq } from 'drizzle-orm';
+import { sql, and, eq, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { articles, viewCache } from '../db/schema.js';
 import { aiUsageService } from './ai-usage.service.js';
@@ -25,6 +25,15 @@ const TREND_MODEL = process.env.EVENT_TREND_MODEL || 'claude-haiku-4-5-20251001'
 const TREND_TTL_MS = 12 * 3_600_000; // 12시간
 
 const YOUTUBE_WATCH_URL_RE = /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[\w-]+/i;
+
+/** event-company-report.service.ts와 동일 로직, 순환 의존 방지 복제 */
+function stripCiteTags(s: string): string {
+  return s
+    .replace(/<\/?cite\b[^>]*>?/g, '') // 완전한 태그 + 끝에서 '>' 없이 잘린 태그
+    .replace(/<\/?c(?:i(?:t(?:e)?)?)?$/, '') // 캡 절단으로 남은 짧은 조각 (예: "</ci")
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
 
 export interface EventConfig {
   key: string;        // 저장 키 (extracted_metadata.eventBrief_<key>)
@@ -221,6 +230,67 @@ export function parseTitleTranslations(text: string): { id: string; titleKo: str
         (item as any).titleKo.trim().length > 0
     )
     .map((item) => ({ id: item.id, titleKo: item.titleKo.slice(0, 200) }));
+}
+
+/** 기술 축 인사이트 (웹 검색 보완) — getTechAxisInsight 결과 */
+export interface TechAxisInsight {
+  points: string[];
+  sources: string[];
+  generatedAt: string;
+  model: string;
+}
+
+/** Anthropic 응답에서 {points[], sources[]} 기술 축 인사이트 JSON 파싱 (주변 텍스트 포함 응답도 복원) */
+export function parseTechInsight(text: string): { points: string[]; sources: string[] } | null {
+  const tryParse = (raw: string): Record<string, unknown> | null => {
+    try {
+      return JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  };
+  let parsed = tryParse(text.trim());
+  if (!parsed) {
+    const m = text.match(/\{[\s\S]*\}/);
+    if (m) parsed = tryParse(m[0]);
+  }
+  if (!parsed) return null;
+
+  const points = (Array.isArray(parsed.points) ? (parsed.points as unknown[]) : [])
+    .filter((s): s is string => typeof s === 'string')
+    .map((s) => stripCiteTags(s).slice(0, 220))
+    .slice(0, 3);
+  const sources = (Array.isArray(parsed.sources) ? (parsed.sources as unknown[]) : [])
+    .filter((s): s is string => typeof s === 'string')
+    .map((s) => stripCiteTags(s).slice(0, 120))
+    .slice(0, 3);
+
+  if (points.length === 0) return null;
+  return { points, sources };
+}
+
+function buildTechInsightPrompt(input: {
+  eventLabel: string;
+  techAxes: { axis: string; count: number; keywords: { name: string; count: number }[] }[];
+  topCompanies: { name: string; count: number }[];
+}): string {
+  return `아래는 '${input.eventLabel}' 전시 영상 분석에서 집계한 기술 요소 분포다(축별 건수, 대표 키워드, 주요 참여 기업). 다음 세 가지를 종합해 인사이트를 작성하라.
+① 이번 대회 시연의 기술 무게중심을 해석하라(어떤 축에 시연이 쏠려 있고 그것이 의미하는 바는 무엇인지).
+② 웹 검색으로 직전 대회(WRC 2025) 또는 최근 로봇 업계 흐름의 기술 초점을 확인하고, 이번 분포와 비교해 무엇이 달라졌는지 제시하라. 웹 검색으로 신뢰할 만한 근거를 확인하지 못하면 이 비교 항목은 생략하라. 추측·과장 금지.
+③ 가전·로봇 사업 관점에서 이 분포가 갖는 산업적·경쟁적 시사점을 제시하라.
+
+기술 요소 분포(축별 건수·대표 키워드): ${JSON.stringify(input.techAxes)}
+주요 참여 기업(상위 8, 건수): ${JSON.stringify(input.topCompanies)}
+
+작성 규칙:
+- 공개 정보의 파생 요약만 작성한다. 원문 장문 복사 금지.
+- 확인되지 않는 내용은 추측하지 않는다.
+- 인용 태그(<cite> 등)나 각주·출처 마크업을 본문 텍스트에 포함하지 않는다. 출처는 sources 배열에만 적는다.
+- 임원 보고 톤의 한국어로 작성한다.
+- JSON 객체만 응답하고 다른 텍스트는 포함하지 않는다.
+
+응답 JSON 스키마:
+{"points": ["인사이트 문장, 최대 3개, 각 220자 이내, 한국어"], "sources": ["참고 웹 출처 도메인 또는 제목, 최대 3개"]}`;
 }
 
 function buildTrendPrompt(
@@ -781,10 +851,12 @@ class EventVideoBriefService {
     }
   }
 
-  /** 새 브리프 반영 시 트렌드 요약 캐시 무효화 — 다음 조회 때 즉시 재생성 */
+  /** 새 브리프 반영 시 트렌드 요약·기술 인사이트 캐시 무효화 — 다음 조회 때 즉시 재생성 */
   private async invalidateTrendCache(eventKey: string) {
     try {
-      await db.delete(viewCache).where(eq(viewCache.viewName, `event-trend-${eventKey}`));
+      await db
+        .delete(viewCache)
+        .where(inArray(viewCache.viewName, [`event-trend-${eventKey}`, `event-tech-insight-${eventKey}`]));
     } catch (err) {
       console.error('[EventBrief] trend cache invalidation failed:', (err as Error).message);
     }
@@ -874,6 +946,93 @@ class EventVideoBriefService {
     }
 
     return summary;
+  }
+
+  /** 기술 요소 분포(techAxes)에 대한 산업·경쟁 관점 인사이트 (웹 검색 보완, 12시간 캐시) */
+  async getTechAxisInsight(eventKey: string): Promise<TechAxisInsight | null> {
+    const event = getEventConfig(eventKey);
+    if (!event) return null;
+
+    const cacheKey = `event-tech-insight-${eventKey}`;
+    try {
+      const [cached] = await db.select().from(viewCache).where(eq(viewCache.viewName, cacheKey)).limit(1);
+      if (cached && Date.now() - cached.cachedAt.getTime() < TREND_TTL_MS) {
+        return cached.data as unknown as TechAxisInsight;
+      }
+    } catch {
+      // 캐시 조회 실패는 무시하고 재생성 진행
+    }
+
+    if (!this.anthropicClient) return null;
+
+    const stats = await this.getStats(eventKey);
+    if (!stats || stats.techAxes.length === 0 || stats.briefedVideos < 3) return null;
+
+    try {
+      const response = await this.anthropicClient.messages.create({
+        model: TREND_MODEL,
+        max_tokens: 1200,
+        tools: [
+          {
+            type: 'web_search_20250305' as any,
+            name: 'web_search',
+            max_uses: 3,
+          } as any,
+        ],
+        messages: [
+          {
+            role: 'user',
+            content: buildTechInsightPrompt({
+              eventLabel: event.label,
+              techAxes: stats.techAxes,
+              topCompanies: stats.topCompanies.slice(0, 8),
+            }),
+          },
+        ],
+      });
+
+      let combined = '';
+      for (const block of response.content) {
+        if (block.type === 'text') combined += block.text + '\n';
+      }
+      const parsed = parseTechInsight(combined);
+      if (!parsed) return null;
+
+      aiUsageService
+        .logUsage({
+          provider: 'claude',
+          model: TREND_MODEL,
+          webSearch: true,
+          inputTokens: response.usage?.input_tokens ?? 0,
+          outputTokens: response.usage?.output_tokens ?? 0,
+          query: `[tech-insight] ${eventKey}`,
+        })
+        .catch(() => {});
+
+      const insight: TechAxisInsight = {
+        points: parsed.points,
+        sources: parsed.sources,
+        generatedAt: new Date().toISOString(),
+        model: TREND_MODEL,
+      };
+
+      try {
+        await db
+          .insert(viewCache)
+          .values({ viewName: cacheKey, data: insight, ttlMs: TREND_TTL_MS })
+          .onConflictDoUpdate({
+            target: viewCache.viewName,
+            set: { data: insight, cachedAt: new Date(), ttlMs: TREND_TTL_MS },
+          });
+      } catch {
+        // 캐시 저장 실패는 치명적이지 않음
+      }
+
+      return insight;
+    } catch (err) {
+      console.error('[EventBrief] getTechAxisInsight failed:', (err as Error).message);
+      return null;
+    }
   }
 
   /** 관리자 온디맨드 단건 (기존 브리프 덮어씀) */

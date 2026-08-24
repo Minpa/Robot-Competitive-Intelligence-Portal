@@ -5,6 +5,7 @@ import {
   parseEventTrendSummary,
   parseTitleTranslations,
   computeEventStats,
+  parseTechInsight,
 } from '../../services/event-video-brief.service.js';
 import { trendPointText } from '../../services/event-video-ppt.service.js';
 
@@ -494,6 +495,60 @@ describe('parseTitleTranslations', () => {
 
   it('returns an empty array for unparseable text', () => {
     expect(parseTitleTranslations('not json at all')).toEqual([]);
+  });
+});
+
+describe('parseTechInsight', () => {
+  it('caps points at 3 items x 220 chars and sources at 3 items', () => {
+    const text = JSON.stringify({
+      points: Array.from({ length: 5 }, (_, i) => `p${i}-`.repeat(80)),
+      sources: ['a', 'b', 'c', 'd'],
+    });
+    const parsed = parseTechInsight(text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.points).toHaveLength(3);
+    for (const p of parsed!.points) {
+      expect(p.length).toBeLessThanOrEqual(220);
+    }
+    expect(parsed!.sources).toEqual(['a', 'b', 'c']);
+  });
+
+  it('strips <cite> tags from points and sources', () => {
+    const text = JSON.stringify({
+      points: ['이것은 <cite>출처1</cite> 인사이트다'],
+      sources: ['<cite>domain.com</cite>'],
+    });
+    const parsed = parseTechInsight(text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.points[0]).not.toContain('<cite>');
+    expect(parsed!.sources[0]).not.toContain('<cite>');
+  });
+
+  it('returns null when points is empty or missing', () => {
+    expect(parseTechInsight(JSON.stringify({ points: [], sources: ['a'] }))).toBeNull();
+    expect(parseTechInsight(JSON.stringify({ sources: ['a'] }))).toBeNull();
+  });
+
+  it('recovers JSON embedded in surrounding text', () => {
+    const text = '분석 결과입니다\n' + JSON.stringify({ points: ['핵심 인사이트'], sources: [] }) + '\n끝.';
+    const parsed = parseTechInsight(text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.points).toEqual(['핵심 인사이트']);
+  });
+
+  it('returns null for unparseable text', () => {
+    expect(parseTechInsight('not json at all')).toBeNull();
+  });
+
+  it('filters out non-string elements', () => {
+    const text = JSON.stringify({
+      points: ['정상 포인트', 42, null, { a: 1 }],
+      sources: ['정상 출처', 99, false],
+    });
+    const parsed = parseTechInsight(text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.points).toEqual(['정상 포인트']);
+    expect(parsed!.sources).toEqual(['정상 출처']);
   });
 });
 

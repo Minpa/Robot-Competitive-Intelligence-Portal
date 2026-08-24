@@ -235,6 +235,11 @@ class ApiClient {
       } | null;
     }>(`/video-sync/event-videos/${eventKey}/trend-summary`);
   }
+  async getEventTechInsight(eventKey: string) {
+    return this.request<{
+      insight: { points: string[]; sources: string[]; generatedAt: string; model: string } | null;
+    }>(`/video-sync/event-videos/${eventKey}/tech-insight`);
+  }
   async getEventStats(eventKey: string) {
     return this.request<{
       totalVideos: number;

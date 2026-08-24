@@ -137,6 +137,14 @@ export async function videoSyncRoutes(fastify: FastifyInstance) {
       return { summary };
     }
   );
+  // 기술 요소 분포 인사이트(웹 검색 보완, AI 분석)
+  fastify.get<{ Params: { eventKey: string } }>(
+    '/event-videos/:eventKey/tech-insight',
+    { preHandler: authMiddleware },
+    async (request) => {
+      return { insight: await eventVideoBriefService.getTechAxisInsight(request.params.eventKey) };
+    }
+  );
   // 이벤트 통계(카테고리 분포·기업/키워드 태그 클라우드용)
   fastify.get<{ Params: { eventKey: string } }>(
     '/event-videos/:eventKey/stats',

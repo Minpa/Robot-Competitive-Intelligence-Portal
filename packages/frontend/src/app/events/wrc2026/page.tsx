@@ -108,6 +108,13 @@ export default function Wrc2026Page() {
   });
   const stats = statsQuery.data ?? null;
 
+  const techInsightQuery = useQuery({
+    queryKey: ['event-tech-insight', EVENT_KEY],
+    queryFn: () => api.getEventTechInsight(EVENT_KEY),
+    staleTime: 30 * 60 * 1000,
+  });
+  const techInsight = techInsightQuery.data?.insight ?? null;
+
   const meQuery = useQuery({ queryKey: ['me'], queryFn: () => api.getMe(), staleTime: 10 * 60 * 1000 });
   const isAdmin = meQuery.data?.user?.role === 'admin' || meQuery.data?.role === 'admin';
 
@@ -117,6 +124,7 @@ export default function Wrc2026Page() {
       qc.invalidateQueries({ queryKey: ['event-videos', EVENT_KEY] });
       qc.invalidateQueries({ queryKey: ['event-trend', EVENT_KEY] });
       qc.invalidateQueries({ queryKey: ['event-stats', EVENT_KEY] });
+      qc.invalidateQueries({ queryKey: ['event-tech-insight', EVENT_KEY] });
     },
   });
 
@@ -126,6 +134,7 @@ export default function Wrc2026Page() {
       qc.invalidateQueries({ queryKey: ['event-videos', EVENT_KEY] });
       qc.invalidateQueries({ queryKey: ['event-trend', EVENT_KEY] });
       qc.invalidateQueries({ queryKey: ['event-stats', EVENT_KEY] });
+      qc.invalidateQueries({ queryKey: ['event-tech-insight', EVENT_KEY] });
     },
   });
 
@@ -227,7 +236,12 @@ export default function Wrc2026Page() {
         )}
 
         {/* 기술 요소 분포 — 브리프 키워드를 고정 기술 축으로 분류 */}
-        <TechAxisChart techAxes={stats?.techAxes ?? []} onSelectKeyword={handleTagSelect} selected={tagFilter} />
+        <TechAxisChart
+          techAxes={stats?.techAxes ?? []}
+          onSelectKeyword={handleTagSelect}
+          selected={tagFilter}
+          insight={techInsight}
+        />
 
         {/* 트렌드 포인트 카드 — 기술 관점, 근거 썸네일 클릭 시 해당 영상 재생 */}
         {trend?.techPoints && trend.techPoints.length > 0 && (
