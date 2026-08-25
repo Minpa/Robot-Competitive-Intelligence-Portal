@@ -4,6 +4,7 @@ import { specEnrichmentService } from '../services/spec-enrichment.service.js';
 import { applicationCaseExtractionService } from '../services/application-case-extraction.service.js';
 import { videoContentAnalysisService } from '../services/video-content-analysis.service.js';
 import { eventVideoBriefService } from '../services/event-video-brief.service.js';
+import { eventCesDemoService } from '../services/event-ces-demo.service.js';
 import { eventVideoPptService } from '../services/event-video-ppt.service.js';
 import { eventCompanyReportService } from '../services/event-company-report.service.js';
 import { authMiddleware, requireRole } from './auth.js';
@@ -156,6 +157,22 @@ export async function videoSyncRoutes(fastify: FastifyInstance) {
         return;
       }
       return stats;
+    }
+  );
+
+  // ── CES 부스 시연 전환 가능성 분석 ──
+  fastify.post<{ Body: { eventKey?: string; limit?: number } }>(
+    '/event-videos/ces-demo-batch',
+    { preHandler: adminOnly },
+    async (request) => {
+      return eventCesDemoService.run(request.body?.eventKey, request.body?.limit);
+    }
+  );
+  fastify.get<{ Params: { eventKey: string } }>(
+    '/event-videos/:eventKey/ces-demo',
+    { preHandler: authMiddleware },
+    async (request) => {
+      return eventCesDemoService.getCesDemoView(request.params.eventKey);
     }
   );
 

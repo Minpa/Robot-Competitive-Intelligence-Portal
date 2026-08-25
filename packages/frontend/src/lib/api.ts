@@ -253,6 +253,35 @@ class ApiClient {
       techAxes: { axis: string; count: number; keywords: { name: string; count: number }[] }[];
     }>(`/video-sync/event-videos/${eventKey}/stats`);
   }
+  async getEventCesDemo(eventKey: string) {
+    return this.request<{
+      videos: {
+        id: string;
+        title: string;
+        titleKo: string | null;
+        url: string;
+        thumbnail: string | null;
+        cesDemo: {
+          teleop: boolean;
+          audience: boolean;
+          difficulty: number;
+          publicFriendly: number;
+          funFactor: number;
+          demoIdea: string;
+          analyzedAt: string;
+          model: string;
+        };
+      }[];
+      insight: { points: string[]; generatedAt: string; model: string } | null;
+      candidateTotal: number;
+    }>(`/video-sync/event-videos/${eventKey}/ces-demo`);
+  }
+  async runCesDemoBatch(eventKey?: string, limit?: number) {
+    return this.request<any>(`/video-sync/event-videos/ces-demo-batch`, {
+      method: 'POST',
+      body: JSON.stringify({ eventKey, limit }),
+    });
+  }
   async downloadEventPpt(eventKey: string): Promise<void> {
     const token = this.getToken();
     const res = await fetch(`${API_BASE}/video-sync/event-videos/${eventKey}/export-ppt`, {

@@ -23,3 +23,6 @@ export const CATEGORY_PALETTE = [
 ];
 
 export const CATEGORY_OTHER = '#C6CAD0'; // ink-300
+
+/** 낮을수록 유리한 지표(예: CES 부스 재현 난이도) 전용 회색 — 값이 클수록 좋다는 통상적 해석과 구분하기 위해 CHART_HUE와 다른 무채색 사용 */
+export const CHART_HUE_MUTED = '#9AA1AC';

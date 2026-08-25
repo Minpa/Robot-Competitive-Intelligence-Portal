@@ -66,3 +66,30 @@ export function getTrendPointText(p: string | EventTrendPoint): string {
 export function getTrendPointVideoIds(p: string | EventTrendPoint): string[] {
   return typeof p === 'string' ? [] : p.videoIds;
 }
+
+/** CES 부스 시연 전환 가능성 분석 — 백엔드 event-ces-demo.service.ts의 CesDemoAnalysis와 필드를 맞춘다 */
+export interface CesDemoAnalysis {
+  teleop: boolean;
+  audience: boolean;
+  difficulty: number; // 1~5, 5가 가장 어려움
+  publicFriendly: number; // 1~5, 5가 가장 쉬움
+  funFactor: number; // 1~5, 5가 가장 재미있음
+  demoIdea: string;
+  analyzedAt: string;
+  model: string;
+}
+
+export interface CesDemoVideo {
+  id: string;
+  title: string;
+  titleKo: string | null;
+  url: string;
+  thumbnail: string | null;
+  cesDemo: CesDemoAnalysis;
+}
+
+export interface CesInsight {
+  points: string[];
+  generatedAt: string;
+  model: string;
+}
