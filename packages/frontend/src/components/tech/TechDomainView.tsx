@@ -143,6 +143,8 @@ interface Row {
   extractedMetadata?: {
     channel?: string;
     domain?: string;
+    topic?: string;
+    thirdParty?: boolean;
     views?: number | null;
     videoId?: string;
     thumbnail?: string;
@@ -225,12 +227,15 @@ export function TechDomainView({ view = 'main' }: { view?: 'main' | 'videos' }) 
     return all
       .filter((v) => {
         const meta = v.extractedMetadata;
-        // 채널 도메인 제한: 지정된 도메인 채널의 영상만 후보로 (예: 양산 축은 완제품사 채널만)
-        if (config.videoChannelDomains && !config.videoChannelDomains.includes(meta?.domain ?? '')) {
-          return false;
-        }
         // 키노트·인터뷰 등 제외
         if (config.excludeVideoRegex?.test(`${v.title} ${meta?.description ?? ''}`)) {
+          return false;
+        }
+        // 주제 검색 수집 영상(topic-video-search): 이 축의 검색으로 수집된 영상은
+        // 채널 도메인 제한을 우회해 바로 포함한다.
+        if (meta?.topic === config.videoDomain) return true;
+        // 채널 도메인 제한: 지정된 도메인 채널의 영상만 후보로 (예: 양산 축은 완제품사 채널만)
+        if (config.videoChannelDomains && !config.videoChannelDomains.includes(meta?.domain ?? '')) {
           return false;
         }
         if (meta?.domain === config.videoDomain) return true;
@@ -323,14 +328,12 @@ export function TechDomainView({ view = 'main' }: { view?: 'main' | 'videos' }) 
           }
         />
 
-        {/* AI Trend Summary */}
-        {!isVideosView && (
+        {/* AI Trend Summary — main/videos 뷰 모두 상단 노출 */}
         <TrendSummaryCard
           title={`최근 60일 ${config.titleKo}`}
           loading={summaryQuery.isLoading}
           data={summaryQuery.data}
         />
-        )}
 
         {/* KPI */}
         {!isVideosView && (
@@ -435,6 +438,9 @@ export function TechDomainView({ view = 'main' }: { view?: 'main' | 'videos' }) 
                   <h3 className="text-[13.5px] font-semibold text-ink-900 leading-snug">{playing.title}</h3>
                   <div className="mt-1 flex items-center gap-3 text-[11px] text-ink-500">
                     {playing.extractedMetadata?.channel && <span>{playing.extractedMetadata.channel}</span>}
+                    {playing.extractedMetadata?.thirdParty === true && (
+                      <Tag tone="warn" size="sm">외부 채널</Tag>
+                    )}
                     <span>{formatDate(playing.publishedAt)}</span>
                     {playing.url && (
                       <a
@@ -495,6 +501,9 @@ export function TechDomainView({ view = 'main' }: { view?: 'main' | 'videos' }) 
                       <div className="mt-1.5 flex items-center gap-2 flex-wrap">
                         {v.extractedMetadata?.channel && (
                           <Tag tone="neutral" size="sm">{v.extractedMetadata.channel}</Tag>
+                        )}
+                        {v.extractedMetadata?.thirdParty === true && (
+                          <Tag tone="warn" size="sm">외부 채널</Tag>
                         )}
                         <span className="text-[11px] text-ink-400">{formatDate(v.publishedAt)}</span>
                         {typeof v.extractedMetadata?.views === 'number' && (

@@ -6,6 +6,7 @@ import { errorLogger } from './services/error-logger.js';
 import { legalDataCollector } from './services/legal-data-collector.js';
 import { youtubeCollectorService } from './services/youtube-collector.service.js';
 import { eventVideoSearchService } from './services/event-video-search.service.js';
+import { topicVideoSearchService } from './services/topic-video-search.service.js';
 import type { CrawlJobConfig, TargetUrl } from './types.js';
 
 const fastify = Fastify({ 
@@ -134,6 +135,7 @@ fastify.post('/legal/sec-edgar', async () => legalDataCollector.collectSecEdgar(
 fastify.post('/legal/patents', async () => legalDataCollector.collectPatents());
 fastify.post('/legal/youtube', async () => youtubeCollectorService.collect());
 fastify.post('/legal/event-videos', async () => eventVideoSearchService.collectAll());
+fastify.post('/legal/topic-videos', async () => topicVideoSearchService.collectAll());
 
 // Start server
 const start = async () => {
@@ -180,6 +182,11 @@ const start = async () => {
         } catch (err) {
           console.error('[EventSearch] Daily collection failed:', err);
         }
+        try {
+          await topicVideoSearchService.collectAll(); // 단위기술 축(hand/rfm/actuator/expo/production) 검색 수집
+        } catch (err) {
+          console.error('[TopicSearch] Daily collection failed:', err);
+        }
       }, { scheduled: true, timezone: 'Asia/Seoul' });
       console.log(`[LegalCollector] Daily cron scheduled (${schedule}, Asia/Seoul)`);
 
@@ -193,6 +200,8 @@ const start = async () => {
             .then((r) => console.log('[YouTube] Startup collection done:', JSON.stringify(r)))
             .then(() => eventVideoSearchService.collectAll())
             .then((r) => console.log('[EventSearch] Startup collection done:', JSON.stringify(r)))
+            .then(() => topicVideoSearchService.collectAll())
+            .then((r) => console.log('[TopicSearch] Startup collection done:', JSON.stringify(r)))
             .catch((err) => console.error('[YouTube] Startup collection failed:', err));
         }, 30_000);
         console.log('[YouTube] Startup collection scheduled in 30s');
