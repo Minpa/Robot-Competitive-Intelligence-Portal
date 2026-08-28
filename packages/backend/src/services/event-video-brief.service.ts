@@ -917,8 +917,9 @@ class EventVideoBriefService {
     try {
       const response = await this.anthropicClient.messages.create({
         model: TREND_MODEL,
-        // points + techPoints 2축으로 출력량이 늘어나 여유 있게 상향(1500 → 2500)
-        max_tokens: 2500,
+        // points + techPoints 2축 + 포인트별 title/theme/videoIds(UUID)로 출력량이 커서 넉넉히 확보
+        // (2500이면 12개 포인트 응답이 중간에 잘려 파싱 실패 → 트렌드 섹션 미표시)
+        max_tokens: 6000,
         messages: [{ role: 'user', content: buildTrendPrompt(briefs) }],
       });
       aiUsageService.logUsage({
@@ -935,6 +936,12 @@ class EventVideoBriefService {
         .join('')
         .trim();
       parsed = parseEventTrendSummary(text, validVideoIds);
+      if (!parsed) {
+        // 파싱 실패 시 원인 진단용: 응답이 max_tokens에 잘렸는지(stop_reason)와 응답 끝부분을 남긴다
+        console.error(
+          `[EventBrief] trend summary parse failed (stop_reason=${response.stop_reason}, len=${text.length}): ...${text.slice(-200)}`
+        );
+      }
     } catch (err) {
       console.error('[EventBrief] getTrendSummary failed:', (err as Error).message);
       return null;
