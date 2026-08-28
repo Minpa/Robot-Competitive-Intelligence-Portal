@@ -883,18 +883,45 @@ class EventVideoBriefService {
     }
   }
 
-  /** 새 브리프 반영 시 트렌드 요약·기술 인사이트 캐시 무효화 — 다음 조회 때 즉시 재생성 */
+  /**
+   * 새 브리프 반영 시 트렌드 요약·기술 인사이트 캐시 무효화.
+   * 삭제 대신 cachedAt을 과거로 밀어 "낡음" 표시만 한다 — 트렌드 조회는 낡은 요약을 즉시 반환하면서
+   * 백그라운드 재생성을 시작하므로(stale-while-revalidate), 그래프 섹션이 수십 초간 사라지지 않는다.
+   */
   private async invalidateTrendCache(eventKey: string) {
     try {
       await db
-        .delete(viewCache)
+        .update(viewCache)
+        .set({ cachedAt: new Date(0) })
         .where(inArray(viewCache.viewName, [`event-trend-${eventKey}`, `event-tech-insight-${eventKey}`]));
     } catch (err) {
       console.error('[EventBrief] trend cache invalidation failed:', (err as Error).message);
     }
   }
 
-  /** 이벤트 전체를 관통하는 AI 트렌드 요약 (브리프 완료 영상 기반, 12시간 캐시) */
+  /** 이벤트별 트렌드 재생성 in-flight 가드 (동시 조회가 중복 Anthropic 호출을 만들지 않도록) */
+  private regeneratingTrends = new Set<string>();
+
+  /** 백그라운드 트렌드 재생성 시작 (이미 진행 중이면 no-op) */
+  private kickTrendRegeneration(eventKey: string) {
+    if (this.regeneratingTrends.has(eventKey)) return;
+    this.regeneratingTrends.add(eventKey);
+    void (async () => {
+      try {
+        await this.generateTrendSummary(eventKey);
+      } catch (err) {
+        console.error('[EventBrief] background trend regeneration failed:', (err as Error).message);
+      } finally {
+        this.regeneratingTrends.delete(eventKey);
+      }
+    })();
+  }
+
+  /**
+   * 이벤트 전체를 관통하는 AI 트렌드 요약 (브리프 완료 영상 기반, 12시간 캐시).
+   * 캐시가 신선하면 즉시 반환. 낡았으면 낡은 요약을 즉시 반환하며 백그라운드에서 재생성.
+   * 캐시가 아예 없으면 null을 반환하고 백그라운드 생성 시작(프런트가 30초 주기로 재조회해 채워짐).
+   */
   async getTrendSummary(eventKey: string): Promise<EventTrendSummary | null> {
     const event = getEventConfig(eventKey);
     if (!event) return null;
@@ -902,14 +929,26 @@ class EventVideoBriefService {
     const cacheKey = `event-trend-${eventKey}`;
     try {
       const [cached] = await db.select().from(viewCache).where(eq(viewCache.viewName, cacheKey)).limit(1);
-      if (cached && Date.now() - cached.cachedAt.getTime() < TREND_TTL_MS) {
+      if (cached) {
+        if (Date.now() - cached.cachedAt.getTime() < TREND_TTL_MS) {
+          return cached.data as unknown as EventTrendSummary;
+        }
+        // 낡은 요약은 일단 보여주고 뒤에서 갱신 (조회 요청이 생성 시간을 기다리지 않게)
+        this.kickTrendRegeneration(eventKey);
         return cached.data as unknown as EventTrendSummary;
       }
     } catch {
-      // 캐시 조회 실패는 무시하고 재생성 진행
+      // 캐시 조회 실패는 무시하고 생성 경로로 진행
     }
 
+    this.kickTrendRegeneration(eventKey);
+    return null;
+  }
+
+  /** 트렌드 요약 실제 생성 + 캐시 저장 (동기 — kickTrendRegeneration을 통해 백그라운드로 실행된다) */
+  private async generateTrendSummary(eventKey: string): Promise<EventTrendSummary | null> {
     if (!this.anthropicClient) return null;
+    const cacheKey = `event-trend-${eventKey}`;
 
     const videos = await this.listEventVideos(eventKey);
     const briefed = videos.filter((v) => v.brief);

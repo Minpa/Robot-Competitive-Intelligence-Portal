@@ -101,6 +101,14 @@ export default function Wrc2026Page() {
   const [reportPptError, setReportPptError] = useState<string | null>(null);
   const [tagFilter, setTagFilter] = useState<TagSelection | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<HTMLDivElement>(null);
+
+  /** 어디서 영상을 클릭하든 플레이어 위치로 스크롤 — 재생이 시작됐음을 바로 볼 수 있게 */
+  const handleSelectVideo = (v: EventVideo) => {
+    setPlaying(v);
+    // 플레이어는 조건부 렌더라 마운트 이후에 스크롤해야 한다
+    setTimeout(() => playerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  };
 
   const handlePptDownload = async () => {
     setPptLoading(true);
@@ -283,16 +291,25 @@ export default function Wrc2026Page() {
           title="트렌드 맵 (WRC 2026)"
           subtitle="트렌드 포인트를 기술 성숙도(X축) × 사업 영향도(Y축)로 배치했습니다. 버블이나 순위 카드를 클릭하면 서로 연동되며, 근거 썸네일을 클릭하면 해당 영상을 바로 재생합니다."
         >
-          <div className="space-y-6">
-            <TrendMatrix points={matrixPoints} selectedKey={selectedTrendKey} onSelectPoint={setSelectedTrendKey} />
-            <TrendRankingBoard
-              points={rankedScored}
-              unscored={rankedUnscored}
-              videoMap={videoMap}
-              onSelectVideo={(v) => setPlaying(v)}
-              selectedKey={selectedTrendKey}
-            />
-          </div>
+          {trend ? (
+            <div className="space-y-6">
+              <TrendMatrix points={matrixPoints} selectedKey={selectedTrendKey} onSelectPoint={setSelectedTrendKey} />
+              <TrendRankingBoard
+                points={rankedScored}
+                unscored={rankedUnscored}
+                videoMap={videoMap}
+                onSelectVideo={handleSelectVideo}
+                selectedKey={selectedTrendKey}
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-2 py-12 text-[12.5px] text-ink-500">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {briefedCount >= 3
+                ? 'AI 트렌드 요약을 생성하고 있습니다 — 잠시 후 자동으로 표시됩니다 (최초 생성은 1분 내외)'
+                : '브리프가 3건 이상 쌓이면 트렌드 맵이 생성됩니다'}
+            </div>
+          )}
         </Panel>
 
         {/* 기술 요소 분포 — 브리프 키워드를 고정 기술 축으로 분류 */}
@@ -321,6 +338,7 @@ export default function Wrc2026Page() {
 
         {/* Player + 선택 영상 브리프 */}
         {playing && playingVideoId && playingCurrent && (
+          <div ref={playerRef} className="scroll-mt-4">
           <Panel padding="none">
             <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
               <iframe
@@ -392,6 +410,7 @@ export default function Wrc2026Page() {
               {playingCurrent.brief && <BriefPanel brief={playingCurrent.brief} />}
             </div>
           </Panel>
+          </div>
         )}
 
         {/* 영상 그리드 */}
@@ -443,8 +462,7 @@ export default function Wrc2026Page() {
                 <button
                   key={v.id}
                   onClick={() => {
-                    setPlaying(v);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    handleSelectVideo(v);
                   }}
                   className="text-left bg-white border border-ink-200 hover:border-ink-400 transition-colors group"
                 >

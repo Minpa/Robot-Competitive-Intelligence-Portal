@@ -97,10 +97,7 @@ function EvidenceThumbs({
         <button
           key={v.id}
           type="button"
-          onClick={() => {
-            onSelectVideo(v);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onClick={() => onSelectVideo(v)}
           className="shrink-0 w-14 aspect-video overflow-hidden rounded border border-ink-200 hover:border-ink-400 transition-colors"
           title={v.titleKo ?? v.title}
         >
