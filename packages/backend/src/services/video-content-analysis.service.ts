@@ -25,6 +25,8 @@ const DOMAIN_FILTER = (process.env.GEMINI_VIDEO_DOMAIN_FILTER || 'robot')
   .filter(Boolean);
 const REQUIRE_DEMO_SIGNAL = process.env.GEMINI_VIDEO_REQUIRE_DEMO_SIGNAL !== 'false';
 const CONCURRENCY = Math.max(1, parseInt(process.env.GEMINI_VIDEO_CONCURRENCY || '2', 10));
+// 동향 브리핑 목적이므로 최근 게시 영상만 분석/노출 (과거 아카이브 소급 분석 방지)
+const SINCE_DAYS = Math.max(1, parseInt(process.env.GEMINI_VIDEO_SINCE_DAYS || '180', 10));
 
 // 공개 YouTube watch URL만 허용 (다운로드 없이 fileUri로 그대로 전달)
 const YOUTUBE_WATCH_URL_RE = /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[\w-]+/i;
@@ -237,7 +239,9 @@ class VideoContentAnalysisService {
               )})`
             : sql`TRUE`,
           REQUIRE_DEMO_SIGNAL ? sql`(extracted_metadata->'aiTags') IS NOT NULL` : sql`TRUE`,
-          sql`COALESCE((extracted_metadata->>'geminiAnalysisAttempts')::int, 0) < ${MAX_ATTEMPTS}`
+          sql`COALESCE((extracted_metadata->>'geminiAnalysisAttempts')::int, 0) < ${MAX_ATTEMPTS}`,
+          // 오래된 아카이브 영상으로 소급하지 않도록 게시일 하한 적용
+          sql`published_at >= now() - make_interval(days => ${SINCE_DAYS})`
         )
       )
       .orderBy(sql`published_at DESC NULLS LAST`)
@@ -399,7 +403,14 @@ class VideoContentAnalysisService {
         meta: articles.extractedMetadata,
       })
       .from(articles)
-      .where(and(sql`product_type = 'video'`, sql`(extracted_metadata->'geminiAnalysis') IS NOT NULL`))
+      .where(
+        and(
+          sql`product_type = 'video'`,
+          sql`(extracted_metadata->'geminiAnalysis') IS NOT NULL`,
+          // 이미 분석된 과거 영상은 데이터로만 보존하고 동향 목록에는 최근 게시분만 노출
+          sql`published_at >= now() - make_interval(days => ${SINCE_DAYS})`
+        )
+      )
       .orderBy(sql`(extracted_metadata->>'geminiAnalyzedAt') DESC NULLS LAST`)
       .limit(limit);
 
