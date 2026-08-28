@@ -149,8 +149,11 @@ export default function Wrc2026Page() {
   const trend = trendQuery.data?.summary ?? null;
 
   const [selectedTrendKey, setSelectedTrendKey] = useState<string | null>(null);
-  const { scored: matrixPoints, unscored: rankedUnscored } = useMemo(() => buildMergedPoints(trend), [trend]);
-  const rankedScored = useMemo(() => sortRankedPoints(matrixPoints), [matrixPoints]);
+  const { scored, unscored: rankedUnscored } = useMemo(() => buildMergedPoints(trend), [trend]);
+  // sortRankedPoints는 재정렬만 하므로 scored의 좁혀진 타입(impact/maturity: number)이 그대로 유지된다
+  const rankedScored = useMemo(() => sortRankedPoints(scored) as typeof scored, [scored]);
+  // 매트릭스 버블에 하단 랭킹 순위(#N)를 라벨로 표시하기 위해 정렬 순서 그대로 rank를 부여
+  const matrixPoints = useMemo(() => rankedScored.map((p, i) => ({ ...p, rank: i + 1 })), [rankedScored]);
 
   const statsQuery = useQuery({
     queryKey: ['event-stats', EVENT_KEY],

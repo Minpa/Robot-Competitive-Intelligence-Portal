@@ -9,7 +9,7 @@
 
 import {
   ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Cell, Label, ReferenceLine,
+  Tooltip, ResponsiveContainer, Cell, Label, LabelList, ReferenceLine,
 } from 'recharts';
 import { Tag } from '@/components/ui';
 import type { TrendPointTheme } from '../types';
@@ -24,6 +24,8 @@ export interface TrendMatrixPoint {
   impact: number;
   maturity: number;
   evidenceCount: number;
+  /** 하단 랭킹 보드의 순위(#N) — 버블 라벨로 표시해 카드와 1:1 대응시킨다 */
+  rank?: number;
 }
 
 interface JitteredPoint extends TrendMatrixPoint {
@@ -135,16 +137,24 @@ export function TrendMatrix({ points, selectedKey, onSelectPoint }: Props) {
                 if (!payload?.[0]) return null;
                 const d = payload[0].payload as JitteredPoint;
                 return (
-                  <div className="bg-white border border-ink-200 p-3 text-[11px] text-ink-700 shadow-sm max-w-[220px]">
-                    <div className="mb-1.5">
+                  <div className="bg-white border border-ink-200 p-3 text-[11px] text-ink-700 shadow-sm max-w-[280px]">
+                    <div className="mb-1.5 flex items-center gap-1.5">
+                      {typeof d.rank === 'number' && (
+                        <span className="font-mono font-bold text-ink-900 text-[12px]">#{d.rank}</span>
+                      )}
                       <Tag tone="neutral" size="sm">{d.source}</Tag>
+                      {d.theme && <Tag tone="neutral" size="sm">{d.theme}</Tag>}
                     </div>
-                    <p className="font-semibold text-ink-900 mb-1.5 text-[12.5px] leading-snug">
+                    <p className="font-semibold text-ink-900 mb-1 text-[12.5px] leading-snug">
                       {d.title ?? d.text}
                     </p>
+                    {d.title && (
+                      <p className="mb-1.5 text-ink-600 leading-relaxed">{d.text}</p>
+                    )}
                     <p className="font-mono">사업 영향도 {d.impact}/5</p>
                     <p className="font-mono">기술 성숙도 {d.maturity}/5</p>
                     <p className="font-mono">근거 {d.evidenceCount}건</p>
+                    <p className="mt-1.5 text-ink-400">클릭하면 아래 상세 카드로 이동합니다</p>
                   </div>
                 );
               }}
@@ -163,6 +173,14 @@ export function TrendMatrix({ points, selectedKey, onSelectPoint }: Props) {
                   />
                 );
               })}
+              {/* 버블 위 랭킹 번호(#N) — 하단 랭킹 카드와 1:1 대응 */}
+              <LabelList
+                dataKey="rank"
+                position="top"
+                offset={6}
+                formatter={(v: number) => (typeof v === 'number' ? `#${v}` : '')}
+                style={{ fontSize: 10, fontWeight: 700, fill: '#3A3F47', fontFamily: 'ui-monospace, monospace' }}
+              />
             </Scatter>
           </ScatterChart>
         </ResponsiveContainer>
@@ -182,14 +200,33 @@ export function TrendMatrix({ points, selectedKey, onSelectPoint }: Props) {
         </span>
       </div>
 
-      {/* 6테마 범례 */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-ink-100 pt-3">
-        {(Object.keys(THEME_COLOR) as TrendPointTheme[]).map((theme) => (
-          <div key={theme} className="flex items-center gap-1.5">
-            <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: THEME_COLOR[theme] }} />
-            <span className="text-[11px] text-ink-600">{theme}</span>
+      {/* 범례: 색 = 테마, 크기 = 근거 영상 수, 번호 = 하단 랭킹 순위 */}
+      <div className="space-y-2 border-t border-ink-100 pt-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          <span className="text-[10.5px] font-semibold text-ink-500 uppercase tracking-wide">색 = 테마</span>
+          {(Object.keys(THEME_COLOR) as TrendPointTheme[]).map((theme) => (
+            <div key={theme} className="flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: THEME_COLOR[theme] }} />
+              <span className="text-[11px] text-ink-600">{theme}</span>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          <span className="text-[10.5px] font-semibold text-ink-500 uppercase tracking-wide">크기 = 근거 영상 수</span>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-block w-2 h-2 rounded-full bg-ink-300" />
+            <span className="text-[11px] text-ink-600">1건</span>
           </div>
-        ))}
+          <div className="flex items-center gap-1.5">
+            <span className="inline-block w-3.5 h-3.5 rounded-full bg-ink-300" />
+            <span className="text-[11px] text-ink-600">2~3건</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-block w-5 h-5 rounded-full bg-ink-300" />
+            <span className="text-[11px] text-ink-600">4건 (많을수록 여러 영상이 뒷받침)</span>
+          </div>
+          <span className="text-[10.5px] font-semibold text-ink-500 uppercase tracking-wide ml-2">#번호 = 아래 랭킹 순위</span>
+        </div>
       </div>
     </div>
   );
