@@ -10,7 +10,6 @@ import { Check, Copy, Cpu, Download, ExternalLink, Loader2, Play, RefreshCw, Spa
 import { TrendHeadlinePanel } from './components/TrendHeadlinePanel';
 import { TrendPointCards } from './components/TrendPointCards';
 import { TechAxisChart } from './components/TechAxisChart';
-import { CesDemoPanel } from './components/CesDemoPanel';
 import { TagCloud, type TagSelection } from './components/TagCloud';
 import { BriefPanel } from './components/BriefPanel';
 import { formatDate, getVideoId, thumbFallback } from './utils';
@@ -116,12 +115,6 @@ export default function Wrc2026Page() {
   });
   const techInsight = techInsightQuery.data?.insight ?? null;
 
-  const cesDemoQuery = useQuery({
-    queryKey: ['event-ces-demo', EVENT_KEY],
-    queryFn: () => api.getEventCesDemo(EVENT_KEY),
-    staleTime: 10 * 60 * 1000,
-  });
-
   const meQuery = useQuery({ queryKey: ['me'], queryFn: () => api.getMe(), staleTime: 10 * 60 * 1000 });
   const isAdmin = meQuery.data?.user?.role === 'admin' || meQuery.data?.role === 'admin';
 
@@ -132,13 +125,6 @@ export default function Wrc2026Page() {
       qc.invalidateQueries({ queryKey: ['event-trend', EVENT_KEY] });
       qc.invalidateQueries({ queryKey: ['event-stats', EVENT_KEY] });
       qc.invalidateQueries({ queryKey: ['event-tech-insight', EVENT_KEY] });
-    },
-  });
-
-  const runCesDemoBatch = useMutation({
-    mutationFn: () => api.runCesDemoBatch(EVENT_KEY),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['event-ces-demo', EVENT_KEY] });
     },
   });
 
@@ -248,17 +234,6 @@ export default function Wrc2026Page() {
             title="종합 트렌드"
           />
         )}
-
-        {/* CES 부스 시연 전환 가능성 분석 — 텔레오퍼레이션·관람객 참여 관점 */}
-        <CesDemoPanel
-          data={cesDemoQuery.data}
-          videoMap={videoMap}
-          onSelectVideo={(v) => setPlaying(v)}
-          isAdmin={isAdmin}
-          onRunBatch={() => runCesDemoBatch.mutate()}
-          runBatchPending={runCesDemoBatch.isPending}
-          runBatchResult={runCesDemoBatch.data}
-        />
 
         {/* 기술 요소 분포 — 브리프 키워드를 고정 기술 축으로 분류 */}
         <TechAxisChart
