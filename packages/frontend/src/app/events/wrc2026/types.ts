@@ -31,12 +31,14 @@ export interface EventVideo {
 /** 트렌드 포인트 테마 — 백엔드 event-video-brief.service.ts의 TREND_POINT_THEMES를 그대로 미러링 */
 export type TrendPointTheme = '제품' | '기술' | '시장' | '서비스' | '생산' | '파트너십';
 
-/** 트렌드 포인트 v2 — 근거 영상 id 포함. title/theme은 v3 신규(구형 캐시엔 없음) */
+/** 트렌드 포인트 v2 — 근거 영상 id 포함. title/theme은 v3, impact/maturity는 v4 신규(구형 캐시엔 없음) */
 export interface EventTrendPoint {
   text: string;
   videoIds: string[];
   title?: string;
   theme?: TrendPointTheme;
+  impact?: number;   // 가전·로봇 사업 영향도, 1~5(5=매우 큼)
+  maturity?: number; // 기술/시연 성숙도, 1~5(1=연구/컨셉 ~ 5=양산/상용)
 }
 
 export interface EventTrendSummary {
@@ -80,6 +82,21 @@ export function getTrendPointTitle(p: string | EventTrendPoint): string | undefi
 /** 트렌드 포인트에서 테마만 추출(문자열 또는 theme 없는 구형 객체는 undefined) */
 export function getTrendPointTheme(p: string | EventTrendPoint): TrendPointTheme | undefined {
   return typeof p === 'string' ? undefined : p.theme;
+}
+
+/** 트렌드 포인트에서 영향도만 추출(문자열 또는 impact 없는 구형 객체는 undefined) */
+export function getTrendPointImpact(p: string | EventTrendPoint): number | undefined {
+  return typeof p === 'string' ? undefined : p.impact;
+}
+
+/** 트렌드 포인트에서 성숙도만 추출(문자열 또는 maturity 없는 구형 객체는 undefined) */
+export function getTrendPointMaturity(p: string | EventTrendPoint): number | undefined {
+  return typeof p === 'string' ? undefined : p.maturity;
+}
+
+/** 트렌드 포인트에 impact/maturity가 모두 산정되어 있는지(트렌드 맵 표시 가능 여부) */
+export function hasTrendScore(p: string | EventTrendPoint): boolean {
+  return typeof p !== 'string' && typeof p.impact === 'number' && typeof p.maturity === 'number';
 }
 
 /** CES 부스 시연 전환 가능성 분석 — 백엔드 event-ces-demo.service.ts의 CesDemoAnalysis와 필드를 맞춘다 */

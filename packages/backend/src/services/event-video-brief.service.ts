@@ -136,6 +136,8 @@ export interface EventTrendPoint {
   videoIds: string[];  // 근거 영상 id, ≤4개
   title?: string;       // 2~6단어 명사구, ≤30자 (v3 신규 — 구형 캐시엔 없음)
   theme?: TrendPointTheme; // 지정 6개 값 중 하나 (v3 신규 — 구형 캐시엔 없음)
+  impact?: number;   // 가전·로봇 사업 영향도, 1~5 정수(5=매우 큼) (v4 신규 — 구형 캐시엔 없음)
+  maturity?: number; // 기술/시연 성숙도, 1~5 정수(1=연구/컨셉 ~ 5=양산/상용) (v4 신규 — 구형 캐시엔 없음)
 }
 
 export interface EventTrendSummary {
@@ -145,6 +147,14 @@ export interface EventTrendSummary {
   basedOn: number;
   generatedAt: string;
   trendVersion?: 2;
+}
+
+/** impact/maturity 정규화: 숫자 또는 숫자 문자열만 허용, 1~5 범위로 클램프·반올림. 그 외(비숫자·null·배열 등)는 undefined */
+function normalizeScore(raw: unknown): number | undefined {
+  if (typeof raw !== 'number' && typeof raw !== 'string') return undefined;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return undefined;
+  return Math.min(5, Math.max(1, Math.round(n)));
 }
 
 /** points/techPoints 공통 정규화: 문자열(구형) 또는 {text, videoIds}(v2) → EventTrendPoint[]. validVideoIds 교집합·4개 캡·6개 캡 적용 */
@@ -172,11 +182,15 @@ function normalizeTrendPoints(raw: unknown, validVideoIds?: Set<string>): EventT
         const theme = (TREND_POINT_THEMES as readonly string[]).includes(themeCandidate)
           ? (themeCandidate as TrendPointTheme)
           : undefined;
+        const impact = normalizeScore((p as any).impact);
+        const maturity = normalizeScore((p as any).maturity);
         return {
           text: t.slice(0, 160),
           videoIds: videoIds.slice(0, 4),
           ...(title && { title }),
           ...(theme && { theme }),
+          ...(impact !== undefined && { impact }),
+          ...(maturity !== undefined && { maturity }),
         };
       }
       return null;
@@ -323,7 +337,7 @@ function buildTrendPrompt(
     techKeywords: string[];
   }[]
 ): string {
-  return `다음은 WRC 2026(세계 로봇 대회) 관련 영상들의 분석 브리프다. 전시회 전체를 관통하는 트렌드를 두 축으로 요약하라 — (1) 종합 트렌드: 제품·시장·서비스 관점, (2) 기술 트렌드: 하드웨어(액추에이터·로봇 핸드·센서·구동계), 제어/알고리즘(전신 제어, 밸런싱, 모션 플래닝), AI 모델/학습 방법(VLA, 모방학습, 강화학습, 파운데이션 모델) 등 구체적 기술 요소 중심으로, 연구소 엔지니어가 참고할 수 있는 수준으로 작성하라. JSON만: {"headline": "한 문장 핵심 트렌드 (120자 이내)", "points": [{"title": "2~6단어 명사구 한국어 30자 이내", "text": "종합 트렌드 포인트 설명(160자 이내, 한국어 1~2문장)", "theme": "제품|기술|시장|서비스|생산|파트너십 중 정확히 하나", "videoIds": ["근거 영상 id, 최대 4개, 반드시 목록에 있는 id만"]}], "techPoints": [{"title": "2~6단어 명사구 한국어 30자 이내", "text": "기술 관점 트렌드 포인트 설명(160자 이내, 한국어 1~2문장)", "theme": "제품|기술|시장|서비스|생산|파트너십 중 정확히 하나", "videoIds": ["근거 영상 id, 최대 4개, 반드시 목록에 있는 id만"]}]} points·techPoints 각각 최대 6개, 브리프에 근거한 내용만 작성하고 추측은 금지한다. theme은 지정 6개 값 중 하나만 사용하고 목록 외 값·복수값은 금지한다. title/text는 브리프에 있는 내용에만 근거해 작성하고 추측하지 않는다. videoIds는 실제 그 포인트를 뒷받침하는 영상만 넣는다.
+  return `다음은 WRC 2026(세계 로봇 대회) 관련 영상들의 분석 브리프다. 전시회 전체를 관통하는 트렌드를 두 축으로 요약하라 — (1) 종합 트렌드: 제품·시장·서비스 관점, (2) 기술 트렌드: 하드웨어(액추에이터·로봇 핸드·센서·구동계), 제어/알고리즘(전신 제어, 밸런싱, 모션 플래닝), AI 모델/학습 방법(VLA, 모방학습, 강화학습, 파운데이션 모델) 등 구체적 기술 요소 중심으로, 연구소 엔지니어가 참고할 수 있는 수준으로 작성하라. JSON만: {"headline": "한 문장 핵심 트렌드 (120자 이내)", "points": [{"title": "2~6단어 명사구 한국어 30자 이내", "text": "종합 트렌드 포인트 설명(160자 이내, 한국어 1~2문장)", "theme": "제품|기술|시장|서비스|생산|파트너십 중 정확히 하나", "impact": "가전·로봇 사업 영향도, 1~5 정수(5=매우 큼)", "maturity": "기술/시연 성숙도, 1~5 정수(1=연구/컨셉, 2=랩 데모, 3=전시 시연, 4=실증/파일럿, 5=양산/상용)", "videoIds": ["근거 영상 id, 최대 4개, 반드시 목록에 있는 id만"]}], "techPoints": [{"title": "2~6단어 명사구 한국어 30자 이내", "text": "기술 관점 트렌드 포인트 설명(160자 이내, 한국어 1~2문장)", "theme": "제품|기술|시장|서비스|생산|파트너십 중 정확히 하나", "impact": "가전·로봇 사업 영향도, 1~5 정수(5=매우 큼)", "maturity": "기술/시연 성숙도, 1~5 정수(1=연구/컨셉, 2=랩 데모, 3=전시 시연, 4=실증/파일럿, 5=양산/상용)", "videoIds": ["근거 영상 id, 최대 4개, 반드시 목록에 있는 id만"]}]} points·techPoints 각각 최대 6개, 브리프에 근거한 내용만 작성하고 추측은 금지한다. theme은 지정 6개 값 중 하나만 사용하고 목록 외 값·복수값은 금지한다. title/text는 브리프에 있는 내용에만 근거해 작성하고 추측하지 않는다. videoIds는 실제 그 포인트를 뒷받침하는 영상만 넣는다. impact는 브리프에서 확인되는 사업적 파급력에만, maturity는 브리프의 시연 형태에만 근거해 산정하고, 추측을 금지하며, 산정 근거는 별도로 설명하지 않는다.
 
 ${JSON.stringify(briefs)}`;
 }
@@ -917,9 +931,9 @@ class EventVideoBriefService {
     try {
       const response = await this.anthropicClient.messages.create({
         model: TREND_MODEL,
-        // points + techPoints 2축 + 포인트별 title/theme/videoIds(UUID)로 출력량이 커서 넉넉히 확보
-        // (2500이면 12개 포인트 응답이 중간에 잘려 파싱 실패 → 트렌드 섹션 미표시)
-        max_tokens: 6000,
+        // points + techPoints 2축 + 포인트별 title/theme/impact/maturity/videoIds(UUID)로 출력량이 커서 넉넉히 확보
+        // (2500이면 12개 포인트 응답이 중간에 잘려 파싱 실패 → 트렌드 섹션 미표시. impact/maturity 추가로 6000→7000)
+        max_tokens: 7000,
         messages: [{ role: 'user', content: buildTrendPrompt(briefs) }],
       });
       aiUsageService.logUsage({

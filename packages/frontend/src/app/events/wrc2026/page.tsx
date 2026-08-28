@@ -6,14 +6,60 @@ import { api } from '@/lib/api';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Panel, Tag } from '@/components/ui';
-import { Check, Copy, Cpu, Download, ExternalLink, Loader2, Play, RefreshCw, Sparkles, X } from 'lucide-react';
+import { Check, Copy, Download, ExternalLink, Loader2, Play, RefreshCw, Sparkles, X } from 'lucide-react';
 import { TrendHeadlinePanel } from './components/TrendHeadlinePanel';
-import { TrendJourney } from './components/TrendJourney';
+import { TrendMatrix } from './components/TrendMatrix';
+import { TrendRankingBoard, sortRankedPoints, type RankedTrendPoint } from './components/TrendRankingBoard';
 import { TechAxisChart } from './components/TechAxisChart';
 import { TagCloud, type TagSelection } from './components/TagCloud';
 import { BriefPanel } from './components/BriefPanel';
 import { formatDate, getVideoId, thumbFallback } from './utils';
-import type { EventVideo } from './types';
+import {
+  getTrendPointText,
+  getTrendPointTitle,
+  getTrendPointTheme,
+  getTrendPointImpact,
+  getTrendPointMaturity,
+  getTrendPointVideoIds,
+  hasTrendScore,
+} from './types';
+import type { EventVideo, EventTrendPoint, EventTrendSummary } from './types';
+
+/** trend.points('종합')/trend.techPoints('기술')를 병합해 랭킹 카드 포인트로 변환하고, impact/maturity 산정 여부(hasTrendScore)로 분리한다 */
+function buildMergedPoints(trend: EventTrendSummary | null): {
+  scored: (RankedTrendPoint & { impact: number; maturity: number })[];
+  unscored: RankedTrendPoint[];
+} {
+  const scored: (RankedTrendPoint & { impact: number; maturity: number })[] = [];
+  const unscored: RankedTrendPoint[] = [];
+
+  const process = (list: (string | EventTrendPoint)[] | undefined, source: '종합' | '기술', prefix: string) => {
+    (list ?? []).forEach((raw, i) => {
+      const videoIds = getTrendPointVideoIds(raw);
+      const point: RankedTrendPoint = {
+        key: `${prefix}-${i}`,
+        source,
+        title: getTrendPointTitle(raw),
+        text: getTrendPointText(raw),
+        theme: getTrendPointTheme(raw),
+        impact: getTrendPointImpact(raw),
+        maturity: getTrendPointMaturity(raw),
+        evidenceCount: videoIds.length,
+        videoIds,
+      };
+      if (hasTrendScore(raw)) {
+        scored.push(point as RankedTrendPoint & { impact: number; maturity: number });
+      } else {
+        unscored.push(point);
+      }
+    });
+  };
+
+  process(trend?.points, '종합', '종합');
+  process(trend?.techPoints, '기술', '기술');
+
+  return { scored, unscored };
+}
 
 const EVENT_KEY = 'wrc2026';
 
@@ -101,6 +147,10 @@ export default function Wrc2026Page() {
     refetchInterval: (query) => ((query.state.data as any)?.summary ? false : 30_000),
   });
   const trend = trendQuery.data?.summary ?? null;
+
+  const [selectedTrendKey, setSelectedTrendKey] = useState<string | null>(null);
+  const { scored: matrixPoints, unscored: rankedUnscored } = useMemo(() => buildMergedPoints(trend), [trend]);
+  const rankedScored = useMemo(() => sortRankedPoints(matrixPoints), [matrixPoints]);
 
   const statsQuery = useQuery({
     queryKey: ['event-stats', EVENT_KEY],
@@ -224,16 +274,23 @@ export default function Wrc2026Page() {
         {/* 히어로 숫자 밴드 + 기업/카테고리/주간 업로드 차트 (트렌드가 없어도 stats만으로 표시 가능) */}
         <TrendHeadlinePanel trend={trend} stats={stats} onSelectTag={handleTagSelect} selectedTag={tagFilter} />
 
-        {/* 트렌드 포인트 여정 — 종합(제품·시장·서비스) 관점, 근거 썸네일 클릭 시 해당 영상 재생 */}
-        {trend && (
-          <TrendJourney
-            points={trend.points}
-            videoMap={videoMap}
-            onSelectVideo={(v) => setPlaying(v)}
-            kicker="Trend Points — Overview"
-            title="종합 트렌드"
-          />
-        )}
+        {/* 트렌드 맵 — 트렌드 포인트를 기술 성숙도 × 사업 영향도 2축 산점도 + 순위 카드로 함께 보여준다 */}
+        <Panel
+          kicker="Trend Map"
+          title="트렌드 맵 (WRC 2026)"
+          subtitle="트렌드 포인트를 기술 성숙도(X축) × 사업 영향도(Y축)로 배치했습니다. 버블이나 순위 카드를 클릭하면 서로 연동되며, 근거 썸네일을 클릭하면 해당 영상을 바로 재생합니다."
+        >
+          <div className="space-y-6">
+            <TrendMatrix points={matrixPoints} selectedKey={selectedTrendKey} onSelectPoint={setSelectedTrendKey} />
+            <TrendRankingBoard
+              points={rankedScored}
+              unscored={rankedUnscored}
+              videoMap={videoMap}
+              onSelectVideo={(v) => setPlaying(v)}
+              selectedKey={selectedTrendKey}
+            />
+          </div>
+        </Panel>
 
         {/* 기술 요소 분포 — 브리프 키워드를 고정 기술 축으로 분류 */}
         <TechAxisChart
@@ -242,18 +299,6 @@ export default function Wrc2026Page() {
           selected={tagFilter}
           insight={techInsight}
         />
-
-        {/* 트렌드 포인트 여정 — 기술 관점, 근거 썸네일 클릭 시 해당 영상 재생 */}
-        {trend?.techPoints && trend.techPoints.length > 0 && (
-          <TrendJourney
-            points={trend.techPoints}
-            videoMap={videoMap}
-            onSelectVideo={(v) => setPlaying(v)}
-            kicker="Trend Points — Technical"
-            title="기술 트렌드"
-            icon={Cpu}
-          />
-        )}
 
         {/* 기업/기술 키워드 태그 클라우드 — 칩 클릭 시 영상 리스트 필터 */}
         <TagCloud stats={stats} selected={tagFilter} onSelect={handleTagSelect} />

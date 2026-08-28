@@ -320,6 +320,61 @@ describe('parseEventTrendSummary', () => {
       theme: '기술',
     });
   });
+
+  it('clamps impact/maturity into the 1~5 range (0→1, 6.7→5, "3"→3, -1→1)', () => {
+    const text = JSON.stringify({
+      headline: '헤드라인',
+      points: [
+        { text: 'p0', videoIds: [], impact: 0, maturity: 6.7 },
+        { text: 'p1', videoIds: [], impact: '3', maturity: -1 },
+      ],
+    });
+    const parsed = parseEventTrendSummary(text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.points[0].impact).toBe(1);
+    expect(parsed!.points[0].maturity).toBe(5);
+    expect(parsed!.points[1].impact).toBe(3);
+    expect(parsed!.points[1].maturity).toBe(1);
+  });
+
+  it('omits impact/maturity keys when the value is non-numeric (string/null)', () => {
+    const text = JSON.stringify({
+      headline: '헤드라인',
+      points: [{ text: 'p0', videoIds: [], impact: 'high', maturity: null }],
+    });
+    const parsed = parseEventTrendSummary(text);
+    expect(parsed).not.toBeNull();
+    expect('impact' in parsed!.points[0]).toBe(false);
+    expect('maturity' in parsed!.points[0]).toBe(false);
+  });
+
+  it('omits impact/maturity keys when the value is an array', () => {
+    const text = JSON.stringify({
+      headline: '헤드라인',
+      points: [{ text: 'p0', videoIds: [], impact: [3], maturity: [2] }],
+    });
+    const parsed = parseEventTrendSummary(text);
+    expect(parsed).not.toBeNull();
+    expect('impact' in parsed!.points[0]).toBe(false);
+    expect('maturity' in parsed!.points[0]).toBe(false);
+  });
+
+  it('applies the same impact/maturity normalization to techPoints', () => {
+    const text = JSON.stringify({
+      headline: '헤드라인',
+      points: [{ text: '종합 포인트', videoIds: [] }],
+      techPoints: [
+        { text: '기술 포인트 A', videoIds: [], impact: 6.7, maturity: '3' },
+        { text: '기술 포인트 B', videoIds: [], impact: 'unknown', maturity: null },
+      ],
+    });
+    const parsed = parseEventTrendSummary(text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.techPoints[0].impact).toBe(5);
+    expect(parsed!.techPoints[0].maturity).toBe(3);
+    expect('impact' in parsed!.techPoints[1]).toBe(false);
+    expect('maturity' in parsed!.techPoints[1]).toBe(false);
+  });
 });
 
 describe('computeEventStats', () => {
