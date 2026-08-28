@@ -126,10 +126,16 @@ export function parseEventBrief(text: string, model: string): EventVideoBrief | 
   return brief;
 }
 
+/** 트렌드 포인트 제목에 붙는 테마 태그 — 프런트 THEME_ICON과 1:1 매핑 */
+export const TREND_POINT_THEMES = ['제품', '기술', '시장', '서비스', '생산', '파트너십'] as const;
+export type TrendPointTheme = (typeof TREND_POINT_THEMES)[number];
+
 /** 트렌드 포인트 v2 — 근거 영상 id를 함께 담는다 */
 export interface EventTrendPoint {
   text: string;        // ≤160자
   videoIds: string[];  // 근거 영상 id, ≤4개
+  title?: string;       // 2~6단어 명사구, ≤30자 (v3 신규 — 구형 캐시엔 없음)
+  theme?: TrendPointTheme; // 지정 6개 값 중 하나 (v3 신규 — 구형 캐시엔 없음)
 }
 
 export interface EventTrendSummary {
@@ -159,7 +165,19 @@ function normalizeTrendPoints(raw: unknown, validVideoIds?: Set<string>): EventT
         if (validVideoIds) {
           videoIds = videoIds.filter((id) => validVideoIds.has(id));
         }
-        return { text: t.slice(0, 160), videoIds: videoIds.slice(0, 4) };
+        const rawTitle = (p as any).title;
+        const title = typeof rawTitle === 'string' && rawTitle.trim() ? rawTitle.trim().slice(0, 30) : undefined;
+        const rawTheme = (p as any).theme;
+        const themeCandidate = typeof rawTheme === 'string' ? rawTheme.trim() : '';
+        const theme = (TREND_POINT_THEMES as readonly string[]).includes(themeCandidate)
+          ? (themeCandidate as TrendPointTheme)
+          : undefined;
+        return {
+          text: t.slice(0, 160),
+          videoIds: videoIds.slice(0, 4),
+          ...(title && { title }),
+          ...(theme && { theme }),
+        };
       }
       return null;
     })
@@ -305,7 +323,7 @@ function buildTrendPrompt(
     techKeywords: string[];
   }[]
 ): string {
-  return `다음은 WRC 2026(세계 로봇 대회) 관련 영상들의 분석 브리프다. 전시회 전체를 관통하는 트렌드를 두 축으로 요약하라 — (1) 종합 트렌드: 제품·시장·서비스 관점, (2) 기술 트렌드: 하드웨어(액추에이터·로봇 핸드·센서·구동계), 제어/알고리즘(전신 제어, 밸런싱, 모션 플래닝), AI 모델/학습 방법(VLA, 모방학습, 강화학습, 파운데이션 모델) 등 구체적 기술 요소 중심으로, 연구소 엔지니어가 참고할 수 있는 수준으로 작성하라. JSON만: {"headline": "한 문장 핵심 트렌드 (120자 이내)", "points": [{"text": "종합 트렌드 포인트(160자 이내, 한국어)", "videoIds": ["근거 영상 id, 최대 4개, 반드시 목록에 있는 id만"]}], "techPoints": [{"text": "기술 관점 트렌드 포인트(160자 이내, 한국어)", "videoIds": ["근거 영상 id, 최대 4개, 반드시 목록에 있는 id만"]}]} points·techPoints 각각 최대 6개, 브리프에 근거한 내용만 작성하고 추측은 금지한다. videoIds는 실제 그 포인트를 뒷받침하는 영상만 넣는다.
+  return `다음은 WRC 2026(세계 로봇 대회) 관련 영상들의 분석 브리프다. 전시회 전체를 관통하는 트렌드를 두 축으로 요약하라 — (1) 종합 트렌드: 제품·시장·서비스 관점, (2) 기술 트렌드: 하드웨어(액추에이터·로봇 핸드·센서·구동계), 제어/알고리즘(전신 제어, 밸런싱, 모션 플래닝), AI 모델/학습 방법(VLA, 모방학습, 강화학습, 파운데이션 모델) 등 구체적 기술 요소 중심으로, 연구소 엔지니어가 참고할 수 있는 수준으로 작성하라. JSON만: {"headline": "한 문장 핵심 트렌드 (120자 이내)", "points": [{"title": "2~6단어 명사구 한국어 30자 이내", "text": "종합 트렌드 포인트 설명(160자 이내, 한국어 1~2문장)", "theme": "제품|기술|시장|서비스|생산|파트너십 중 정확히 하나", "videoIds": ["근거 영상 id, 최대 4개, 반드시 목록에 있는 id만"]}], "techPoints": [{"title": "2~6단어 명사구 한국어 30자 이내", "text": "기술 관점 트렌드 포인트 설명(160자 이내, 한국어 1~2문장)", "theme": "제품|기술|시장|서비스|생산|파트너십 중 정확히 하나", "videoIds": ["근거 영상 id, 최대 4개, 반드시 목록에 있는 id만"]}]} points·techPoints 각각 최대 6개, 브리프에 근거한 내용만 작성하고 추측은 금지한다. theme은 지정 6개 값 중 하나만 사용하고 목록 외 값·복수값은 금지한다. title/text는 브리프에 있는 내용에만 근거해 작성하고 추측하지 않는다. videoIds는 실제 그 포인트를 뒷받침하는 영상만 넣는다.
 
 ${JSON.stringify(briefs)}`;
 }

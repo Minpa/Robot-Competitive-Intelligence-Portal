@@ -28,10 +28,15 @@ export interface EventVideo {
   taskTypes?: string[];
 }
 
-/** 트렌드 포인트 v2 — 근거 영상 id 포함 */
+/** 트렌드 포인트 테마 — 백엔드 event-video-brief.service.ts의 TREND_POINT_THEMES를 그대로 미러링 */
+export type TrendPointTheme = '제품' | '기술' | '시장' | '서비스' | '생산' | '파트너십';
+
+/** 트렌드 포인트 v2 — 근거 영상 id 포함. title/theme은 v3 신규(구형 캐시엔 없음) */
 export interface EventTrendPoint {
   text: string;
   videoIds: string[];
+  title?: string;
+  theme?: TrendPointTheme;
 }
 
 export interface EventTrendSummary {
@@ -65,6 +70,16 @@ export function getTrendPointText(p: string | EventTrendPoint): string {
 /** 트렌드 포인트(문자열 또는 v2 객체)에서 근거 영상 id 목록만 추출(구형 문자열은 빈 배열) */
 export function getTrendPointVideoIds(p: string | EventTrendPoint): string[] {
   return typeof p === 'string' ? [] : p.videoIds;
+}
+
+/** 트렌드 포인트에서 제목만 추출(문자열 또는 title 없는 구형 객체는 undefined) */
+export function getTrendPointTitle(p: string | EventTrendPoint): string | undefined {
+  return typeof p === 'string' ? undefined : p.title;
+}
+
+/** 트렌드 포인트에서 테마만 추출(문자열 또는 theme 없는 구형 객체는 undefined) */
+export function getTrendPointTheme(p: string | EventTrendPoint): TrendPointTheme | undefined {
+  return typeof p === 'string' ? undefined : p.theme;
 }
 
 /** CES 부스 시연 전환 가능성 분석 — 백엔드 event-ces-demo.service.ts의 CesDemoAnalysis와 필드를 맞춘다 */

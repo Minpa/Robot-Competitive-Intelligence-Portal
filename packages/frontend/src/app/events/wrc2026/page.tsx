@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Panel, Tag } from '@/components/ui';
 import { Check, Copy, Cpu, Download, ExternalLink, Loader2, Play, RefreshCw, Sparkles, X } from 'lucide-react';
 import { TrendHeadlinePanel } from './components/TrendHeadlinePanel';
-import { TrendPointCards } from './components/TrendPointCards';
+import { TrendJourney } from './components/TrendJourney';
 import { TechAxisChart } from './components/TechAxisChart';
 import { TagCloud, type TagSelection } from './components/TagCloud';
 import { BriefPanel } from './components/BriefPanel';
@@ -224,9 +224,9 @@ export default function Wrc2026Page() {
         {/* 히어로 숫자 밴드 + 기업/카테고리/주간 업로드 차트 (트렌드가 없어도 stats만으로 표시 가능) */}
         <TrendHeadlinePanel trend={trend} stats={stats} onSelectTag={handleTagSelect} selectedTag={tagFilter} />
 
-        {/* 트렌드 포인트 카드 — 종합(제품·시장·서비스) 관점, 근거 썸네일 클릭 시 해당 영상 재생 */}
+        {/* 트렌드 포인트 여정 — 종합(제품·시장·서비스) 관점, 근거 썸네일 클릭 시 해당 영상 재생 */}
         {trend && (
-          <TrendPointCards
+          <TrendJourney
             points={trend.points}
             videoMap={videoMap}
             onSelectVideo={(v) => setPlaying(v)}
@@ -243,9 +243,9 @@ export default function Wrc2026Page() {
           insight={techInsight}
         />
 
-        {/* 트렌드 포인트 카드 — 기술 관점, 근거 썸네일 클릭 시 해당 영상 재생 */}
+        {/* 트렌드 포인트 여정 — 기술 관점, 근거 썸네일 클릭 시 해당 영상 재생 */}
         {trend?.techPoints && trend.techPoints.length > 0 && (
-          <TrendPointCards
+          <TrendJourney
             points={trend.techPoints}
             videoMap={videoMap}
             onSelectVideo={(v) => setPlaying(v)}

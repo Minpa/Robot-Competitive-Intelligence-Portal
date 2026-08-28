@@ -214,6 +214,112 @@ describe('parseEventTrendSummary', () => {
     });
     expect(parseEventTrendSummary(text)).toBeNull();
   });
+
+  it('parses title/theme normally alongside text/videoIds', () => {
+    const text = JSON.stringify({
+      headline: '헤드라인',
+      points: [{ title: '휴머노이드 상용화 가속', text: '포인트 설명', theme: '제품', videoIds: ['v1'] }],
+    });
+    const parsed = parseEventTrendSummary(text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.points[0]).toEqual({
+      text: '포인트 설명',
+      videoIds: ['v1'],
+      title: '휴머노이드 상용화 가속',
+      theme: '제품',
+    });
+  });
+
+  it('caps title at 30 chars', () => {
+    const text = JSON.stringify({
+      headline: '헤드라인',
+      points: [{ title: '가'.repeat(50), text: '포인트 설명', videoIds: [] }],
+    });
+    const parsed = parseEventTrendSummary(text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.points[0].title?.length).toBe(30);
+  });
+
+  it('parses all 6 allowed theme values', () => {
+    const themes = ['제품', '기술', '시장', '서비스', '생산', '파트너십'];
+    const text = JSON.stringify({
+      headline: '헤드라인',
+      points: themes.map((theme, i) => ({ title: `타이틀${i}`, text: `설명${i}`, theme, videoIds: [] })),
+    });
+    const parsed = parseEventTrendSummary(text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.points.map((p) => p.theme)).toEqual(themes);
+  });
+
+  it('omits theme key when the value is outside the allowed 6', () => {
+    const text = JSON.stringify({
+      headline: '헤드라인',
+      points: [{ title: '타이틀', text: '포인트 설명', theme: '알수없음', videoIds: [] }],
+    });
+    const parsed = parseEventTrendSummary(text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.points[0]).toEqual({ text: '포인트 설명', videoIds: [], title: '타이틀' });
+  });
+
+  it('omits title key when the value is whitespace only', () => {
+    const text = JSON.stringify({
+      headline: '헤드라인',
+      points: [{ title: '   ', text: '포인트 설명', theme: '기술', videoIds: [] }],
+    });
+    const parsed = parseEventTrendSummary(text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.points[0]).toEqual({ text: '포인트 설명', videoIds: [], theme: '기술' });
+  });
+
+  it('ignores non-string title/theme values', () => {
+    const text = JSON.stringify({
+      headline: '헤드라인',
+      points: [{ title: 42, text: '포인트 설명', theme: ['제품'], videoIds: [] }],
+    });
+    const parsed = parseEventTrendSummary(text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.points[0]).toEqual({ text: '포인트 설명', videoIds: [] });
+  });
+
+  it('stays backward compatible with legacy {text, videoIds} objects (no title/theme keys present)', () => {
+    const text = JSON.stringify({
+      headline: '헤드라인',
+      points: [{ text: '구형 포인트', videoIds: ['v1', 'v2'] }],
+    });
+    const parsed = parseEventTrendSummary(text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.points[0]).toEqual({ text: '구형 포인트', videoIds: ['v1', 'v2'] });
+    expect('title' in parsed!.points[0]).toBe(false);
+    expect('theme' in parsed!.points[0]).toBe(false);
+  });
+
+  it('stays backward compatible with legacy string[] points (no title/theme keys present)', () => {
+    const text = JSON.stringify({
+      headline: '헤드라인',
+      points: ['구형 문자열 포인트'],
+    });
+    const parsed = parseEventTrendSummary(text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.points[0]).toEqual({ text: '구형 문자열 포인트', videoIds: [] });
+    expect('title' in parsed!.points[0]).toBe(false);
+    expect('theme' in parsed!.points[0]).toBe(false);
+  });
+
+  it('applies the same title/theme normalization to techPoints', () => {
+    const text = JSON.stringify({
+      headline: '헤드라인',
+      points: [{ text: '종합 포인트', videoIds: [] }],
+      techPoints: [{ title: 'VLA 모델 확산', text: '기술 포인트 설명', theme: '기술', videoIds: [] }],
+    });
+    const parsed = parseEventTrendSummary(text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.techPoints[0]).toEqual({
+      text: '기술 포인트 설명',
+      videoIds: [],
+      title: 'VLA 모델 확산',
+      theme: '기술',
+    });
+  });
 });
 
 describe('computeEventStats', () => {
