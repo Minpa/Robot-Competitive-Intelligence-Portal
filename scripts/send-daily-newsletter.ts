@@ -48,7 +48,11 @@ const TARGET_COMPANIES = [
 ];
 
 // ── Database Queries ────────────────────────────────────────
-const pool = new Pool({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } });
+// NEWSLETTER_NO_SSL=true 로 로컬 PG(DRY_RUN 미리보기) 접속 시 SSL 비활성화 가능
+const pool = new Pool({
+  connectionString: DATABASE_URL,
+  ssl: process.env.NEWSLETTER_NO_SSL === 'true' ? undefined : { rejectUnauthorized: false },
+});
 
 interface ArticleRow {
   id: string;
@@ -89,6 +93,75 @@ interface AlertRow {
 interface KeywordRow {
   term: string;
   mention_count: number;
+}
+
+// ── 영상 기반 트렌드 (WRC 트렌드 맵 / 기술 인사이트 / 신규 분석 영상) ──
+interface TrendPointJson {
+  text?: string;
+  title?: string;
+  theme?: string;
+  impact?: number;
+  maturity?: number;
+}
+
+interface EventTrendJson {
+  headline?: string;
+  points?: (string | TrendPointJson)[];
+  techPoints?: (string | TrendPointJson)[];
+  basedOn?: number;
+}
+
+interface AnalyzedVideoRow {
+  title: string;
+  url: string;
+  extracted_metadata: any;
+}
+
+/** view_cache에서 캐시된 JSON 하나를 읽는다 (없거나 실패 시 null — 섹션 생략) */
+async function getViewCacheData<T>(viewName: string): Promise<T | null> {
+  try {
+    const { rows } = await pool.query(`SELECT data FROM view_cache WHERE view_name = $1 LIMIT 1`, [viewName]);
+    return (rows[0]?.data as T) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** 최근 24시간 내 Gemini 분석(영상 내용 분석 또는 WRC 브리프)이 새로 붙은 영상 */
+async function getRecentAnalyzedVideos(): Promise<AnalyzedVideoRow[]> {
+  try {
+    const since = YESTERDAY.toISOString();
+    const { rows } = await pool.query(`
+      SELECT title, url, extracted_metadata
+      FROM articles
+      WHERE product_type = 'video'
+        AND (
+          (extracted_metadata->>'geminiAnalyzedAt') >= $1
+          OR (extracted_metadata->'eventBrief_wrc2026'->>'briefedAt') >= $1
+        )
+      ORDER BY GREATEST(
+        COALESCE(extracted_metadata->>'geminiAnalyzedAt', ''),
+        COALESCE(extracted_metadata->'eventBrief_wrc2026'->>'briefedAt', '')
+      ) DESC
+      LIMIT 5
+    `, [since]);
+    return rows;
+  } catch {
+    return [];
+  }
+}
+
+/** 트렌드 포인트 정규화(문자열/객체 하위호환) 후 영향도 내림차순 상위 N개 */
+function topTrendPoints(raw: (string | TrendPointJson)[] | undefined, limit: number): TrendPointJson[] {
+  const points = (raw ?? [])
+    .map((p): TrendPointJson | null => {
+      if (typeof p === 'string') return p.trim() ? { text: p } : null;
+      if (p && typeof p === 'object' && typeof p.text === 'string') return p;
+      return null;
+    })
+    .filter((p): p is TrendPointJson => p !== null);
+  points.sort((a, b) => (b.impact ?? 0) - (a.impact ?? 0));
+  return points.slice(0, limit);
 }
 
 async function getRecentArticles(): Promise<ArticleRow[]> {
@@ -169,6 +242,9 @@ function buildNewsletter(
   ciUpdates: CiUpdateRow[],
   alerts: AlertRow[],
   weeklyKeywords: KeywordRow[],
+  videoTrend: EventTrendJson | null,
+  techInsight: { points?: string[] } | null,
+  analyzedVideos: AnalyzedVideoRow[],
 ): string {
   // Group by company
   const byCompany = new Map<string, { articles: ArticleRow[]; ciUpdates: CiUpdateRow[]; alerts: AlertRow[] }>();
@@ -305,11 +381,96 @@ function buildNewsletter(
 </td></tr>`;
   }
 
-  // ── [3] 주간 트렌드 (월요일만) ──
+  // ── [3] 영상 기반 트렌드 (AI 분석) ──
+  const hasVideoSection = !!videoTrend || analyzedVideos.length > 0;
+  if (hasVideoSection) {
+    html += `
+<tr><td style="padding:16px 32px 0;">
+  <div style="font-size:18px;font-weight:bold;color:#1a1a2e;border-bottom:2px solid #1a1a2e;padding-bottom:8px;margin-bottom:16px;">[3] 영상 기반 트렌드 (AI 분석)</div>
+</td></tr>
+<tr><td style="padding:0 32px 16px;">`;
+
+    if (videoTrend?.headline) {
+      html += `
+  <div style="font-size:15px;font-weight:bold;color:#1a1a2e;margin-bottom:10px;">${escHtml(videoTrend.headline)}</div>`;
+    }
+
+    const topPoints = topTrendPoints(videoTrend?.points, 3);
+    if (topPoints.length > 0) {
+      html += `
+  <table width="100%" style="border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;font-size:13px;">`;
+      topPoints.forEach((p, i) => {
+        const meta: string[] = [];
+        if (p.theme) meta.push(escHtml(p.theme));
+        if (typeof p.impact === 'number') meta.push(`영향도 ${p.impact}/5`);
+        if (typeof p.maturity === 'number') meta.push(`성숙도 ${p.maturity}/5`);
+        html += `
+    <tr><td style="padding:10px 14px;${i < topPoints.length - 1 ? 'border-bottom:1px solid #f0f0f0;' : ''}">
+      <b>#${i + 1}${p.title ? ` ${escHtml(p.title)}` : ''}</b>
+      ${meta.length > 0 ? `<span style="float:right;font-size:11px;color:#888;">${meta.join(' · ')}</span>` : ''}
+      <br/><span style="color:#555;line-height:1.6;">${escHtml(p.text ?? '')}</span>
+    </td></tr>`;
+      });
+      html += `
+  </table>`;
+    }
+
+    const topTech = topTrendPoints(videoTrend?.techPoints, 2);
+    if (topTech.length > 0) {
+      html += `
+  <div style="margin-top:10px;font-size:13px;color:#333;">
+    <b style="color:#555;">기술 관점:</b> ${topTech.map((p) => escHtml(p.title ?? (p.text ?? '').slice(0, 60))).join(' · ')}
+  </div>`;
+    }
+
+    if (techInsight?.points && techInsight.points.length > 0) {
+      html += `
+  <div style="margin-top:12px;padding:12px 16px;background:#fff8e1;border-left:4px solid #F9A825;border-radius:4px;font-size:13px;color:#333;">
+    <b>산업·경쟁 관점 인사이트:</b><br/>${techInsight.points.slice(0, 2).map(escHtml).join('<br/>')}
+  </div>`;
+    }
+
+    if (analyzedVideos.length > 0) {
+      html += `
+  <div style="margin-top:12px;">
+    <b style="font-size:13px;color:#555;">최근 24시간 신규 분석 영상</b>
+    <table width="100%" style="margin-top:6px;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;font-size:13px;">`;
+      for (const v of analyzedVideos) {
+        const meta = v.extracted_metadata ?? {};
+        const titleKo = typeof meta.titleKo === 'string' ? meta.titleKo : null;
+        const channel = typeof meta.channel === 'string' ? meta.channel : '';
+        const oneLiner =
+          (typeof meta.geminiAnalysis?.summaryKo === 'string' && meta.geminiAnalysis.summaryKo) ||
+          (typeof meta.eventBrief_wrc2026?.highlight === 'string' && meta.eventBrief_wrc2026.highlight) ||
+          '';
+        html += `
+      <tr><td style="padding:8px 14px;border-bottom:1px solid #f0f0f0;">
+        <b>${escHtml(titleKo ?? v.title)}</b>
+        ${channel ? `<span style="font-size:11px;color:#888;"> · ${escHtml(channel)}</span>` : ''}
+        <a href="${escHtml(v.url)}" style="float:right;color:#1565C0;font-size:11px;">영상 보기</a>
+        ${oneLiner ? `<br/><span style="color:#666;">${escHtml(String(oneLiner).slice(0, 120))}</span>` : ''}
+      </td></tr>`;
+      }
+      html += `
+    </table>
+  </div>`;
+    }
+
+    html += `
+  <div style="margin-top:8px;font-size:11px;color:#888;">
+    트렌드 맵 전체 보기: <a href="https://robot-info-personal.up.railway.app/events/wrc2026" style="color:#1565C0;">WRC 2026 특집 페이지</a>
+    ${typeof videoTrend?.basedOn === 'number' ? ` · 영상 브리프 ${videoTrend.basedOn}건 기반` : ''}
+  </div>
+</td></tr>`;
+  }
+
+  const weeklyNo = hasVideoSection ? 4 : 3;
+
+  // ── 주간 트렌드 (월요일만) ──
   if (IS_MONDAY) {
     html += `
 <tr><td style="padding:16px 32px 0;">
-  <div style="font-size:18px;font-weight:bold;color:#1a1a2e;border-bottom:2px solid #1a1a2e;padding-bottom:8px;margin-bottom:16px;">[3] 주간 트렌드</div>
+  <div style="font-size:18px;font-weight:bold;color:#1a1a2e;border-bottom:2px solid #1a1a2e;padding-bottom:8px;margin-bottom:16px;">[${weeklyNo}] 주간 트렌드</div>
 </td></tr>
 <tr><td style="padding:0 32px 16px;">
   <table width="100%" style="border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;font-size:13px;">
@@ -339,7 +500,7 @@ function buildNewsletter(
   // ── [4] 데이터 품질 요약 ──
   html += `
 <tr><td style="padding:16px 32px 0;">
-  <div style="font-size:18px;font-weight:bold;color:#1a1a2e;border-bottom:2px solid #1a1a2e;padding-bottom:8px;margin-bottom:16px;">[${IS_MONDAY ? '4' : '3'}] 데이터 품질 요약</div>
+  <div style="font-size:18px;font-weight:bold;color:#1a1a2e;border-bottom:2px solid #1a1a2e;padding-bottom:8px;margin-bottom:16px;">[${IS_MONDAY ? weeklyNo + 1 : weeklyNo}] 데이터 품질 요약</div>
 </td></tr>
 <tr><td style="padding:0 32px 16px;">
   <table width="100%" style="border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;font-size:13px;">
@@ -408,17 +569,23 @@ async function sendEmail(subject: string, htmlBody: string): Promise<void> {
 async function main() {
   console.log(`[ARGOS Newsletter] ${DATE_STR} — Querying database...`);
 
-  const [articles, ciUpdates, alerts, weeklyKeywords] = await Promise.all([
+  const [articles, ciUpdates, alerts, weeklyKeywords, videoTrend, techInsight, analyzedVideos] = await Promise.all([
     getRecentArticles(),
     getRecentCiUpdates(),
     getRecentAlerts(),
     IS_MONDAY ? getWeeklyKeywords() : Promise.resolve([]),
+    getViewCacheData<EventTrendJson>('event-trend-wrc2026'),
+    getViewCacheData<{ points?: string[] }>('event-tech-insight-wrc2026'),
+    getRecentAnalyzedVideos(),
   ]);
 
-  console.log(`  Articles: ${articles.length}, CI Updates: ${ciUpdates.length}, Alerts: ${alerts.length}`);
+  console.log(
+    `  Articles: ${articles.length}, CI Updates: ${ciUpdates.length}, Alerts: ${alerts.length}, ` +
+      `VideoTrend: ${videoTrend ? 'yes' : 'no'}, AnalyzedVideos(24h): ${analyzedVideos.length}`
+  );
 
   const subject = `[ARGOS Daily Brief] 휴머노이드 로봇 경쟁사 동향 - ${DATE_STR}`;
-  const html = buildNewsletter(articles, ciUpdates, alerts, weeklyKeywords);
+  const html = buildNewsletter(articles, ciUpdates, alerts, weeklyKeywords, videoTrend, techInsight, analyzedVideos);
 
   if (DRY_RUN) {
     console.log('\n=== DRY RUN — HTML Output ===\n');
