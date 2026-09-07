@@ -102,7 +102,27 @@ interface TrendPointJson {
   theme?: string;
   impact?: number;
   maturity?: number;
+  /** 근거 영상의 articles.id UUID 배열 (유튜브 videoId 아님) */
+  videoIds?: string[];
 }
+
+/**
+ * 테마색 미러 상수.
+ * 원본: packages/frontend/src/app/events/wrc2026/components/chartColors.ts CATEGORY_PALETTE[0..5]
+ *       packages/frontend/src/app/events/wrc2026/components/TrendMatrix.tsx THEME_COLOR
+ */
+const THEME_COLOR_MIRROR: Record<string, string> = {
+  제품: '#2a78d6',
+  기술: '#eb6834',
+  시장: '#1baf7a',
+  서비스: '#eda100',
+  생산: '#e87ba4',
+  파트너십: '#008300',
+};
+const THEME_COLOR_MUTED = '#9AA1AC';
+
+/** articles.id (uuid) 형식 검증 — DB 쿼리 전 필터링용 */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface EventTrendJson {
   headline?: string;
@@ -149,6 +169,43 @@ async function getRecentAnalyzedVideos(): Promise<AnalyzedVideoRow[]> {
   } catch {
     return [];
   }
+}
+
+interface VideoThumbInfo {
+  url: string;
+  thumbnail: string | null;
+  titleKo: string | null;
+}
+
+/** extracted_metadata에서 썸네일 URL을 결정한다: meta.thumbnail 우선, 없으면 meta.videoId로 유튜브 mqdefault 썸네일 생성 */
+function resolveThumbnail(meta: any): string | null {
+  if (meta && typeof meta.thumbnail === 'string' && meta.thumbnail) return meta.thumbnail;
+  if (meta && typeof meta.videoId === 'string' && meta.videoId) {
+    return `https://i.ytimg.com/vi/${meta.videoId}/mqdefault.jpg`;
+  }
+  return null;
+}
+
+/** 트렌드 포인트에 인용된 근거 영상(articles.id UUID)의 썸네일/URL/한글 제목을 일괄 조회 */
+async function getVideoThumbMap(articleIds: string[]): Promise<Map<string, VideoThumbInfo>> {
+  const result = new Map<string, VideoThumbInfo>();
+  try {
+    const uniqueIds = Array.from(new Set(articleIds)).filter(id => UUID_RE.test(id)).slice(0, 12);
+    if (uniqueIds.length === 0) return result;
+
+    const { rows } = await pool.query(
+      `SELECT id, url, extracted_metadata FROM articles WHERE id = ANY($1::uuid[])`,
+      [uniqueIds]
+    );
+    for (const row of rows) {
+      const meta = row.extracted_metadata ?? {};
+      const titleKo = typeof meta.titleKo === 'string' ? meta.titleKo : null;
+      result.set(row.id, { url: row.url, thumbnail: resolveThumbnail(meta), titleKo });
+    }
+  } catch (err) {
+    console.error('getVideoThumbMap failed:', err);
+  }
+  return result;
 }
 
 /** 트렌드 포인트 정규화(문자열/객체 하위호환) 후 영향도 내림차순 상위 N개 */
@@ -236,8 +293,74 @@ function severityBadge(severity: string): string {
   return `<span style="display:inline-block;padding:2px 8px;border-radius:4px;background:${color};color:#fff;font-size:12px;font-weight:bold;">${severity.toUpperCase()}</span>`;
 }
 
+/** 트렌드 포인트 카드의 영향도/성숙도 미니 바 한 줄(라벨 + 5칸 바 + n/5) */
+function renderMiniBarRow(label: string, rawScore: number): string {
+  const score = Math.min(5, Math.max(1, Math.round(rawScore)));
+  let cells = '';
+  for (let j = 1; j <= 5; j++) {
+    const filled = j <= score;
+    cells += `<td width="14" height="8" style="width:14px;height:8px;background:${filled ? '#1a1a2e' : '#e8e8ee'};font-size:0;line-height:0;">&nbsp;</td>`;
+    if (j < 5) cells += `<td width="1" height="8" style="width:1px;height:8px;font-size:0;line-height:0;">&nbsp;</td>`;
+  }
+  return `
+    <tr><td style="padding-top:6px;">
+      <table cellpadding="0" cellspacing="0" style="display:inline-block;vertical-align:middle;"><tr>${cells}</tr></table>
+      <span style="font-size:11px;color:#888;vertical-align:middle;margin-left:6px;">${escHtml(label)} ${score}/5</span>
+    </td></tr>`;
+}
+
+/** 트렌드 포인트 카드 1개 렌더링(신형 객체/구형 문자열 하위호환) */
+function renderTrendCard(
+  p: TrendPointJson,
+  index: number,
+  total: number,
+  thumbMap: Map<string, VideoThumbInfo>,
+): string {
+  const themeColor = p.theme ? (THEME_COLOR_MIRROR[p.theme] || THEME_COLOR_MUTED) : null;
+  const borderColor = themeColor || THEME_COLOR_MUTED;
+
+  const themeBadge = themeColor
+    ? `<span style="float:right;font-size:11px;font-weight:bold;color:${themeColor};">${escHtml(p.theme!)}</span>`
+    : '';
+
+  let barsHtml = '';
+  if (typeof p.impact === 'number') barsHtml += renderMiniBarRow('영향도', p.impact);
+  if (typeof p.maturity === 'number') barsHtml += renderMiniBarRow('성숙도', p.maturity);
+
+  let thumbsHtml = '';
+  if (Array.isArray(p.videoIds) && p.videoIds.length > 0) {
+    const thumbs = p.videoIds
+      .map(id => thumbMap.get(id))
+      .filter((info): info is VideoThumbInfo => !!info && !!info.thumbnail)
+      .slice(0, 3);
+    if (thumbs.length > 0) {
+      const cells = thumbs
+        .map(info => {
+          const alt = `근거 영상: ${escHtml(info.titleKo || '유튜브 영상')}`;
+          return `<td style="padding-right:6px;"><a href="${escHtml(info.url)}" target="_blank"><img src="${escHtml(info.thumbnail!)}" width="96" height="54" alt="${alt}" style="display:block;width:96px;height:54px;object-fit:cover;border-radius:4px;border:0;"/></a></td>`;
+        })
+        .join('');
+      thumbsHtml = `
+    <tr><td style="padding-top:8px;">
+      <table cellpadding="0" cellspacing="0"><tr>${cells}</tr></table>
+    </td></tr>`;
+    }
+  }
+
+  const spacer = index < total - 1 ? `<tr><td style="height:8px;line-height:8px;font-size:0;">&nbsp;</td></tr>` : '';
+
+  return `
+<tr><td style="background:#fff;border:1px solid #e0e0e0;border-left:4px solid ${borderColor};border-radius:6px;padding:12px 16px;">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr><td style="font-size:15px;font-weight:bold;color:#1a1a2e;">#${index + 1}${p.title ? ` ${escHtml(p.title)}` : ''}${themeBadge}</td></tr>
+    <tr><td style="font-size:13px;color:#555;padding-top:4px;">${escHtml(p.text ?? '')}</td></tr>${barsHtml}${thumbsHtml}
+  </table>
+</td></tr>
+${spacer}`;
+}
+
 // ── HTML Newsletter Builder ─────────────────────────────────
-function buildNewsletter(
+async function buildNewsletter(
   articles: ArticleRow[],
   ciUpdates: CiUpdateRow[],
   alerts: AlertRow[],
@@ -245,7 +368,7 @@ function buildNewsletter(
   videoTrend: EventTrendJson | null,
   techInsight: { points?: string[] } | null,
   analyzedVideos: AnalyzedVideoRow[],
-): string {
+): Promise<string> {
   // Group by company
   const byCompany = new Map<string, { articles: ArticleRow[]; ciUpdates: CiUpdateRow[]; alerts: AlertRow[] }>();
   for (const name of TARGET_COMPANIES) {
@@ -397,21 +520,11 @@ function buildNewsletter(
 
     const topPoints = topTrendPoints(videoTrend?.points, 3);
     if (topPoints.length > 0) {
+      const allVideoIds = topPoints.flatMap(p => (Array.isArray(p.videoIds) ? p.videoIds : []));
+      const thumbMap = await getVideoThumbMap(allVideoIds);
       html += `
-  <table width="100%" style="border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;font-size:13px;">`;
-      topPoints.forEach((p, i) => {
-        const meta: string[] = [];
-        if (p.theme) meta.push(escHtml(p.theme));
-        if (typeof p.impact === 'number') meta.push(`영향도 ${p.impact}/5`);
-        if (typeof p.maturity === 'number') meta.push(`성숙도 ${p.maturity}/5`);
-        html += `
-    <tr><td style="padding:10px 14px;${i < topPoints.length - 1 ? 'border-bottom:1px solid #f0f0f0;' : ''}">
-      <b>#${i + 1}${p.title ? ` ${escHtml(p.title)}` : ''}</b>
-      ${meta.length > 0 ? `<span style="float:right;font-size:11px;color:#888;">${meta.join(' · ')}</span>` : ''}
-      <br/><span style="color:#555;line-height:1.6;">${escHtml(p.text ?? '')}</span>
-    </td></tr>`;
-      });
-      html += `
+  <table width="100%" cellpadding="0" cellspacing="0">
+    ${topPoints.map((p, i) => renderTrendCard(p, i, topPoints.length, thumbMap)).join('')}
   </table>`;
     }
 
@@ -431,35 +544,46 @@ function buildNewsletter(
     }
 
     if (analyzedVideos.length > 0) {
+      const yesterdayIso = YESTERDAY.toISOString();
       html += `
   <div style="margin-top:12px;">
     <b style="font-size:13px;color:#555;">최근 24시간 신규 분석 영상</b>
-    <table width="100%" style="margin-top:6px;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;font-size:13px;">`;
-      for (const v of analyzedVideos) {
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:6px;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;font-size:13px;">`;
+      analyzedVideos.forEach((v, idx) => {
         const meta = v.extracted_metadata ?? {};
         const titleKo = typeof meta.titleKo === 'string' ? meta.titleKo : null;
         const channel = typeof meta.channel === 'string' ? meta.channel : '';
+        const analysisLabel =
+          typeof meta.geminiAnalyzedAt === 'string' && meta.geminiAnalyzedAt >= yesterdayIso ? '영상 분석' : 'WRC 브리프';
         const oneLiner =
           (typeof meta.geminiAnalysis?.summaryKo === 'string' && meta.geminiAnalysis.summaryKo) ||
           (typeof meta.eventBrief_wrc2026?.highlight === 'string' && meta.eventBrief_wrc2026.highlight) ||
           '';
+        const thumb = resolveThumbnail(meta);
+        const borderStyle = idx < analyzedVideos.length - 1 ? 'border-bottom:1px solid #f0f0f0;' : '';
+        const displayTitle = escHtml(titleKo ?? v.title);
+        const thumbTd = thumb
+          ? `<td width="120" style="width:120px;padding:8px 12px 8px 14px;${borderStyle}vertical-align:top;"><a href="${escHtml(v.url)}" target="_blank"><img src="${escHtml(thumb)}" width="120" height="68" alt="${displayTitle}" style="display:block;width:120px;height:68px;object-fit:cover;border-radius:4px;border:0;"/></a></td>`
+          : `<td width="120" height="68" align="center" valign="middle" style="width:120px;height:68px;background:#e8e8ee;border-radius:4px;padding:8px 12px 8px 14px;${borderStyle}color:#999;font-size:12px;">영상</td>`;
         html += `
-      <tr><td style="padding:8px 14px;border-bottom:1px solid #f0f0f0;">
-        <b>${escHtml(titleKo ?? v.title)}</b>
-        ${channel ? `<span style="font-size:11px;color:#888;"> · ${escHtml(channel)}</span>` : ''}
-        <a href="${escHtml(v.url)}" style="float:right;color:#1565C0;font-size:11px;">영상 보기</a>
-        ${oneLiner ? `<br/><span style="color:#666;">${escHtml(String(oneLiner).slice(0, 120))}</span>` : ''}
-      </td></tr>`;
-      }
+      <tr>
+        ${thumbTd}
+        <td style="padding:8px 14px 8px 0;${borderStyle}vertical-align:top;">
+          <a href="${escHtml(v.url)}" target="_blank" style="font-size:13px;font-weight:bold;color:#1a1a2e;text-decoration:none;">${displayTitle}</a>
+          <div style="font-size:11px;color:#888;margin-top:2px;">${channel ? `${escHtml(channel)} · ` : ''}${escHtml(analysisLabel)}</div>
+          ${oneLiner ? `<div style="font-size:12px;color:#666;margin-top:4px;">${escHtml(String(oneLiner).slice(0, 120))}</div>` : ''}
+        </td>
+      </tr>`;
+      });
       html += `
     </table>
   </div>`;
     }
 
     html += `
-  <div style="margin-top:8px;font-size:11px;color:#888;">
-    트렌드 맵 전체 보기: <a href="https://robot-info-personal.up.railway.app/events/wrc2026" style="color:#1565C0;">WRC 2026 특집 페이지</a>
-    ${typeof videoTrend?.basedOn === 'number' ? ` · 영상 브리프 ${videoTrend.basedOn}건 기반` : ''}
+  <div style="margin-top:16px;">
+    <a href="https://robot-info-personal.up.railway.app/events/wrc2026" style="display:inline-block;background:#1a1a2e;color:#fff;font-size:12px;font-weight:bold;text-decoration:none;padding:8px 16px;border-radius:4px;">트렌드 맵 전체 보기</a>
+    ${typeof videoTrend?.basedOn === 'number' ? `<span style="margin-left:10px;font-size:11px;color:#888;">영상 브리프 ${videoTrend.basedOn}건 기반</span>` : ''}
   </div>
 </td></tr>`;
   }
@@ -585,7 +709,7 @@ async function main() {
   );
 
   const subject = `[ARGOS Daily Brief] 휴머노이드 로봇 경쟁사 동향 - ${DATE_STR}`;
-  const html = buildNewsletter(articles, ciUpdates, alerts, weeklyKeywords, videoTrend, techInsight, analyzedVideos);
+  const html = await buildNewsletter(articles, ciUpdates, alerts, weeklyKeywords, videoTrend, techInsight, analyzedVideos);
 
   if (DRY_RUN) {
     console.log('\n=== DRY RUN — HTML Output ===\n');
