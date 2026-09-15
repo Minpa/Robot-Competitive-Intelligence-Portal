@@ -36,6 +36,7 @@ import { humanoidSpecRoutes } from './humanoid-specs.js';
 import { coverageFieldRoutes } from './coverage-field.js';
 import { pmRoutes } from './pm.js';
 import { issueRoutes } from './issues.js';
+import { ingestRoutes } from './ingest.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -109,4 +110,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // ARGOS Issue Tracking — 티켓·이슈 (docs/issues/SPEC.md)
   fastify.register(issueRoutes, { prefix: '/api/issues' });
+
+  // HTTPS 배치 수집(ingest) API — 외부 에이전트(Claude Routine)가 API 키로 기사/알림 저장 (docs/ingest/SPEC.md)
+  fastify.register(ingestRoutes, { prefix: '/api/ingest' });
 }
