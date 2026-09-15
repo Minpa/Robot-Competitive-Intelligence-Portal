@@ -233,47 +233,66 @@ async function getRecentArticles(): Promise<ArticleRow[]> {
   return rows;
 }
 
+// 보조 섹션 쿼리는 하나가 실패해도 뉴스레터 전체가 중단되지 않도록 빈 배열로 대체한다
+async function safeRows<T>(label: string, fn: () => Promise<T[]>): Promise<T[]> {
+  try {
+    return await fn();
+  } catch (err) {
+    console.error(`${label} failed (section skipped):`, err instanceof Error ? err.message : err);
+    return [];
+  }
+}
+
 async function getRecentCiUpdates(): Promise<CiUpdateRow[]> {
-  const { rows } = await pool.query(`
-    SELECT cc.name AS competitor_name, cc.manufacturer,
-           ci.name AS item_name, cl.name AS layer_name,
-           cv.value, cv.confidence, cv.source, cv.source_url, cv.updated_at
-    FROM ci_values cv
-    JOIN ci_competitors cc ON cv.competitor_id = cc.id
-    JOIN ci_items ci ON cv.item_id = ci.id
-    JOIN ci_categories cat ON ci.category_id = cat.id
-    JOIN ci_layers cl ON cat.layer_id = cl.id
-    WHERE cv.updated_at >= $1
-    ORDER BY cv.updated_at DESC
-  `, [YESTERDAY.toISOString()]);
-  return rows;
+  return safeRows('getRecentCiUpdates', async () => {
+    const { rows } = await pool.query(`
+      SELECT cc.name AS competitor_name, cc.manufacturer,
+             ci.name AS item_name, cl.name AS layer_name,
+             cv.value, cv.confidence, cv.source, cv.source_url, cv.updated_at
+      FROM ci_values cv
+      JOIN ci_competitors cc ON cv.competitor_id = cc.id
+      JOIN ci_items ci ON cv.item_id = ci.id
+      JOIN ci_categories cat ON ci.category_id = cat.id
+      JOIN ci_layers cl ON cat.layer_id = cl.id
+      WHERE cv.updated_at >= $1
+      ORDER BY cv.updated_at DESC
+    `, [YESTERDAY.toISOString()]);
+    return rows;
+  });
 }
 
 async function getRecentAlerts(): Promise<AlertRow[]> {
-  const { rows } = await pool.query(`
-    SELECT ca.id, ca.type, ca.severity, ca.title, ca.summary,
-           hr.name AS robot_name, hr.manufacturer
-    FROM competitive_alerts ca
-    LEFT JOIN humanoid_robots hr ON ca.robot_id = hr.id
-    WHERE ca.created_at >= $1
-    ORDER BY
-      CASE ca.severity WHEN 'critical' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END,
-      ca.created_at DESC
-  `, [YESTERDAY.toISOString()]);
-  return rows;
+  return safeRows('getRecentAlerts', async () => {
+    // humanoid_robots에는 manufacturer 컬럼이 없다 — 제조사는 companies.name
+    const { rows } = await pool.query(`
+      SELECT ca.id, ca.type, ca.severity, ca.title, ca.summary,
+             hr.name AS robot_name, c.name AS manufacturer
+      FROM competitive_alerts ca
+      LEFT JOIN humanoid_robots hr ON ca.robot_id = hr.id
+      LEFT JOIN companies c ON hr.company_id = c.id
+      WHERE ca.created_at >= $1
+      ORDER BY
+        CASE ca.severity WHEN 'critical' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END,
+        ca.created_at DESC
+    `, [YESTERDAY.toISOString()]);
+    return rows;
+  });
 }
 
 async function getWeeklyKeywords(): Promise<KeywordRow[]> {
-  const { rows } = await pool.query(`
-    SELECT k.term, COUNT(*)::int AS mention_count
-    FROM keyword_stats ks
-    JOIN keywords k ON ks.keyword_id = k.id
-    WHERE ks.created_at >= $1
-    GROUP BY k.term
-    ORDER BY mention_count DESC
-    LIMIT 10
-  `, [WEEK_AGO.toISOString()]);
-  return rows;
+  return safeRows('getWeeklyKeywords', async () => {
+    // keyword_stats는 created_at이 아니라 calculated_at, 집계값은 count 컬럼
+    const { rows } = await pool.query(`
+      SELECT k.term, COALESCE(SUM(ks.count), 0)::int AS mention_count
+      FROM keyword_stats ks
+      JOIN keywords k ON ks.keyword_id = k.id
+      WHERE ks.calculated_at >= $1
+      GROUP BY k.term
+      ORDER BY mention_count DESC
+      LIMIT 10
+    `, [WEEK_AGO.toISOString()]);
+    return rows;
+  });
 }
 
 // ── Confidence helpers ──────────────────────────────────────
