@@ -1,0 +1,12 @@
+curl: (56) CONNECT tunnel failed, response 403
+backend_health http=000 time=0.293460
+curl: (56) CONNECT tunnel failed, response 403
+
+curl: (56) CONNECT tunnel failed, response 403
+frontend http=000 time=0.295560
+github_api http=200
+db_tcp BLOCKED_OR_TIMEOUT
+NO_PROXY=localhost,127.0.0.1,::1,127.0.0.0/8,0.0.0.0/8,::,169.254.0.0/16,api.anthropic.com,api-staging.anthropic.com,api-pr-preview.anthropic.com,mcp-proxy.anthropic.com,mcp-proxy-staging.anthropic.com,registry.npmjs.org,jsr.io,npm.jsr.io,pypi.org,files.pythonhosted.org,index.crates.io,proxy.golang.org,host.docker.internal,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10,.svc.cluster.local,*.svc.cluster.local
+HTTPS_PROXY=http://127.0.0.1:35151
+DATABASE_URL_present=1
+Tue Sep 15 13:20:10 UTC 2026
