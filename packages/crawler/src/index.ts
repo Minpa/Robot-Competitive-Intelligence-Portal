@@ -4,6 +4,8 @@ import { crawlerService } from './services/crawler.service.js';
 import { schedulerService } from './services/scheduler.service.js';
 import { errorLogger } from './services/error-logger.js';
 import { legalDataCollector } from './services/legal-data-collector.js';
+import { arxivHandCollector } from './services/arxiv-hand-collector.service.js';
+import { parseBackfillOptions } from './services/arxiv-hand-query.js';
 import { youtubeCollectorService } from './services/youtube-collector.service.js';
 import { eventVideoSearchService } from './services/event-video-search.service.js';
 import { topicVideoSearchService, MAX_PAGES } from './services/topic-video-search.service.js';
@@ -135,6 +137,34 @@ fastify.post('/legal/github', async () => legalDataCollector.collectGitHub());
 fastify.post('/legal/sec-edgar', async () => legalDataCollector.collectSecEdgar());
 fastify.post('/legal/patents', async () => legalDataCollector.collectPatents());
 fastify.post('/legal/youtube', async () => youtubeCollectorService.collect());
+// 핸드 전용 arXiv 수집 (공식 API, 초록 500자 발췌). 일일 증분을 수동 실행 — 크론과 같은 함수, 동기 응답(요청 4개, 약 15초)
+fastify.post('/legal/arxiv-hand', async () => arxivHandCollector.collectDaily());
+// 과거 N개월 1회성 백필 — body { months?: 1..24 (기본 12), dryRun?: boolean }. 비동기(202), 진행은 status 로 확인
+fastify.post<{ Body?: { months?: unknown; dryRun?: unknown } | null }>(
+  '/legal/arxiv-hand-backfill',
+  async (request, reply) => {
+    const opts = parseBackfillOptions(request.body);
+    if (!opts.ok) {
+      reply.status(400).send({ error: opts.error });
+      return;
+    }
+    const started = arxivHandCollector.startBackfill({ months: opts.months, dryRun: opts.dryRun });
+    if (!started.started) {
+      reply.status(409).send({ error: 'backfill already running', startedAt: started.startedAt, progress: started.progress });
+      return;
+    }
+    reply.status(202).send({
+      status: 'started',
+      months: started.months,
+      dryRun: started.dryRun,
+      windows: started.windows,
+      queries: started.queries,
+      estimatedRequests: started.estimatedRequests,
+      estimatedMinutes: started.estimatedMinutes,
+    });
+  }
+);
+fastify.get('/legal/arxiv-hand-backfill/status', async () => arxivHandCollector.getStatus());
 fastify.post('/legal/event-videos', async () => eventVideoSearchService.collectAll());
 // body { domains?: TopicDomain[]; pages?: number } — domains 는 화이트리스트 검증, pages 는 1..MAX_PAGES 로 클램프
 const TOPIC_DOMAINS: TopicDomain[] = ['hand', 'rfm', 'actuator', 'expo', 'production'];
@@ -202,6 +232,13 @@ const start = async () => {
           console.log('[LegalCollector] Daily collection done:', JSON.stringify(result));
         } catch (err) {
           console.error('[LegalCollector] Daily collection failed:', err);
+        }
+        if (process.env.DISABLE_ARXIV_HAND !== 'true') {
+          try {
+            await arxivHandCollector.collectDaily(); // 핸드 전용 arXiv 검색 증분 (Q1~Q4, 최신 100건씩)
+          } catch (err) {
+            console.error('[ArxivHand] Daily collection failed:', err);
+          }
         }
         try {
           await youtubeCollectorService.collect(); // 공식 채널 데모 영상 (채널 RSS)

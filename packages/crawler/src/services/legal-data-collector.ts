@@ -5,6 +5,7 @@
 import { createHash } from 'crypto';
 import { getDb, articles } from '../db/index.js';
 import { eq } from 'drizzle-orm';
+import { parseRawArxivEntries, waitArxivTurn, markArxivRequestDone } from './arxiv-atom.js';
 
 export interface CollectedData {
   id: string;
@@ -27,15 +28,15 @@ export interface CollectionResult {
 // arXiv API
 export class ArxivCollector {
   private baseUrl = 'http://export.arxiv.org/api/query';
-  private lastRequest = 0;
 
   async fetchRoboticsResearch(maxResults = 50): Promise<CollectionResult> {
     try {
-      await this.delay(3000);
+      await this.delay();
       const query = encodeURIComponent('cat:cs.RO OR cat:cs.AI');
       const url = `${this.baseUrl}?search_query=${query}&start=0&max_results=${maxResults}&sortBy=submittedDate&sortOrder=descending`;
 
       const response = await fetch(url, { headers: { 'User-Agent': 'RCIPBot/1.0' } });
+      markArxivRequestDone();
       if (!response.ok) throw new Error(`arXiv API error: ${response.status}`);
 
       const xml = await response.text();
@@ -46,41 +47,25 @@ export class ArxivCollector {
     }
   }
 
+  // 파싱은 arxiv-atom.ts 의 공용 파서에 위임한다 (출력 shape/값은 기존과 동일)
   private parse(xml: string): CollectedData[] {
-    const items: CollectedData[] = [];
-    const regex = /<entry>([\s\S]*?)<\/entry>/g;
-    let m;
-    while ((m = regex.exec(xml)) !== null) {
-      const entry = m[1] ?? '';
-      const id = this.tag(entry, 'id');
-      const title = this.tag(entry, 'title');
-      if (id && title) {
-        items.push({
-          id: createHash('md5').update(id).digest('hex'),
-          source: 'arxiv',
-          type: 'research_paper',
-          title: title.replace(/\s+/g, ' ').trim(),
-          url: id,
-          metadata: {
-            abstract: (this.tag(entry, 'summary') ?? '').substring(0, 500),
-            published: this.tag(entry, 'published') ?? undefined,
-          },
-          collectedAt: new Date(),
-        });
-      }
-    }
-    return items;
+    return parseRawArxivEntries(xml).map((e) => ({
+      id: createHash('md5').update(e.id).digest('hex'),
+      source: 'arxiv' as const,
+      type: 'research_paper',
+      title: e.title.replace(/\s+/g, ' ').trim(),
+      url: e.id,
+      metadata: {
+        abstract: (e.summary ?? '').substring(0, 500),
+        published: e.published ?? undefined,
+      },
+      collectedAt: new Date(),
+    }));
   }
 
-  private tag(xml: string, name: string): string | null {
-    const m = xml.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)</${name}>`));
-    return m && m[1] ? m[1] : null;
-  }
-
-  private async delay(ms: number): Promise<void> {
-    const elapsed = Date.now() - this.lastRequest;
-    if (elapsed < ms) await new Promise(r => setTimeout(r, ms - elapsed));
-    this.lastRequest = Date.now();
+  // arXiv API ToU(3초 간격)는 ArxivHandCollector 와 모듈 레벨로 공유한다
+  private async delay(): Promise<void> {
+    await waitArxivTurn();
   }
 }
 
