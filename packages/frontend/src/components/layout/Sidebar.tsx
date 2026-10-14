@@ -198,6 +198,13 @@ const navigationGroups: NavGroup[] = [
     ],
   },
   {
+    title: '공유용',
+    subtitle: 'Share',
+    items: [
+      { name: '핸드 기술 트렌드 (최근 30일)', href: '/share/tech-trend/hand', icon: Hand },
+    ],
+  },
+  {
     title: '검색',
     subtitle: 'Search',
     items: [
@@ -234,7 +241,7 @@ export function Sidebar() {
     pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
 
   return (
-    <aside className="w-[264px] bg-ink-50 text-ink-600 min-h-screen flex flex-col border-r border-ink-200">
+    <aside className="w-[264px] bg-ink-50 text-ink-600 min-h-screen flex flex-col border-r border-ink-200 print:hidden">
       {/* Logo Block */}
       <div className="px-5 pt-6 pb-5 border-b border-ink-200">
         <Link href="/video-trends" className="block">

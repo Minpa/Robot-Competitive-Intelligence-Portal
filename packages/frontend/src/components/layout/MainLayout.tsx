@@ -73,10 +73,10 @@ export function MainLayout({ children }: MainLayoutProps) {
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Header />
-        <main className="flex-1 p-8 bg-paper">
+        <main className="flex-1 p-8 bg-paper print:p-0 print:bg-white">
           {children}
         </main>
-        <footer className="bg-white border-t border-ink-200 px-8 py-4">
+        <footer className="bg-white border-t border-ink-200 px-8 py-4 print:hidden">
           <div className="flex items-center justify-between text-[11px] text-ink-500">
             <span className="tracking-wide">© 2024–2026 ARGOS · Autonomous Robot Global Observatory System</span>
             <div className="flex gap-5">

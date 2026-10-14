@@ -5,6 +5,7 @@ import {
   UpdateArticleSchema,
   ArticleFiltersSchema,
   PaginationSchema,
+  TechTrendReportQuerySchema,
 } from '../types/dto.js';
 
 export async function articleRoutes(fastify: FastifyInstance) {
@@ -44,6 +45,30 @@ export async function articleRoutes(fastify: FastifyInstance) {
       domain as 'hand' | 'rfm' | 'actuator' | 'expo' | 'production'
     );
   });
+
+  // 단위기술 축 공유용 리포트 — 최근 N일 영상 + 논문/기사 + AI 시사점 (24h 캐시)
+  fastify.get<{ Params: { domain: string }; Querystring: { days?: string } }>(
+    '/tech-trends/:domain/report',
+    async (request, reply) => {
+      const { domain } = request.params;
+      const { TECH_TREND_DOMAINS, techTrendReportService } = await import(
+        '../services/tech-trend-report.service.js'
+      );
+      if (!(TECH_TREND_DOMAINS as readonly string[]).includes(domain)) {
+        reply.status(400).send({ error: 'Invalid domain' });
+        return;
+      }
+      const parsed = TechTrendReportQuerySchema.safeParse(request.query);
+      if (!parsed.success) {
+        reply.status(400).send({ error: 'Invalid query: days must be an integer between 7 and 90' });
+        return;
+      }
+      return techTrendReportService.getReport(
+        domain as (typeof TECH_TREND_DOMAINS)[number],
+        parsed.data.days
+      );
+    }
+  );
 
   // Get article by ID
   fastify.get<{ Params: { id: string } }>('/:id', async (request, reply) => {

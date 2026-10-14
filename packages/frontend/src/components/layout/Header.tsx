@@ -58,7 +58,7 @@ export function Header() {
   const initials = (userName[0] || 'U').toUpperCase();
 
   return (
-    <header className="h-16 bg-white border-b border-ink-200 px-7 flex items-center gap-6">
+    <header className="h-16 bg-white border-b border-ink-200 px-7 flex items-center gap-6 print:hidden">
       {/* Search */}
       <form onSubmit={handleSearch} className="flex-1 max-w-md">
         <div className="relative">

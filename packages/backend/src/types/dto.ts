@@ -180,3 +180,10 @@ export const ArticleFiltersSchema = z.object({
 });
 
 export type ArticleFiltersDto = z.infer<typeof ArticleFiltersSchema>;
+
+// 단위기술 공유용 리포트 (최근 N일) 쿼리 — days는 7~90, 기본 30
+export const TechTrendReportQuerySchema = z.object({
+  days: z.coerce.number().int().min(7).max(90).default(30),
+});
+
+export type TechTrendReportQueryDto = z.infer<typeof TechTrendReportQuerySchema>;

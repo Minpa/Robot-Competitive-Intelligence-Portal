@@ -144,6 +144,8 @@ interface Row {
     channel?: string;
     domain?: string;
     topic?: string;
+    /** 다중 토픽 합집합 (같은 영상이 여러 토픽 검색에 잡힌 경우) */
+    topics?: string[];
     thirdParty?: boolean;
     views?: number | null;
     videoId?: string;
@@ -233,7 +235,7 @@ export function TechDomainView({ view = 'main' }: { view?: 'main' | 'videos' }) 
         }
         // 주제 검색 수집 영상(topic-video-search): 이 축의 검색으로 수집된 영상은
         // 채널 도메인 제한을 우회해 바로 포함한다.
-        if (meta?.topic === config.videoDomain) return true;
+        if (meta?.topic === config.videoDomain || meta?.topics?.includes(config.videoDomain)) return true;
         // 채널 도메인 제한: 지정된 도메인 채널의 영상만 후보로 (예: 양산 축은 완제품사 채널만)
         if (config.videoChannelDomains && !config.videoChannelDomains.includes(meta?.domain ?? '')) {
           return false;

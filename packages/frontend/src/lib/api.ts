@@ -1,6 +1,7 @@
 // Remove trailing /api if present (Railway may add it automatically)
 import type { AIAgentInput, AnalysisResult } from '@/types/insight-pipeline';
 import type { CiMatrixData, CiCompetitor, CiNewCompetitorRequest, CiValueUpdateRequest, CiValueHistoryEntry, CiFreshnessSummary, CiStagingEntry, CiMonitorAlert, BenchmarkData, HandBenchmarkData } from '@/types/ci-update';
+import type { TechTrendReport } from '@/types/tech-trend-report';
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const API_BASE = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
 
@@ -325,6 +326,11 @@ class ApiClient {
       generatedAt: string;
       source: string;
     }>(`/articles/tech-trends/${domain}/summary`);
+  }
+
+  /** 단위기술 축 공유용 리포트 (최근 N일 영상 + 논문 + AI 시사점) */
+  async getTechTrendReport(domain: string, days = 30) {
+    return this.request<TechTrendReport>(`/articles/tech-trends/${domain}/report?days=${days}`);
   }
 
   async importArticlesFromExcel(file: File, updateExisting = true) {

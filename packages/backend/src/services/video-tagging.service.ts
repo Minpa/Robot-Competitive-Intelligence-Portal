@@ -458,7 +458,7 @@ points는 4~6개. 마크다운 기호(#, **) 사용 금지.`
     generatedAt: string;
     source: 'llm' | 'template' | 'cache';
   }> {
-    const cacheKey = `video-trend-summary:v5:${domain}`;
+    const cacheKey = `video-trend-summary:v6:${domain}`;
     let cached = this.techSummaryCache.get(domain);
     if (!cached) {
       const persisted = await this.loadPersistedSummary(cacheKey);
@@ -501,7 +501,7 @@ points는 4~6개. 마크다운 기호(#, **) 사용 금지.`
     let videoCond;
     if (isTopic) {
       const re = TOPIC_REGEX[domain]!;
-      videoCond = sql`((extracted_metadata->>'domain' = 'robot' AND (title ~* ${re} OR COALESCE(extracted_metadata->>'description','') ~* ${re})) OR extracted_metadata->>'topic' = ${domain})`;
+      videoCond = sql`((extracted_metadata->>'domain' = 'robot' AND (title ~* ${re} OR COALESCE(extracted_metadata->>'description','') ~* ${re})) OR (extracted_metadata->>'topic' = ${domain} OR extracted_metadata->'topics' ? ${domain}))`;
     } else {
       const extraVideoCond =
         domain === 'hand'
@@ -509,7 +509,7 @@ points는 4~6개. 마크다운 기호(#, **) 사용 금지.`
           : domain === 'rfm'
             ? sql` OR extracted_metadata->'aiTags'->'techTags' ?| array['VLA','파운데이션모델','강화학습','End-to-End']`
             : sql``;
-      videoCond = sql`(extracted_metadata->>'domain' = ${domain}${extraVideoCond} OR extracted_metadata->>'topic' = ${domain})`;
+      videoCond = sql`(extracted_metadata->>'domain' = ${domain}${extraVideoCond} OR (extracted_metadata->>'topic' = ${domain} OR extracted_metadata->'topics' ? ${domain}))`;
     }
 
     const videoRows = await db
