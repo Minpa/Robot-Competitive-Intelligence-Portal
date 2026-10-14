@@ -10,6 +10,7 @@ import { Panel } from '@/components/ui';
 import { ShareActions } from './ShareActions';
 import { ReportSummaryCards } from './ReportSummaryCards';
 import { ReportInsightCard } from './ReportInsightCard';
+import { TechTimelineSection } from './TechTimelineSection';
 import { ReportVideoGrid } from './ReportVideoGrid';
 import { ReportPaperList } from './ReportPaperList';
 import type { TechTrendDomain } from '@/types/tech-trend-report';
@@ -149,6 +150,7 @@ export function TechTrendShareView() {
           <>
             <ReportSummaryCards report={report} />
             <ReportInsightCard insight={report.insight} />
+            {report.domain === 'hand' && <TechTimelineSection domain={report.domain} />}
             <ReportVideoGrid
               videos={report.videos}
               total={report.stats.videoCount}

@@ -126,6 +126,94 @@ export async function articleRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // 핸드 기술 시계열 트렌드 (수집 시작 이후 전체 기간) — 월별 서브토픽 집계 (10분 캐시), days 무관
+  fastify.get<{ Params: { domain: string } }>('/tech-trends/:domain/timeline', async (request, reply) => {
+    const { domain } = request.params;
+    const { TECH_TREND_DOMAINS } = await import('../services/tech-trend-report.service.js');
+    if (!(TECH_TREND_DOMAINS as readonly string[]).includes(domain)) {
+      reply.status(400).send({ error: 'Invalid domain' });
+      return;
+    }
+    const { TIMELINE_SUPPORTED_DOMAINS, techTrendTimelineService } = await import(
+      '../services/tech-trend-timeline.service.js'
+    );
+    if (!(TIMELINE_SUPPORTED_DOMAINS as readonly string[]).includes(domain)) {
+      reply.status(400).send({ error: 'Timeline not supported for this domain' });
+      return;
+    }
+    return techTrendTimelineService.getTimeline();
+  });
+
+  // 시계열 AI 해설 — 항상 200 { status, insight }, 차트와 분리해 지연/실패가 차트에 영향 없도록 함 (24h 캐시)
+  fastify.get<{ Params: { domain: string } }>('/tech-trends/:domain/timeline/insight', async (request, reply) => {
+    const { domain } = request.params;
+    const { TECH_TREND_DOMAINS } = await import('../services/tech-trend-report.service.js');
+    if (!(TECH_TREND_DOMAINS as readonly string[]).includes(domain)) {
+      reply.status(400).send({ error: 'Invalid domain' });
+      return;
+    }
+    const { TIMELINE_SUPPORTED_DOMAINS } = await import('../services/tech-trend-timeline.service.js');
+    if (!(TIMELINE_SUPPORTED_DOMAINS as readonly string[]).includes(domain)) {
+      reply.status(400).send({ error: 'Timeline not supported for this domain' });
+      return;
+    }
+    const { techTrendTimelineInsightService } = await import(
+      '../services/tech-trend-timeline-insight.service.js'
+    );
+    return techTrendTimelineInsightService.getInsight();
+  });
+
+  // 핸드 논문·영상 서브토픽 분류 배치 (관리자, 이벤트성) — 즉시 응답, 백그라운드 실행
+  fastify.post<{ Params: { domain: string } }>(
+    '/tech-trends/:domain/classify',
+    { preHandler: adminOnly },
+    async (request, reply) => {
+      const { domain } = request.params;
+      const { TECH_TREND_DOMAINS } = await import('../services/tech-trend-report.service.js');
+      if (!(TECH_TREND_DOMAINS as readonly string[]).includes(domain)) {
+        reply.status(400).send({ error: 'Invalid domain' });
+        return;
+      }
+      const { CLASSIFY_SUPPORTED_DOMAINS, handTopicClassificationService } = await import(
+        '../services/hand-topic-classification.service.js'
+      );
+      if (!(CLASSIFY_SUPPORTED_DOMAINS as readonly string[]).includes(domain)) {
+        reply.status(400).send({ error: 'Timeline not supported for this domain' });
+        return;
+      }
+      const result = await handTopicClassificationService.start();
+      if (!result.ok) {
+        reply.status(503).send({ error: 'ANTHROPIC_API_KEY not configured' });
+        return;
+      }
+      return result.alreadyRunning
+        ? { alreadyRunning: true, queued: 0, total: result.total }
+        : { queued: result.queued, total: result.total };
+    }
+  );
+
+  // 분류 배치 진행 상태 (관리자 전용, 인메모리)
+  fastify.get<{ Params: { domain: string } }>(
+    '/tech-trends/:domain/classify/status',
+    { preHandler: adminOnly },
+    async (request, reply) => {
+      const { domain } = request.params;
+      const { TECH_TREND_DOMAINS } = await import('../services/tech-trend-report.service.js');
+      if (!(TECH_TREND_DOMAINS as readonly string[]).includes(domain)) {
+        reply.status(400).send({ error: 'Invalid domain' });
+        return;
+      }
+      const { CLASSIFY_SUPPORTED_DOMAINS, handTopicClassificationService } = await import(
+        '../services/hand-topic-classification.service.js'
+      );
+      if (!(CLASSIFY_SUPPORTED_DOMAINS as readonly string[]).includes(domain)) {
+        reply.status(400).send({ error: 'Timeline not supported for this domain' });
+        return;
+      }
+      return handTopicClassificationService.getStatus();
+    }
+  );
+
   // Get article by ID
   fastify.get<{ Params: { id: string } }>('/:id', async (request, reply) => {
     const article = await articleService.getById(request.params.id);

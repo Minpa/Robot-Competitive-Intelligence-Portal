@@ -449,6 +449,15 @@ class TechTrendAnalysisService {
       );
       if (s.analyzed > 0 || s.judged > 0) {
         await techTrendReportService.invalidateInsightCache(domain);
+        // focus 판정으로 시계열 스코프 자체가 바뀌므로 타임라인·해설 캐시도 무효화 (hand 한정)
+        if (domain === 'hand') {
+          try {
+            const { techTrendTimelineService } = await import('./tech-trend-timeline.service.js');
+            await techTrendTimelineService.invalidate();
+          } catch (err) {
+            console.error(`[TechTrendAnalysis] ${domain}: timeline cache invalidation failed:`, (err as Error).message);
+          }
+        }
       }
     }
   }

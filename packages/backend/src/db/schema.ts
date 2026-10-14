@@ -183,6 +183,16 @@ export interface ExtractedMetadata {
       source: 'gemini' | 'haiku';
     };
   };
+  // 핸드 기술 서브토픽 분류 (hand-topic-classification.service.ts) — 버전 1부터, 단일 UPDATE 병합 저장
+  handTopics?: {
+    topics: string[];
+    primary: string;
+    classifiedAt: string;
+    version: number;
+    inputLevel?: 'rich' | 'basic';
+    model?: string;
+  };
+  handTopicsAttempts?: number;
 }
 
 // Keyword entity

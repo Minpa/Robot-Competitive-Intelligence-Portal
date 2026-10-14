@@ -2,6 +2,12 @@
 import type { AIAgentInput, AnalysisResult } from '@/types/insight-pipeline';
 import type { CiMatrixData, CiCompetitor, CiNewCompetitorRequest, CiValueUpdateRequest, CiValueHistoryEntry, CiFreshnessSummary, CiStagingEntry, CiMonitorAlert, BenchmarkData, HandBenchmarkData } from '@/types/ci-update';
 import type { TechTrendReport, TechTrendAnalysisStatus, TechTrendAnalyzeResponse } from '@/types/tech-trend-report';
+import type {
+  TechTrendTimeline,
+  TechTrendTimelineInsightResponse,
+  HandTopicClassificationStatus,
+  HandTopicClassifyResponse,
+} from '@/types/tech-trend-timeline';
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const API_BASE = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
 
@@ -343,6 +349,28 @@ class ApiClient {
   /** 분석 배치 진행 상태 (관리자) */
   async getTechTrendAnalysisStatus(domain: string) {
     return this.request<TechTrendAnalysisStatus>(`/articles/tech-trends/${domain}/analyze/status`);
+  }
+
+  /** 핸드 기술 시계열 트렌드 (수집 시작 이후 전체 기간, days 무관) */
+  async getTechTrendTimeline(domain: string) {
+    return this.request<TechTrendTimeline>(`/articles/tech-trends/${domain}/timeline`);
+  }
+
+  /** 시계열 AI 해설 (항상 200 { status, insight }) */
+  async getTechTrendTimelineInsight(domain: string) {
+    return this.request<TechTrendTimelineInsightResponse>(`/articles/tech-trends/${domain}/timeline/insight`);
+  }
+
+  /** 핸드 논문·영상 서브토픽 분류 배치 시작 (관리자) */
+  async startHandTopicClassification(domain: string) {
+    return this.request<HandTopicClassifyResponse>(`/articles/tech-trends/${domain}/classify`, {
+      method: 'POST',
+    });
+  }
+
+  /** 분류 배치 진행 상태 (관리자) */
+  async getHandTopicClassificationStatus(domain: string) {
+    return this.request<HandTopicClassificationStatus>(`/articles/tech-trends/${domain}/classify/status`);
   }
 
   async importArticlesFromExcel(file: File, updateExisting = true) {
