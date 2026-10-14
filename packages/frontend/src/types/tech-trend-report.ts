@@ -17,6 +17,8 @@ export interface ReportVideo {
   summaryKo: string | null;
   taskTypes: string[];
   techTags: string[];
+  /** 핸드 관련성 판정 — null이면 아직 판정 전("분석 대기") */
+  domainFocus: 'primary' | 'secondary' | null;
 }
 
 export interface ReportPaper {
@@ -59,4 +61,30 @@ export interface TechTrendReport {
   videos: ReportVideo[];
   papers: ReportPaper[];
   truncated: { videos: boolean; papers: boolean };
+  /** AI 판정으로 제외된 영상 수 / 제외 후 남은 영상 중 판정 전 영상 수 (hand 외 도메인은 0) */
+  focus: { excluded: number; pending: number };
+}
+
+/** GET /api/articles/tech-trends/:domain/analyze/status 응답 (backend AnalysisRunState와 1:1) */
+export interface TechTrendAnalysisStatus {
+  running: boolean;
+  total: number;
+  processed: number;
+  analyzed: number;
+  judged: number;
+  excluded: number;
+  failed: number;
+  skipped: number;
+  quotaHit: boolean;
+  budgetHit: boolean;
+  judgeSkipped: boolean;
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
+/** POST /api/articles/tech-trends/:domain/analyze 응답 */
+export interface TechTrendAnalyzeResponse {
+  queued: number;
+  total: number;
+  alreadyRunning?: boolean;
 }

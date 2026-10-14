@@ -126,12 +126,19 @@ export function buildTechTrendReportHtml(report: TechTrendReport, meta: ReportHt
             const metaParts = [
               v.channel ? escapeHtml(v.channel) : '',
               v.thirdParty ? '외부 채널' : '',
+              report.domain === 'hand' && v.domainFocus === null ? '분석 대기' : '',
               fmtDate(v.publishedAt),
             ].filter(Boolean);
             const summary = v.summaryKo ? `<p class="s">${escapeHtml(v.summaryKo)}</p>` : '';
             return `<div class="vcard">${img}<div class="b"><p class="t">${titleEl}</p><p class="m">${metaParts.join(' · ')}</p>${summary}</div></div>`;
           })
           .join('')}</div>`;
+
+  const excludedCount = report.focus?.excluded ?? 0;
+  const excludedHtml =
+    excludedCount > 0
+      ? `<p class="meta" style="margin:0 0 10px">AI 판정으로 핸드와 무관한 영상 ${excludedCount}건 제외</p>`
+      : '';
 
   const papersHtml =
     report.papers.length === 0
@@ -206,7 +213,8 @@ export function buildTechTrendReportHtml(report: TechTrendReport, meta: ReportHt
 
   <div class="card">
     <div class="kicker">Demo Videos</div>
-    <h2>영상 (${report.stats.videoCount}건)${report.truncated.videos ? ' <small style="font-size:12px;font-weight:400;color:#8A909A">최신 60건만 표시</small>' : ''}</h2>
+    <h2>영상 (${report.stats.videoCount}건)${report.truncated.videos ? ` <small style="font-size:12px;font-weight:400;color:#8A909A">최신 ${report.videos.length}건만 표시</small>` : ''}</h2>
+    ${excludedHtml}
     ${videosHtml}
   </div>
 

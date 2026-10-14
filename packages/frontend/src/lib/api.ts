@@ -1,7 +1,7 @@
 // Remove trailing /api if present (Railway may add it automatically)
 import type { AIAgentInput, AnalysisResult } from '@/types/insight-pipeline';
 import type { CiMatrixData, CiCompetitor, CiNewCompetitorRequest, CiValueUpdateRequest, CiValueHistoryEntry, CiFreshnessSummary, CiStagingEntry, CiMonitorAlert, BenchmarkData, HandBenchmarkData } from '@/types/ci-update';
-import type { TechTrendReport } from '@/types/tech-trend-report';
+import type { TechTrendReport, TechTrendAnalysisStatus, TechTrendAnalyzeResponse } from '@/types/tech-trend-report';
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const API_BASE = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
 
@@ -331,6 +331,18 @@ class ApiClient {
   /** 단위기술 축 공유용 리포트 (최근 N일 영상 + 논문 + AI 시사점) */
   async getTechTrendReport(domain: string, days = 30) {
     return this.request<TechTrendReport>(`/articles/tech-trends/${domain}/report?days=${days}`);
+  }
+
+  /** 핸드 리포트 대상 영상 전체 Gemini 분석 + 핸드 관련성 판정 시작 (관리자) */
+  async startTechTrendAnalysis(domain: string, days = 30) {
+    return this.request<TechTrendAnalyzeResponse>(`/articles/tech-trends/${domain}/analyze?days=${days}`, {
+      method: 'POST',
+    });
+  }
+
+  /** 분석 배치 진행 상태 (관리자) */
+  async getTechTrendAnalysisStatus(domain: string) {
+    return this.request<TechTrendAnalysisStatus>(`/articles/tech-trends/${domain}/analyze/status`);
   }
 
   async importArticlesFromExcel(file: File, updateExisting = true) {

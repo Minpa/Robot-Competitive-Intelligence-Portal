@@ -10,6 +10,11 @@ import {
   parseTrendInsight,
   toReportVideo,
   toReportPaper,
+  getDomainFocus,
+  filterByDomainFocus,
+  prioritizeVideosForPrompt,
+  VIDEO_LIST_CAP,
+  PAPER_LIST_CAP,
   type ArticleRow,
   type ReportVideo,
   type ReportPaper,
@@ -348,5 +353,91 @@ describe('toReportVideo', () => {
     expect(v.views).toBe(1234);
     expect(toReportVideo(video({})).summaryKo).toBeNull();
     expect(toReportVideo(video({})).thirdParty).toBe(false);
+  });
+});
+
+describe('getDomainFocus / filterByDomainFocus / toReportVideo domainFocus', () => {
+  const withFocus = (id: string, level: string | null, domain = 'hand') =>
+    video(
+      level ? { domainFocus: { [domain]: { level, reason: 'r', judgedAt: 'x', source: 'haiku' } } } : {},
+      { id }
+    );
+
+  it('getDomainFocus reads valid levels and returns null for missing/invalid', () => {
+    expect(getDomainFocus('hand', withFocus('a', 'primary'))).toBe('primary');
+    expect(getDomainFocus('hand', withFocus('a', 'none'))).toBe('none');
+    expect(getDomainFocus('hand', withFocus('a', null))).toBeNull();
+    expect(getDomainFocus('hand', withFocus('a', 'bogus'))).toBeNull();
+  });
+
+  it("filterByDomainFocus('hand') drops only 'none' and counts them", () => {
+    const rows = [
+      withFocus('p', 'primary'),
+      withFocus('s', 'secondary'),
+      withFocus('n1', 'none'),
+      withFocus('u', null),
+      withFocus('n2', 'none'),
+    ];
+    const { kept, excludedCount } = filterByDomainFocus('hand', rows);
+    expect(kept.map((r) => r.id)).toEqual(['p', 's', 'u']);
+    expect(excludedCount).toBe(2);
+  });
+
+  it('filterByDomainFocus does not exclude for non-hand domains', () => {
+    const rows = [withFocus('n', 'none', 'rfm'), withFocus('n2', 'none')];
+    const { kept, excludedCount } = filterByDomainFocus('rfm', rows);
+    expect(kept).toHaveLength(2);
+    expect(excludedCount).toBe(0);
+  });
+
+  it('toReportVideo fills domainFocus when judged, null otherwise', () => {
+    expect(toReportVideo(withFocus('a', 'primary')).domainFocus).toBe('primary');
+    expect(toReportVideo(withFocus('a', 'secondary')).domainFocus).toBe('secondary');
+    expect(toReportVideo(withFocus('a', null)).domainFocus).toBeNull();
+    expect(toReportVideo(video({ geminiAnalysis: { summaryKo: '요약' } })).summaryKo).toBe('요약');
+  });
+});
+
+describe('prioritizeVideosForPrompt / buildInsightPrompt ordering', () => {
+  const mk = (title: string, domainFocus: ReportVideo['domainFocus']): ReportVideo => ({
+    id: title,
+    title,
+    channel: null,
+    thirdParty: false,
+    publishedAt: '2026-10-01T00:00:00.000Z',
+    url: null,
+    videoId: null,
+    thumbnail: null,
+    views: null,
+    summaryKo: null,
+    taskTypes: [],
+    techTags: [],
+    domainFocus,
+  });
+
+  it('orders primary -> secondary -> unjudged, keeping input (recency) order within groups', () => {
+    const out = prioritizeVideosForPrompt(
+      [mk('u1', null), mk('s1', 'secondary'), mk('p1', 'primary'), mk('u2', null), mk('p2', 'primary'), mk('s2', 'secondary')],
+      40
+    );
+    expect(out.map((v) => v.title)).toEqual(['p1', 'p2', 's1', 's2', 'u1', 'u2']);
+  });
+
+  it('caps at the prompt limit (40) after prioritizing', () => {
+    const vids = [
+      ...Array.from({ length: 45 }, (_, i) => mk(`u${i}`, null)),
+      mk('late-primary', 'primary'),
+    ];
+    const out = prioritizeVideosForPrompt(vids, 40);
+    expect(out).toHaveLength(40);
+    expect(out[0].title).toBe('late-primary');
+    const prompt = buildInsightPrompt({ domainLabel: '핸드', days: 30, videos: vids, papers: [] });
+    expect(prompt).toContain('late-primary');
+    expect(prompt).toContain('[영상 40건]');
+  });
+
+  it('exposes distinct list caps for videos (100) and papers (60)', () => {
+    expect(VIDEO_LIST_CAP).toBe(100);
+    expect(PAPER_LIST_CAP).toBe(60);
   });
 });

@@ -15,15 +15,24 @@ interface Props {
   videos: ReportVideo[];
   total: number;
   truncated: boolean;
+  /** AI 판정으로 제외된 영상 수 */
+  excludedCount?: number;
+  /** 판정 전 영상에 "분석 대기" 배지를 표시할지 (핸드 리포트에서만) */
+  showPendingBadge?: boolean;
 }
 
-export function ReportVideoGrid({ videos, total, truncated }: Props) {
+export function ReportVideoGrid({ videos, total, truncated, excludedCount = 0, showPendingBadge = false }: Props) {
+  const baseSubtitle = truncated
+    ? `최신 ${videos.length}건만 표시`
+    : '기간 내 수집된 영상입니다. 제목은 원어 그대로 표시합니다.';
+  const subtitle =
+    excludedCount > 0 ? `${baseSubtitle} · AI 판정으로 핸드와 무관한 영상 ${excludedCount}건 제외` : baseSubtitle;
   return (
     <Panel
       className="report-panel"
       kicker="Demo Videos"
       title={`영상 (${total}건)`}
-      subtitle={truncated ? '최신 60건만 표시' : '기간 내 수집된 영상입니다. 제목은 원어 그대로 표시합니다.'}
+      subtitle={subtitle}
     >
       {videos.length === 0 ? (
         <div className="py-8 text-center text-ink-400 text-sm">기간 내 수집된 영상이 없습니다.</div>
@@ -58,6 +67,11 @@ export function ReportVideoGrid({ videos, total, truncated }: Props) {
                   {v.thirdParty && (
                     <Tag tone="warn" size="sm">
                       외부 채널
+                    </Tag>
+                  )}
+                  {showPendingBadge && v.domainFocus === null && (
+                    <Tag tone="info" size="sm">
+                      분석 대기
                     </Tag>
                   )}
                   <span className="text-[11px] text-ink-400">{formatDate(v.publishedAt)}</span>

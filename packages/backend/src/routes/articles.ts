@@ -7,6 +7,9 @@ import {
   PaginationSchema,
   TechTrendReportQuerySchema,
 } from '../types/dto.js';
+import { authMiddleware, requireRole } from './auth.js';
+
+const adminOnly = [authMiddleware, requireRole('admin')];
 
 export async function articleRoutes(fastify: FastifyInstance) {
   // List articles
@@ -67,6 +70,59 @@ export async function articleRoutes(fastify: FastifyInstance) {
         domain as (typeof TECH_TREND_DOMAINS)[number],
         parsed.data.days
       );
+    }
+  );
+
+  // 핸드 리포트 대상 영상 전체 Gemini 분석 + 핸드 관련성 판정 (관리자, 이벤트성 배치) — 즉시 응답, 백그라운드 실행
+  fastify.post<{ Params: { domain: string }; Querystring: { days?: string } }>(
+    '/tech-trends/:domain/analyze',
+    { preHandler: adminOnly },
+    async (request, reply) => {
+      const { domain } = request.params;
+      const { TECH_TREND_DOMAINS } = await import('../services/tech-trend-report.service.js');
+      if (!(TECH_TREND_DOMAINS as readonly string[]).includes(domain)) {
+        reply.status(400).send({ error: 'Invalid domain' });
+        return;
+      }
+      const { techTrendAnalysisService, ANALYZE_SUPPORTED_DOMAINS } = await import(
+        '../services/tech-trend-analysis.service.js'
+      );
+      if (!(ANALYZE_SUPPORTED_DOMAINS as readonly string[]).includes(domain)) {
+        reply.status(400).send({ error: 'Analysis not supported for this domain' });
+        return;
+      }
+      const parsed = TechTrendReportQuerySchema.safeParse(request.query);
+      if (!parsed.success) {
+        reply.status(400).send({ error: 'Invalid query: days must be an integer between 7 and 90' });
+        return;
+      }
+      const result = await techTrendAnalysisService.start(
+        domain as (typeof TECH_TREND_DOMAINS)[number],
+        parsed.data.days
+      );
+      if (!result.ok) {
+        reply.status(503).send({ error: 'GEMINI_API_KEY not configured' });
+        return;
+      }
+      return result.alreadyRunning
+        ? { alreadyRunning: true, queued: 0, total: result.total }
+        : { queued: result.queued, total: result.total };
+    }
+  );
+
+  // 분석 배치 진행 상태 (관리자 전용, 인메모리)
+  fastify.get<{ Params: { domain: string } }>(
+    '/tech-trends/:domain/analyze/status',
+    { preHandler: adminOnly },
+    async (request, reply) => {
+      const { domain } = request.params;
+      const { TECH_TREND_DOMAINS } = await import('../services/tech-trend-report.service.js');
+      if (!(TECH_TREND_DOMAINS as readonly string[]).includes(domain)) {
+        reply.status(400).send({ error: 'Invalid domain' });
+        return;
+      }
+      const { techTrendAnalysisService } = await import('../services/tech-trend-analysis.service.js');
+      return techTrendAnalysisService.getStatus(domain as (typeof TECH_TREND_DOMAINS)[number]);
     }
   );
 

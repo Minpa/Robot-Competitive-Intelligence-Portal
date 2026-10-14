@@ -18,7 +18,7 @@ import { aiUsageService } from './ai-usage.service.js';
 
 const MODEL = process.env.GEMINI_VIDEO_MODEL || 'gemini-flash-latest';
 const BATCH_LIMIT = Math.max(1, parseInt(process.env.GEMINI_VIDEO_CONTENT_ANALYSIS_BATCH_LIMIT || '20', 10));
-const MAX_ATTEMPTS = Math.max(1, parseInt(process.env.GEMINI_VIDEO_MAX_ATTEMPTS || '2', 10));
+export const MAX_ATTEMPTS = Math.max(1, parseInt(process.env.GEMINI_VIDEO_MAX_ATTEMPTS || '2', 10));
 const DOMAIN_FILTER = (process.env.GEMINI_VIDEO_DOMAIN_FILTER || 'robot')
   .split(',')
   .map((d) => d.trim())
@@ -29,7 +29,11 @@ const CONCURRENCY = Math.max(1, parseInt(process.env.GEMINI_VIDEO_CONCURRENCY ||
 const SINCE_DAYS = Math.max(1, parseInt(process.env.GEMINI_VIDEO_SINCE_DAYS || '180', 10));
 
 // 공개 YouTube watch URL만 허용 (다운로드 없이 fileUri로 그대로 전달)
-const YOUTUBE_WATCH_URL_RE = /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[\w-]+/i;
+export const YOUTUBE_WATCH_URL_RE = /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[\w-]+/i;
+
+export function isPublicYoutubeWatchUrl(url: string | null | undefined): boolean {
+  return typeof url === 'string' && YOUTUBE_WATCH_URL_RE.test(url);
+}
 
 export type TechnicalMaturity = 'staged-demo' | 'lab' | 'pilot-field' | 'production' | 'unclear';
 
@@ -57,17 +61,29 @@ export interface GeminiVideoAnalysis {
   model: string;
   analyzedAt: string;
   technicalAnalysis?: GeminiTechnicalAnalysis;
+  /** 도메인 관련성 판정 (focus 프롬프트 사용 시에만 존재). geminiAnalysis 마커에는 저장하지 않는다. */
+  domainFocus?: { hand: HandFocusLevel; reason: string };
 }
 
-interface PendingVideo {
+export type HandFocusLevel = 'primary' | 'secondary' | 'none';
+export const HAND_FOCUS_LEVELS: HandFocusLevel[] = ['primary', 'secondary', 'none'];
+const FOCUS_REASON_MAX = 120;
+
+export interface PendingVideo {
   id: string;
   title: string;
   url: string;
 }
 
+export interface AnalyzeVideoResult {
+  analysis: GeminiVideoAnalysis;
+  inputTokens: number;
+  outputTokens: number;
+}
+
 const AUTONOMY_VALUES: GeminiVideoAnalysis['autonomy'][] = ['autonomous', 'teleoperated', 'assisted', 'unclear'];
 
-const PROMPT_KO = `이 영상은 로봇 데모 영상이다. 영상 내용을 분석해 아래 JSON 스키마로만 응답하라.
+export const PROMPT_KO = `이 영상은 로봇 데모 영상이다. 영상 내용을 분석해 아래 JSON 스키마로만 응답하라.
 자막 전문이나 장문 전사를 포함하지 말고, 오직 사실에 근거한 간결한 한국어 요약만 작성하라. 추측·과장 금지.
 
 스키마:
@@ -95,6 +111,55 @@ const PROMPT_KO = `이 영상은 로봇 데모 영상이다. 영상 내용을 �
 keyMoments는 최대 6개, timestampSec는 영상 시작 기준 초 단위 정수로 추정하라.
 technicalAnalysis의 모든 값은 반드시 영상에서 실제로 보이거나 들리는 것에 근거해야 한다. 추측하지 말고, 확인할 수 없으면 해당 필드를 null 또는 빈 배열로, maturity는 "unclear"로 응답하라. 자막 전문이나 장문 전사를 포함하지 말라.
 JSON 객체만 응답하고 다른 텍스트는 포함하지 말라.`;
+
+/**
+ * 기술 트렌드 리포트(핸드)용 변형 프롬프트 — 로봇 데모가 아닐 수 있다는 전제 + 핸드 관련성 판정 필드.
+ * 영상 전달 방식(fileUri)과 JSON 전용 응답 지시는 PROMPT_KO와 동일하다.
+ */
+const PROMPT_HAND_KO = `이 영상은 로봇 관련 영상으로 수집되었으나 실제 로봇 데모가 아닐 수도 있다. 영상 내용을 분석해 아래 JSON 스키마로만 응답하라.
+자막 전문이나 장문 전사를 포함하지 말고, 오직 사실에 근거한 간결한 한국어 요약만 작성하라. 추측·과장 금지.
+영상에 로봇이 실제로 나오지 않으면 task는 "로봇 데모 아님", capabilities는 빈 배열로 두고, summaryKo에는 영상의 주제를 사실대로 한 문장으로 작성하라.
+
+스키마:
+{
+  "task": "영상에서 로봇이 수행하는 핵심 작업 (한 문장)",
+  "environment": "촬영 환경/장소 (한 문장)",
+  "autonomy": "autonomous|teleoperated|assisted|unclear 중 하나 — 로봇의 자율성 수준",
+  "autonomyEvidence": "자율성 판단 근거 (200자 이내)",
+  "robotCount": "영상에 등장하는 로봇 수 (숫자, 모르면 null)",
+  "durationSec": "작업 수행 구간 길이(초, 모르면 null)",
+  "capabilities": ["영상에서 확인되는 능력 키워드, 최대 8개, 각 40자 이내"],
+  "keyMoments": [{"timestampSec": 0, "description": "핵심 순간 설명(80자 이내)"}],
+  "summaryKo": "사실 기반 한국어 요약 (400자 이내)",
+  "technicalAnalysis": {
+    "locomotion": "이동방식 (보행 게이트, 바퀴, 궤도 등)과 이동 품질에 대한 관찰 (200자 이내, 모르면 null)",
+    "manipulation": "조작/파지 동작과 그 정확도·안정성에 대한 관찰 (200자 이내, 모르면 null)",
+    "hardware": "영상에서 확인되는 하드웨어 단서 — 액추에이터, 센서, 그리퍼 형태 등 (200자 이내, 모르면 null)",
+    "controlNotes": "제어 방식에 대한 단서 — 지연, 부자연스러운 동작, 원격조작 흔적 등 (200자 이내, 모르면 null)",
+    "technicalHighlights": ["영상에서 확인되는 기술적으로 인상적인 포인트, 최대 4개, 각 80자 이내"],
+    "limitations": ["영상에서 확인되는 기술적 한계나 아쉬운 점, 최대 3개, 각 80자 이내"],
+    "maturity": "staged-demo|lab|pilot-field|production|unclear 중 하나 — 기술 성숙도",
+    "maturityEvidence": "성숙도 판단 근거 1문장 (150자 이내, 모르면 null)"
+  },
+  "domainFocus": {
+    "hand": "primary|secondary|none 중 하나 — 로봇 핸드/그리퍼/손 조작 관련성",
+    "reason": "판정 근거 1문장 (120자 이내)"
+  }
+}
+keyMoments는 최대 6개, timestampSec는 영상 시작 기준 초 단위 정수로 추정하라.
+technicalAnalysis의 모든 값은 반드시 영상에서 실제로 보이거나 들리는 것에 근거해야 한다. 추측하지 말고, 확인할 수 없으면 해당 필드를 null 또는 빈 배열로, maturity는 "unclear"로 응답하라. 자막 전문이나 장문 전사를 포함하지 말라.
+
+domainFocus.hand 판정 기준:
+- primary: 로봇 핸드·그리퍼·손가락·촉각 센서·덱스터러스 조작(손 조작) 자체가 영상의 주제이며 화면에서 핵심으로 다뤄진다.
+- secondary: 전신·이동 로봇이나 휴머노이드의 작업 영상이지만, 손(핸드·그리퍼)을 이용한 조작이 의미 있는 구간으로 등장한다.
+- none: 로봇 핸드·그리퍼·손 조작이 실질적으로 나오지 않거나 부수적으로 스치는 정도다. 예: 보행·주행·춤, 시설 소개, 키노트·인터뷰, 로봇이 아닌 영상.
+영상에 실제로 보이는 것을 기준으로 판단하고 제목·채널명만으로 판단하지 말라. 애매하면 none이 아니라 secondary로 답하라.
+JSON 객체만 응답하고 다른 텍스트는 포함하지 말라.`;
+
+/** 분석 프롬프트 빌더 — 인자가 없으면 기존 PROMPT_KO를 그대로 반환한다(스케줄 배치 동작 불변). */
+export function buildAnalysisPrompt(focusDomain?: 'hand'): string {
+  return focusDomain === 'hand' ? PROMPT_HAND_KO : PROMPT_KO;
+}
 
 function truncate(s: unknown, max: number): string {
   if (typeof s !== 'string') return '';
@@ -141,6 +206,16 @@ function parseTechnicalAnalysis(raw: unknown): GeminiTechnicalAnalysis | undefin
     maturity,
     maturityEvidence: nullableTruncate(r.maturityEvidence, 150),
   };
+}
+
+/** Gemini 응답의 domainFocus 객체 파싱 — 값이 없거나 enum 밖이면 null (환각 값을 none으로 간주하지 않는다) */
+export function parseDomainFocus(raw: unknown): { level: HandFocusLevel; reason: string } | null {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.hand !== 'string') return null;
+  const level = r.hand.trim().toLowerCase() as HandFocusLevel;
+  if (!HAND_FOCUS_LEVELS.includes(level)) return null;
+  return { level, reason: truncate(r.reason, FOCUS_REASON_MAX).trim() };
 }
 
 export function parseAnalysis(text: string, model: string): GeminiVideoAnalysis | null {
@@ -194,6 +269,8 @@ export function parseAnalysis(text: string, model: string): GeminiVideoAnalysis 
   const durationSec =
     typeof parsed.durationSec === 'number' && Number.isFinite(parsed.durationSec) ? parsed.durationSec : null;
 
+  const focus = parseDomainFocus(parsed.domainFocus);
+
   return {
     task: truncate(parsed.task, 200),
     environment: truncate(parsed.environment, 200),
@@ -207,6 +284,7 @@ export function parseAnalysis(text: string, model: string): GeminiVideoAnalysis 
     model,
     analyzedAt: new Date().toISOString(),
     technicalAnalysis: parseTechnicalAnalysis(parsed.technicalAnalysis),
+    ...(focus ? { domainFocus: { hand: focus.level, reason: focus.reason } } : {}),
   };
 }
 
@@ -250,8 +328,19 @@ class VideoContentAnalysisService {
     return rows.map((r) => ({ id: r.id, title: r.title, url: r.url }));
   }
 
-  /** 단일 영상 Gemini 분석 — 실패 시 null, 쿼터 소진 시 'quota' (재시도 카운트에서 제외) */
-  private async analyzeOne(video: PendingVideo): Promise<GeminiVideoAnalysis | 'quota' | null> {
+  /** Gemini API 키 설정 여부 */
+  isConfigured(): boolean {
+    return this.client !== null;
+  }
+
+  /**
+   * Gemini 호출 본체 — 분석 결과와 토큰 수를 함께 반환한다.
+   * 실패/빈 응답 null, 쿼터 소진 'quota' (재시도 카운트에서 제외).
+   */
+  private async callGemini(
+    video: PendingVideo,
+    opts: { focusDomain?: 'hand'; usageTag?: string } = {}
+  ): Promise<AnalyzeVideoResult | 'quota' | null> {
     if (!this.client) return null;
     try {
       const response = await this.client.models.generateContent({
@@ -261,24 +350,28 @@ class VideoContentAnalysisService {
             role: 'user',
             parts: [
               { fileData: { fileUri: video.url, mimeType: 'video/*' } },
-              { text: PROMPT_KO },
+              { text: buildAnalysisPrompt(opts.focusDomain) },
             ],
           },
         ],
         config: { responseMimeType: 'application/json' },
       });
       const usage = response.usageMetadata;
+      const inputTokens = usage?.promptTokenCount ?? 0;
+      const outputTokens = usage?.candidatesTokenCount ?? 0;
       aiUsageService.logUsage({
         provider: 'gemini',
         model: MODEL,
         webSearch: false,
-        inputTokens: usage?.promptTokenCount ?? 0,
-        outputTokens: usage?.candidatesTokenCount ?? 0,
-        query: `[video-analysis] ${video.title.slice(0, 80)}`,
+        inputTokens,
+        outputTokens,
+        query: `${opts.usageTag ?? '[video-analysis]'} ${video.title.slice(0, 80)}`,
       }).catch(() => {});
       const text = response.text;
       if (!text) return null;
-      return parseAnalysis(text, MODEL);
+      const analysis = parseAnalysis(text, MODEL);
+      if (!analysis) return null;
+      return { analysis, inputTokens, outputTokens };
     } catch (err) {
       const msg = (err as Error).message ?? '';
       // 무료 티어 일일 쿼터/레이트리밋(429)은 영상 문제가 아니므로 attempts를 올리지 않는다
@@ -289,6 +382,51 @@ class VideoContentAnalysisService {
       console.error(`[VideoContentAnalysis] analyzeOne failed for ${video.id}:`, msg);
       return null;
     }
+  }
+
+  /** 단일 영상 Gemini 분석 — 실패 시 null, 쿼터 소진 시 'quota' (재시도 카운트에서 제외) */
+  private async analyzeOne(video: PendingVideo): Promise<GeminiVideoAnalysis | 'quota' | null> {
+    const res = await this.callGemini(video);
+    if (res === 'quota' || res === null) return res;
+    return res.analysis;
+  }
+
+  /**
+   * 공개 분석 진입점(기술 트렌드 리포트 배치용) — 전역 DOMAIN_FILTER/SINCE_DAYS/getPending을 타지 않는다.
+   * 토큰 수를 함께 반환해 호출 측이 예산 가드를 걸 수 있다.
+   */
+  async analyzeVideo(
+    video: PendingVideo,
+    opts: { focusDomain?: 'hand'; usageTag?: string } = {}
+  ): Promise<AnalyzeVideoResult | 'quota' | null> {
+    return this.callGemini(video, opts);
+  }
+
+  /** 분석 결과 마커 저장 (geminiAnalysis + geminiAnalyzedAt). domainFocus는 마커에 중복 저장하지 않는다. */
+  async persistAnalysis(articleId: string, analysis: GeminiVideoAnalysis): Promise<void> {
+    const { domainFocus: _domainFocus, ...stored } = analysis;
+    await db.execute(sql`
+      UPDATE articles
+      SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb)
+        || jsonb_build_object(
+          'geminiAnalysis', ${JSON.stringify(stored)}::jsonb,
+          'geminiAnalyzedAt', ${analysis.analyzedAt}::text
+        )
+      WHERE id = ${articleId}
+    `);
+  }
+
+  /** 분석 실패 시도 횟수 +1 */
+  async recordFailedAttempt(articleId: string): Promise<void> {
+    await db.execute(sql`
+      UPDATE articles
+      SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb)
+        || jsonb_build_object(
+          'geminiAnalysisAttempts',
+          COALESCE((extracted_metadata->>'geminiAnalysisAttempts')::int, 0) + 1
+        )
+      WHERE id = ${articleId}
+    `);
   }
 
   /** 배치 실행 — 신규 위주, 배치 상한 내에서만 처리 */
@@ -314,26 +452,10 @@ class VideoContentAnalysisService {
           continue;
         }
         if (analysis) {
-          await db.execute(sql`
-            UPDATE articles
-            SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb)
-              || jsonb_build_object(
-                'geminiAnalysis', ${JSON.stringify(analysis)}::jsonb,
-                'geminiAnalyzedAt', ${analysis.analyzedAt}::text
-              )
-            WHERE id = ${video.id}
-          `);
+          await this.persistAnalysis(video.id, analysis);
           res.analyzed++;
         } else {
-          await db.execute(sql`
-            UPDATE articles
-            SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb)
-              || jsonb_build_object(
-                'geminiAnalysisAttempts',
-                COALESCE((extracted_metadata->>'geminiAnalysisAttempts')::int, 0) + 1
-              )
-            WHERE id = ${video.id}
-          `);
+          await this.recordFailedAttempt(video.id);
           res.failed++;
         }
       }
@@ -358,7 +480,7 @@ class VideoContentAnalysisService {
     if (!row) {
       return { ok: false, error: 'Article not found' };
     }
-    if (row.productType !== 'video' || !YOUTUBE_WATCH_URL_RE.test(row.url)) {
+    if (row.productType !== 'video' || !isPublicYoutubeWatchUrl(row.url)) {
       return { ok: false, error: 'not a public YouTube video' };
     }
 
@@ -367,27 +489,11 @@ class VideoContentAnalysisService {
       return { ok: false, error: 'Gemini 일일 쿼터 소진 — 잠시 후(또는 내일) 다시 시도하거나 유료 티어(billing)를 활성화하세요.' };
     }
     if (!analysis) {
-      await db.execute(sql`
-        UPDATE articles
-        SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb)
-          || jsonb_build_object(
-            'geminiAnalysisAttempts',
-            COALESCE((extracted_metadata->>'geminiAnalysisAttempts')::int, 0) + 1
-          )
-        WHERE id = ${row.id}
-      `);
+      await this.recordFailedAttempt(row.id);
       return { ok: false, error: 'Gemini analysis failed' };
     }
 
-    await db.execute(sql`
-      UPDATE articles
-      SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb)
-        || jsonb_build_object(
-          'geminiAnalysis', ${JSON.stringify(analysis)}::jsonb,
-          'geminiAnalyzedAt', ${analysis.analyzedAt}::text
-        )
-      WHERE id = ${row.id}
-    `);
+    await this.persistAnalysis(row.id, analysis);
 
     return { ok: true, analysis };
   }

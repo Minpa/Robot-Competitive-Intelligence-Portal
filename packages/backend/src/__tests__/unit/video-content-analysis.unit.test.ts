@@ -173,3 +173,92 @@ describe('Public YouTube watch URL validation (same pattern as service)', () => 
     expect(YOUTUBE_WATCH_URL_RE.test('not a url')).toBe(false);
   });
 });
+
+describe('buildAnalysisPrompt / parseDomainFocus / parseAnalysis domainFocus', () => {
+  let mod: typeof import('../../services/video-content-analysis.service.js');
+
+  beforeAll(async () => {
+    mod = await import('../../services/video-content-analysis.service.js');
+  });
+
+  const base = {
+    task: '테스트 작업',
+    environment: '테스트 환경',
+    autonomy: 'autonomous',
+    capabilities: ['보행'],
+    keyMoments: [],
+    summaryKo: '요약',
+  };
+
+  it('buildAnalysisPrompt() without args is identical to PROMPT_KO (scheduled batch unchanged)', () => {
+    expect(mod.buildAnalysisPrompt()).toBe(mod.PROMPT_KO);
+    expect(mod.PROMPT_KO.startsWith('이 영상은 로봇 데모 영상이다.')).toBe(true);
+    expect(mod.PROMPT_KO.endsWith('JSON 객체만 응답하고 다른 텍스트는 포함하지 말라.')).toBe(true);
+    expect(mod.PROMPT_KO).not.toContain('domainFocus');
+  });
+
+  it("buildAnalysisPrompt('hand') adds domainFocus rules and keeps JSON-only instruction", () => {
+    const p = mod.buildAnalysisPrompt('hand');
+    expect(p).not.toBe(mod.PROMPT_KO);
+    expect(p).toContain('domainFocus');
+    expect(p).toContain('primary');
+    expect(p).toContain('secondary');
+    expect(p).toContain('none');
+    expect(p).toContain('실제 로봇 데모가 아닐 수도 있다');
+    expect(p).toContain('JSON 객체만 응답하고 다른 텍스트는 포함하지 말라.');
+    expect(p).toContain('자막 전문이나 장문 전사를 포함하지 말라');
+  });
+
+  it('parseDomainFocus parses valid values, normalizes case/space', () => {
+    expect(mod.parseDomainFocus({ hand: 'primary', reason: '핸드 중심' })).toEqual({
+      level: 'primary',
+      reason: '핸드 중심',
+    });
+    expect(mod.parseDomainFocus({ hand: 'PRIMARY ', reason: 'x' })?.level).toBe('primary');
+  });
+
+  it('parseDomainFocus returns null for out-of-enum or non-object input', () => {
+    expect(mod.parseDomainFocus({ hand: 'maybe', reason: 'x' })).toBeNull();
+    expect(mod.parseDomainFocus({ reason: 'x' })).toBeNull();
+    expect(mod.parseDomainFocus(null)).toBeNull();
+    expect(mod.parseDomainFocus('primary')).toBeNull();
+    expect(mod.parseDomainFocus([{ hand: 'primary' }])).toBeNull();
+  });
+
+  it('parseDomainFocus treats missing reason as empty string and caps reason at 120 chars', () => {
+    expect(mod.parseDomainFocus({ hand: 'none' })).toEqual({ level: 'none', reason: '' });
+    expect(mod.parseDomainFocus({ hand: 'secondary', reason: 'r'.repeat(200) })?.reason).toHaveLength(120);
+  });
+
+  it('parseAnalysis fills domainFocus when present', () => {
+    const r = mod.parseAnalysis(
+      JSON.stringify({ ...base, domainFocus: { hand: 'secondary', reason: '조작 구간 있음' } }),
+      'm'
+    );
+    expect(r?.domainFocus).toEqual({ hand: 'secondary', reason: '조작 구간 있음' });
+    expect(r?.summaryKo).toBe('요약');
+  });
+
+  it('parseAnalysis leaves domainFocus undefined when absent (regression)', () => {
+    const r = mod.parseAnalysis(JSON.stringify(base), 'm');
+    expect(r?.domainFocus).toBeUndefined();
+    expect(r?.task).toBe('테스트 작업');
+    expect(r?.capabilities).toEqual(['보행']);
+  });
+
+  it('parseAnalysis ignores bad domainFocus values and keeps the 400-char summary cap', () => {
+    const r = mod.parseAnalysis(
+      JSON.stringify({ ...base, summaryKo: 's'.repeat(500), domainFocus: { hand: 'dunno', reason: 'x' } }),
+      'm'
+    );
+    expect(r?.domainFocus).toBeUndefined();
+    expect(r?.summaryKo).toHaveLength(400);
+  });
+
+  it('isPublicYoutubeWatchUrl mirrors the watch-URL pattern', () => {
+    expect(mod.isPublicYoutubeWatchUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe(true);
+    expect(mod.isPublicYoutubeWatchUrl('https://youtu.be/dQw4w9WgXcQ')).toBe(false);
+    expect(mod.isPublicYoutubeWatchUrl(null)).toBe(false);
+    expect(mod.MAX_ATTEMPTS).toBeGreaterThanOrEqual(1);
+  });
+});

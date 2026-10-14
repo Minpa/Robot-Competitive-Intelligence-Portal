@@ -119,7 +119,7 @@ export function TechTrendShareView() {
           titleKo={meta.titleKo}
           titleEn={meta.titleEn}
           description={description}
-          actions={<ShareActions report={report} titleKo={meta.titleKo} titleEn={meta.titleEn} />}
+          actions={<ShareActions report={report} titleKo={meta.titleKo} titleEn={meta.titleEn} domain={domain} days={days} />}
         />
 
         {reportQuery.isLoading && (
@@ -149,7 +149,13 @@ export function TechTrendShareView() {
           <>
             <ReportSummaryCards report={report} />
             <ReportInsightCard insight={report.insight} />
-            <ReportVideoGrid videos={report.videos} total={report.stats.videoCount} truncated={report.truncated.videos} />
+            <ReportVideoGrid
+              videos={report.videos}
+              total={report.stats.videoCount}
+              truncated={report.truncated.videos}
+              excludedCount={report.focus?.excluded ?? 0}
+              showPendingBadge={report.domain === 'hand'}
+            />
             <ReportPaperList
               papers={report.papers}
               total={report.stats.paperCount}

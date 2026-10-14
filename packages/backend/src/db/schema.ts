@@ -174,6 +174,15 @@ export interface ExtractedMetadata {
   };
   geminiAnalyzedAt?: string;
   geminiAnalysisAttempts?: number;
+  // 기술 트렌드 리포트 도메인 관련성 판정 (tech-trend-analysis.service.ts) — 도메인 키별 병합 저장
+  domainFocus?: {
+    hand?: {
+      level: 'primary' | 'secondary' | 'none';
+      reason: string;
+      judgedAt: string;
+      source: 'gemini' | 'haiku';
+    };
+  };
 }
 
 // Keyword entity

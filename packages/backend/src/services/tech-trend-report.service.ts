@@ -12,7 +12,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { sql, and, eq } from 'drizzle-orm';
+import { sql, and, eq, like } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { articles, viewCache } from '../db/schema.js';
 import { aiUsageService } from './ai-usage.service.js';
@@ -33,7 +33,8 @@ const REPORT_TTL_HOURS = (() => {
 const REPORT_TTL_MS = REPORT_TTL_HOURS * 3_600_000;
 
 const QUERY_LIMIT = 1500;
-const LIST_CAP = 60;
+export const VIDEO_LIST_CAP = 100;
+export const PAPER_LIST_CAP = 60;
 const PROMPT_VIDEO_CAP = 40;
 const PROMPT_PAPER_CAP = 40;
 const PROMPT_SUMMARY_CAP = 200;
@@ -144,6 +145,8 @@ export interface ReportVideo {
   summaryKo: string | null;
   taskTypes: string[];
   techTags: string[];
+  /** 도메인 관련성 판정 — null이면 아직 판정 전("분석 대기"). none(제외)은 목록에 나오지 않는다. */
+  domainFocus: 'primary' | 'secondary' | null;
 }
 
 export interface ReportPaper {
@@ -186,6 +189,8 @@ export interface TechTrendReport {
   videos: ReportVideo[];
   papers: ReportPaper[];
   truncated: { videos: boolean; papers: boolean };
+  /** 도메인 관련성 판정 집계 (hand 외 도메인은 항상 0) */
+  focus: { excluded: number; pending: number };
 }
 
 export interface InsightPromptInput {
@@ -200,7 +205,7 @@ export interface InsightPromptInput {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** event-company-report.service.ts와 동일 로직, 순환 의존 방지 복제 */
-function stripCiteTags(s: string): string {
+export function stripCiteTags(s: string): string {
   return s
     .replace(/<\/?cite\b[^>]*>?/g, '') // 완전한 태그 + 끝에서 '>' 없이 잘린 태그
     .replace(/<\/?c(?:i(?:t(?:e)?)?)?$/, '') // 캡 절단으로 남은 짧은 조각 (예: "</ci")
@@ -285,8 +290,38 @@ function capStrings(raw: unknown, maxItems: number): string[] {
     .slice(0, maxItems);
 }
 
+export type DomainFocusLevel = 'primary' | 'secondary' | 'none';
+
+/** 메타데이터의 도메인 관련성 판정 읽기 — 없거나 enum 밖이면 null (미판정) */
+export function getDomainFocus(domain: TechTrendDomain, row: ArticleRow): DomainFocusLevel | null {
+  const level: unknown = row.extractedMetadata?.domainFocus?.[domain]?.level;
+  return level === 'primary' || level === 'secondary' || level === 'none' ? level : null;
+}
+
+/** hand 리포트에서 AI가 'none'(핸드와 무관)으로 판정한 영상만 제외한다. 미판정은 유지. */
+export function filterByDomainFocus(
+  domain: TechTrendDomain,
+  rows: ArticleRow[]
+): { kept: ArticleRow[]; excludedCount: number } {
+  if (domain !== 'hand') return { kept: rows, excludedCount: 0 };
+  const kept = rows.filter((r) => getDomainFocus(domain, r) !== 'none');
+  return { kept, excludedCount: rows.length - kept.length };
+}
+
+/**
+ * 시사점 프롬프트용 영상 선별 — primary → secondary → 미판정 순, 같은 그룹 안에서는 입력 순서(최신순) 유지.
+ */
+export function prioritizeVideosForPrompt(videos: ReportVideo[], cap: number): ReportVideo[] {
+  const rank = (v: ReportVideo) => (v.domainFocus === 'primary' ? 0 : v.domainFocus === 'secondary' ? 1 : 2);
+  return videos
+    .map((v, i) => ({ v, i }))
+    .sort((a, b) => rank(a.v) - rank(b.v) || a.i - b.i)
+    .slice(0, cap)
+    .map((x) => x.v);
+}
+
 /** DB 행 → 리포트 영상 항목 */
-export function toReportVideo(row: ArticleRow): ReportVideo {
+export function toReportVideo(row: ArticleRow, domain: TechTrendDomain = 'hand'): ReportVideo {
   const meta = row.extractedMetadata ?? {};
   const videoId = getVideoId(row);
   const thumbnail =
@@ -300,6 +335,7 @@ export function toReportVideo(row: ArticleRow): ReportVideo {
     typeof rawSummary === 'string' && rawSummary.trim().length > 0
       ? rawSummary.trim().slice(0, VIDEO_SUMMARY_LEN)
       : null;
+  const focus = getDomainFocus(domain, row);
   return {
     id: row.id,
     title: decodeHtmlEntities(row.title ?? ''),
@@ -313,6 +349,7 @@ export function toReportVideo(row: ArticleRow): ReportVideo {
     summaryKo,
     taskTypes: capStrings(meta.aiTags?.taskTypes, 4),
     techTags: capStrings(meta.aiTags?.techTags, 4),
+    domainFocus: focus === 'primary' || focus === 'secondary' ? focus : null,
   };
 }
 
@@ -373,7 +410,7 @@ export function shouldGenerateInsight(videoCount: number, paperCount: number): b
 }
 
 export function buildInsightPrompt(input: InsightPromptInput): string {
-  const videos = input.videos.slice(0, PROMPT_VIDEO_CAP).map((v) => ({
+  const videos = prioritizeVideosForPrompt(input.videos, PROMPT_VIDEO_CAP).map((v) => ({
     title: v.title,
     channel: v.channel ?? '',
     publishedAt: v.publishedAt ? v.publishedAt.slice(0, 10) : '',
@@ -477,9 +514,12 @@ class TechTrendReportService {
       config.second === 'papers' ? this.fetchPaperRows(days) : this.fetchNewsRows(days),
     ]);
 
-    const allVideos = videoRows
-      .filter((r) => matchesDomainVideo(domain, r))
-      .map(toReportVideo)
+    const { kept: keptVideoRows, excludedCount } = filterByDomainFocus(
+      domain,
+      videoRows.filter((r) => matchesDomainVideo(domain, r))
+    );
+    const allVideos = keptVideoRows
+      .map((r) => toReportVideo(r, domain))
       .sort((a, b) => {
         // publishedAt desc, null 뒤
         if (!a.publishedAt && !b.publishedAt) return 0;
@@ -493,8 +533,9 @@ class TechTrendReportService {
       .sort((a, b) => rowTime(b.publishedAt) - rowTime(a.publishedAt));
 
     const stats = computeReportStats(allVideos, allPapers);
-    const videos = allVideos.slice(0, LIST_CAP);
-    const papers = allPapers.slice(0, LIST_CAP);
+    const videos = allVideos.slice(0, VIDEO_LIST_CAP);
+    const papers = allPapers.slice(0, PAPER_LIST_CAP);
+    const pending = domain === 'hand' ? allVideos.filter((v) => v.domainFocus === null).length : 0;
 
     const insight = await this.getInsight(domain, days, config.label, allVideos, allPapers);
 
@@ -510,8 +551,30 @@ class TechTrendReportService {
       insight,
       videos,
       papers,
-      truncated: { videos: allVideos.length > LIST_CAP, papers: allPapers.length > LIST_CAP },
+      truncated: { videos: allVideos.length > VIDEO_LIST_CAP, papers: allPapers.length > PAPER_LIST_CAP },
+      focus: { excluded: excludedCount, pending },
     };
+  }
+
+  /** 도메인 영상 대상 행 (기간 + matchesDomainVideo) — 판정 제외(none) 전의 원본 행. 분석 배치의 대상 선정용. */
+  async getDomainVideoRows(domain: TechTrendDomain, days: number): Promise<ArticleRow[]> {
+    const rows = await this.fetchVideoRows(days);
+    return rows.filter((r) => matchesDomainVideo(domain, r));
+  }
+
+  /**
+   * 시사점 캐시 무효화 — days별 캐시 키(tech-trend-report:v1:{domain}:{days}) 전부의 cachedAt을 과거로 민다.
+   * 다음 getReport 호출에서 새 데이터로 시사점이 재생성된다. 오류는 로그만 남긴다.
+   */
+  async invalidateInsightCache(domain: TechTrendDomain): Promise<void> {
+    try {
+      await db
+        .update(viewCache)
+        .set({ cachedAt: new Date(0) })
+        .where(like(viewCache.viewName, `tech-trend-report:v1:${domain}:%`));
+    } catch (err) {
+      console.error(`[TechTrendReport] insight cache invalidation failed for ${domain}:`, (err as Error).message);
+    }
   }
 
   // ── DB 조회 ──────────────────────────────────────────────────────────────
