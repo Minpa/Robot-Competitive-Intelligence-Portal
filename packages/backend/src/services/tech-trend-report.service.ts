@@ -40,7 +40,7 @@ const PROMPT_PAPER_CAP = 40;
 const PROMPT_SUMMARY_CAP = 200;
 const PROMPT_ABSTRACT_CAP = 300;
 const ABSTRACT_SNIPPET_LEN = 220;
-const VIDEO_SUMMARY_LEN = 200;
+const VIDEO_SUMMARY_LEN = 400;
 
 const NON_NEWS_SOURCES = ['arxiv', 'github', 'sec_edgar', 'patent'];
 
@@ -141,7 +141,7 @@ export interface ReportVideo {
   videoId: string | null;
   thumbnail: string | null;
   views: number | null;
-  /** Gemini 분석 한 줄 요약 (≤200자) — 분석 결과가 있을 때만 */
+  /** Gemini 분석 요약 (≤400자) — 분석 결과가 있을 때만 */
   summaryKo: string | null;
   taskTypes: string[];
   techTags: string[];

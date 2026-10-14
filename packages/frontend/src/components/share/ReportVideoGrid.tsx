@@ -37,7 +37,7 @@ export function ReportVideoGrid({ videos, total, truncated, excludedCount = 0, s
       {videos.length === 0 ? (
         <div className="py-8 text-center text-ink-400 text-sm">기간 내 수집된 영상이 없습니다.</div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
           {videos.map((v) => (
             <a
               key={v.id}
@@ -57,7 +57,9 @@ export function ReportVideoGrid({ videos, total, truncated, excludedCount = 0, s
                 )}
               </div>
               <div className="px-3 py-2.5">
-                <p className="text-[12.5px] font-semibold text-ink-900 leading-snug line-clamp-2">{v.title}</p>
+                <p className="text-[12.5px] font-semibold text-ink-900 leading-snug line-clamp-2" title={v.title}>
+                  {v.title}
+                </p>
                 <div className="mt-1.5 flex items-center gap-2 flex-wrap">
                   {v.channel && (
                     <Tag tone="neutral" size="sm">
@@ -77,7 +79,7 @@ export function ReportVideoGrid({ videos, total, truncated, excludedCount = 0, s
                   <span className="text-[11px] text-ink-400">{formatDate(v.publishedAt)}</span>
                 </div>
                 {v.summaryKo && (
-                  <p className="mt-1.5 text-[11.5px] text-ink-600 leading-relaxed line-clamp-2">{v.summaryKo}</p>
+                  <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-600">{v.summaryKo}</p>
                 )}
               </div>
             </a>

@@ -337,16 +337,16 @@ describe('toReportVideo', () => {
     expect(v.title).toBe(`Here's the "Hand" & more`);
   });
 
-  it('caps summaryKo at 200 chars, null when no gemini analysis, caps tags at 4', () => {
+  it('caps summaryKo at 400 chars, null when no gemini analysis, caps tags at 4', () => {
     const v = toReportVideo(
       video({
-        geminiAnalysis: { summaryKo: '요'.repeat(300) },
+        geminiAnalysis: { summaryKo: '요'.repeat(500) },
         aiTags: { taskTypes: ['a', 'b', 'c', 'd', 'e'], techTags: ['1', '2', '3', '4', '5', '6'] },
         thirdParty: true,
         views: 1234,
       })
     );
-    expect(v.summaryKo!.length).toBe(200);
+    expect(v.summaryKo!.length).toBe(400);
     expect(v.taskTypes).toEqual(['a', 'b', 'c', 'd']);
     expect(v.techTags).toEqual(['1', '2', '3', '4']);
     expect(v.thirdParty).toBe(true);
