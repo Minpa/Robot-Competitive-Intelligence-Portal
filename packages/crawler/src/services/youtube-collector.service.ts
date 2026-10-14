@@ -366,9 +366,11 @@ class YoutubeCollectorService {
             result.videosInserted++;
           } else {
             // 이미 수집된 영상 — 설명·조회수만 최신값으로 병합 (aiTags 등 기존 키 보존)
+            // thirdParty:false — topic-search 가 먼저 넣은 공식 채널 영상의 "외부 채널" 오표기를 교정
             const patch: Record<string, unknown> = {
               viewsUpdatedAt: new Date().toISOString(),
               domain: channel.domain,
+              thirdParty: false,
             };
             if (media.description) patch.description = media.description;
             if (media.views != null) patch.views = media.views;

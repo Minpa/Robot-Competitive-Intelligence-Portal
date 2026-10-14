@@ -6,7 +6,8 @@ import { errorLogger } from './services/error-logger.js';
 import { legalDataCollector } from './services/legal-data-collector.js';
 import { youtubeCollectorService } from './services/youtube-collector.service.js';
 import { eventVideoSearchService } from './services/event-video-search.service.js';
-import { topicVideoSearchService } from './services/topic-video-search.service.js';
+import { topicVideoSearchService, MAX_PAGES } from './services/topic-video-search.service.js';
+import type { TopicDomain } from './services/topic-video-relevance.js';
 import type { CrawlJobConfig, TargetUrl } from './types.js';
 
 const fastify = Fastify({ 
@@ -135,7 +136,37 @@ fastify.post('/legal/sec-edgar', async () => legalDataCollector.collectSecEdgar(
 fastify.post('/legal/patents', async () => legalDataCollector.collectPatents());
 fastify.post('/legal/youtube', async () => youtubeCollectorService.collect());
 fastify.post('/legal/event-videos', async () => eventVideoSearchService.collectAll());
-fastify.post('/legal/topic-videos', async () => topicVideoSearchService.collectAll());
+// body { domains?: TopicDomain[]; pages?: number } — domains 는 화이트리스트 검증, pages 는 1..MAX_PAGES 로 클램프
+const TOPIC_DOMAINS: TopicDomain[] = ['hand', 'rfm', 'actuator', 'expo', 'production'];
+fastify.post<{ Body?: { domains?: unknown; pages?: unknown } | null }>(
+  '/legal/topic-videos',
+  async (request, reply) => {
+    const body = request.body ?? {};
+    let domains: TopicDomain[] | undefined;
+    if (body.domains !== undefined) {
+      if (!Array.isArray(body.domains)) {
+        reply.status(400).send({ error: 'domains must be an array' });
+        return;
+      }
+      const invalid = body.domains.filter((d) => !TOPIC_DOMAINS.includes(d as TopicDomain));
+      if (invalid.length > 0) {
+        reply.status(400).send({ error: `unknown domains: ${invalid.join(', ')}`, allowed: TOPIC_DOMAINS });
+        return;
+      }
+      domains = body.domains as TopicDomain[];
+    }
+    let pages: number | undefined;
+    if (body.pages !== undefined) {
+      const n = Number(body.pages);
+      if (!Number.isFinite(n) || n < 1) {
+        reply.status(400).send({ error: `pages must be a number between 1 and ${MAX_PAGES}` });
+        return;
+      }
+      pages = Math.min(MAX_PAGES, Math.floor(n));
+    }
+    return topicVideoSearchService.collectAll({ domains, pages });
+  }
+);
 
 // Start server
 const start = async () => {

@@ -8,12 +8,62 @@ describe('isRelevantTopicVideo', () => {
       expect(isRelevantTopicVideo('hand', 'Tactile gripper for robotic manipulation', 'robot fingers demo')).toBe(true);
     });
 
+    it('accepts brand-context titles without an explicit "robot" word', () => {
+      const accepted: Array<[string, string | null]> = [
+        ['Atlas Goes Hands On', 'Boston Dynamics Atlas manipulation'],
+        ['Boston Dynamics Atlas | Dexterous manipulation of car parts', null],
+        ['Tesla Optimus hand: 22 DoF tendon-driven', null],
+        ['Sanctuary AI Phoenix hydraulic hand picks up objects', null],
+        ['Shadow Hand teleoperation demo', null],
+        ['Sharpa Wave: tactile dexterous hand', null],
+        ['Tesollo DG-5F plays the piano', 'five-finger robot hand'],
+        ['Inspire Robots RH56 dexterous hand on Unitree G1', null],
+        ['ORCA Hand: open-source 3D printed dexterous hand (ETH Zurich)', null],
+        ['LEAP Hand: anthropomorphic hand for in-hand manipulation (CMU)', null],
+        ['DexCap: learning dexterous manipulation from human hand data', 'teleoperation of robot hand'],
+        ['灵巧手 实机演示 | 人形机器人', null],
+        ['Toyota Research Institute dexterous hand', null],
+      ];
+      for (const [title, desc] of accepted) {
+        expect(isRelevantTopicVideo('hand', title, desc), title).toBe(true);
+      }
+    });
+
     it('rejects when there is no robot context', () => {
       expect(isRelevantTopicVideo('hand', 'Dexterous hand exercises for pianists', 'finger tactile grasp training')).toBe(false);
+      expect(isRelevantTopicVideo('hand', 'Dexterous hand exercises for pianists', 'finger tactile training')).toBe(false);
     });
 
     it('rejects excluded content types', () => {
       expect(isRelevantTopicVideo('hand', 'Robot hand gripper — CEO keynote', 'robot dexterous hand demo')).toBe(false);
+    });
+
+    it('rejects non-robot "hand" usages, crafts, games, medical and finance titles', () => {
+      const rejected: Array<[string, string | null]> = [
+        ['How to draw a robot hand step by step', null],
+        ['LEGO robot hand build', null],
+        ['Hands-on with Unitree G1 humanoid', null],
+        ['Second hand robot vacuum — worth it?', null],
+        ['Robotic hand massager review', null],
+        ['Bionic prosthetic hand for amputee — fitting day', null],
+        ['Robot hand gripper — CEO keynote', null],
+        ['Forex trading robot manipulation strategy', null],
+        ['Minecraft robot hand mod', null],
+        ['Robot humanoid walking demo', null],
+        ['Unitree G1 unboxing and hand test', null],
+        ['Robot hand toy for kids', null],
+      ];
+      for (const [title, desc] of rejected) {
+        expect(isRelevantTopicVideo('hand', title, desc), title).toBe(false);
+      }
+    });
+
+    it('applies the exclude list to the title only (description boilerplate must not reject)', () => {
+      expect(isRelevantTopicVideo('hand', 'Robot dexterous hand grasping demo', 'see our interview on the blog')).toBe(true);
+    });
+
+    it('does not treat Toyota as a toy', () => {
+      expect(isRelevantTopicVideo('hand', 'Toyota Research robot hand grasping demo', null)).toBe(true);
     });
 
     it('rejects unrelated text', () => {
