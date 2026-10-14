@@ -39,13 +39,26 @@ export interface ReportStats {
   topKeywords: { keyword: string; count: number }[];
 }
 
+/** 시사점의 근거 — 서버가 입력 데이터(영상/논문)에서 채운 값 */
+export interface EvidenceRef {
+  kind: 'video' | 'paper';
+  title: string;
+  url: string | null;
+  /** 영상=채널명, 논문=`arXiv:{id}` */
+  label: string | null;
+}
+
 export interface TrendInsight {
   headline: string;
   points: string[];
+  /** points[i]의 근거. 없거나 길이가 points와 다르면 근거 줄을 표시하지 않는다 (구 캐시 호환). */
+  pointEvidence?: EvidenceRef[][];
   keywords: string[];
   model: string;
   generatedAt: string;
   cached: boolean;
+  /** 만료된 캐시를 먼저 보여주고 백그라운드에서 갱신 중 */
+  stale?: boolean;
 }
 
 export interface TechTrendReport {

@@ -138,6 +138,8 @@ export interface TimelineInsight {
   model: string;
   generatedAt: string;
   cached: boolean;
+  /** 만료된 캐시를 먼저 보여주고 백그라운드에서 갱신 중 */
+  stale?: boolean;
 }
 
 /** GET /api/articles/tech-trends/hand/timeline/insight (항상 200) */

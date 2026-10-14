@@ -38,7 +38,7 @@ import {
 
 export const TIMELINE_SUPPORTED_DOMAINS = ['hand'] as const;
 export const TIMELINE_CACHE_KEY = 'tech-trend-timeline:v1:hand';
-export const TIMELINE_INSIGHT_CACHE_KEY = 'tech-trend-timeline-insight:v1:hand';
+export const TIMELINE_INSIGHT_CACHE_KEY = 'tech-trend-timeline-insight:v2:hand';
 
 /** 소스별 조회 상한 — 넘으면 scope.truncated=true + 경고 로그 */
 export const TIMELINE_ROW_LIMIT = 5000;

@@ -2,7 +2,7 @@
  * TechTrendAnalysisService — 기술 트렌드 리포트(핸드) 영상 전체 Gemini 분석 + 핸드 관련성 판정
  *
  * 이벤트성 관리자 배치. 리포트 대상 영상(기간 + matchesDomainVideo)을 전역 DOMAIN_FILTER/SINCE_DAYS와
- * 무관하게 Gemini로 분석하고, 결과(또는 Claude Haiku 폴백)로 "핸드/그리퍼/손 조작이 주제인지"를 판정해
+ * 무관하게 Gemini로 분석하고, 결과(또는 Claude Haiku 5.5 폴백)로 "핸드/그리퍼/손 조작이 주제인지"를 판정해
  * extracted_metadata.domainFocus.hand 에 저장한다. 'none' 영상은 리포트에서 제외된다.
  *
  * 안전 원칙:
@@ -16,6 +16,7 @@ import { sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { aiUsageService } from './ai-usage.service.js';
 import { decodeHtmlEntities } from './event-video-brief.service.js';
+import { effortParams, extractText, resolveFocusModel, warnOnAbnormalStop } from './anthropic-models.js';
 import {
   videoContentAnalysisService,
   isPublicYoutubeWatchUrl,
@@ -42,8 +43,8 @@ export { parseDomainFocus };
 
 export const ANALYZE_SUPPORTED_DOMAINS: readonly TechTrendDomain[] = ['hand'];
 
-const FOCUS_MODEL =
-  process.env.TECH_TREND_FOCUS_MODEL || process.env.TECH_TREND_REPORT_MODEL || 'claude-haiku-4-5-20251001';
+/** 핸드 관련성 판정 모델 — 기본 Haiku 5.5. 시사점/해설(종합) 모델 설정을 상속하지 않는다. */
+export const FOCUS_MODEL = resolveFocusModel();
 
 function positiveInt(v: string | undefined, fallback: number): number {
   const n = parseInt(v ?? '', 10);
@@ -54,7 +55,8 @@ const MAX_PER_RUN = positiveInt(process.env.TECH_TREND_ANALYSIS_MAX_PER_RUN, 150
 const CONCURRENCY = positiveInt(process.env.TECH_TREND_ANALYSIS_CONCURRENCY, 3);
 const MAX_INPUT_TOKENS = positiveInt(process.env.TECH_TREND_ANALYSIS_MAX_INPUT_TOKENS, 20_000_000);
 const JUDGE_BATCH_SIZE = 10;
-const JUDGE_MAX_TOKENS = 1500;
+/** Haiku 5.5 는 사고 토큰이 max_tokens 에 포함되므로 여유 있게 잡는다 */
+export const JUDGE_MAX_TOKENS = 6000;
 const REASON_MAX = 120;
 const GEMINI_USAGE_TAG = '[tech-trend-analysis:hand]';
 
@@ -457,6 +459,12 @@ class TechTrendAnalysisService {
           } catch (err) {
             console.error(`[TechTrendAnalysis] ${domain}: timeline cache invalidation failed:`, (err as Error).message);
           }
+          // 무효화 직후 시사점·시계열 해설을 백그라운드로 미리 재생성 (실패해도 배치 결과에 영향 없음)
+          void import('./tech-trend-timeline-insight.service.js')
+            .then((m) => m.warmHandInsights())
+            .catch((err) =>
+              console.error(`[TechTrendAnalysis] ${domain}: insight warm-up failed:`, (err as Error).message)
+            );
         }
       }
     }
@@ -473,6 +481,7 @@ class TechTrendAnalysisService {
         model: FOCUS_MODEL,
         max_tokens: JUDGE_MAX_TOKENS,
         messages: [{ role: 'user', content: buildFocusJudgePrompt(items) }],
+        ...effortParams(FOCUS_MODEL, 'low'),
       });
       aiUsageService
         .logUsage({
@@ -485,10 +494,8 @@ class TechTrendAnalysisService {
         })
         .catch(() => {});
 
-      let combined = '';
-      for (const block of response.content) {
-        if (block.type === 'text') combined += block.text + '\n';
-      }
+      warnOnAbnormalStop('TechTrendAnalysis', FOCUS_MODEL, response);
+      const combined = extractText(response.content);
       for (const r of parseHaikuFocusBatch(combined, validIds)) {
         try {
           await this.saveDomainFocus(r.id, r.level, r.reason, 'haiku');

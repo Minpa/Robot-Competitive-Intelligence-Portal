@@ -2,6 +2,7 @@
 
 import { Panel, Tag } from '@/components/ui';
 import type { TrendInsight } from '@/types/tech-trend-report';
+import { evidenceForPoints, formatEvidenceText, safeHref } from '@/lib/tech-trend-report-html';
 
 function formatDateTime(value?: string | null) {
   if (!value) return '';
@@ -11,15 +12,20 @@ function formatDateTime(value?: string | null) {
 }
 
 export function ReportInsightCard({ insight }: { insight: TrendInsight | null }) {
+  const evidence = insight ? evidenceForPoints(insight) : null;
   return (
     <Panel
       className="report-panel"
       kicker="AI Insight"
       title="주요 시사점"
-      subtitle="주어진 영상 메타데이터와 논문 목록만을 근거로 생성된 시사점입니다."
+      subtitle={
+        evidence
+          ? '주어진 영상 메타데이터와 논문 목록만을 근거로 생성된 시사점입니다. 각 시사점 아래에 근거가 된 영상·논문을 함께 표시합니다.'
+          : '주어진 영상 메타데이터와 논문 목록만을 근거로 생성된 시사점입니다.'
+      }
       footer={
         insight
-          ? `AI 생성 · ${insight.model} · ${formatDateTime(insight.generatedAt)} · ${insight.cached ? '캐시' : '신규'}`
+          ? `AI 생성 · ${insight.model} · ${formatDateTime(insight.generatedAt)} · ${insight.cached ? '캐시' : '신규'}${insight.stale ? ' · 갱신 중' : ''}`
           : undefined
       }
     >
@@ -36,7 +42,24 @@ export function ReportInsightCard({ insight }: { insight: TrendInsight | null })
                 <span className="shrink-0 inline-flex w-6 h-6 items-center justify-center rounded-full bg-ink-100 font-mono text-[11px] font-semibold text-ink-700">
                   {i + 1}
                 </span>
-                <p className="text-[13.5px] leading-relaxed text-ink-800">{pt}</p>
+                <div className="min-w-0">
+                  <p className="text-[13.5px] leading-relaxed text-ink-800">{pt}</p>
+                  {evidence?.[i]?.map((ev, j) => {
+                    const href = safeHref(ev.url);
+                    const text = formatEvidenceText(ev);
+                    return (
+                      <p key={j} className="mt-0.5 text-[12px] leading-snug text-ink-500">
+                        {href ? (
+                          <a href={href} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                            {text}
+                          </a>
+                        ) : (
+                          text
+                        )}
+                      </p>
+                    );
+                  })}
+                </div>
               </li>
             ))}
           </ol>

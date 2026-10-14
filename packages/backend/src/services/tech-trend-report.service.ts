@@ -2,9 +2,14 @@
  * TechTrendReportService — 단위기술 축 공유용 리포트 (최근 N일)
  *
  * 프런트 TechDomainView의 DOMAIN_CONFIGS 판정 규칙을 1:1로 이식해 서버에서
- * 영상 + 논문(또는 기사)을 선별하고, Claude(Haiku)로 "주요 시사점"을 생성해
+ * 영상 + 논문(또는 기사)을 선별하고, Claude로 "주요 시사점"을 생성해
  * view_cache에 24시간 캐시한다. 리포트 본문(영상/논문)은 매 요청 DB에서 조회하며
  * 시사점(insight) 객체만 캐시한다.
+ *
+ * 모델 프로필:
+ *  - hand (RICH):  Claude Opus 5.5 + effort high, 영상/논문 60/60, 시사점 5~7개 × 300자, ref 코드 기반 근거(pointEvidence),
+ *                  캐시 키 v2, 10분 실패 쿨다운, 만료 캐시 즉시 반환 + 백그라운드 재생성(stale-while-revalidate).
+ *  - 그 외 4개 도메인 (LEGACY): Claude Haiku 4.5, 프롬프트·한도·캐시 키(v1) 모두 종전과 동일.
  *
  * 안전 원칙:
  *  - 공개 메타데이터(제목·썸네일 URL·링크·초록 발췌)만 노출, 원문 복제 없음.
@@ -17,6 +22,19 @@ import { db } from '../db/index.js';
 import { articles, viewCache } from '../db/schema.js';
 import { aiUsageService } from './ai-usage.service.js';
 import { decodeHtmlEntities } from './event-video-brief.service.js';
+import {
+  OPUS_REQUEST_OPTIONS,
+  effortParams,
+  extractText,
+  isInCooldown,
+  isRefusal,
+  resolveLegacyReportModel,
+  resolveReportModel,
+  warnOnAbnormalStop,
+  type AnthropicMessagesClient,
+  type EffortLevel,
+  type MessageRequestOptions,
+} from './anthropic-models.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 상수 / 설정
@@ -25,7 +43,10 @@ import { decodeHtmlEntities } from './event-video-brief.service.js';
 export const TECH_TREND_DOMAINS = ['hand', 'rfm', 'actuator', 'expo', 'production'] as const;
 export type TechTrendDomain = (typeof TECH_TREND_DOMAINS)[number];
 
-const REPORT_MODEL = process.env.TECH_TREND_REPORT_MODEL || 'claude-haiku-4-5-20251001';
+/** hand(RICH) 시사점 모델 — 기본 Opus 5.5 */
+const RICH_REPORT_MODEL = resolveReportModel();
+/** 그 외 도메인(LEGACY) 시사점 모델 — 기본 Haiku 4.5 */
+const LEGACY_REPORT_MODEL = resolveLegacyReportModel();
 const REPORT_TTL_HOURS = (() => {
   const n = Number(process.env.TECH_TREND_REPORT_TTL_HOURS);
   return Number.isFinite(n) && n > 0 ? n : 24;
@@ -35,12 +56,79 @@ const REPORT_TTL_MS = REPORT_TTL_HOURS * 3_600_000;
 const QUERY_LIMIT = 1500;
 export const VIDEO_LIST_CAP = 100;
 export const PAPER_LIST_CAP = 60;
-const PROMPT_VIDEO_CAP = 40;
-const PROMPT_PAPER_CAP = 40;
-const PROMPT_SUMMARY_CAP = 200;
-const PROMPT_ABSTRACT_CAP = 300;
 const ABSTRACT_SNIPPET_LEN = 220;
 const VIDEO_SUMMARY_LEN = 400;
+
+export type InsightProfileKind = 'legacy' | 'rich';
+
+/** 시사점 생성 프로필 — 도메인별로 모델·호출 파라미터·프롬프트 캡·파서 한도·캐시 버전이 다르다. */
+export interface InsightProfile {
+  kind: InsightProfileKind;
+  maxTokens: number;
+  /** null이면 output_config 미전송 */
+  effort: EffortLevel | null;
+  requestOptions?: MessageRequestOptions;
+  promptVideoCap: number;
+  promptPaperCap: number;
+  promptSummaryCap: number;
+  promptAbstractCap: number;
+  headlineMax: number;
+  pointsMax: number;
+  pointMax: number;
+  cacheVersion: 'v1' | 'v2';
+}
+
+export const INSIGHT_PROFILES: Record<InsightProfileKind, InsightProfile> = {
+  legacy: {
+    kind: 'legacy',
+    maxTokens: 1500,
+    effort: null,
+    promptVideoCap: 40,
+    promptPaperCap: 40,
+    promptSummaryCap: 200,
+    promptAbstractCap: 300,
+    headlineMax: 120,
+    pointsMax: 5,
+    pointMax: 220,
+    cacheVersion: 'v1',
+  },
+  rich: {
+    kind: 'rich',
+    maxTokens: 16_000,
+    effort: 'high',
+    requestOptions: OPUS_REQUEST_OPTIONS,
+    promptVideoCap: 60,
+    promptPaperCap: 60,
+    promptSummaryCap: 300,
+    promptAbstractCap: 500,
+    headlineMax: 200,
+    pointsMax: 7,
+    pointMax: 300,
+    cacheVersion: 'v2',
+  },
+};
+
+/** hand만 RICH(Opus) 프로필 */
+export function insightProfileFor(domain: TechTrendDomain): InsightProfile {
+  return domain === 'hand' ? INSIGHT_PROFILES.rich : INSIGHT_PROFILES.legacy;
+}
+
+export function insightModelFor(profile: InsightProfile): string {
+  return profile.kind === 'rich' ? RICH_REPORT_MODEL : LEGACY_REPORT_MODEL;
+}
+
+/** 시사점 캐시 키 — hand는 v2, 그 외는 v1 */
+export function insightCacheKey(domain: TechTrendDomain, days: number): string {
+  return `tech-trend-report:${insightProfileFor(domain).cacheVersion}:${domain}:${days}`;
+}
+
+/** 도메인의 모든 days 캐시 키를 가리키는 LIKE 패턴 */
+export function insightCachePattern(domain: TechTrendDomain): string {
+  return `tech-trend-report:${insightProfileFor(domain).cacheVersion}:${domain}:%`;
+}
+
+/** 프롬프트 전용 초록 길이 (화면 노출용 abstractSnippet 220자와 별개, 모델 입력에만 사용) */
+const PROMPT_ABSTRACT_LEN = INSIGHT_PROFILES.rich.promptAbstractCap;
 
 const NON_NEWS_SOURCES = ['arxiv', 'github', 'sec_edgar', 'patent'];
 
@@ -167,13 +255,26 @@ export interface ReportStats {
   topKeywords: { keyword: string; count: number }[];
 }
 
+/** 시사점의 근거 항목 — 서버가 입력 데이터(영상/논문)에서 채운 값만 담는다. */
+export interface EvidenceRef {
+  kind: 'video' | 'paper';
+  title: string;
+  url: string | null;
+  /** 영상=채널명, 논문=`arXiv:{id}` */
+  label: string | null;
+}
+
 export interface TrendInsight {
   headline: string;
   points: string[];
+  /** points[i]의 근거. 존재하면 길이가 points와 같다 (hand 한정). 내부 배열은 비어 있을 수 있다. */
+  pointEvidence?: EvidenceRef[][];
   keywords: string[];
   model: string;
   generatedAt: string;
   cached: boolean;
+  /** 만료된 캐시를 즉시 반환하고 백그라운드에서 재생성 중일 때 true */
+  stale?: boolean;
 }
 
 export interface TechTrendReport {
@@ -193,11 +294,23 @@ export interface TechTrendReport {
   focus: { excluded: number; pending: number };
 }
 
+/** 프롬프트 입력용 논문 — promptAbstract(공백 정규화 ≤500자)는 모델 입력 전용이며 응답 JSON에는 싣지 않는다. */
+export interface PromptPaper extends ReportPaper {
+  promptAbstract?: string | null;
+}
+
 export interface InsightPromptInput {
+  domain: TechTrendDomain;
   domainLabel: string;
   days: number;
   videos: ReportVideo[];
-  papers: ReportPaper[];
+  papers: PromptPaper[];
+}
+
+export interface InsightPromptBuild {
+  prompt: string;
+  /** ref 코드(V1.., P1..) → 입력 항목 정보. LEGACY는 빈 맵. */
+  refs: Map<string, EvidenceRef>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -409,18 +522,25 @@ export function shouldGenerateInsight(videoCount: number, paperCount: number): b
   return videoCount + paperCount >= 3;
 }
 
-export function buildInsightPrompt(input: InsightPromptInput): string {
-  const videos = prioritizeVideosForPrompt(input.videos, PROMPT_VIDEO_CAP).map((v) => ({
+/** 프롬프트 전용 초록 — 공백 정규화 후 ≤500자. 화면 노출용 abstractSnippet(220자)과 별개이며 모델 입력에만 쓴다. */
+export function toPromptAbstract(row: ArticleRow): string | null {
+  const text = (row.summary ?? '').replace(/\s+/g, ' ').trim();
+  return text ? text.slice(0, PROMPT_ABSTRACT_LEN) : null;
+}
+
+/** 핸드 외 4개 도메인 프롬프트 — 종전 문구와 한 글자도 다르지 않아야 한다. */
+function buildLegacyPrompt(input: InsightPromptInput, profile: InsightProfile): string {
+  const videos = prioritizeVideosForPrompt(input.videos, profile.promptVideoCap).map((v) => ({
     title: v.title,
     channel: v.channel ?? '',
     publishedAt: v.publishedAt ? v.publishedAt.slice(0, 10) : '',
-    summaryKo: v.summaryKo ? v.summaryKo.slice(0, PROMPT_SUMMARY_CAP) : '',
+    summaryKo: v.summaryKo ? v.summaryKo.slice(0, profile.promptSummaryCap) : '',
     techTags: v.techTags,
   }));
-  const papers = input.papers.slice(0, PROMPT_PAPER_CAP).map((p) => ({
+  const papers = input.papers.slice(0, profile.promptPaperCap).map((p) => ({
     title: p.title,
     publishedAt: p.publishedAt ? p.publishedAt.slice(0, 10) : '',
-    abstract: p.abstractSnippet ? p.abstractSnippet.slice(0, PROMPT_ABSTRACT_CAP) : '',
+    abstract: p.abstractSnippet ? p.abstractSnippet.slice(0, profile.promptAbstractCap) : '',
   }));
 
   return `다음은 최근 ${input.days}일간 수집된 ${input.domainLabel} 분야 영상 메타데이터와 arXiv 논문 목록이다. LG 로봇 전략팀 공유용 리포트의 '주요 시사점'을 한국어로 작성하라.
@@ -443,10 +563,119 @@ JSON으로만 응답하라. 다른 텍스트 없이:
 {"headline":"한 문장 총평","points":["시사점1","시사점2","시사점3"],"keywords":["키워드1","키워드2"]}`;
 }
 
+/** 핸드(RICH) 프롬프트 + ref 코드 맵 — 영상 V1.., 논문 P1.. (프롬프트에 실린 순서) */
+function buildRichPrompt(input: InsightPromptInput, profile: InsightProfile): InsightPromptBuild {
+  const refs = new Map<string, EvidenceRef>();
+  const videos = prioritizeVideosForPrompt(input.videos, profile.promptVideoCap).map((v, i) => {
+    const ref = `V${i + 1}`;
+    refs.set(ref, { kind: 'video', title: v.title, url: v.url, label: v.channel });
+    return {
+      ref,
+      title: v.title,
+      channel: v.channel ?? '',
+      publishedAt: v.publishedAt ? v.publishedAt.slice(0, 10) : '',
+      summaryKo: v.summaryKo ? v.summaryKo.slice(0, profile.promptSummaryCap) : '',
+      techTags: v.techTags,
+    };
+  });
+  const papers = input.papers.slice(0, profile.promptPaperCap).map((p, i) => {
+    const ref = `P${i + 1}`;
+    refs.set(ref, { kind: 'paper', title: p.title, url: p.url, label: p.arxivId ? `arXiv:${p.arxivId}` : null });
+    return {
+      ref,
+      title: p.title,
+      publishedAt: p.publishedAt ? p.publishedAt.slice(0, 10) : '',
+      abstract: (p.promptAbstract ?? p.abstractSnippet ?? '').slice(0, profile.promptAbstractCap),
+    };
+  });
+
+  const prompt = `다음은 최근 ${input.days}일간 수집된 ${input.domainLabel} 분야 영상 메타데이터와 arXiv 논문 목록이다. 각 항목에는 근거 표기용 ref 코드(영상 V숫자, 논문 P숫자)가 붙어 있다. LG 로봇 전략팀 공유용 리포트의 '주요 시사점'을 한국어로 작성하라.
+
+규칙:
+- 주어진 데이터에 명시된 내용만 근거로 삼는다. 추측·일반론·외부 지식 금지. 다만 데이터에서 읽어낼 수 있는 비교·대조·패턴의 해석은 허용하며, 해석 문장은 "~로 보인다"처럼 해석임을 드러낸다.
+- 시사점은 5~7개, 각 ${profile.pointMax}자 이내. 서로 겹치지 않는 관점을 다룬다. 예: 부상하는 기술 방향, 업체·랩별 접근 차이, 영상(제품화)과 논문(연구) 사이의 정합과 간극, 센싱·구동·제어·학습 등 구성요소별 변화, 데이터에서 보이지 않는 공백, 전략팀이 계속 지켜볼 관찰 포인트(데이터 범위 안에서만).
+- 각 시사점은 (1) 관찰된 사실(어떤 업체/랩이 무엇을 보였는가)과 (2) 그 기술적 의미 또는 방향을 모두 담는다. 가능하면 영상과 논문을 교차한다.
+- 각 시사점의 refs에 근거가 된 항목의 ref 코드를 1~4개 적는다. 입력에 없는 코드를 만들지 않는다. text 안에는 ref 코드를 쓰지 않는다.
+- 총평(headline)은 1~2문장, ${profile.headlineMax}자 이내.
+- 조회수·인기·마케팅 언급 금지.
+- 핵심 기술 키워드는 최대 8개, 각 24자 이내.
+- 마크다운 기호(#, **, -)와 인용 태그(<cite>) 사용 금지.
+
+[영상 ${videos.length}건]
+${JSON.stringify(videos)}
+
+[논문 ${papers.length}편]
+${JSON.stringify(papers)}
+
+JSON으로만 응답하라. 다른 텍스트 없이:
+{"headline":"총평","points":[{"text":"시사점 본문","refs":["V3","P12"]}],"keywords":["키워드1","키워드2"]}`;
+  return { prompt, refs };
+}
+
+/** 프롬프트와 ref 맵을 함께 만든다 — hand만 RICH, 나머지는 종전 프롬프트(빈 ref 맵). */
+export function buildInsightPromptWithRefs(input: InsightPromptInput): InsightPromptBuild {
+  const profile = insightProfileFor(input.domain);
+  if (profile.kind === 'rich') return buildRichPrompt(input, profile);
+  return { prompt: buildLegacyPrompt(input, profile), refs: new Map() };
+}
+
+export function buildInsightPrompt(input: InsightPromptInput): string {
+  return buildInsightPromptWithRefs(input).prompt;
+}
+
+export interface ParseInsightOptions {
+  headlineMax?: number;
+  pointsMax?: number;
+  pointMax?: number;
+  /**
+   * 지정하면 근거 모드: points 항목으로 {text, refs[]} 객체를 허용하고, 본문 속 ref 표기를 제거하며,
+   * refs를 이 맵으로 검증해 pointEvidence 를 만든다. 생략하면 종전 동작(문자열 points만).
+   */
+  refs?: ReadonlyMap<string, EvidenceRef>;
+}
+
+export interface ParsedTrendInsight {
+  headline: string;
+  points: string[];
+  pointEvidence?: EvidenceRef[][];
+  keywords: string[];
+}
+
+/** 시사점 하나에 붙일 수 있는 근거 최대 개수 */
+export const MAX_REFS_PER_POINT = 4;
+
+const REF_CODE_RE = /^[VP]\d{1,3}$/;
+/** 본문에 섞인 ref 표기: [V3], (P12), [V3, P12] */
+const INLINE_REF_RE = /\s*[[(（]\s*[VP]\d{1,3}(?:\s*[,，、/]\s*[VP]\d{1,3})*\s*[\])）]/g;
+
+/** 근거 모드 텍스트 정리 — 인용 태그, 본문 속 ref 표기, 마크다운 기호 제거 (일반 단어 "V2"는 보존) */
+function cleanRichText(s: string): string {
+  return stripCiteTags(s)
+    .replace(INLINE_REF_RE, '')
+    .replace(/[*#`]/g, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
+function resolveEvidenceRefs(raw: unknown, refs: ReadonlyMap<string, EvidenceRef>): EvidenceRef[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: EvidenceRef[] = [];
+  for (const item of raw as unknown[]) {
+    if (typeof item !== 'string') continue;
+    const code = item.trim().toUpperCase();
+    if (!REF_CODE_RE.test(code) || seen.has(code)) continue;
+    const found = refs.get(code);
+    if (!found) continue;
+    seen.add(code);
+    out.push({ ...found });
+    if (out.length >= MAX_REFS_PER_POINT) break;
+  }
+  return out;
+}
+
 /** Anthropic 응답에서 {headline, points[], keywords[]} 파싱 (주변 텍스트 포함 응답도 복원) */
-export function parseTrendInsight(
-  text: string
-): { headline: string; points: string[]; keywords: string[] } | null {
+export function parseTrendInsight(text: string, options?: ParseInsightOptions): ParsedTrendInsight | null {
   const tryParse = (raw: string): Record<string, unknown> | null => {
     try {
       const v = JSON.parse(raw) as unknown;
@@ -462,13 +691,34 @@ export function parseTrendInsight(
   }
   if (!parsed) return null;
 
-  const headline =
-    typeof parsed.headline === 'string' ? stripCiteTags(parsed.headline).slice(0, 120) : '';
-  const points = (Array.isArray(parsed.points) ? (parsed.points as unknown[]) : [])
-    .filter((s): s is string => typeof s === 'string')
-    .map((s) => stripCiteTags(s).slice(0, 220))
-    .filter((s) => s.length > 0)
-    .slice(0, 5);
+  const refs = options?.refs;
+  const headlineMax = options?.headlineMax ?? INSIGHT_PROFILES.legacy.headlineMax;
+  const pointMax = options?.pointMax ?? INSIGHT_PROFILES.legacy.pointMax;
+  const pointsMax = options?.pointsMax ?? INSIGHT_PROFILES.legacy.pointsMax;
+  const clean = refs ? cleanRichText : stripCiteTags;
+
+  const headline = typeof parsed.headline === 'string' ? clean(parsed.headline).slice(0, headlineMax) : '';
+
+  // points 와 pointEvidence 는 같은 목록에서 파생해 인덱스가 항상 정렬된다
+  const items: { text: string; evidence: EvidenceRef[] }[] = [];
+  for (const raw of Array.isArray(parsed.points) ? (parsed.points as unknown[]) : []) {
+    let rawText: string | null = null;
+    let rawRefs: unknown = [];
+    if (typeof raw === 'string') {
+      rawText = raw;
+    } else if (refs && raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      const o = raw as Record<string, unknown>;
+      if (typeof o.text === 'string') {
+        rawText = o.text;
+        rawRefs = o.refs;
+      }
+    }
+    if (rawText === null) continue;
+    const pointText = clean(rawText).slice(0, pointMax);
+    if (pointText.length === 0) continue;
+    items.push({ text: pointText, evidence: refs ? resolveEvidenceRefs(rawRefs, refs) : [] });
+    if (items.length >= pointsMax) break;
+  }
 
   const seen = new Set<string>();
   const keywords: string[] = [];
@@ -483,25 +733,43 @@ export function parseTrendInsight(
     if (keywords.length >= 8) break;
   }
 
-  if (points.length < 1) return null;
-  return { headline, points, keywords };
+  if (items.length < 1) return null;
+  const points = items.map((i) => i.text);
+  if (!refs) return { headline, points, keywords };
+  return { headline, points, pointEvidence: items.map((i) => i.evidence), keywords };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 서비스
 // ─────────────────────────────────────────────────────────────────────────────
 
-type CachedInsight = Omit<TrendInsight, 'cached'>;
+type CachedInsight = Omit<TrendInsight, 'cached' | 'stale'>;
 
-class TechTrendReportService {
-  private anthropicClient: Anthropic | null = null;
-  /** 동일 (domain, days) 시사점 동시 생성 방지 */
+/** 캐시된 시사점이 사용 가능한지 — points가 비어있지 않은 배열 (pointEvidence가 없으면 레거시 형태로 취급) */
+export function isUsableCachedInsight(data: unknown): data is CachedInsight {
+  if (!data || typeof data !== 'object') return false;
+  const points = (data as { points?: unknown }).points;
+  return Array.isArray(points) && points.length > 0;
+}
+
+interface DomainReportData {
+  allVideos: ReportVideo[];
+  allPapers: ReportPaper[];
+  /** allPapers와 같은 순서, 프롬프트 전용 초록(promptAbstract) 포함 */
+  promptPapers: PromptPaper[];
+  excludedCount: number;
+}
+
+export class TechTrendReportService {
+  private anthropicClient: AnthropicMessagesClient | null;
+  /** 동일 (domain, days) 시사점 동시 생성 방지 — warm/SWR/일반 요청이 겹쳐도 호출은 1회 */
   private inflight = new Map<string, Promise<CachedInsight | null>>();
+  /** RICH(Opus) 호출 실패 시각 (캐시 키별) — 10분간 재호출하지 않는다 */
+  private failedAt = new Map<string, number>();
 
-  constructor() {
-    if (process.env.ANTHROPIC_API_KEY) {
-      this.anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    }
+  constructor(client?: AnthropicMessagesClient | null) {
+    if (client !== undefined) this.anthropicClient = client;
+    else this.anthropicClient = process.env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
   }
 
   async getReport(domain: TechTrendDomain, days: number): Promise<TechTrendReport> {
@@ -509,35 +777,14 @@ class TechTrendReportService {
     const now = new Date();
     const periodStart = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
-    const [videoRows, secondaryRows] = await Promise.all([
-      this.fetchVideoRows(days),
-      config.second === 'papers' ? this.fetchPaperRows(days) : this.fetchNewsRows(days),
-    ]);
-
-    const { kept: keptVideoRows, excludedCount } = filterByDomainFocus(
-      domain,
-      videoRows.filter((r) => matchesDomainVideo(domain, r))
-    );
-    const allVideos = keptVideoRows
-      .map((r) => toReportVideo(r, domain))
-      .sort((a, b) => {
-        // publishedAt desc, null 뒤
-        if (!a.publishedAt && !b.publishedAt) return 0;
-        if (!a.publishedAt) return 1;
-        if (!b.publishedAt) return -1;
-        return rowTime(b.publishedAt) - rowTime(a.publishedAt);
-      });
-    const allPapers = secondaryRows
-      .filter((r) => matchesDomainSecondary(domain, r))
-      .map(toReportPaper)
-      .sort((a, b) => rowTime(b.publishedAt) - rowTime(a.publishedAt));
+    const { allVideos, allPapers, promptPapers, excludedCount } = await this.loadDomainData(domain, days);
 
     const stats = computeReportStats(allVideos, allPapers);
     const videos = allVideos.slice(0, VIDEO_LIST_CAP);
     const papers = allPapers.slice(0, PAPER_LIST_CAP);
     const pending = domain === 'hand' ? allVideos.filter((v) => v.domainFocus === null).length : 0;
 
-    const insight = await this.getInsight(domain, days, config.label, allVideos, allPapers);
+    const insight = await this.getInsight(domain, days, config.label, allVideos, promptPapers);
 
     return {
       domain,
@@ -556,6 +803,39 @@ class TechTrendReportService {
     };
   }
 
+  /** 리포트 본문 데이터 조회·선별 (getReport와 warm 재생성이 공유) */
+  private async loadDomainData(domain: TechTrendDomain, days: number): Promise<DomainReportData> {
+    const config = DOMAIN_REPORT_CONFIGS[domain];
+    const [videoRows, secondaryRows] = await Promise.all([
+      this.fetchVideoRows(days),
+      config.second === 'papers' ? this.fetchPaperRows(days) : this.fetchNewsRows(days),
+    ]);
+
+    const { kept: keptVideoRows, excludedCount } = filterByDomainFocus(
+      domain,
+      videoRows.filter((r) => matchesDomainVideo(domain, r))
+    );
+    const allVideos = keptVideoRows
+      .map((r) => toReportVideo(r, domain))
+      .sort((a, b) => {
+        // publishedAt desc, null 뒤
+        if (!a.publishedAt && !b.publishedAt) return 0;
+        if (!a.publishedAt) return 1;
+        if (!b.publishedAt) return -1;
+        return rowTime(b.publishedAt) - rowTime(a.publishedAt);
+      });
+    const paperEntries = secondaryRows
+      .filter((r) => matchesDomainSecondary(domain, r))
+      .map((r) => ({ paper: toReportPaper(r), promptAbstract: toPromptAbstract(r) }))
+      .sort((a, b) => rowTime(b.paper.publishedAt) - rowTime(a.paper.publishedAt));
+    return {
+      allVideos,
+      allPapers: paperEntries.map((e) => e.paper),
+      promptPapers: paperEntries.map((e) => ({ ...e.paper, promptAbstract: e.promptAbstract })),
+      excludedCount,
+    };
+  }
+
   /** 도메인 영상 대상 행 (기간 + matchesDomainVideo) — 판정 제외(none) 전의 원본 행. 분석 배치의 대상 선정용. */
   async getDomainVideoRows(domain: TechTrendDomain, days: number): Promise<ArticleRow[]> {
     const rows = await this.fetchVideoRows(days);
@@ -563,15 +843,15 @@ class TechTrendReportService {
   }
 
   /**
-   * 시사점 캐시 무효화 — days별 캐시 키(tech-trend-report:v1:{domain}:{days}) 전부의 cachedAt을 과거로 민다.
-   * 다음 getReport 호출에서 새 데이터로 시사점이 재생성된다. 오류는 로그만 남긴다.
+   * 시사점 캐시 무효화 — days별 캐시 키(hand: tech-trend-report:v2:hand:{days}, 그 외: v1) 전부의 cachedAt을 과거로 민다.
+   * 다음 getReport 호출(또는 warmHandInsight)에서 새 데이터로 시사점이 재생성된다. 오류는 로그만 남긴다.
    */
   async invalidateInsightCache(domain: TechTrendDomain): Promise<void> {
     try {
       await db
         .update(viewCache)
         .set({ cachedAt: new Date(0) })
-        .where(like(viewCache.viewName, `tech-trend-report:v1:${domain}:%`));
+        .where(like(viewCache.viewName, insightCachePattern(domain)));
     } catch (err) {
       console.error(`[TechTrendReport] insight cache invalidation failed for ${domain}:`, (err as Error).message);
     }
@@ -648,30 +928,85 @@ class TechTrendReportService {
 
   // ── 시사점 (24h 캐시) ────────────────────────────────────────────────────
 
-  private async getInsight(
+  private async readCacheRow(cacheKey: string): Promise<{ data: CachedInsight; cachedAt: Date } | null> {
+    try {
+      const [row] = await db.select().from(viewCache).where(eq(viewCache.viewName, cacheKey)).limit(1);
+      if (!row) return null;
+      const data: unknown = row.data;
+      if (!isUsableCachedInsight(data)) return null;
+      return { data, cachedAt: row.cachedAt };
+    } catch {
+      // 캐시 조회 실패는 무시하고 재생성 진행
+      return null;
+    }
+  }
+
+  private inCooldown(cacheKey: string): boolean {
+    return isInCooldown(this.failedAt.get(cacheKey), Date.now());
+  }
+
+  /**
+   * 시사점 조회.
+   *  1) 신선한 캐시 → 즉시 반환
+   *  2) hand(RICH)이고 만료된 캐시가 있으면 → 만료 캐시를 stale:true 로 즉시 반환 + 백그라운드 재생성(인플라이트 가드·쿨다운 적용)
+   *  3) 캐시가 전혀 없으면 → 블로킹 생성 (hand는 실패 시 10분 쿨다운)
+   * 핸드 외 도메인은 종전대로 만료 시 블로킹 재생성한다.
+   */
+  async getInsight(
     domain: TechTrendDomain,
     days: number,
     domainLabel: string,
     videos: ReportVideo[],
-    papers: ReportPaper[]
+    papers: PromptPaper[]
   ): Promise<TrendInsight | null> {
-    const cacheKey = `tech-trend-report:v1:${domain}:${days}`;
+    const profile = insightProfileFor(domain);
+    const cacheKey = insightCacheKey(domain, days);
 
-    try {
-      const [cached] = await db.select().from(viewCache).where(eq(viewCache.viewName, cacheKey)).limit(1);
-      if (cached && Date.now() - cached.cachedAt.getTime() < REPORT_TTL_MS) {
-        const data = cached.data as unknown as CachedInsight;
-        if (data && Array.isArray(data.points) && data.points.length > 0) {
-          return { ...data, cached: true };
-        }
-      }
-    } catch {
-      // 캐시 조회 실패는 무시하고 재생성 진행
+    const row = await this.readCacheRow(cacheKey);
+    if (row && Date.now() - row.cachedAt.getTime() < REPORT_TTL_MS) {
+      return { ...row.data, cached: true };
     }
 
-    if (!this.anthropicClient) return null;
-    if (!shouldGenerateInsight(videos.length, papers.length)) return null;
+    const canGenerate = this.anthropicClient !== null && shouldGenerateInsight(videos.length, papers.length);
 
+    if (row && profile.kind === 'rich') {
+      if (canGenerate && !this.inCooldown(cacheKey)) {
+        void this.runGeneration(cacheKey, domain, days, domainLabel, videos, papers);
+      }
+      return { ...row.data, cached: true, stale: true };
+    }
+
+    if (!canGenerate) return null;
+    if (profile.kind === 'rich' && this.inCooldown(cacheKey)) return null;
+
+    const generated = await this.runGeneration(cacheKey, domain, days, domainLabel, videos, papers);
+    return generated ? { ...generated, cached: false } : null;
+  }
+
+  /**
+   * hand days=30 시사점 사전 생성 — 분석/분류 배치 종료 후 호출한다.
+   * 캐시가 이미 신선하면(다른 트리거가 먼저 생성) 호출하지 않고, 동시에 호출돼도 인플라이트 가드로 1회만 생성한다.
+   */
+  async warmHandInsight(days = 30): Promise<void> {
+    if (!this.anthropicClient) return;
+    const cacheKey = insightCacheKey('hand', days);
+    const row = await this.readCacheRow(cacheKey);
+    if (row && Date.now() - row.cachedAt.getTime() < REPORT_TTL_MS) return;
+    if (this.inCooldown(cacheKey)) return;
+    const { allVideos, promptPapers } = await this.loadDomainData('hand', days);
+    if (!shouldGenerateInsight(allVideos.length, promptPapers.length)) return;
+    await this.runGeneration(cacheKey, 'hand', days, DOMAIN_REPORT_CONFIGS.hand.label, allVideos, promptPapers);
+  }
+
+  /** 캐시 키별 인플라이트 가드를 거쳐 생성 (generateInsight는 예외를 던지지 않는다) */
+  private runGeneration(
+    cacheKey: string,
+    domain: TechTrendDomain,
+    days: number,
+    domainLabel: string,
+    videos: ReportVideo[],
+    papers: PromptPaper[]
+  ): Promise<CachedInsight | null> {
     let pending = this.inflight.get(cacheKey);
     if (!pending) {
       pending = this.generateInsight(cacheKey, domain, days, domainLabel, videos, papers).finally(() =>
@@ -679,8 +1014,7 @@ class TechTrendReportService {
       );
       this.inflight.set(cacheKey, pending);
     }
-    const generated = await pending;
-    return generated ? { ...generated, cached: false } : null;
+    return pending;
   }
 
   private async generateInsight(
@@ -689,30 +1023,34 @@ class TechTrendReportService {
     days: number,
     domainLabel: string,
     videos: ReportVideo[],
-    papers: ReportPaper[]
+    papers: PromptPaper[]
   ): Promise<CachedInsight | null> {
     if (!this.anthropicClient) return null;
+    const profile = insightProfileFor(domain);
+    const model = insightModelFor(profile);
+    const tag = `${domain}/${days}d`;
+    // RICH(Opus) 호출 실패는 10분 쿨다운, LEGACY는 종전대로 쿨다운 없음
+    const fail = (): null => {
+      if (profile.kind === 'rich') this.failedAt.set(cacheKey, Date.now());
+      return null;
+    };
     try {
-      const response = await this.anthropicClient.messages.create({
-        model: REPORT_MODEL,
-        max_tokens: 1500,
-        messages: [{ role: 'user', content: buildInsightPrompt({ domainLabel, days, videos, papers }) }],
-      });
+      const { prompt, refs } = buildInsightPromptWithRefs({ domain, domainLabel, days, videos, papers });
+      const response = await this.anthropicClient.messages.create(
+        {
+          model,
+          max_tokens: profile.maxTokens,
+          messages: [{ role: 'user', content: prompt }],
+          ...(profile.effort ? effortParams(model, profile.effort) : {}),
+        },
+        profile.requestOptions
+      );
 
-      let combined = '';
-      for (const block of response.content) {
-        if (block.type === 'text') combined += block.text + '\n';
-      }
-      const parsed = parseTrendInsight(combined);
-      if (!parsed) {
-        console.error(`[TechTrendReport] insight parse failed for ${domain}/${days}d`);
-        return null;
-      }
-
+      // 파싱 성공 여부와 무관하게 응답을 받았으면 비용을 기록한다
       aiUsageService
         .logUsage({
           provider: 'claude',
-          model: REPORT_MODEL,
+          model,
           webSearch: false,
           inputTokens: response.usage?.input_tokens ?? 0,
           outputTokens: response.usage?.output_tokens ?? 0,
@@ -720,11 +1058,29 @@ class TechTrendReportService {
         })
         .catch(() => {});
 
+      if (isRefusal(response.stop_reason)) {
+        console.warn(`[TechTrendReport] insight refused by model for ${tag} (model=${model})`);
+        return fail();
+      }
+      warnOnAbnormalStop('TechTrendReport', model, response);
+
+      const parsed = parseTrendInsight(
+        extractText(response.content),
+        profile.kind === 'rich'
+          ? { headlineMax: profile.headlineMax, pointsMax: profile.pointsMax, pointMax: profile.pointMax, refs }
+          : undefined
+      );
+      if (!parsed) {
+        console.error(`[TechTrendReport] insight parse failed for ${tag}`);
+        return fail();
+      }
+
       const insight: CachedInsight = {
         headline: parsed.headline,
         points: parsed.points,
+        ...(parsed.pointEvidence ? { pointEvidence: parsed.pointEvidence } : {}),
         keywords: parsed.keywords,
-        model: REPORT_MODEL,
+        model,
         generatedAt: new Date().toISOString(),
       };
 
@@ -740,10 +1096,11 @@ class TechTrendReportService {
         // 캐시 저장 실패는 치명적이지 않음
       }
 
+      this.failedAt.delete(cacheKey);
       return insight;
     } catch (err) {
-      console.error(`[TechTrendReport] insight generation failed for ${domain}/${days}d:`, (err as Error).message);
-      return null;
+      console.error(`[TechTrendReport] insight generation failed for ${tag}:`, (err as Error).message);
+      return fail();
     }
   }
 }

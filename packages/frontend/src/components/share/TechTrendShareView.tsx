@@ -126,7 +126,7 @@ export function TechTrendShareView() {
         {reportQuery.isLoading && (
           <Panel className="report-panel">
             <div className="py-10 text-center text-ink-500 text-sm">
-              리포트를 생성하는 중… (첫 생성 시 시사점 작성에 수 초 소요)
+              리포트를 생성하는 중… (첫 생성 시 AI 시사점 작성으로 최대 2~3분 소요)
             </div>
           </Panel>
         )}

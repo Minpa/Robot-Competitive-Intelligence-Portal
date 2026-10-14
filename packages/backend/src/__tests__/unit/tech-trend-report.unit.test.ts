@@ -13,11 +13,20 @@ import {
   getDomainFocus,
   filterByDomainFocus,
   prioritizeVideosForPrompt,
+  buildInsightPromptWithRefs,
+  toPromptAbstract,
+  insightCacheKey,
+  insightCachePattern,
+  insightProfileFor,
+  INSIGHT_PROFILES,
+  isUsableCachedInsight,
   VIDEO_LIST_CAP,
   PAPER_LIST_CAP,
   type ArticleRow,
   type ReportVideo,
   type ReportPaper,
+  type PromptPaper,
+  type EvidenceRef,
 } from '../../services/tech-trend-report.service.js';
 
 function video(meta: Record<string, unknown>, extra: Partial<ArticleRow> = {}): ArticleRow {
@@ -216,7 +225,7 @@ describe('buildInsightPrompt', () => {
     const papers = Array.from({ length: 41 }, (_, i) =>
       rp({ title: `PAP-${i}`, publishedAt: '2026-10-02T12:00:00.000Z', abstractSnippet: 'a'.repeat(300) })
     );
-    const prompt = buildInsightPrompt({ domainLabel: '핸드 트렌드', days: 30, videos, papers });
+    const prompt = buildInsightPrompt({ domain: 'rfm', domainLabel: '핸드 트렌드', days: 30, videos, papers });
     expect(prompt).toContain('VID-39');
     expect(prompt).not.toContain('VID-40');
     expect(prompt).toContain('PAP-39');
@@ -431,7 +440,7 @@ describe('prioritizeVideosForPrompt / buildInsightPrompt ordering', () => {
     const out = prioritizeVideosForPrompt(vids, 40);
     expect(out).toHaveLength(40);
     expect(out[0].title).toBe('late-primary');
-    const prompt = buildInsightPrompt({ domainLabel: '핸드', days: 30, videos: vids, papers: [] });
+    const prompt = buildInsightPrompt({ domain: 'rfm', domainLabel: '핸드', days: 30, videos: vids, papers: [] });
     expect(prompt).toContain('late-primary');
     expect(prompt).toContain('[영상 40건]');
   });
@@ -439,5 +448,351 @@ describe('prioritizeVideosForPrompt / buildInsightPrompt ordering', () => {
   it('exposes distinct list caps for videos (100) and papers (60)', () => {
     expect(VIDEO_LIST_CAP).toBe(100);
     expect(PAPER_LIST_CAP).toBe(60);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// hand(RICH) 프로필 / 근거 ref / 캐시 키
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 변경 전 비-hand 프롬프트 원문 (한 글자도 바뀌지 않아야 한다) */
+function originalLegacyPrompt(
+  days: number,
+  domainLabel: string,
+  videos: object[],
+  papers: object[]
+): string {
+  return `다음은 최근 ${days}일간 수집된 ${domainLabel} 분야 영상 메타데이터와 arXiv 논문 목록이다. LG 로봇 전략팀 공유용 리포트의 '주요 시사점'을 한국어로 작성하라.
+
+규칙:
+- 주어진 데이터에 명시된 내용만 근거로 삼는다. 추측·일반론·외부 지식 금지.
+- 시사점은 3~5개, 각 220자 이내.
+- 영상과 논문을 교차해 어떤 업체/랩이 무엇을 보였고 기술적으로 어떤 방향이 부상하는지에 집중한다.
+- 조회수·인기·마케팅 언급 금지.
+- 핵심 기술 키워드는 최대 8개, 각 24자 이내.
+- 마크다운 기호(#, **, -)와 인용 태그(<cite>) 사용 금지.
+
+[영상 ${videos.length}건]
+${JSON.stringify(videos)}
+
+[논문 ${papers.length}편]
+${JSON.stringify(papers)}
+
+JSON으로만 응답하라. 다른 텍스트 없이:
+{"headline":"한 문장 총평","points":["시사점1","시사점2","시사점3"],"keywords":["키워드1","키워드2"]}`;
+}
+
+function richVideos(n: number, summaryLen = 400): ReportVideo[] {
+  return Array.from({ length: n }, (_, i) =>
+    rv({
+      id: `rid${i}`,
+      title: `RV-${i}`,
+      channel: `Chan${i}`,
+      url: `https://www.youtube.com/watch?v=vid${String(i).padStart(8, '0')}`,
+      publishedAt: '2026-10-01T12:00:00.000Z',
+      summaryKo: 's'.repeat(summaryLen),
+      techTags: ['촉각'],
+    })
+  );
+}
+
+function richPapers(n: number): PromptPaper[] {
+  return Array.from({ length: n }, (_, i) => ({
+    ...rp({
+      id: `pid${i}`,
+      title: `RP-${i}`,
+      publishedAt: '2026-10-02T12:00:00.000Z',
+      url: `https://arxiv.org/abs/2610.${String(10000 + i)}`,
+      arxivId: `2610.${String(10000 + i)}`,
+      abstractSnippet: `${'a'.repeat(220)}…`,
+    }),
+    promptAbstract: 'p'.repeat(500),
+  }));
+}
+
+describe('insight profiles', () => {
+  it('applies the RICH profile only to hand', () => {
+    expect(insightProfileFor('hand').kind).toBe('rich');
+    for (const d of ['rfm', 'actuator', 'expo', 'production'] as const) {
+      expect(insightProfileFor(d).kind).toBe('legacy');
+    }
+    expect(INSIGHT_PROFILES.rich).toMatchObject({
+      maxTokens: 16000,
+      effort: 'high',
+      promptVideoCap: 60,
+      promptPaperCap: 60,
+      promptSummaryCap: 300,
+      promptAbstractCap: 500,
+      headlineMax: 200,
+      pointsMax: 7,
+      pointMax: 300,
+      cacheVersion: 'v2',
+    });
+    expect(INSIGHT_PROFILES.legacy).toMatchObject({
+      maxTokens: 1500,
+      effort: null,
+      promptVideoCap: 40,
+      promptPaperCap: 40,
+      promptSummaryCap: 200,
+      headlineMax: 120,
+      pointsMax: 5,
+      pointMax: 220,
+      cacheVersion: 'v1',
+    });
+  });
+});
+
+describe('buildInsightPrompt — non-hand domains are unchanged', () => {
+  it('matches the pre-change prompt text exactly for all four other domains', () => {
+    const videos = richVideos(3, 250);
+    const papers = richPapers(2);
+    for (const domain of ['rfm', 'actuator', 'expo', 'production'] as const) {
+      const label = DOMAIN_REPORT_CONFIGS[domain].label;
+      const expected = originalLegacyPrompt(
+        30,
+        label,
+        prioritizeVideosForPrompt(videos, 40).map((v) => ({
+          title: v.title,
+          channel: v.channel ?? '',
+          publishedAt: '2026-10-01',
+          summaryKo: v.summaryKo!.slice(0, 200),
+          techTags: v.techTags,
+        })),
+        papers.map((p) => ({
+          title: p.title,
+          publishedAt: '2026-10-02',
+          abstract: p.abstractSnippet!.slice(0, 300),
+        }))
+      );
+      const built = buildInsightPromptWithRefs({ domain, domainLabel: label, days: 30, videos, papers });
+      expect(built.prompt).toBe(expected);
+      expect(built.refs.size).toBe(0);
+      // 프롬프트 전용 초록은 비-hand 프롬프트에 영향을 주지 않는다
+      expect(built.prompt).not.toContain('p'.repeat(100));
+    }
+  });
+});
+
+describe('buildInsightPrompt — hand (RICH)', () => {
+  const label = '핸드 트렌드';
+  const build = (videos: ReportVideo[], papers: PromptPaper[]) =>
+    buildInsightPromptWithRefs({ domain: 'hand', domainLabel: label, days: 30, videos, papers });
+
+  it('caps at 60/60, summary 300 and prompt abstract 500, with the preserved phrases', () => {
+    const { prompt } = build(richVideos(61), richPapers(61));
+    expect(prompt).toContain('RV-59');
+    expect(prompt).not.toContain('RV-60');
+    expect(prompt).toContain('RP-59');
+    expect(prompt).not.toContain('RP-60');
+    expect(prompt).toContain('[영상 60건]');
+    expect(prompt).toContain('[논문 60편]');
+    expect(prompt).toContain('s'.repeat(300));
+    expect(prompt).not.toContain('s'.repeat(301));
+    expect(prompt).toContain('p'.repeat(500));
+    expect(prompt).not.toContain('p'.repeat(501));
+    // 보존 문구
+    expect(prompt).toContain('최근 30일간');
+    expect(prompt).toContain(label);
+    expect(prompt).toContain('조회수·인기·마케팅 언급 금지');
+    expect(prompt).toContain('추측·일반론·외부 지식 금지');
+    expect(prompt).toContain('"headline"');
+    expect(prompt).toContain('"keywords"');
+    expect(prompt).toContain('"publishedAt":"2026-10-01"');
+    // 새 규칙
+    expect(prompt).toContain('시사점은 5~7개, 각 300자 이내');
+    expect(prompt).toContain('총평(headline)은 1~2문장, 200자 이내');
+    expect(prompt).toContain('refs에 근거가 된 항목의 ref 코드를 1~4개 적는다');
+    expect(prompt).toContain('입력에 없는 코드를 만들지 않는다');
+    expect(prompt).toContain('"refs":["V3","P12"]');
+    expect(prompt).toContain('해석 문장은 "~로 보인다"처럼 해석임을 드러낸다');
+  });
+
+  it('falls back to the 220-char snippet when no prompt abstract is supplied', () => {
+    const papers = richPapers(1).map(({ promptAbstract: _p, ...rest }) => rest);
+    const { prompt } = build(richVideos(3), papers);
+    expect(prompt).toContain(`${'a'.repeat(220)}…`);
+  });
+
+  it('assigns ref codes V1..Vn / P1..Pm in prompt order with a 1:1 map to input items', () => {
+    const videos = [
+      rv({ id: 'u', title: 'unjudged', channel: 'CU', url: 'https://youtu.be/u', domainFocus: null }),
+      rv({ id: 'p', title: 'primary', channel: 'CP', url: 'https://youtu.be/p', domainFocus: 'primary' }),
+      rv({ id: 's', title: 'secondary', channel: null, url: null, domainFocus: 'secondary' }),
+    ];
+    const papers = richPapers(2);
+    const { prompt, refs } = build(videos, papers);
+    // 영상 순서는 prioritizeVideosForPrompt(primary -> secondary -> 미판정)
+    expect(refs.get('V1')).toEqual({ kind: 'video', title: 'primary', url: 'https://youtu.be/p', label: 'CP' });
+    expect(refs.get('V2')).toEqual({ kind: 'video', title: 'secondary', url: null, label: null });
+    expect(refs.get('V3')).toEqual({ kind: 'video', title: 'unjudged', url: 'https://youtu.be/u', label: 'CU' });
+    expect(refs.get('P1')).toEqual({
+      kind: 'paper',
+      title: 'RP-0',
+      url: 'https://arxiv.org/abs/2610.10000',
+      label: 'arXiv:2610.10000',
+    });
+    expect(refs.get('P2')!.title).toBe('RP-1');
+    expect(refs.size).toBe(5);
+    expect(prompt).toContain('"ref":"V1","title":"primary"');
+    expect(prompt).toContain('"ref":"P2","title":"RP-1"');
+  });
+});
+
+describe('toPromptAbstract / promptAbstract exposure', () => {
+  it('normalises whitespace and caps at 500 chars', () => {
+    const row = paper('T', `${'word  \n\t'.repeat(200)}`);
+    const abs = toPromptAbstract(row)!;
+    expect(abs.length).toBe(500);
+    expect(abs).not.toMatch(/\s{2,}/);
+    expect(abs).not.toMatch(/[\n\t]/);
+    expect(toPromptAbstract(paper('T', null))).toBeNull();
+    expect(toPromptAbstract(paper('T', '   '))).toBeNull();
+  });
+
+  it('toReportPaper output (the response papers[] item) never contains promptAbstract and keeps the 220-char snippet', () => {
+    const p = toReportPaper(paper('Dexterous Hand', 'x'.repeat(500)));
+    expect(Object.keys(p)).not.toContain('promptAbstract');
+    expect(p.abstractSnippet).toBe(`${'x'.repeat(220)}…`);
+    expect(JSON.stringify(p)).not.toContain('promptAbstract');
+  });
+});
+
+describe('parseTrendInsight — RICH (evidence mode)', () => {
+  const refs = new Map<string, EvidenceRef>([
+    ['V1', { kind: 'video', title: 'Vid One', url: 'https://youtu.be/1', label: 'ChanA' }],
+    ['V2', { kind: 'video', title: 'Vid Two', url: null, label: null }],
+    ['V3', { kind: 'video', title: 'Vid Three', url: 'https://youtu.be/3', label: 'ChanC' }],
+    ['P1', { kind: 'paper', title: 'Paper One', url: 'https://arxiv.org/abs/2610.00001', label: 'arXiv:2610.00001' }],
+    ['P2', { kind: 'paper', title: 'Paper Two', url: null, label: null }],
+    ['P3', { kind: 'paper', title: 'Paper Three', url: null, label: null }],
+  ]);
+  const opts = { headlineMax: 200, pointsMax: 7, pointMax: 300, refs };
+  const parse = (payload: unknown) => parseTrendInsight(JSON.stringify(payload), opts);
+
+  it('parses {text, refs[]} points and aligns pointEvidence by index', () => {
+    const r = parse({
+      headline: '총평',
+      points: [
+        { text: '첫째', refs: ['V1', 'P1'] },
+        { text: '둘째', refs: [] },
+        { text: '셋째', refs: ['P2'] },
+      ],
+      keywords: ['촉각'],
+    })!;
+    expect(r.points).toEqual(['첫째', '둘째', '셋째']);
+    expect(r.pointEvidence).toHaveLength(r.points.length);
+    expect(r.pointEvidence![0]).toEqual([refs.get('V1'), refs.get('P1')]);
+    expect(r.pointEvidence![1]).toEqual([]);
+    expect(r.pointEvidence![2]).toEqual([refs.get('P2')]);
+  });
+
+  it('drops invalid / unknown refs, dedupes, and keeps at most 4 per point (keeping the item itself)', () => {
+    const r = parse({
+      headline: 'h',
+      points: [
+        { text: '무효만', refs: ['V99', 'X1', 'p', '', 3, null, 'V1000'] },
+        { text: '중복', refs: ['V1', 'v1', 'V1', 'P1'] },
+        { text: '다섯개', refs: ['V1', 'V2', 'V3', 'P1', 'P2', 'P3'] },
+        { text: '배열아님', refs: 'V1' },
+      ],
+    })!;
+    expect(r.points).toHaveLength(4);
+    expect(r.pointEvidence![0]).toEqual([]);
+    expect(r.pointEvidence![1]!.map((e) => e.title)).toEqual(['Vid One', 'Paper One']);
+    expect(r.pointEvidence![2]!.map((e) => e.title)).toEqual(['Vid One', 'Vid Two', 'Vid Three', 'Paper One']);
+    expect(r.pointEvidence![3]).toEqual([]);
+  });
+
+  it('removes [V3] / (P12) markers from the text but keeps ordinary words like V2', () => {
+    const r = parse({
+      headline: '총평 [V1]',
+      points: [{ text: '그리퍼 V2 모델이 공개되었다 [V3]. 촉각 센서(P1)도 함께 [V1, P2] 소개된다.', refs: ['V3'] }],
+    })!;
+    expect(r.points[0]).toBe('그리퍼 V2 모델이 공개되었다. 촉각 센서도 함께 소개된다.');
+    expect(r.points[0]).toContain('V2');
+    expect(r.points[0]).not.toMatch(/\[V\d|\(P\d/);
+    expect(r.headline).toBe('총평');
+  });
+
+  it('accepts plain string points (empty refs)', () => {
+    const r = parse({ headline: 'h', points: ['문자열 시사점', { text: '객체', refs: ['V1'] }] })!;
+    expect(r.points).toEqual(['문자열 시사점', '객체']);
+    expect(r.pointEvidence).toEqual([[], [refs.get('V1')]]);
+  });
+
+  it('caps headline 200, points 7x300 and keywords 8x24; strips cite tags and markdown', () => {
+    const r = parse({
+      headline: 'h'.repeat(300),
+      points: Array.from({ length: 9 }, () => ({ text: 'p'.repeat(400), refs: ['V1'] })),
+      keywords: Array.from({ length: 12 }, (_, i) => `k${i}-`.repeat(10)),
+    })!;
+    expect(r.headline.length).toBe(200);
+    expect(r.points).toHaveLength(7);
+    for (const p of r.points) expect(p.length).toBe(300);
+    expect(r.pointEvidence).toHaveLength(7);
+    expect(r.keywords).toHaveLength(8);
+    for (const k of r.keywords) expect(k.length).toBeLessThanOrEqual(24);
+
+    const dirty = parse({
+      headline: '\u003ccite index="1-1">총평\u003c/cite> **굵게**',
+      points: [{ text: '핵심 \u003ccite index="2-3">근거\u003c/cite> ## 내용 `코드`', refs: [] }],
+    })!;
+    expect(dirty.headline).toBe('총평 굵게');
+    expect(dirty.points[0]).toBe('핵심 근거 내용 코드');
+  });
+
+  it('skips empty items and keeps points/pointEvidence the same length', () => {
+    const r = parse({
+      headline: 'h',
+      points: [{ text: '', refs: ['V1'] }, { refs: ['V1'] }, 5, null, { text: '유효', refs: ['V2'] }, '[V1]'],
+    })!;
+    expect(r.points).toEqual(['유효']);
+    expect(r.pointEvidence).toEqual([[refs.get('V2')]]);
+  });
+
+  it('returns null for empty / non-JSON / no usable point', () => {
+    expect(parse({ headline: 'h', points: [] })).toBeNull();
+    expect(parse({ headline: 'h' })).toBeNull();
+    expect(parse({ headline: 'h', points: [{ text: '  ' }, '[V1]'] })).toBeNull();
+    expect(parseTrendInsight('죄송합니다.', opts)).toBeNull();
+    expect(parseTrendInsight('', opts)).toBeNull();
+  });
+
+  it('does not add pointEvidence without options, and ignores object points in legacy mode', () => {
+    const legacy = parseTrendInsight(JSON.stringify({ headline: 'h', points: ['a', { text: 'b', refs: ['V1'] }] }))!;
+    expect(legacy).toEqual({ headline: 'h', points: ['a'], keywords: [] });
+    expect('pointEvidence' in legacy).toBe(false);
+  });
+
+  it('parses a thinking-block-free text assembled from mixed blocks (text only)', () => {
+    const text = '{"headline":"h","points":[{"text":"t","refs":["V1"]}],"keywords":[]}';
+    expect(parseTrendInsight(`\n${text}\n`, opts)!.points).toEqual(['t']);
+  });
+});
+
+describe('insight cache keys', () => {
+  it('uses v2 for hand and v1 for the other domains', () => {
+    expect(insightCacheKey('hand', 30)).toBe('tech-trend-report:v2:hand:30');
+    expect(insightCacheKey('hand', 7)).toBe('tech-trend-report:v2:hand:7');
+    expect(insightCacheKey('rfm', 30)).toBe('tech-trend-report:v1:rfm:30');
+    expect(insightCacheKey('production', 14)).toBe('tech-trend-report:v1:production:14');
+  });
+  it('invalidation patterns use the same scheme', () => {
+    expect(insightCachePattern('hand')).toBe('tech-trend-report:v2:hand:%');
+    expect(insightCachePattern('expo')).toBe('tech-trend-report:v1:expo:%');
+    // 같은 도메인의 모든 days 키를 포함하는 접두 패턴
+    expect(insightCacheKey('hand', 30).startsWith(insightCachePattern('hand').replace('%', ''))).toBe(true);
+    expect(insightCacheKey('rfm', 30).startsWith(insightCachePattern('rfm').replace('%', ''))).toBe(true);
+  });
+});
+
+describe('isUsableCachedInsight', () => {
+  it('requires a non-empty points array; pointEvidence is optional (legacy shape)', () => {
+    expect(isUsableCachedInsight({ points: ['a'] })).toBe(true);
+    expect(isUsableCachedInsight({ points: ['a'], pointEvidence: [[]] })).toBe(true);
+    expect(isUsableCachedInsight({ points: [] })).toBe(false);
+    expect(isUsableCachedInsight({})).toBe(false);
+    expect(isUsableCachedInsight(null)).toBe(false);
+    expect(isUsableCachedInsight('x')).toBe(false);
   });
 });

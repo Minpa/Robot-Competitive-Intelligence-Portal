@@ -26,7 +26,21 @@ const PRICING: Record<string, { input: number; output: number; webSearchPerQuery
   'gemini-3.7-flash': { input: GEMINI_PRICE_INPUT, output: GEMINI_PRICE_OUTPUT },
   'gemini-3.6-flash': { input: 1.50, output: 7.50 },
   'claude-haiku-4-5-20251001': { input: 1.00, output: 5.00, webSearchPerQuery: 0.01 },
+  // Opus 5.5: thinking 토큰도 output 으로 과금된다. Haiku 5.5 는 100K 토큰 초과 프롬프트 할증($0.50/$2.50)이 있으나 본 서비스 호출은 해당 없음.
+  'claude-opus-5-5': { input: 4.0, output: 20.0 },
+  'claude-haiku-5-5': { input: 0.10, output: 0.50 },
 };
+
+const DEFAULT_CLAUDE_MONTHLY_LIMIT_USD = 50;
+
+/** Claude 월 예산(USD) — env CLAUDE_MONTHLY_LIMIT_USD (양수), 없거나 비정상이면 기본 50 */
+export function resolveClaudeMonthlyLimitUsd(env: Readonly<Record<string, string | undefined>> = process.env): number {
+  const n = env.CLAUDE_MONTHLY_LIMIT_USD !== undefined ? Number(env.CLAUDE_MONTHLY_LIMIT_USD) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : DEFAULT_CLAUDE_MONTHLY_LIMIT_USD;
+}
+
+/** 단가표에 없는 claude 모델은 폴백 단가(3/15)로 계산되므로 모델별 1회만 경고한다 */
+const warnedUnpricedModels = new Set<string>();
 
 export interface AIUsageLogEntry {
   provider: 'chatgpt' | 'claude' | 'gemini';
@@ -46,6 +60,10 @@ export function estimateCost(entry: Pick<AIUsageLogEntry, 'provider' | 'model' |
     ? { input: GEMINI_PRICE_INPUT, output: GEMINI_PRICE_OUTPUT }
     : { input: 3.0, output: 15.0 };
   const pricing = PRICING[entry.model] || fallback;
+  if (!PRICING[entry.model] && entry.provider === 'claude' && !warnedUnpricedModels.has(entry.model)) {
+    warnedUnpricedModels.add(entry.model);
+    console.warn(`[AIUsage] 단가표에 없는 Claude 모델 '${entry.model}' — 폴백 단가(3.0/15.0)로 계산합니다.`);
+  }
   const inputCost = (entry.inputTokens / 1_000_000) * pricing.input;
   const outputCost = (entry.outputTokens / 1_000_000) * pricing.output;
   const webSearchCost = entry.webSearch && pricing.webSearchPerQuery ? pricing.webSearchPerQuery : 0;
@@ -191,7 +209,7 @@ export class AIUsageService {
   }> {
     await this.ensureTable();
 
-    const MONTHLY_LIMIT_USD = 7.0;
+    const MONTHLY_LIMIT_USD = resolveClaudeMonthlyLimitUsd();
     const apiKey = process.env.ANTHROPIC_API_KEY;
     const apiKeyValid = !!apiKey && apiKey.length > 10;
     const apiKeyPrefix = apiKey ? `${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 4)}` : null;

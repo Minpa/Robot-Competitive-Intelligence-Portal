@@ -7,7 +7,7 @@
  *  - 모든 외부 링크는 rel="noopener noreferrer" target="_blank".
  */
 
-import type { TechTrendReport } from '@/types/tech-trend-report';
+import type { EvidenceRef, TechTrendReport, TrendInsight } from '@/types/tech-trend-report';
 import type {
   TechTrendTimeline,
   TechTrendTimelineInsightResponse,
@@ -51,6 +51,30 @@ export function safeHref(url: string | null | undefined): string {
   } catch {
     return '';
   }
+}
+
+/** 근거 표시 문구: `영상 · {title} ({label})` / `논문 · {title} ({label})` (label 없으면 괄호 생략) */
+export function formatEvidenceText(ev: EvidenceRef): string {
+  const kind = ev.kind === 'paper' ? '논문' : '영상';
+  return `${kind} · ${ev.title}${ev.label ? ` (${ev.label})` : ''}`;
+}
+
+/** points[i]에 대응하는 근거 목록 — pointEvidence가 없거나 길이가 맞지 않으면 null(근거 줄 생략) */
+export function evidenceForPoints(insight: Pick<TrendInsight, 'points' | 'pointEvidence'>): EvidenceRef[][] | null {
+  const ev = insight.pointEvidence;
+  return Array.isArray(ev) && ev.length === insight.points.length ? ev : null;
+}
+
+function evidenceLinesHtml(refs: EvidenceRef[] | undefined): string {
+  if (!refs || refs.length === 0) return '';
+  return refs
+    .map((ev) => {
+      const text = escapeHtml(formatEvidenceText(ev));
+      const href = safeHref(ev.url);
+      const inner = href ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${text}</a>` : text;
+      return `<div class="ev" style="margin-top:3px;font-size:11.5px;color:#8A909A">${inner}</div>`;
+    })
+    .join('');
 }
 
 function pad(n: number): string {
@@ -383,9 +407,10 @@ export function buildTechTrendReportHtml(
           .join('');
 
   const insight = report.insight;
+  const evidence = insight ? evidenceForPoints(insight) : null;
   const insightHtml = insight
     ? `<p class="headline">${escapeHtml(insight.headline)}</p><ol class="points">${insight.points
-        .map((pt) => `<li>${escapeHtml(pt)}</li>`)
+        .map((pt, i) => `<li>${escapeHtml(pt)}${evidenceLinesHtml(evidence?.[i])}</li>`)
         .join('')}</ol>${
         insight.keywords.length > 0
           ? `<div class="chips">${insight.keywords.map((k) => `<span class="chip">${escapeHtml(k)}</span>`).join('')}</div>`

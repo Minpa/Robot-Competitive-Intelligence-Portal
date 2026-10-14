@@ -5,7 +5,9 @@
  *  - 후보 외 토픽, 입력에 없는 제목, AI가 지어낸 선후행 relation 은 파서에서 걸러내거나 서버값으로 덮어쓴다.
  *  - 조회수·인기 지표는 입력/출력에 쓰지 않는다 (대표 선정 정렬에만 내부 사용).
  *  - 게이트 미충족/키 없음/생성 실패는 status 로 알리고 항상 200. 해설 실패가 차트 표시를 막지 않는다.
- *  - view_cache 'tech-trend-timeline-insight:v1:hand' 24h 캐시, 키별 in-flight Promise 로 동시 중복 생성 방지.
+ *  - view_cache 'tech-trend-timeline-insight:v2:hand' 24h 캐시, 키별 in-flight Promise 로 동시 중복 생성 방지.
+ *  - 모델은 Claude Opus 5.5 (effort high). 만료된 캐시는 stale 로 즉시 반환하고 백그라운드에서 재생성하며(SWR),
+ *    생성 실패(예외·파싱 실패·refusal·잘림)는 10분간 재호출하지 않는다.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -13,7 +15,17 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { viewCache } from '../db/schema.js';
 import { aiUsageService } from './ai-usage.service.js';
-import { stripCiteTags } from './tech-trend-report.service.js';
+import { stripCiteTags, techTrendReportService } from './tech-trend-report.service.js';
+import {
+  OPUS_REQUEST_OPTIONS,
+  effortParams,
+  extractText,
+  isInCooldown,
+  isRefusal,
+  resolveTimelineModel,
+  warnOnAbnormalStop,
+  type AnthropicMessagesClient,
+} from './anthropic-models.js';
 import {
   techTrendTimelineService,
   selectRepresentatives,
@@ -44,23 +56,26 @@ export const SHORT_PERIOD_MONTHS = 6;
 export const RISING_CANDIDATE_MAX = 5;
 export const DECLINING_CANDIDATE_MAX = 5;
 /** 프롬프트에 넣는 토픽·소스별 대표 제목 상한 */
-export const REP_TITLES_PER_SOURCE = 3;
+export const REP_TITLES_PER_SOURCE = 5;
+/** 출력(rising 항목)에서 소스별로 인용할 수 있는 제목 상한 */
+export const CITED_TITLES_PER_SOURCE = 3;
 
 export const INSIGHT_LIMITS = {
-  overview: 500,
-  risingEvidence: 220,
-  risingMax: 3,
-  decliningNote: 160,
-  decliningMax: 3,
-  leadLagNote: 160,
-  leadLagMax: 5,
-  lgItem: 220,
-  lgMax: 2,
+  overview: 700,
+  risingEvidence: 350,
+  risingMax: 5,
+  decliningNote: 240,
+  decliningMax: 4,
+  leadLagNote: 240,
+  leadLagMax: 6,
+  lgItem: 350,
+  lgMax: 4,
 } as const;
 
-const INSIGHT_MODEL =
-  process.env.TECH_TREND_TIMELINE_MODEL || process.env.TECH_TREND_REPORT_MODEL || 'claude-haiku-4-5-20251001';
-const INSIGHT_MAX_TOKENS = 2500;
+export const INSIGHT_MODEL = resolveTimelineModel();
+/** 사고 토큰 포함 상한 — 비스트리밍 한도(21,333) 이하 */
+export const INSIGHT_MAX_TOKENS = 20_000;
+const INSIGHT_EFFORT = 'high';
 const INSIGHT_TTL_MS = (() => {
   const pick = (v: string | undefined) => {
     const n = Number(v);
@@ -174,6 +189,8 @@ export interface TimelineInsight extends ParsedTimelineInsight {
   model: string;
   generatedAt: string;
   cached: boolean;
+  /** 만료된 캐시를 즉시 반환하고 백그라운드에서 재생성 중일 때 true */
+  stale?: boolean;
 }
 
 export interface InsightResponse {
@@ -337,14 +354,18 @@ export function buildTimelineInsightPrompt(input: InsightInput): string {
 - leadLag의 relation은 입력 topics[].leadLag.relation 값을 그대로 쓰고, note는 그 판정과 모순되면 안 된다. undetermined면 note에 "판단 유보"라고 쓴다. paper_leads는 논문(연구)이 영상(제품화)보다 먼저, video_leads는 영상이 먼저 피크였다는 뜻이다.
 - 선후행은 확정이 아니라 참고용으로 서술한다.
 - lgImplications는 데이터 범위 안에서만 도출한다. LG 내부 제품·전략 정보는 사용하지 않는다.
+- 근거 문장에는 입력의 건수(prior→recent)나 피크 월 같은 구체 수치를 함께 인용한다. 수치는 새로 계산하지 않는다.
+- rising의 evidence에는 논문(연구) 신호와 영상(제품화) 신호를 모두 서술한다. 한쪽 신호만 있으면 그 사실을 명시한다.
+- overview는 5~6문장으로 쓴다: 전체 흐름, 가장 큰 변화, 연구와 제품화 사이의 간극, 데이터의 한계(표본·기간) 순서.
+- lgImplications는 ${INSIGHT_LIMITS.lgMax}개를 쓴다. 각 항목은 어느 토픽(이름)과 어떤 수치에서 도출했는지 문장 안에 밝힌다.
 - 마크다운 기호(#, **, -)와 인용 태그(<cite>) 사용 금지.${shortFlag}
 
 [집계 데이터]
 ${JSON.stringify(payload)}
 
 JSON으로만 응답하라. 다른 텍스트 없이:
-{"overview":"전체 흐름 3~4문장(${INSIGHT_LIMITS.overview}자 이내)","rising":[{"topicId":"후보 id","evidence":"근거 ${INSIGHT_LIMITS.risingEvidence}자 이내","paperTitles":["입력 제목"],"videoTitles":["입력 제목"]}],"declining":[{"topicId":"후보 id","note":"${INSIGHT_LIMITS.decliningNote}자 이내"}],"leadLag":[{"topicId":"토픽 id","relation":"입력 relation","note":"${INSIGHT_LIMITS.leadLagNote}자 이내"}],"lgImplications":["시사점1(${INSIGHT_LIMITS.lgItem}자 이내)","시사점2"]}
-(rising 최대 ${INSIGHT_LIMITS.risingMax}개, declining 최대 ${INSIGHT_LIMITS.decliningMax}개, lgImplications 2개)`;
+{"overview":"전체 흐름 5~6문장(${INSIGHT_LIMITS.overview}자 이내)","rising":[{"topicId":"후보 id","evidence":"근거 ${INSIGHT_LIMITS.risingEvidence}자 이내","paperTitles":["입력 제목"],"videoTitles":["입력 제목"]}],"declining":[{"topicId":"후보 id","note":"${INSIGHT_LIMITS.decliningNote}자 이내"}],"leadLag":[{"topicId":"토픽 id","relation":"입력 relation","note":"${INSIGHT_LIMITS.leadLagNote}자 이내"}],"lgImplications":["시사점1(${INSIGHT_LIMITS.lgItem}자 이내)","시사점2","시사점3","시사점4"]}
+(rising 최대 ${INSIGHT_LIMITS.risingMax}개, declining 최대 ${INSIGHT_LIMITS.decliningMax}개, leadLag 최대 ${INSIGHT_LIMITS.leadLagMax}개, lgImplications ${INSIGHT_LIMITS.lgMax}개)`;
 }
 
 function tryParseObject(raw: string): Record<string, unknown> | null {
@@ -391,7 +412,7 @@ export function parseTimelineInsight(text: string, ctx: InsightInput): ParsedTim
     for (const raw of strList(v)) {
       const title = stripCiteTags(raw).trim();
       if (allowedTitles.has(title) && !out.includes(title)) out.push(title);
-      if (out.length >= REP_TITLES_PER_SOURCE) break;
+      if (out.length >= CITED_TITLES_PER_SOURCE) break;
     }
     return out;
   };
@@ -463,25 +484,35 @@ export function parseTimelineInsight(text: string, ctx: InsightInput): ParsedTim
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** 테스트에서 가짜 클라이언트를 주입할 수 있도록 messages.create 만 요구 */
-export interface AnthropicLike {
-  messages: { create: (args: any) => Promise<any> };
-}
+export type AnthropicLike = AnthropicMessagesClient;
 
-type CachedInsight = Omit<TimelineInsight, 'cached'>;
+type CachedInsight = Omit<TimelineInsight, 'cached' | 'stale'>;
 
 export class TechTrendTimelineInsightService {
   private client: AnthropicLike | null;
   private inflight = new Map<string, Promise<InsightResponse>>();
+  /** 마지막 생성 실패 시각 (캐시 키별) — 10분간 재호출하지 않는다 */
+  private failedAt = new Map<string, number>();
 
   constructor(client?: AnthropicLike | null) {
     if (client !== undefined) this.client = client;
     else this.client = process.env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
   }
 
+  private inCooldown(): boolean {
+    return isInCooldown(this.failedAt.get(TIMELINE_INSIGHT_CACHE_KEY), Date.now());
+  }
+
   async getInsight(): Promise<InsightResponse> {
-    // 1) 캐시 적중이면 Anthropic 호출 없이 반환
-    const hit = await this.readCache();
-    if (hit) return { status: 'ok', insight: hit };
+    // 1) 캐시 적중이면 Anthropic 호출 없이 반환. 만료된 캐시가 있으면 즉시 stale 로 반환하고 백그라운드에서 재생성한다.
+    const row = await this.readCacheRow();
+    if (row && Date.now() - row.cachedAt.getTime() < INSIGHT_TTL_MS) {
+      return { status: 'ok', insight: { ...row.data, cached: true } };
+    }
+    if (row) {
+      void this.refreshStaleInBackground();
+      return { status: 'ok', insight: { ...row.data, cached: true, stale: true } };
+    }
 
     // 2) 게이트 (캐시된 집계로 빠르게 판정)
     let timeline: TimelineBody;
@@ -494,7 +525,38 @@ export class TechTrendTimelineInsightService {
     const gate = this.gate(timeline);
     if (gate !== 'ok') return { status: gate, insight: null };
 
+    // 직전 실패 후 10분간은 재호출하지 않는다
+    if (this.inCooldown()) return { status: 'generation_failed', insight: null };
+
     // 3) 생성 (키별 in-flight 로 동시 중복 생성 방지)
+    return this.startGeneration();
+  }
+
+  /** 만료 캐시를 반환한 뒤의 백그라운드 재생성 — 쿨다운·게이트(캐시된 집계로 판정)를 통과할 때만 생성한다. */
+  private async refreshStaleInBackground(): Promise<void> {
+    try {
+      if (!this.client || this.inCooldown()) return;
+      const timeline = await techTrendTimelineService.getTimeline();
+      if (this.gate(timeline) !== 'ok') return;
+      await this.startGeneration();
+    } catch (err) {
+      console.error('[TimelineInsight] background refresh failed:', (err as Error).message);
+    }
+  }
+
+  /**
+   * 사전 생성 — 분류/분석 배치 종료 후 호출한다.
+   * 캐시가 신선하거나 쿨다운 중이면 호출하지 않고, 동시 호출은 인플라이트 가드로 1회만 생성한다.
+   */
+  async warmInsight(): Promise<void> {
+    if (!this.client) return;
+    const row = await this.readCacheRow();
+    if (row && Date.now() - row.cachedAt.getTime() < INSIGHT_TTL_MS) return;
+    if (this.inCooldown()) return;
+    await this.startGeneration();
+  }
+
+  private startGeneration(): Promise<InsightResponse> {
     let pending = this.inflight.get(TIMELINE_INSIGHT_CACHE_KEY);
     if (!pending) {
       pending = this.generate().finally(() => this.inflight.delete(TIMELINE_INSIGHT_CACHE_KEY));
@@ -503,22 +565,29 @@ export class TechTrendTimelineInsightService {
     return pending;
   }
 
-  private async readCache(): Promise<TimelineInsight | null> {
+  /** 캐시 행 (만료 여부와 무관) — 형태가 유효한 경우만 */
+  private async readCacheRow(): Promise<{ data: CachedInsight; cachedAt: Date } | null> {
     try {
       const [cached] = await db
         .select()
         .from(viewCache)
         .where(eq(viewCache.viewName, TIMELINE_INSIGHT_CACHE_KEY))
         .limit(1);
-      if (cached && Date.now() - cached.cachedAt.getTime() < INSIGHT_TTL_MS) {
+      if (cached) {
         const data = cached.data as unknown as CachedInsight;
         if (data && typeof data.overview === 'string' && Array.isArray(data.lgImplications)) {
-          return { ...data, cached: true };
+          return { data, cachedAt: cached.cachedAt };
         }
       }
     } catch {
       // 캐시 조회 실패는 무시하고 재생성 진행
     }
+    return null;
+  }
+
+  private async readCache(): Promise<TimelineInsight | null> {
+    const row = await this.readCacheRow();
+    if (row && Date.now() - row.cachedAt.getTime() < INSIGHT_TTL_MS) return { ...row.data, cached: true };
     return null;
   }
 
@@ -533,6 +602,10 @@ export class TechTrendTimelineInsightService {
 
   private async generate(): Promise<InsightResponse> {
     if (!this.client) return { status: 'no_api_key', insight: null };
+    const fail = (): InsightResponse => {
+      this.failedAt.set(TIMELINE_INSIGHT_CACHE_KEY, Date.now());
+      return { status: 'generation_failed', insight: null };
+    };
     try {
       // 직전 요청이 방금 캐시를 채웠을 수 있으므로 재확인
       const hit = await this.readCache();
@@ -543,11 +616,16 @@ export class TechTrendTimelineInsightService {
       if (gate !== 'ok') return { status: gate, insight: null };
 
       const input = buildInsightInput(snapshot);
-      const response = await this.client.messages.create({
-        model: INSIGHT_MODEL,
-        max_tokens: INSIGHT_MAX_TOKENS,
-        messages: [{ role: 'user', content: buildTimelineInsightPrompt(input) }],
-      });
+      const response = await this.client.messages.create(
+        {
+          model: INSIGHT_MODEL,
+          max_tokens: INSIGHT_MAX_TOKENS,
+          messages: [{ role: 'user', content: buildTimelineInsightPrompt(input) }],
+          ...effortParams(INSIGHT_MODEL, INSIGHT_EFFORT),
+        },
+        OPUS_REQUEST_OPTIONS
+      );
+      // 파싱 성공 여부와 무관하게 응답을 받았으면 비용을 기록한다
       aiUsageService
         .logUsage({
           provider: 'claude',
@@ -559,14 +637,16 @@ export class TechTrendTimelineInsightService {
         })
         .catch(() => {});
 
-      let combined = '';
-      for (const block of response.content ?? []) {
-        if (block.type === 'text') combined += block.text + '\n';
+      if (isRefusal(response.stop_reason)) {
+        console.warn(`[TimelineInsight] insight refused by model (model=${INSIGHT_MODEL})`);
+        return fail();
       }
-      const parsed = parseTimelineInsight(combined, input);
+      warnOnAbnormalStop('TimelineInsight', INSIGHT_MODEL, response);
+
+      const parsed = parseTimelineInsight(extractText(response.content), input);
       if (!parsed) {
         console.error('[TimelineInsight] parse failed');
-        return { status: 'generation_failed', insight: null };
+        return fail();
       }
 
       const insight: CachedInsight = { ...parsed, model: INSIGHT_MODEL, generatedAt: new Date().toISOString() };
@@ -581,13 +661,31 @@ export class TechTrendTimelineInsightService {
       } catch {
         // 캐시 저장 실패는 치명적이지 않음
       }
+      this.failedAt.delete(TIMELINE_INSIGHT_CACHE_KEY);
       return { status: 'ok', insight: { ...insight, cached: false } };
     } catch (err) {
       // 생성 실패는 캐시하지 않는다
       console.error('[TimelineInsight] generation failed:', (err as Error).message);
-      return { status: 'generation_failed', insight: null };
+      return fail();
     }
   }
 }
 
 export const techTrendTimelineInsightService = new TechTrendTimelineInsightService();
+
+/**
+ * hand 시사점(days=30)과 시계열 해설을 백그라운드로 재생성한다 — 분석/분류 배치 종료 훅에서 `void` 로 호출.
+ * 각 서비스의 인플라이트 가드와 "캐시가 신선하면 건너뜀" 규칙 덕분에 두 배치가 겹쳐도 생성은 1회만 일어난다.
+ * 실패는 로그만 남기고 호출자(배치 결과)에 영향을 주지 않는다.
+ */
+export async function warmHandInsights(): Promise<void> {
+  const results = await Promise.allSettled([
+    techTrendReportService.warmHandInsight(30),
+    techTrendTimelineInsightService.warmInsight(),
+  ]);
+  for (const r of results) {
+    if (r.status === 'rejected') {
+      console.error('[WarmInsight] background regeneration failed:', (r.reason as Error)?.message ?? r.reason);
+    }
+  }
+}

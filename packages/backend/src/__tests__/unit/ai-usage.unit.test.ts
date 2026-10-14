@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { estimateCost } from '../../services/ai-usage.service.js';
+import { estimateCost, resolveClaudeMonthlyLimitUsd } from '../../services/ai-usage.service.js';
 
 describe('estimateCost', () => {
   it('gemini-flash-latest — env 미설정 시 기본 단가 0.75/3.75 적용 (= gemini-3.7-flash)', () => {
@@ -171,5 +171,55 @@ describe('estimateCost', () => {
       outputTokens: 1_000_000,
     });
     expect(cost).toBeCloseTo(3.0 + 15.0 + 0.01, 6);
+  });
+});
+
+describe('Claude 5.5 pricing', () => {
+  const million = { webSearch: false, inputTokens: 1_000_000, outputTokens: 1_000_000 } as const;
+
+  it('claude-opus-5-5 — 입력 $4 / 출력 $20 (1M/1M = $24)', () => {
+    expect(estimateCost({ provider: 'claude', model: 'claude-opus-5-5', ...million })).toBeCloseTo(24, 6);
+    expect(
+      estimateCost({ provider: 'claude', model: 'claude-opus-5-5', webSearch: false, inputTokens: 40_000, outputTokens: 12_000 })
+    ).toBeCloseTo(0.16 + 0.24, 6);
+  });
+
+  it('claude-haiku-5-5 — 입력 $0.10 / 출력 $0.50 (1M/1M = $0.60)', () => {
+    expect(estimateCost({ provider: 'claude', model: 'claude-haiku-5-5', ...million })).toBeCloseTo(0.6, 6);
+  });
+
+  it('두 신규 모델은 웹 검색 비용을 가산하지 않는다', () => {
+    for (const model of ['claude-opus-5-5', 'claude-haiku-5-5']) {
+      const withSearch = estimateCost({ provider: 'claude', model, ...million, webSearch: true });
+      const without = estimateCost({ provider: 'claude', model, ...million });
+      expect(withSearch).toBeCloseTo(without, 9);
+    }
+  });
+
+  it('기존 항목과 폴백은 불변 — haiku-4-5 1.0/5.0, 미등록 claude 3.0/15.0', () => {
+    expect(estimateCost({ provider: 'claude', model: 'claude-haiku-4-5-20251001', ...million })).toBeCloseTo(6, 6);
+    expect(estimateCost({ provider: 'claude', model: 'claude-unregistered-xyz', ...million })).toBeCloseTo(18, 6);
+  });
+
+  it('미등록 claude 모델은 모델별로 한 번만 경고한다', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const entry = { provider: 'claude', model: 'claude-warn-once-test', ...million } as const;
+    estimateCost(entry);
+    estimateCost(entry);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+});
+
+describe('resolveClaudeMonthlyLimitUsd', () => {
+  it('기본값 50, CLAUDE_MONTHLY_LIMIT_USD(양수)가 있으면 그 값', () => {
+    expect(resolveClaudeMonthlyLimitUsd({})).toBe(50);
+    expect(resolveClaudeMonthlyLimitUsd({ CLAUDE_MONTHLY_LIMIT_USD: '120' })).toBe(120);
+    expect(resolveClaudeMonthlyLimitUsd({ CLAUDE_MONTHLY_LIMIT_USD: '12.5' })).toBe(12.5);
+  });
+  it('비정상 값(빈 문자열·0·음수·문자)은 기본값 50', () => {
+    for (const v of ['', '0', '-3', 'abc']) {
+      expect(resolveClaudeMonthlyLimitUsd({ CLAUDE_MONTHLY_LIMIT_USD: v })).toBe(50);
+    }
   });
 });

@@ -52,12 +52,12 @@ export function TimelineInsightCard({ data, loading, error, classification, peri
       subtitle="수집 전체 기간의 건수 집계와 대표 제목만을 근거로 생성된 해설입니다"
       footer={
         insight
-          ? `AI 생성 · ${insight.model} · ${formatDateTime(insight.generatedAt)} · ${insight.cached ? '캐시' : '신규'}`
+          ? `AI 생성 · ${insight.model} · ${formatDateTime(insight.generatedAt)} · ${insight.cached ? '캐시' : '신규'}${insight.stale ? ' · 갱신 중' : ''}`
           : undefined
       }
     >
       {loading ? (
-        <p className="text-[13px] text-ink-500">시계열 해설을 생성하는 중… (첫 생성 시 수 초 소요)</p>
+        <p className="text-[13px] text-ink-500">시계열 해설을 생성하는 중… (첫 생성 시 최대 2~3분 소요)</p>
       ) : !insight ? (
         <p className="text-[13px] text-ink-500">{emptyMessage()}</p>
       ) : (

@@ -1,8 +1,8 @@
 /**
- * HandTopicClassificationService — 핸드 논문·영상 기술 서브토픽 분류 배치 (Claude Haiku)
+ * HandTopicClassificationService — 핸드 논문·영상 기술 서브토픽 분류 배치 (Claude Haiku 5.5)
  *
  * 이벤트성 관리자 배치. 타임라인 스코프 행(논문 + 영상, domainFocus 'none' 제외) 중 현재 버전으로 분류되지 않은 건을
- * 10~20건 묶음으로 Haiku에 보내 extracted_metadata.handTopics 에 병합 저장한다.
+ * 10~20건 묶음으로 Haiku 5.5에 보내 extracted_metadata.handTopics 에 병합 저장한다.
  *
  * 안전 원칙:
  *  - 입력은 제목·설명·초록 발췌·AI 요약·태그뿐 (articles.content / 자막 전문 미사용).
@@ -16,6 +16,7 @@ import { sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { aiUsageService } from './ai-usage.service.js';
 import { getDomainFocus, type ArticleRow } from './tech-trend-report.service.js';
+import { effortParams, extractText, resolveHandTopicModel, warnOnAbnormalStop } from './anthropic-models.js';
 import {
   HAND_TOPIC_VERSION,
   buildHandTopicPrompt,
@@ -35,11 +36,8 @@ import { techTrendTimelineService, MAX_CLASSIFY_ATTEMPTS } from './tech-trend-ti
 
 export const CLASSIFY_SUPPORTED_DOMAINS = ['hand'] as const;
 
-export const HAND_TOPIC_MODEL =
-  process.env.HAND_TOPIC_MODEL ||
-  process.env.TECH_TREND_FOCUS_MODEL ||
-  process.env.TECH_TREND_REPORT_MODEL ||
-  'claude-haiku-4-5-20251001';
+/** 서브토픽 분류 모델 — 기본 Haiku 5.5. 시사점/해설(종합) 모델 설정을 상속하지 않는다. */
+export const HAND_TOPIC_MODEL = resolveHandTopicModel();
 
 export const BATCH_SIZE_MIN = 10;
 export const BATCH_SIZE_MAX = 20;
@@ -47,7 +45,8 @@ export const BATCH_SIZE_DEFAULT = 15;
 export const MAX_PER_RUN_DEFAULT = 1000;
 /** 연속 이 개수의 묶음이 API 오류로 실패하면 중단 */
 export const MAX_CONSECUTIVE_BATCH_FAILURES = 3;
-const CLASSIFY_MAX_TOKENS = 1500;
+/** Haiku 5.5 는 사고 토큰이 max_tokens 에 포함되므로 여유 있게 잡는다 */
+export const CLASSIFY_MAX_TOKENS = 6000;
 
 /** 묶음 크기 — 10~20 범위로 보정, 비정상 값은 기본 15 */
 export function resolveBatchSize(raw: string | undefined): number {
@@ -285,6 +284,10 @@ class HandTopicClassificationService {
       );
       if (s.classified > 0 || s.offTopic > 0) {
         await techTrendTimelineService.invalidate();
+        // 무효화 직후 시사점·시계열 해설을 백그라운드로 미리 재생성 (실패해도 배치 결과에 영향 없음)
+        void import('./tech-trend-timeline-insight.service.js')
+          .then((m) => m.warmHandInsights())
+          .catch((err) => console.error('[HandTopic] insight warm-up failed:', (err as Error).message));
       }
     }
   }
@@ -304,6 +307,7 @@ class HandTopicClassificationService {
         model: HAND_TOPIC_MODEL,
         max_tokens: CLASSIFY_MAX_TOKENS,
         messages: [{ role: 'user', content: buildHandTopicPrompt(converted.map((c) => c.input)) }],
+        ...effortParams(HAND_TOPIC_MODEL, 'low'),
       });
       aiUsageService
         .logUsage({
@@ -316,10 +320,8 @@ class HandTopicClassificationService {
         })
         .catch(() => {});
 
-      let combined = '';
-      for (const block of response.content) {
-        if (block.type === 'text') combined += block.text + '\n';
-      }
+      warnOnAbnormalStop('HandTopic', HAND_TOPIC_MODEL, response);
+      const combined = extractText(response.content);
       for (const r of parseHandTopicBatch(combined, validN)) {
         const target = converted[r.n - 1];
         if (!target) continue;

@@ -7,9 +7,16 @@ import {
   INSIGHT_GATE,
   INSIGHT_LIMITS,
   REP_TITLES_PER_SOURCE,
+  CITED_TITLES_PER_SOURCE,
+  INSIGHT_MODEL,
+  INSIGHT_MAX_TOKENS,
   type InsightInput,
 } from '../../services/tech-trend-timeline-insight.service.js';
-import { buildTimelineSnapshot } from '../../services/tech-trend-timeline.service.js';
+import {
+  buildTimelineSnapshot,
+  TIMELINE_INSIGHT_CACHE_KEY,
+} from '../../services/tech-trend-timeline.service.js';
+import { MAX_NON_STREAMING_TOKENS } from '../../services/anthropic-models.js';
 import { HAND_TOPIC_VERSION } from '../../services/hand-topics.js';
 import type { ArticleRow } from '../../services/tech-trend-report.service.js';
 
@@ -123,6 +130,22 @@ describe('buildInsightInput', () => {
     expect(input.decliningCandidates[0]!.metrics).toMatchObject({ recent: 2, prior: 6, delta: -4 });
   });
 
+  it('takes up to 5 representative titles per topic and source', () => {
+    expect(REP_TITLES_PER_SOURCE).toBe(5);
+    // 대표 선정이 소스별 최대 5건이므로 입력에는 그 이상 실리지 않는다
+    const many = buildInsightInput(
+      snapshotOf({
+        tactile_force: { papers: [0, 2, 2, 3, 3, 0], videos: [0, 1, 2, 2, 2, 0] },
+        dexterous_hw: { papers: [0, 0, 1, 2, 3, 0] },
+      })
+    );
+    const tactileMany = many.topics.find((t) => t.topicId === 'tactile_force')!;
+    expect(tactileMany.paperTitles.length).toBeGreaterThan(3);
+    expect(tactileMany.paperTitles.length).toBeLessThanOrEqual(5);
+    expect(tactileMany.videoTitles.length).toBeGreaterThan(3);
+    expect(tactileMany.videoTitles.length).toBeLessThanOrEqual(5);
+  });
+
   it('caps representative titles per source and truncates each to 90 chars', () => {
     for (const t of input.topics) {
       expect(t.paperTitles.length).toBeLessThanOrEqual(REP_TITLES_PER_SOURCE);
@@ -171,6 +194,17 @@ describe('buildTimelineInsightPrompt', () => {
     expect(prompt).toContain('relation은 입력 topics[].leadLag.relation 값을 그대로');
     expect(prompt).toContain('판단 유보');
     expect(prompt).toMatch(/조회수·인기·마케팅 언급 금지/);
+  });
+  it('adds the four new rules and the new output format with interpolated limits', () => {
+    expect(prompt).toContain('근거 문장에는 입력의 건수(prior→recent)나 피크 월 같은 구체 수치를 함께 인용한다. 수치는 새로 계산하지 않는다.');
+    expect(prompt).toContain('rising의 evidence에는 논문(연구) 신호와 영상(제품화) 신호를 모두 서술한다. 한쪽 신호만 있으면 그 사실을 명시한다.');
+    expect(prompt).toContain('overview는 5~6문장으로 쓴다: 전체 흐름, 가장 큰 변화, 연구와 제품화 사이의 간극, 데이터의 한계(표본·기간) 순서.');
+    expect(prompt).toContain('lgImplications는 4개를 쓴다. 각 항목은 어느 토픽(이름)과 어떤 수치에서 도출했는지 문장 안에 밝힌다.');
+    expect(prompt).toContain('"overview":"전체 흐름 5~6문장(700자 이내)"');
+    expect(prompt).toContain('"evidence":"근거 350자 이내"');
+    expect(prompt).toContain('"note":"240자 이내"');
+    expect(prompt).toContain('"lgImplications":["시사점1(350자 이내)","시사점2","시사점3","시사점4"]');
+    expect(prompt).toContain('(rising 최대 5개, declining 최대 4개, leadLag 최대 6개, lgImplications 4개)');
   });
   it('adds the short-period no-assertion flag only for short periods', () => {
     expect(prompt).not.toContain('shortPeriod=true');
@@ -233,7 +267,7 @@ describe('parseTimelineInsight', () => {
     expect(out.rising[0]!.evidence).toBe('근거 굵게');
   });
 
-  it('drops topics that are not candidates and caps rising at 3', () => {
+  it('drops topics that are not candidates', () => {
     const many = {
       ...good,
       rising: [
@@ -246,9 +280,44 @@ describe('parseTimelineInsight', () => {
       leadLag: [{ topicId: 'durability_cost', relation: 'paper_leads', note: 'n' }],
     };
     const out = parseTimelineInsight(JSON.stringify(many), input)!;
-    expect(out.rising.map((r) => r.topicId)).toEqual(['tactile_force', 'teleop_data', 'dexterous_hw']);
+    expect(out.rising.map((r) => r.topicId)).toEqual(['tactile_force', 'teleop_data', 'dexterous_hw', 'grasp_planning']);
     expect(out.declining).toEqual([]);
     expect(out.leadLag).toEqual([]);
+  });
+
+  it('caps rising/declining/leadLag at 5/4/6 given enough candidates', () => {
+    const base = input.risingCandidates[0]!;
+    const cands = Array.from({ length: 8 }, (_, i) => ({ ...base, topicId: `c${i}`, label: `C${i}` }));
+    const topics = cands.map((c) => ({ ...tactile, topicId: c.topicId, label: c.label }));
+    const ctx: InsightInput = { ...input, risingCandidates: cands, decliningCandidates: cands, topics };
+    const out = parseTimelineInsight(
+      JSON.stringify({
+        overview: 'o',
+        rising: cands.map((c) => ({ topicId: c.topicId, evidence: 'e' })),
+        declining: cands.map((c) => ({ topicId: c.topicId, note: 'n' })),
+        leadLag: cands.map((c) => ({ topicId: c.topicId, note: 'n' })),
+        lgImplications: ['a'],
+      }),
+      ctx
+    )!;
+    expect(out.rising).toHaveLength(INSIGHT_LIMITS.risingMax);
+    expect(out.declining).toHaveLength(INSIGHT_LIMITS.decliningMax);
+    expect(out.leadLag).toHaveLength(INSIGHT_LIMITS.leadLagMax);
+  });
+
+  it('keeps at most 3 cited titles per source in rising even though 5 are given as input', () => {
+    expect(CITED_TITLES_PER_SOURCE).toBe(3);
+    const titles = Array.from({ length: 5 }, (_, i) => `Cited paper ${i}`);
+    const ctx: InsightInput = { ...input, allowedTitles: [...input.allowedTitles, ...titles] };
+    const out = parseTimelineInsight(
+      JSON.stringify({
+        overview: 'o',
+        rising: [{ topicId: 'tactile_force', evidence: 'e', paperTitles: titles, videoTitles: [] }],
+        lgImplications: ['a'],
+      }),
+      ctx
+    )!;
+    expect(out.rising[0]!.paperTitles).toEqual(titles.slice(0, 3));
   });
 
   it('drops titles that were not in the input, keeping the valid ones', () => {
@@ -275,9 +344,9 @@ describe('parseTimelineInsight', () => {
     expect(forged.leadLag[0]!.relation).toBe(tactile.leadLag.relation);
   });
 
-  it('keeps at most 2 lgImplications and requires at least 1', () => {
-    const three = { ...good, lgImplications: ['a', 'b', 'c'] };
-    expect(parseTimelineInsight(JSON.stringify(three), input)!.lgImplications).toEqual(['a', 'b']);
+  it('keeps at most 4 lgImplications and requires at least 1', () => {
+    const five = { ...good, lgImplications: ['a', 'b', 'c', 'd', 'e'] };
+    expect(parseTimelineInsight(JSON.stringify(five), input)!.lgImplications).toEqual(['a', 'b', 'c', 'd']);
     expect(parseTimelineInsight(JSON.stringify({ ...good, lgImplications: ['only'] }), input)!.lgImplications).toEqual(['only']);
     expect(parseTimelineInsight(JSON.stringify({ ...good, lgImplications: [] }), input)).toBeNull();
   });
@@ -307,5 +376,32 @@ describe('parseTimelineInsight', () => {
     expect(out.declining[0]!.note).toHaveLength(INSIGHT_LIMITS.decliningNote);
     expect(out.leadLag[0]!.note).toHaveLength(INSIGHT_LIMITS.leadLagNote);
     expect(out.lgImplications.every((s) => s.length === INSIGHT_LIMITS.lgItem)).toBe(true);
+  });
+});
+
+describe('INSIGHT_LIMITS', () => {
+  it('uses the expanded limits', () => {
+    expect(INSIGHT_LIMITS).toEqual({
+      overview: 700,
+      risingEvidence: 350,
+      risingMax: 5,
+      decliningNote: 240,
+      decliningMax: 4,
+      leadLagNote: 240,
+      leadLagMax: 6,
+      lgItem: 350,
+      lgMax: 4,
+    });
+  });
+});
+
+describe('model settings', () => {
+  it('defaults to Opus 5.5 with a non-streaming-safe max_tokens', () => {
+    expect(INSIGHT_MODEL).toBe('claude-opus-5-5');
+    expect(INSIGHT_MAX_TOKENS).toBe(20_000);
+    expect(INSIGHT_MAX_TOKENS).toBeLessThanOrEqual(MAX_NON_STREAMING_TOKENS);
+  });
+  it('uses the v2 insight cache key', () => {
+    expect(TIMELINE_INSIGHT_CACHE_KEY).toBe('tech-trend-timeline-insight:v2:hand');
   });
 });
