@@ -16,7 +16,12 @@
  */
 
 import pg from 'pg';
-import nodemailer from 'nodemailer';
+import dns from 'node:dns';
+import { sendWithRetry } from './newsletter-mailer';
+
+// nodemailer는 dns.resolve4/6를 직접 사용하므로 이 설정은 nodemailer 연결 순서에는 영향이 없다.
+// dns.lookup을 쓰는 pg 등을 위한 보험용이다. Config / Pool 생성보다 먼저 호출해야 한다.
+dns.setDefaultResultOrder('ipv4first');
 
 const { Pool } = pg;
 
@@ -690,22 +695,17 @@ function escHtml(s: string): string {
 
 // ── Email Sender ────────────────────────────────────────────
 async function sendEmail(subject: string, htmlBody: string): Promise<void> {
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: GMAIL_USER,
-      pass: GMAIL_APP_PASSWORD,
+  // 465/SSL → 587/STARTTLS 폴백, 최대 3라운드 재시도, 시도당 30초 하드 데드라인 (newsletter-mailer.ts)
+  await sendWithRetry({
+    user: GMAIL_USER as string,
+    pass: GMAIL_APP_PASSWORD as string,
+    message: {
+      from: `"ARGOS War Room" <${GMAIL_USER}>`,
+      to: RECIPIENT,
+      subject,
+      html: htmlBody,
     },
   });
-
-  await transporter.sendMail({
-    from: `"ARGOS War Room" <${GMAIL_USER}>`,
-    to: RECIPIENT,
-    subject,
-    html: htmlBody,
-  });
-
-  console.log(`Email sent to ${RECIPIENT}`);
 }
 
 // ── Main ────────────────────────────────────────────────────
