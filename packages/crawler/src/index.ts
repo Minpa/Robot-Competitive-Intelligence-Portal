@@ -5,6 +5,7 @@ import { schedulerService } from './services/scheduler.service.js';
 import { errorLogger } from './services/error-logger.js';
 import { legalDataCollector } from './services/legal-data-collector.js';
 import { arxivHandCollector, arxivActuatorCollector, arxivTopicCollectors } from './services/arxiv-hand-collector.service.js';
+import { scheduleActuatorAutoBackfill } from './services/arxiv-auto-backfill.service.js';
 import { parseBackfillOptions } from './services/arxiv-hand-query.js';
 import { parseArxivDomain } from './services/arxiv-domain-query.js';
 import { youtubeCollectorService } from './services/youtube-collector.service.js';
@@ -327,20 +328,28 @@ const start = async () => {
 
       // 기동 30초 후 유튜브 수집 1회 자동 실행 (멱등 — 중복 삽입 없음)
       // 터미널 없이도 배포만으로 첫 수집이 이뤄지도록 한다. COLLECT_ON_STARTUP=false로 끌 수 있음.
+      // 체인 종료를 알 수 있도록 Promise 로 노출 (actuator 백필이 체인 종료 후 시작하도록 — 동작/로그는 종전과 동일)
+      let startupChain: Promise<void> | null = null;
       if (process.env.COLLECT_ON_STARTUP !== 'false') {
-        setTimeout(() => {
-          console.log('[YouTube] Startup collection starting...');
-          youtubeCollectorService
-            .collect()
-            .then((r) => console.log('[YouTube] Startup collection done:', JSON.stringify(r)))
-            .then(() => eventVideoSearchService.collectAll())
-            .then((r) => console.log('[EventSearch] Startup collection done:', JSON.stringify(r)))
-            .then(() => topicVideoSearchService.collectAll())
-            .then((r) => console.log('[TopicSearch] Startup collection done:', JSON.stringify(r)))
-            .catch((err) => console.error('[YouTube] Startup collection failed:', err));
-        }, 30_000);
+        startupChain = new Promise<void>((resolveChain) => {
+          setTimeout(() => {
+            console.log('[YouTube] Startup collection starting...');
+            youtubeCollectorService
+              .collect()
+              .then((r) => console.log('[YouTube] Startup collection done:', JSON.stringify(r)))
+              .then(() => eventVideoSearchService.collectAll())
+              .then((r) => console.log('[EventSearch] Startup collection done:', JSON.stringify(r)))
+              .then(() => topicVideoSearchService.collectAll())
+              .then((r) => console.log('[TopicSearch] Startup collection done:', JSON.stringify(r)))
+              .catch((err) => console.error('[YouTube] Startup collection failed:', err))
+              .finally(() => resolveChain());
+          }, 30_000);
+        });
         console.log('[YouTube] Startup collection scheduled in 30s');
       }
+
+      // actuator arXiv 12개월 백필 1회 자동 실행 (완료 마커 기반, ARXIV_ACTUATOR_AUTO_BACKFILL=false 로 끔)
+      void scheduleActuatorAutoBackfill(startupChain);
     } else {
       console.log('[LegalCollector] Cron disabled (no DATABASE_URL or DISABLE_LEGAL_COLLECT=true)');
     }

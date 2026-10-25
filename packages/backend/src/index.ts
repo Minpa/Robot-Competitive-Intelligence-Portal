@@ -11,6 +11,15 @@ import { dataGeneratorService } from './services/data-generator.service.js';
 import { coverageFieldService } from './services/coverage-field.service.js';
 import { handBenchmarkService } from './services/hand-benchmark.service.js';
 import { schedulerService } from './services/scheduler.service.js';
+import { dataMigrationService } from './services/data-migration.service.js';
+import { autoApplyActuatorData } from './services/actuator-auto-apply.service.js';
+import {
+  PIPELINE_TASK_NAME,
+  isStartupPipelineEnabled,
+  resolveStartupDelayMs,
+  runStartupPipelineIfDue,
+  setStartupChainRunning,
+} from './services/tech-trend-pipeline.service.js';
 
 const fastify = Fastify({
   logger: true,
@@ -56,6 +65,10 @@ const start = async () => {
     await ciUpdateService.ensureTables();
     await benchmarkService.ensureTables();
     await seedCiData();
+    // 데이터 적용/작업 완료 마커 테이블 (ci_layers 시드 이후). 실패해도 기동은 계속한다
+    await dataMigrationService.ensureTable().catch((err) => {
+      console.warn('[DataMigrations] ensureTable 실패:', err?.message ?? err);
+    });
     await coverageFieldService.ensureTables();
     const cfs = await coverageFieldService.seedFromFiles().catch((err) => {
       console.warn('[CoverageField] seed 실패:', err?.message ?? err);
@@ -93,6 +106,9 @@ const start = async () => {
     await fastify.listen({ port, host: '0.0.0.0' });
     console.log(`Backend server running on port ${port}`);
 
+    // 액추에이터 데이터 자동 적용 — listen 이후 비동기(헬스체크를 막지 않음). ACTUATOR_DATA_AUTO_APPLY 로만 제어(스케줄러 설정과 무관)
+    setTimeout(() => void autoApplyActuatorData(), 5_000);
+
     // 주간 자동화(스코어링/감사/브리핑) + 일일 영상 태깅 크론 가동 — DISABLE_SCHEDULER=true로 비활성화 가능
     if (process.env.DISABLE_SCHEDULER !== 'true') {
       schedulerService.init();
@@ -100,6 +116,7 @@ const start = async () => {
       // 기동 60초 후 미태깅 영상 태깅 1회 실행 (배포 직후 백로그 해소용, 멱등)
       if (process.env.TAG_VIDEOS_ON_STARTUP !== 'false') {
         setTimeout(() => {
+          setStartupChainRunning(true);
           import('./services/video-tagging.service.js')
             .then(({ videoTaggingService }) => videoTaggingService.run(1500))
             .then((r) => console.log('[VideoTagging] Startup run done:', JSON.stringify(r)))
@@ -121,9 +138,19 @@ const start = async () => {
             .then(() => import('./services/event-video-brief.service.js'))
             .then(({ eventVideoBriefService }) => eventVideoBriefService.run())
             .then((r) => console.log('[EventBrief] Startup run done:', JSON.stringify(r)))
-            .catch((err) => console.error('[Startup pipeline] run failed:', err));
+            .catch((err) => console.error('[Startup pipeline] run failed:', err))
+            .finally(() => setStartupChainRunning(false));
         }, 60_000);
         console.log('[VideoTagging] Startup run scheduled in 60s');
+      }
+
+      // 기술 트렌드 분석·분류 파이프라인 기동 1회 (직전 완료 후 MIN_GAP_HOURS 이내면 건너뜀)
+      if (isStartupPipelineEnabled()) {
+        const delayMs = resolveStartupDelayMs();
+        setTimeout(() => {
+          void runStartupPipelineIfDue(() => schedulerService.trigger(PIPELINE_TASK_NAME, 'startup'));
+        }, delayMs);
+        console.log(`[TechTrendPipeline] Startup run scheduled in ${Math.round(delayMs / 1000)}s`);
       }
     } else {
       console.log('[Scheduler] Disabled via DISABLE_SCHEDULER env');

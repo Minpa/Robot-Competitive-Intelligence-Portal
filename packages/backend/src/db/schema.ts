@@ -2647,3 +2647,11 @@ export const issueAskHistory = pgTable(
     userIdx: index('issue_ask_history_user_idx').on(t.userId, t.at),
   }),
 );
+
+// 데이터 마이그레이션/작업 완료 마커 — 키 규약: `actuator-update:<sha12>`, `pipeline:last`, `arxiv-backfill:actuator:12m`
+// 정식 생성 경로는 런타임 dataMigrationService.ensureTable() (CREATE TABLE IF NOT EXISTS). drizzle/0027 은 수동 migrate 호환용.
+export const dataMigrations = pgTable('data_migrations', {
+  key:       varchar('key', { length: 200 }).primaryKey(),
+  appliedAt: timestamp('applied_at').defaultNow().notNull(),
+  summary:   jsonb('summary').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+});

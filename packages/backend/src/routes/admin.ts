@@ -8,6 +8,10 @@ import pg from 'pg';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { authMiddleware, requireRole } from './auth.js';
+import { getOpsStatus } from '../services/ops-status.service.js';
+
+const adminOnly = [authMiddleware, requireRole('admin')];
 
 export async function adminRoutes(fastify: FastifyInstance) {
   // Crawl Targets
@@ -248,6 +252,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
     const logs = await aiUsageService.getRecentLogs(limit);
     return { logs };
   });
+
+  // GET /api/admin/ops/status — 자동 적용/백필/파이프라인 운영 상태 (관리자 전용, 비밀값 미포함)
+  fastify.get('/ops/status', { preHandler: adminOnly }, async () => getOpsStatus());
 
   // ── DB 마이그레이션 ──────────────────────────────────────────────
 

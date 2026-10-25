@@ -19,6 +19,7 @@ import { paperSummaryService } from './paper-summary.service.js';
 import { applicationCaseExtractionService } from './application-case-extraction.service.js';
 import { videoContentAnalysisService } from './video-content-analysis.service.js';
 import { eventVideoBriefService } from './event-video-brief.service.js';
+import { runTechTrendPipeline, DEFAULT_PIPELINE_CRON, PIPELINE_TASK_NAME, type PipelineReason } from './tech-trend-pipeline.service.js';
 
 // ── Types ──
 
@@ -65,6 +66,7 @@ const SCHEDULE_SCORING = process.env.CRON_SCORING || '0 2 * * 1';       // Mon 0
 const SCHEDULE_AUDIT = process.env.CRON_AUDIT || '0 3 * * 1';           // Mon 03:00
 const SCHEDULE_BRIEFING = process.env.CRON_BRIEFING || '0 4 * * 1';     // Mon 04:00
 const SCHEDULE_VIDEO_TAGGING = process.env.CRON_VIDEO_TAGGING || '0 4 * * *'; // 매일 04:00 (크롤러 수집 후)
+const SCHEDULE_TECH_TREND_PIPELINE = process.env.CRON_TECH_TREND_PIPELINE || DEFAULT_PIPELINE_CRON; // 매일 05:30 KST (태깅 체인 이후)
 
 class SchedulerService {
   private tasks: Map<string, ScheduledTask> = new Map();
@@ -83,7 +85,11 @@ class SchedulerService {
     this.registerTask('briefing', '전략 AI 브리핑', SCHEDULE_BRIEFING, () => this.runBriefing());
     this.registerTask('video-tagging', '영상 AI 태깅', SCHEDULE_VIDEO_TAGGING, () => this.runVideoTagging());
 
-    console.log('[Scheduler] Initialized with 4 tasks');
+    this.registerTask(PIPELINE_TASK_NAME, '기술 트렌드 분석 파이프라인', SCHEDULE_TECH_TREND_PIPELINE, async () => {
+      await runTechTrendPipeline({ reason: 'cron' });
+    });
+
+    console.log('[Scheduler] Initialized with 5 tasks');
   }
 
   private registerTask(name: string, label: string, cronExpr: string, handler: () => Promise<void>) {
@@ -118,7 +124,7 @@ class SchedulerService {
   /**
    * Manually trigger a task by name
    */
-  async trigger(taskName: string): Promise<{ success: boolean; message: string }> {
+  async trigger(taskName: string, reason: Exclude<PipelineReason, 'cron'> = 'manual'): Promise<{ success: boolean; message: string }> {
     const task = this.tasks.get(taskName);
     if (!task) {
       return { success: false, message: `Unknown task: ${taskName}` };
@@ -136,6 +142,7 @@ class SchedulerService {
           case 'audit': await this.runAudit(); break;
           case 'briefing': await this.runBriefing(); break;
           case 'video-tagging': await this.runVideoTagging(); break;
+          case PIPELINE_TASK_NAME: await runTechTrendPipeline({ reason }); break;
         }
         task.lastRun = new Date();
       } catch (err) {
@@ -147,6 +154,13 @@ class SchedulerService {
     run().catch(() => {});
 
     return { success: true, message: `Task ${taskName} triggered` };
+  }
+
+  /**
+   * 태스크 실행 중 여부 (등록되지 않은 태스크는 false)
+   */
+  isTaskRunning(name: string): boolean {
+    return this.tasks.get(name)?.isRunning ?? false;
   }
 
   /**
