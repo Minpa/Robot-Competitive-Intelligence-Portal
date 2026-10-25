@@ -3,21 +3,45 @@
  * ARGOS Daily Competitive Intelligence Newsletter
  *
  * Usage:
- *   DATABASE_URL=... GMAIL_USER=... GMAIL_APP_PASSWORD=... npx tsx scripts/send-daily-newsletter.ts
+ *   DATABASE_URL=... BREVO_API_KEY=... NEWSLETTER_FROM=... npx tsx scripts/send-daily-newsletter.ts   (Brevo HTTPS API)
+ *   DATABASE_URL=... GMAIL_USER=... GMAIL_APP_PASSWORD=... npx tsx scripts/send-daily-newsletter.ts   (Gmail SMTP)
+ *
+ * Mail provider (MAIL_PROVIDER = auto | brevo | smtp, default auto):
+ *   auto  - BREVO_API_KEY 가 있으면 brevo, 없으면 smtp
+ *   brevo - Brevo Transactional Email API (HTTPS 443). Railway 등 SMTP 포트(465/587) 차단 환경용
+ *   smtp  - Gmail SMTP (465/SSL -> 587/STARTTLS 폴백). 그 외 값은 시작 시 오류
  *
  * Required env vars:
  *   DATABASE_URL       - PostgreSQL connection string
+ *   [provider=brevo]
+ *   BREVO_API_KEY      - Brevo API key (로그에 출력되지 않음)
+ *   NEWSLETTER_FROM    - Brevo 에서 인증된 발신자 이메일 (미설정 시 GMAIL_USER 사용, 둘 다 없으면 오류)
+ *   [provider=smtp]
  *   GMAIL_USER         - Gmail sender address (e.g. argos-bot@gmail.com)
  *   GMAIL_APP_PASSWORD - Gmail App Password (NOT regular password)
  *
  * Optional env vars:
- *   NEWSLETTER_TO      - Override recipient (default: hyeongjin.kim@lge.com)
- *   DRY_RUN            - Set to "true" to print HTML without sending
+ *   MAIL_PROVIDER         - auto | brevo | smtp (default: auto)
+ *   NEWSLETTER_FROM_NAME  - Sender display name (default: ARGOS War Room)
+ *   NEWSLETTER_TO         - Override recipient(s), comma-separated (default: hyeongjin.kim@lge.com)
+ *   NEWSLETTER_NO_SSL     - Set to "true" to disable SSL for the PG connection (local DRY_RUN preview)
+ *   DRY_RUN               - Set to "true" to print HTML without sending (mail env 검증도 생략)
+ *
+ * Notes:
+ *   - smtp provider 에서 발신 주소는 항상 GMAIL_USER 이다 (NEWSLETTER_FROM_NAME 만 반영).
+ *   - Gmail 주소를 Brevo 발신자로 쓰면 수신측에서 스팸 처리될 수 있으니 첫 발송 후 스팸함을 확인한다.
  */
 
 import pg from 'pg';
 import dns from 'node:dns';
-import { sendWithRetry } from './newsletter-mailer';
+import {
+  parseMailProviderSetting,
+  parseRecipients,
+  parseSender,
+  resolveMailProvider,
+  sendMail,
+  type MailProvider,
+} from './newsletter-mailer';
 
 // nodemailer는 dns.resolve4/6를 직접 사용하므로 이 설정은 nodemailer 연결 순서에는 영향이 없다.
 // dns.lookup을 쓰는 pg 등을 위한 보험용이다. Config / Pool 생성보다 먼저 호출해야 한다.
@@ -31,14 +55,45 @@ const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
 const RECIPIENT = process.env.NEWSLETTER_TO || 'hyeongjin.kim@lge.com';
 const DRY_RUN = process.env.DRY_RUN === 'true';
+const BREVO_API_KEY = process.env.BREVO_API_KEY?.trim() || undefined;
+const NEWSLETTER_FROM = process.env.NEWSLETTER_FROM?.trim() || undefined;
+const NEWSLETTER_FROM_NAME = process.env.NEWSLETTER_FROM_NAME?.trim() || undefined; // 미설정 시 parseSender 기본값(ARGOS War Room)
 
 if (!DATABASE_URL) {
   console.error('ERROR: DATABASE_URL is required');
   process.exit(1);
 }
-if (!DRY_RUN && (!GMAIL_USER || !GMAIL_APP_PASSWORD)) {
-  console.error('ERROR: GMAIL_USER and GMAIL_APP_PASSWORD are required (or set DRY_RUN=true)');
+
+let PROVIDER: MailProvider;
+try {
+  PROVIDER = resolveMailProvider(process.env);
+  console.log(
+    `[ARGOS Newsletter][mail] provider=${PROVIDER} ` +
+      `(MAIL_PROVIDER=${parseMailProviderSetting(process.env)}, BREVO_API_KEY ${BREVO_API_KEY ? 'set' : 'not set'})`,
+  );
+} catch (err) {
+  console.error(`ERROR: ${err instanceof Error ? err.message : String(err)}`);
   process.exit(1);
+}
+
+if (!DRY_RUN) {
+  if (PROVIDER === 'brevo') {
+    if (!BREVO_API_KEY || !(NEWSLETTER_FROM || GMAIL_USER)) {
+      console.error('ERROR: BREVO_API_KEY and NEWSLETTER_FROM are required for provider=brevo (or set DRY_RUN=true)');
+      process.exit(1);
+    }
+  } else if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
+    console.error('ERROR: GMAIL_USER and GMAIL_APP_PASSWORD are required (or set DRY_RUN=true)');
+    process.exit(1);
+  }
+  // 수신자/발신자 형식 오류는 DB 조회 전에 시작 시점에 실패시킨다
+  try {
+    parseRecipients(RECIPIENT);
+    parseSender(PROVIDER === 'brevo' ? NEWSLETTER_FROM || GMAIL_USER : GMAIL_USER, NEWSLETTER_FROM_NAME);
+  } catch (err) {
+    console.error(`ERROR: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
 }
 
 const TODAY = new Date();
@@ -695,16 +750,18 @@ function escHtml(s: string): string {
 
 // ── Email Sender ────────────────────────────────────────────
 async function sendEmail(subject: string, htmlBody: string): Promise<void> {
-  // 465/SSL → 587/STARTTLS 폴백, 최대 3라운드 재시도, 시도당 30초 하드 데드라인 (newsletter-mailer.ts)
-  await sendWithRetry({
-    user: GMAIL_USER as string,
-    pass: GMAIL_APP_PASSWORD as string,
-    message: {
-      from: `"ARGOS War Room" <${GMAIL_USER}>`,
-      to: RECIPIENT,
-      subject,
-      html: htmlBody,
-    },
+  // brevo: HTTPS API, 최대 3회(60초 간격), 시도당 30초 타임아웃
+  // smtp : 465/SSL → 587/STARTTLS 폴백, 최대 3라운드 재시도, 시도당 30초 하드 데드라인 (newsletter-mailer.ts)
+  // smtp 발신 주소는 GMAIL_USER 고정, 표시 이름만 NEWSLETTER_FROM_NAME 반영
+  await sendMail({
+    provider: PROVIDER,
+    subject,
+    html: htmlBody,
+    to: parseRecipients(RECIPIENT),
+    sender: parseSender(PROVIDER === 'brevo' ? NEWSLETTER_FROM || GMAIL_USER : GMAIL_USER, NEWSLETTER_FROM_NAME),
+    brevoApiKey: BREVO_API_KEY,
+    smtpUser: GMAIL_USER,
+    smtpPass: GMAIL_APP_PASSWORD,
   });
 }
 
