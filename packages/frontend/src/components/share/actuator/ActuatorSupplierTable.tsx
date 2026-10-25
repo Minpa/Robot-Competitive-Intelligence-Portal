@@ -10,9 +10,9 @@ import { cn } from '@/lib/utils';
 import { SubCard } from '../timeline-shared';
 import { fmtUSD, numText } from './actuator-map-layout';
 
-const TH = 'text-left px-2 py-1.5 text-[11px] font-medium text-ink-600 whitespace-nowrap border-b border-ink-200';
+const TH = 'text-left px-2 py-1.5 text-[11px] font-medium text-ink-600 whitespace-nowrap print:whitespace-normal border-b border-ink-200';
 const TD = 'px-2 py-1.5 text-[12px] text-ink-800 border-b border-ink-100 align-top';
-const NUM = 'text-right tabular-nums whitespace-nowrap';
+const NUM = 'text-right tabular-nums whitespace-nowrap print:whitespace-normal';
 
 export function ActuatorSupplierTable({ suppliers }: { suppliers: ActuatorSupplierProduct[] }) {
   const vendors = new Set(suppliers.map((s) => s.vendor.toLowerCase())).size;
@@ -28,7 +28,7 @@ export function ActuatorSupplierTable({ suppliers }: { suppliers: ActuatorSuppli
       {suppliers.length === 0 ? (
         <div className="py-6 text-center text-[13px] text-ink-400">표시할 공급사 제품이 없습니다.</div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto print:overflow-visible">
           <table className="w-full border-collapse">
             <thead>
               <tr>
@@ -48,19 +48,19 @@ export function ActuatorSupplierTable({ suppliers }: { suppliers: ActuatorSuppli
             </thead>
             <tbody>
               {suppliers.map((s, i) => (
-                <tr key={`${s.vendor}-${s.model}-${i}`}>
-                  <td className={cn(TD, 'font-medium whitespace-nowrap')}>{s.vendor}</td>
-                  <td className={cn(TD, 'whitespace-nowrap')}>{s.country ?? '—'}</td>
-                  <td className={cn(TD, 'whitespace-nowrap')}>{s.model}</td>
-                  <td className={cn(TD, 'whitespace-nowrap')}>{s.type}</td>
+                <tr key={`${s.vendor}-${s.model}-${i}`} className="break-inside-avoid">
+                  <td className={cn(TD, 'font-medium whitespace-nowrap print:whitespace-normal')}>{s.vendor}</td>
+                  <td className={cn(TD, 'whitespace-nowrap print:whitespace-normal')}>{s.country ?? '—'}</td>
+                  <td className={cn(TD, 'whitespace-nowrap print:whitespace-normal')}>{s.model}</td>
+                  <td className={cn(TD, 'whitespace-nowrap print:whitespace-normal')}>{s.type}</td>
                   <td className={cn(TD, NUM)}>{numText(s.peakTorqueNm)}</td>
                   <td className={cn(TD, NUM)}>{numText(s.continuousTorqueNm)}</td>
                   <td className={cn(TD, NUM)}>{numText(s.weightKg)}</td>
                   <td className={cn(TD, NUM)}>{numText(s.diameterMm)}</td>
                   <td className={cn(TD, NUM)}>{s.priceUsd == null ? '—' : fmtUSD(s.priceUsd)}</td>
-                  <td className={cn(TD, 'whitespace-nowrap')}>{s.status ?? '—'}</td>
+                  <td className={cn(TD, 'whitespace-nowrap print:whitespace-normal')}>{s.status ?? '—'}</td>
                   <td className={cn(TD, 'min-w-[160px] text-ink-600')}>{s.targetMarket ?? '—'}</td>
-                  <td className={cn(TD, 'whitespace-nowrap text-ink-500')}>{s.source === 'products' ? 'products + product_specs' : 'components'}</td>
+                  <td className={cn(TD, 'whitespace-nowrap print:whitespace-normal text-ink-500')}>{s.source === 'products' ? 'products + product_specs' : 'components'}</td>
                 </tr>
               ))}
             </tbody>

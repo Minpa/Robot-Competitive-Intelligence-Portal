@@ -12,6 +12,7 @@ import { ReportSummaryCards } from './ReportSummaryCards';
 import { ReportInsightCard } from './ReportInsightCard';
 import { TechTimelineSection } from './TechTimelineSection';
 import { ActuatorMapSection } from './actuator/ActuatorMapSection';
+import { ActuatorStrategyCard } from './actuator/ActuatorStrategyCard';
 import { ReportVideoGrid } from './ReportVideoGrid';
 import { ReportPaperList } from './ReportPaperList';
 import type { TechTrendDomain } from '@/types/tech-trend-report';
@@ -154,6 +155,7 @@ export function TechTrendShareView() {
             <ReportInsightCard insight={report.insight} />
             {isTimelineDomain(report.domain) && <TechTimelineSection domain={report.domain} />}
             {report.domain === 'actuator' && <ActuatorMapSection />}
+            {report.domain === 'actuator' && <ActuatorStrategyCard />}
             <ReportVideoGrid
               videos={report.videos}
               total={report.stats.videoCount}

@@ -20,6 +20,16 @@ import {
   priceText,
   type ChartLayout,
 } from './actuator-map-layout';
+import {
+  STRATEGY_CONTENT,
+  STRATEGY_SOURCES,
+  buildDiagnosisLines,
+  buildMetricRows,
+  buildSubtitle,
+  computeStrategyStats,
+  formatFooter,
+  safeSourceHref,
+} from './actuator-strategy';
 
 /** tailwind.config ink 토큰 값 (tech-trend-report-html.ts 인라인 스타일과 동일) */
 const INK = {
@@ -196,6 +206,91 @@ export function buildActuatorMapCardHtml(data: ActuatorMapResponse | null | unde
     `<p class="meta" style="color:${INK[600]};font-size:12px;margin:0 0 6px">products(type='actuator') + 로봇에 연결되지 않은 components. 타입은 DB 텍스트에서 추정.</p>`,
     buildSupplierTableHtml(data.suppliers),
     `<p style="font-size:11.5px;color:${INK[500]};margin:14px 0 0;line-height:1.6">X축은 DB 필드(보행·전신 DOF·손 DOF·속도)만으로 계산한 지수. 액추에이터 타입은 components·CI '구동 방식' 근거가 있는 경우만 분류(없으면 '미확인'). 가격은 CI '가격대'·로봇 설명의 기록 값만 사용. 집계 ${e(data.generatedAt)}.</p>`,
+    '</section>',
+  ].join('');
+}
+
+// ── 세트 제조사의 액추에이터 사업화 전략 카드 ─────────────────────────────────────
+
+const AVOID = 'break-inside:avoid;page-break-inside:avoid';
+/** 긴 문장이 줄바꿈되도록 nowrap 없는 셀 스타일 */
+const STH = `style="text-align:left;padding:5px 8px;border-bottom:1px solid ${INK[200]};color:${INK[600]};font-weight:600;vertical-align:bottom"`;
+const STD = `style="padding:5px 8px;border-bottom:1px solid ${INK[100]};vertical-align:top;line-height:1.55"`;
+const SR_ONLY = 'position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0';
+
+function strategyH3(text: string): string {
+  return `<h3 style="font-size:14px;margin:18px 0 6px;color:${INK[900]}">${e(text)}</h3>`;
+}
+
+function strategyTable(caption: string, columns: string[], rows: string[][], boldFirst = true): string {
+  const head = columns.map((c) => `<th scope="col" ${STH}>${e(c)}</th>`).join('');
+  const body = rows
+    .map(
+      (cells) =>
+        `<tr style="${AVOID}">${cells.map((c, i) => `<td ${STD}>${i === 0 && boldFirst ? `<b>${e(c)}</b>` : e(c)}</td>`).join('')}</tr>`
+    )
+    .join('');
+  return `<div style="overflow-x:auto"><table ${TABLE_STYLE}><caption style="${SR_ONLY}">${e(caption)}</caption><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+function strategySourcesHtml(): string {
+  const items = STRATEGY_SOURCES.map((s) => {
+    const href = safeSourceHref(s.url);
+    const url = href ? `<a href="${e(href)}" target="_blank" rel="noopener noreferrer">${e(s.url)}</a>` : e(s.url);
+    return `<li style="margin:2px 0;${AVOID}">[${e(s.id)}] ${e(s.label)} · 신뢰도 ${e(s.grade)} · ${url}</li>`;
+  }).join('');
+  return `<ul style="list-style:none;margin:0;padding:0;font-size:11.5px;color:${INK[600]};line-height:1.6;word-break:break-all">${items}</ul><p style="font-size:11.5px;color:${INK[600]};margin:6px 0 0">신뢰도: A 공식, B 대형 매체, C 2차 자료.</p>`;
+}
+
+/**
+ * "세트 제조사의 액추에이터 사업화 전략" 카드 HTML. 정적 원고는 항상 출력하고, data 가 없으면 동적 값은 '—'.
+ * 모든 텍스트는 escapeHtml, 출처 링크는 safeSourceHref(정적 상수 전용, https)만. 외부 참조·새 hex 없음.
+ */
+export function buildActuatorStrategyCardHtml(data: ActuatorMapResponse | null | undefined): string {
+  const C = STRATEGY_CONTENT;
+  const stats = computeStrategyStats(data);
+  const diagnosis = stats.hasData
+    ? buildDiagnosisLines(stats).map((l) => `<li style="margin:3px 0;${AVOID}">${e(l)}</li>`).join('')
+    : `<li style="margin:3px 0">—</li>`;
+  const metricRows = buildMetricRows(stats).map((m) => [m.name, m.definition, m.availability, m.source, m.currentValue]);
+  const small = `font-size:11.5px;color:${INK[600]};line-height:1.6`;
+
+  return [
+    `<section class="card" style="background:${WHITE};border:1px solid ${INK[200]};border-radius:14px;padding:20px 22px;margin-top:18px">`,
+    `<p class="kicker" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:${INK[500]};margin:0 0 6px">${e(C.kicker)}</p>`,
+    `<h2 style="font-size:16px;margin:0 0 4px;color:${INK[900]}">${e(C.title)}</h2>`,
+    `<p class="meta" style="color:${INK[600]};font-size:12px;margin:0 0 10px">${e(buildSubtitle(stats))}</p>`,
+    `<p style="${small};margin:0 0 6px;${AVOID}">${e(C.notice)}</p>`,
+    `<p style="font-size:12px;color:${INK[900]};line-height:1.6;margin:0;${AVOID}"><b>${e(C.question)}</b></p>`,
+    strategyH3(C.sections.diagnosis),
+    `<ul style="margin:0 0 10px;padding-left:18px;font-size:12px;color:${INK[900]};line-height:1.6">${diagnosis}</ul>`,
+    strategyTable(
+      C.factsHeading,
+      C.factColumns,
+      C.factRows.map((r) => [r.category, r.subject, r.fact, r.evidence]),
+      false
+    ),
+    `<p style="${small};margin:6px 0 0">${e(C.factsFootnote)}</p>`,
+    strategyH3(C.sections.options),
+    strategyTable(
+      C.sections.options,
+      C.optionColumns,
+      C.options.map((o) => [o.name, o.core, o.evidence, o.capability, o.risk, o.prerequisite])
+    ),
+    strategyH3(C.sections.collab),
+    strategyTable(
+      C.sections.collab,
+      C.collabColumns,
+      C.collabModels.map((m) => [m.name, m.content, m.pros, m.cons, m.decisions, m.evidence])
+    ),
+    strategyH3(C.sections.metrics),
+    strategyTable(C.sections.metrics, C.metricColumns, metricRows),
+    strategyH3(C.sections.questions),
+    `<p style="${small};margin:0 0 4px">${e(C.questionsIntro)}</p>`,
+    `<ol style="margin:0;padding-left:20px;font-size:12px;color:${INK[900]};line-height:1.6">${C.questions.map((q) => `<li style="margin:3px 0;${AVOID}">${e(q)}</li>`).join('')}</ol>`,
+    strategyH3(C.sections.sources),
+    strategySourcesHtml(),
+    `<p style="${small};margin:14px 0 0">${e(formatFooter(stats))}</p>`,
     '</section>',
   ].join('');
 }

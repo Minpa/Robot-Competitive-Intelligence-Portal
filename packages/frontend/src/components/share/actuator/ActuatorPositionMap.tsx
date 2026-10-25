@@ -54,9 +54,9 @@ interface TipState {
 }
 
 const CHK = 'inline-flex items-center gap-1.5 text-[12px] text-ink-700 cursor-pointer select-none';
-const TH = 'text-left px-2 py-1.5 text-[11px] font-medium text-ink-600 whitespace-nowrap border-b border-ink-200';
+const TH = 'text-left px-2 py-1.5 text-[11px] font-medium text-ink-600 whitespace-nowrap print:whitespace-normal border-b border-ink-200';
 const TD = 'px-2 py-1.5 text-[12px] text-ink-800 border-b border-ink-100 align-top';
-const NUM = 'text-right tabular-nums whitespace-nowrap';
+const NUM = 'text-right tabular-nums whitespace-nowrap print:whitespace-normal';
 
 export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
   const [opts, setOpts] = useState<LayoutOptions>(() => ({ ...defaultLayoutOptions(data.difficultyDefault, data.typeOrder), yAxis: initialYAxis }));
@@ -390,7 +390,7 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
               출처 등급은 ARGOS CI 신뢰도(A 공식 ~ D 추정). 가격은 DB에 있는 경우만 표시합니다.
               {incompleteCount > 0 && ` 스펙 미등록 ${incompleteCount}기는 난이도를 계산할 수 없어 차트에서 제외됩니다.`}
             </p>
-            <div className="overflow-x-auto mt-2">
+            <div className="overflow-x-auto print:overflow-visible mt-2">
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
@@ -410,12 +410,12 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
                     .sort((a, b) => (b.x ?? -1) - (a.x ?? -1))
                     .map(({ r, x }) => (
                       <tr key={r.id} className={cn(r.incomplete && 'text-ink-400')}>
-                        <td className={cn(TD, 'font-medium whitespace-nowrap')}>
+                        <td className={cn(TD, 'font-medium whitespace-nowrap print:whitespace-normal')}>
                           {r.name}
                           {r.forecast ? ' (예측)' : ''}
                           {r.incomplete ? ' · 스펙 없음' : ''}
                         </td>
-                        <td className={cn(TD, 'whitespace-nowrap')}>{r.company}</td>
+                        <td className={cn(TD, 'whitespace-nowrap print:whitespace-normal')}>{r.company}</td>
                         <td className={TD}>{REGION_LABEL[r.region]}</td>
                         <td className={TD}>{r.locomotion}</td>
                         <td className={cn(TD, NUM)}>{numText(r.dof)}</td>
@@ -425,8 +425,8 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
                         <td className={cn(TD, NUM)}>{numText(r.weight)}</td>
                         <td className={cn(TD, NUM)}>{numText(r.height)}</td>
                         <td className={cn(TD, NUM)}>{numText(r.payload)}</td>
-                        <td className={cn(TD, 'whitespace-nowrap')}>{r.actuatorTypeLabel}</td>
-                        <td className={cn(TD, 'whitespace-nowrap')}>
+                        <td className={cn(TD, 'whitespace-nowrap print:whitespace-normal')}>{r.actuatorTypeLabel}</td>
+                        <td className={cn(TD, 'whitespace-nowrap print:whitespace-normal')}>
                           {priceText(r.price)}
                           {r.price ? ` ${r.price.conf}` : ''}
                         </td>
@@ -444,7 +444,7 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
             <div>
               <p className="text-[12px] font-medium text-ink-800">회사별 커버리지 요약</p>
               <p className="text-[11px] text-ink-500 mt-0.5">현재 Y축({yd.axis}) 기준으로 각 회사 제품군이 차지하는 범위입니다.</p>
-              <div className="overflow-x-auto mt-2">
+              <div className="overflow-x-auto print:overflow-visible mt-2">
                 <table className="w-full border-collapse">
                   <thead>
                     <tr>
@@ -458,12 +458,12 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
                   <tbody>
                     {coverage.map((c) => (
                       <tr key={c.company}>
-                        <td className={cn(TD, 'font-medium whitespace-nowrap')}>{c.company}</td>
+                        <td className={cn(TD, 'font-medium whitespace-nowrap print:whitespace-normal')}>{c.company}</td>
                         <td className={TD}>{REGION_GROUP_LABEL[c.region]}</td>
                         <td className={TD}>
                           {c.models.length} ({c.models.join(', ')})
                         </td>
-                        <td className={cn(TD, 'whitespace-nowrap tabular-nums')}>
+                        <td className={cn(TD, 'whitespace-nowrap print:whitespace-normal tabular-nums')}>
                           {c.xMin.toFixed(1)} – {c.xMax.toFixed(1)}
                         </td>
                         <td className={TD}>{c.yRange}</td>

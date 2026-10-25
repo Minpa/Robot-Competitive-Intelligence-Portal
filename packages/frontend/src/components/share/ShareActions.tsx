@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link2, Check, FileDown, Sparkles, Layers } from 'lucide-react';
 import { api } from '@/lib/api';
 import { buildTechTrendReportHtml } from '@/lib/tech-trend-report-html';
-import { buildActuatorMapCardHtml } from './actuator/actuator-map-html';
+import { buildActuatorMapCardHtml, buildActuatorStrategyCardHtml } from './actuator/actuator-map-html';
 import { ACTUATOR_MAP_QUERY_KEY } from './actuator/useActuatorMap';
 import type { ActuatorMapResponse } from '@/types/actuator-map';
 import { useTechTrendAnalysis } from './useTechTrendAnalysis';
@@ -97,11 +97,16 @@ export function ShareActions({ report, titleKo, titleEn, domain, days }: Props) 
     // 액추에이터 도메인: 같은 react-query 키로 캐시된 포지션 맵 데이터가 있으면 카드로 포함 (없으면 생략)
     const actuatorMap =
       domain === 'actuator' ? queryClient.getQueryData<ActuatorMapResponse>(ACTUATOR_MAP_QUERY_KEY) : undefined;
+    // 액추에이터 도메인: 포지션 맵 카드(데이터 있을 때만) + 전략 카드(정적 원고는 데이터 없이도 항상 포함)
+    const actuatorCardsHtml =
+      domain === 'actuator'
+        ? `${actuatorMap ? buildActuatorMapCardHtml(actuatorMap, window.location.href) : ''}${buildActuatorStrategyCardHtml(actuatorMap)}`
+        : '';
     const html = buildTechTrendReportHtml(
       report,
       { pageUrl: window.location.href, titleKo, titleEn },
       timelineDomain ? { timeline, insight } : null,
-      actuatorMap ? buildActuatorMapCardHtml(actuatorMap, window.location.href) : ''
+      actuatorCardsHtml
     );
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);

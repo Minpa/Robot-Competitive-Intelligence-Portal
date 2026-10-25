@@ -82,7 +82,7 @@ function buildGraph(edges: ActuatorSupplyEdge[], robots: ActuatorMapRobot[]) {
   return { left, right, edges: gEdges, height };
 }
 
-const TH = 'px-2 py-1.5 text-[11px] font-medium text-ink-600 whitespace-nowrap border-b border-ink-200';
+const TH = 'px-2 py-1.5 text-[11px] font-medium text-ink-600 whitespace-nowrap print:whitespace-normal border-b border-ink-200';
 const TD = 'px-2 py-1.5 text-[12px] text-ink-800 border-b border-ink-100';
 
 export function ActuatorSupplyChainMap({ edges, robots }: Props) {
@@ -222,7 +222,7 @@ export function ActuatorSupplyChainMap({ edges, robots }: Props) {
           </div>
         </>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto print:overflow-visible">
           <table className="border-collapse min-w-full" aria-label="로봇 × 공급사 매트릭스 (셀 = 수량, ◆ = 자체 생산)">
             <thead>
               <tr>
@@ -237,8 +237,8 @@ export function ActuatorSupplyChainMap({ edges, robots }: Props) {
             </thead>
             <tbody>
               {graph.left.map((r) => (
-                <tr key={r.id}>
-                  <td className={cn(TD, 'whitespace-nowrap')}>
+                <tr key={r.id} className="break-inside-avoid">
+                  <td className={cn(TD, 'whitespace-nowrap print:whitespace-normal')}>
                     <span aria-hidden className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: REGION_GROUP_COLOR[r.region] }} />
                     <span className="font-medium">{r.name}</span> <span className="text-ink-500">{r.company}</span>
                   </td>

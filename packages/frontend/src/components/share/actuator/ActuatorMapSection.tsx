@@ -31,7 +31,7 @@ export function ActuatorMapSection() {
 
   return (
     <Panel
-      className="report-panel"
+      className="print:block print:overflow-visible"
       kicker="Actuator · Position & Supply Chain"
       title="액추에이터 관점 경쟁사 포지션·공급망 맵"
       subtitle={subtitle}

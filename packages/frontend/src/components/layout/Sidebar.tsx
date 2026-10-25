@@ -31,6 +31,7 @@ import {
   TrendingUp,
   Brain,
   Cog,
+  Settings2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -202,6 +203,7 @@ const navigationGroups: NavGroup[] = [
     subtitle: 'Share',
     items: [
       { name: '핸드 기술 트렌드 (최근 30일)', href: '/share/tech-trend/hand', icon: Hand },
+      { name: '액추에이터 기술 트렌드 (최근 30일)', href: '/share/tech-trend/actuator', icon: Settings2 },
     ],
   },
   {
