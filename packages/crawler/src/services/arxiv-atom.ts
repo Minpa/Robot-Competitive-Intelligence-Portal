@@ -49,10 +49,24 @@ export function markArxivRequestDone(now: () => number = Date.now): void {
   lastArxivRequestAt = now();
 }
 
+let arxivConnectionGate: Promise<void> = Promise.resolve();
+
+/**
+ * 단일 연결 보장 — fn(요청 1회: 슬롯 대기 + fetch + 완료 기록)이 끝나기 전에는 다른 호출자의 fn 을 시작하지 않는다.
+ * 도메인별 수집기 인스턴스(hand/actuator)가 동시에 돌아도 arXiv 에는 한 번에 한 요청만 열린다.
+ */
+export function withArxivConnection<T>(fn: () => Promise<T>): Promise<T> {
+  const prev = arxivConnectionGate;
+  let release!: () => void;
+  arxivConnectionGate = new Promise<void>((r) => (release = r));
+  return prev.then(fn).finally(release);
+}
+
 /** 테스트 전용 — 모듈 레벨 상태 초기화 */
 export function resetArxivRateLimiter(): void {
   lastArxivRequestAt = 0;
   arxivChain = Promise.resolve();
+  arxivConnectionGate = Promise.resolve();
 }
 
 // ------------------------------------------------------------------

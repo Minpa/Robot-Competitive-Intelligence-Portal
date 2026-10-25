@@ -278,10 +278,10 @@ function tryParseJson(raw: string): unknown {
   }
 }
 
-function normId(v: unknown): string | null {
+function normIdIn(v: unknown, validIds: ReadonlySet<string>): string | null {
   if (typeof v !== 'string') return null;
   const id = v.trim().toLowerCase();
-  return VALID_ID_SET.has(id) ? id : null;
+  return validIds.has(id) ? id : null;
 }
 
 function normN(v: unknown): number | null {
@@ -296,6 +296,16 @@ function normN(v: unknown): number | null {
  * - 유효 토픽이 하나도 없는 항목은 버린다(미분류로 남음). 전체가 깨지면 빈 배열.
  */
 export function parseHandTopicBatch(text: string, validN: ReadonlySet<number>): HandTopicParsed[] {
+  return parseTopicBatchWith(text, validN, VALID_ID_SET);
+}
+
+/** 분류 체계(유효 id 집합)를 주입받는 공용 파서 — 도메인 체계(domain-topics.ts)가 재사용한다. 규칙은 parseHandTopicBatch 와 동일. */
+export function parseTopicBatchWith(
+  text: string,
+  validN: ReadonlySet<number>,
+  validIds: ReadonlySet<string>
+): HandTopicParsed[] {
+  const normId = (v: unknown) => normIdIn(v, validIds);
   const cleaned = stripCiteTags(text);
   let parsed: unknown = tryParseJson(cleaned.trim());
   if (!parsed || typeof parsed !== 'object') {
@@ -365,13 +375,21 @@ export function getHandTopics(
   row: Pick<ArticleRow, 'extractedMetadata'>,
   expectedVersion: number = HAND_TOPIC_VERSION
 ): HandTopicsValue | null {
-  const v: unknown = row.extractedMetadata?.handTopics;
+  return readStoredTopics(row.extractedMetadata?.handTopics, expectedVersion, VALID_ID_SET);
+}
+
+/** 저장값 검증 공용 — 도메인 체계(domain-topics.ts)가 재사용한다. 규칙은 getHandTopics 와 동일. */
+export function readStoredTopics(
+  v: unknown,
+  expectedVersion: number,
+  validIds: ReadonlySet<string>
+): HandTopicsValue | null {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
   const o = v as Record<string, unknown>;
   if (o.version !== expectedVersion) return null;
   if (!Array.isArray(o.topics) || o.topics.length < 1 || o.topics.length > MAX_TOPICS_PER_ITEM) return null;
   const topics = o.topics as unknown[];
-  if (!topics.every((t): t is string => typeof t === 'string' && VALID_ID_SET.has(t))) return null;
+  if (!topics.every((t): t is string => typeof t === 'string' && validIds.has(t))) return null;
   if (new Set(topics).size !== topics.length) return null;
   if (typeof o.primary !== 'string' || !topics.includes(o.primary)) return null;
   if (topics.includes(OFF_TOPIC_ID) && topics.length !== 1) return null;
@@ -388,6 +406,11 @@ export function getHandTopics(
 
 /** 분류 시도 횟수 (없거나 비정상이면 0) */
 export function getHandTopicsAttempts(row: Pick<ArticleRow, 'extractedMetadata'>): number {
-  const n = Number(row.extractedMetadata?.handTopicsAttempts ?? 0);
+  return normalizeAttempts(row.extractedMetadata?.handTopicsAttempts);
+}
+
+/** 시도 횟수 값 정규화 공용 — 없거나 비정상이면 0 */
+export function normalizeAttempts(raw: unknown): number {
+  const n = Number(raw ?? 0);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
 }

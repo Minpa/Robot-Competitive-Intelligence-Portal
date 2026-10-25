@@ -71,6 +71,19 @@ export function resolveHandTopicModel(env: EnvLike = process.env): string {
   return resolveModelFromEnv(['HAND_TOPIC_MODEL', 'TECH_TREND_FOCUS_MODEL'], HAIKU_5_5_MODEL, env);
 }
 
+/**
+ * (d') 도메인별 서브토픽 분류 — hand 는 resolveHandTopicModel 과 동일.
+ * 그 외 도메인은 `{DOMAIN}_TOPIC_MODEL` → HAND_TOPIC_MODEL → TECH_TREND_FOCUS_MODEL 순으로 보며 기본 Haiku 5.5.
+ */
+export function resolveDomainTopicModel(domain: string, env: EnvLike = process.env): string {
+  if (domain === 'hand') return resolveHandTopicModel(env);
+  return resolveModelFromEnv(
+    [`${domain.toUpperCase()}_TOPIC_MODEL`, 'HAND_TOPIC_MODEL', 'TECH_TREND_FOCUS_MODEL'],
+    HAIKU_5_5_MODEL,
+    env
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // effort
 // ─────────────────────────────────────────────────────────────────────────────

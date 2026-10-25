@@ -47,7 +47,20 @@ export const TOPIC_SEARCHES: TopicSearchConfig[] = [
   },
   {
     domain: 'actuator',
-    queries: ['humanoid robot actuator', 'robot joint motor harmonic drive'],
+    queries: [
+      'humanoid robot actuator',
+      'robot joint actuator torque',
+      'quasi direct drive actuator',
+      'harmonic drive robot joint',
+      'planetary actuator humanoid',
+      'linear actuator humanoid robot',
+      'robot actuator teardown',
+      'high torque density motor robot',
+      'cycloidal actuator robot',
+      'series elastic actuator',
+      'robot joint module demo',
+      'actuator humanoid factory',
+    ],
   },
   {
     domain: 'expo',

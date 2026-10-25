@@ -12,7 +12,8 @@ export type TopicDomain = 'hand' | 'rfm' | 'actuator' | 'expo' | 'production';
 const DOMAIN_REGEX: Record<TopicDomain, RegExp> = {
   hand: /\bhands?\b|gripper|finger|tactile|\bdex\w*|grasp|manipulat|in-hand|핸드|그리퍼|灵巧手|机械手|夹爪|多指/i,
   rfm: /foundation model|vision.language.action|\bVLA\b|imitation learning|reinforcement learning|diffusion policy|world model|embodied|manipulation policy|sim.to.real/i,
-  actuator: /actuator|\bmotor\b|gearbox|harmonic drive|transmission|joint torque|quasi.direct|proprioceptive|series elastic/i,
+  actuator:
+    /actuator|joint module|\bmotors?\b|gearbox|harmonic|cycloidal|planetary|quasi.direct|\bqdd\b|strain wave|roller screw|ball screw|series elastic|backdrivab|torque density|transmission|joint torque|proprioceptive|액추에이터|감속기|관절 모듈|执行器|关节模组|减速器/i,
   expo: /\bCES\b|\bexpo\b|exhibition|booth|\bIROS\b|\bICRA\b|hannover|world robot conference|\bWRC\b|trade show|robocup|automatica|automate 20|world artificial intelligence/i,
   production: /mass.?produc|production (line|ramp|facility|capacity)|start of production|robofab|botq|factory tour|manufacturing (line|facility|plant)|assembly line for|robot factory|생산라인|양산|人形机器人|量产/i,
 };
@@ -26,6 +27,29 @@ const ROBOT_CONTEXT_REGEX = /\brobot|robotic|humanoid|휴머노이드|로봇|机
  */
 const DOMAIN_CONTEXT_REGEX: Partial<Record<TopicDomain, RegExp>> = {
   hand: /shadow (robot|hand)|sharpa|tesollo|inspire (robots?|hand)|psyonic|ability hand|sanctuary|wonik|allegro hand|leap hand|robotiq|linker ?bot|daimon|paxini|\boptimus\b|\batlas\b|figure 0\d|figure ai|unitree|agibot|dexmate|orca hand|\bruka\b|toyota research|\btri\b|boston dynamics|\btesla\b|1x technologies|\bneo\b/i,
+  // 액추에이터·관절 모듈 업체와 이를 자체 개발하는 휴머노이드 업체 (제목에 "robot"이 없는 티어다운·벤치 영상 수용)
+  actuator:
+    /robstride|cubemars|t-?motor|myactuator|unitree|fourier|nabtesco|maxon|faulhaber|\btesla\b|\boptimus\b|figure 0\d|figure ai|apptronik|agibot|kepler|hyundai mobis|lg axium|\bmit cheetah\b|\bhebi\b|\bdynamixel\b/i,
+};
+
+/**
+ * 도메인 전용 제외 — 공통 제외(EXCLUDE_REGEX)와 같이 **제목에만** 적용한다.
+ * actuator: 자동차·브레이크·드론 ESC·공작기계 등 로봇과 무관한 모터 영상 (브랜드 문맥 tesla 등으로 통과하는 차량 영상 포함)
+ */
+const DOMAIN_EXCLUDE_REGEX: Partial<Record<TopicDomain, RegExp>> = {
+  actuator: new RegExp(
+    [
+      // 자동차·전동 차량
+      '\\bcars?\\b|automotive|\\bautomobile|\\bvehicles?\\b|\\bEVs?\\b|electric vehicle|model [3sxy]\\b|cybertruck|roadster|autopilot|\\bfsd\\b|e-?bike|scooter|\\btruck',
+      // 브레이크·차량 부품
+      '\\bbrakes?\\b|brake (pad|caliper)|power window|wiper|\\bhvac\\b|turbocharger|alternator',
+      // 드론·RC
+      '\\bdrones?\\b|\\besc\\b|quadcopter|\\bfpv\\b|rc (car|plane|boat|truck)',
+      // 공작기계·가전·건물 설비
+      '3d printer|\\bcnc\\b|washing machine|\\bdishwasher|elevator|garage door|\\bconveyor\\b|air conditioner',
+    ].join('|'),
+    'i'
+  ),
 };
 
 /**
@@ -61,6 +85,7 @@ export function isRelevantTopicVideo(
   if (!domainRegex.test(text)) return false;
   if (!ROBOT_CONTEXT_REGEX.test(text) && !DOMAIN_CONTEXT_REGEX[domain]?.test(text)) return false;
   if (EXCLUDE_REGEX.test(title)) return false;
+  if (DOMAIN_EXCLUDE_REGEX[domain]?.test(title)) return false;
 
   return true;
 }

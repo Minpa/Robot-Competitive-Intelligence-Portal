@@ -17,16 +17,25 @@ interface Props {
   truncated: boolean;
   /** AI 판정으로 제외된 영상 수 */
   excludedCount?: number;
-  /** 판정 전 영상에 "분석 대기" 배지를 표시할지 (핸드 리포트에서만) */
+  /** 판정 전 영상에 "분석 대기" 배지를 표시할지 (핸드·액추에이터 리포트에서만) */
   showPendingBadge?: boolean;
+  /** 제외 안내 문구의 도메인 명사 (기본 핸드) */
+  domainLabel?: string;
 }
 
-export function ReportVideoGrid({ videos, total, truncated, excludedCount = 0, showPendingBadge = false }: Props) {
+export function ReportVideoGrid({
+  videos,
+  total,
+  truncated,
+  excludedCount = 0,
+  showPendingBadge = false,
+  domainLabel = '핸드',
+}: Props) {
   const baseSubtitle = truncated
     ? `최신 ${videos.length}건만 표시`
     : '기간 내 수집된 영상입니다. 제목은 원어 그대로 표시합니다.';
   const subtitle =
-    excludedCount > 0 ? `${baseSubtitle} · AI 판정으로 핸드와 무관한 영상 ${excludedCount}건 제외` : baseSubtitle;
+    excludedCount > 0 ? `${baseSubtitle} · AI 판정으로 ${domainLabel}와 무관한 영상 ${excludedCount}건 제외` : baseSubtitle;
   return (
     <Panel
       className="report-panel"

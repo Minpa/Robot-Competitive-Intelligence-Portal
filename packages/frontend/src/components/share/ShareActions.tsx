@@ -5,10 +5,19 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link2, Check, FileDown, Sparkles, Layers } from 'lucide-react';
 import { api } from '@/lib/api';
 import { buildTechTrendReportHtml } from '@/lib/tech-trend-report-html';
+import { buildActuatorMapCardHtml } from './actuator/actuator-map-html';
+import { ACTUATOR_MAP_QUERY_KEY } from './actuator/useActuatorMap';
+import type { ActuatorMapResponse } from '@/types/actuator-map';
 import { useTechTrendAnalysis } from './useTechTrendAnalysis';
 import { useHandTopicClassification } from './useHandTopicClassification';
 import type { TechTrendDomain, TechTrendReport } from '@/types/tech-trend-report';
-import type { TechTrendTimeline, TechTrendTimelineInsightResponse } from '@/types/tech-trend-timeline';
+import {
+  isTimelineDomain,
+  timelineDomainNoun,
+  TIMELINE_DOMAIN_LABELS,
+  type TechTrendTimeline,
+  type TechTrendTimelineInsightResponse,
+} from '@/types/tech-trend-timeline';
 
 interface Props {
   report?: TechTrendReport;
@@ -22,14 +31,17 @@ const BTN =
   'inline-flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium border border-ink-200 bg-white text-ink-700 hover:border-ink-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 
 /**
- * 공유 버튼 — 링크 복사(전원) + HTML 다운로드(admin만).
+ * 공유 버튼 — 링크 복사(전원) + HTML 다운로드(admin만) + 분석/시계열 분류 실행(admin, 시계열 지원 도메인: hand·actuator).
  * admin 판정은 videos/page.tsx와 동일하게 /auth/me 의 role을 사용한다.
  */
 export function ShareActions({ report, titleKo, titleEn, domain, days }: Props) {
   const meQuery = useQuery({ queryKey: ['me'], queryFn: () => api.getMe() });
   const isAdmin = (meQuery.data as { role?: string } | undefined)?.role === 'admin';
   const [copied, setCopied] = useState(false);
-  const showAnalyze = isAdmin && domain === 'hand';
+  const timelineDomain = isTimelineDomain(domain);
+  const noun = timelineDomainNoun(domain);
+  const videoScope = timelineDomain ? TIMELINE_DOMAIN_LABELS[domain].videoScope : TIMELINE_DOMAIN_LABELS.hand.videoScope;
+  const showAnalyze = isAdmin && timelineDomain;
   const analysis = useTechTrendAnalysis(domain, days, showAnalyze);
   const queryClient = useQueryClient();
   const classification = useHandTopicClassification(domain, showAnalyze);
@@ -41,7 +53,7 @@ export function ShareActions({ report, titleKo, titleEn, domain, days }: Props) 
 
   const handleAnalyze = () => {
     const ok = window.confirm(
-      '핸드 리포트 대상 영상을 Gemini로 분석합니다(최대 150건, 비용 발생, 수 분~수십 분 소요). 진행할까요?'
+      `${videoScope}을 Gemini로 분석합니다(최대 150건, 비용 발생, 수 분~수십 분 소요). 진행할까요?`
     );
     if (!ok) return;
     analysis.start();
@@ -82,10 +94,14 @@ export function ShareActions({ report, titleKo, titleEn, domain, days }: Props) 
     // 같은 react-query 키로 캐시된 시계열 데이터를 읽어 넘긴다 (없으면 해당 카드만 생략)
     const timeline = queryClient.getQueryData<TechTrendTimeline>(['tech-trend-timeline', domain]);
     const insight = queryClient.getQueryData<TechTrendTimelineInsightResponse>(['tech-trend-timeline-insight', domain]);
+    // 액추에이터 도메인: 같은 react-query 키로 캐시된 포지션 맵 데이터가 있으면 카드로 포함 (없으면 생략)
+    const actuatorMap =
+      domain === 'actuator' ? queryClient.getQueryData<ActuatorMapResponse>(ACTUATOR_MAP_QUERY_KEY) : undefined;
     const html = buildTechTrendReportHtml(
       report,
       { pageUrl: window.location.href, titleKo, titleEn },
-      domain === 'hand' ? { timeline, insight } : null
+      timelineDomain ? { timeline, insight } : null,
+      actuatorMap ? buildActuatorMapCardHtml(actuatorMap, window.location.href) : ''
     );
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -121,7 +137,7 @@ export function ShareActions({ report, titleKo, titleEn, domain, days }: Props) 
           onClick={handleAnalyze}
           disabled={analyzeBusy}
           className={BTN}
-          title="리포트 대상 영상을 Gemini로 분석하고 핸드와 무관한 영상을 제외 (관리자, 비용 발생)"
+          title={`리포트 대상 영상을 Gemini로 분석하고 ${noun}와 무관한 영상을 제외 (관리자, 비용 발생)`}
         >
           <Sparkles className="w-3.5 h-3.5" />
           Gemini 전체 분석 실행
@@ -133,7 +149,7 @@ export function ShareActions({ report, titleKo, titleEn, domain, days }: Props) 
           onClick={handleClassify}
           disabled={classifyBusy}
           className={BTN}
-          title="핸드 논문·영상을 기술 서브토픽으로 분류해 시계열에 반영 (관리자, Claude Haiku, 비용 발생)"
+          title={`${noun} 논문·영상을 기술 서브토픽으로 분류해 시계열에 반영 (관리자, Claude Haiku, 비용 발생)`}
         >
           <Layers className="w-3.5 h-3.5" />
           시계열 분류 실행
@@ -164,7 +180,7 @@ export function ShareActions({ report, titleKo, titleEn, domain, days }: Props) 
         {!classification.running && classification.lastResponse?.alreadyRunning && <p>이미 분류가 실행 중입니다.</p>}
         {!classification.running && classifyFinished && cs.total > 0 && (
           <p>
-            완료: 분류 {cs.classified} · 핸드 무관 {cs.offTopic} · 실패 {cs.unresolved}
+            완료: 분류 {cs.classified} · {noun} 무관 {cs.offTopic} · 실패 {cs.unresolved}
           </p>
         )}
         {classifyFinished && cs.aborted && (

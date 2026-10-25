@@ -1,0 +1,232 @@
+{
+  "generatedAt": "2026-10-25T00:00:00Z",
+  "method": "sample fixture for update-actuator-data.ts — values mirror existing seed-humanoid.ts; replace with robots.json from the research job",
+  "robots": [
+    {
+      "name": "Optimus Gen 2",
+      "company": "Tesla",
+      "aliases": ["Tesla Optimus Gen 2", "Optimus Gen2"],
+      "announcementYear": 2023,
+      "announcementQuarter": 4,
+      "status": "development",
+      "purpose": "industrial",
+      "locomotionType": "bipedal",
+      "handType": "multi_finger",
+      "commercializationStage": "prototype",
+      "region": "north_america",
+      "descriptionKo": "Tesla의 2세대 휴머노이드 로봇. 자체 설계 회전/리니어 액추에이터와 11 DOF 손.",
+      "body": {
+        "heightCm": 173,
+        "weightKg": 57,
+        "payloadKg": 20,
+        "dofCount": 28,
+        "maxSpeedMps": 2.5,
+        "operationTimeHours": null,
+        "batteryWh": 2300
+      },
+      "hand": {
+        "handType": "multi_finger",
+        "fingerCount": 5,
+        "handDofPerHand": 11,
+        "gripForceN": null,
+        "isInterchangeable": false,
+        "tactile": true
+      },
+      "actuators": [
+        {
+          "name": "Tesla Rotary Actuator",
+          "vendor": "Tesla",
+          "inHouse": true,
+          "type": "harmonic",
+          "usageLocation": "leg",
+          "quantity": 6,
+          "peakTorqueNm": 110,
+          "ratedTorqueNm": 50,
+          "speedRpm": 100,
+          "weightKg": 1.2,
+          "gearRatio": null,
+          "notes": "3종 회전 액추에이터 중 최대 토크형"
+        },
+        {
+          "name": "Tesla Linear Actuator",
+          "vendor": "Tesla",
+          "inHouse": true,
+          "type": "linear_screw",
+          "usageLocation": "leg",
+          "quantity": 8,
+          "peakTorqueNm": null,
+          "ratedTorqueNm": null,
+          "speedRpm": null,
+          "weightKg": null,
+          "gearRatio": null,
+          "notes": "500kg 피아노 리프트 데모 (추력 기준, 토크 비공개)"
+        }
+      ],
+      "price": { "min": 20000, "max": 30000, "currency": "USD", "note": "목표, 대량생산 시" },
+      "sources": [
+        {
+          "url": "https://www.tesla.com/AI",
+          "title": "Tesla AI & Robotics",
+          "publisher": "Tesla",
+          "date": "2023-12-13",
+          "confidence": "B",
+          "fields": ["body", "hand", "actuators"]
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=cpraXaw7dyc",
+          "title": "Optimus - Gen 2",
+          "publisher": "Tesla (YouTube)",
+          "date": "2023-12-13",
+          "confidence": "B",
+          "fields": ["body.weightKg", "hand"]
+        },
+        {
+          "url": "https://www.basenor.com/pages/tesla-optimus-tracker",
+          "title": "Tesla Optimus price target",
+          "publisher": "Basenor",
+          "date": "2026-07-03",
+          "confidence": "C",
+          "fields": ["price"]
+        }
+      ],
+      "conflicts": [
+        { "field": "body.weightKg", "values": [{ "value": 57, "url": "https://www.tesla.com/AI" }, { "value": 73, "url": "https://en.wikipedia.org/wiki/Optimus_(robot)" }] }
+      ],
+      "coverage": { "body": 0.85, "hand": 0.8, "actuators": 0.5 }
+    },
+    {
+      "name": "G1",
+      "company": "Unitree",
+      "aliases": ["Unitree G1", "G1 EDU"],
+      "announcementYear": 2024,
+      "announcementQuarter": 2,
+      "status": "commercial",
+      "purpose": "service",
+      "locomotionType": "bipedal",
+      "handType": "multi_finger",
+      "commercializationStage": "commercial",
+      "region": "china",
+      "descriptionKo": "Unitree 소형 휴머노이드. 자체 QDD 관절 모터, $16,000 기본형.",
+      "body": {
+        "heightCm": 132,
+        "weightKg": 35,
+        "payloadKg": 3,
+        "dofCount": 23,
+        "maxSpeedMps": 2.0,
+        "operationTimeHours": 2,
+        "batteryWh": 900
+      },
+      "hand": {
+        "handType": "multi_finger",
+        "fingerCount": 3,
+        "handDofPerHand": 7,
+        "gripForceN": null,
+        "isInterchangeable": true,
+        "tactile": false
+      },
+      "actuators": [
+        {
+          "name": "Unitree G1 Knee Joint Motor",
+          "vendor": "Unitree",
+          "inHouse": true,
+          "type": "qdd",
+          "usageLocation": "knee",
+          "quantity": 2,
+          "peakTorqueNm": 120,
+          "ratedTorqueNm": null,
+          "speedRpm": null,
+          "weightKg": null,
+          "gearRatio": null,
+          "notes": "무릎 최대 토크 120 Nm (공식 스펙)"
+        },
+        {
+          "name": "Unitree G1 Hip Joint Motor",
+          "vendor": "Unitree",
+          "inHouse": true,
+          "type": "qdd",
+          "usageLocation": "hip",
+          "quantity": 6,
+          "peakTorqueNm": 90,
+          "ratedTorqueNm": null,
+          "speedRpm": null,
+          "weightKg": null,
+          "gearRatio": null,
+          "notes": null
+        }
+      ],
+      "price": { "min": 16000, "max": 16000, "currency": "USD", "note": "기본형" },
+      "sources": [
+        {
+          "url": "https://www.unitree.com/g1",
+          "title": "Unitree G1 — Humanoid agent AI avatar",
+          "publisher": "Unitree Robotics",
+          "date": "2024-05-13",
+          "confidence": "A",
+          "fields": ["body", "hand", "actuators", "price"]
+        }
+      ],
+      "conflicts": [],
+      "coverage": { "body": 0.9, "hand": 0.7, "actuators": 0.6 }
+    },
+    {
+      "name": "Digit",
+      "company": "Agility Robotics",
+      "aliases": ["Digit v4", "Agility Digit"],
+      "announcementYear": 2023,
+      "announcementQuarter": 3,
+      "status": "commercial",
+      "purpose": "industrial",
+      "locomotionType": "bipedal",
+      "handType": "gripper",
+      "commercializationStage": "commercial",
+      "region": "north_america",
+      "descriptionKo": null,
+      "body": {
+        "heightCm": 175,
+        "weightKg": 65,
+        "payloadKg": 16,
+        "dofCount": null,
+        "maxSpeedMps": 1.5,
+        "operationTimeHours": null,
+        "batteryWh": null
+      },
+      "hand": {
+        "handType": "gripper",
+        "fingerCount": 2,
+        "handDofPerHand": null,
+        "gripForceN": null,
+        "isInterchangeable": true,
+        "tactile": null
+      },
+      "actuators": [
+        {
+          "name": null,
+          "vendor": null,
+          "inHouse": true,
+          "type": "cycloidal",
+          "usageLocation": "leg",
+          "quantity": null,
+          "peakTorqueNm": null,
+          "ratedTorqueNm": null,
+          "speedRpm": null,
+          "weightKg": null,
+          "gearRatio": "16:1",
+          "notes": "자체 설계 사이클로이드 감속기 기반 액추에이터 (세부 수치 비공개)"
+        }
+      ],
+      "price": { "min": null, "max": null, "currency": "USD", "note": null },
+      "sources": [
+        {
+          "url": "https://www.agilityrobotics.com/",
+          "title": "Agility Robotics — Digit",
+          "publisher": "Agility Robotics",
+          "date": "2023-09-01",
+          "confidence": "C",
+          "fields": ["body", "hand", "actuators"]
+        }
+      ],
+      "conflicts": [],
+      "coverage": { "body": 0.6, "hand": 0.4, "actuators": 0.2 }
+    }
+  ]
+}

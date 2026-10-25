@@ -9,10 +9,12 @@ const WARN_RATIO = 0.8;
 interface Props {
   classification: TimelineClassification;
   isAdmin: boolean;
+  /** "{도메인} 무관" 문구의 도메인 명사 (기본 핸드) */
+  domainLabel?: string;
 }
 
 /** 분류 진행 안내 — 미완료면 "분류 N/M 완료, 실행 필요". */
-export function TimelineClassificationBanner({ classification: c, isAdmin }: Props) {
+export function TimelineClassificationBanner({ classification: c, isAdmin, domainLabel = '핸드' }: Props) {
   const complete = c.total > 0 && c.unclassified === 0;
   const warn = c.ratio < WARN_RATIO;
 
@@ -29,13 +31,13 @@ export function TimelineClassificationBanner({ classification: c, isAdmin }: Pro
       {complete ? (
         <p>
           분류 {c.classified}/{c.total} 완료
-          {c.offTopic > 0 ? ` · 핸드 무관 ${c.offTopic}건은 시계열에서 제외` : ''}
+          {c.offTopic > 0 ? ` · ${domainLabel} 무관 ${c.offTopic}건은 시계열에서 제외` : ''}
         </p>
       ) : (
         <>
           <p className="font-medium">
             분류 {c.classified}/{c.total} 완료, 실행 필요
-            {c.offTopic > 0 ? ` · 핸드 무관 ${c.offTopic}건 제외` : ''}
+            {c.offTopic > 0 ? ` · ${domainLabel} 무관 ${c.offTopic}건 제외` : ''}
           </p>
           <p className="text-ink-600 mt-0.5">
             미분류 {c.unclassified}건은 서브토픽별 차트(추이·히트맵)에서 제외됩니다.{' '}

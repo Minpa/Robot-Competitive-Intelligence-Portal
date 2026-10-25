@@ -1,0 +1,111 @@
+{
+  "generatedAt": "2026-10-25T00:00:00Z",
+  "method": "sample fixture for update-actuator-data.ts — replace with suppliers.json from the research job",
+  "products": [
+    {
+      "vendor": "T-Motor",
+      "vendorCountry": "China",
+      "model": "AK10-9",
+      "series": "AK",
+      "type": "qdd",
+      "peakTorqueNm": 48,
+      "continuousTorqueNm": 18,
+      "ratedSpeedRpm": 206,
+      "maxSpeedRpm": 297,
+      "weightKg": 0.96,
+      "diameterMm": 100,
+      "lengthMm": 45,
+      "gearRatio": "9:1",
+      "voltageV": 48,
+      "ratedPowerW": 450,
+      "integrationLevel": "motor_gear_driver",
+      "builtInSensors": ["encoder", "temperature"],
+      "backdrivable": true,
+      "communication": "CAN",
+      "priceUsd": 1100,
+      "releaseDate": "2024-01-10",
+      "targetMarket": "Humanoid robots, legged robots",
+      "status": "available",
+      "sources": [
+        {
+          "url": "https://store.tmotor.com/",
+          "title": "T-Motor AK10-9 V2.0 KV60 Dynamical Modular",
+          "publisher": "T-Motor",
+          "date": "2024-01-10",
+          "confidence": "A"
+        }
+      ],
+      "conflicts": []
+    },
+    {
+      "vendor": "T-Motor",
+      "vendorCountry": "China",
+      "model": "AK80-64",
+      "series": "AK",
+      "type": "qdd",
+      "peakTorqueNm": 120,
+      "continuousTorqueNm": 48,
+      "ratedSpeedRpm": null,
+      "maxSpeedRpm": 46,
+      "weightKg": 0.85,
+      "diameterMm": 98,
+      "lengthMm": 38.5,
+      "gearRatio": 64,
+      "voltageV": 48,
+      "ratedPowerW": null,
+      "integrationLevel": "motor_gear_driver",
+      "builtInSensors": ["encoder"],
+      "backdrivable": false,
+      "communication": "CAN",
+      "priceUsd": 820,
+      "releaseDate": "2023-05-15",
+      "targetMarket": "Legged robots, exoskeletons",
+      "status": "available",
+      "sources": [
+        {
+          "url": "https://store.tmotor.com/",
+          "title": "T-Motor AK80-64 Dynamical Modular",
+          "publisher": "T-Motor",
+          "date": "2023-05-15",
+          "confidence": "A"
+        }
+      ],
+      "conflicts": []
+    },
+    {
+      "vendor": "RobStride",
+      "vendorCountry": "China",
+      "model": "RobStride 04",
+      "series": "RobStride",
+      "type": "qdd",
+      "peakTorqueNm": 120,
+      "continuousTorqueNm": 40,
+      "ratedSpeedRpm": null,
+      "maxSpeedRpm": 200,
+      "weightKg": 1.3,
+      "diameterMm": null,
+      "lengthMm": null,
+      "gearRatio": "9:1",
+      "voltageV": 48,
+      "ratedPowerW": null,
+      "integrationLevel": "motor_gear_driver",
+      "builtInSensors": ["encoder"],
+      "backdrivable": true,
+      "communication": "CAN",
+      "priceUsd": null,
+      "releaseDate": "2024-09",
+      "targetMarket": "Humanoid robots",
+      "status": "available",
+      "sources": [
+        {
+          "url": "https://www.robstride.com/",
+          "title": "RobStride 04 joint module",
+          "publisher": "RobStride",
+          "date": "2024-09-01",
+          "confidence": "B"
+        }
+      ],
+      "conflicts": []
+    }
+  ]
+}

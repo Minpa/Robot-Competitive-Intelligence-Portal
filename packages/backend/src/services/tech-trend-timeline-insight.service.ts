@@ -29,7 +29,7 @@ import {
 import {
   techTrendTimelineService,
   selectRepresentatives,
-  TIMELINE_INSIGHT_CACHE_KEY,
+  timelineInsightCacheKey,
   LOW_VOLUME_MONTHLY_AVG,
   type TimelineSnapshot,
   type TimelineBody,
@@ -37,6 +37,7 @@ import {
   type TrendLabel,
 } from './tech-trend-timeline.service.js';
 import { OTHER_TOPIC_ID } from './hand-topics.js';
+import { getTaxonomy, type TimelineDomain } from './domain-topics.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 상수 / 설정 (임계값은 이 한 곳에 모은다)
@@ -319,8 +320,14 @@ export function buildInsightInput(snapshot: TimelineSnapshot): InsightInput {
 // 순수 함수: 프롬프트 / 파서
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function buildTimelineInsightPrompt(input: InsightInput): string {
+/** 프롬프트 첫 문장의 분야 표기 — hand 는 종전 '로봇 핸드' 그대로 */
+export function insightSubjectLabel(domain: TimelineDomain): string {
+  return getTaxonomy(domain).subjectKo;
+}
+
+export function buildTimelineInsightPrompt(input: InsightInput, domain: TimelineDomain = 'hand'): string {
   const unit = input.granularity === 'quarter' ? '분기' : '월';
+  const subject = insightSubjectLabel(domain);
   const payload = {
     period: input.period,
     granularity: unit,
@@ -343,7 +350,7 @@ export function buildTimelineInsightPrompt(input: InsightInput): string {
     ? `\n- shortPeriod=true: 수집 기간이 ${SHORT_PERIOD_MONTHS}개월 미만이라 기간이 짧다. 단정 표현("확실히", "명백히", "~로 굳어졌다")을 금지하고 "~로 보인다", "참고용" 수준으로 서술한다.`
     : '';
 
-  return `다음은 로봇 핸드 분야 논문(arXiv, 연구 신호)과 영상(제품화 신호)을 기술 서브토픽으로 분류해 ${unit}별로 집계한 결과다. LG 로봇 전략팀 공유용 '시계열 기술 트렌드 해설'을 한국어로 작성하라.
+  return `다음은 ${subject} 분야 논문(arXiv, 연구 신호)과 영상(제품화 신호)을 기술 서브토픽으로 분류해 ${unit}별로 집계한 결과다. LG 로봇 전략팀 공유용 '시계열 기술 트렌드 해설'을 한국어로 작성하라.
 
 규칙:
 - 주어진 데이터에 명시된 내용만 근거로 삼는다. 추측·일반론·외부 지식 금지.
@@ -499,48 +506,49 @@ export class TechTrendTimelineInsightService {
     else this.client = process.env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
   }
 
-  private inCooldown(): boolean {
-    return isInCooldown(this.failedAt.get(TIMELINE_INSIGHT_CACHE_KEY), Date.now());
+  private inCooldown(cacheKey: string): boolean {
+    return isInCooldown(this.failedAt.get(cacheKey), Date.now());
   }
 
-  async getInsight(): Promise<InsightResponse> {
+  async getInsight(domain: TimelineDomain = 'hand'): Promise<InsightResponse> {
+    const cacheKey = timelineInsightCacheKey(domain);
     // 1) 캐시 적중이면 Anthropic 호출 없이 반환. 만료된 캐시가 있으면 즉시 stale 로 반환하고 백그라운드에서 재생성한다.
-    const row = await this.readCacheRow();
+    const row = await this.readCacheRow(cacheKey);
     if (row && Date.now() - row.cachedAt.getTime() < INSIGHT_TTL_MS) {
       return { status: 'ok', insight: { ...row.data, cached: true } };
     }
     if (row) {
-      void this.refreshStaleInBackground();
+      void this.refreshStaleInBackground(domain);
       return { status: 'ok', insight: { ...row.data, cached: true, stale: true } };
     }
 
     // 2) 게이트 (캐시된 집계로 빠르게 판정)
     let timeline: TimelineBody;
     try {
-      timeline = await techTrendTimelineService.getTimeline();
+      timeline = await techTrendTimelineService.getTimeline(domain);
     } catch (err) {
-      console.error('[TimelineInsight] timeline load failed:', (err as Error).message);
+      console.error(`[TimelineInsight] ${domain}: timeline load failed:`, (err as Error).message);
       return { status: 'generation_failed', insight: null };
     }
     const gate = this.gate(timeline);
     if (gate !== 'ok') return { status: gate, insight: null };
 
     // 직전 실패 후 10분간은 재호출하지 않는다
-    if (this.inCooldown()) return { status: 'generation_failed', insight: null };
+    if (this.inCooldown(cacheKey)) return { status: 'generation_failed', insight: null };
 
     // 3) 생성 (키별 in-flight 로 동시 중복 생성 방지)
-    return this.startGeneration();
+    return this.startGeneration(domain);
   }
 
   /** 만료 캐시를 반환한 뒤의 백그라운드 재생성 — 쿨다운·게이트(캐시된 집계로 판정)를 통과할 때만 생성한다. */
-  private async refreshStaleInBackground(): Promise<void> {
+  private async refreshStaleInBackground(domain: TimelineDomain): Promise<void> {
     try {
-      if (!this.client || this.inCooldown()) return;
-      const timeline = await techTrendTimelineService.getTimeline();
+      if (!this.client || this.inCooldown(timelineInsightCacheKey(domain))) return;
+      const timeline = await techTrendTimelineService.getTimeline(domain);
       if (this.gate(timeline) !== 'ok') return;
-      await this.startGeneration();
+      await this.startGeneration(domain);
     } catch (err) {
-      console.error('[TimelineInsight] background refresh failed:', (err as Error).message);
+      console.error(`[TimelineInsight] ${domain}: background refresh failed:`, (err as Error).message);
     }
   }
 
@@ -548,31 +556,29 @@ export class TechTrendTimelineInsightService {
    * 사전 생성 — 분류/분석 배치 종료 후 호출한다.
    * 캐시가 신선하거나 쿨다운 중이면 호출하지 않고, 동시 호출은 인플라이트 가드로 1회만 생성한다.
    */
-  async warmInsight(): Promise<void> {
+  async warmInsight(domain: TimelineDomain = 'hand'): Promise<void> {
     if (!this.client) return;
-    const row = await this.readCacheRow();
+    const cacheKey = timelineInsightCacheKey(domain);
+    const row = await this.readCacheRow(cacheKey);
     if (row && Date.now() - row.cachedAt.getTime() < INSIGHT_TTL_MS) return;
-    if (this.inCooldown()) return;
-    await this.startGeneration();
+    if (this.inCooldown(cacheKey)) return;
+    await this.startGeneration(domain);
   }
 
-  private startGeneration(): Promise<InsightResponse> {
-    let pending = this.inflight.get(TIMELINE_INSIGHT_CACHE_KEY);
+  private startGeneration(domain: TimelineDomain): Promise<InsightResponse> {
+    const cacheKey = timelineInsightCacheKey(domain);
+    let pending = this.inflight.get(cacheKey);
     if (!pending) {
-      pending = this.generate().finally(() => this.inflight.delete(TIMELINE_INSIGHT_CACHE_KEY));
-      this.inflight.set(TIMELINE_INSIGHT_CACHE_KEY, pending);
+      pending = this.generate(domain).finally(() => this.inflight.delete(cacheKey));
+      this.inflight.set(cacheKey, pending);
     }
     return pending;
   }
 
   /** 캐시 행 (만료 여부와 무관) — 형태가 유효한 경우만 */
-  private async readCacheRow(): Promise<{ data: CachedInsight; cachedAt: Date } | null> {
+  private async readCacheRow(cacheKey: string): Promise<{ data: CachedInsight; cachedAt: Date } | null> {
     try {
-      const [cached] = await db
-        .select()
-        .from(viewCache)
-        .where(eq(viewCache.viewName, TIMELINE_INSIGHT_CACHE_KEY))
-        .limit(1);
+      const [cached] = await db.select().from(viewCache).where(eq(viewCache.viewName, cacheKey)).limit(1);
       if (cached) {
         const data = cached.data as unknown as CachedInsight;
         if (data && typeof data.overview === 'string' && Array.isArray(data.lgImplications)) {
@@ -585,8 +591,8 @@ export class TechTrendTimelineInsightService {
     return null;
   }
 
-  private async readCache(): Promise<TimelineInsight | null> {
-    const row = await this.readCacheRow();
+  private async readCache(cacheKey: string): Promise<TimelineInsight | null> {
+    const row = await this.readCacheRow(cacheKey);
     if (row && Date.now() - row.cachedAt.getTime() < INSIGHT_TTL_MS) return { ...row.data, cached: true };
     return null;
   }
@@ -600,18 +606,19 @@ export class TechTrendTimelineInsightService {
     });
   }
 
-  private async generate(): Promise<InsightResponse> {
+  private async generate(domain: TimelineDomain): Promise<InsightResponse> {
     if (!this.client) return { status: 'no_api_key', insight: null };
+    const cacheKey = timelineInsightCacheKey(domain);
     const fail = (): InsightResponse => {
-      this.failedAt.set(TIMELINE_INSIGHT_CACHE_KEY, Date.now());
+      this.failedAt.set(cacheKey, Date.now());
       return { status: 'generation_failed', insight: null };
     };
     try {
       // 직전 요청이 방금 캐시를 채웠을 수 있으므로 재확인
-      const hit = await this.readCache();
+      const hit = await this.readCache(cacheKey);
       if (hit) return { status: 'ok', insight: hit };
 
-      const snapshot = await techTrendTimelineService.loadSnapshot();
+      const snapshot = await techTrendTimelineService.loadSnapshot(domain);
       const gate = this.gate(snapshot.body);
       if (gate !== 'ok') return { status: gate, insight: null };
 
@@ -620,7 +627,7 @@ export class TechTrendTimelineInsightService {
         {
           model: INSIGHT_MODEL,
           max_tokens: INSIGHT_MAX_TOKENS,
-          messages: [{ role: 'user', content: buildTimelineInsightPrompt(input) }],
+          messages: [{ role: 'user', content: buildTimelineInsightPrompt(input, domain) }],
           ...effortParams(INSIGHT_MODEL, INSIGHT_EFFORT),
         },
         OPUS_REQUEST_OPTIONS
@@ -633,19 +640,19 @@ export class TechTrendTimelineInsightService {
           webSearch: false,
           inputTokens: response.usage?.input_tokens ?? 0,
           outputTokens: response.usage?.output_tokens ?? 0,
-          query: '[tech-trend-timeline] hand',
+          query: `[tech-trend-timeline] ${domain}`,
         })
         .catch(() => {});
 
       if (isRefusal(response.stop_reason)) {
-        console.warn(`[TimelineInsight] insight refused by model (model=${INSIGHT_MODEL})`);
+        console.warn(`[TimelineInsight] ${domain}: insight refused by model (model=${INSIGHT_MODEL})`);
         return fail();
       }
       warnOnAbnormalStop('TimelineInsight', INSIGHT_MODEL, response);
 
       const parsed = parseTimelineInsight(extractText(response.content), input);
       if (!parsed) {
-        console.error('[TimelineInsight] parse failed');
+        console.error(`[TimelineInsight] ${domain}: parse failed`);
         return fail();
       }
 
@@ -653,7 +660,7 @@ export class TechTrendTimelineInsightService {
       try {
         await db
           .insert(viewCache)
-          .values({ viewName: TIMELINE_INSIGHT_CACHE_KEY, data: insight, ttlMs: INSIGHT_TTL_MS })
+          .values({ viewName: cacheKey, data: insight, ttlMs: INSIGHT_TTL_MS })
           .onConflictDoUpdate({
             target: viewCache.viewName,
             set: { data: insight, cachedAt: new Date(), ttlMs: INSIGHT_TTL_MS },
@@ -661,11 +668,11 @@ export class TechTrendTimelineInsightService {
       } catch {
         // 캐시 저장 실패는 치명적이지 않음
       }
-      this.failedAt.delete(TIMELINE_INSIGHT_CACHE_KEY);
+      this.failedAt.delete(cacheKey);
       return { status: 'ok', insight: { ...insight, cached: false } };
     } catch (err) {
       // 생성 실패는 캐시하지 않는다
-      console.error('[TimelineInsight] generation failed:', (err as Error).message);
+      console.error(`[TimelineInsight] ${domain}: generation failed:`, (err as Error).message);
       return fail();
     }
   }
@@ -674,18 +681,24 @@ export class TechTrendTimelineInsightService {
 export const techTrendTimelineInsightService = new TechTrendTimelineInsightService();
 
 /**
- * hand 시사점(days=30)과 시계열 해설을 백그라운드로 재생성한다 — 분석/분류 배치 종료 훅에서 `void` 로 호출.
+ * 도메인 시사점·시계열 해설을 백그라운드로 재생성한다 — 분석/분류 배치 종료 훅에서 `void` 로 호출.
+ *  - hand: 30일 시사점(Opus, warmHandInsight) + 시계열 해설. 종전 warmHandInsights 와 동일.
+ *  - 그 외(actuator): 리포트 시사점은 LEGACY 프로필(요청 시 블로킹 재생성)이라 시계열 해설만 미리 만든다.
  * 각 서비스의 인플라이트 가드와 "캐시가 신선하면 건너뜀" 규칙 덕분에 두 배치가 겹쳐도 생성은 1회만 일어난다.
  * 실패는 로그만 남기고 호출자(배치 결과)에 영향을 주지 않는다.
  */
-export async function warmHandInsights(): Promise<void> {
-  const results = await Promise.allSettled([
-    techTrendReportService.warmHandInsight(30),
-    techTrendTimelineInsightService.warmInsight(),
-  ]);
+export async function warmDomainInsights(domain: TimelineDomain): Promise<void> {
+  const jobs: Promise<void>[] = [techTrendTimelineInsightService.warmInsight(domain)];
+  if (domain === 'hand') jobs.unshift(techTrendReportService.warmHandInsight(30));
+  const results = await Promise.allSettled(jobs);
   for (const r of results) {
     if (r.status === 'rejected') {
-      console.error('[WarmInsight] background regeneration failed:', (r.reason as Error)?.message ?? r.reason);
+      console.error(`[WarmInsight] ${domain}: background regeneration failed:`, (r.reason as Error)?.message ?? r.reason);
     }
   }
+}
+
+/** 종전 이름 호환 — warmDomainInsights('hand') */
+export async function warmHandInsights(): Promise<void> {
+  return warmDomainInsights('hand');
 }

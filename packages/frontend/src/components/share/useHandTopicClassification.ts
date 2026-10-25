@@ -6,7 +6,8 @@ import { api } from '@/lib/api';
 import type { HandTopicClassificationStatus } from '@/types/tech-trend-timeline';
 
 /**
- * 핸드 시계열 서브토픽 분류 — 상태 폴링(실행 중 5초) + 실행 뮤테이션 (useTechTrendAnalysis와 같은 패턴).
+ * 시계열 서브토픽 분류(hand·actuator) — 상태 폴링(실행 중 5초) + 실행 뮤테이션 (useTechTrendAnalysis와 같은 패턴).
+ * domain 인자로 /tech-trends/{domain}/classify 를 호출한다 (훅 이름은 핸드 시절 호환으로 유지).
  * running이 true → false로 바뀌면 타임라인·해설 쿼리를 무효화해 새로고침 없이 결과를 반영한다.
  */
 export function useHandTopicClassification(domain: string, enabled: boolean) {

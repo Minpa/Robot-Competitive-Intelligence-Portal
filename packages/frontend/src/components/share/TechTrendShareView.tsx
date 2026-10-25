@@ -11,9 +11,11 @@ import { ShareActions } from './ShareActions';
 import { ReportSummaryCards } from './ReportSummaryCards';
 import { ReportInsightCard } from './ReportInsightCard';
 import { TechTimelineSection } from './TechTimelineSection';
+import { ActuatorMapSection } from './actuator/ActuatorMapSection';
 import { ReportVideoGrid } from './ReportVideoGrid';
 import { ReportPaperList } from './ReportPaperList';
 import type { TechTrendDomain } from '@/types/tech-trend-report';
+import { isTimelineDomain, timelineDomainNoun } from '@/types/tech-trend-timeline';
 
 /**
  * 공유용 기술 트렌드 리포트 — 최근 N일 영상 + 논문 + AI 시사점.
@@ -150,13 +152,15 @@ export function TechTrendShareView() {
           <>
             <ReportSummaryCards report={report} />
             <ReportInsightCard insight={report.insight} />
-            {report.domain === 'hand' && <TechTimelineSection domain={report.domain} />}
+            {isTimelineDomain(report.domain) && <TechTimelineSection domain={report.domain} />}
+            {report.domain === 'actuator' && <ActuatorMapSection />}
             <ReportVideoGrid
               videos={report.videos}
               total={report.stats.videoCount}
               truncated={report.truncated.videos}
               excludedCount={report.focus?.excluded ?? 0}
-              showPendingBadge={report.domain === 'hand'}
+              showPendingBadge={isTimelineDomain(report.domain)}
+              domainLabel={timelineDomainNoun(report.domain)}
             />
             <ReportPaperList
               papers={report.papers}

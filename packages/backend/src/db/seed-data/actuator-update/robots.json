@@ -1,0 +1,5425 @@
+{
+ "generatedAt": "2026-10-25T09:29:03+00:00",
+ "method": "websearch-only",
+ "confidenceLegend": {
+  "A": "manufacturer official page/datasheet/press release",
+  "B": "major media citing official announcement",
+  "C": "secondary media/aggregator",
+  "D": "estimate/unverified"
+ },
+ "coverageDefinition": "filled/total over 12 meta + 7 body + 6 hand + actuators(non-empty) + price(min|max) = 27 fields",
+ "robotCount": 46,
+ "robots": [
+  {
+   "tier": 1,
+   "name": "Optimus Gen 2",
+   "company": "Tesla",
+   "aliases": [
+    "Tesla Bot",
+    "Optimus Gen2"
+   ],
+   "announcementYear": 2023,
+   "announcementQuarter": 4,
+   "status": "development",
+   "purpose": "industrial",
+   "locomotionType": "bipedal",
+   "handType": "multi_finger",
+   "commercializationStage": "prototype",
+   "region": "north_america",
+   "descriptionKo": "테슬라가 2023년 12월 공개한 2세대 휴머노이드. 자체 설계 액추에이터와 11-DOF 손, 2-DOF 목을 갖추며 Gen 1 대비 10kg 감량·30% 보행속도 향상을 주장.",
+   "body": {
+    "heightCm": 173,
+    "weightKg": 57,
+    "payloadKg": 20,
+    "dofCount": 28,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "DOF 28은 손 제외 몸체 액추에이터 수(2차 출처). 손 포함 시 ~50. 테슬라 공식 스펙시트 없음. 중량 56~57kg 혼재."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": 11,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": true,
+    "note": "Gen 2 손 11 DOF, 모든 손가락 촉각 센서(테슬라 공개 영상·보도)."
+   },
+   "actuators": [
+    {
+     "name": "Optimus rotary actuator (3 sizes)",
+     "vendor": "Tesla",
+     "inHouse": true,
+     "type": "planetary",
+     "usageLocation": "all",
+     "quantity": 14,
+     "peakTorqueNm": 180,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "AI Day 2022 공개: 회전형 20/110/180 N·m 3종. 14개 회전형. 공급사 보도(2차)."
+    },
+    {
+     "name": "Optimus linear actuator (3 sizes)",
+     "vendor": "Tesla",
+     "inHouse": true,
+     "type": "linear_screw",
+     "usageLocation": "leg",
+     "quantity": 14,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "AI Day 2022 공개: 선형 500/3,900/8,000 N 3종, 역전 유성 롤러 스크류(초기 GSA 소싱 보도). 고관절·무릎·발목 등 14개."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": 20000,
+    "currency": "USD",
+    "note": "머스크 발언 기반 장기 목표가(2만~3만 달러). 공식 판매가 아님.",
+    "confidence": "D"
+   },
+   "sources": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Optimus_(robot)",
+     "title": "Optimus (robot)",
+     "publisher": "Wikipedia",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body.heightCm",
+      "body.weightKg",
+      "body.payloadKg"
+     ]
+    },
+    {
+     "url": "https://humanoid.guide/product/optimus-gen2",
+     "title": "Optimus Gen2",
+     "publisher": "Humanoid.Guide",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body.heightCm",
+      "body.weightKg",
+      "body.dofCount",
+      "hand.handDofPerHand"
+     ]
+    },
+    {
+     "url": "https://humanoid.guide/?p=16316",
+     "title": "Linear vs rotary actuators: why Tesla bet on the roller screw",
+     "publisher": "Humanoid.Guide",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://www.firgelliauto.com/en-nl/blogs/actuators/how-do-tesla-bot-actuators-actually-work",
+     "title": "How do Tesla Bot Actuators actually work",
+     "publisher": "Firgelli (blog)",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://electrek.co/?p=464555",
+     "title": "Tesla Q1 2026 earnings call: Optimus production",
+     "publisher": "Electrek",
+     "date": "2026-04",
+     "confidence": "B",
+     "fields": [
+      "price"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.dofCount",
+     "values": [
+      {
+       "value": 28,
+       "url": "https://humanoid.guide/product/optimus-gen2"
+      },
+      {
+       "value": 22,
+       "url": "https://humanoid.guide/product/optimus-gen2"
+      },
+      {
+       "value": 35,
+       "url": "https://unn.ua/en/news/tesla-unveils-next-generation-of-humanoid-robot"
+      }
+     ]
+    },
+    {
+     "field": "body.weightKg",
+     "values": [
+      {
+       "value": 57,
+       "url": "https://en.wikipedia.org/wiki/Optimus_(robot)"
+      },
+      {
+       "value": 56,
+       "url": "https://humanoid.guide/product/optimus-gen2"
+      },
+      {
+       "value": 73,
+       "url": "https://wevolver.com/specs/tesla-bot-aka-optimus"
+      }
+     ]
+    }
+   ],
+   "notes": "tesla.com 공식 스펙 페이지 미확인(WebSearch 한계). 수치 대부분 B/C 등급.",
+   "coverage": {
+    "filled": 23,
+    "total": 27,
+    "ratio": 0.85,
+    "actuatorDetailFilled": 5,
+    "actuatorDetailTotal": 14
+   }
+  },
+  {
+   "tier": 1,
+   "name": "Optimus V3",
+   "company": "Tesla",
+   "aliases": [
+    "Optimus 3",
+    "Optimus Gen 3",
+    "Optimus V3"
+   ],
+   "announcementYear": 2026,
+   "announcementQuarter": 3,
+   "status": "development",
+   "purpose": "industrial",
+   "locomotionType": "bipedal",
+   "handType": "multi_finger",
+   "commercializationStage": "pilot",
+   "region": "north_america",
+   "descriptionKo": "테슬라 3세대 옵티머스. 2026년 중반 공개·프리몬트 양산 개시 계획(Q1 2026 실적발표). 22-DOF 손(전완 내 액추에이터 배치) 특허가 공개됐으나 최종 설계 변경 가능성 보도.",
+   "body": {
+    "heightCm": 173,
+    "weightKg": 57,
+    "payloadKg": 20,
+    "dofCount": null,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "2차 블로그 추정치. 공식 스펙 미공개."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": 22,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": true,
+    "note": "특허·영상 기반 22 DOF/손, 양손 50 액추에이터(2차). 2026-04 머스크 '특허 설계 미채택' 발언 보도 → 미확정."
+   },
+   "actuators": [
+    {
+     "name": "Optimus V3 forearm/hand actuators",
+     "vendor": "Tesla",
+     "inHouse": true,
+     "type": "tendon",
+     "usageLocation": "hand",
+     "quantity": 50,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "손 액추에이터를 전완으로 이동, 텐던 구동(2차 보도). 최종 사양 미확정."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": 20000,
+    "currency": "USD",
+    "note": "대량생산 시 목표 원가 ~2만 달러(머스크 발언). 판매가 아님.",
+    "confidence": "D"
+   },
+   "sources": [
+    {
+     "url": "https://electrek.co/?p=464555",
+     "title": "Tesla Q1 2026 earnings: Optimus production late July/August at Fremont",
+     "publisher": "Electrek",
+     "date": "2026-04",
+     "confidence": "B",
+     "fields": [
+      "announcementYear",
+      "commercializationStage",
+      "price"
+     ]
+    },
+    {
+     "url": "https://www.basenor.com/blogs/news/tesla-optimus-gen-3-hands-22-dof-50-actuators-explained",
+     "title": "Tesla Optimus Gen 3 Hands: 22-DoF, 50 Actuators Explained",
+     "publisher": "Basenor (blog)",
+     "date": "2026",
+     "confidence": "C",
+     "fields": [
+      "hand",
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://blog.tmcnet.com/blog/rich-tehrani/robot/tesla-confirms-optimus-robot-will-ship-with-a-new-design.html",
+     "title": "Tesla confirms Optimus will ship with a new design",
+     "publisher": "TMCnet",
+     "date": "2026-04-20",
+     "confidence": "C",
+     "fields": [
+      "hand"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "hand.handDofPerHand",
+     "values": [
+      {
+       "value": 22,
+       "url": "https://www.basenor.com/blogs/news/tesla-optimus-gen-3-hands-22-dof-50-actuators-explained"
+      },
+      {
+       "value": "unconfirmed (design changed)",
+       "url": "https://blog.tmcnet.com/blog/rich-tehrani/robot/tesla-confirms-optimus-robot-will-ship-with-a-new-design.html"
+      }
+     ]
+    }
+   ],
+   "notes": "2026-10-25 기준 공식 공개 여부 검색으로 확인 불가.",
+   "coverage": {
+    "filled": 22,
+    "total": 27,
+    "ratio": 0.81,
+    "actuatorDetailFilled": 2,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "Atlas (Electric)",
+   "company": "Boston Dynamics",
+   "aliases": [
+    "Atlas",
+    "Electric Atlas",
+    "Production Atlas"
+   ],
+   "announcementYear": 2024,
+   "announcementQuarter": 2,
+   "status": "poc",
+   "purpose": "industrial",
+   "locomotionType": "bipedal",
+   "handType": "multi_finger",
+   "commercializationStage": "pilot",
+   "region": "north_america",
+   "descriptionKo": "현대차그룹 보스턴다이내믹스의 전동식 아틀라스. 2026년 1월 양산형 공개, 56 DOF·IP67·자율 배터리 교체. 현대모비스가 양산 액추에이터 공급 계약(CES 2026).",
+   "body": {
+    "heightCm": 190,
+    "weightKg": 90,
+    "payloadKg": 30,
+    "dofCount": 56,
+    "maxSpeedMps": null,
+    "operationTimeHours": 4,
+    "batteryWh": null,
+    "note": "DOF 56은 손 포함 전신(공식). 페이로드: 순간 50kg/지속 30kg/한손 20kg. 런타임 ~4h(중작업 ~2h). 배터리 교체 3분, 충전 1.5h."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": null,
+    "handDofPerHand": 13,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": null,
+    "note": "신형 핸드 13 DOF(공식 블로그). 그리퍼형 핸드와 교체 가능."
+   },
+   "actuators": [
+    {
+     "name": "Atlas rotary actuator",
+     "vendor": "Boston Dynamics",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "완전 회전 관절(fully rotational joints), 자체 설계 전동 액추에이터. 토크 미공개."
+    },
+    {
+     "name": "Hyundai Mobis humanoid actuator",
+     "vendor": "Hyundai Mobis",
+     "inHouse": false,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "CES 2026 공급 계약: 양산 단계 Atlas 액추에이터 공급. 사양 미공개."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "공식 가격 미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://bostondynamics.com/products/atlas/",
+     "title": "Atlas Humanoid Robot",
+     "publisher": "Boston Dynamics",
+     "date": "2026",
+     "confidence": "A",
+     "fields": [
+      "body.heightCm",
+      "body.weightKg",
+      "body.payloadKg",
+      "body.operationTimeHours"
+     ]
+    },
+    {
+     "url": "https://bostondynamics.com/wp-content/uploads/2026/01/atlas-spec-sheet.pdf",
+     "title": "Atlas spec sheet",
+     "publisher": "Boston Dynamics",
+     "date": "2026-01",
+     "confidence": "A",
+     "fields": [
+      "body.payloadKg",
+      "body.operationTimeHours"
+     ]
+    },
+    {
+     "url": "https://bostondynamics.com/blog/boston-dynamics-unveils-new-atlas-robot-to-revolutionize-industry/",
+     "title": "Boston Dynamics Unveils New Atlas Robot to Revolutionize Industry",
+     "publisher": "Boston Dynamics",
+     "date": "2026-01",
+     "confidence": "A",
+     "fields": [
+      "body.dofCount",
+      "actuators",
+      "commercializationStage"
+     ]
+    },
+    {
+     "url": "https://bostondynamics.com/blog/robot-hands-for-modern-ai-and-real-work/",
+     "title": "Robot Hands for Modern AI and Real Work",
+     "publisher": "Boston Dynamics",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "hand"
+     ]
+    },
+    {
+     "url": "https://www.barchart.com/story/news/36939666/hyundai-mobis-forms-strategic-collaboration-framework-with-boston-dynamics",
+     "title": "Hyundai Mobis Forms Strategic Collaboration Framework with Boston Dynamics",
+     "publisher": "PR Newswire via Barchart",
+     "date": "2026-01",
+     "confidence": "A",
+     "fields": [
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://www.koreaherald.com/article/10651569",
+     "title": "Hyundai Mobis to supply actuators to Boston Dynamics",
+     "publisher": "Korea Herald",
+     "date": "2026-01",
+     "confidence": "B",
+     "fields": [
+      "actuators"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.dofCount",
+     "values": [
+      {
+       "value": 56,
+       "url": "https://bostondynamics.com/blog/boston-dynamics-unveils-new-atlas-robot-to-revolutionize-industry/"
+      },
+      {
+       "value": 50,
+       "url": "https://bostondynamics.com/blog/atlas-evolution-from-research-robot-to-industrial-humanoid/"
+      }
+     ]
+    }
+   ],
+   "notes": "50 DOF는 2024 연구용 버전. 2026 양산형은 56 DOF.",
+   "coverage": {
+    "filled": 21,
+    "total": 27,
+    "ratio": 0.78,
+    "actuatorDetailFilled": 0,
+    "actuatorDetailTotal": 14
+   }
+  },
+  {
+   "tier": 1,
+   "name": "Digit",
+   "company": "Agility Robotics",
+   "aliases": [
+    "Digit v4",
+    "Digit 5"
+   ],
+   "announcementYear": 2019,
+   "announcementQuarter": 4,
+   "status": "commercial",
+   "purpose": "industrial",
+   "locomotionType": "bipedal",
+   "handType": "gripper",
+   "commercializationStage": "commercial",
+   "region": "north_america",
+   "descriptionKo": "어질리티 로보틱스의 물류용 양족 휴머노이드. 2026년 9월 발표된 Digit 5는 1.81m/129kg, 23kg 반복 리프트, 90분 가동·9분 충전(10:1)으로 2027년 상반기 얼리액세스 예정.",
+   "body": {
+    "heightCm": 175,
+    "weightKg": 65,
+    "payloadKg": 16,
+    "dofCount": 16,
+    "maxSpeedMps": 1.5,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "Digit v4 기준(2차). Digit 5: 181cm/129kg/23kg, 런타임 90분, 충전 9분(공식). DOF 16은 손 제외(2차)."
+   },
+   "hand": {
+    "handType": "gripper",
+    "fingerCount": null,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": null,
+    "note": "엔드이펙터 교체형(토트 핸들링 그리퍼)."
+   },
+   "actuators": [
+    {
+     "name": "Digit joint actuator",
+     "vendor": "Agility Robotics",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "자체 설계 전동 액추에이터. 공식 토크/타입 미공개. Digit 5에 신규 무릎 설계·Nyobolt 급속충전 배터리."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "RaaS 제공, 공식 단가 미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://www.agilityrobotics.com/content/agility-unveils-digit-5-humanoid-robot-built-for-cooperatively-safe-work-at-scale",
+     "title": "Agility Unveils Digit 5",
+     "publisher": "Agility Robotics",
+     "date": "2026-09-15",
+     "confidence": "A",
+     "fields": [
+      "body.note",
+      "commercializationStage"
+     ]
+    },
+    {
+     "url": "https://www.agilityrobotics.com/solutions/digit/spec-sheet",
+     "title": "Digit Spec Sheet",
+     "publisher": "Agility Robotics",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body"
+     ]
+    },
+    {
+     "url": "https://www.agilityrobotics.com/solutions/digit-5",
+     "title": "Digit 5",
+     "publisher": "Agility Robotics",
+     "date": "2026",
+     "confidence": "A",
+     "fields": [
+      "body.payloadKg"
+     ]
+    },
+    {
+     "url": "https://www.agilityrobotics.com/content/agility-robotics-selects-nyobolt-as-its-ultra-fast-charging-battery-technology-partner-for-digit-5",
+     "title": "Agility selects Nyobolt battery partner",
+     "publisher": "Agility Robotics",
+     "date": "2026",
+     "confidence": "A",
+     "fields": [
+      "actuators.notes"
+     ]
+    },
+    {
+     "url": "https://humanoid.guide/product/digit/",
+     "title": "Digit",
+     "publisher": "Humanoid.Guide",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body.heightCm",
+      "body.weightKg",
+      "body.payloadKg",
+      "body.dofCount",
+      "body.maxSpeedMps"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.weightKg",
+     "values": [
+      {
+       "value": 65,
+       "url": "https://humanoid.guide/product/digit/"
+      },
+      {
+       "value": 76,
+       "url": "https://humanoid.guide/product/digit/"
+      },
+      {
+       "value": 129,
+       "url": "https://www.agilityrobotics.com/content/agility-unveils-digit-5-humanoid-robot-built-for-cooperatively-safe-work-at-scale"
+      }
+     ]
+    },
+    {
+     "field": "body.operationTimeHours",
+     "values": [
+      {
+       "value": 4,
+       "url": "https://www.agilityrobotics.com/content/agility-robotics-announces-new-innovations-for-market-leading-humanoid-robot-digit"
+      },
+      {
+       "value": 1.5,
+       "url": "https://www.agilityrobotics.com/content/agility-unveils-digit-5-humanoid-robot-built-for-cooperatively-safe-work-at-scale"
+      }
+     ]
+    }
+   ],
+   "notes": "공식 spec-sheet 페이지 수치가 검색 발췌에 노출되지 않아 v4 수치는 C등급.",
+   "coverage": {
+    "filled": 20,
+    "total": 27,
+    "ratio": 0.74,
+    "actuatorDetailFilled": 0,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "Figure 01",
+   "company": "Figure AI",
+   "aliases": [
+    "Figure-01"
+   ],
+   "announcementYear": 2023,
+   "announcementQuarter": 1,
+   "status": "development",
+   "purpose": "industrial",
+   "locomotionType": "bipedal",
+   "handType": "multi_finger",
+   "commercializationStage": "prototype",
+   "region": "north_america",
+   "descriptionKo": "피규어 AI의 1세대 범용 휴머노이드(2023). 1.68m/60kg, 20kg 페이로드, 5시간 가동. BMW 공장 시험 후 Figure 02로 대체.",
+   "body": {
+    "heightCm": 168,
+    "weightKg": 60,
+    "payloadKg": 20,
+    "dofCount": null,
+    "maxSpeedMps": 1.2,
+    "operationTimeHours": 5,
+    "batteryWh": null,
+    "note": "2차 출처(피규어 웹사이트 인용 보도)."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": null,
+    "note": null
+   },
+   "actuators": [
+    {
+     "name": "Figure actuator",
+     "vendor": "Figure AI",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "자체 설계 전동 액추에이터. 사양 미공개."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://www.thedailystar.net/tech-startup/news/meet-figure-01-the-commercially-viable-humanoid-robot-3588276",
+     "title": "Meet Figure 01",
+     "publisher": "The Daily Star",
+     "date": "2024",
+     "confidence": "C",
+     "fields": [
+      "body"
+     ]
+    },
+    {
+     "url": "https://qviro.com/product/figure/figure-01/specifications",
+     "title": "Figure 01 Specifications",
+     "publisher": "Qviro",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body"
+     ]
+    }
+   ],
+   "conflicts": [],
+   "notes": null,
+   "coverage": {
+    "filled": 21,
+    "total": 27,
+    "ratio": 0.78,
+    "actuatorDetailFilled": 0,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "Figure 02",
+   "company": "Figure AI",
+   "aliases": [
+    "F.02"
+   ],
+   "announcementYear": 2024,
+   "announcementQuarter": 3,
+   "status": "poc",
+   "purpose": "industrial",
+   "locomotionType": "bipedal",
+   "handType": "multi_finger",
+   "commercializationStage": "pilot",
+   "region": "north_america",
+   "descriptionKo": "피규어 AI 2세대 휴머노이드(2024-08). 토르소 내장 2.25kWh 배터리, 16-DOF 손, 20kg 페이로드. BMW 스파르탄버그 공장에서 3만 대 생산 기여 후 2025년 퇴역 시작.",
+   "body": {
+    "heightCm": 170,
+    "weightKg": 70,
+    "payloadKg": 20,
+    "dofCount": null,
+    "maxSpeedMps": 1.2,
+    "operationTimeHours": 5,
+    "batteryWh": 2250,
+    "note": "2차 출처. 배터리 2.25kWh(전세대 대비 +50%)."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": 16,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": null,
+    "note": "16 DOF/손, 인간 수준 악력 주장(보도)."
+   },
+   "actuators": [
+    {
+     "name": "Figure actuator (F.02)",
+     "vendor": "Figure AI",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "자체 설계. 전완 3 DOF 패키징(공식 블로그). 토크 미공개."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://www.figure.ai/company",
+     "title": "Company",
+     "publisher": "Figure AI",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body.note"
+     ]
+    },
+    {
+     "url": "https://www.figure.ai/news/f-02-decommission",
+     "title": "F.02 Decommission",
+     "publisher": "Figure AI",
+     "date": "2025",
+     "confidence": "A",
+     "fields": [
+      "status"
+     ]
+    },
+    {
+     "url": "https://www.figure.ai/news/production-at-bmw",
+     "title": "F.02 Contributed to the Production of 30,000 Cars at BMW",
+     "publisher": "Figure AI",
+     "date": "2025",
+     "confidence": "A",
+     "fields": [
+      "actuators.notes"
+     ]
+    },
+    {
+     "url": "https://gigazine.net/gsc_news/en/20240808-figure-02-ai-humanoid",
+     "title": "Introducing Figure 02",
+     "publisher": "Gigazine",
+     "date": "2024-08-08",
+     "confidence": "B",
+     "fields": [
+      "body",
+      "hand"
+     ]
+    },
+    {
+     "url": "https://interestingengineering.com/innovation/figure-02-worlds-most-advanced-humanoid-robot",
+     "title": "Figure 02",
+     "publisher": "Interesting Engineering",
+     "date": "2024-08",
+     "confidence": "B",
+     "fields": [
+      "body.batteryWh",
+      "hand.handDofPerHand"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.payloadKg",
+     "values": [
+      {
+       "value": 20,
+       "url": "https://gigazine.net/gsc_news/en/20240808-figure-02-ai-humanoid"
+      },
+      {
+       "value": 25,
+       "url": "https://moonlakeai.com/robots/figure-02"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 23,
+    "total": 27,
+    "ratio": 0.85,
+    "actuatorDetailFilled": 0,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "Figure 03",
+   "company": "Figure AI",
+   "aliases": [
+    "F.03"
+   ],
+   "announcementYear": 2025,
+   "announcementQuarter": 4,
+   "status": "poc",
+   "purpose": "industrial",
+   "locomotionType": "bipedal",
+   "handType": "multi_finger",
+   "commercializationStage": "pilot",
+   "region": "north_america",
+   "descriptionKo": "피규어 AI 3세대(2025-10). 5'8\"/61kg, 20kg 페이로드, 2.3kWh 구조형 배터리로 5시간 가동, 발바닥 2kW 무선충전. 손바닥 카메라·3g 감지 촉각 센서. 액추에이터·배터리·센서 전부 자체 설계(BotQ 양산).",
+   "body": {
+    "heightCm": 173,
+    "weightKg": 61,
+    "payloadKg": 20,
+    "dofCount": null,
+    "maxSpeedMps": 1.2,
+    "operationTimeHours": 5,
+    "batteryWh": 2300,
+    "note": "공식 제품 페이지. DOF 미공개(2차 30~44 혼재)."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": true,
+    "note": "손끝 촉각 센서 3g 감지, 손바닥 광각 카메라(공식)."
+   },
+   "actuators": [
+    {
+     "name": "F.03 actuator",
+     "vendor": "Figure AI",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 액추에이터·배터리·센서·구조물·전자부품 전부 사내 설계. 타입/토크 미공개(2차: 프레임리스 BLDC+하모닉/사이클로이드 추정)."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://www.figure.ai/figure",
+     "title": "Figure 03",
+     "publisher": "Figure AI",
+     "date": "2025",
+     "confidence": "A",
+     "fields": [
+      "body.heightCm",
+      "body.weightKg",
+      "body.payloadKg",
+      "body.maxSpeedMps",
+      "body.operationTimeHours"
+     ]
+    },
+    {
+     "url": "https://www.figure.ai/news/introducing-figure-03",
+     "title": "Introducing Figure 03",
+     "publisher": "Figure AI",
+     "date": "2025-10",
+     "confidence": "A",
+     "fields": [
+      "hand",
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://www.figure.ai/news/f-03-battery-development",
+     "title": "F.03 Battery Development",
+     "publisher": "Figure AI",
+     "date": "2025",
+     "confidence": "A",
+     "fields": [
+      "body.batteryWh",
+      "body.operationTimeHours"
+     ]
+    },
+    {
+     "url": "https://humanoid.guide/product/figure-03/",
+     "title": "Figure 03",
+     "publisher": "Humanoid.Guide",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body.dofCount",
+      "actuators.type"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.dofCount",
+     "values": [
+      {
+       "value": 44,
+       "url": "https://humanoid.guide/product/figure-03/"
+      },
+      {
+       "value": 30,
+       "url": "https://moonlakeai.com/robots/figure-03"
+      }
+     ]
+    },
+    {
+     "field": "body.batteryWh",
+     "values": [
+      {
+       "value": 2300,
+       "url": "https://www.figure.ai/news/f-03-battery-development"
+      },
+      {
+       "value": 2500,
+       "url": "https://robotomated.com/learn/humanoid/figure-ai-robot-review"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 23,
+    "total": 27,
+    "ratio": 0.85,
+    "actuatorDetailFilled": 0,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "NEO Beta",
+   "company": "1X Technologies",
+   "aliases": [
+    "NEO Beta"
+   ],
+   "announcementYear": 2024,
+   "announcementQuarter": 3,
+   "status": "development",
+   "purpose": "home",
+   "locomotionType": "bipedal",
+   "handType": "multi_finger",
+   "commercializationStage": "prototype",
+   "region": "north_america",
+   "descriptionKo": "1X의 가정용 양족 휴머노이드 프로토타입(2024-08-30 공개). 165cm/30kg, 20kg 운반, 텐던 구동. 2024년 말 가정 테스트 후 NEO Gamma로 대체.",
+   "body": {
+    "heightCm": 165,
+    "weightKg": 30,
+    "payloadKg": 20,
+    "dofCount": null,
+    "maxSpeedMps": 3.3,
+    "operationTimeHours": 3,
+    "batteryWh": null,
+    "note": "2차 출처. 보행 4km/h, 달리기 12km/h 주장. 배터리 2~4h."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": null,
+    "note": null
+   },
+   "actuators": [
+    {
+     "name": "Tendon Drive (Revo motor)",
+     "vendor": "1X Technologies",
+     "inHouse": true,
+     "type": "tendon",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "자체 Revo 모터 + 텐던 전동(공식, 모델 공통)."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미판매",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://www.1x.tech/discover/announcement-1x-unveils-neo-beta-a-humanoid-robot-for-the-home",
+     "title": "1X Unveils NEO Beta",
+     "publisher": "1X Technologies",
+     "date": "2024-08",
+     "confidence": "A",
+     "fields": [
+      "announcementYear",
+      "purpose",
+      "locomotionType"
+     ]
+    },
+    {
+     "url": "https://aiwiki.ai/wiki/1x_technologies_neo_beta",
+     "title": "1X NEO Beta",
+     "publisher": "AI Wiki",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body"
+     ]
+    }
+   ],
+   "conflicts": [],
+   "notes": null,
+   "coverage": {
+    "filled": 21,
+    "total": 27,
+    "ratio": 0.78,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "NEO Gamma",
+   "company": "1X Technologies",
+   "aliases": [
+    "NEO Gamma"
+   ],
+   "announcementYear": 2025,
+   "announcementQuarter": 1,
+   "status": "development",
+   "purpose": "home",
+   "locomotionType": "bipedal",
+   "handType": "multi_finger",
+   "commercializationStage": "prototype",
+   "region": "north_america",
+   "descriptionKo": "1X의 차세대 가정용 휴머노이드(2025-02). 텐던 구동 관절을 소프트 커버로 감싸 수동 안전성 강화, 소음 10dB 저감·하드웨어 신뢰성 10배 향상 주장.",
+   "body": {
+    "heightCm": null,
+    "weightKg": null,
+    "payloadKg": null,
+    "dofCount": null,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "공식 수치 미공개(NEO 소비자 모델과 유사 추정)."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": null,
+    "note": null
+   },
+   "actuators": [
+    {
+     "name": "Tendon Drive (Revo2 motor)",
+     "vendor": "1X Technologies",
+     "inHouse": true,
+     "type": "tendon",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: Tendon Drive 관절 구동, 소프트 커버."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미판매",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://www.1x.tech/discover/introducing-neo-gamma",
+     "title": "Introducing NEO Gamma",
+     "publisher": "1X Technologies",
+     "date": "2025-02",
+     "confidence": "A",
+     "fields": [
+      "announcementYear",
+      "actuators"
+     ]
+    }
+   ],
+   "conflicts": [],
+   "notes": null,
+   "coverage": {
+    "filled": 16,
+    "total": 27,
+    "ratio": 0.59,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "NEO",
+   "company": "1X Technologies",
+   "aliases": [
+    "NEO Home Robot",
+    "NEO (2026 consumer)"
+   ],
+   "announcementYear": 2025,
+   "announcementQuarter": 4,
+   "status": "commercial",
+   "purpose": "home",
+   "locomotionType": "bipedal",
+   "handType": "multi_finger",
+   "commercializationStage": "pilot",
+   "region": "north_america",
+   "descriptionKo": "1X의 소비자용 가정 휴머노이드(2025-10-28 예약 개시, 2026 미국 배송). 29.9kg, 68kg 리프트·25kg 운반, 22dB, 특허 텐던 드라이브와 자체 Revo2 모터, 25-DOF 텐던 손. 2만 달러 또는 월 499달러.",
+   "body": {
+    "heightCm": 168,
+    "weightKg": 30,
+    "payloadKg": 25,
+    "dofCount": null,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "공식 스펙: 66lb(29.94kg), 리프트 154lb, 운반 55lb, 팔 페이로드 18lb(8.2kg). 신장 168cm(보도)."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": 25,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": null,
+    "note": "공식 'NEO's Hands': 텐던 손 25 DOF(양손 합?/손당 불명), 기어비 5:1~15:1. 방수."
+   },
+   "actuators": [
+    {
+     "name": "Tendon Drive",
+     "vendor": "1X Technologies",
+     "inHouse": true,
+     "type": "tendon",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 저관성 텐던 드라이브, 토크 정확도 2%, 역구동성 95%, 반복정밀도 0.1mm, 200만 사이클 수명."
+    },
+    {
+     "name": "Revo2 motor",
+     "vendor": "1X Technologies",
+     "inHouse": true,
+     "type": "direct_drive",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 2015년부터 노르웨이 Moss에서 자체 개발한 고토크밀도 모터, NEO 텐던 액추에이션의 핵심."
+    }
+   ],
+   "price": {
+    "min": 20000,
+    "max": 20000,
+    "currency": "USD",
+    "note": "공식: $20,000 구매 또는 $499/월(6개월 최소), 예약금 $200.",
+    "confidence": "A"
+   },
+   "sources": [
+    {
+     "url": "https://www.1x.tech/neo",
+     "title": "NEO Home Robot (spec)",
+     "publisher": "1X Technologies",
+     "date": "2025-10",
+     "confidence": "A",
+     "fields": [
+      "body",
+      "actuators",
+      "price"
+     ]
+    },
+    {
+     "url": "https://www.1x.tech/discover/neo-home-robot",
+     "title": "1X NEO Home Robot",
+     "publisher": "1X Technologies",
+     "date": "2025-10",
+     "confidence": "A",
+     "fields": [
+      "body.weightKg",
+      "body.payloadKg",
+      "price"
+     ]
+    },
+    {
+     "url": "https://www.1x.tech/discover/neos-hands",
+     "title": "NEO's Hands",
+     "publisher": "1X Technologies",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "hand"
+     ]
+    },
+    {
+     "url": "https://www.1x.tech/discover/neo-factory",
+     "title": "NEO Factory",
+     "publisher": "1X Technologies",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://www.ibtimes.com/how-much-neo-robot-heres-what-1xs-new-humanoid-home-assistant-can-do-3788857",
+     "title": "How Much is NEO Robot?",
+     "publisher": "IBTimes",
+     "date": "2025-10",
+     "confidence": "B",
+     "fields": [
+      "body.heightCm",
+      "price"
+     ]
+    }
+   ],
+   "conflicts": [],
+   "notes": null,
+   "coverage": {
+    "filled": 21,
+    "total": 27,
+    "ratio": 0.78,
+    "actuatorDetailFilled": 2,
+    "actuatorDetailTotal": 14
+   }
+  },
+  {
+   "tier": 1,
+   "name": "H1",
+   "company": "Unitree Robotics",
+   "aliases": [
+    "Unitree H1"
+   ],
+   "announcementYear": 2023,
+   "announcementQuarter": 3,
+   "status": "commercial",
+   "purpose": "industrial",
+   "locomotionType": "bipedal",
+   "handType": "none",
+   "commercializationStage": "commercial",
+   "region": "china",
+   "descriptionKo": "유니트리의 첫 풀사이즈 휴머노이드(2023-08). 180cm/47kg, 자체 M107 관절모터로 무릎 최대 360N·m, 토크밀도 189N·m/kg, 864Wh 배터리. 3.3m/s 보행 기록.",
+   "body": {
+    "heightCm": 180,
+    "weightKg": 47,
+    "payloadKg": null,
+    "dofCount": 19,
+    "maxSpeedMps": 3.3,
+    "operationTimeHours": null,
+    "batteryWh": 864,
+    "note": "공식: 19 DOF(다리 5x2, 몸통 1, 팔 4x2), 손 옵션 별도. 속도 1.5m/s(초기)→3.3m/s 기록. 배터리 15Ah/0.864kWh."
+   },
+   "hand": {
+    "handType": "none",
+    "fingerCount": null,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": null,
+    "note": "기본 손 없음; Inspire 등 덱스터러스 핸드 옵션($12,000/개, 리셀러)."
+   },
+   "actuators": [
+    {
+     "name": "M107 joint motor",
+     "vendor": "Unitree",
+     "inHouse": true,
+     "type": "qdd",
+     "usageLocation": "leg",
+     "quantity": null,
+     "peakTorqueNm": 360,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 무릎 ~360N·m, 고관절 ~220N·m, 발목 ~59N·m, 팔 ~75N·m. 토크밀도 189N·m/kg. 저감속비 준직구동(QDD) 계열."
+    }
+   ],
+   "price": {
+    "min": 90000,
+    "max": 150000,
+    "currency": "USD",
+    "note": "공식 샵 'Contact us'. 출시가 ~$90k(보도), 리셀러 $112k~.",
+    "confidence": "C"
+   },
+   "sources": [
+    {
+     "url": "https://www.unitree.com/h1/",
+     "title": "Universal humanoid robot H1",
+     "publisher": "Unitree Robotics",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body",
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://shop.unitree.com/products/unitree-h1",
+     "title": "Unitree H1 (Contact us for the real price)",
+     "publisher": "Unitree Shop",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body.weightKg",
+      "actuators.peakTorqueNm",
+      "price"
+     ]
+    },
+    {
+     "url": "https://robotshop.com/products/unitree-h1-humanoid-robot-us",
+     "title": "Unitree H1 Humanoid Robot",
+     "publisher": "RobotShop",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body.batteryWh",
+      "body.maxSpeedMps",
+      "hand"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.maxSpeedMps",
+     "values": [
+      {
+       "value": 1.5,
+       "url": "https://robotshop.com/products/unitree-h1-humanoid-robot-us"
+      },
+      {
+       "value": 3.3,
+       "url": "https://stemfinity.com/products/unitree-h1-robotic-humanoid"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 21,
+    "total": 27,
+    "ratio": 0.78,
+    "actuatorDetailFilled": 2,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "H1-2",
+   "company": "Unitree Robotics",
+   "aliases": [
+    "Unitree H1-2"
+   ],
+   "announcementYear": 2024,
+   "announcementQuarter": 3,
+   "status": "commercial",
+   "purpose": "industrial",
+   "locomotionType": "bipedal",
+   "handType": "interchangeable",
+   "commercializationStage": "commercial",
+   "region": "china",
+   "descriptionKo": "H1의 상체 강화형. 178cm/70kg, 27 DOF(6-DOF 다리, 7-DOF 팔), 덱스터러스 핸드 옵션. 리셀러 가격 $122k~$129k.",
+   "body": {
+    "heightCm": 178,
+    "weightKg": 70,
+    "payloadKg": null,
+    "dofCount": 27,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": 864,
+    "note": "공식 H1 페이지: 178cm/70kg/27 DOF(손 제외). 배터리 H1과 동일 추정(C)."
+   },
+   "hand": {
+    "handType": "interchangeable",
+    "fingerCount": null,
+    "handDofPerHand": 10,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": null,
+    "note": "≥10 DOF 덱스터러스 핸드 옵션 2개 장착 가능."
+   },
+   "actuators": [
+    {
+     "name": "M107 joint motor",
+     "vendor": "Unitree",
+     "inHouse": true,
+     "type": "qdd",
+     "usageLocation": "leg",
+     "quantity": null,
+     "peakTorqueNm": 360,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "H1 계열 자체 관절모터 공유(공식 H1 페이지)."
+    }
+   ],
+   "price": {
+    "min": 122455,
+    "max": 128900,
+    "currency": "USD",
+    "note": "리셀러 가격(RobotShop US). 공식가 비공개.",
+    "confidence": "C"
+   },
+   "sources": [
+    {
+     "url": "https://www.unitree.com/h1/",
+     "title": "Universal humanoid robot H1 (H1-2 section)",
+     "publisher": "Unitree Robotics",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body.heightCm",
+      "body.weightKg",
+      "body.dofCount"
+     ]
+    },
+    {
+     "url": "https://ca.robotshop.com/products/unitree-h1-2-humanoid-robot-us",
+     "title": "Unitree H1-2 Humanoid Robot",
+     "publisher": "RobotShop",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "hand",
+      "price"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.weightKg",
+     "values": [
+      {
+       "value": 70,
+       "url": "https://www.unitree.com/h1/"
+      },
+      {
+       "value": 73,
+       "url": "https://ca.robotshop.com/products/unitree-h1-2-humanoid-robot-us"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 21,
+    "total": 27,
+    "ratio": 0.78,
+    "actuatorDetailFilled": 2,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "G1",
+   "company": "Unitree Robotics",
+   "aliases": [
+    "Unitree G1",
+    "G1 EDU",
+    "G1-Comp"
+   ],
+   "announcementYear": 2024,
+   "announcementQuarter": 2,
+   "status": "commercial",
+   "purpose": "service",
+   "locomotionType": "bipedal",
+   "handType": "interchangeable",
+   "commercializationStage": "commercial",
+   "region": "china",
+   "descriptionKo": "유니트리의 소형 범용 휴머노이드(2024-05). 127cm/35kg, 23~43 관절모터, 무릎 90N·m(EDU/Comp 120N·m), 9,000mAh 배터리, 2m/s. 공식가 $13,500(출시 시 $16,000).",
+   "body": {
+    "heightCm": 127,
+    "weightKg": 35,
+    "payloadKg": null,
+    "dofCount": 23,
+    "maxSpeedMps": 2.0,
+    "operationTimeHours": 2,
+    "batteryWh": null,
+    "note": "공식: 23~43 관절모터(구성별, 손 포함 시 43). 배터리 9,000mAh(~1~2h). 리셀러 신장 132cm 혼재."
+   },
+   "hand": {
+    "handType": "interchangeable",
+    "fingerCount": 3,
+    "handDofPerHand": 7,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": true,
+    "note": "EDU: Dex3-1 3지 역제어 핸드(7 DOF) 옵션. 기본형 손 없음."
+   },
+   "actuators": [
+    {
+     "name": "G1 joint motor",
+     "vendor": "Unitree",
+     "inHouse": true,
+     "type": "qdd",
+     "usageLocation": "leg",
+     "quantity": null,
+     "peakTorqueNm": 90,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 무릎 최대 90N·m(기본), EDU/Comp 120N·m. 자체 관절모터."
+    }
+   ],
+   "price": {
+    "min": 13500,
+    "max": 16000,
+    "currency": "USD",
+    "note": "공식 샵 $13,500(세금·운송 제외), 출시가 $16,000. EDU는 문의(리셀러 $23.7k~€36.9k). 중국 ¥85,000~.",
+    "confidence": "A"
+   },
+   "sources": [
+    {
+     "url": "https://www.unitree.com/g1/",
+     "title": "Humanoid robot G1",
+     "publisher": "Unitree Robotics",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body",
+      "actuators",
+      "price"
+     ]
+    },
+    {
+     "url": "https://shop.unitree.com/products/unitree-g1",
+     "title": "Unitree G1",
+     "publisher": "Unitree Shop",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "price"
+     ]
+    },
+    {
+     "url": "https://heise.de/-9720187",
+     "title": "Humanoid robot Unitree G1 costs 16,000 dollars",
+     "publisher": "heise",
+     "date": "2024-05",
+     "confidence": "B",
+     "fields": [
+      "body.maxSpeedMps",
+      "hand",
+      "price"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "price.min",
+     "values": [
+      {
+       "value": 13500,
+       "url": "https://shop.unitree.com/products/unitree-g1"
+      },
+      {
+       "value": 16000,
+       "url": "http://demowebsite.unitree.com/g1/"
+      }
+     ]
+    },
+    {
+     "field": "body.heightCm",
+     "values": [
+      {
+       "value": 127,
+       "url": "https://www.unitree.com/g1/"
+      },
+      {
+       "value": 132,
+       "url": "https://www.robotlab.com/store/unitree-g1-robot/"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 24,
+    "total": 27,
+    "ratio": 0.89,
+    "actuatorDetailFilled": 2,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "G1-D",
+   "company": "Unitree Robotics",
+   "aliases": [
+    "Unitree G1-D",
+    "G1D"
+   ],
+   "announcementYear": 2025,
+   "announcementQuarter": 4,
+   "status": "commercial",
+   "purpose": "industrial",
+   "locomotionType": "wheeled",
+   "handType": "interchangeable",
+   "commercializationStage": "commercial",
+   "region": "china",
+   "descriptionKo": "G1 상체 + 휠 베이스 데이터 수집용 플랫폼. 126~168cm 가변 신장, 17 DOF(엔드이펙터 제외), Jetson Orin NX 16GB. 리셀러 $38.8k~$66.3k.",
+   "body": {
+    "heightCm": 168,
+    "weightKg": 50,
+    "payloadKg": 3,
+    "dofCount": 17,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "OpenELAB(공식 인용): 1260~1680mm, ~50kg, 17 DOF. RobotLAB: ~80kg, 팔 페이로드 3kg. 구성 차이 가능."
+   },
+   "hand": {
+    "handType": "interchangeable",
+    "fingerCount": null,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": null,
+    "note": "구성별 핸드 상이(Dex3/Inspire 등)."
+   },
+   "actuators": [
+    {
+     "name": "G1 joint motor",
+     "vendor": "Unitree",
+     "inHouse": true,
+     "type": "qdd",
+     "usageLocation": "arm",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "G1 상체 관절모터 공유(추정 D)."
+    }
+   ],
+   "price": {
+    "min": 38800,
+    "max": 66300,
+    "currency": "USD",
+    "note": "RobotLAB 10개 구성 가격. 공식가 비공개.",
+    "confidence": "C"
+   },
+   "sources": [
+    {
+     "url": "https://www.unitree.com/mobile/G1-D/",
+     "title": "Unitree G1-D End-to-End Platform",
+     "publisher": "Unitree Robotics",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "name",
+      "purpose"
+     ]
+    },
+    {
+     "url": "https://openelab.com/products/unitree-g1d-u2-humanoid-robot",
+     "title": "Unitree G1D U2",
+     "publisher": "OpenELAB",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body"
+     ]
+    },
+    {
+     "url": "https://www.robotlab.com/store/unitree-g1-d-humanoid-robot/",
+     "title": "Unitree G1-D",
+     "publisher": "RobotLAB",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body.weightKg",
+      "body.payloadKg",
+      "price"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.weightKg",
+     "values": [
+      {
+       "value": 50,
+       "url": "https://openelab.com/products/unitree-g1d-u2-humanoid-robot"
+      },
+      {
+       "value": 80,
+       "url": "https://www.robotlab.com/store/unitree-g1-d-humanoid-robot/"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 20,
+    "total": 27,
+    "ratio": 0.74,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "H2",
+   "company": "Unitree Robotics",
+   "aliases": [
+    "Unitree H2",
+    "H2 Plus",
+    "H2 EDU"
+   ],
+   "announcementYear": 2025,
+   "announcementQuarter": 4,
+   "status": "commercial",
+   "purpose": "industrial",
+   "locomotionType": "bipedal",
+   "handType": "interchangeable",
+   "commercializationStage": "commercial",
+   "region": "china",
+   "descriptionKo": "유니트리 2세대 풀사이즈 휴머노이드. 182cm/70kg, 31 DOF(다리6x2·팔7x2·허리3·머리2), 다리 360N·m·팔 120N·m, Jetson Thor(2070 TOPS). 공식가 $29,900(H2 Plus $100,000).",
+   "body": {
+    "heightCm": 182,
+    "weightKg": 70,
+    "payloadKg": 15,
+    "dofCount": 31,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": 972,
+    "note": "공식(H2 Plus 스펙시트): 1820x456x218mm, ~70kg(배터리 포함), 31 관절모터, 팔 정격 7kg/피크 15kg. 배터리 15Ah/0.972kWh(리셀러)."
+   },
+   "hand": {
+    "handType": "interchangeable",
+    "fingerCount": null,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": null,
+    "note": "기본형 손 미포함, EDU 덱스터러스 핸드 옵션."
+   },
+   "actuators": [
+    {
+     "name": "H2 leg joint motor",
+     "vendor": "Unitree",
+     "inHouse": true,
+     "type": "qdd",
+     "usageLocation": "leg",
+     "quantity": null,
+     "peakTorqueNm": 360,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 다리 최대 360N·m."
+    },
+    {
+     "name": "H2 arm joint motor",
+     "vendor": "Unitree",
+     "inHouse": true,
+     "type": "qdd",
+     "usageLocation": "arm",
+     "quantity": null,
+     "peakTorqueNm": 120,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 팔 최대 120N·m."
+    }
+   ],
+   "price": {
+    "min": 29900,
+    "max": 100000,
+    "currency": "USD",
+    "note": "공식 샵: H2 $29,900, H2 Plus $100,000. EDU 문의.",
+    "confidence": "A"
+   },
+   "sources": [
+    {
+     "url": "https://shop.unitree.com/products/unitree-h2",
+     "title": "Unitree H2",
+     "publisher": "Unitree Shop",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body",
+      "price"
+     ]
+    },
+    {
+     "url": "https://www.unitree.com/H2plus/",
+     "title": "Unitree H2 PLUS",
+     "publisher": "Unitree Robotics",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body",
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://shop.unitree.com/products/unitree-h2-plus",
+     "title": "Unitree H2 Plus",
+     "publisher": "Unitree Shop",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "price"
+     ]
+    },
+    {
+     "url": "https://www.pbtech.com/product/TOYUNT0005/Unitree-Humanoid-Robot-Unitree-H2-1820-x-456-x-218",
+     "title": "Unitree H2",
+     "publisher": "PB Tech",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body.batteryWh"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.heightCm",
+     "values": [
+      {
+       "value": 182,
+       "url": "https://www.unitree.com/H2plus/"
+      },
+      {
+       "value": 180,
+       "url": "https://shop.unitree.com/products/unitree-h2"
+      }
+     ]
+    },
+    {
+     "field": "body.payloadKg",
+     "values": [
+      {
+       "value": 15,
+       "url": "https://www.unitree.com/H2plus/"
+      },
+      {
+       "value": 21,
+       "url": "https://www.docs.mybotshop.de/h2.html"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 21,
+    "total": 27,
+    "ratio": 0.78,
+    "actuatorDetailFilled": 4,
+    "actuatorDetailTotal": 14
+   }
+  },
+  {
+   "tier": 1,
+   "name": "Walker X",
+   "company": "UBTECH",
+   "aliases": [
+    "Walker X"
+   ],
+   "announcementYear": 2021,
+   "announcementQuarter": 3,
+   "status": "commercial",
+   "purpose": "service",
+   "locomotionType": "bipedal",
+   "handType": "multi_finger",
+   "commercializationStage": "commercial",
+   "region": "china",
+   "descriptionKo": "유비테크의 서비스용 휴머노이드(2021). 130cm/63kg, 41개 서보 관절, 7-DOF 팔·6-DOF 역제어 손, 10kg 운반(양손 각 3kg 보행).",
+   "body": {
+    "heightCm": 130,
+    "weightKg": 63,
+    "payloadKg": 10,
+    "dofCount": 41,
+    "maxSpeedMps": 0.83,
+    "operationTimeHours": 2,
+    "batteryWh": null,
+    "note": "공식: 41 서보 관절(손 포함). 보행 3km/h, 배터리 ~2h(2차)."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": 6,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": null,
+    "note": "공식: 6 DOF 역제어 손."
+   },
+   "actuators": [
+    {
+     "name": "UBTECH servo actuator",
+     "vendor": "UBTECH",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": 41,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 41 고성능 서보 관절(자체 서보). 토크 미공개."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://www.ubtrobot.com/en/WalkerX",
+     "title": "Humanoid Service Robot Walker X",
+     "publisher": "UBTECH",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body",
+      "hand",
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://aiwiki.ai/wiki/ubtech_walker_x",
+     "title": "UBTECH Walker X",
+     "publisher": "AI Wiki",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body.maxSpeedMps",
+      "body.operationTimeHours"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.heightCm",
+     "values": [
+      {
+       "value": 130,
+       "url": "https://www.ubtrobot.com/en/WalkerX"
+      },
+      {
+       "value": 145,
+       "url": "https://grabarobot.com/robots/humanoid-robot/products/ubtech-walker-x/"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 23,
+    "total": 27,
+    "ratio": 0.85,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   },
+   "companyAliases": [
+    "UBTECH Robotics"
+   ]
+  },
+  {
+   "tier": 1,
+   "name": "Walker S1",
+   "company": "UBTECH",
+   "aliases": [
+    "Walker S1",
+    "Walker S"
+   ],
+   "announcementYear": 2024,
+   "announcementQuarter": 4,
+   "status": "commercial",
+   "purpose": "industrial",
+   "locomotionType": "bipedal",
+   "handType": "multi_finger",
+   "commercializationStage": "pilot",
+   "region": "china",
+   "descriptionKo": "유비테크의 산업용 휴머노이드(2024). 172cm/76kg, 41 DOF, 15kg 운반. BYD·지리(지커)·폭스콘 등 자동차 공장 물류 적용.",
+   "body": {
+    "heightCm": 172,
+    "weightKg": 76,
+    "payloadKg": 15,
+    "dofCount": 41,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "2차 다수 일치(172cm/76kg/41 DOF). 공식 S1 페이지 수치 미게재; Walker S 공식 1.7m/41 서보."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": true,
+    "note": null
+   },
+   "actuators": [
+    {
+     "name": "UBTECH servo joint",
+     "vendor": "UBTECH",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": 41,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식(Walker S): 41 힘 피드백 서보 관절. 자체 개발."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://www.ubtrobot.com/en/humanoid/products/walker-s1",
+     "title": "UBTECH Walker S1 Humanoid Robot",
+     "publisher": "UBTECH",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "purpose",
+      "commercializationStage"
+     ]
+    },
+    {
+     "url": "https://www.ubtrobot.com/en/humanoid/products/walker-s",
+     "title": "UBTECH Walker S Industrial Humanoid Robot",
+     "publisher": "UBTECH",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "actuators",
+      "body.dofCount"
+     ]
+    },
+    {
+     "url": "https://heise.de/-10257836",
+     "title": "UBTech prepares mass production of Walker S series",
+     "publisher": "heise",
+     "date": "2025",
+     "confidence": "B",
+     "fields": [
+      "body"
+     ]
+    },
+    {
+     "url": "https://aiwiki.ai/wiki/ubtech_walker_s1",
+     "title": "UBTECH Walker S1",
+     "publisher": "AI Wiki",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.dofCount",
+     "values": [
+      {
+       "value": 41,
+       "url": "https://heise.de/-10257836"
+      },
+      {
+       "value": 36,
+       "url": "https://humanoid.guide/product/walker-s1"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 21,
+    "total": 27,
+    "ratio": 0.78,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   },
+   "companyAliases": [
+    "UBTECH Robotics"
+   ]
+  },
+  {
+   "tier": 1,
+   "name": "Walker S2",
+   "company": "UBTECH",
+   "aliases": [
+    "Walker S2"
+   ],
+   "announcementYear": 2025,
+   "announcementQuarter": 3,
+   "status": "commercial",
+   "purpose": "industrial",
+   "locomotionType": "bipedal",
+   "handType": "multi_finger",
+   "commercializationStage": "commercial",
+   "region": "china",
+   "descriptionKo": "세계 최초 자율 배터리 교체(3분) 산업용 휴머노이드(2025-07). 176cm/70kg, 52 DOF(Gen-4 11-DOF 손 포함), 15kg 양팔 운반, 2.0m/s, 48V LiFePO4 듀얼 배터리. 5천만 위안 이상 수주·히타치 도입.",
+   "body": {
+    "heightCm": 176,
+    "weightKg": 70,
+    "payloadKg": 15,
+    "dofCount": 52,
+    "maxSpeedMps": 2.0,
+    "operationTimeHours": 2,
+    "batteryWh": null,
+    "note": "공식 매뉴얼: 176cm, 70kg(핸드 제외), 양팔 15kg. DOF 52 = 몸체 30 + Gen-4 손 11x2(리셀러). 런타임 ~2h/배터리, 교체 3분."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": 11,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": true,
+    "note": "Gen-4 덱스터러스 핸드 11 DOF, 힘·촉각 센서(리셀러)."
+   },
+   "actuators": [
+    {
+     "name": "UBTECH high-torque waist/joint motor",
+     "vendor": "UBTECH",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 고토크 허리 모터(±162° 회전, 15kg 리프트). 자체 개발. 토크 미공개."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://www.ubtrobot.com/en/humanoid/products/walker-s2",
+     "title": "UBTECH Walker S2 Humanoid Robot",
+     "publisher": "UBTECH",
+     "date": "2025",
+     "confidence": "A",
+     "fields": [
+      "body",
+      "actuators",
+      "status"
+     ]
+    },
+    {
+     "url": "https://cdn.robotshop.com/media/U/Ubt/RB-Ubt-37/pdf/ubtech-walker-s2-product%20manual.pdf",
+     "title": "Walker S2 Product Manual",
+     "publisher": "UBTECH (via RobotShop)",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body"
+     ]
+    },
+    {
+     "url": "https://www.robotshop.com/products/ubtech-walker-s2-industrial-humanoid-robot",
+     "title": "UBTECH Walker S2 Industrial Humanoid Robot",
+     "publisher": "RobotShop",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body.dofCount",
+      "body.maxSpeedMps",
+      "hand"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.weightKg",
+     "values": [
+      {
+       "value": 70,
+       "url": "https://cdn.robotshop.com/media/U/Ubt/RB-Ubt-37/pdf/ubtech-walker-s2-product%20manual.pdf"
+      },
+      {
+       "value": 43,
+       "url": "https://humanoid.guide/product/walker-s2/"
+      }
+     ]
+    },
+    {
+     "field": "body.heightCm",
+     "values": [
+      {
+       "value": 176,
+       "url": "https://cdn.robotshop.com/media/U/Ubt/RB-Ubt-37/pdf/ubtech-walker-s2-product%20manual.pdf"
+      },
+      {
+       "value": 162,
+       "url": "https://xpert.digital/en/walker-s2-from-ubtech/"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 24,
+    "total": 27,
+    "ratio": 0.89,
+    "actuatorDetailFilled": 0,
+    "actuatorDetailTotal": 7
+   },
+   "companyAliases": [
+    "UBTECH Robotics"
+   ]
+  },
+  {
+   "tier": 1,
+   "name": "CyberOne",
+   "company": "Xiaomi",
+   "aliases": [
+    "CyberOne",
+    "铁大"
+   ],
+   "announcementYear": 2022,
+   "announcementQuarter": 3,
+   "status": "development",
+   "purpose": "service",
+   "locomotionType": "bipedal",
+   "handType": "gripper",
+   "commercializationStage": "prototype",
+   "region": "china",
+   "descriptionKo": "샤오미의 첫 풀사이즈 휴머노이드(2022-08). 177cm/52kg, 21 DOF, 고관절 모터 순간 피크 300N·m, 500g 상지 모터 정격 30N·m. 한 손 1.5kg. 레이쥔 언급 단가 60~70만 위안.",
+   "body": {
+    "heightCm": 177,
+    "weightKg": 52,
+    "payloadKg": 1.5,
+    "dofCount": 21,
+    "maxSpeedMps": 1.0,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "공식(샤오미 커뮤니티 공식 글): 21 DOF, 응답 0.5ms. 보행 3.6km/h(2차)."
+   },
+   "hand": {
+    "handType": "gripper",
+    "fingerCount": null,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": null,
+    "note": "단순 손, 한 손 1.5kg."
+   },
+   "actuators": [
+    {
+     "name": "CyberOne hip joint motor",
+     "vendor": "Xiaomi",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "leg",
+     "quantity": null,
+     "peakTorqueNm": 300,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 고관절 순간 피크 토크 300N·m."
+    },
+    {
+     "name": "CyberOne upper-limb joint motor",
+     "vendor": "Xiaomi",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "arm",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": 30,
+     "speedRpm": null,
+     "weightKg": 0.5,
+     "gearRatio": null,
+     "notes": "공식: 500g, 정격 30N·m 고효율 모터."
+    }
+   ],
+   "price": {
+    "min": 600000,
+    "max": 700000,
+    "currency": "CNY",
+    "note": "레이쥔 발표 단가 추정(비판매).",
+    "confidence": "B"
+   },
+   "sources": [
+    {
+     "url": "https://c.mi.com/thread-4126700-1-0.html",
+     "title": "Xiaomi Unveils CyberOne",
+     "publisher": "Xiaomi Community (official)",
+     "date": "2022-08",
+     "confidence": "A",
+     "fields": [
+      "body",
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://www.engadget.com/xiaomi-cyberone-robot-143545207.html",
+     "title": "Xiaomi beats Tesla to building a working robot",
+     "publisher": "Engadget",
+     "date": "2022-08",
+     "confidence": "B",
+     "fields": [
+      "price"
+     ]
+    }
+   ],
+   "conflicts": [],
+   "notes": null,
+   "coverage": {
+    "filled": 21,
+    "total": 27,
+    "ratio": 0.78,
+    "actuatorDetailFilled": 3,
+    "actuatorDetailTotal": 14
+   }
+  },
+  {
+   "tier": 1,
+   "name": "CyberOne 2",
+   "company": "Xiaomi",
+   "aliases": [
+    "CyberOne V2",
+    "CyberOne 2nd gen"
+   ],
+   "announcementYear": 2026,
+   "announcementQuarter": null,
+   "status": "poc",
+   "purpose": "industrial",
+   "locomotionType": "bipedal",
+   "handType": "multi_finger",
+   "commercializationStage": "poc",
+   "region": "china",
+   "descriptionKo": "샤오미 2세대 휴머노이드(2026, 2차 DB 기준). 178cm/52kg, ~38 DOF, 22~27-DOF 손. 샤오미 EV 공장 너트 체결 공정에서 성공률 90%→98%(IFA 2026 발표).",
+   "body": {
+    "heightCm": 178,
+    "weightKg": 52,
+    "payloadKg": 3,
+    "dofCount": 38,
+    "maxSpeedMps": 0.97,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "humanoid.press DB(C). 공식 스펙시트 미확인. 팔당 3kg, 3.5km/h."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": 22,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": null,
+    "note": "22~27 DOF(2차)."
+   },
+   "actuators": [
+    {
+     "name": "Xiaomi joint motor (2nd gen)",
+     "vendor": "Xiaomi",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "자체 개발 추정. 사양 미공개."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": 99000,
+    "currency": "USD",
+    "note": "humanoid.guide 미검증 가격.",
+    "confidence": "D"
+   },
+   "sources": [
+    {
+     "url": "https://humanoid.press/database/database-cyberone-v2/",
+     "title": "CyberOne v2",
+     "publisher": "Humanoid Press",
+     "date": "2026",
+     "confidence": "C",
+     "fields": [
+      "body",
+      "hand"
+     ]
+    },
+    {
+     "url": "https://en.fnnews.com/news/202609041915500714",
+     "title": "Xiaomi at IFA 2026: CyberOne factory success rate",
+     "publisher": "FN News",
+     "date": "2026-09-04",
+     "confidence": "B",
+     "fields": [
+      "status",
+      "descriptionKo"
+     ]
+    },
+    {
+     "url": "https://humanoid.guide/product/cyberone-v2/",
+     "title": "CyberOne v2",
+     "publisher": "Humanoid.Guide",
+     "date": null,
+     "confidence": "D",
+     "fields": [
+      "price"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.dofCount",
+     "values": [
+      {
+       "value": 38,
+       "url": "https://humanoid.press/database/database-cyberone-v2/"
+      },
+      {
+       "value": 21,
+       "url": "https://humanoid.guide/fr/?p=15534"
+      }
+     ]
+    }
+   ],
+   "notes": "공식 발표 자료 검색 실패. 전체 C/D 등급.",
+   "coverage": {
+    "filled": 22,
+    "total": 27,
+    "ratio": 0.81,
+    "actuatorDetailFilled": 0,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "GR-1",
+   "company": "Fourier Intelligence",
+   "aliases": [
+    "Fourier GR-1",
+    "GR-1 Pro"
+   ],
+   "announcementYear": 2023,
+   "announcementQuarter": 3,
+   "status": "commercial",
+   "purpose": "service",
+   "locomotionType": "bipedal",
+   "handType": "multi_finger",
+   "commercializationStage": "commercial",
+   "region": "china",
+   "descriptionKo": "푸리에의 첫 범용 휴머노이드(2023). 165cm/55kg, 최대 44 DOF, 자체 FSA 액추에이터 관절 피크 230N·m(공식; 2023 보도는 고관절 300N·m), 한 손 3kg, 5km/h.",
+   "body": {
+    "heightCm": 165,
+    "weightKg": 55,
+    "payloadKg": 3,
+    "dofCount": 44,
+    "maxSpeedMps": 1.39,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "공식 지원문서: 최대 44 DOF, 피크 230N·m, 한손 3kg. 2023 보도: 40 DOF, 고관절 300N·m, 50kg 운반(전신)."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": 6,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": null,
+    "note": "Fourier 자체 덱스터러스 핸드 옵션(6~12 DOF)."
+   },
+   "actuators": [
+    {
+     "name": "FSA actuator",
+     "vendor": "Fourier Intelligence",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": 230,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 자체 FSA(Fourier Smart Actuator), 최대 관절 피크 230N·m. 2023 보도 고관절 300N·m."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://support.fftai.com/en/docs/GR-X-Humanoid-Robot/GR1/GR-1_Introduction/",
+     "title": "About GR-1",
+     "publisher": "Fourier Developer Center",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body.dofCount",
+      "actuators.peakTorqueNm"
+     ]
+    },
+    {
+     "url": "https://fftai.com/uploads/upload/files/20250515/3f8dfafee28ab3d5c6688016d8e36eaf.pdf",
+     "title": "GR-1 spec sheet",
+     "publisher": "Fourier Intelligence",
+     "date": "2025-05",
+     "confidence": "A",
+     "fields": [
+      "body.payloadKg"
+     ]
+    },
+    {
+     "url": "https://www.therobotreport.com/fourier-intelligence-launches-production-version-of-gr-1-humanoid-robot/",
+     "title": "Fourier Intelligence launches production version of GR-1",
+     "publisher": "The Robot Report",
+     "date": "2023-12",
+     "confidence": "B",
+     "fields": [
+      "body.heightCm",
+      "body.weightKg",
+      "body.maxSpeedMps"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "actuators[0].peakTorqueNm",
+     "values": [
+      {
+       "value": 230,
+       "url": "https://support.fftai.com/en/docs/GR-X-Humanoid-Robot/GR1/GR-1_Introduction/"
+      },
+      {
+       "value": 300,
+       "url": "https://www.therobotreport.com/fourier-intelligence-launches-production-version-of-gr-1-humanoid-robot/"
+      }
+     ]
+    },
+    {
+     "field": "body.dofCount",
+     "values": [
+      {
+       "value": 44,
+       "url": "https://support.fftai.com/en/docs/GR-X-Humanoid-Robot/GR1/GR-1_Introduction/"
+      },
+      {
+       "value": 40,
+       "url": "https://www.therobotreport.com/fourier-intelligence-launches-production-version-of-gr-1-humanoid-robot/"
+      },
+      {
+       "value": 54,
+       "url": "https://aiwiki.ai/wiki/fourier_intelligence_gr_1"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 22,
+    "total": 27,
+    "ratio": 0.81,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "GR-2",
+   "company": "Fourier Intelligence",
+   "aliases": [
+    "Fourier GR-2"
+   ],
+   "announcementYear": 2024,
+   "announcementQuarter": 3,
+   "status": "commercial",
+   "purpose": "service",
+   "locomotionType": "bipedal",
+   "handType": "multi_finger",
+   "commercializationStage": "commercial",
+   "region": "china",
+   "descriptionKo": "푸리에 2세대(2024-09). 175cm/63kg, 최대 53 DOF, FSA 2.0 액추에이터 피크 436N·m 초과, 12-DOF 손(촉각 어레이 6개), 한 손 3kg, 5km/h, 평균 2시간 가동(교체형 배터리).",
+   "body": {
+    "heightCm": 175,
+    "weightKg": 63,
+    "payloadKg": 3,
+    "dofCount": 53,
+    "maxSpeedMps": 1.39,
+    "operationTimeHours": 2,
+    "batteryWh": null,
+    "note": "공식 데이터시트/지원문서. DOF 53은 손 포함."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": 12,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": true,
+    "note": "공식: 최대 12 DOF, 어레이형 촉각 센서 6개."
+   },
+   "actuators": [
+    {
+     "name": "FSA 2.0 actuator",
+     "vendor": "Fourier Intelligence",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": 436,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식 데이터시트: 피크 토크 436N·m 초과."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://www.fftai.com/pdf/en/gr2.pdf",
+     "title": "GR-2 datasheet",
+     "publisher": "Fourier Intelligence",
+     "date": "2024",
+     "confidence": "A",
+     "fields": [
+      "body",
+      "hand",
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://support.fftai.com/en/docs/GR-X-Humanoid-Robot/GR2/GR-2_Introduction/",
+     "title": "About GR-2",
+     "publisher": "Fourier Developer Center",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body.heightCm",
+      "body.weightKg",
+      "body.dofCount"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "actuators[0].peakTorqueNm",
+     "values": [
+      {
+       "value": 436,
+       "url": "https://www.fftai.com/pdf/en/gr2.pdf"
+      },
+      {
+       "value": 380,
+       "url": "https://humanoid.guide/?p=1799"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 24,
+    "total": 27,
+    "ratio": 0.89,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "GR-3",
+   "company": "Fourier Intelligence",
+   "aliases": [
+    "Fourier GR-3",
+    "Care-bot"
+   ],
+   "announcementYear": 2025,
+   "announcementQuarter": 3,
+   "status": "commercial",
+   "purpose": "service",
+   "locomotionType": "bipedal",
+   "handType": "multi_finger",
+   "commercializationStage": "commercial",
+   "region": "china",
+   "descriptionKo": "푸리에의 돌봄 특화 '케어봇'(2025-08, CES 2026 미국 데뷔). 164.2cm/71kg, 최대 55 관절, 관절 피크 440N·m, 압력 센서 31개 분산 배치, 한 손 3kg, ~3시간 가동(핫스왑 배터리).",
+   "body": {
+    "heightCm": 164,
+    "weightKg": 71,
+    "payloadKg": 3,
+    "dofCount": 55,
+    "maxSpeedMps": null,
+    "operationTimeHours": 3,
+    "batteryWh": null,
+    "note": "공식 지원문서: 1642mm, ~71kg, 55 관절(손 포함), 정격 936W/46.8V. 제품페이지 55kg 표기는 충돌."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": true,
+    "note": "31개 분산 압력(촉각) 센서(공식)."
+   },
+   "actuators": [
+    {
+     "name": "FSA actuator (GR-3)",
+     "vendor": "Fourier Intelligence",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": 440,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 최대 관절 피크 440N·m."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://support.fftai.com/en/getting-started/general-information",
+     "title": "Robot Overview (GR-3)",
+     "publisher": "Fourier Developer Center",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body",
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://fftai.com/uploads/upload/files/20251022/425294838296d52b62b802c68128c30f.pdf",
+     "title": "GR-3 spec sheet",
+     "publisher": "Fourier Intelligence",
+     "date": "2025-10",
+     "confidence": "A",
+     "fields": [
+      "body",
+      "hand"
+     ]
+    },
+    {
+     "url": "https://fftai.com/products-gr3",
+     "title": "Fourier's First Care-bot GR-3",
+     "publisher": "Fourier Intelligence",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "hand.tactile"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.weightKg",
+     "values": [
+      {
+       "value": 71,
+       "url": "https://support.fftai.com/en/getting-started/general-information"
+      },
+      {
+       "value": 55,
+       "url": "https://fftai.com/products-gr3"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 22,
+    "total": 27,
+    "ratio": 0.81,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "Phoenix",
+   "company": "Sanctuary AI",
+   "aliases": [
+    "Phoenix Gen 6",
+    "Phoenix Gen 7",
+    "Phoenix Gen 8"
+   ],
+   "announcementYear": 2023,
+   "announcementQuarter": 2,
+   "status": "development",
+   "purpose": "industrial",
+   "locomotionType": "hybrid",
+   "handType": "multi_finger",
+   "commercializationStage": "pilot",
+   "region": "north_america",
+   "descriptionKo": "생추어리 AI의 범용 로봇(2023-05 Gen 6, 2024-04 Gen 7). 170cm/70kg, 25kg 페이로드, 소형화 유압 밸브 기반 20~21-DOF 손. Gen 8은 고객 피드백으로 휠 베이스 채택.",
+   "body": {
+    "heightCm": 170,
+    "weightKg": 70,
+    "payloadKg": 25,
+    "dofCount": null,
+    "maxSpeedMps": 1.34,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "공식(Gen 6): 5'7\"/155lb/55lb/3mph. Gen 7/8 신규 수치 미공개."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": 20,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": true,
+    "note": "공식: 20 DOF(총), 후속 보도 21 DOF. 소형화 유압 밸브 구동, 촉각 센서(5mN 감지, 리셀러)."
+   },
+   "actuators": [
+    {
+     "name": "Miniaturized hydraulic hand actuator",
+     "vendor": "Sanctuary AI",
+     "inHouse": true,
+     "type": "hydraulic",
+     "usageLocation": "hand",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 자체 소형화 유압 밸브, 케이블/전기기계식 대비 10배 파워밀도 주장. Gen 7에서 추가 소형화."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://sanctuary.ai/news/sanctuary-ai-unveils-phoenix-a-humanoid-general-purpose-robot-designed-for-work/",
+     "title": "Sanctuary AI Unveils Phoenix",
+     "publisher": "Sanctuary AI",
+     "date": "2023-05",
+     "confidence": "A",
+     "fields": [
+      "body",
+      "hand"
+     ]
+    },
+    {
+     "url": "https://sanctuary.ai/news/sanctuary-ai-unveils-the-next-generation-of-ai-robotics/",
+     "title": "Sanctuary AI Unveils the Next Generation of AI Robotics (Gen 7)",
+     "publisher": "Sanctuary AI",
+     "date": "2024-04",
+     "confidence": "A",
+     "fields": [
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://sanctuary.ai/news/sanctuary-ai-demonstrates-in-hand-manipulation-capabilities-for-improved-general-purpose-robot-dexterity/",
+     "title": "In-Hand Manipulation",
+     "publisher": "Sanctuary AI",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "hand.handDofPerHand"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "hand.handDofPerHand",
+     "values": [
+      {
+       "value": 20,
+       "url": "https://sanctuary.ai/news/sanctuary-ai-unveils-phoenix-a-humanoid-general-purpose-robot-designed-for-work/"
+      },
+      {
+       "value": 21,
+       "url": "https://sanctuary.ai/news/sanctuary-ai-demonstrates-in-hand-manipulation-capabilities-for-improved-general-purpose-robot-dexterity/"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 22,
+    "total": 27,
+    "ratio": 0.81,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "Apollo",
+   "company": "Apptronik",
+   "aliases": [
+    "Apollo (Gen 1)"
+   ],
+   "announcementYear": 2023,
+   "announcementQuarter": 3,
+   "status": "poc",
+   "purpose": "industrial",
+   "locomotionType": "bipedal",
+   "handType": "gripper",
+   "commercializationStage": "pilot",
+   "region": "north_america",
+   "descriptionKo": "앱트로닉의 범용 휴머노이드(2023-08). 5'8\"/160lb, 55lb 페이로드, 핫스왑 배터리 팩당 4시간. NASA Valkyrie 계보의 자체 선형(롤러스크류+직렬 스프링) 액추에이터, 메르세데스·GXO 파일럿.",
+   "body": {
+    "heightCm": 173,
+    "weightKg": 73,
+    "payloadKg": 25,
+    "dofCount": null,
+    "maxSpeedMps": null,
+    "operationTimeHours": 4,
+    "batteryWh": null,
+    "note": "공식: 5'8\", 160lb, 55lb, 4h/팩. DOF 미공개."
+   },
+   "hand": {
+    "handType": "gripper",
+    "fingerCount": null,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": null,
+    "note": "교체형 엔드이펙터."
+   },
+   "actuators": [
+    {
+     "name": "Apollo linear actuator",
+     "vendor": "Apptronik",
+     "inHouse": true,
+     "type": "linear_screw",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 13세대 이상 자체 전동 액추에이터, 특허 기술. 2차: 롤러스크류+직렬 다이스프링(SEA)+로드셀 이중 힘 측정. 90%+ 에너지 효율 목표."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://apptronik.com/news-collection/apptronik-unveils-apollo",
+     "title": "Apptronik Unveils Apollo",
+     "publisher": "Apptronik",
+     "date": "2023-08",
+     "confidence": "A",
+     "fields": [
+      "body",
+      "announcementYear"
+     ]
+    },
+    {
+     "url": "https://apptronik.com/company/our-work",
+     "title": "Our Work (Valkyrie lineage)",
+     "publisher": "Apptronik",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://www.therobotreport.com/apptronik-unveils-apollo-humanoid-robot/",
+     "title": "Apptronik unveils Apollo humanoid robot",
+     "publisher": "The Robot Report",
+     "date": "2023-08",
+     "confidence": "B",
+     "fields": [
+      "body",
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://humanoid.guide/?p=17898",
+     "title": "Series Elastic Actuators in Humanoid Robots: Why Apollo Keeps a Spring in the Joint",
+     "publisher": "Humanoid.Guide",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "actuators.type"
+     ]
+    }
+   ],
+   "conflicts": [],
+   "notes": null,
+   "coverage": {
+    "filled": 19,
+    "total": 27,
+    "ratio": 0.7,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "Apollo 2",
+   "company": "Apptronik",
+   "aliases": [
+    "Apollo 2"
+   ],
+   "announcementYear": 2026,
+   "announcementQuarter": 2,
+   "status": "poc",
+   "purpose": "industrial",
+   "locomotionType": "hybrid",
+   "handType": "gripper",
+   "commercializationStage": "pilot",
+   "region": "north_america",
+   "descriptionKo": "앱트로닉이 2026-06-30 공개한 현행 플랫폼. 양족/휠 베이스 양 구성, 자체 특허 액추에이터(90%+ 효율), 교체 배터리로 7x22 운영. 구글 딥마인드 Gemini Robotics 데이터 수집 주력, 상용 모델 Apollo 3의 기반.",
+   "body": {
+    "heightCm": 173,
+    "weightKg": 75,
+    "payloadKg": 25,
+    "dofCount": 35,
+    "maxSpeedMps": 1.39,
+    "operationTimeHours": 4,
+    "batteryWh": null,
+    "note": "humanoid.guide 단일 2차 출처(C). AI Wiki는 '미공개'. 공식 수치 없음."
+   },
+   "hand": {
+    "handType": "gripper",
+    "fingerCount": null,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": null,
+    "note": null
+   },
+   "actuators": [
+    {
+     "name": "Apptronik patented actuator (Apollo 2)",
+     "vendor": "Apptronik",
+     "inHouse": true,
+     "type": "linear_screw",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 자체 특허 액추에이터, 90%+ 에너지 효율·대량생산성·공급망 복원력 설계. 타입 명시 없음(1세대 선형 계보 추정)."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://apptronik.com/apollo/apollo-2",
+     "title": "Apptronik - Apollo 2",
+     "publisher": "Apptronik",
+     "date": "2026-06",
+     "confidence": "A",
+     "fields": [
+      "actuators",
+      "locomotionType",
+      "body.operationTimeHours"
+     ]
+    },
+    {
+     "url": "https://www.automate.org/robotics/industry-insights/apptronik-opens-90-000-sq-ft-testing-site-for-new-apollo-2-humanoid/boa",
+     "title": "Apptronik opens testing site for new Apollo 2",
+     "publisher": "A3 Automate",
+     "date": "2026-07",
+     "confidence": "B",
+     "fields": [
+      "announcementYear"
+     ]
+    },
+    {
+     "url": "https://humanoid.guide/?p=14227",
+     "title": "Apollo 2",
+     "publisher": "Humanoid.Guide",
+     "date": "2026",
+     "confidence": "C",
+     "fields": [
+      "body"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body",
+     "values": [
+      {
+       "value": "173cm/75kg/25kg/35DOF",
+       "url": "https://humanoid.guide/?p=14227"
+      },
+      {
+       "value": "not disclosed",
+       "url": "https://aiwiki.ai/wiki/apollo_2"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 21,
+    "total": 27,
+    "ratio": 0.78,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "Forerunner K2 Bumblebee",
+   "company": "Kepler Robot",
+   "aliases": [
+    "Bumblebee",
+    "Forerunner K2",
+    "K2",
+    "Kepler Forerunner K2"
+   ],
+   "announcementYear": 2025,
+   "announcementQuarter": 2,
+   "status": "commercial",
+   "purpose": "industrial",
+   "locomotionType": "hybrid",
+   "handType": "multi_finger",
+   "commercializationStage": "commercial",
+   "region": "china",
+   "descriptionKo": "케플러의 하이브리드(직렬-병렬) 구조 산업용 휴머노이드. 175~178cm/75~85kg, 52 DOF, 팔당 15kg(양팔 30kg), 1시간 충전 8시간 가동. 자체 유성 롤러스크류 선형 액추에이터+회전 액추에이터(200N·m). 2025-09 양산·출하, 기본형 $30,000/¥248,000.",
+   "body": {
+    "heightCm": 178,
+    "weightKg": 85,
+    "payloadKg": 30,
+    "dofCount": 52,
+    "maxSpeedMps": null,
+    "operationTimeHours": 8,
+    "batteryWh": null,
+    "note": "공식 productDetail: 178cm/85kg. PR(2025-06): 175cm/75kg/52 DOF/80+ 센서/100 TOPS. 양팔 30kg."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": 11,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": true,
+    "note": "공식 PR: 11 DOF/손, 손가락당 25 힘감지 접점, 손목 6축 F/T 센서. 공식 페이지는 12 DOF."
+   },
+   "actuators": [
+    {
+     "name": "Planetary roller screw linear actuator",
+     "vendor": "Kepler Robotics",
+     "inHouse": true,
+     "type": "linear_screw",
+     "usageLocation": "leg",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 롤러스크류+드라이버+감속기+엔코더 통합 자체 선형 액추에이터. 하이브리드 직렬-병렬 구조."
+    },
+    {
+     "name": "Rotary actuator",
+     "vendor": "Kepler Robotics",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "arm",
+     "quantity": null,
+     "peakTorqueNm": 200,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 피크 200N·m, 반복정밀도 0.01°."
+    }
+   ],
+   "price": {
+    "min": 30000,
+    "max": 30000,
+    "currency": "USD",
+    "note": "공식 PR: 기본형 $30,000; 중국 ¥248,000(양족 기본/양족 개발자/휠 개발자 3구성). 공식 리스트 가격표 없음.",
+    "confidence": "B"
+   },
+   "sources": [
+    {
+     "url": "https://www.gotokepler.com/productDetail",
+     "title": "Kepler Forerunner Series",
+     "publisher": "Kepler Robotics",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body.heightCm",
+      "body.weightKg",
+      "actuators",
+      "hand.handDofPerHand"
+     ]
+    },
+    {
+     "url": "https://www.prnewswire.com/news-releases/kepler-k2-bumblebee-debuts-at-icra-2025-captivating-attendees-302471503.html",
+     "title": "Kepler K2 Bumblebee Debuts at ICRA 2025",
+     "publisher": "PR Newswire (Kepler)",
+     "date": "2025-06",
+     "confidence": "A",
+     "fields": [
+      "body",
+      "hand",
+      "price"
+     ]
+    },
+    {
+     "url": "https://www.prnewswire.com/news-releases/worlds-first-commercially-available-hybrid-architecture-humanoid-robot-moves-into-mass-production-kepler-marks-the-start-of-a-new-industrial-era-302568138.html",
+     "title": "Kepler mass production",
+     "publisher": "PR Newswire (Kepler)",
+     "date": "2025-09-26",
+     "confidence": "A",
+     "fields": [
+      "commercializationStage",
+      "actuators",
+      "price"
+     ]
+    },
+    {
+     "url": "https://www.therobotreport.com/kepler-robotics-showcases-k2-bumblebee-icra-2025/",
+     "title": "Kepler Robotics showcases K2 Bumblebee at ICRA 2025",
+     "publisher": "The Robot Report",
+     "date": "2025-06",
+     "confidence": "B",
+     "fields": [
+      "actuators",
+      "body.dofCount"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.weightKg",
+     "values": [
+      {
+       "value": 85,
+       "url": "https://www.gotokepler.com/productDetail"
+      },
+      {
+       "value": 75,
+       "url": "https://www.prnewswire.com/news-releases/kepler-k2-bumblebee-debuts-at-icra-2025-captivating-attendees-302471503.html"
+      }
+     ]
+    },
+    {
+     "field": "hand.handDofPerHand",
+     "values": [
+      {
+       "value": 11,
+       "url": "https://www.prnewswire.com/news-releases/kepler-k2-bumblebee-debuts-at-icra-2025-captivating-attendees-302471503.html"
+      },
+      {
+       "value": 12,
+       "url": "https://www.gotokepler.com/productDetail"
+      }
+     ]
+    },
+    {
+     "field": "body.dofCount",
+     "values": [
+      {
+       "value": 52,
+       "url": "https://www.therobotreport.com/kepler-robotics-showcases-k2-bumblebee-icra-2025/"
+      },
+      {
+       "value": 40,
+       "url": "https://www.gotokepler.com/productDetail"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 24,
+    "total": 27,
+    "ratio": 0.89,
+    "actuatorDetailFilled": 2,
+    "actuatorDetailTotal": 14
+   },
+   "companyAliases": [
+    "Kepler Robotics"
+   ]
+  },
+  {
+   "tier": 1,
+   "name": "CL-1",
+   "company": "LimX Dynamics",
+   "aliases": [
+    "LimX CL-1"
+   ],
+   "announcementYear": 2023,
+   "announcementQuarter": 4,
+   "status": "development",
+   "purpose": "industrial",
+   "locomotionType": "bipedal",
+   "handType": "none",
+   "commercializationStage": "prototype",
+   "region": "china",
+   "descriptionKo": "림엑스 다이내믹스의 양족 연구 플랫폼(2023-12, 계단 등반 데모). 약 157cm/50kg, 20 DOF, 손 없음. 2024-08 8.2kg 물체 연속 적재 데모 후 Oli로 대체.",
+   "body": {
+    "heightCm": 157,
+    "weightKg": 50,
+    "payloadKg": 8.2,
+    "dofCount": 20,
+    "maxSpeedMps": 1.1,
+    "operationTimeHours": 3,
+    "batteryWh": null,
+    "note": "humanoid.guide(미검증): 157cm/50kg/20 DOF/4km/h/3h. 공식 뉴스: 8.2kg 물체 핸들링."
+   },
+   "hand": {
+    "handType": "none",
+    "fingerCount": null,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": null,
+    "note": "기능성 손/엔드이펙터 미장착(연구 플랫폼)."
+   },
+   "actuators": [
+    {
+     "name": "LimX joint actuator",
+     "vendor": "LimX Dynamics",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "leg",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "자체 개발 추정. 사양 미공개."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "비판매",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://www.limxdynamics.com/en/news/BK000049",
+     "title": "LimX CL-1 Performs Continuous Heavy Objects Loading",
+     "publisher": "LimX Dynamics",
+     "date": "2024-08",
+     "confidence": "A",
+     "fields": [
+      "body.payloadKg"
+     ]
+    },
+    {
+     "url": "https://humanoid.guide/product/limx-cl-series/",
+     "title": "LimX CL",
+     "publisher": "Humanoid.Guide",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body"
+     ]
+    },
+    {
+     "url": "https://heise.de/-10511488",
+     "title": "LimX Oli: Modular humanoid robot",
+     "publisher": "heise",
+     "date": "2025",
+     "confidence": "B",
+     "fields": [
+      "hand",
+      "status"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.heightCm",
+     "values": [
+      {
+       "value": 157,
+       "url": "https://humanoid.guide/product/limx-cl-series/"
+      },
+      {
+       "value": 175,
+       "url": "https://mikekalil.com/tag/limx-cl-1/"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 21,
+    "total": 27,
+    "ratio": 0.78,
+    "actuatorDetailFilled": 0,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "Oli",
+   "company": "LimX Dynamics",
+   "aliases": [
+    "LimX Oli",
+    "Oli Lite",
+    "Oli EDU",
+    "Oli Super"
+   ],
+   "announcementYear": 2025,
+   "announcementQuarter": 3,
+   "status": "commercial",
+   "purpose": "service",
+   "locomotionType": "bipedal",
+   "handType": "interchangeable",
+   "commercializationStage": "commercial",
+   "region": "china",
+   "descriptionKo": "림엑스의 풀사이즈 모듈형 범용 휴머노이드(2025-07). 165cm/55kg, 31 DOF(팔7x2·다리6x2·허리3·머리2; 손 포함 최대 43), Lite/EDU/Super 3종. 리셀러 MSRP $72,000.",
+   "body": {
+    "heightCm": 165,
+    "weightKg": 55,
+    "payloadKg": null,
+    "dofCount": 31,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "공식: 165cm, 55kg, 31 DOF(손 제외). 리셀러 31~43(에디션별)."
+   },
+   "hand": {
+    "handType": "interchangeable",
+    "fingerCount": null,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": null,
+    "note": "모듈형 엔드이펙터 교체."
+   },
+   "actuators": [
+    {
+     "name": "LimX joint actuator",
+     "vendor": "LimX Dynamics",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "자체 개발. 사양 미공개."
+    }
+   ],
+   "price": {
+    "min": 72000,
+    "max": 72000,
+    "currency": "USD",
+    "note": "Knox Labs 리셀러 MSRP. 공식가 비공개.",
+    "confidence": "C"
+   },
+   "sources": [
+    {
+     "url": "https://www.limxdynamics.com/en/products/oli",
+     "title": "Full-Size General-Purpose Humanoid Robot (Oli)",
+     "publisher": "LimX Dynamics",
+     "date": "2025",
+     "confidence": "A",
+     "fields": [
+      "body"
+     ]
+    },
+    {
+     "url": "https://www.therobotreport.com/limx-dynamics-launches-limx-oli-full-size-humanoid-robot/",
+     "title": "LimX Dynamics launches LimX Oli",
+     "publisher": "The Robot Report",
+     "date": "2025-07",
+     "confidence": "B",
+     "fields": [
+      "announcementYear",
+      "body"
+     ]
+    },
+    {
+     "url": "https://www.knoxlabs.com/products/limx-oli-full-size-humanoid-robot",
+     "title": "LimX Oli",
+     "publisher": "Knox Labs",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "price",
+      "body.dofCount"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.dofCount",
+     "values": [
+      {
+       "value": 31,
+       "url": "https://www.limxdynamics.com/en/products/oli"
+      },
+      {
+       "value": 33,
+       "url": "https://www.robotshop.com/products/limx-dynamics-oli-edu-humanoid-robot"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 19,
+    "total": 27,
+    "ratio": 0.7,
+    "actuatorDetailFilled": 0,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "Genie G1",
+   "company": "Agibot",
+   "aliases": [
+    "AgiBot G1",
+    "精灵 G1",
+    "Genie Operator G1"
+   ],
+   "announcementYear": 2024,
+   "announcementQuarter": 3,
+   "status": "commercial",
+   "purpose": "industrial",
+   "locomotionType": "wheeled",
+   "handType": "interchangeable",
+   "commercializationStage": "commercial",
+   "region": "china",
+   "descriptionKo": "지위안(AgiBot)의 휠형 데이터 수집·모델 추론용 범용 로봇. 130~180cm 가변 신장, 150kg, 20 DOF(엔드이펙터 제외, 총 26). PowerFlow 자체 관절 모듈 계열.",
+   "body": {
+    "heightCm": 180,
+    "weightKg": 150,
+    "payloadKg": null,
+    "dofCount": 20,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "공식: 신장 130~180cm, 150kg, 20 DOF(EE 제외)/총 26."
+   },
+   "hand": {
+    "handType": "interchangeable",
+    "fingerCount": null,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": null,
+    "note": null
+   },
+   "actuators": [
+    {
+     "name": "PowerFlow R86-3",
+     "vendor": "AgiBot",
+     "inHouse": true,
+     "type": "qdd",
+     "usageLocation": "arm",
+     "quantity": null,
+     "peakTorqueNm": 150,
+     "ratedTorqueNm": 60,
+     "speedRpm": 80,
+     "weightKg": 1.25,
+     "gearRatio": null,
+     "notes": "공식 X1 페이지(현행): 피크 150N·m/정격 60N·m/최대 80rpm/48V/1.25kg. 구형 페이지 200N·m·1.28kg·Φ86x80.7. 적용 모델 연계는 미확인(D)."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://www.agibot.com/products/G1",
+     "title": "AGIBOT G1",
+     "publisher": "AgiBot",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body"
+     ]
+    },
+    {
+     "url": "https://agibot.com/products/X1",
+     "title": "AGIBOT X1 (PowerFlow R86 specs)",
+     "publisher": "AgiBot",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "actuators"
+     ]
+    }
+   ],
+   "conflicts": [],
+   "notes": null,
+   "coverage": {
+    "filled": 18,
+    "total": 27,
+    "ratio": 0.67,
+    "actuatorDetailFilled": 5,
+    "actuatorDetailTotal": 7
+   },
+   "companyAliases": [
+    "AgiBot (Zhiyuan Robotics)"
+   ]
+  },
+  {
+   "tier": 1,
+   "name": "Yuanzheng A2",
+   "company": "Agibot",
+   "aliases": [
+    "A2",
+    "A2 Lite",
+    "A2 Ultra",
+    "AgiBot A2",
+    "Expedition A2",
+    "远征 A2"
+   ],
+   "announcementYear": 2024,
+   "announcementQuarter": 3,
+   "status": "commercial",
+   "purpose": "service",
+   "locomotionType": "bipedal",
+   "handType": "multi_finger",
+   "commercializationStage": "commercial",
+   "region": "china",
+   "descriptionKo": "지위안의 풀사이즈 상호작용·서비스 휴머노이드(2024-08). 169cm/69kg, 40+ DOF, 700Wh 배터리, 자체 양산 통합 관절 피크 512N·m. A2 Lite(64kg/23 DOF)·Ultra 구성.",
+   "body": {
+    "heightCm": 169,
+    "weightKg": 69,
+    "payloadKg": null,
+    "dofCount": 40,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": 700,
+    "note": "공식 A2 페이지: 169cm/69kg/700Wh/40+ DOF(손 포함 추정). RobotShop: Ultra 40 DOF, Lite 23 DOF."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": null,
+    "note": "A2 Ultra 덱스터러스 핸드(2차)."
+   },
+   "actuators": [
+    {
+     "name": "AgiBot integrated joint (PowerFlow)",
+     "vendor": "AgiBot",
+     "inHouse": true,
+     "type": "qdd",
+     "usageLocation": "leg",
+     "quantity": null,
+     "peakTorqueNm": 512,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식 A2 페이지: 자체 개발·양산 통합 관절 피크 512N·m. PowerFlow 브랜드 명기 없음. A1(Expedition) PowerFlow: 350N·m+/1.6kg, 준직구동·유성 ≤10:1·액체냉각."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://www.agibot.com/products/A2",
+     "title": "AGIBOT A2",
+     "publisher": "AgiBot",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body",
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://www.agibot.com/products/A1",
+     "title": "AGIBOT RAISE A1 (PowerFlow description)",
+     "publisher": "AgiBot",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "actuators.type",
+      "actuators.notes"
+     ]
+    },
+    {
+     "url": "https://community.robotshop.com/blog/show/choosing-an-agibot-humanoid-robot-a-buyers-guide-to-the-a2-x2-and-g2-lineups",
+     "title": "Choosing an AgiBot humanoid: A2, X2, G2",
+     "publisher": "RobotShop Community",
+     "date": "2026",
+     "confidence": "C",
+     "fields": [
+      "body.dofCount",
+      "hand"
+     ]
+    }
+   ],
+   "conflicts": [],
+   "notes": null,
+   "coverage": {
+    "filled": 20,
+    "total": 27,
+    "ratio": 0.74,
+    "actuatorDetailFilled": 2,
+    "actuatorDetailTotal": 7
+   },
+   "companyAliases": [
+    "AgiBot (Zhiyuan Robotics)"
+   ]
+  },
+  {
+   "tier": 1,
+   "name": "Lingxi X2",
+   "company": "Agibot",
+   "aliases": [
+    "AgiBot X2",
+    "灵犀 X2",
+    "X2 Ultra",
+    "X2 EDU",
+    "X2 Neo"
+   ],
+   "announcementYear": 2024,
+   "announcementQuarter": 4,
+   "status": "commercial",
+   "purpose": "service",
+   "locomotionType": "bipedal",
+   "handType": "interchangeable",
+   "commercializationStage": "commercial",
+   "region": "china",
+   "descriptionKo": "지위안의 소형 상호작용 휴머노이드(2024-12). 131cm/33~39kg, 25~31 DOF(Ultra 30: 팔7x2·허리3·다리6x2), 관절 피크 120N·m. 교육·연구용 EDU 및 Neo 변형.",
+   "body": {
+    "heightCm": 131,
+    "weightKg": 39,
+    "payloadKg": null,
+    "dofCount": 30,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "공식 AimDK 문서: X2 Ultra 1310x460x210mm, ~39kg(EDU ~33kg), 30 DOF, 피크 120N·m. Neo 31 DOF, Base 25 DOF."
+   },
+   "hand": {
+    "handType": "interchangeable",
+    "fingerCount": null,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": null,
+    "note": null
+   },
+   "actuators": [
+    {
+     "name": "X2 joint motor",
+     "vendor": "AgiBot",
+     "inHouse": true,
+     "type": "qdd",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": 120,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식 AimDK: 피크 관절 토크 120N·m(전 변형)."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "공식 스토어 가격 미확인",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://x2-aimdk.agibot.com/en/latest/about_agibot_X2/robot_specifications.html",
+     "title": "1.2 Robot Specifications — AimDK_X2",
+     "publisher": "AgiBot",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body",
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://store.agibot.com/products/x2",
+     "title": "AGIBOT X2 Neo",
+     "publisher": "AgiBot Store",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body.dofCount"
+     ]
+    },
+    {
+     "url": "https://ca.robotshop.com/products/agibot-x2-base-humanoid-robot",
+     "title": "AgiBot X2 Base",
+     "publisher": "RobotShop",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body.dofCount",
+      "body.weightKg"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.dofCount",
+     "values": [
+      {
+       "value": 30,
+       "url": "https://x2-aimdk.agibot.com/en/latest/about_agibot_X2/robot_specifications.html"
+      },
+      {
+       "value": 31,
+       "url": "https://store.agibot.com/products/x2"
+      },
+      {
+       "value": 25,
+       "url": "https://ca.robotshop.com/products/agibot-x2-base-humanoid-robot"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 18,
+    "total": 27,
+    "ratio": 0.67,
+    "actuatorDetailFilled": 2,
+    "actuatorDetailTotal": 7
+   },
+   "companyAliases": [
+    "AgiBot (Zhiyuan Robotics)"
+   ]
+  },
+  {
+   "tier": 1,
+   "name": "4NE1",
+   "company": "NEURA Robotics",
+   "aliases": [
+    "4NE-1",
+    "4NE1 Gen 3.5"
+   ],
+   "announcementYear": 2023,
+   "announcementQuarter": 4,
+   "status": "development",
+   "purpose": "industrial",
+   "locomotionType": "hybrid",
+   "handType": "multi_finger",
+   "commercializationStage": "pilot",
+   "region": "europe",
+   "descriptionKo": "독일 노이라 로보틱스의 인지형 휴머노이드. 180cm/80kg, 페이로드 10~100kg(구성별), 5km/h, 휠/7축 변형 제공. Gen 3.5 예약가 €98,000(20대 이상 €60,000), 2026년 말 공급 예정.",
+   "body": {
+    "heightCm": 180,
+    "weightKg": 80,
+    "payloadKg": 15,
+    "dofCount": null,
+    "maxSpeedMps": 1.39,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "공식 스펙시트(구): 180cm/80kg/15kg/3km/h. 신규 4NE1 페이지: 페이로드 10~100kg, 5km/h. DOF 55(2차, 미확인)."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": true,
+    "note": null
+   },
+   "actuators": [
+    {
+     "name": "NEURA joint actuator",
+     "vendor": "NEURA Robotics",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 고토크 액추에이션, 전 관절 토크 피드백 센서. 수치 미공개."
+    }
+   ],
+   "price": {
+    "min": 60000,
+    "max": 98000,
+    "currency": "EUR",
+    "note": "공식 예약 페이지: 1~19대 €98,000, 20대+ €60,000(세금·운송 제외), 예약금 €100.",
+    "confidence": "A"
+   },
+   "sources": [
+    {
+     "url": "https://neura-robotics.com/products/4ne1/",
+     "title": "4NE1 - Your Next Gen",
+     "publisher": "NEURA Robotics",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body"
+     ]
+    },
+    {
+     "url": "https://neura-robotics.com/product/4ne1-reservation/",
+     "title": "Meet 4NE1 Gen 3.5 (reservation)",
+     "publisher": "NEURA Robotics",
+     "date": "2026",
+     "confidence": "A",
+     "fields": [
+      "price",
+      "commercializationStage"
+     ]
+    },
+    {
+     "url": "https://neura-robotics.com/?p=27729",
+     "title": "The humanoid robot 4NE-1 (spec sheet)",
+     "publisher": "NEURA Robotics",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body.payloadKg",
+      "body.maxSpeedMps"
+     ]
+    },
+    {
+     "url": "https://robotics247.com/article/neura_robotics_builds_cognitive_cobots_4ne_1_humanoid/news",
+     "title": "NEURA Robotics Builds on Cognitive Cobots With 4NE-1",
+     "publisher": "Robotics 24/7",
+     "date": "2024",
+     "confidence": "B",
+     "fields": [
+      "actuators"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.payloadKg",
+     "values": [
+      {
+       "value": 15,
+       "url": "https://neura-robotics.com/?p=27729"
+      },
+      {
+       "value": "10-100",
+       "url": "https://neura-robotics.com/products/4ne1/"
+      },
+      {
+       "value": 20,
+       "url": "https://robotics247.com/article/neura_robotics_builds_cognitive_cobots_4ne_1_humanoid/news"
+      }
+     ]
+    },
+    {
+     "field": "body.maxSpeedMps",
+     "values": [
+      {
+       "value": 0.83,
+       "url": "https://neura-robotics.com/?p=27729"
+      },
+      {
+       "value": 1.39,
+       "url": "https://neura-robotics.com/products/4ne1/"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 22,
+    "total": 27,
+    "ratio": 0.81,
+    "actuatorDetailFilled": 0,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "RB-Y1",
+   "company": "Rainbow Robotics",
+   "aliases": [
+    "RB-Y1",
+    "RBY1"
+   ],
+   "announcementYear": 2024,
+   "announcementQuarter": 2,
+   "status": "commercial",
+   "purpose": "service",
+   "locomotionType": "wheeled",
+   "handType": "gripper",
+   "commercializationStage": "commercial",
+   "region": "korea",
+   "descriptionKo": "레인보우로보틱스의 휠형 양팔 모바일 매니퓰레이터(2024, 국내 최초). 7-DOF 팔x2·6-DOF 몸통(토르소 50cm 승강)·그리퍼, 총 24 DOF, 팔당 3kg, 1.5~2.5m/s, 131kg(상체38/하체42/베이스51). 연구용 SDK·GPU 포함.",
+   "body": {
+    "heightCm": 140,
+    "weightKg": 131,
+    "payloadKg": 3,
+    "dofCount": 24,
+    "maxSpeedMps": 2.5,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "공식: 600x690x1400mm, 131kg(베이스 90kg형 170kg), 24 DOF(팔7x2·다리6·그리퍼1x2·휠1x2). 주행 1.5m/s(공식), 2.5m/s(보도)."
+   },
+   "hand": {
+    "handType": "gripper",
+    "fingerCount": 2,
+    "handDofPerHand": 1,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": null,
+    "note": "1-DOF 그리퍼 x2(교체 가능)."
+   },
+   "actuators": [
+    {
+     "name": "Rainbow Robotics joint actuator",
+     "vendor": "Rainbow Robotics",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "자체 개발(협동로봇 RB 시리즈 액추에이터 계보). 사양 미공개."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://www.rainbow-robotics.com/en_rby1",
+     "title": "RB-Y1",
+     "publisher": "Rainbow Robotics",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body",
+      "hand"
+     ]
+    },
+    {
+     "url": "https://rainbow-robotics.com/en/products/rb-y1/",
+     "title": "RB-Y1 product page",
+     "publisher": "Rainbow Robotics",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body.weightKg",
+      "body.payloadKg"
+     ]
+    },
+    {
+     "url": "https://www.therobotreport.com/rainbow-robotics-unveils-rb-y1-wheeled-two-armed-robot/",
+     "title": "Rainbow Robotics unveils RB-Y1",
+     "publisher": "The Robot Report",
+     "date": "2024",
+     "confidence": "B",
+     "fields": [
+      "body.maxSpeedMps",
+      "announcementYear"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.dofCount",
+     "values": [
+      {
+       "value": 24,
+       "url": "https://www.rainbow-robotics.com/en_rby1"
+      },
+      {
+       "value": 26,
+       "url": "https://rainbow-robotics.com/en/products/rb-y1/"
+      },
+      {
+       "value": 22,
+       "url": "https://www.therobotreport.com/rainbow-robotics-unveils-rb-y1-wheeled-two-armed-robot/"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 22,
+    "total": 27,
+    "ratio": 0.81,
+    "actuatorDetailFilled": 0,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 1,
+   "name": "HUBO 2 / DRC-HUBO",
+   "company": "Rainbow Robotics",
+   "aliases": [
+    "DRC-HUBO+",
+    "HUBO",
+    "HUBO 2 Plus",
+    "HUBO II"
+   ],
+   "announcementYear": 2008,
+   "announcementQuarter": null,
+   "status": "commercial",
+   "purpose": "service",
+   "locomotionType": "hybrid",
+   "handType": "multi_finger",
+   "commercializationStage": "commercial",
+   "region": "korea",
+   "descriptionKo": "KAIST 휴보랩에서 개발, 레인보우로보틱스가 상용화한 연구용 휴머노이드. HUBO 2(2008) 125~130cm/43~45kg/40 DOF; DRC-HUBO+는 2015 DARPA 로보틱스 챌린지 우승(휠 주행 모드·액추에이터 냉각).",
+   "body": {
+    "heightCm": 130,
+    "weightKg": 45,
+    "payloadKg": null,
+    "dofCount": 40,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "HUBO II: 1.3m/45kg/40 DOF(GaTech). Wikipedia: HUBO 2 125cm/45kg, HUBO 2 Plus 130cm/43kg. 액추에이터 사양 미확인."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": null,
+    "note": null
+   },
+   "actuators": [
+    {
+     "name": "HUBO joint actuator",
+     "vendor": "Rainbow Robotics",
+     "inHouse": true,
+     "type": "harmonic",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "DC 모터+하모닉 드라이브(KAIST 논문 기반 일반 지식, D). DRC-HUBO 자체 냉각 시스템."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개(연구기관 판매)",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Rainbow_Robotics",
+     "title": "Rainbow Robotics",
+     "publisher": "Wikipedia",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body",
+      "descriptionKo"
+     ]
+    },
+    {
+     "url": "https://hg.gatech.edu/node/181921",
+     "title": "HUBO II seminar",
+     "publisher": "Georgia Tech",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.heightCm",
+     "values": [
+      {
+       "value": 130,
+       "url": "https://hg.gatech.edu/node/181921"
+      },
+      {
+       "value": 125,
+       "url": "https://Www.Wikipedia.org/wiki/HUBO"
+      }
+     ]
+    }
+   ],
+   "notes": "레인보우로보틱스 공식 HUBO 페이지 미검색. 레거시 모델.",
+   "coverage": {
+    "filled": 18,
+    "total": 27,
+    "ratio": 0.67,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   },
+   "companyAliases": [
+    "Rainbow Robotics (KAIST)"
+   ]
+  },
+  {
+   "tier": 1,
+   "name": "MenteeBot V3",
+   "company": "Mentee Robotics",
+   "aliases": [
+    "MenteeBot",
+    "MenteeBot V3.0"
+   ],
+   "announcementYear": 2025,
+   "announcementQuarter": 2,
+   "status": "poc",
+   "purpose": "industrial",
+   "locomotionType": "bipedal",
+   "handType": "multi_finger",
+   "commercializationStage": "poc",
+   "region": "other",
+   "descriptionKo": "이스라엘 멘티 로보틱스(2026-02 모빌아이 인수)의 휴머노이드 V3.0. 175cm/70kg, 25kg 페이로드, 40 DOF, 1.5m/s, 핫스왑 배터리 3시간+, 360° 비전, 자체 액추에이터. 2026 PoC·2028 양산 목표.",
+   "body": {
+    "heightCm": 175,
+    "weightKg": 70,
+    "payloadKg": 25,
+    "dofCount": 40,
+    "maxSpeedMps": 1.5,
+    "operationTimeHours": 3,
+    "batteryWh": null,
+    "note": "공식(회사 발표 인용): 175cm/70kg/25kg/40 DOF/1.5m/s. 런타임 3h+는 티저 주장."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": null,
+    "gripForceN": 30,
+    "isInterchangeable": false,
+    "tactile": null,
+    "note": "손가락당 30N 악력(창업자 주장)."
+   },
+   "actuators": [
+    {
+     "name": "Mentee custom actuator",
+     "vendor": "Mentee Robotics",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "자체 설계 액추에이터(보도). 사양 미공개."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": 35000,
+    "currency": "USD",
+    "note": "humanoid.guide 미확인 가격.",
+    "confidence": "D"
+   },
+   "sources": [
+    {
+     "url": "https://inspenet.com/en/news/menteebot-v3-0-an-israeli-humanoid-robot-with-360-vision-and-high-precision/",
+     "title": "MenteeBot V3.0",
+     "publisher": "Inspenet",
+     "date": "2025",
+     "confidence": "B",
+     "fields": [
+      "body",
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://www.calcalistech.com/ctechnews/article/skctzanwzg",
+     "title": "Mobileye / Mentee",
+     "publisher": "CTech",
+     "date": "2026",
+     "confidence": "B",
+     "fields": [
+      "commercializationStage"
+     ]
+    },
+    {
+     "url": "https://humanoid.guide/product/menteebot-v3",
+     "title": "MenteeBot V3",
+     "publisher": "Humanoid.Guide",
+     "date": null,
+     "confidence": "D",
+     "fields": [
+      "price"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.weightKg",
+     "values": [
+      {
+       "value": 70,
+       "url": "https://inspenet.com/en/news/menteebot-v3-0-an-israeli-humanoid-robot-with-360-vision-and-high-precision/"
+      },
+      {
+       "value": 65,
+       "url": "https://humanoid.guide/product/menteebot-v3"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 24,
+    "total": 27,
+    "ratio": 0.89,
+    "actuatorDetailFilled": 0,
+    "actuatorDetailTotal": 7
+   },
+   "companyAliases": [
+    "Mentee Robotics (Mobileye)"
+   ]
+  },
+  {
+   "tier": 1,
+   "name": "CLOiD",
+   "company": "LG Electronics",
+   "aliases": [
+    "LG CLOiD",
+    "CLOiD Home Robot"
+   ],
+   "announcementYear": 2026,
+   "announcementQuarter": 1,
+   "status": "development",
+   "purpose": "home",
+   "locomotionType": "wheeled",
+   "handType": "multi_finger",
+   "commercializationStage": "concept",
+   "region": "korea",
+   "descriptionKo": "LG전자가 CES 2026(2026-01-04)에서 공개한 가정용 휠형 휴머노이드. 7-DOF 팔x2, 5지 독립 구동 손, VLM/VLA 기반 Physical AI. 자체 액추에이터 브랜드 AXIUM(Φ40~Φ120 모듈형 통합 관절, 재생제동) 적용, 2026 양산·2027 외부 공급·2030 산업용 고토크 진출 로드맵.",
+   "body": {
+    "heightCm": null,
+    "weightKg": null,
+    "payloadKg": null,
+    "dofCount": null,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "공식 수치 미공개. 팔 7 DOF x2, 손 5지."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": 5,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": null,
+    "note": "공식: 5지 독립 구동(최소 5 DOF)."
+   },
+   "actuators": [
+    {
+     "name": "AXIUM actuator",
+     "vendor": "LG Electronics",
+     "inHouse": true,
+     "type": "planetary",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "공식: 모터+감속기+드라이브 일체형 모듈(Φ40~Φ120, 9개 라인업), 인버터 기반 재생제동(~10% 에너지 회수). 토크 수치 미공개. 창원 자동화 라인 2026 연말 양산 목표(이데일리)."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "비판매(기술 데모)",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://www.lg.com/global/newsroom/news/home-appliance-solution/lg-electronics-presents-lg-cloid-home-robot-to-demonstrate-zero-labor-home-at-ces-2026/",
+     "title": "LG Electronics Presents LG CLOiD Home Robot at CES 2026",
+     "publisher": "LG Newsroom",
+     "date": "2026-01-04",
+     "confidence": "A",
+     "fields": [
+      "announcementYear",
+      "hand",
+      "body.note"
+     ]
+    },
+    {
+     "url": "https://www.nmpress.org/online_features/tech_talk_and_innovation/axium-the-power-that-actuates-the-future-of-robotics/article_4f72f79b-368f-53c3-a986-78a4c8f74bc3.html",
+     "title": "AXIUM: The Power That Actuates the Future of Robotics (LG CEO op-ed)",
+     "publisher": "Brandpoint (LG)",
+     "date": "2026",
+     "confidence": "A",
+     "fields": [
+      "actuators"
+     ]
+    },
+    {
+     "url": "https://en.edaily.co.kr/news/eda202609065029/",
+     "title": "LG actuator mass production line Changwon",
+     "publisher": "E-Daily",
+     "date": "2026-09-06",
+     "confidence": "B",
+     "fields": [
+      "actuators.notes"
+     ]
+    },
+    {
+     "url": "https://www.koreaherald.com/article/10808594",
+     "title": "LG push toward external actuator supply",
+     "publisher": "Korea Herald",
+     "date": "2026",
+     "confidence": "B",
+     "fields": [
+      "actuators.notes"
+     ]
+    }
+   ],
+   "conflicts": [],
+   "notes": null,
+   "coverage": {
+    "filled": 17,
+    "total": 27,
+    "ratio": 0.63,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 2,
+   "name": "Ameca",
+   "company": "Engineered Arts",
+   "aliases": [
+    "Ameca"
+   ],
+   "announcementYear": 2021,
+   "announcementQuarter": 4,
+   "status": "commercial",
+   "purpose": "service",
+   "locomotionType": "hybrid",
+   "handType": "multi_finger",
+   "commercializationStage": "commercial",
+   "region": "europe",
+   "descriptionKo": "영국 엔지니어드 아츠의 표정 특화 상호작용 휴머노이드(2021-12). 187cm/62kg, 61개 구동축(얼굴·머리 27). 상체 중심, 보행 불가.",
+   "body": {
+    "heightCm": 187,
+    "weightKg": 62,
+    "payloadKg": null,
+    "dofCount": 61,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "2차: 61 구동 DOF(머리27·목5·어깨8·팔10·손8·몸통3). 체중 49~62kg 혼재."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": 4,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": null,
+    "note": null
+   },
+   "actuators": [
+    {
+     "name": "Ameca actuator",
+     "vendor": "Engineered Arts",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": 61,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "자체 설계 소형 모터(얼굴). 사양 미공개."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://aiwiki.ai/wiki/engineered_arts_ameca",
+     "title": "Ameca (robot)",
+     "publisher": "AI Wiki",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body"
+     ]
+    },
+    {
+     "url": "https://humanoid.press/database/robots-ameca/",
+     "title": "Ameca",
+     "publisher": "Humanoid Press",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body.dofCount",
+      "hand"
+     ]
+    }
+   ],
+   "conflicts": [
+    {
+     "field": "body.weightKg",
+     "values": [
+      {
+       "value": 62,
+       "url": "https://aiwiki.ai/wiki/engineered_arts_ameca"
+      },
+      {
+       "value": 49,
+       "url": "https://grabarobot.com/robots/humanoid-robot/products/ameca/"
+      }
+     ]
+    }
+   ],
+   "notes": null,
+   "coverage": {
+    "filled": 20,
+    "total": 27,
+    "ratio": 0.74,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 2,
+   "name": "TALOS",
+   "company": "PAL Robotics",
+   "aliases": [
+    "TALOS"
+   ],
+   "announcementYear": 2017,
+   "announcementQuarter": null,
+   "status": "commercial",
+   "purpose": "service",
+   "locomotionType": "bipedal",
+   "handType": "gripper",
+   "commercializationStage": "commercial",
+   "region": "europe",
+   "descriptionKo": "PAL 로보틱스의 연구용 풀사이즈 양족 휴머노이드(2017). 175cm/95kg, 32 DOF, 팔당 6kg, 거의 모든 관절에 토크 센서 내장.",
+   "body": {
+    "heightCm": 175,
+    "weightKg": 95,
+    "payloadKg": 6,
+    "dofCount": 32,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "2차(PAL 자료 인용). 머리·손목·그리퍼 제외 전 관절 토크센서."
+   },
+   "hand": {
+    "handType": "gripper",
+    "fingerCount": null,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": null,
+    "note": null
+   },
+   "actuators": [
+    {
+     "name": "TALOS torque-sensing joint",
+     "vendor": "PAL Robotics",
+     "inHouse": true,
+     "type": "harmonic",
+     "usageLocation": "all",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "관절 토크 센서 통합(공식 인용). 하모닉 드라이브 기반(D)."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://moonlakeai.com/robots/pal-talos",
+     "title": "PAL TALOS",
+     "publisher": "MoonLake AI",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body"
+     ]
+    },
+    {
+     "url": "https://aiwiki.ai/wiki/pal_robotics_talos",
+     "title": "TALOS (robot)",
+     "publisher": "AI Wiki",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body",
+      "actuators"
+     ]
+    }
+   ],
+   "conflicts": [],
+   "notes": null,
+   "coverage": {
+    "filled": 18,
+    "total": 27,
+    "ratio": 0.67,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 2,
+   "name": "TIAGo",
+   "company": "PAL Robotics",
+   "aliases": [
+    "TIAGo",
+    "TIAGo Pro"
+   ],
+   "announcementYear": 2015,
+   "announcementQuarter": null,
+   "status": "commercial",
+   "purpose": "service",
+   "locomotionType": "wheeled",
+   "handType": "gripper",
+   "commercializationStage": "commercial",
+   "region": "europe",
+   "descriptionKo": "PAL 로보틱스의 휠형 모바일 매니퓰레이터(2015). 승강 토르소 110~145cm, ~70kg, 7-DOF 팔 3kg 페이로드. 연구·헬스케어용.",
+   "body": {
+    "heightCm": 145,
+    "weightKg": 70,
+    "payloadKg": 3,
+    "dofCount": 7,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "DOF 7은 팔 기준(토르소 승강·베이스 제외). TIAGo Pro 96kg."
+   },
+   "hand": {
+    "handType": "gripper",
+    "fingerCount": null,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": null,
+    "note": "그리퍼/Hey5 핸드 교체."
+   },
+   "actuators": [
+    {
+     "name": "TIAGo arm actuator",
+     "vendor": "PAL Robotics",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "arm",
+     "quantity": 7,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "사양 미공개."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://robotsguide.com/robots/tiago",
+     "title": "TIAGo",
+     "publisher": "Robots Guide (IEEE)",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body"
+     ]
+    },
+    {
+     "url": "https://aiwiki.ai/wiki/tiago_robot",
+     "title": "TIAGo (PAL Robotics)",
+     "publisher": "AI Wiki",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body"
+     ]
+    }
+   ],
+   "conflicts": [],
+   "notes": null,
+   "coverage": {
+    "filled": 18,
+    "total": 27,
+    "ratio": 0.67,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 2,
+   "name": "Avatar Robot",
+   "company": "Honda",
+   "aliases": [
+    "Honda Avatar Robot"
+   ],
+   "announcementYear": 2021,
+   "announcementQuarter": 3,
+   "status": "development",
+   "purpose": "service",
+   "locomotionType": "wheeled",
+   "handType": "multi_finger",
+   "commercializationStage": "prototype",
+   "region": "japan",
+   "descriptionKo": "혼다의 원격조작 아바타 로봇(2021 발표, CEATEC 2026 AI 보조 시연). 1,700mm, 총 56 DOF, 16-DOF 다지 손x2(288채널 촉각, 손끝 50N). 2030년대 실용화 목표.",
+   "body": {
+    "heightCm": 170,
+    "weightKg": null,
+    "payloadKg": null,
+    "dofCount": 56,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "공식: 1,700mm, 56 DOF(손 포함)."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": 16,
+    "gripForceN": 50,
+    "isInterchangeable": false,
+    "tactile": true,
+    "note": "공식: 16 DOF/손, 촉각 288채널, 연속 손끝 힘 50N, 관절 180°/s."
+   },
+   "actuators": [
+    {
+     "name": "Honda multi-fingered hand actuator",
+     "vendor": "Honda",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "hand",
+     "quantity": 16,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "자체 개발. 사양 미공개."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "비판매",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://global.honda/en/RandD/field/hgrx/honda-multi-fingered-hand/avatar-robot.html",
+     "title": "Honda Avatar Robot",
+     "publisher": "Honda",
+     "date": null,
+     "confidence": "A",
+     "fields": [
+      "body",
+      "hand"
+     ]
+    },
+    {
+     "url": "https://www.ubergizmo.com/2026/10/honda-demonstrates-its-ai-assisted-avatar-robot-at-ceatec-2026/",
+     "title": "Honda demonstrates AI-assisted Avatar Robot at CEATEC 2026",
+     "publisher": "Ubergizmo",
+     "date": "2026-10",
+     "confidence": "B",
+     "fields": [
+      "status"
+     ]
+    }
+   ],
+   "conflicts": [],
+   "notes": null,
+   "coverage": {
+    "filled": 21,
+    "total": 27,
+    "ratio": 0.78,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 2,
+   "name": "HSR",
+   "company": "Toyota",
+   "aliases": [
+    "Human Support Robot",
+    "Toyota HSR"
+   ],
+   "announcementYear": 2012,
+   "announcementQuarter": 3,
+   "status": "poc",
+   "purpose": "home",
+   "locomotionType": "wheeled",
+   "handType": "gripper",
+   "commercializationStage": "pilot",
+   "region": "japan",
+   "descriptionKo": "토요타의 생활지원 로봇(2012 프로토타입). 83~133cm 승강, ~37kg, 다자유도 팔로 1.2kg 이하 물체 파지. 연구 커뮤니티 플랫폼.",
+   "body": {
+    "heightCm": 133,
+    "weightKg": 37,
+    "payloadKg": 1.2,
+    "dofCount": null,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "공식(2012): 830~1330mm, 32kg(프로토타입). 후속 37kg(TUM). 팔 DOF 미공개(6~7 추정)."
+   },
+   "hand": {
+    "handType": "gripper",
+    "fingerCount": 2,
+    "handDofPerHand": 1,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": null,
+    "note": null
+   },
+   "actuators": [
+    {
+     "name": "HSR arm actuator",
+     "vendor": "Toyota",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "arm",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "사양 미공개."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "비판매(연구 대여)",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://global.toyota/en/detail/125275",
+     "title": "Toyota HSR prototype (2012)",
+     "publisher": "Toyota",
+     "date": "2012-09-21",
+     "confidence": "A",
+     "fields": [
+      "body"
+     ]
+    },
+    {
+     "url": "https://www.ce.cit.tum.de/en/ics/research/platforms/hsr/",
+     "title": "HSR platform",
+     "publisher": "TUM",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body.weightKg"
+     ]
+    }
+   ],
+   "conflicts": [],
+   "notes": null,
+   "coverage": {
+    "filled": 20,
+    "total": 27,
+    "ratio": 0.74,
+    "actuatorDetailFilled": 0,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 2,
+   "name": "Pepper",
+   "company": "SoftBank Robotics",
+   "aliases": [
+    "Pepper"
+   ],
+   "announcementYear": 2014,
+   "announcementQuarter": 2,
+   "status": "commercial",
+   "purpose": "service",
+   "locomotionType": "wheeled",
+   "handType": "multi_finger",
+   "commercializationStage": "commercial",
+   "region": "japan",
+   "descriptionKo": "소프트뱅크의 감성 인식 서비스 휴머노이드(2014-06). 120cm/28kg, 20개 모터(19~20 DOF), 795Wh 배터리로 약 12시간, 본체 198,000엔(2015 일본 판매).",
+   "body": {
+    "heightCm": 120,
+    "weightKg": 28,
+    "payloadKg": null,
+    "dofCount": 20,
+    "maxSpeedMps": null,
+    "operationTimeHours": 12,
+    "batteryWh": 795,
+    "note": "공식(2014): 20 모터, 30Ah/795Wh, ~12h."
+   },
+   "hand": {
+    "handType": "multi_finger",
+    "fingerCount": 5,
+    "handDofPerHand": 1,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": null,
+    "note": null
+   },
+   "actuators": [
+    {
+     "name": "Pepper servo",
+     "vendor": "SoftBank Robotics",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "all",
+     "quantity": 20,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "사양 미공개."
+    }
+   ],
+   "price": {
+    "min": 198000,
+    "max": 198000,
+    "currency": "JPY",
+    "note": "공식(2014): 198,000엔 본체(앱·월정액 별도).",
+    "confidence": "A"
+   },
+   "sources": [
+    {
+     "url": "https://www.softbank.jp/en/corp/group/sbm/news/press/2015/20150618_01/",
+     "title": "SoftBank to Launch Sales of 'Pepper'",
+     "publisher": "SoftBank",
+     "date": "2015-06-18",
+     "confidence": "A",
+     "fields": [
+      "price"
+     ]
+    },
+    {
+     "url": "https://gigazine.net/gsc_news/en/20140605-softbank-conference",
+     "title": "SOFTBANK announces emotional robot Pepper",
+     "publisher": "Gigazine",
+     "date": "2014-06-05",
+     "confidence": "B",
+     "fields": [
+      "body",
+      "price"
+     ]
+    }
+   ],
+   "conflicts": [],
+   "notes": null,
+   "coverage": {
+    "filled": 23,
+    "total": 27,
+    "ratio": 0.85,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 2,
+   "name": "Moxi",
+   "company": "Diligent Robotics",
+   "aliases": [
+    "Moxi",
+    "Moxi Gen 2"
+   ],
+   "announcementYear": 2018,
+   "announcementQuarter": 3,
+   "status": "commercial",
+   "purpose": "service",
+   "locomotionType": "wheeled",
+   "handType": "gripper",
+   "commercializationStage": "commercial",
+   "region": "north_america",
+   "descriptionKo": "딜리전트 로보틱스의 병원 물류 보조 로봇(2018). 약 152cm/136kg, 단일 팔+2지 그리퍼로 문·엘리베이터 조작, 페이로드 8~15kg(세대별).",
+   "body": {
+    "heightCm": 152,
+    "weightKg": 136,
+    "payloadKg": 14,
+    "dofCount": null,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "2차: Gen 2 14kg, Lab Runner 8kg. 충전 2h."
+   },
+   "hand": {
+    "handType": "gripper",
+    "fingerCount": 2,
+    "handDofPerHand": 1,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": null,
+    "note": null
+   },
+   "actuators": [
+    {
+     "name": "Moxi arm actuator",
+     "vendor": "Diligent Robotics",
+     "inHouse": null,
+     "type": "unknown",
+     "usageLocation": "arm",
+     "quantity": null,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "사양 미공개(Kinova 계열 팔 사용 보도 있음, 미확인)."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "RaaS, 미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://robotsguide.com/robots/moxi",
+     "title": "Moxi",
+     "publisher": "Robots Guide (IEEE)",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body"
+     ]
+    },
+    {
+     "url": "https://robotomated.com/compare/diligent-moxi-2-vs-rewalk-pediatric-exo",
+     "title": "Diligent Moxi Gen 2",
+     "publisher": "Robotomated",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body.payloadKg"
+     ]
+    }
+   ],
+   "conflicts": [],
+   "notes": null,
+   "coverage": {
+    "filled": 20,
+    "total": 27,
+    "ratio": 0.74,
+    "actuatorDetailFilled": 0,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 2,
+   "name": "aeo",
+   "company": "Aeolus Robotics",
+   "aliases": [
+    "Aeo",
+    "aeo 2"
+   ],
+   "announcementYear": 2023,
+   "announcementQuarter": 1,
+   "status": "commercial",
+   "purpose": "service",
+   "locomotionType": "wheeled",
+   "handType": "gripper",
+   "commercializationStage": "commercial",
+   "region": "other",
+   "descriptionKo": "에올루스 로보틱스의 휠형 양팔 서비스 로봇(CES 2023). 7-DOF 팔x2, 팔당 3.6kg, UV-C 소독·배송·엘리베이터 조작. aeo 2 약 160cm.",
+   "body": {
+    "heightCm": 160,
+    "weightKg": null,
+    "payloadKg": 3.6,
+    "dofCount": 14,
+    "maxSpeedMps": null,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "2차: 팔 7 DOF x2(총 14, 베이스 제외). 160cm는 aeo 2 단일 출처."
+   },
+   "hand": {
+    "handType": "gripper",
+    "fingerCount": null,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": true,
+    "tactile": null,
+    "note": null
+   },
+   "actuators": [
+    {
+     "name": "Aeolus 3rd-gen arm actuator",
+     "vendor": "Aeolus Robotics",
+     "inHouse": true,
+     "type": "unknown",
+     "usageLocation": "arm",
+     "quantity": 14,
+     "peakTorqueNm": null,
+     "ratedTorqueNm": null,
+     "speedRpm": null,
+     "weightKg": null,
+     "gearRatio": null,
+     "notes": "사양 미공개."
+    }
+   ],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://robotics247.com/article/aeolus_debuts_aeo_dual_arm_humanoid_robot_ces_2023",
+     "title": "Aeolus debuts aeo at CES 2023",
+     "publisher": "Robotics 24/7",
+     "date": "2023-01",
+     "confidence": "B",
+     "fields": [
+      "body",
+      "hand"
+     ]
+    },
+    {
+     "url": "https://robotomated.com/compare/aeolus-aeo-2-vs-unitree-r1",
+     "title": "Aeolus Aeo 2",
+     "publisher": "Robotomated",
+     "date": null,
+     "confidence": "D",
+     "fields": [
+      "body.heightCm"
+     ]
+    }
+   ],
+   "conflicts": [],
+   "notes": null,
+   "coverage": {
+    "filled": 18,
+    "total": 27,
+    "ratio": 0.67,
+    "actuatorDetailFilled": 1,
+    "actuatorDetailTotal": 7
+   }
+  },
+  {
+   "tier": 2,
+   "name": "Relay",
+   "company": "Savioke",
+   "aliases": [
+    "Relay",
+    "Relay+"
+   ],
+   "announcementYear": 2014,
+   "announcementQuarter": 3,
+   "status": "commercial",
+   "purpose": "service",
+   "locomotionType": "wheeled",
+   "handType": "none",
+   "commercializationStage": "commercial",
+   "region": "north_america",
+   "descriptionKo": "세비오크(현 릴레이 로보틱스)의 호텔·병원 배송 로봇(2014). 92cm/40.8kg, 2.5km/h, 팔 없음(Relay+는 기계식 버튼 푸셔로 엘리베이터 조작).",
+   "body": {
+    "heightCm": 92,
+    "weightKg": 40.8,
+    "payloadKg": null,
+    "dofCount": null,
+    "maxSpeedMps": 0.69,
+    "operationTimeHours": null,
+    "batteryWh": null,
+    "note": "2차. 페이로드·배터리 미확인."
+   },
+   "hand": {
+    "handType": "none",
+    "fingerCount": null,
+    "handDofPerHand": null,
+    "gripForceN": null,
+    "isInterchangeable": false,
+    "tactile": null,
+    "note": null
+   },
+   "actuators": [],
+   "price": {
+    "min": null,
+    "max": null,
+    "currency": null,
+    "note": "미공개",
+    "confidence": null
+   },
+   "sources": [
+    {
+     "url": "https://robotsguide.com/robots/relay",
+     "title": "Relay",
+     "publisher": "Robots Guide (IEEE)",
+     "date": null,
+     "confidence": "C",
+     "fields": [
+      "body"
+     ]
+    },
+    {
+     "url": "https://robotics247.com/article/savioke_releases_revised_relay_service_robot_hotels_offices_hospitals",
+     "title": "Savioke Releases Revised Relay+",
+     "publisher": "Robotics 24/7",
+     "date": "2021-12",
+     "confidence": "B",
+     "fields": [
+      "aliases",
+      "descriptionKo"
+     ]
+    }
+   ],
+   "conflicts": [],
+   "notes": null,
+   "coverage": {
+    "filled": 17,
+    "total": 27,
+    "ratio": 0.63,
+    "actuatorDetailFilled": 0,
+    "actuatorDetailTotal": 0
+   },
+   "companyAliases": [
+    "Relay Robotics (formerly Savioke)"
+   ]
+  }
+ ]
+}

@@ -37,6 +37,7 @@ import { coverageFieldRoutes } from './coverage-field.js';
 import { pmRoutes } from './pm.js';
 import { issueRoutes } from './issues.js';
 import { ingestRoutes } from './ingest.js';
+import { actuatorMapRoutes } from './actuator-map.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -113,4 +114,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // HTTPS 배치 수집(ingest) API — 외부 에이전트(Claude Routine)가 API 키로 기사/알림 저장 (docs/ingest/SPEC.md)
   fastify.register(ingestRoutes, { prefix: '/api/ingest' });
+
+  // 액추에이터 관점 경쟁사 포지션·공급망 맵 (공유 리포트용, 읽기 전용)
+  fastify.register(actuatorMapRoutes, { prefix: '/api/actuator-map' });
 }

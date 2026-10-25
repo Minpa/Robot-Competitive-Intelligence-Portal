@@ -8,10 +8,12 @@
  */
 
 import type { EvidenceRef, TechTrendReport, TrendInsight } from '@/types/tech-trend-report';
-import type {
-  TechTrendTimeline,
-  TechTrendTimelineInsightResponse,
-  TimelineInsight,
+import {
+  isTimelineDomain,
+  timelineDomainNoun,
+  type TechTrendTimeline,
+  type TechTrendTimelineInsightResponse,
+  type TimelineInsight,
 } from '@/types/tech-trend-timeline';
 import { CATEGORY_PALETTE, CHART_HUE_MUTED } from '@/app/events/wrc2026/components/chartColors';
 
@@ -319,9 +321,10 @@ export function buildTimelineCardHtml(data: TimelineHtmlData | null | undefined)
   const periodText = `${period.startMonth.replace('-', '.')} ~ ${period.endMonth.replace('-', '.')} · 리포트 기간(days)과 무관`;
   const classified = c.classified > 0;
 
+  const noun = timelineDomainNoun(timeline.domain);
   const footnote =
-    '논문은 arXiv cs.RO/cs.AI 최신 제출분을 일 1회(최대 30건) 수집한 표본이라 월별 건수는 실제 논문 수가 아닌 수집량 기준의 상대 추이입니다. 핸드 판정은 키워드 필터와 AI 분류를 거칩니다. 핸드와 무관하다고 AI가 판정한 영상은 제외됩니다.' +
-    (c.offTopic > 0 ? ` AI가 핸드 무관으로 분류해 제외한 항목 ${int(c.offTopic)}건.` : '') +
+    `논문은 arXiv cs.RO/cs.AI 최신 제출분을 일 1회(최대 30건) 수집한 표본이라 월별 건수는 실제 논문 수가 아닌 수집량 기준의 상대 추이입니다. ${noun} 판정은 키워드 필터와 AI 분류를 거칩니다. ${noun}와 무관하다고 AI가 판정한 영상은 제외됩니다.` +
+    (c.offTopic > 0 ? ` AI가 ${noun} 무관으로 분류해 제외한 항목 ${int(c.offTopic)}건.` : '') +
     (timeline.scope.beforeRangeDropped > 0
       ? ` 수집 시작보다 12개월 넘게 과거인 ${int(timeline.scope.beforeRangeDropped)}건은 제외.`
       : '');
@@ -351,7 +354,9 @@ export function buildTimelineCardHtml(data: TimelineHtmlData | null | undefined)
 export function buildTechTrendReportHtml(
   report: TechTrendReport,
   meta: ReportHtmlMeta,
-  timelineData?: TimelineHtmlData | null
+  timelineData?: TimelineHtmlData | null,
+  /** 이미 escape 처리된 추가 카드 HTML (예: 액추에이터 포지션 맵 카드). 비어 있으면 생략 */
+  extraCardsHtml: string = ''
 ): string {
   const titleKo = meta.titleKo ?? report.domainLabel;
   const titleEn = meta.titleEn ?? '';
@@ -376,7 +381,7 @@ export function buildTechTrendReportHtml(
             const metaParts = [
               v.channel ? escapeHtml(v.channel) : '',
               v.thirdParty ? '외부 채널' : '',
-              report.domain === 'hand' && v.domainFocus === null ? '분석 대기' : '',
+              isTimelineDomain(report.domain) && v.domainFocus === null ? '분석 대기' : '',
               fmtDate(v.publishedAt),
             ].filter(Boolean);
             const summary = v.summaryKo ? `<p class="s">${escapeHtml(v.summaryKo)}</p>` : '';
@@ -462,7 +467,8 @@ export function buildTechTrendReportHtml(
     ${insightHtml}
   </div>
 
-  ${report.domain === 'hand' ? buildTimelineCardHtml(timelineData) : ''}
+  ${isTimelineDomain(report.domain) ? buildTimelineCardHtml(timelineData) : ''}
+  ${extraCardsHtml}
 
   <div class="card">
     <div class="kicker">Demo Videos</div>

@@ -1,8 +1,27 @@
 /**
- * 핸드 기술 시계열 트렌드 타입 — backend/src/services/tech-trend-timeline.service.ts,
+ * 기술 시계열 트렌드 타입 (hand·actuator) — backend/src/services/tech-trend-timeline.service.ts,
  * tech-trend-timeline-insight.service.ts, hand-topic-classification.service.ts 응답과 1:1.
- * 프런트는 이 응답을 그리기만 한다 (집계/추세/선후행 계산은 서버).
+ * 프런트는 이 응답을 그리기만 한다 (집계/추세/선후행 계산은 서버). 토픽 라벨은 응답의 topics[].label/shortLabel 을 쓴다.
  */
+
+/** 시계열·서브토픽 분류·관련성 판정을 지원하는 도메인 — backend domain-topics.ts TIMELINE_DOMAINS 와 동일 */
+export const TIMELINE_DOMAINS = ['hand', 'actuator'] as const;
+export type TimelineDomain = (typeof TIMELINE_DOMAINS)[number];
+
+export function isTimelineDomain(d: string): d is TimelineDomain {
+  return (TIMELINE_DOMAINS as readonly string[]).includes(d);
+}
+
+/** 도메인별 화면 문구 — "{noun} 무관", "{noun} 관련 데이터" 등에 쓰는 명사 */
+export const TIMELINE_DOMAIN_LABELS: Record<TimelineDomain, { noun: string; videoScope: string }> = {
+  hand: { noun: '핸드', videoScope: '핸드 리포트 대상 영상' },
+  actuator: { noun: '액추에이터', videoScope: '액추에이터 리포트 대상 영상' },
+};
+
+/** 시계열 도메인이면 해당 명사, 아니면 기본값(핸드) */
+export function timelineDomainNoun(domain: string): string {
+  return isTimelineDomain(domain) ? TIMELINE_DOMAIN_LABELS[domain].noun : TIMELINE_DOMAIN_LABELS.hand.noun;
+}
 
 export type TimelineGranularity = 'month' | 'quarter';
 export type TrendLabel = 'rising' | 'falling' | 'steady' | 'insufficient';
@@ -83,9 +102,9 @@ export interface TimelinePeriod {
   granularity: TimelineGranularity;
 }
 
-/** GET /api/articles/tech-trends/hand/timeline */
+/** GET /api/articles/tech-trends/{hand|actuator}/timeline */
 export interface TechTrendTimeline {
-  domain: 'hand';
+  domain: TimelineDomain;
   generatedAt: string;
   cached: boolean;
   period: TimelinePeriod | null;
@@ -142,13 +161,13 @@ export interface TimelineInsight {
   stale?: boolean;
 }
 
-/** GET /api/articles/tech-trends/hand/timeline/insight (항상 200) */
+/** GET /api/articles/tech-trends/{domain}/timeline/insight (항상 200) */
 export interface TechTrendTimelineInsightResponse {
   status: TimelineInsightStatus;
   insight: TimelineInsight | null;
 }
 
-/** GET /api/articles/tech-trends/hand/classify/status (관리자) */
+/** GET /api/articles/tech-trends/{domain}/classify/status (관리자) — 도메인 공용(이름은 핸드 시절 호환) */
 export interface HandTopicClassificationStatus {
   running: boolean;
   total: number;
@@ -163,7 +182,7 @@ export interface HandTopicClassificationStatus {
   finishedAt: string | null;
 }
 
-/** POST /api/articles/tech-trends/hand/classify 응답 */
+/** POST /api/articles/tech-trends/{domain}/classify 응답 */
 export interface HandTopicClassifyResponse {
   queued: number;
   total: number;

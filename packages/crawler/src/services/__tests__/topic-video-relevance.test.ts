@@ -96,12 +96,71 @@ describe('isRelevantTopicVideo', () => {
       expect(isRelevantTopicVideo('actuator', 'Robot joint torque test', 'humanoid robot quasi-direct drive actuator')).toBe(true);
     });
 
+    it('accepts actuator keyword variants with robot context', () => {
+      const accepted: Array<[string, string | null]> = [
+        ['Cycloidal actuator for legged robots — bench test', null],
+        ['Strain wave gear vs planetary gearbox for robot joints', null],
+        ['Series elastic actuator humanoid robot demo', null],
+        ['Roller screw linear actuator for humanoid robot knee', null],
+        ['QDD robot joint module torque density test', null],
+        ['Backdrivable robot actuator demo', 'quasi direct drive'],
+        ['휴머노이드 로봇 액추에이터 감속기 분해', null],
+        ['人形机器人 关节模组 执行器 测试', null],
+      ];
+      for (const [title, desc] of accepted) {
+        expect(isRelevantTopicVideo('actuator', title, desc), title).toBe(true);
+      }
+    });
+
+    it('accepts brand-context titles without an explicit "robot" word', () => {
+      const accepted: Array<[string, string | null]> = [
+        ['RobStride 04 actuator teardown and torque test', null],
+        ['CubeMars AK80-9 motor module demo', null],
+        ['MyActuator RMD-X8 planetary actuator unboxing… no, bench test', 'planetary'],
+        ['Tesla Optimus actuator deep dive', null],
+        ['Figure 02 joint actuator explained', null],
+        ['Apptronik Apollo linear actuator', null],
+        ['Unitree G1 joint motor torque test', null],
+        ['Hyundai Mobis actuator module reveal', null],
+      ].filter(([t]) => !/unboxing/i.test(t));
+      for (const [title, desc] of accepted) {
+        expect(isRelevantTopicVideo('actuator', title, desc), title).toBe(true);
+      }
+    });
+
     it('rejects when there is no robot context', () => {
       expect(isRelevantTopicVideo('actuator', 'Industrial motor gearbox teardown', 'harmonic drive transmission')).toBe(false);
+      expect(isRelevantTopicVideo('actuator', 'Planetary gearbox explained', 'how a planetary gear works')).toBe(false);
     });
 
     it('rejects excluded content types', () => {
       expect(isRelevantTopicVideo('actuator', 'Robot actuator company — shareholder annual meeting', 'humanoid robot motor')).toBe(false);
+      expect(isRelevantTopicVideo('actuator', 'RobStride actuator unboxing', 'robot motor')).toBe(false);
+    });
+
+    it('rejects non-robot motor videos (cars, brakes, drones, machine tools)', () => {
+      const rejected: Array<[string, string | null]> = [
+        ['Tesla Model 3 drive motor teardown', 'electric vehicle motor'],
+        ['Electric car motor explained', 'robot-like torque curves'],
+        ['Automotive brake actuator replacement', 'robot assembly line'],
+        ['Drone ESC and brushless motor test', 'robot drone motor'],
+        ['Best motor for your FPV quadcopter', 'robot motor'],
+        ['3D printer stepper motor upgrade', 'robot motor'],
+        ['CNC spindle motor gearbox', 'robot cnc motor'],
+        ['Washing machine motor teardown', 'robot vacuum motor'],
+        ['Cybertruck steer-by-wire actuator', 'Tesla actuator'],
+      ];
+      for (const [title, desc] of rejected) {
+        expect(isRelevantTopicVideo('actuator', title, desc), title).toBe(false);
+      }
+    });
+
+    it('applies the actuator exclude list to the title only', () => {
+      expect(isRelevantTopicVideo('actuator', 'Humanoid robot actuator teardown', 'also used in cars and drones')).toBe(true);
+    });
+
+    it('does not change hand behaviour: "car parts" in a hand title is still accepted', () => {
+      expect(isRelevantTopicVideo('hand', 'Boston Dynamics Atlas | Dexterous manipulation of car parts', null)).toBe(true);
     });
 
     it('rejects unrelated text', () => {

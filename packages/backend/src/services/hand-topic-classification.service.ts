@@ -1,12 +1,13 @@
 /**
- * HandTopicClassificationService — 핸드 논문·영상 기술 서브토픽 분류 배치 (Claude Haiku 5.5)
+ * TopicClassificationService — 도메인(hand/actuator) 논문·영상 기술 서브토픽 분류 배치 (Claude Haiku 5.5)
  *
- * 이벤트성 관리자 배치. 타임라인 스코프 행(논문 + 영상, domainFocus 'none' 제외) 중 현재 버전으로 분류되지 않은 건을
- * 10~20건 묶음으로 Haiku 5.5에 보내 extracted_metadata.handTopics 에 병합 저장한다.
+ * 이벤트성 관리자 배치. 타임라인 스코프 행(논문 + 영상, domainFocus.{domain} 'none' 제외) 중 현재 버전으로 분류되지 않은 건을
+ * 10~20건 묶음으로 Haiku 5.5에 보내 저장한다 — hand 는 extracted_metadata.handTopics(기존 키), 그 외는 domainTopics.{domain}.
+ * 도메인별 인스턴스(인플라이트 가드·상태)가 분리되며 비용 가드·시도 횟수·묶음 로직은 공유한다. 핸드 동작은 종전과 동일.
  *
  * 안전 원칙:
  *  - 입력은 제목·설명·초록 발췌·AI 요약·태그뿐 (articles.content / 자막 전문 미사용).
- *  - AI 실패/파싱 실패를 off_topic 으로 취급하지 않는다 (미분류 유지 + handTopicsAttempts +1, 3회 도달 시 자동 재시도 중단).
+ *  - AI 실패/파싱 실패를 off_topic 으로 취급하지 않는다 (미분류 유지 + attempts +1, 3회 도달 시 자동 재시도 중단).
  *  - 저장은 `|| jsonb_build_object(...)` 단일 UPDATE 병합이라 geminiAnalysis/domainFocus/aiTags 를 건드리지 않는다.
  *  - 상태는 인메모리. 마커가 DB에 있으므로 재실행은 멱등(남은 건만 이어서 처리).
  */
@@ -16,27 +17,26 @@ import { sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { aiUsageService } from './ai-usage.service.js';
 import { getDomainFocus, type ArticleRow } from './tech-trend-report.service.js';
-import { effortParams, extractText, resolveHandTopicModel, warnOnAbnormalStop } from './anthropic-models.js';
+import { effortParams, extractText, resolveDomainTopicModel, resolveHandTopicModel, warnOnAbnormalStop } from './anthropic-models.js';
+import { isVideoRow, toTopicInput, OFF_TOPIC_ID, type InputLevel } from './hand-topics.js';
 import {
-  HAND_TOPIC_VERSION,
-  buildHandTopicPrompt,
-  getHandTopics,
-  getHandTopicsAttempts,
-  isVideoRow,
-  parseHandTopicBatch,
-  toTopicInput,
-  OFF_TOPIC_ID,
-  type InputLevel,
-} from './hand-topics.js';
+  TIMELINE_DOMAINS,
+  buildDomainTopicPrompt,
+  getDomainTopics,
+  getDomainTopicsAttempts,
+  getTaxonomy,
+  parseDomainTopicBatch,
+  type TimelineDomain,
+} from './domain-topics.js';
 import { techTrendTimelineService, MAX_CLASSIFY_ATTEMPTS } from './tech-trend-timeline.service.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 상수 / 설정
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const CLASSIFY_SUPPORTED_DOMAINS = ['hand'] as const;
+export const CLASSIFY_SUPPORTED_DOMAINS = TIMELINE_DOMAINS;
 
-/** 서브토픽 분류 모델 — 기본 Haiku 5.5. 시사점/해설(종합) 모델 설정을 상속하지 않는다. */
+/** 핸드 서브토픽 분류 모델 — 기본 Haiku 5.5. 시사점/해설(종합) 모델 설정을 상속하지 않는다. */
 export const HAND_TOPIC_MODEL = resolveHandTopicModel();
 
 export const BATCH_SIZE_MIN = 10;
@@ -170,24 +170,25 @@ function rowTime(r: ArticleRow): number {
 
 /**
  * 분류 대상 선정 — 현재 버전으로 분류되지 않은 건(off_topic 으로 저장된 건도 "분류됨"),
- * handTopicsAttempts < maxAttempts, 영상은 domainFocus.hand !== 'none'.
+ * attempts < maxAttempts, 영상은 domainFocus.{domain} !== 'none'. 도메인 기본값 hand.
  * 논문·영상을 최신순으로 섞어 cap 까지.
  */
 export function selectClassificationTargets(
   rows: ArticleRow[],
-  opts: { cap: number; maxAttempts?: number; version?: number }
+  opts: { cap: number; maxAttempts?: number; version?: number; domain?: TimelineDomain }
 ): { targets: ArticleRow[]; skippedExcluded: number } {
+  const domain = opts.domain ?? 'hand';
   const maxAttempts = opts.maxAttempts ?? MAX_CLASSIFY_ATTEMPTS;
-  const version = opts.version ?? HAND_TOPIC_VERSION;
+  const version = opts.version ?? getTaxonomy(domain).version;
   let skippedExcluded = 0;
   const pending: ArticleRow[] = [];
   for (const r of rows) {
-    if (isVideoRow(r) && getDomainFocus('hand', r) === 'none') {
+    if (isVideoRow(r) && getDomainFocus(domain, r) === 'none') {
       skippedExcluded++;
       continue;
     }
-    if (getHandTopics(r, version)) continue;
-    if (getHandTopicsAttempts(r) >= maxAttempts) continue;
+    if (getDomainTopics(domain, r, version)) continue;
+    if (getDomainTopicsAttempts(domain, r) >= maxAttempts) continue;
     pending.push(r);
   }
   pending.sort((a, b) => rowTime(b) - rowTime(a) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
@@ -205,13 +206,30 @@ export function chunk<T>(arr: T[], size: number): T[][] {
 // 서비스
 // ─────────────────────────────────────────────────────────────────────────────
 
-class HandTopicClassificationService {
+/** 로그 태그 — hand 는 종전 [HandTopic], 그 외는 [ActuatorTopic] 식 */
+function classifyLogTag(domain: TimelineDomain): string {
+  return `${domain.charAt(0).toUpperCase()}${domain.slice(1)}Topic`;
+}
+
+/** 사용량 로그 쿼리 태그 — hand 는 종전 '[hand-topic] hand N건' */
+export function classifyUsageQuery(domain: TimelineDomain, count: number): string {
+  return `[${domain}-topic] ${domain} ${count}건`;
+}
+
+export class TopicClassificationService {
+  readonly domain: TimelineDomain;
+  /** 이 도메인의 분류 모델 (hand: HAND_TOPIC_MODEL) */
+  readonly model: string;
+  private readonly tag: string;
   private anthropicClient: Anthropic | null = null;
   private state: ClassifyRunState = initialClassifyState();
   /** in-flight 가드 (버튼 연타·다중 탭 시 중복 분류 방지) */
   private running = false;
 
-  constructor() {
+  constructor(domain: TimelineDomain = 'hand') {
+    this.domain = domain;
+    this.model = domain === 'hand' ? HAND_TOPIC_MODEL : resolveDomainTopicModel(domain);
+    this.tag = classifyLogTag(domain);
     if (process.env.ANTHROPIC_API_KEY) {
       this.anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     }
@@ -233,7 +251,7 @@ class HandTopicClassificationService {
   async start(): Promise<ClassifyStartResult> {
     if (!this.anthropicClient) return { ok: false, reason: 'anthropic_not_configured' };
     if (this.running) {
-      console.warn('[HandTopic] batch already running — duplicate request ignored');
+      console.warn(`[${this.tag}] batch already running — duplicate request ignored`);
       return { ok: true, alreadyRunning: true, queued: 0, total: this.state.total };
     }
     // await 이전에 가드를 걸어 동시 요청 레이스를 막는다
@@ -241,9 +259,10 @@ class HandTopicClassificationService {
 
     let started = false;
     try {
-      const scope = await techTrendTimelineService.getScopeRows();
+      const scope = await techTrendTimelineService.getScopeRows(this.domain);
       const { targets, skippedExcluded } = selectClassificationTargets([...scope.papers, ...scope.videos], {
         cap: MAX_PER_RUN,
+        domain: this.domain,
       });
       const now = new Date().toISOString();
 
@@ -268,26 +287,26 @@ class HandTopicClassificationService {
         await this.classifyBatch(group);
         if (this.state.aborted) {
           console.warn(
-            `[HandTopic] ${MAX_CONSECUTIVE_BATCH_FAILURES} consecutive batch failures — aborting (processed ${this.state.processed}/${this.state.total})`
+            `[${this.tag}] ${MAX_CONSECUTIVE_BATCH_FAILURES} consecutive batch failures — aborting (processed ${this.state.processed}/${this.state.total})`
           );
           break;
         }
       }
     } catch (err) {
-      console.error('[HandTopic] batch failed:', (err as Error).message);
+      console.error(`[${this.tag}] batch failed:`, (err as Error).message);
     } finally {
       this.emit({ type: 'finish', now: new Date().toISOString() });
       this.running = false;
       const s = this.state;
       console.log(
-        `[HandTopic] done — classified ${s.classified}, offTopic ${s.offTopic}, unresolved ${s.unresolved}, aborted ${s.aborted}`
+        `[${this.tag}] done — classified ${s.classified}, offTopic ${s.offTopic}, unresolved ${s.unresolved}, aborted ${s.aborted}`
       );
       if (s.classified > 0 || s.offTopic > 0) {
-        await techTrendTimelineService.invalidate();
+        await techTrendTimelineService.invalidate(this.domain);
         // 무효화 직후 시사점·시계열 해설을 백그라운드로 미리 재생성 (실패해도 배치 결과에 영향 없음)
         void import('./tech-trend-timeline-insight.service.js')
-          .then((m) => m.warmHandInsights())
-          .catch((err) => console.error('[HandTopic] insight warm-up failed:', (err as Error).message));
+          .then((m) => m.warmDomainInsights(this.domain))
+          .catch((err) => console.error(`[${this.tag}] insight warm-up failed:`, (err as Error).message));
       }
     }
   }
@@ -304,39 +323,39 @@ class HandTopicClassificationService {
 
     try {
       const response = await this.anthropicClient.messages.create({
-        model: HAND_TOPIC_MODEL,
+        model: this.model,
         max_tokens: CLASSIFY_MAX_TOKENS,
-        messages: [{ role: 'user', content: buildHandTopicPrompt(converted.map((c) => c.input)) }],
-        ...effortParams(HAND_TOPIC_MODEL, 'low'),
+        messages: [{ role: 'user', content: buildDomainTopicPrompt(this.domain, converted.map((c) => c.input)) }],
+        ...effortParams(this.model, 'low'),
       });
       aiUsageService
         .logUsage({
           provider: 'claude',
-          model: HAND_TOPIC_MODEL,
+          model: this.model,
           webSearch: false,
           inputTokens: response.usage?.input_tokens ?? 0,
           outputTokens: response.usage?.output_tokens ?? 0,
-          query: `[hand-topic] hand ${batch.length}건`,
+          query: classifyUsageQuery(this.domain, batch.length),
         })
         .catch(() => {});
 
-      warnOnAbnormalStop('HandTopic', HAND_TOPIC_MODEL, response);
+      warnOnAbnormalStop(this.tag, this.model, response);
       const combined = extractText(response.content);
-      for (const r of parseHandTopicBatch(combined, validN)) {
+      for (const r of parseDomainTopicBatch(this.domain, combined, validN)) {
         const target = converted[r.n - 1];
         if (!target) continue;
         try {
-          await this.saveHandTopics(target.row.id, r.topics, r.primary, target.inputLevel);
+          await this.saveTopics(target.row.id, r.topics, r.primary, target.inputLevel);
           resolvedN.add(r.n);
           if (r.primary === OFF_TOPIC_ID) offTopic++;
           else classified++;
         } catch (err) {
-          console.error(`[HandTopic] saving failed for ${target.row.id}:`, (err as Error).message);
+          console.error(`[${this.tag}] saving failed for ${target.row.id}:`, (err as Error).message);
         }
       }
     } catch (err) {
       apiFailed = true;
-      console.error('[HandTopic] classify batch failed:', (err as Error).message);
+      console.error(`[${this.tag}] classify batch failed:`, (err as Error).message);
     }
 
     // 미해결 항목: 시도 횟수 +1 (off_topic 으로 취급하지 않는다)
@@ -345,7 +364,7 @@ class HandTopicClassificationService {
       try {
         await this.bumpAttempts(c.row.id);
       } catch (err) {
-        console.error(`[HandTopic] attempts update failed for ${c.row.id}:`, (err as Error).message);
+        console.error(`[${this.tag}] attempts update failed for ${c.row.id}:`, (err as Error).message);
       }
     }
 
@@ -353,40 +372,81 @@ class HandTopicClassificationService {
     else this.emit({ type: 'batchOk', size: batch.length, classified, offTopic });
   }
 
-  /** extracted_metadata.handTopics 만 병합 저장 (다른 키 보존) */
-  private async saveHandTopics(
-    articleId: string,
-    topics: string[],
-    primary: string,
-    inputLevel: InputLevel
-  ): Promise<void> {
+  /**
+   * 분류값 병합 저장 (다른 키 보존) — hand: extracted_metadata.handTopics, 그 외: extracted_metadata.domainTopics.{domain}
+   * (domainTopics 객체 안의 다른 도메인 키는 보존).
+   */
+  private async saveTopics(articleId: string, topics: string[], primary: string, inputLevel: InputLevel): Promise<void> {
     const value = JSON.stringify({
       topics,
       primary,
       classifiedAt: new Date().toISOString(),
-      version: HAND_TOPIC_VERSION,
+      version: getTaxonomy(this.domain).version,
       inputLevel,
-      model: HAND_TOPIC_MODEL,
+      model: this.model,
     });
-    await db.execute(sql`
-      UPDATE articles
-      SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb)
-        || jsonb_build_object('handTopics', ${value}::jsonb)
-      WHERE id = ${articleId}
-    `);
-  }
-
-  private async bumpAttempts(articleId: string): Promise<void> {
+    if (this.domain === 'hand') {
+      await db.execute(sql`
+        UPDATE articles
+        SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb)
+          || jsonb_build_object('handTopics', ${value}::jsonb)
+        WHERE id = ${articleId}
+      `);
+      return;
+    }
     await db.execute(sql`
       UPDATE articles
       SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb)
         || jsonb_build_object(
-          'handTopicsAttempts',
-          COALESCE((extracted_metadata->>'handTopicsAttempts')::int, 0) + 1
+          'domainTopics',
+          CASE WHEN jsonb_typeof(extracted_metadata->'domainTopics') = 'object'
+               THEN extracted_metadata->'domainTopics' ELSE '{}'::jsonb END
+            || jsonb_build_object(${this.domain}::text, ${value}::jsonb)
+        )
+      WHERE id = ${articleId}
+    `);
+  }
+
+  /** 시도 횟수 +1 — hand: handTopicsAttempts, 그 외: domainTopicsAttempts.{domain} */
+  private async bumpAttempts(articleId: string): Promise<void> {
+    if (this.domain === 'hand') {
+      await db.execute(sql`
+        UPDATE articles
+        SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb)
+          || jsonb_build_object(
+            'handTopicsAttempts',
+            COALESCE((extracted_metadata->>'handTopicsAttempts')::int, 0) + 1
+          )
+        WHERE id = ${articleId}
+      `);
+      return;
+    }
+    await db.execute(sql`
+      UPDATE articles
+      SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb)
+        || jsonb_build_object(
+          'domainTopicsAttempts',
+          CASE WHEN jsonb_typeof(extracted_metadata->'domainTopicsAttempts') = 'object'
+               THEN extracted_metadata->'domainTopicsAttempts' ELSE '{}'::jsonb END
+            || jsonb_build_object(
+              ${this.domain}::text,
+              COALESCE((extracted_metadata->'domainTopicsAttempts'->>${this.domain})::int, 0) + 1
+            )
         )
       WHERE id = ${articleId}
     `);
   }
 }
 
-export const handTopicClassificationService = new HandTopicClassificationService();
+/** 종전 이름 호환 — hand 인스턴스 */
+export const handTopicClassificationService = new TopicClassificationService('hand');
+export const actuatorTopicClassificationService = new TopicClassificationService('actuator');
+
+const SERVICES: Readonly<Record<TimelineDomain, TopicClassificationService>> = {
+  hand: handTopicClassificationService,
+  actuator: actuatorTopicClassificationService,
+};
+
+export function getTopicClassificationService(domain: TimelineDomain): TopicClassificationService {
+  return SERVICES[domain];
+}

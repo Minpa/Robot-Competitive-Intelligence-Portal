@@ -176,23 +176,35 @@ export interface ExtractedMetadata {
   geminiAnalysisAttempts?: number;
   // 기술 트렌드 리포트 도메인 관련성 판정 (tech-trend-analysis.service.ts) — 도메인 키별 병합 저장
   domainFocus?: {
-    hand?: {
-      level: 'primary' | 'secondary' | 'none';
-      reason: string;
-      judgedAt: string;
-      source: 'gemini' | 'haiku';
-    };
+    hand?: DomainFocusJudgement;
+    actuator?: DomainFocusJudgement;
   };
   // 핸드 기술 서브토픽 분류 (hand-topic-classification.service.ts) — 버전 1부터, 단일 UPDATE 병합 저장
-  handTopics?: {
-    topics: string[];
-    primary: string;
-    classifiedAt: string;
-    version: number;
-    inputLevel?: 'rich' | 'basic';
-    model?: string;
-  };
+  handTopics?: DomainTopicsValue;
   handTopicsAttempts?: number;
+  // 핸드 외 도메인(actuator 등) 서브토픽 분류 — domainTopics.{domain} / domainTopicsAttempts.{domain} (hand 는 하위 호환으로 위 키 유지)
+  domainTopics?: {
+    actuator?: DomainTopicsValue;
+  };
+  domainTopicsAttempts?: {
+    actuator?: number;
+  };
+}
+
+export interface DomainFocusJudgement {
+  level: 'primary' | 'secondary' | 'none';
+  reason: string;
+  judgedAt: string;
+  source: 'gemini' | 'haiku';
+}
+
+export interface DomainTopicsValue {
+  topics: string[];
+  primary: string;
+  classifiedAt: string;
+  version: number;
+  inputLevel?: 'rich' | 'basic';
+  model?: string;
 }
 
 // Keyword entity

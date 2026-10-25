@@ -126,7 +126,7 @@ export async function articleRoutes(fastify: FastifyInstance) {
     }
   );
 
-  // 핸드 기술 시계열 트렌드 (수집 시작 이후 전체 기간) — 월별 서브토픽 집계 (10분 캐시), days 무관
+  // 기술 시계열 트렌드 (hand·actuator, 수집 시작 이후 전체 기간) — 월별 서브토픽 집계 (10분 캐시), days 무관
   fastify.get<{ Params: { domain: string } }>('/tech-trends/:domain/timeline', async (request, reply) => {
     const { domain } = request.params;
     const { TECH_TREND_DOMAINS } = await import('../services/tech-trend-report.service.js');
@@ -141,7 +141,7 @@ export async function articleRoutes(fastify: FastifyInstance) {
       reply.status(400).send({ error: 'Timeline not supported for this domain' });
       return;
     }
-    return techTrendTimelineService.getTimeline();
+    return techTrendTimelineService.getTimeline(domain as (typeof TIMELINE_SUPPORTED_DOMAINS)[number]);
   });
 
   // 시계열 AI 해설 — 항상 200 { status, insight }, 차트와 분리해 지연/실패가 차트에 영향 없도록 함 (24h 캐시)
@@ -160,10 +160,10 @@ export async function articleRoutes(fastify: FastifyInstance) {
     const { techTrendTimelineInsightService } = await import(
       '../services/tech-trend-timeline-insight.service.js'
     );
-    return techTrendTimelineInsightService.getInsight();
+    return techTrendTimelineInsightService.getInsight(domain as (typeof TIMELINE_SUPPORTED_DOMAINS)[number]);
   });
 
-  // 핸드 논문·영상 서브토픽 분류 배치 (관리자, 이벤트성) — 즉시 응답, 백그라운드 실행
+  // 도메인(hand·actuator) 논문·영상 서브토픽 분류 배치 (관리자, 이벤트성) — 즉시 응답, 백그라운드 실행
   fastify.post<{ Params: { domain: string } }>(
     '/tech-trends/:domain/classify',
     { preHandler: adminOnly },
@@ -174,14 +174,14 @@ export async function articleRoutes(fastify: FastifyInstance) {
         reply.status(400).send({ error: 'Invalid domain' });
         return;
       }
-      const { CLASSIFY_SUPPORTED_DOMAINS, handTopicClassificationService } = await import(
+      const { CLASSIFY_SUPPORTED_DOMAINS, getTopicClassificationService } = await import(
         '../services/hand-topic-classification.service.js'
       );
       if (!(CLASSIFY_SUPPORTED_DOMAINS as readonly string[]).includes(domain)) {
         reply.status(400).send({ error: 'Timeline not supported for this domain' });
         return;
       }
-      const result = await handTopicClassificationService.start();
+      const result = await getTopicClassificationService(domain as (typeof CLASSIFY_SUPPORTED_DOMAINS)[number]).start();
       if (!result.ok) {
         reply.status(503).send({ error: 'ANTHROPIC_API_KEY not configured' });
         return;
@@ -203,14 +203,14 @@ export async function articleRoutes(fastify: FastifyInstance) {
         reply.status(400).send({ error: 'Invalid domain' });
         return;
       }
-      const { CLASSIFY_SUPPORTED_DOMAINS, handTopicClassificationService } = await import(
+      const { CLASSIFY_SUPPORTED_DOMAINS, getTopicClassificationService } = await import(
         '../services/hand-topic-classification.service.js'
       );
       if (!(CLASSIFY_SUPPORTED_DOMAINS as readonly string[]).includes(domain)) {
         reply.status(400).send({ error: 'Timeline not supported for this domain' });
         return;
       }
-      return handTopicClassificationService.getStatus();
+      return getTopicClassificationService(domain as (typeof CLASSIFY_SUPPORTED_DOMAINS)[number]).getStatus();
     }
   );
 

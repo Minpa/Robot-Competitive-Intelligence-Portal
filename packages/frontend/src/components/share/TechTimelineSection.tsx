@@ -10,15 +10,17 @@ import { TopicHeatmap } from './TopicHeatmap';
 import { TimelineInsightCard } from './TimelineInsightCard';
 import { TimelineClassificationBanner } from './TimelineClassificationBanner';
 import { fullMonth, type TimelineBasis, type TimelineSourceKey } from './timeline-shared';
-import type { TechTrendDomain } from '@/types/tech-trend-report';
+import { TIMELINE_DOMAIN_LABELS, type TimelineDomain } from '@/types/tech-trend-timeline';
 
 /**
- * 기술 시계열 트렌드 (전체 기간) — 핸드 리포트 전용.
- * 서버 응답을 그리기만 한다 (집계·추세·선후행 계산은 백엔드). 차트는 AI 해설과 별도 쿼리라 해설 지연/실패와 무관하게 렌더된다.
+ * 기술 시계열 트렌드 (전체 기간) — 핸드·액추에이터 리포트.
+ * 서버 응답을 그리기만 한다 (집계·추세·선후행 계산은 백엔드, 토픽 라벨은 응답의 topics[].label).
+ * 차트는 AI 해설과 별도 쿼리라 해설 지연/실패와 무관하게 렌더된다.
  */
-export function TechTimelineSection({ domain }: { domain: TechTrendDomain }) {
+export function TechTimelineSection({ domain }: { domain: TimelineDomain }) {
   const [source, setSource] = useState<TimelineSourceKey>('papers');
   const [basis, setBasis] = useState<TimelineBasis>('any');
+  const noun = TIMELINE_DOMAIN_LABELS[domain].noun;
 
   const meQuery = useQuery({ queryKey: ['me'], queryFn: () => api.getMe() });
   const isAdmin = (meQuery.data as { role?: string } | undefined)?.role === 'admin';
@@ -65,7 +67,7 @@ export function TechTimelineSection({ domain }: { domain: TechTrendDomain }) {
     if (!period || timeline.classification.total === 0) {
       return (
         <div className="py-10 text-center text-ink-500 text-sm">
-          수집된 핸드 관련 데이터가 없습니다
+          수집된 {noun} 관련 데이터가 없습니다
           {timeline.scope.beforeRangeDropped > 0 && (
             <p className="text-[11.5px] mt-1">수집 시작보다 12개월 넘게 과거인 {timeline.scope.beforeRangeDropped}건은 제외되었습니다.</p>
           )}
@@ -83,7 +85,7 @@ export function TechTimelineSection({ domain }: { domain: TechTrendDomain }) {
 
     return (
       <div className="flex flex-col gap-4">
-        <TimelineClassificationBanner classification={c} isAdmin={isAdmin} />
+        <TimelineClassificationBanner classification={c} isAdmin={isAdmin} domainLabel={noun} />
         {period.monthCount < 3 && (
           <p className="text-[12px] text-warn">수집 기간이 짧아 추이 해석에 한계가 있습니다({period.monthCount}개월)</p>
         )}
@@ -118,8 +120,8 @@ export function TechTimelineSection({ domain }: { domain: TechTrendDomain }) {
 
         <p className="text-[11px] text-ink-500 leading-relaxed">
           논문은 arXiv cs.RO/cs.AI 최신 제출분을 일 1회(최대 30건) 수집한 표본이라 월별 건수는 실제 논문 수가 아닌 수집량 기준의
-          상대 추이입니다. 핸드 판정은 키워드 필터와 AI 분류를 거칩니다. 핸드와 무관하다고 AI가 판정한 영상은 제외됩니다.
-          {c.offTopic > 0 && ` AI가 핸드 무관으로 분류해 시계열에서 제외한 항목은 ${c.offTopic}건입니다.`}
+          상대 추이입니다. {noun} 판정은 키워드 필터와 AI 분류를 거칩니다. {noun}와 무관하다고 AI가 판정한 영상은 제외됩니다.
+          {c.offTopic > 0 && ` AI가 ${noun} 무관으로 분류해 시계열에서 제외한 항목은 ${c.offTopic}건입니다.`}
           {timeline.scope.beforeRangeDropped > 0 &&
             ` 수집 시작보다 12개월 넘게 과거에 게시된 ${timeline.scope.beforeRangeDropped}건은 집계에서 제외했습니다.`}
           {timeline.scope.truncated && ' 조회 상한을 넘어 가장 오래된 일부 항목은 집계되지 않았습니다.'}

@@ -4,8 +4,9 @@ import { crawlerService } from './services/crawler.service.js';
 import { schedulerService } from './services/scheduler.service.js';
 import { errorLogger } from './services/error-logger.js';
 import { legalDataCollector } from './services/legal-data-collector.js';
-import { arxivHandCollector } from './services/arxiv-hand-collector.service.js';
+import { arxivHandCollector, arxivActuatorCollector, arxivTopicCollectors } from './services/arxiv-hand-collector.service.js';
 import { parseBackfillOptions } from './services/arxiv-hand-query.js';
+import { parseArxivDomain } from './services/arxiv-domain-query.js';
 import { youtubeCollectorService } from './services/youtube-collector.service.js';
 import { eventVideoSearchService } from './services/event-video-search.service.js';
 import { topicVideoSearchService, MAX_PAGES } from './services/topic-video-search.service.js';
@@ -165,6 +166,65 @@ fastify.post<{ Body?: { months?: unknown; dryRun?: unknown } | null }>(
   }
 );
 fastify.get('/legal/arxiv-hand-backfill/status', async () => arxivHandCollector.getStatus());
+
+// 도메인 arXiv 수집 (hand/actuator 공용 — hand 는 위 /legal/arxiv-hand* 와 같은 인스턴스를 쓴다)
+// 일일 증분 수동 실행 — body { domain: 'hand' | 'actuator' }. 동기 응답(쿼리 4개, 약 15초)
+fastify.post<{ Body?: { domain?: unknown } | null }>('/legal/arxiv-topic', async (request, reply) => {
+  const parsedDomain = parseArxivDomain(request.body?.domain);
+  if (!parsedDomain.ok) {
+    reply.status(400).send({ error: parsedDomain.error });
+    return;
+  }
+  const result = await arxivTopicCollectors[parsedDomain.domain].collectDaily();
+  return { domain: parsedDomain.domain, ...result };
+});
+// 도메인 백필 — body { domain, months?: 1..24 (기본 12), dryRun?: boolean }. 비동기(202), 진행은 status 로 확인
+fastify.post<{ Body?: { domain?: unknown; months?: unknown; dryRun?: unknown } | null }>(
+  '/legal/arxiv-topic-backfill',
+  async (request, reply) => {
+    const parsedDomain = parseArxivDomain(request.body?.domain);
+    if (!parsedDomain.ok) {
+      reply.status(400).send({ error: parsedDomain.error });
+      return;
+    }
+    const { domain: _domain, ...rest } = request.body ?? {};
+    const opts = parseBackfillOptions(request.body ? rest : request.body);
+    if (!opts.ok) {
+      reply.status(400).send({ error: opts.error });
+      return;
+    }
+    const collector = arxivTopicCollectors[parsedDomain.domain];
+    const started = collector.startBackfill({ months: opts.months, dryRun: opts.dryRun });
+    if (!started.started) {
+      reply.status(409).send({
+        error: 'backfill already running',
+        domain: parsedDomain.domain,
+        startedAt: started.startedAt,
+        progress: started.progress,
+      });
+      return;
+    }
+    reply.status(202).send({
+      status: 'started',
+      domain: parsedDomain.domain,
+      months: started.months,
+      dryRun: started.dryRun,
+      windows: started.windows,
+      queries: started.queries,
+      estimatedRequests: started.estimatedRequests,
+      estimatedMinutes: started.estimatedMinutes,
+    });
+  }
+);
+// 도메인 백필 진행 상태 — query ?domain=hand|actuator
+fastify.get<{ Querystring: { domain?: unknown } }>('/legal/arxiv-topic-backfill/status', async (request, reply) => {
+  const parsedDomain = parseArxivDomain(request.query?.domain);
+  if (!parsedDomain.ok) {
+    reply.status(400).send({ error: parsedDomain.error });
+    return;
+  }
+  return { domain: parsedDomain.domain, ...arxivTopicCollectors[parsedDomain.domain].getStatus() };
+});
 fastify.post('/legal/event-videos', async () => eventVideoSearchService.collectAll());
 // body { domains?: TopicDomain[]; pages?: number } — domains 는 화이트리스트 검증, pages 는 1..MAX_PAGES 로 클램프
 const TOPIC_DOMAINS: TopicDomain[] = ['hand', 'rfm', 'actuator', 'expo', 'production'];
@@ -238,6 +298,13 @@ const start = async () => {
             await arxivHandCollector.collectDaily(); // 핸드 전용 arXiv 검색 증분 (Q1~Q4, 최신 100건씩)
           } catch (err) {
             console.error('[ArxivHand] Daily collection failed:', err);
+          }
+        }
+        if (process.env.DISABLE_ARXIV_ACTUATOR !== 'true') {
+          try {
+            await arxivActuatorCollector.collectDaily(); // 액추에이터 arXiv 검색 증분 (Q1~Q4, 최신 100건씩, 레이트리미터 공유)
+          } catch (err) {
+            console.error('[ArxivActuator] Daily collection failed:', err);
           }
         }
         try {

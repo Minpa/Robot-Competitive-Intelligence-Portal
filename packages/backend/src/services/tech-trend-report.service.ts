@@ -290,7 +290,7 @@ export interface TechTrendReport {
   videos: ReportVideo[];
   papers: ReportPaper[];
   truncated: { videos: boolean; papers: boolean };
-  /** 도메인 관련성 판정 집계 (hand 외 도메인은 항상 0) */
+  /** 도메인 관련성 판정 집계 (hand·actuator 외 도메인은 항상 0) */
   focus: { excluded: number; pending: number };
 }
 
@@ -411,12 +411,19 @@ export function getDomainFocus(domain: TechTrendDomain, row: ArticleRow): Domain
   return level === 'primary' || level === 'secondary' || level === 'none' ? level : null;
 }
 
-/** hand 리포트에서 AI가 'none'(핸드와 무관)으로 판정한 영상만 제외한다. 미판정은 유지. */
+/** 도메인 관련성(domainFocus.{domain}) 판정·제외를 적용하는 도메인 — 시계열·서브토픽 분류 지원 도메인과 같다 */
+export const FOCUS_DOMAINS: readonly TechTrendDomain[] = ['hand', 'actuator'];
+
+export function hasDomainFocus(domain: TechTrendDomain): boolean {
+  return FOCUS_DOMAINS.includes(domain);
+}
+
+/** hand·actuator 리포트에서 AI가 'none'(도메인과 무관)으로 판정한 영상만 제외한다. 미판정은 유지. 그 외 도메인은 제외 없음. */
 export function filterByDomainFocus(
   domain: TechTrendDomain,
   rows: ArticleRow[]
 ): { kept: ArticleRow[]; excludedCount: number } {
-  if (domain !== 'hand') return { kept: rows, excludedCount: 0 };
+  if (!hasDomainFocus(domain)) return { kept: rows, excludedCount: 0 };
   const kept = rows.filter((r) => getDomainFocus(domain, r) !== 'none');
   return { kept, excludedCount: rows.length - kept.length };
 }
@@ -782,7 +789,7 @@ export class TechTrendReportService {
     const stats = computeReportStats(allVideos, allPapers);
     const videos = allVideos.slice(0, VIDEO_LIST_CAP);
     const papers = allPapers.slice(0, PAPER_LIST_CAP);
-    const pending = domain === 'hand' ? allVideos.filter((v) => v.domainFocus === null).length : 0;
+    const pending = hasDomainFocus(domain) ? allVideos.filter((v) => v.domainFocus === null).length : 0;
 
     const insight = await this.getInsight(domain, days, config.label, allVideos, promptPapers);
 

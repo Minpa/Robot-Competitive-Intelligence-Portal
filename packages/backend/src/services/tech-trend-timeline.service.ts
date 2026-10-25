@@ -1,13 +1,14 @@
 /**
- * TechTrendTimelineService — 핸드 기술 시계열 트렌드 (수집 시작 이후 전체 기간)
+ * TechTrendTimelineService — 도메인(hand/actuator) 기술 시계열 트렌드 (수집 시작 이후 전체 기간)
  *
- * 핸드 논문(arXiv)·영상 전체를 extracted_metadata.handTopics(서브토픽 분류)로 월별 집계한다.
- *  - 스코프: 논문 = SQL ILIKE 용어 1차 필터 + JS matchesDomainSecondary 정밀 재판정,
- *            영상 = product_type='video' + matchesDomainVideo + domainFocus 'none' 제외(판정 전은 유지).
+ * 도메인 논문(arXiv)·영상 전체를 서브토픽 분류(hand: extracted_metadata.handTopics, 그 외: domainTopics.{domain})로 월별 집계한다.
+ *  - 스코프: 논문 = SQL ILIKE 용어 1차 필터 + JS 정밀 재판정(hand: matchesDomainSecondary, actuator: 리포트 paperRegex 상위집합),
+ *            영상 = product_type='video' + matchesDomainVideo + domainFocus.{domain} 'none' 제외(판정 전은 유지).
  *  - 월 기준: COALESCE(published_at, collected_at) 의 UTC YYYY-MM, 미래 날짜는 현재 월로 보정.
  *  - 모든 계산은 이 파일의 순수 함수에서 끝내고 프런트는 그리기만 한다.
+ *  - 모든 함수의 domain 인자는 기본값 'hand' — 핸드 호출 측 동작은 종전과 동일하다.
  *
- * 캐시: view_cache 'tech-trend-timeline:v1:hand' (기본 10분). 무효화는 cachedAt을 epoch로 되돌린다.
+ * 캐시: view_cache 'tech-trend-timeline:v1:{domain}' (기본 10분). 무효화는 cachedAt을 epoch로 되돌린다.
  */
 
 import { sql, and, eq, or, inArray } from 'drizzle-orm';
@@ -21,24 +22,32 @@ import {
   getDomainFocus,
   type ArticleRow,
 } from './tech-trend-report.service.js';
+import { OFF_TOPIC_ID, OTHER_TOPIC_ID } from './hand-topics.js';
 import {
-  HAND_TOPICS,
-  HAND_TOPIC_VERSION,
-  HAND_CORE_TOPIC_IDS,
-  HAND_TOPIC_IDS_WITH_OTHER,
-  OFF_TOPIC_ID,
-  OTHER_TOPIC_ID,
-  getHandTopics,
-  getHandTopicsAttempts,
-} from './hand-topics.js';
+  TIMELINE_DOMAINS,
+  getTaxonomy,
+  getDomainTopics,
+  getDomainTopicsAttempts,
+  type TimelineDomain,
+} from './domain-topics.js';
+
+export type { TimelineDomain } from './domain-topics.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 상수 / 설정
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const TIMELINE_SUPPORTED_DOMAINS = ['hand'] as const;
-export const TIMELINE_CACHE_KEY = 'tech-trend-timeline:v1:hand';
-export const TIMELINE_INSIGHT_CACHE_KEY = 'tech-trend-timeline-insight:v2:hand';
+export const TIMELINE_SUPPORTED_DOMAINS = TIMELINE_DOMAINS;
+
+export function timelineCacheKey(domain: TimelineDomain): string {
+  return `tech-trend-timeline:v1:${domain}`;
+}
+export function timelineInsightCacheKey(domain: TimelineDomain): string {
+  return `tech-trend-timeline-insight:v2:${domain}`;
+}
+/** 핸드 캐시 키 (호환) */
+export const TIMELINE_CACHE_KEY = timelineCacheKey('hand');
+export const TIMELINE_INSIGHT_CACHE_KEY = timelineInsightCacheKey('hand');
 
 /** 소스별 조회 상한 — 넘으면 scope.truncated=true + 경고 로그 */
 export const TIMELINE_ROW_LIMIT = 5000;
@@ -71,6 +80,55 @@ export const PAPER_SQL_TERMS: readonly string[] = [
   'grasp',
   'manipulat',
 ];
+
+/**
+ * actuator 논문 JS 정밀 판정 — DOMAIN_REPORT_CONFIGS.actuator.paperRegex 의 상위집합
+ * (감속·스크류·강성 가변·토크 밀도 용어 추가). 학습 용어 "motor skills/learning", "sensorimotor",
+ * 행성 탐사 "planetary rover", 통신 "data transmission" 은 매칭 전에 제거한다(비용 절감 — 최종 판정은 AI 분류가 off_topic 으로 걸러낸다).
+ */
+const ACTUATOR_PAPER_STRIP_RE =
+  /\bmotor[-\s](?:skills?|learning|imagery|cortex|babbling|primitives?|commands?|programs?|neurons?|behaviou?rs?|planning|intention)\b|\b(?:sensori|psycho|visuo|oculo|neuro)motor\b|\bplanetary (?:rover|exploration|surface|bod(?:y|ies)|science|missions?|landers?|terrain)s?\b|\b(?:data|wireless|signal|video|image|power|information|message|packet|radio|optical) transmission\b|\btransmission (?:lines?|delays?|rates?|latenc(?:y|ies)|errors?|power|protocols?|channels?)\b/gi;
+export const ACTUATOR_TIMELINE_PAPER_REGEX =
+  /actuator|actuation|\bmotors?\b|gearbox|gear ?reducer|speed reducer|harmonic drive|strain.wave|cycloid|planetary gear|planetary reducer|transmission|joint torque|quasi.direct|\bqdd\b|direct.drive|proprioceptive|series elastic|variable stiffness|variable impedance|backdriv|roller screw|ball screw|torque density|joint module|artificial muscle/i;
+
+/**
+ * 도메인별 논문 SQL 1차 필터 용어 — 각 도메인의 JS 정밀 판정 정규식이 매칭하는 모든 문자열을 포함하는 상위집합.
+ * hand 는 PAPER_SQL_TERMS 그대로.
+ */
+export const DOMAIN_PAPER_SQL_TERMS: Readonly<Record<TimelineDomain, readonly string[]>> = {
+  hand: PAPER_SQL_TERMS,
+  actuator: [
+    'actuat',
+    'motor',
+    'gearbox',
+    'reducer',
+    'harmonic drive',
+    'strain',
+    'cycloid',
+    'planetary',
+    'transmission',
+    'joint torque',
+    'quasi',
+    'qdd',
+    'direct',
+    'proprioceptive',
+    'series elastic',
+    'variable stiffness',
+    'variable impedance',
+    'backdriv',
+    'screw',
+    'torque density',
+    'joint module',
+    'artificial muscle',
+  ],
+};
+
+/** 도메인별 논문 정밀 판정 — hand 는 matchesDomainSecondary('hand') 그대로 */
+export function matchesTimelinePaper(domain: TimelineDomain, row: ArticleRow): boolean {
+  if (domain === 'hand') return matchesDomainSecondary('hand', row);
+  const text = `${row.title} ${row.summary ?? ''}`.replace(ACTUATOR_PAPER_STRIP_RE, ' ');
+  return ACTUATOR_TIMELINE_PAPER_REGEX.test(text);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 타입
@@ -189,7 +247,7 @@ export interface TimelineScope {
 }
 
 export interface TimelineBody {
-  domain: 'hand';
+  domain: TimelineDomain;
   generatedAt: string;
   period: TimelinePeriod | null;
   topics: TimelineTopic[];
@@ -304,9 +362,9 @@ export function resolveRange(
 // 순수 함수: 집계
 // ─────────────────────────────────────────────────────────────────────────────
 
-function emptySourceBucket(): SourceBucket {
+function emptySourceBucket(idsWithOther: readonly string[]): SourceBucket {
   const byTopic: Record<string, TopicCount> = {};
-  for (const id of HAND_TOPIC_IDS_WITH_OTHER) byTopic[id] = { any: 0, primary: 0 };
+  for (const id of idsWithOther) byTopic[id] = { any: 0, primary: 0 };
   return { total: 0, unclassified: 0, offTopic: 0, byTopic };
 }
 
@@ -319,15 +377,17 @@ export function aggregateTimeline(
   items: TimelineItem[],
   months: string[],
   now: Date,
-  collectionStartMonth: string | null
+  collectionStartMonth: string | null,
+  domain: TimelineDomain = 'hand'
 ): { buckets: TimelineBucket[]; classification: ClassificationSummary } {
+  const taxonomy = getTaxonomy(domain);
   const nowMonth = fmtMonth(now);
   const buckets: TimelineBucket[] = months.map((month) => ({
     month,
     partial: month === nowMonth,
     beforeCollection: collectionStartMonth !== null && month < collectionStartMonth,
-    papers: emptySourceBucket(),
-    videos: emptySourceBucket(),
+    papers: emptySourceBucket(taxonomy.idsWithOther),
+    videos: emptySourceBucket(taxonomy.idsWithOther),
   }));
   const byMonth = new Map(buckets.map((b) => [b.month, b]));
 
@@ -380,7 +440,7 @@ export function aggregateTimeline(
       unclassified,
       failed: cls.failed,
       ratio: cls.total > 0 ? cls.classified / cls.total : 0,
-      version: HAND_TOPIC_VERSION,
+      version: taxonomy.version,
       papers: cls.papers,
       videos: cls.videos,
     },
@@ -392,9 +452,10 @@ export function aggregateTimeline(
  * colorIndex: 합계가 있는 상위 6개 = 0~5, 나머지와 other = null.
  */
 export function rankTopics(
-  totals: Record<string, number>
+  totals: Record<string, number>,
+  domain: TimelineDomain = 'hand'
 ): { id: string; order: number; colorIndex: number | null }[] {
-  const core = HAND_CORE_TOPIC_IDS.map((id, idx) => ({ id, idx, total: totals[id] ?? 0 })).sort(
+  const core = getTaxonomy(domain).coreIds.map((id, idx) => ({ id, idx, total: totals[id] ?? 0 })).sort(
     (a, b) => b.total - a.total || a.idx - b.idx
   );
   const out = core.map((c, i) => ({
@@ -630,27 +691,36 @@ export interface ScopeFilterResult {
   videosPendingJudgement: number;
 }
 
-/** 후보 행 → 스코프 행. 논문은 paperRegex 재판정, 영상은 matchesDomainVideo + focus 'none' 제외(판정 전 유지). */
-export function filterScopeRows(paperRows: ArticleRow[], videoRows: ArticleRow[]): ScopeFilterResult {
-  const papers = paperRows.filter((r) => matchesDomainSecondary('hand', r));
+/** 후보 행 → 스코프 행. 논문은 도메인 정규식 재판정, 영상은 matchesDomainVideo + focus 'none' 제외(판정 전 유지). */
+export function filterScopeRows(
+  paperRows: ArticleRow[],
+  videoRows: ArticleRow[],
+  domain: TimelineDomain = 'hand'
+): ScopeFilterResult {
+  const papers = paperRows.filter((r) => matchesTimelinePaper(domain, r));
   const { kept, excludedCount } = filterByDomainFocus(
-    'hand',
-    videoRows.filter((r) => matchesDomainVideo('hand', r))
+    domain,
+    videoRows.filter((r) => matchesDomainVideo(domain, r))
   );
   return {
     papers,
     videos: kept,
     videosExcludedByFocus: excludedCount,
-    videosPendingJudgement: kept.filter((r) => getDomainFocus('hand', r) === null).length,
+    videosPendingJudgement: kept.filter((r) => getDomainFocus(domain, r) === null).length,
   };
 }
 
-export function toTimelineItem(row: ArticleRow, source: TimelineSource, now: Date): TimelineItem | null {
+export function toTimelineItem(
+  row: ArticleRow,
+  source: TimelineSource,
+  now: Date,
+  domain: TimelineDomain = 'hand'
+): TimelineItem | null {
   const month = monthKey(row.publishedAt, row.collectedAt, now);
   if (!month) return null;
-  const stored = getHandTopics(row);
+  const stored = getDomainTopics(domain, row);
   const views = row.extractedMetadata?.views;
-  const focus = source === 'video' ? getDomainFocus('hand', row) : null;
+  const focus = source === 'video' ? getDomainFocus(domain, row) : null;
   const t = toDate(row.publishedAt) ?? toDate(row.collectedAt);
   return {
     id: row.id,
@@ -660,7 +730,7 @@ export function toTimelineItem(row: ArticleRow, source: TimelineSource, now: Dat
     time: t ? t.getTime() : 0,
     topics: stored ? stored.topics : null,
     primary: stored ? stored.primary : null,
-    attempts: getHandTopicsAttempts(row),
+    attempts: getDomainTopicsAttempts(domain, row),
     views: typeof views === 'number' && Number.isFinite(views) ? views : null,
     focus: focus === 'primary' || focus === 'secondary' ? focus : null,
   };
@@ -674,15 +744,17 @@ function emptyTrend(): TrendStat {
 export function buildTimelineSnapshot(
   scope: ScopeFilterResult,
   now: Date,
-  truncated = false
+  truncated = false,
+  domain: TimelineDomain = 'hand'
 ): TimelineSnapshot {
+  const taxonomy = getTaxonomy(domain);
   const all: TimelineItem[] = [];
   for (const r of scope.papers) {
-    const it = toTimelineItem(r, 'paper', now);
+    const it = toTimelineItem(r, 'paper', now, domain);
     if (it) all.push(it);
   }
   for (const r of scope.videos) {
-    const it = toTimelineItem(r, 'video', now);
+    const it = toTimelineItem(r, 'video', now, domain);
     if (it) all.push(it);
   }
 
@@ -711,22 +783,22 @@ export function buildTimelineSnapshot(
   const items = range ? all.filter((it) => it.month >= range.startMonth) : [];
   const granularity = chooseGranularity(months.length);
 
-  const { buckets, classification } = aggregateTimeline(items, months, now, collectionStartMonth);
+  const { buckets, classification } = aggregateTimeline(items, months, now, collectionStartMonth, domain);
 
   // 토픽 합계/순위
   const sumSeries = (a: number[]) => a.reduce((s, v) => s + v, 0);
   const totalsById: Record<string, { papers: TopicCount; videos: TopicCount }> = {};
   const combinedTotals: Record<string, number> = {};
-  for (const id of HAND_TOPIC_IDS_WITH_OTHER) {
+  for (const id of taxonomy.idsWithOther) {
     const p = { any: sumSeries(topicSeries(buckets, 'papers', id, 'any')), primary: sumSeries(topicSeries(buckets, 'papers', id, 'primary')) };
     const v = { any: sumSeries(topicSeries(buckets, 'videos', id, 'any')), primary: sumSeries(topicSeries(buckets, 'videos', id, 'primary')) };
     totalsById[id] = { papers: p, videos: v };
     combinedTotals[id] = p.any + v.any;
   }
-  const ranked = rankTopics(combinedTotals);
+  const ranked = rankTopics(combinedTotals, domain);
 
   const topics: TimelineTopic[] = ranked.map(({ id, order, colorIndex }) => {
-    const def = HAND_TOPICS.find((t) => t.id === id)!;
+    const def = taxonomy.topics.find((t) => t.id === id)!;
     const ps = topicSeries(buckets, 'papers', id, 'any');
     const vs = topicSeries(buckets, 'videos', id, 'any');
     const cs = ps.map((v, i) => v + (vs[i] ?? 0));
@@ -756,7 +828,7 @@ export function buildTimelineSnapshot(
   );
 
   const body: TimelineBody = {
-    domain: 'hand',
+    domain,
     generatedAt: now.toISOString(),
     period: range
       ? {
@@ -786,33 +858,36 @@ export interface ScopeRows extends ScopeFilterResult {
 }
 
 class TechTrendTimelineService {
-  private inflight: Promise<TimelineBody> | null = null;
+  /** 도메인별 in-flight 집계 (동시 요청 시 1회만 계산) */
+  private inflight = new Map<TimelineDomain, Promise<TimelineBody>>();
 
   /** 스코프 행 조회 — 논문 SQL 1차 필터 + JS 정밀 판정, 영상 + focus 제외. 분류 배치의 대상 선정에도 쓴다. */
-  async getScopeRows(): Promise<ScopeRows> {
-    const [paperRows, videoRows] = await Promise.all([this.fetchPaperRows(), this.fetchVideoRows()]);
+  async getScopeRows(domain: TimelineDomain = 'hand'): Promise<ScopeRows> {
+    const [paperRows, videoRows] = await Promise.all([this.fetchPaperRows(domain), this.fetchVideoRows()]);
     const truncated = paperRows.length > TIMELINE_ROW_LIMIT || videoRows.length > TIMELINE_ROW_LIMIT;
     if (truncated) {
       console.warn(
-        `[TechTrendTimeline] row limit ${TIMELINE_ROW_LIMIT} exceeded (papers ${paperRows.length}, videos ${videoRows.length}) — oldest rows dropped`
+        `[TechTrendTimeline] ${domain}: row limit ${TIMELINE_ROW_LIMIT} exceeded (papers ${paperRows.length}, videos ${videoRows.length}) — oldest rows dropped`
       );
     }
     const scope = filterScopeRows(
       paperRows.slice(0, TIMELINE_ROW_LIMIT),
-      videoRows.slice(0, TIMELINE_ROW_LIMIT)
+      videoRows.slice(0, TIMELINE_ROW_LIMIT),
+      domain
     );
     return { ...scope, truncated };
   }
 
   /** 캐시 없이 새로 집계 (해설 생성 입력용 — items 포함) */
-  async loadSnapshot(now: Date = new Date()): Promise<TimelineSnapshot> {
-    const scope = await this.getScopeRows();
-    return buildTimelineSnapshot(scope, now, scope.truncated);
+  async loadSnapshot(domain: TimelineDomain = 'hand', now: Date = new Date()): Promise<TimelineSnapshot> {
+    const scope = await this.getScopeRows(domain);
+    return buildTimelineSnapshot(scope, now, scope.truncated, domain);
   }
 
-  async getTimeline(): Promise<TimelineResponse> {
+  async getTimeline(domain: TimelineDomain = 'hand'): Promise<TimelineResponse> {
+    const cacheKey = timelineCacheKey(domain);
     try {
-      const [cached] = await db.select().from(viewCache).where(eq(viewCache.viewName, TIMELINE_CACHE_KEY)).limit(1);
+      const [cached] = await db.select().from(viewCache).where(eq(viewCache.viewName, cacheKey)).limit(1);
       if (cached && Date.now() - cached.cachedAt.getTime() < TIMELINE_TTL_MS) {
         const data = cached.data as unknown as TimelineBody;
         if (data && Array.isArray(data.buckets) && data.classification && data.heatmap) {
@@ -823,21 +898,24 @@ class TechTrendTimelineService {
       // 캐시 조회 실패는 무시하고 재집계
     }
 
-    if (!this.inflight) {
-      this.inflight = this.compute().finally(() => {
-        this.inflight = null;
+    let pending = this.inflight.get(domain);
+    if (!pending) {
+      pending = this.compute(domain).finally(() => {
+        this.inflight.delete(domain);
       });
+      this.inflight.set(domain, pending);
     }
-    const body = await this.inflight;
+    const body = await pending;
     return { ...body, cached: false };
   }
 
-  private async compute(): Promise<TimelineBody> {
-    const snapshot = await this.loadSnapshot();
+  private async compute(domain: TimelineDomain): Promise<TimelineBody> {
+    const cacheKey = timelineCacheKey(domain);
+    const snapshot = await this.loadSnapshot(domain);
     try {
       await db
         .insert(viewCache)
-        .values({ viewName: TIMELINE_CACHE_KEY, data: snapshot.body, ttlMs: TIMELINE_TTL_MS })
+        .values({ viewName: cacheKey, data: snapshot.body, ttlMs: TIMELINE_TTL_MS })
         .onConflictDoUpdate({
           target: viewCache.viewName,
           set: { data: snapshot.body, cachedAt: new Date(), ttlMs: TIMELINE_TTL_MS },
@@ -849,21 +927,21 @@ class TechTrendTimelineService {
   }
 
   /** 타임라인 + 해설 캐시 무효화 — cachedAt 을 epoch 로 되돌린다. 오류는 로그만. */
-  async invalidate(): Promise<void> {
+  async invalidate(domain: TimelineDomain = 'hand'): Promise<void> {
     try {
       await db
         .update(viewCache)
         .set({ cachedAt: new Date(0) })
-        .where(inArray(viewCache.viewName, [TIMELINE_CACHE_KEY, TIMELINE_INSIGHT_CACHE_KEY]));
+        .where(inArray(viewCache.viewName, [timelineCacheKey(domain), timelineInsightCacheKey(domain)]));
     } catch (err) {
-      console.error('[TechTrendTimeline] cache invalidation failed:', (err as Error).message);
+      console.error(`[TechTrendTimeline] ${domain}: cache invalidation failed:`, (err as Error).message);
     }
   }
 
   // ── DB 조회 ──────────────────────────────────────────────────────────────
 
-  private async fetchPaperRows(): Promise<ArticleRow[]> {
-    const termConds = PAPER_SQL_TERMS.flatMap((t) => [
+  private async fetchPaperRows(domain: TimelineDomain): Promise<ArticleRow[]> {
+    const termConds = DOMAIN_PAPER_SQL_TERMS[domain].flatMap((t) => [
       sql`${articles.title} ILIKE ${`%${t}%`}`,
       sql`${articles.summary} ILIKE ${`%${t}%`}`,
     ]);

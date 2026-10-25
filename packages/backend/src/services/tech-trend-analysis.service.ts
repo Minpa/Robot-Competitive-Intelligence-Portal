@@ -1,9 +1,10 @@
 /**
- * TechTrendAnalysisService — 기술 트렌드 리포트(핸드) 영상 전체 Gemini 분석 + 핸드 관련성 판정
+ * TechTrendAnalysisService — 기술 트렌드 리포트(핸드·액추에이터) 영상 전체 Gemini 분석 + 도메인 관련성 판정
  *
  * 이벤트성 관리자 배치. 리포트 대상 영상(기간 + matchesDomainVideo)을 전역 DOMAIN_FILTER/SINCE_DAYS와
- * 무관하게 Gemini로 분석하고, 결과(또는 Claude Haiku 5.5 폴백)로 "핸드/그리퍼/손 조작이 주제인지"를 판정해
- * extracted_metadata.domainFocus.hand 에 저장한다. 'none' 영상은 리포트에서 제외된다.
+ * 무관하게 Gemini로 분석하고, 결과(또는 Claude Haiku 5.5 폴백)로 "도메인(핸드: 핸드/그리퍼/손 조작,
+ * 액추에이터: 모터/감속기/관절 구동계)이 주제인지"를 판정해 extracted_metadata.domainFocus.{domain} 에 저장한다.
+ * 'none' 영상은 리포트·시계열에서 제외된다. 판정 프롬프트는 도메인별로 분기하되 핸드 문구는 종전과 동일하다.
  *
  * 안전 원칙:
  *  - 공개 YouTube watch URL만 Gemini에 전달 (다운로드 없음), 자막 전문/장문 전사 저장 없음.
@@ -23,6 +24,7 @@ import {
   MAX_ATTEMPTS,
   parseDomainFocus,
   HAND_FOCUS_LEVELS,
+  type FocusDomain,
   type HandFocusLevel,
   type PendingVideo,
   type GeminiVideoAnalysis,
@@ -36,12 +38,22 @@ import {
 } from './tech-trend-report.service.js';
 
 export { parseDomainFocus };
+export type { FocusDomain };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 상수 / 설정
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const ANALYZE_SUPPORTED_DOMAINS: readonly TechTrendDomain[] = ['hand'];
+export const ANALYZE_SUPPORTED_DOMAINS: readonly FocusDomain[] = ['hand', 'actuator'];
+
+export function isFocusDomain(domain: string): domain is FocusDomain {
+  return (ANALYZE_SUPPORTED_DOMAINS as readonly string[]).includes(domain);
+}
+
+/** Gemini 사용량 로그 태그 — hand 는 종전 '[tech-trend-analysis:hand]' */
+export function geminiUsageTag(domain: FocusDomain): string {
+  return `[tech-trend-analysis:${domain}]`;
+}
 
 /** 핸드 관련성 판정 모델 — 기본 Haiku 5.5. 시사점/해설(종합) 모델 설정을 상속하지 않는다. */
 export const FOCUS_MODEL = resolveFocusModel();
@@ -58,7 +70,6 @@ const JUDGE_BATCH_SIZE = 10;
 /** Haiku 5.5 는 사고 토큰이 max_tokens 에 포함되므로 여유 있게 잡는다 */
 export const JUDGE_MAX_TOKENS = 6000;
 const REASON_MAX = 120;
-const GEMINI_USAGE_TAG = '[tech-trend-analysis:hand]';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 타입
@@ -116,7 +127,7 @@ export interface HaikuFocusResult {
 }
 
 export type StartResult =
-  | { ok: false; reason: 'gemini_not_configured' }
+  | { ok: false; reason: 'gemini_not_configured' | 'unsupported_domain' }
   | { ok: true; alreadyRunning?: true; queued: number; total: number };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -218,9 +229,9 @@ export function selectGeminiTargets(
   return { targets, skipped };
 }
 
-/** Phase 2 대상 선정 — 분석은 끝났고 hand 판정은 아직 없는 행 */
-export function selectJudgeTargets(rows: ArticleRow[]): ArticleRow[] {
-  return rows.filter((r) => hasGeminiAnalysis(r) && getDomainFocus('hand', r) === null);
+/** Phase 2 대상 선정 — 분석은 끝났고 해당 도메인 판정은 아직 없는 행 (기본 hand) */
+export function selectJudgeTargets(rows: ArticleRow[], domain: FocusDomain = 'hand'): ArticleRow[] {
+  return rows.filter((r) => hasGeminiAnalysis(r) && getDomainFocus(domain, r) === null);
 }
 
 function str(v: unknown, max: number): string {
@@ -246,7 +257,9 @@ export function toFocusJudgeItem(row: ArticleRow): FocusJudgeItem {
   };
 }
 
-export function buildFocusJudgePrompt(items: FocusJudgeItem[]): string {
+/** 도메인별 Haiku 판정 프롬프트 — hand 문구는 종전과 동일, actuator 는 같은 구조에 구동계 기준 */
+export function buildFocusJudgePrompt(items: FocusJudgeItem[], domain: FocusDomain = 'hand'): string {
+  if (domain === 'actuator') return buildActuatorFocusJudgePrompt(items);
   return `다음은 로봇 영상의 메타데이터와 Gemini 분석 요약이다. 각 영상이 로봇 핸드/그리퍼/손 조작 기술 리포트에 속하는지 판정하라.
 
 판정 기준:
@@ -267,8 +280,29 @@ JSON으로만 응답하라. 다른 텍스트 없이:
 {"results":[{"id":"영상 id","hand":"primary|secondary|none","reason":"판정 근거"}]}`;
 }
 
-/** Haiku 판정 응답 파싱 — 입력에 없는 id와 잘못된 level 항목은 버리고 나머지는 유지 */
-export function parseHaikuFocusBatch(text: string, validIds: Set<string>): HaikuFocusResult[] {
+function buildActuatorFocusJudgePrompt(items: FocusJudgeItem[]): string {
+  return `다음은 로봇 영상의 메타데이터와 Gemini 분석 요약이다. 각 영상이 로봇 액추에이터/모터/감속기/관절 구동계 기술 리포트에 속하는지 판정하라.
+
+판정 기준:
+- primary: 로봇 액추에이터·모터·감속기(하모닉·사이클로이드·유성)·리니어 구동·관절 모듈 자체(분해, 벤치 테스트, 토크·백드라이버빌리티 시험, 설계 설명)가 영상의 주제이며 핵심으로 다뤄진다.
+- secondary: 휴머노이드·레그드 로봇의 작업·보행 영상이지만, 관절 구동계(액추에이터·모터·감속기)의 성능·구조가 의미 있는 구간으로 설명되거나 보인다.
+- none: 액추에이터·관절 구동계가 실질적으로 나오지 않거나 부수적으로 스치는 정도다. 예: 일반 로봇 작업 시연·춤, 소프트웨어·AI 설명, 시설 소개, 키노트·인터뷰, 자동차·드론·공작기계 모터, 로봇이 아닌 영상.
+
+규칙:
+- 주어진 텍스트에 명시된 내용만 근거로 삼는다. 추측·외부 지식 금지.
+- 근거가 부족하거나 애매하면 none이 아니라 secondary로 답한다.
+- reason은 한국어 1문장, 120자 이내.
+- 마크다운과 인용 태그(<cite>) 사용 금지.
+
+[영상 ${items.length}건]
+${JSON.stringify(items)}
+
+JSON으로만 응답하라. 다른 텍스트 없이:
+{"results":[{"id":"영상 id","actuator":"primary|secondary|none","reason":"판정 근거"}]}`;
+}
+
+/** Haiku 판정 응답 파싱 — 입력에 없는 id와 잘못된 level 항목은 버리고 나머지는 유지. level 은 도메인 키(기본 hand)에서 읽는다. */
+export function parseHaikuFocusBatch(text: string, validIds: Set<string>, domain: FocusDomain = 'hand'): HaikuFocusResult[] {
   const tryParse = (raw: string): unknown => {
     try {
       return JSON.parse(raw);
@@ -292,8 +326,9 @@ export function parseHaikuFocusBatch(text: string, validIds: Set<string>): Haiku
     if (typeof item !== 'object' || item === null) continue;
     const r = item as Record<string, unknown>;
     if (typeof r.id !== 'string' || !validIds.has(r.id) || seen.has(r.id)) continue;
-    if (typeof r.hand !== 'string') continue;
-    const level = r.hand.trim().toLowerCase() as HandFocusLevel;
+    const rawLevel = r[domain];
+    if (typeof rawLevel !== 'string') continue;
+    const level = rawLevel.trim().toLowerCase() as HandFocusLevel;
     if (!HAND_FOCUS_LEVELS.includes(level)) continue;
     const reason = typeof r.reason === 'string' ? stripCiteTags(r.reason).slice(0, REASON_MAX) : '';
     seen.add(r.id);
@@ -328,6 +363,7 @@ class TechTrendAnalysisService {
 
   /** 배치 시작 — 대상 선정까지 동기 처리하고 실제 분석은 백그라운드로 실행한다. */
   async start(domain: TechTrendDomain, days: number): Promise<StartResult> {
+    if (!isFocusDomain(domain)) return { ok: false, reason: 'unsupported_domain' };
     if (!videoContentAnalysisService.isConfigured()) {
       return { ok: false, reason: 'gemini_not_configured' };
     }
@@ -342,7 +378,7 @@ class TechTrendAnalysisService {
     try {
       const rows = await techTrendReportService.getDomainVideoRows(domain, days);
       const { targets, skipped } = selectGeminiTargets(rows, { maxAttempts: MAX_ATTEMPTS, cap: MAX_PER_RUN });
-      const judgeRows = selectJudgeTargets(rows);
+      const judgeRows = selectJudgeTargets(rows, domain);
       const total = targets.length + judgeRows.length;
 
       if (total === 0) {
@@ -367,7 +403,7 @@ class TechTrendAnalysisService {
   }
 
   private async runBatch(
-    domain: TechTrendDomain,
+    domain: FocusDomain,
     targets: PendingVideo[],
     rows: ArticleRow[],
     judgeRows: ArticleRow[]
@@ -390,8 +426,8 @@ class TechTrendAnalysisService {
           group.map(async (video) => ({
             video,
             res: await videoContentAnalysisService.analyzeVideo(video, {
-              focusDomain: 'hand',
-              usageTag: GEMINI_USAGE_TAG,
+              focusDomain: domain,
+              usageTag: geminiUsageTag(domain),
             }),
           }))
         );
@@ -411,9 +447,10 @@ class TechTrendAnalysisService {
             inputTokens += res.inputTokens;
             await videoContentAnalysisService.persistAnalysis(video.id, res.analysis);
             const focus = res.analysis.domainFocus;
-            if (focus) {
-              await this.saveDomainFocus(video.id, focus.hand, focus.reason, 'gemini');
-              this.emit(domain, { type: 'geminiOk', judged: focus.hand });
+            const level = focus?.[domain];
+            if (focus && level) {
+              await this.saveDomainFocus(video.id, domain, level, focus.reason, 'gemini');
+              this.emit(domain, { type: 'geminiOk', judged: level });
             } else {
               this.emit(domain, { type: 'geminiOk', judged: null });
               // 유효한 판정이 없으면 같은 실행 안에서 Haiku 폴백
@@ -451,27 +488,25 @@ class TechTrendAnalysisService {
       );
       if (s.analyzed > 0 || s.judged > 0) {
         await techTrendReportService.invalidateInsightCache(domain);
-        // focus 판정으로 시계열 스코프 자체가 바뀌므로 타임라인·해설 캐시도 무효화 (hand 한정)
-        if (domain === 'hand') {
-          try {
-            const { techTrendTimelineService } = await import('./tech-trend-timeline.service.js');
-            await techTrendTimelineService.invalidate();
-          } catch (err) {
-            console.error(`[TechTrendAnalysis] ${domain}: timeline cache invalidation failed:`, (err as Error).message);
-          }
-          // 무효화 직후 시사점·시계열 해설을 백그라운드로 미리 재생성 (실패해도 배치 결과에 영향 없음)
-          void import('./tech-trend-timeline-insight.service.js')
-            .then((m) => m.warmHandInsights())
-            .catch((err) =>
-              console.error(`[TechTrendAnalysis] ${domain}: insight warm-up failed:`, (err as Error).message)
-            );
+        // focus 판정으로 시계열 스코프 자체가 바뀌므로 타임라인·해설 캐시도 무효화 (시계열 지원 도메인: hand·actuator)
+        try {
+          const { techTrendTimelineService } = await import('./tech-trend-timeline.service.js');
+          await techTrendTimelineService.invalidate(domain);
+        } catch (err) {
+          console.error(`[TechTrendAnalysis] ${domain}: timeline cache invalidation failed:`, (err as Error).message);
         }
+        // 무효화 직후 시사점·시계열 해설을 백그라운드로 미리 재생성 (실패해도 배치 결과에 영향 없음)
+        void import('./tech-trend-timeline-insight.service.js')
+          .then((m) => m.warmDomainInsights(domain))
+          .catch((err) =>
+            console.error(`[TechTrendAnalysis] ${domain}: insight warm-up failed:`, (err as Error).message)
+          );
       }
     }
   }
 
   /** Haiku로 10건 묶음 판정 — 실패/파싱 실패 항목은 미판정으로 둔다(attempts 마커 불변) */
-  private async judgeBatch(domain: TechTrendDomain, batch: ArticleRow[]): Promise<void> {
+  private async judgeBatch(domain: FocusDomain, batch: ArticleRow[]): Promise<void> {
     if (!this.anthropicClient) return;
     const items = batch.map(toFocusJudgeItem);
     const validIds = new Set(items.map((i) => i.id));
@@ -480,7 +515,7 @@ class TechTrendAnalysisService {
       const response = await this.anthropicClient.messages.create({
         model: FOCUS_MODEL,
         max_tokens: JUDGE_MAX_TOKENS,
-        messages: [{ role: 'user', content: buildFocusJudgePrompt(items) }],
+        messages: [{ role: 'user', content: buildFocusJudgePrompt(items, domain) }],
         ...effortParams(FOCUS_MODEL, 'low'),
       });
       aiUsageService
@@ -496,9 +531,9 @@ class TechTrendAnalysisService {
 
       warnOnAbnormalStop('TechTrendAnalysis', FOCUS_MODEL, response);
       const combined = extractText(response.content);
-      for (const r of parseHaikuFocusBatch(combined, validIds)) {
+      for (const r of parseHaikuFocusBatch(combined, validIds, domain)) {
         try {
-          await this.saveDomainFocus(r.id, r.level, r.reason, 'haiku');
+          await this.saveDomainFocus(r.id, domain, r.level, r.reason, 'haiku');
           this.emit(domain, { type: 'judgeOk', level: r.level });
           resolved++;
         } catch (err) {
@@ -512,9 +547,10 @@ class TechTrendAnalysisService {
     if (unresolved > 0) this.emit(domain, { type: 'judgeUnresolved', count: unresolved });
   }
 
-  /** extracted_metadata.domainFocus.hand 만 병합 저장 (다른 도메인 키 보존) */
+  /** extracted_metadata.domainFocus.{domain} 만 병합 저장 (다른 도메인 키 보존) */
   private async saveDomainFocus(
     articleId: string,
+    domain: FocusDomain,
     level: HandFocusLevel,
     reason: string,
     source: 'gemini' | 'haiku'
@@ -531,7 +567,7 @@ class TechTrendAnalysisService {
         COALESCE(extracted_metadata, '{}'::jsonb),
         '{domainFocus}',
         COALESCE(extracted_metadata->'domainFocus', '{}'::jsonb)
-          || jsonb_build_object('hand', ${value}::jsonb),
+          || jsonb_build_object(${domain}::text, ${value}::jsonb),
         true
       )
       WHERE id = ${articleId}

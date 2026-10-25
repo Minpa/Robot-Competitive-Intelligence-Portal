@@ -45,4 +45,14 @@ describe('TOPIC_SEARCHES', () => {
     const hand = TOPIC_SEARCHES.find((c) => c.domain === 'hand');
     expect(hand?.queries).toHaveLength(11);
   });
+
+  it('has 12 English actuator queries covering the main actuator families', () => {
+    const actuator = TOPIC_SEARCHES.find((c) => c.domain === 'actuator');
+    expect(actuator?.queries).toHaveLength(12);
+    const joined = actuator!.queries.join(' | ').toLowerCase();
+    for (const term of ['quasi direct drive', 'harmonic drive', 'planetary', 'linear actuator', 'teardown', 'torque density', 'cycloidal', 'series elastic', 'joint module', 'factory']) {
+      expect(joined, term).toContain(term);
+    }
+    for (const q of actuator!.queries) expect(q).toMatch(/^[\x20-\x7e]+$/); // 영어(ASCII) 위주
+  });
 });

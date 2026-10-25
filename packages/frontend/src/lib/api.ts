@@ -8,6 +8,7 @@ import type {
   HandTopicClassificationStatus,
   HandTopicClassifyResponse,
 } from '@/types/tech-trend-timeline';
+import type { ActuatorMapResponse } from '@/types/actuator-map';
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const API_BASE = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
 
@@ -371,6 +372,11 @@ class ApiClient {
   /** 분류 배치 진행 상태 (관리자) */
   async getHandTopicClassificationStatus(domain: string) {
     return this.request<HandTopicClassificationStatus>(`/articles/tech-trends/${domain}/classify/status`);
+  }
+
+  /** 액추에이터 관점 경쟁사 포지션·공급망 맵 (서버 캐시 10분, 쿼리 없음) */
+  async getActuatorMap() {
+    return this.request<ActuatorMapResponse>('/actuator-map');
   }
 
   async importArticlesFromExcel(file: File, updateExisting = true) {
