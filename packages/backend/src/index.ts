@@ -14,6 +14,13 @@ import { schedulerService } from './services/scheduler.service.js';
 import { dataMigrationService } from './services/data-migration.service.js';
 import { autoApplyActuatorData } from './services/actuator-auto-apply.service.js';
 import { ensureActuatorSourcingTables } from './db/actuator-sourcing.ddl.js';
+import { ensureWeeklyBriefTables } from './db/weekly-brief.ddl.js';
+import {
+  WEEKLY_BRIEF_TASK_NAME,
+  isStartupWeeklyBriefEnabled,
+  resolveWeeklyBriefStartupDelayMs,
+  runStartupWeeklyBriefIfDue,
+} from './services/weekly-brief.service.js';
 import {
   PIPELINE_TASK_NAME,
   isStartupPipelineEnabled,
@@ -73,6 +80,10 @@ const start = async () => {
     // 액추에이터 조달 태세·수요 사례 테이블 (humanoid_robots 이후). 실패해도 기동은 계속한다
     await ensureActuatorSourcingTables().catch((err) => {
       console.warn('[ActuatorSourcing] ensureTables 실패:', err?.message ?? err);
+    });
+    // 주간 브리프 테이블 (실패해도 기동은 계속한다 — 수동 생성/조회만 영향)
+    await ensureWeeklyBriefTables().catch((err) => {
+      console.warn('[WeeklyBrief] ensureTables 실패:', err?.message ?? err);
     });
     await coverageFieldService.ensureTables();
     const cfs = await coverageFieldService.seedFromFiles().catch((err) => {
@@ -156,6 +167,15 @@ const start = async () => {
           void runStartupPipelineIfDue(() => schedulerService.trigger(PIPELINE_TASK_NAME, 'startup'));
         }, delayMs);
         console.log(`[TechTrendPipeline] Startup run scheduled in ${Math.round(delayMs / 1000)}s`);
+      }
+
+      // 주간 브리프 기동 캐치업 — 지난주 브리프가 없고 월요일 08:00 KST 이후일 때만 (12시간 가드, 태깅 체인 대기)
+      if (isStartupWeeklyBriefEnabled()) {
+        const delayMs = resolveWeeklyBriefStartupDelayMs();
+        setTimeout(() => {
+          void runStartupWeeklyBriefIfDue(() => schedulerService.trigger(WEEKLY_BRIEF_TASK_NAME, 'startup'));
+        }, delayMs);
+        console.log(`[WeeklyBrief] Startup catch-up scheduled in ${Math.round(delayMs / 1000)}s`);
       }
     } else {
       console.log('[Scheduler] Disabled via DISABLE_SCHEDULER env');

@@ -35,6 +35,16 @@ module.exports = {
           900: '#1F2328',
         },
         paper:      '#F2F3F4',
+        // 주간 브리프 포스터 전용 팔레트 (src/lib/weekly-brief-theme.ts 와 값이 같아야 한다 — weekly-brief-theme.test.ts 가 검사)
+        poster: {
+          DEFAULT:  '#4A4F57',
+          '2':      '#565B64',
+          '3':      '#616670',
+          card:     '#5B606A',
+          fg:       '#F4F5F6',
+          'fg-2':   '#D9DCE0',
+          'fg-3':   '#C0C5CC',
+        },
         brand:      '#1F2328',
         'brand-ink':  '#FFFFFF',
         'brand-soft': '#2F333A',

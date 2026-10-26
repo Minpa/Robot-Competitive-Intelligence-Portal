@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 const h = vi.hoisted(() => ({
   schedule: vi.fn(),
   runPipeline: vi.fn(),
+  runWeeklyBrief: vi.fn(),
 }));
 
 vi.mock('node-cron', () => ({ default: { schedule: h.schedule } }));
@@ -26,6 +27,11 @@ vi.mock('../../services/tech-trend-pipeline.service.js', () => ({
   DEFAULT_PIPELINE_CRON: '30 5 * * *',
   PIPELINE_TASK_NAME: 'tech-trend-pipeline',
 }));
+vi.mock('../../services/weekly-brief.service.js', () => ({
+  runWeeklyBrief: h.runWeeklyBrief,
+  DEFAULT_WEEKLY_BRIEF_CRON: '0 8 * * 1',
+  WEEKLY_BRIEF_TASK_NAME: 'weekly-brief',
+}));
 
 async function load() {
   vi.resetModules();
@@ -38,19 +44,22 @@ const cronCalls = () => h.schedule.mock.calls.map((c) => ({ expr: c[0] as string
 beforeEach(() => {
   h.schedule.mockReset().mockImplementation(() => ({ stop: vi.fn() }));
   h.runPipeline.mockReset().mockResolvedValue(null);
+  h.runWeeklyBrief.mockReset().mockResolvedValue({ outcome: 'created' });
   delete process.env.CRON_TECH_TREND_PIPELINE;
+  delete process.env.CRON_WEEKLY_BRIEF;
   vi.spyOn(console, 'log').mockImplementation(() => {});
 });
 afterEach(() => vi.restoreAllMocks());
 
 describe('scheduler: tech-trend-pipeline', () => {
-  it('registers 5 tasks; pipeline defaults to 30 5 * * * in KST; existing 4 unchanged', async () => {
+  it('registers 6 tasks; pipeline defaults to 30 5 * * * in KST; weekly brief 0 8 * * 1; existing 4 unchanged', async () => {
     const s = await load();
     s.init();
     const status = s.getStatus().tasks;
-    expect(status.map((t) => t.name)).toEqual(['scoring', 'audit', 'briefing', 'video-tagging', 'tech-trend-pipeline']);
+    expect(status.map((t) => t.name)).toEqual(['scoring', 'audit', 'briefing', 'video-tagging', 'tech-trend-pipeline', 'weekly-brief']);
     expect(Object.fromEntries(status.map((t) => [t.name, t.cron]))).toEqual({
       scoring: '0 2 * * 1', audit: '0 3 * * 1', briefing: '0 4 * * 1', 'video-tagging': '0 4 * * *', 'tech-trend-pipeline': '30 5 * * *',
+      'weekly-brief': '0 8 * * 1',
     });
     for (const c of cronCalls()) expect(c.opts).toMatchObject({ timezone: 'Asia/Seoul' });
   });
@@ -101,5 +110,27 @@ describe('scheduler: tech-trend-pipeline', () => {
     s.init();
     expect(s.isTaskRunning('nope')).toBe(false);
     expect((await s.trigger('nope')).success).toBe(false);
+  });
+
+  it('weekly-brief: CRON_WEEKLY_BRIEF overrides the schedule', async () => {
+    process.env.CRON_WEEKLY_BRIEF = '30 9 * * 1';
+    const s = await load();
+    s.init();
+    expect(s.getStatus().tasks.find((t) => t.name === 'weekly-brief')?.cron).toBe('30 9 * * 1');
+  });
+
+  it('weekly-brief: the cron handler runs with reason=cron', async () => {
+    const s = await load();
+    s.init();
+    await cronCalls().find((c) => c.expr === '0 8 * * 1')!.fn();
+    expect(h.runWeeklyBrief).toHaveBeenCalledWith({ reason: 'cron' });
+    expect(s.isTaskRunning('weekly-brief')).toBe(false);
+  });
+
+  it('weekly-brief: trigger() reaches the service (switch case) with startup reason', async () => {
+    const s = await load();
+    s.init();
+    expect(await s.trigger('weekly-brief', 'startup')).toMatchObject({ success: true });
+    await vi.waitFor(() => expect(h.runWeeklyBrief).toHaveBeenCalledWith({ reason: 'startup' }));
   });
 });

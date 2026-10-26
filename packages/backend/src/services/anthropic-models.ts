@@ -3,6 +3,7 @@
  *
  * 작업 그룹별 모델 기본값 체인 (그룹끼리 서로 상속하지 않는다):
  *  - 종합(시사점·시계열 해설):  Opus 5.5  — TECH_TREND_REPORT_MODEL / TECH_TREND_TIMELINE_MODEL
+ *  - 주간 브리프 문장:          종합 그룹과 같은 기본값 — WEEKLY_BRIEF_MODEL → TECH_TREND_REPORT_MODEL → 기본값
  *  - 판정·분류:                Haiku 5.5 — TECH_TREND_FOCUS_MODEL / HAND_TOPIC_MODEL
  *  - 핸드 외 4개 도메인 시사점:  Haiku 4.5 — TECH_TREND_REPORT_LEGACY_MODEL (현행 유지)
  *
@@ -59,6 +60,11 @@ export function resolveLegacyReportModel(env: EnvLike = process.env): string {
 /** (b) 시계열 해설 */
 export function resolveTimelineModel(env: EnvLike = process.env): string {
   return resolveModelFromEnv(['TECH_TREND_TIMELINE_MODEL', 'TECH_TREND_REPORT_MODEL'], OPUS_5_5_MODEL, env);
+}
+
+/** (b') 주간 브리프 요약 문장 — WEEKLY_BRIEF_MODEL → TECH_TREND_REPORT_MODEL → 종합 기본 모델 */
+export function resolveWeeklyBriefModel(env: EnvLike = process.env): string {
+  return resolveModelFromEnv(['WEEKLY_BRIEF_MODEL', 'TECH_TREND_REPORT_MODEL'], OPUS_5_5_MODEL, env);
 }
 
 /** (c) 핸드 관련성 판정 — 종합 그룹(TECH_TREND_REPORT_MODEL)을 상속하지 않는다 */

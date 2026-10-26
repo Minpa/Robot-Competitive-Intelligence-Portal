@@ -50,11 +50,15 @@ beforeEach(() => {
   process.env.GEMINI_API_KEY = 'secret-gemini';
   process.env.DATABASE_URL = 'postgres://user:pw-secret@host/db';
   delete process.env.TECH_TREND_AUTO_DOMAINS;
+  delete process.env.CRON_WEEKLY_BRIEF;
+  delete process.env.WEEKLY_BRIEF_ON_STARTUP;
+  delete process.env.DISABLE_SCHEDULER;
   h.listRecent.mockReset().mockResolvedValue([{ key: 'actuator-update:aaaaaaaaaaaa', appliedAt: new Date('2026-10-25T00:00:00Z'), summary: { counters: {} } }]);
   h.has.mockReset().mockResolvedValue(true);
   h.computeKey.mockReset().mockReturnValue('actuator-update:aaaaaaaaaaaa');
   h.get.mockReset().mockImplementation(async (key: string) =>
     key === 'pipeline:last' ? { key, appliedAt: new Date(), summary: { status: 'ok' } }
+      : key === 'weekly-brief:last' ? { key, appliedAt: new Date('2026-10-26T00:00:00Z'), summary: { weekStart: '2026-10-19', reason: 'cron', outcome: 'created', status: 'ok', finishedAt: '2026-10-25T23:01:00.000Z', startedAt: '2026-10-25T23:00:00.000Z', durationMs: 60000, costUsd: 0.04 } }
       : key === 'arxiv-backfill:actuator:12m' ? { key, appliedAt: new Date('2026-10-25T01:00:00Z'), summary: { status: 'ok', inserted: 10 } }
       : null);
 });
@@ -74,7 +78,7 @@ describe('GET /api/admin/ops/status', () => {
     const res = await get('admin');
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(Object.keys(body)).toEqual(['generatedAt', 'config', 'dataMigrations', 'currentDataKey', 'pipeline', 'crawler']);
+    expect(Object.keys(body)).toEqual(['generatedAt', 'config', 'dataMigrations', 'currentDataKey', 'pipeline', 'crawler', 'weeklyBrief']);
     expect(body.config).toEqual({
       actuatorAutoApply: 'true', techTrendAutoDomains: ['actuator', 'hand'], pipelineOnStartup: true, pipelineCron: '30 5 * * *', schedulerEnabled: true,
     });
@@ -88,6 +92,9 @@ describe('GET /api/admin/ops/status', () => {
     expect(body.pipeline.live.actuator).toHaveProperty('classify');
     expect(body.crawler.actuatorBackfill.summary).toMatchObject({ status: 'ok', inserted: 10 });
     expect(body.crawler.statusHint).toContain('/legal/arxiv-topic-backfill/status?domain=actuator');
+    expect(Object.keys(body.weeklyBrief)).toEqual(['cron', 'schedulerEnabled', 'startupCatchup', 'running', 'last']);
+    expect(body.weeklyBrief).toMatchObject({ cron: '0 8 * * 1', schedulerEnabled: true, startupCatchup: true, running: false });
+    expect(body.weeklyBrief.last).toMatchObject({ weekStart: '2026-10-19', outcome: 'created', status: 'ok', reason: 'cron' });
   });
   it('a failing source only breaks its own section; the response stays 200', async () => {
     h.listRecent.mockRejectedValue(new Error('table missing'));

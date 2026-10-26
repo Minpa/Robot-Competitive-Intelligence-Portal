@@ -9,6 +9,12 @@ import type {
   HandTopicClassifyResponse,
 } from '@/types/tech-trend-timeline';
 import type { ActuatorMapResponse } from '@/types/actuator-map';
+import type {
+  WeeklyBriefGenerateResponse,
+  WeeklyBriefListItem,
+  WeeklyBriefResponse,
+  WeeklyBriefRunStatus,
+} from '@/types/weekly-brief';
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const API_BASE = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
 
@@ -350,6 +356,36 @@ class ApiClient {
   /** 분석 배치 진행 상태 (관리자) */
   async getTechTrendAnalysisStatus(domain: string) {
     return this.request<TechTrendAnalysisStatus>(`/articles/tech-trends/${domain}/analyze/status`);
+  }
+
+  // ───────── 주간 브리프 (/share/weekly) ─────────
+
+  /** 최신 주간 브리프 (없으면 404 'not_found' 로 throw) */
+  async getWeeklyBriefLatest() {
+    return this.request<WeeklyBriefResponse>('/weekly-brief/latest');
+  }
+
+  /** 특정 주(월요일 'YYYY-MM-DD') 주간 브리프 */
+  async getWeeklyBrief(weekStart: string) {
+    return this.request<WeeklyBriefResponse>(`/weekly-brief/${encodeURIComponent(weekStart)}`);
+  }
+
+  /** 최근 주간 브리프 목록 (week_start 내림차순) */
+  async listWeeklyBriefs(limit = 26) {
+    return this.request<{ items: WeeklyBriefListItem[] }>(`/weekly-brief?limit=${limit}`);
+  }
+
+  /** 주간 브리프 즉시 생성 (관리자). 202 시작 / 200 skipped:exists, 400·409 는 throw */
+  async generateWeeklyBrief(body: { weekStart?: string; force?: boolean } = {}) {
+    return this.request<WeeklyBriefGenerateResponse>('/admin/weekly-brief/generate', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  /** 주간 브리프 생성 진행 상태 (관리자) */
+  async getWeeklyBriefStatus() {
+    return this.request<WeeklyBriefRunStatus>('/admin/weekly-brief/status');
   }
 
   /** 핸드 기술 시계열 트렌드 (수집 시작 이후 전체 기간, days 무관) */

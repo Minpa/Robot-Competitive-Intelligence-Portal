@@ -2729,3 +2729,23 @@ export const actuatorVendorMarkets = pgTable('actuator_vendor_markets', {
   url:             text('url'),
   updatedAt:       timestamp('updated_at').defaultNow().notNull(),
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 주간 브리프 (주당 1행, week_start = KST 월요일)
+// 정식 생성 경로는 런타임 ensureWeeklyBriefTables() (src/db/weekly-brief.ddl.ts, CREATE TABLE IF NOT EXISTS).
+// drizzle/0029 는 수동 migrate 호환용 (동일 DDL). week_start 는 끝까지 문자열(string 모드)로 다룬다.
+// ─────────────────────────────────────────────────────────────────────────────
+export const weeklyBriefs = pgTable('weekly_briefs', {
+  weekStart:    date('week_start', { mode: 'string' }).primaryKey(),
+  periodStart:  timestamp('period_start', { withTimezone: true }).notNull(),
+  periodEnd:    timestamp('period_end', { withTimezone: true }).notNull(),
+  generatedAt:  timestamp('generated_at', { withTimezone: true }).defaultNow().notNull(),
+  status:       varchar('status', { length: 10 }).notNull(), // ok | partial | failed
+  payload:      jsonb('payload').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  stats:        jsonb('stats').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  model:        varchar('model', { length: 100 }),
+  inputTokens:  integer('input_tokens').notNull().default(0),
+  outputTokens: integer('output_tokens').notNull().default(0),
+  costUsd:      decimal('cost_usd', { precision: 10, scale: 6 }).notNull().default('0'),
+  error:        text('error'),
+});

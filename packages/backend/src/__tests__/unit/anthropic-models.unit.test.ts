@@ -11,6 +11,7 @@ import {
   resolveReportModel,
   resolveLegacyReportModel,
   resolveTimelineModel,
+  resolveWeeklyBriefModel,
   resolveFocusModel,
   resolveHandTopicModel,
   supportsEffort,
@@ -55,6 +56,16 @@ describe('model env chains', () => {
   it('timeline model: TECH_TREND_TIMELINE_MODEL > TECH_TREND_REPORT_MODEL > default', () => {
     expect(resolveTimelineModel({ TECH_TREND_REPORT_MODEL: 'r' })).toBe('r');
     expect(resolveTimelineModel({ TECH_TREND_REPORT_MODEL: 'r', TECH_TREND_TIMELINE_MODEL: 't' })).toBe('t');
+  });
+
+  it('weekly brief model: WEEKLY_BRIEF_MODEL > TECH_TREND_REPORT_MODEL > default', () => {
+    expect(resolveWeeklyBriefModel({})).toBe(OPUS_5_5_MODEL);
+    expect(resolveWeeklyBriefModel({ TECH_TREND_REPORT_MODEL: 'r' })).toBe('r');
+    expect(resolveWeeklyBriefModel({ TECH_TREND_REPORT_MODEL: 'r', WEEKLY_BRIEF_MODEL: 'w' })).toBe('w');
+    // 공백만 있는 값은 건너뛴다
+    expect(resolveWeeklyBriefModel({ WEEKLY_BRIEF_MODEL: '  ', TECH_TREND_REPORT_MODEL: 'r' })).toBe('r');
+    // 판정 모델 설정이 번지지 않는다
+    expect(resolveWeeklyBriefModel({ TECH_TREND_FOCUS_MODEL: 'f', HAND_TOPIC_MODEL: 'h' })).toBe(OPUS_5_5_MODEL);
   });
 
   it('hand-topic model: HAND_TOPIC_MODEL > TECH_TREND_FOCUS_MODEL > default', () => {

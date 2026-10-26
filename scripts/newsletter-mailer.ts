@@ -1,4 +1,10 @@
 /**
+ * DEPRECATED (2026-10): 일일 메일 뉴스레터는 ARGOS 주간 브리프 페이지(/share/weekly)로 대체되었다.
+ * 주간 브리프는 백엔드 서비스(packages/backend/src/services/weekly-brief.service.ts)가 매주 월 08:00 KST 에
+ * 직전 월~일 구간으로 자동 발행하며, 메일은 더 이상 발송하지 않는다.
+ * 이 파일(send-daily-newsletter.ts 가 사용하는 메일 발송 모듈)은 삭제하지 않고 남겨 둔다 — 메일 발송이 다시 필요하면 관련 환경 변수만 복구해 사용할 수 있다. 로직은 변경하지 않았다.
+ */
+/**
  * ARGOS Newsletter mail sender
  *  - Brevo HTTPS API (443) : sendWithBrevo  (Railway 등 SMTP 포트 차단 환경용)
  *  - Gmail SMTP            : sendWithRetry  (retry / port fallback / per-attempt hard deadline)

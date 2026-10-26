@@ -38,6 +38,7 @@ import { pmRoutes } from './pm.js';
 import { issueRoutes } from './issues.js';
 import { ingestRoutes } from './ingest.js';
 import { actuatorMapRoutes } from './actuator-map.js';
+import { weeklyBriefRoutes, weeklyBriefAdminRoutes } from './weekly-brief.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -117,4 +118,8 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // 액추에이터 관점 경쟁사 포지션·공급망 맵 (공유 리포트용, 읽기 전용)
   fastify.register(actuatorMapRoutes, { prefix: '/api/actuator-map' });
+
+  // 주간 브리프 — 조회(로그인) / 수동 생성·상태(admin). admin.ts 는 무거운 서비스 import 가 많아 별도 모듈로 둔다
+  fastify.register(weeklyBriefRoutes, { prefix: '/api/weekly-brief' });
+  fastify.register(weeklyBriefAdminRoutes, { prefix: '/api/admin/weekly-brief' });
 }

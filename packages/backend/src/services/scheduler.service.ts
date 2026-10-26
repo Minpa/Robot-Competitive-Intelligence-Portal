@@ -20,6 +20,7 @@ import { applicationCaseExtractionService } from './application-case-extraction.
 import { videoContentAnalysisService } from './video-content-analysis.service.js';
 import { eventVideoBriefService } from './event-video-brief.service.js';
 import { runTechTrendPipeline, DEFAULT_PIPELINE_CRON, PIPELINE_TASK_NAME, type PipelineReason } from './tech-trend-pipeline.service.js';
+import { runWeeklyBrief, DEFAULT_WEEKLY_BRIEF_CRON, WEEKLY_BRIEF_TASK_NAME } from './weekly-brief.service.js';
 
 // ── Types ──
 
@@ -67,6 +68,7 @@ const SCHEDULE_AUDIT = process.env.CRON_AUDIT || '0 3 * * 1';           // Mon 0
 const SCHEDULE_BRIEFING = process.env.CRON_BRIEFING || '0 4 * * 1';     // Mon 04:00
 const SCHEDULE_VIDEO_TAGGING = process.env.CRON_VIDEO_TAGGING || '0 4 * * *'; // 매일 04:00 (크롤러 수집 후)
 const SCHEDULE_TECH_TREND_PIPELINE = process.env.CRON_TECH_TREND_PIPELINE || DEFAULT_PIPELINE_CRON; // 매일 05:30 KST (태깅 체인 이후)
+const SCHEDULE_WEEKLY_BRIEF = process.env.CRON_WEEKLY_BRIEF || DEFAULT_WEEKLY_BRIEF_CRON; // 매주 월 08:00 KST (직전 월~일 주간 브리프)
 
 class SchedulerService {
   private tasks: Map<string, ScheduledTask> = new Map();
@@ -89,7 +91,11 @@ class SchedulerService {
       await runTechTrendPipeline({ reason: 'cron' });
     });
 
-    console.log('[Scheduler] Initialized with 5 tasks');
+    this.registerTask(WEEKLY_BRIEF_TASK_NAME, '주간 브리프 생성', SCHEDULE_WEEKLY_BRIEF, async () => {
+      await runWeeklyBrief({ reason: 'cron' });
+    });
+
+    console.log('[Scheduler] Initialized with 6 tasks');
   }
 
   private registerTask(name: string, label: string, cronExpr: string, handler: () => Promise<void>) {
@@ -143,6 +149,7 @@ class SchedulerService {
           case 'briefing': await this.runBriefing(); break;
           case 'video-tagging': await this.runVideoTagging(); break;
           case PIPELINE_TASK_NAME: await runTechTrendPipeline({ reason }); break;
+          case WEEKLY_BRIEF_TASK_NAME: await runWeeklyBrief({ reason }); break;
         }
         task.lastRun = new Date();
       } catch (err) {
