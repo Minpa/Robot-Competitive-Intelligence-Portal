@@ -8,11 +8,14 @@
  *  라벨은 근접 8후보 → 원거리 8후보(리더선) → 최소 충돌 후보 순으로 배치한다.
  *
  * 점 색 = 조달 태세 4단계(자체 개발 확인 / 자체+외판 / 외부 조달·혼합 / 확인 불가=속 빈 링). 지역은 색이 아니라 필터·툴팁·표로만 쓴다.
- * 커버리지 영역(hull)은 무채색이다.
+ * 커버리지 영역(hull)은 회사 구분 전용 색이다(의미 없음). 바운딩 박스가 겹치거나 인접한 영역끼리 다른 색이 되도록
+ * CATEGORY_PALETTE 6색을 그리디로 배정하고(assignHullColors), 회사명 라벨 앞에 같은 색 점을 붙여 영역과 연결한다(hullLabelDot).
+ * 라벨 글자색은 잉크색이다.
+ * 웹에서 라벨·점에 hover/focus 하면 그 회사 영역만 강조한다(hullEmphasis, 순수 함수).
  * 색은 chartColors 토큰만 사용한다 (새 hex 없음).
  */
 
-import { CHART_HUE_MUTED } from '@/app/events/wrc2026/components/chartColors';
+import { CATEGORY_PALETTE } from '@/app/events/wrc2026/components/chartColors';
 import type { ActuatorMapRegion, ActuatorMapRobot, DifficultyWeights, RobotPrice, SourcingPosture } from '@/types/actuator-map';
 import { DEFAULT_POSTURES, POSTURE_COLOR, POSTURE_HOLLOW, POSTURE_LABEL, postureDetailLabel, postureOf } from './actuator-sourcing';
 
@@ -55,8 +58,14 @@ export const CHART_W = 1100;
 export const CHART_H = 640;
 export const MARGIN = { t: 28, r: 40, b: 64, l: 170 } as const;
 
-/** 커버리지 영역(hull) 무채색 — 채움 0.10 · 테두리 0.45 불투명도로 그린다 */
-export const HULL_COLOR = CHART_HUE_MUTED;
+/** 커버리지 영역(hull) 불투명도·두께 — 웹·다운로드 HTML 공용 (기본 / 강조 / 비강조) */
+export const HULL_FILL = 0.12;
+export const HULL_STROKE = 0.7;
+export const HULL_STROKE_W = 1.2;
+export const HULL_FILL_ON = 0.26;
+export const HULL_STROKE_W_ON = 2;
+export const HULL_FILL_OFF = 0.03;
+export const HULL_STROKE_OFF = 0.15;
 
 export interface LayoutOptions {
   yAxis: YAxisKey;
@@ -152,8 +161,103 @@ export interface PlottedPoint {
 export interface HullShape {
   company: string;
   d: string;
+  /** 회사 구분 색 (CATEGORY_PALETTE[colorIndex]) — 의미 없음 */
   color: string;
+  colorIndex: number;
   label: { x: number; y: number; anchor: 'start' | 'middle' | 'end' };
+}
+
+export interface HullBox {
+  company: string;
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+}
+
+/** 두 hull 의 바운딩 박스가 겹치거나 이 거리(px) 이내로 인접하면 색을 달리한다 */
+const HULL_ADJ_GAP = 8;
+
+/**
+ * hull 색 인덱스 배정 (그리디 그래프 컬러링). 간선 = 바운딩 박스가 겹치거나 8px 이내 인접.
+ * 차수 내림차순(동률 회사명 사전순)으로 처리하고, 이미 배정된 인접 hull 이 쓰지 않은 후보 중 전체에서 가장 적게 쓰인 인덱스(동률 시 작은 인덱스)를 준다.
+ * 6색을 모두 인접이 쓰고 있으면 인접 중 가장 적게 쓰인 인덱스(동률 시 작은 인덱스). 결과는 입력 순서와 같은 길이의 배열.
+ */
+export function assignHullColors(hullBoxes: HullBox[]): number[] {
+  const n = hullBoxes.length;
+  const k = CATEGORY_PALETTE.length;
+  const adj: number[][] = hullBoxes.map(() => []);
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const a = hullBoxes[i]!;
+      const b = hullBoxes[j]!;
+      if (a.minX - HULL_ADJ_GAP <= b.maxX && b.minX - HULL_ADJ_GAP <= a.maxX && a.minY - HULL_ADJ_GAP <= b.maxY && b.minY - HULL_ADJ_GAP <= a.maxY) {
+        adj[i]!.push(j);
+        adj[j]!.push(i);
+      }
+    }
+  }
+  const order = hullBoxes
+    .map((_, i) => i)
+    .sort((a, b) => {
+      const da = adj[b]!.length - adj[a]!.length;
+      if (da !== 0) return da;
+      const ca = hullBoxes[a]!.company;
+      const cb = hullBoxes[b]!.company;
+      return ca < cb ? -1 : ca > cb ? 1 : 0;
+    });
+  const result: number[] = new Array(n).fill(-1);
+  const total = new Array<number>(k).fill(0);
+  for (const i of order) {
+    const used = new Array<number>(k).fill(0);
+    for (const j of adj[i]!) if (result[j]! >= 0) used[result[j]!]! += 1;
+    let pick = -1;
+    for (let c = 0; c < k; c++) if (used[c] === 0 && (pick < 0 || total[c]! < total[pick]!)) pick = c;
+    if (pick < 0) {
+      pick = 0;
+      for (let c = 1; c < k; c++) if (used[c]! < used[pick]!) pick = c;
+    }
+    result[i] = pick;
+    total[pick]! += 1;
+  }
+  return result;
+}
+
+/** 회사명 라벨 앞 색 점 반지름·테두리 (웹·정적 공용) */
+export const HULL_DOT_R = 4;
+export const HULL_DOT_STROKE_W = 1;
+
+/**
+ * 회사명 라벨 앞 색 점의 중심. 라벨 좌표는 그대로 두고 anchor 기준 텍스트 앞쪽에 둔다:
+ * start 면 x-8, end 면 x+8(텍스트 끝 쪽), middle 이면 x - labelWidth/2 - 8. 세로는 글자 가운데(y-4).
+ */
+export function hullLabelDot(h: Pick<HullShape, 'company' | 'label'>): { cx: number; cy: number } {
+  const { x, y, anchor } = h.label;
+  const cx = anchor === 'start' ? x - 8 : anchor === 'end' ? x + 8 : x - labelWidth(h.company) / 2 - 8;
+  return { cx, cy: y - 4 };
+}
+
+export interface HullEmphasis {
+  fillOpacity: number;
+  strokeOpacity: number;
+  strokeWidth: number;
+}
+
+/**
+ * hover 중인 회사에 따른 hull 별 표시 상태. hover 가 null 이거나 어떤 hull 의 company 와도 일치하지 않으면 전부 기본값,
+ * 일치하면 그 hull 만 강조하고 나머지는 비강조한다 (company 원문 일치).
+ */
+export function hullEmphasis(hoverCompany: string | null, hulls: { company: string }[]): Record<string, HullEmphasis> {
+  const active = hoverCompany != null && hulls.some((h) => h.company === hoverCompany);
+  const out: Record<string, HullEmphasis> = {};
+  for (const h of hulls) {
+    out[h.company] = !active
+      ? { fillOpacity: HULL_FILL, strokeOpacity: HULL_STROKE, strokeWidth: HULL_STROKE_W }
+      : h.company === hoverCompany
+        ? { fillOpacity: HULL_FILL_ON, strokeOpacity: HULL_STROKE, strokeWidth: HULL_STROKE_W_ON }
+        : { fillOpacity: HULL_FILL_OFF, strokeOpacity: HULL_STROKE_OFF, strokeWidth: HULL_STROKE_W };
+  }
+  return out;
 }
 
 export interface ChartLayout {
@@ -310,7 +414,7 @@ export function buildLayout(robots: ActuatorMapRobot[], o: LayoutOptions): Chart
   }
 
   // 커버리지 헐
-  const hullBoxes: { company: string; color: string; d: string; minX: number; maxX: number; minY: number; maxY: number }[] = [];
+  const hullBoxes: (HullBox & { d: string })[] = [];
   if (o.hull) {
     const byCo = new Map<string, typeof pts>();
     for (const d of pts) byCo.set(d.r.company, [...(byCo.get(d.r.company) ?? []), d]);
@@ -321,7 +425,6 @@ export function buildLayout(robots: ActuatorMapRobot[], o: LayoutOptions): Chart
       const ys = poly.map((p) => p[1]);
       hullBoxes.push({
         company,
-        color: HULL_COLOR,
         d: hullPath(poly),
         minX: Math.min(...xs),
         maxX: Math.max(...xs),
@@ -405,7 +508,8 @@ export function buildLayout(robots: ActuatorMapRobot[], o: LayoutOptions): Chart
 
   // 회사명 라벨: 헐 바깥 상·하·우·좌 중 점·라벨과 겹치지 않는 첫 위치
   const hulls: HullShape[] = [];
-  for (const hb of hullBoxes) {
+  const hullColorIdx = assignHullColors(hullBoxes);
+  for (const [hi, hb] of hullBoxes.entries()) {
     const w = labelWidth(hb.company) + 4;
     const hh = 13;
     const cx = (hb.minX + hb.maxX) / 2;
@@ -444,7 +548,7 @@ export function buildLayout(robots: ActuatorMapRobot[], o: LayoutOptions): Chart
       if (sc === 0) break;
     }
     placed.push(boxOf(pick, w, hh));
-    hulls.push({ company: hb.company, d: hb.d, color: hb.color, label: { x: pick[0], y: pick[1], anchor: pick[2] } });
+    hulls.push({ company: hb.company, d: hb.d, color: CATEGORY_PALETTE[hullColorIdx[hi]!]!, colorIndex: hullColorIdx[hi]!, label: { x: pick[0], y: pick[1], anchor: pick[2] } });
   }
 
   const w = o.weights;

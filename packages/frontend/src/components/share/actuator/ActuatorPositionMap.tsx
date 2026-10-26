@@ -3,7 +3,8 @@
 /**
  * 액추에이터 관점 경쟁사 포지션·커버리지 맵 — SVG 산점도.
  *  X: 제어 난이도 지수(가중치 슬라이더), Y: 액추에이터 타입/무게/가반하중/가격(로그) 세그먼트 토글.
- *  점 = 로봇 1기(색 = 조달 태세 4단계, 확인 불가는 속 빈 회색 링), 반투명 무채색 영역 = 같은 회사 제품군 커버리지, LG 기준점은 잉크색 다이아몬드(형태로 구분).
+ *  점 = 로봇 1기(색 = 조달 태세 4단계, 확인 불가는 속 빈 회색 링), 반투명 영역 = 회사 커버리지(색은 회사 구분용·의미 없음, 겹치는 영역끼리 다른 색),
+ *  LG 기준점은 잉크색 다이아몬드(형태로 구분). 회사명 라벨 앞의 색 점이 영역 색을 가리키고, 라벨·점에 hover/focus 하면 그 회사 영역만 강조한다.
  *  지역은 색이 아니라 필터·툴팁·표로만 제공한다.
  *  레이아웃 계산은 actuator-map-layout.ts(순수 함수)에 있고 이 파일은 그리기·상호작용만 담당한다.
  *  컨트롤은 모두 no-print. 색은 chartColors 팔레트 토큰 + Tailwind ink 토큰만 사용한다.
@@ -14,7 +15,7 @@ import { Table2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ActuatorMapResponse, DifficultyWeights, RobotSourcing, SourcingPosture } from '@/types/actuator-map';
 import { SegmentedToggle, SubCard } from '../timeline-shared';
-import { PostureSwatch } from './ActuatorSwatches';
+import { HullSwatch, PostureSwatch } from './ActuatorSwatches';
 import {
   POSTURE_LABEL,
   POSTURE_ORDER,
@@ -34,6 +35,13 @@ import {
   defaultLayoutOptions,
   diamondPath,
   difficultyOf,
+  hullEmphasis,
+  hullLabelDot,
+  HULL_DOT_R,
+  HULL_DOT_STROKE_W,
+  HULL_FILL,
+  HULL_STROKE,
+  HULL_STROKE_W,
   numText,
   priceText,
   type LayoutOptions,
@@ -70,10 +78,17 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
   const [opts, setOpts] = useState<LayoutOptions>(() => ({ ...defaultLayoutOptions(data.difficultyDefault, data.typeOrder), yAxis: initialYAxis }));
   const [showTable, setShowTable] = useState(false);
   const [tip, setTip] = useState<TipState | null>(null);
+  const [hoverCompany, setHoverCompany] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
 
   const layout = useMemo(() => buildLayout(data.robots, opts), [data.robots, opts]);
   const coverage = useMemo(() => coverageRows(layout, opts.yAxis), [layout, opts.yAxis]);
+  const emphasis = useMemo(() => hullEmphasis(hoverCompany, layout.hulls), [hoverCompany, layout.hulls]);
+  // 강조 hull 을 마지막에 그린다 (배열은 불변, 렌더 순서만)
+  const hullDrawOrder = useMemo(
+    () => (hoverCompany == null ? layout.hulls : [...layout.hulls].sort((a, b) => Number(a.company === hoverCompany) - Number(b.company === hoverCompany))),
+    [layout.hulls, hoverCompany]
+  );
   const yd = Y_DEF[opts.yAxis];
   const incompleteCount = data.robots.filter((r) => r.incomplete).length;
   const hasForecast = data.robots.some((r) => r.forecast);
@@ -187,7 +202,10 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
             className="w-full h-auto block"
             role="img"
             aria-label={`${layout.title} 산점도 — ${layout.meta}`}
-            onPointerLeave={() => setTip(null)}
+            onPointerLeave={() => {
+              setTip(null);
+              setHoverCompany(null);
+            }}
           >
             {/* 격자·축 */}
             <g>
@@ -226,9 +244,21 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
 
             {/* 커버리지 헐 */}
             <g>
-              {layout.hulls.map((h) => (
-                <path key={h.company} d={h.d} fill={h.color} fillOpacity={0.1} stroke={h.color} strokeOpacity={0.45} strokeWidth={1} />
-              ))}
+              {hullDrawOrder.map((h) => {
+                const em = emphasis[h.company];
+                return (
+                  <path
+                    key={h.company}
+                    d={h.d}
+                    fill={h.color}
+                    fillOpacity={em?.fillOpacity ?? HULL_FILL}
+                    stroke={h.color}
+                    strokeOpacity={em?.strokeOpacity ?? HULL_STROKE}
+                    strokeWidth={em?.strokeWidth ?? HULL_STROKE_W}
+                    style={{ pointerEvents: 'none' }}
+                  />
+                );
+              })}
             </g>
 
             {/* 가격 범위 막대 */}
@@ -250,9 +280,19 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
                     role="img"
                     aria-label={p.ariaLabel}
                     className="outline-none cursor-default"
-                    onPointerMove={() => showTip(p)}
-                    onFocus={() => showTip(p)}
-                    onBlur={() => setTip(null)}
+                    onPointerMove={() => {
+                      showTip(p);
+                      setHoverCompany(r.company);
+                    }}
+                    onPointerLeave={() => setHoverCompany(null)}
+                    onFocus={() => {
+                      showTip(p);
+                      setHoverCompany(r.company);
+                    }}
+                    onBlur={() => {
+                      setTip(null);
+                      setHoverCompany(null);
+                    }}
                   >
                     <circle cx={p.px} cy={p.py} r={14} fill="transparent" />
                     {r.isLG ? (
@@ -309,21 +349,31 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
 
             {/* 회사명 라벨 */}
             <g>
-              {layout.hulls.map((h) => (
-                <text
-                  key={`hl-${h.company}`}
-                  x={h.label.x}
-                  y={h.label.y}
-                  textAnchor={h.label.anchor}
-                  fontSize={11}
-                  fontWeight={600}
-                  className="fill-ink-600 stroke-white"
-                  strokeWidth={3}
-                  style={{ paintOrder: 'stroke' }}
-                >
-                  {h.company}
-                </text>
-              ))}
+              {layout.hulls.map((h) => {
+                const dot = hullLabelDot(h);
+                return (
+                  <g
+                    key={`hl-${h.company}`}
+                    onPointerEnter={() => setHoverCompany(h.company)}
+                    onPointerMove={() => setHoverCompany(h.company)}
+                    onPointerLeave={() => setHoverCompany(null)}
+                  >
+                    <circle cx={dot.cx} cy={dot.cy} r={HULL_DOT_R} fill={h.color} className="stroke-white" strokeWidth={HULL_DOT_STROKE_W} />
+                    <text
+                      x={h.label.x}
+                      y={h.label.y}
+                      textAnchor={h.label.anchor}
+                      fontSize={11}
+                      fontWeight={600}
+                      className="fill-ink-900 stroke-white"
+                      strokeWidth={3}
+                      style={{ paintOrder: 'stroke' }}
+                    >
+                      {h.company}
+                    </text>
+                  </g>
+                );
+              })}
             </g>
           </svg>
 
@@ -379,13 +429,13 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
           </span>
         )}
         <span className="inline-flex items-center gap-1.5 text-[11.5px] text-ink-600">
-          <span aria-hidden className="inline-block w-[18px] h-2.5 rounded-[3px] border border-ink-400 bg-ink-100" />
-          같은 회사 제품군 커버리지
+          <HullSwatch />
+          회사 커버리지(색은 회사 구분용, 의미 없음)
         </span>
         {hasForecast && <span className="text-[11.5px] text-ink-600">○ 점선 테두리 = 예측 모델</span>}
       </div>
       <p className="text-[11px] text-ink-500">
-        점 색은 액추에이터 조달 태세입니다(속 빈 회색 링 = 근거 부족으로 확인 불가). 자체 개발 확인은 근거 등급 A·B만 셉니다. 지역은 필터·툴팁·표에서 확인하세요.
+        점 색은 액추에이터 조달 태세입니다(속 빈 회색 링 = 근거 부족으로 확인 불가). 자체 개발 확인은 근거 등급 A·B만 셉니다. 영역 색은 회사 구분용으로 겹치는 영역끼리 다른 색을 자동 배정한 것이며 의미는 없습니다. 회사명 라벨 앞의 색 점이 영역 색을 가리키고, 라벨이나 점에 마우스를 올리거나 포커스하면 그 회사 영역이 강조됩니다. 지역은 필터·툴팁·표에서 확인하세요.
       </p>
 
       {/* 가중치 슬라이더 */}

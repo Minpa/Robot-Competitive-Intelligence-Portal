@@ -8,9 +8,9 @@ import {
   buildSupplierMarketMapSvg,
   buildSupplyChainTableHtml,
 } from './actuator-map-html';
-import { buildLayout, defaultLayoutOptions } from './actuator-map-layout';
+import { buildLayout, defaultLayoutOptions, hullLabelDot } from './actuator-map-layout';
 import { buildMarketLayout } from './actuator-market-layout';
-import { SEGMENT_LABEL, SEGMENT_ORDER } from './actuator-sourcing';
+import { INK, SEGMENT_LABEL, SEGMENT_ORDER } from './actuator-sourcing';
 import { buildHeadlineMessage, computeStrategyStats } from './actuator-strategy';
 import { adoption, posture, response, robot, seedResponse, seedSuppliers44, sp } from './actuator-strategy.fixtures';
 
@@ -68,20 +68,44 @@ describe('buildSupplierMarketMapSvg', () => {
 });
 
 describe('buildActuatorMapSvg — 조달 태세 색', () => {
-  it('확인 불가는 흰 채움 + 회색 링, 그 외는 태세 색, hull 은 무채색', () => {
-    const r = (name: string, company: string, p: Parameters<typeof posture>[0], dof: number) =>
-      robot(name, company, [], { dof, handDof: 4, speed: 1, actuatorTypeLabel: '직구동/QDD', ...posture(p) });
-    const robots = [
-      r('a', 'Co', 'in_house', 20),
-      r('b', 'Co', 'in_house_sells', 30),
-      r('c', 'Co', 'external', 40),
-      r('d', 'Co', 'unknown', 25),
-    ];
-    const svg = buildActuatorMapSvg(buildLayout(robots, { ...defaultLayoutOptions({ L: 1, D: 1, H: 1, S: 1 }, []), yAxis: 'type', hull: true }));
+  const r = (name: string, company: string, p: Parameters<typeof posture>[0], dof: number) =>
+    robot(name, company, [], { dof, handDof: 4, speed: 1, actuatorTypeLabel: '직구동/QDD', ...posture(p) });
+  const OPT = { ...defaultLayoutOptions({ L: 1, D: 1, H: 1, S: 1 }, []), yAxis: 'type' as const, hull: true };
+  const hullPaths = (svg: string) => [...svg.matchAll(/<path d="[^"]*" fill="([^"]*)" fill-opacity="0\.12" stroke="([^"]*)" stroke-opacity="0\.7" stroke-width="1\.2"\/>/g)].map((m) => ({ fill: m[1]!, stroke: m[2]! }));
+
+  it('확인 불가는 흰 채움 + 회색 링, 그 외는 태세 색', () => {
+    const robots = [r('a', 'Co', 'in_house', 20), r('b', 'Co', 'in_house_sells', 30), r('c', 'Co', 'external', 40), r('d', 'Co', 'unknown', 25)];
+    const svg = buildActuatorMapSvg(buildLayout(robots, OPT));
     for (const c of CATEGORY_PALETTE.slice(0, 3)) expect(svg).toContain(`fill="${c}"`);
     expect(svg).toContain(`r="4.5" fill="#fff" stroke="${CHART_HUE_MUTED}" stroke-width="2"`);
     expect(svg).toContain(`<path d="`);
-    expect(svg).toContain(`fill="${CHART_HUE_MUTED}" fill-opacity="0.1" stroke="${CHART_HUE_MUTED}"`);
+  });
+
+  it('hull 은 회사 구분 팔레트 색(회색 아님), 겹치는 두 회사는 서로 다른 색, 라벨은 잉크색 + 앞의 색 점 = hull 색', () => {
+    const robots = [r('a1', 'Alpha Co', 'in_house', 20), r('a2', 'Alpha Co', 'in_house', 22), r('b1', 'Beta Co', 'external', 21), r('b2', 'Beta Co', 'external', 23)];
+    const layout = buildLayout(robots, OPT);
+    const svg = buildActuatorMapSvg(layout);
+    const paths = hullPaths(svg);
+    expect(paths).toHaveLength(2);
+    for (const p of paths) {
+      expect(CATEGORY_PALETTE).toContain(p.fill);
+      expect(p.stroke).toBe(p.fill);
+      expect(p.fill).not.toBe(CHART_HUE_MUTED);
+    }
+    expect(paths[0]!.fill).not.toBe(paths[1]!.fill);
+    for (const h of layout.hulls) {
+      const dot = hullLabelDot(h);
+      expect(svg).toContain(`<circle cx="${dot.cx.toFixed(1)}" cy="${dot.cy.toFixed(1)}" r="4" fill="${h.color}" stroke="#fff" stroke-width="1"/><text x="`);
+      expect(svg).toContain(`font-weight="600" fill="${INK[900]}" stroke="#fff" stroke-width="3" paint-order="stroke">${h.company}`);
+    }
+  });
+
+  it('결정적, 이벤트 속성·:hover·금지 문자열 없음', () => {
+    const robots = [r('a1', 'Alpha Co', 'in_house', 20), r('a2', 'Alpha Co', 'in_house', 22), r('b1', 'Beta Co', 'external', 21), r('b2', 'Beta Co', 'external', 23)];
+    const svg = buildActuatorMapSvg(buildLayout(robots, OPT));
+    expect(buildActuatorMapSvg(buildLayout(robots, OPT))).toBe(svg);
+    expect(svg).not.toMatch(/onpointer|onfocus|onmouse|:hover/i);
+    for (const bad of FORBIDDEN) expect(svg.toLowerCase()).not.toContain(bad);
   });
 });
 
@@ -176,6 +200,26 @@ describe('buildActuatorMapCardHtml', () => {
     expect(css).toContain('overflow-wrap:break-word');
     expect(css).toContain('white-space:normal !important');
     for (const bad of ['url(', '@import', 'http://', 'src=']) expect(css).not.toContain(bad);
+  });
+
+  it('범례: 회사 커버리지 문구 반영, 옛 문구 없음, 이벤트 속성·:hover 없음', () => {
+    expect(html).toContain('회사 커버리지(색은 회사 구분용, 의미 없음)');
+    expect(html).toContain('영역 색은 회사 구분용으로 겹치는 영역끼리 다른 색을 자동 배정한 것이며 의미는 없습니다.');
+    expect(html).toContain('회사명 라벨 앞의 색 점이 영역 색을 가리킵니다.');
+    expect(html).toContain('지역은 색으로 구분하지 않습니다.');
+    expect(html).not.toContain('같은 회사 제품군 커버리지');
+    expect(html).not.toMatch(/onpointer|onfocus|onmouse|:hover/i);
+  });
+
+  it('시드 데이터: hull 색은 팔레트 안이고 라벨 앞 점 색과 같다', () => {
+    const layout = buildLayout(data.robots, defaultLayoutOptions(data.difficultyDefault, data.typeOrder));
+    const svg = buildActuatorMapSvg(layout);
+    for (const h of layout.hulls) {
+      expect(CATEGORY_PALETTE).toContain(h.color);
+      expect(svg).toContain(`fill="${h.color}" fill-opacity="0.12" stroke="${h.color}"`);
+      expect(svg).toContain(`r="4" fill="${h.color}" stroke="#fff" stroke-width="1"/><text`);
+      expect(svg).toContain(`fill="${INK[900]}" stroke="#fff" stroke-width="3" paint-order="stroke">${h.company}`);
+    }
   });
 
   it('data 가 없으면 빈 문자열, 결정적', () => {

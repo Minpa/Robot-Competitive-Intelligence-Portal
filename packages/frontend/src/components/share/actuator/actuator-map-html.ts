@@ -5,6 +5,7 @@
  * 색: chartColors 팔레트 토큰 + tailwind ink 토큰 hex (tech-trend-report-html.ts 와 동일 값). 새 hex 없음.
  */
 
+import { CATEGORY_PALETTE } from '@/app/events/wrc2026/components/chartColors';
 import { escapeHtml, safeHref } from '@/lib/tech-trend-report-html';
 import type { ActuatorAdoptionCase, ActuatorMapResponse, ActuatorMapRobot, ActuatorSupplierProduct, ActuatorSupplyEdge } from '@/types/actuator-map';
 import {
@@ -13,6 +14,12 @@ import {
   defaultLayoutOptions,
   diamondPath,
   fmtUSD,
+  hullLabelDot,
+  HULL_DOT_R,
+  HULL_DOT_STROKE_W,
+  HULL_FILL,
+  HULL_STROKE,
+  HULL_STROKE_W,
   numText,
   priceText,
   type ChartLayout,
@@ -77,8 +84,9 @@ export function buildActuatorMapSvg(layout: ChartLayout): string {
   parts.push(`<line x1="${P.x}" x2="${P.x}" y1="${P.y}" y2="${P.y + P.h}" stroke="${INK[300]}" stroke-width="1"/>`);
   parts.push(`<text x="${P.x + P.w / 2}" y="${layout.height - 14}" text-anchor="middle" font-size="12" fill="${INK[600]}">${e(layout.xAxisTitle)}</text>`);
   parts.push(`<text x="16" y="${P.y - 10}" font-size="12" fill="${INK[600]}">${e(layout.yAxisTitle)}</text>`);
-  // 헐 (무채색)
-  for (const h of layout.hulls) parts.push(`<path d="${h.d}" fill="${h.color}" fill-opacity="0.1" stroke="${h.color}" stroke-opacity="0.45" stroke-width="1"/>`);
+  // 헐 (회사 구분용 색 — 의미 없음, 기본 상태만)
+  for (const h of layout.hulls)
+    parts.push(`<path d="${h.d}" fill="${h.color}" fill-opacity="${HULL_FILL}" stroke="${h.color}" stroke-opacity="${HULL_STROKE}" stroke-width="${HULL_STROKE_W}"/>`);
   // 가격 막대
   for (const b of layout.priceBars)
     parts.push(`<line x1="${n1(b.px)}" x2="${n1(b.px)}" y1="${n1(b.y1)}" y2="${n1(b.y2)}" stroke="${b.color}" stroke-width="2" stroke-linecap="round" stroke-opacity="0.7"/>`);
@@ -106,10 +114,13 @@ export function buildActuatorMapSvg(layout: ChartLayout): string {
     );
     parts.push('</g>');
   }
-  for (const h of layout.hulls)
+  for (const h of layout.hulls) {
+    const dot = hullLabelDot(h);
+    parts.push(`<circle cx="${n1(dot.cx)}" cy="${n1(dot.cy)}" r="${HULL_DOT_R}" fill="${h.color}" stroke="${WHITE}" stroke-width="${HULL_DOT_STROKE_W}"/>`);
     parts.push(
-      `<text x="${n1(h.label.x)}" y="${n1(h.label.y)}" text-anchor="${h.label.anchor}" font-size="11" font-weight="600" fill="${INK[600]}" stroke="${WHITE}" stroke-width="3" paint-order="stroke">${e(h.company)}</text>`
+      `<text x="${n1(h.label.x)}" y="${n1(h.label.y)}" text-anchor="${h.label.anchor}" font-size="11" font-weight="600" fill="${INK[900]}" stroke="${WHITE}" stroke-width="3" paint-order="stroke">${e(h.company)}</text>`
     );
+  }
   parts.push('</svg>');
   return parts.join('');
 }
@@ -142,6 +153,13 @@ function emptyP(text: string): string {
   return `<p class="empty" style="color:${INK[500]};font-size:13px;padding:8px 0">${e(text)}</p>`;
 }
 
+/** 회사 커버리지 영역 견본 — 채움 0.12 + 같은 색 테두리 칩 1개, 겹친 작은 칩 2개(인접 영역은 다른 색) */
+function hullChip(): string {
+  const chip = (i: number, w: number, left: number) =>
+    `<i style="position:absolute;top:0;left:${left}px;width:${w}px;height:10px;box-sizing:border-box;border:1px solid ${CATEGORY_PALETTE[i]};border-radius:3px;overflow:hidden;${EXACT}"><i style="display:block;width:100%;height:100%;background:${CATEGORY_PALETTE[i]};opacity:${HULL_FILL};${EXACT}"></i></i>`;
+  return `<i style="position:relative;display:inline-block;width:34px;height:10px">${chip(0, 18, 0)}${chip(1, 10, 14)}${chip(2, 10, 24)}</i>`;
+}
+
 function legendHtml(hasLG: boolean, hasForecast: boolean): string {
   const items = POSTURE_ORDER.map(
     (p) =>
@@ -151,11 +169,9 @@ function legendHtml(hasLG: boolean, hasForecast: boolean): string {
     items.push(
       `<span style="display:inline-flex;align-items:center;gap:6px;margin-right:14px"><i style="display:inline-block;width:10px;height:10px;background:${INK[900]};transform:rotate(45deg)"></i>LG 기준점</span>`
     );
-  items.push(
-    `<span style="display:inline-flex;align-items:center;gap:6px;margin-right:14px"><i style="display:inline-block;width:18px;height:10px;border:1px solid ${INK[400]};background:${INK[100]};border-radius:3px;${EXACT}"></i>같은 회사 제품군 커버리지</span>`
-  );
+  items.push(`<span style="display:inline-flex;align-items:center;gap:6px;margin-right:14px">${hullChip()}회사 커버리지(색은 회사 구분용, 의미 없음)</span>`);
   if (hasForecast) items.push(`<span style="margin-right:14px">○ 점선 테두리 = 예측 모델</span>`);
-  return `<div style="font-size:11.5px;color:${INK[600]};margin-top:8px">${items.join('')}</div><p style="${SMALL};margin:4px 0 0">점 색은 액추에이터 조달 태세입니다(속 빈 회색 링 = 근거 부족으로 확인 불가). 자체 개발 확인은 근거 등급 A·B만 셉니다. 지역은 색으로 구분하지 않습니다.</p>`;
+  return `<div style="font-size:11.5px;color:${INK[600]};margin-top:8px">${items.join('')}</div><p style="${SMALL};margin:4px 0 0">점 색은 액추에이터 조달 태세입니다(속 빈 회색 링 = 근거 부족으로 확인 불가). 자체 개발 확인은 근거 등급 A·B만 셉니다. 영역 색은 회사 구분용으로 겹치는 영역끼리 다른 색을 자동 배정한 것이며 의미는 없습니다. 회사명 라벨 앞의 색 점이 영역 색을 가리킵니다. 지역은 색으로 구분하지 않습니다.</p>`;
 }
 
 /** 조달 태세 요약 막대 + 범례 (div flex, 인라인 스타일) */
