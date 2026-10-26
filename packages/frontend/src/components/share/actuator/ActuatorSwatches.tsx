@@ -1,11 +1,12 @@
 /**
  * 조달 태세·시장 세그먼트 범례 견본 (HTML). 확인 불가·자사 전용은 속 빈 링으로 그려 색만으로 구분하지 않는다.
+ * HullBadge = 색인 표·범례용 원형 번호 배지(차트 안 번호 배지와 같은 색·번호).
  * 색은 actuator-sourcing.ts 의 토큰만 사용한다.
  */
 
 import { CATEGORY_PALETTE } from '@/app/events/wrc2026/components/chartColors';
 import type { MarketSegment, SourcingPosture } from '@/types/actuator-map';
-import { HULL_FILL } from './actuator-map-layout';
+import { HULL_FILL, badgeTextTone } from './actuator-map-layout';
 import { INK, WHITE, POSTURE_COLOR, POSTURE_HOLLOW, SEGMENT_COLOR, SEGMENT_HOLLOW } from './actuator-sourcing';
 
 export function PostureSwatch({ posture, size = 10 }: { posture: SourcingPosture; size?: number }) {
@@ -45,6 +46,27 @@ export function HullSwatch() {
       {chip(0, 18, 0)}
       {chip(1, 10, 14)}
       {chip(2, 10, 24)}
+    </span>
+  );
+}
+
+/** 영역 번호 배지 (색인 표·범례용): hull 색 원 + 굵은 숫자 + 흰 테두리. 숫자 색은 badgeTextTone, 색 자체는 장식이고 숫자가 정보다 */
+export function HullBadge({ index, colorIndex, size = 20 }: { index: number; colorIndex: number; size?: number }) {
+  return (
+    <span
+      className="inline-flex shrink-0 items-center justify-center rounded-full font-bold tabular-nums leading-none"
+      style={{
+        width: size,
+        height: size,
+        fontSize: size >= 20 ? 11 : 10,
+        backgroundColor: CATEGORY_PALETTE[colorIndex],
+        color: badgeTextTone(colorIndex) === 'light' ? WHITE : INK[900],
+        border: `1.5px solid ${WHITE}`,
+        boxSizing: 'border-box',
+        ...EXACT_STYLE,
+      }}
+    >
+      {index}
     </span>
   );
 }

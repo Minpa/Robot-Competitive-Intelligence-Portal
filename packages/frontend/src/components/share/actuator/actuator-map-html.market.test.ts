@@ -4,11 +4,12 @@ import {
   buildActuatorMapCardHtml,
   buildActuatorMapSvg,
   buildAdoptionTableHtml,
+  buildHullIndexTableHtml,
   buildSourcingSummaryHtml,
   buildSupplierMarketMapSvg,
   buildSupplyChainTableHtml,
 } from './actuator-map-html';
-import { buildLayout, defaultLayoutOptions, hullLabelDot } from './actuator-map-layout';
+import { badgeTextTone, buildLayout, defaultLayoutOptions, hullIndexRows, hullLabelDot } from './actuator-map-layout';
 import { buildMarketLayout } from './actuator-market-layout';
 import { INK, SEGMENT_LABEL, SEGMENT_ORDER } from './actuator-sourcing';
 import { buildHeadlineMessage, computeStrategyStats } from './actuator-strategy';
@@ -67,6 +68,8 @@ describe('buildSupplierMarketMapSvg', () => {
   });
 });
 
+const badgeFill = (colorIndex: number) => (badgeTextTone(colorIndex) === 'light' ? '#fff' : INK[900]);
+
 describe('buildActuatorMapSvg — 조달 태세 색', () => {
   const r = (name: string, company: string, p: Parameters<typeof posture>[0], dof: number) =>
     robot(name, company, [], { dof, handDof: 4, speed: 1, actuatorTypeLabel: '직구동/QDD', ...posture(p) });
@@ -81,7 +84,7 @@ describe('buildActuatorMapSvg — 조달 태세 색', () => {
     expect(svg).toContain(`<path d="`);
   });
 
-  it('hull 은 회사 구분 팔레트 색(회색 아님), 겹치는 두 회사는 서로 다른 색, 라벨은 잉크색 + 앞의 색 점 = hull 색', () => {
+  it('hull 은 회사 구분 팔레트 색(회색 아님), 겹치는 두 회사는 서로 다른 색, 라벨은 잉크색 + 앞의 미니 배지 = hull 색·같은 번호', () => {
     const robots = [r('a1', 'Alpha Co', 'in_house', 20), r('a2', 'Alpha Co', 'in_house', 22), r('b1', 'Beta Co', 'external', 21), r('b2', 'Beta Co', 'external', 23)];
     const layout = buildLayout(robots, OPT);
     const svg = buildActuatorMapSvg(layout);
@@ -95,7 +98,7 @@ describe('buildActuatorMapSvg — 조달 태세 색', () => {
     expect(paths[0]!.fill).not.toBe(paths[1]!.fill);
     for (const h of layout.hulls) {
       const dot = hullLabelDot(h);
-      expect(svg).toContain(`<circle cx="${dot.cx.toFixed(1)}" cy="${dot.cy.toFixed(1)}" r="4" fill="${h.color}" stroke="#fff" stroke-width="1"/><text x="`);
+      expect(svg).toContain(`<g aria-hidden="true"><circle cx="${dot.cx.toFixed(1)}" cy="${dot.cy.toFixed(1)}" r="7" fill="${h.color}" stroke="#fff" stroke-width="1.5"/><text x="${dot.cx.toFixed(1)}" y="${(dot.cy + 3.5).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="700" fill="${badgeFill(h.colorIndex)}">${h.index}</text></g><text x="`);
       expect(svg).toContain(`font-weight="600" fill="${INK[900]}" stroke="#fff" stroke-width="3" paint-order="stroke">${h.company}`);
     }
   });
@@ -202,22 +205,23 @@ describe('buildActuatorMapCardHtml', () => {
     for (const bad of ['url(', '@import', 'http://', 'src=']) expect(css).not.toContain(bad);
   });
 
-  it('범례: 회사 커버리지 문구 반영, 옛 문구 없음, 이벤트 속성·:hover 없음', () => {
+  it('범례: 회사 커버리지 문구 반영, 번호 배지 칩, 옛 문구 없음, 이벤트 속성·:hover 없음', () => {
     expect(html).toContain('회사 커버리지(색은 회사 구분용, 의미 없음)');
     expect(html).toContain('영역 색은 회사 구분용으로 겹치는 영역끼리 다른 색을 자동 배정한 것이며 의미는 없습니다.');
-    expect(html).toContain('회사명 라벨 앞의 색 점이 영역 색을 가리킵니다.');
+    expect(html).toContain('영역 안의 번호 배지와 회사명 라벨 앞의 번호는 같은 번호이며, 색인 표에서 번호로 회사를 찾을 수 있습니다.');
+    expect(html).not.toContain('회사명 라벨 앞의 색 점이 영역 색을 가리');
     expect(html).toContain('지역은 색으로 구분하지 않습니다.');
     expect(html).not.toContain('같은 회사 제품군 커버리지');
     expect(html).not.toMatch(/onpointer|onfocus|onmouse|:hover/i);
   });
 
-  it('시드 데이터: hull 색은 팔레트 안이고 라벨 앞 점 색과 같다', () => {
+  it('시드 데이터: hull 색은 팔레트 안이고 라벨 앞 미니 배지 색·번호와 같다', () => {
     const layout = buildLayout(data.robots, defaultLayoutOptions(data.difficultyDefault, data.typeOrder));
     const svg = buildActuatorMapSvg(layout);
     for (const h of layout.hulls) {
       expect(CATEGORY_PALETTE).toContain(h.color);
       expect(svg).toContain(`fill="${h.color}" fill-opacity="0.12" stroke="${h.color}"`);
-      expect(svg).toContain(`r="4" fill="${h.color}" stroke="#fff" stroke-width="1"/><text`);
+      expect(svg).toContain(`r="7" fill="${h.color}" stroke="#fff" stroke-width="1.5"/><text`);
       expect(svg).toContain(`fill="${INK[900]}" stroke="#fff" stroke-width="3" paint-order="stroke">${h.company}`);
     }
   });
@@ -234,5 +238,115 @@ describe('buildActuatorMapCardHtml', () => {
     const out = buildActuatorMapCardHtml(d);
     expect(out).toContain('외부 채택 사례는 아직 수집되지 않았습니다.');
     expect(out).toContain('공개 채택 사례는 아직 수집되지 않았습니다.');
+  });
+});
+
+describe('영역 번호 배지 + 색인 표 (정적 HTML)', () => {
+  // 시드는 회사당 로봇 1기라 hull 이 없다 — 겹치는 회사 3곳(로봇 4·3·2기)으로 구성
+  const mk = (name: string, company: string, p: Parameters<typeof posture>[0], dof: number) =>
+    robot(name, company, [], { dof, handDof: 4, speed: 1, actuatorTypeLabel: '직구동/QDD', ...posture(p) });
+  const robots = [
+    ...[20, 24, 28, 32].map((d, i) => mk(`Alpha ${i}`, 'Alpha Co', i === 0 ? 'in_house_sells' : 'in_house', d)),
+    ...[22, 26, 30].map((d, i) => mk(`Beta ${i}`, 'Beta Co', 'external', d)),
+    ...[40, 44].map((d, i) => mk(`Gamma ${i}`, 'Gamma Co', 'unknown', d)),
+    mk('Solo 0', 'Solo Co', 'in_house', 35),
+  ];
+  const data = response(robots, [], { typeOrder: [] });
+  const layout = buildLayout(data.robots, defaultLayoutOptions(data.difficultyDefault, data.typeOrder));
+  const svg = buildActuatorMapSvg(layout);
+  const html = buildActuatorMapCardHtml(data, 'https://argos.example.com/share/tech-trend/actuator');
+  const index = buildHullIndexTableHtml(layout);
+  const rows = hullIndexRows(layout.hulls);
+
+  it('시드에 hull 이 있다 (이후 단언이 공허하지 않도록)', () => {
+    expect(layout.hulls).toHaveLength(3);
+    expect(hullIndexRows(layout.hulls).map((x) => x.company)).toEqual(['Alpha Co', 'Beta Co', 'Gamma Co']);
+  });
+
+  it('배지 그룹 수 = hull 수, 반경 9·hull 색·흰 테두리 1.5·숫자 11px 굵게, 숫자 = index', () => {
+    expect(count(svg, /<g role="img" aria-label="영역 /g)).toBe(layout.hulls.length);
+    expect(count(svg, /aria-label="영역 /g)).toBe(layout.hulls.length);
+    for (const h of layout.hulls) {
+      const g = `<g role="img" aria-label="영역 ${h.index}: ${h.company}"><circle cx="${h.badge.x.toFixed(1)}" cy="${h.badge.y.toFixed(1)}" r="9" fill="${h.color}" stroke="#fff" stroke-width="1.5"/>`;
+      expect(svg).toContain(g);
+      expect(svg).toContain(`text-anchor="middle" font-size="11" font-weight="700" fill="${badgeFill(h.colorIndex)}">${h.index}</text></g>`);
+    }
+  });
+
+  it('배지는 hull path·가격 막대 다음, 점 그룹 앞 레이어', () => {
+    const firstBadge = svg.indexOf('aria-label="영역 ');
+    const lastHullPath = svg.lastIndexOf('fill-opacity="0.12"');
+    const firstPoint = svg.indexOf('aria-label="Alpha 0');
+    expect(firstBadge).toBeGreaterThan(lastHullPath);
+    expect(firstPoint).toBeGreaterThan(firstBadge);
+  });
+
+  it('범례에 번호 배지 칩이 있다', () => {
+    expect(html).toContain('번호 배지 = 색인 번호');
+  });
+
+  it('색인 표: tbody tr 수 = hull 수, 번호 오름차순, 번호 칸 배경색 = SVG 배지 hull 색', () => {
+    const tbody = /<tbody>([\s\S]*)<\/tbody>/.exec(index)![1]!;
+    const trs = tbody.split('<tr ').slice(1);
+    expect(trs).toHaveLength(layout.hulls.length);
+    expect(count(index, /<thead>/g)).toBe(1);
+    trs.forEach((tr, i) => {
+      const row = rows[i]!;
+      expect(row.index).toBe(i + 1);
+      expect(tr).toContain(`background:${row.color};color:${badgeFill(row.colorIndex)}`);
+      expect(tr).toContain(`line-height:1;-webkit-print-color-adjust:exact;print-color-adjust:exact">${row.index}</span>`);
+      expect(tr).toContain(`<b>${row.company}</b>`);
+      expect(tr).toContain(`${row.robotCount}기`);
+      expect(tr).toContain(row.postureLabel);
+      expect(svg).toContain(`aria-label="영역 ${row.index}: ${row.company}"><circle`);
+      expect(svg).toContain(`r="9" fill="${row.color}"`);
+    });
+    expect(index).toContain('break-inside:avoid;page-break-inside:avoid');
+  });
+
+  it('열: 번호·회사·로봇 수·조달 태세·포함 로봇, 제목·caption·각주', () => {
+    for (const th of ['번호', '회사', '로봇 수', '조달 태세', '포함 로봇']) expect(index).toContain(`>${th}</th>`);
+    expect(index).toContain('영역 색인(차트의 번호 배지와 같은 번호)');
+    expect(index).toContain('<caption style="position:absolute');
+    expect(index).toContain('로봇 2기 이상 회사만 그려집니다');
+    expect(index).toContain('자체 개발+외판 &gt; 자체 개발 &gt; 외부 조달·혼합 &gt; 확인 불가');
+    expect(index).toContain('class="tbl-wrap"');
+  });
+
+  it('카드 조립 순서: SVG → 영역 색인 → 범례 → 데이터 표', () => {
+    const idx = [html.indexOf('<svg'), html.indexOf('영역 색인('), html.indexOf('번호 배지 = 색인 번호'), html.indexOf('>데이터 표<')];
+    for (let i = 1; i < idx.length; i++) expect(idx[i]!).toBeGreaterThan(idx[i - 1]!);
+    expect(idx[0]).toBeGreaterThan(-1);
+  });
+
+  it('XSS: 로봇·회사 이름의 태그는 색인 표와 배지 라벨에서도 이스케이프된다', () => {
+    const mk = (name: string, dof: number) => robot(name, XSS, [], { dof, handDof: 4, speed: 1, actuatorTypeLabel: '직구동/QDD', ...posture('in_house') });
+    const l = buildLayout([mk('XSS', 20), mk('XSS 2', 30), mk('XSS 3', 40), mk(XSS, 50)], { ...defaultLayoutOptions({ L: 1, D: 1, H: 1, S: 1 }, []), yAxis: 'type' as const });
+    expect(l.hulls).toHaveLength(1);
+    const out = buildHullIndexTableHtml(l) + buildActuatorMapSvg(l);
+    expect(out).not.toContain('<img');
+    expect(out).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(out).toContain('title="XSS, XSS 2, XSS 3, &lt;img');
+  });
+
+  it('금지 문자열·이벤트 속성·:hover 없음, 결정적, 구조 단언 유지', () => {
+    for (const bad of FORBIDDEN) expect(index.toLowerCase()).not.toContain(bad);
+    expect(index).not.toMatch(/onpointer|onfocus|onmouse|:hover|\sclass="(?!tbl-wrap)/i);
+    expect(buildHullIndexTableHtml(buildLayout(data.robots, defaultLayoutOptions(data.difficultyDefault, data.typeOrder)))).toBe(index);
+    expect(buildActuatorMapCardHtml(data, 'https://argos.example.com/share/tech-trend/actuator')).toBe(html);
+    expect(count(html, /class="tbl-wrap"/g)).toBe(count(html, /<table[\s>]/g));
+    expect(count(html, /<tr[\s>]/g)).toBe(count(html, /<\/tr>/g));
+    expect(count(html, /<style>/g)).toBe(1);
+  });
+
+  it('hull 이 없으면 색인·배지·범례 칩이 모두 없다', () => {
+    const none = buildLayout(data.robots, { ...defaultLayoutOptions(data.difficultyDefault, data.typeOrder), hull: false });
+    expect(none.hulls).toHaveLength(0);
+    expect(buildHullIndexTableHtml(none)).toBe('');
+    const solo = response([robot('Only', 'Solo Co', [], { dof: 20, handDof: 4, speed: 1, actuatorTypeLabel: '직구동/QDD', ...posture('in_house') })], []);
+    const out = buildActuatorMapCardHtml(solo);
+    expect(out).not.toContain('영역 색인');
+    expect(out).not.toContain('aria-label="영역 ');
+    expect(out).not.toContain('번호 배지 = 색인 번호');
   });
 });

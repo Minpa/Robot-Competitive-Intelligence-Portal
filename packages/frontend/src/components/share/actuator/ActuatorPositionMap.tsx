@@ -4,7 +4,9 @@
  * 액추에이터 관점 경쟁사 포지션·커버리지 맵 — SVG 산점도.
  *  X: 제어 난이도 지수(가중치 슬라이더), Y: 액추에이터 타입/무게/가반하중/가격(로그) 세그먼트 토글.
  *  점 = 로봇 1기(색 = 조달 태세 4단계, 확인 불가는 속 빈 회색 링), 반투명 영역 = 회사 커버리지(색은 회사 구분용·의미 없음, 겹치는 영역끼리 다른 색),
- *  LG 기준점은 잉크색 다이아몬드(형태로 구분). 회사명 라벨 앞의 색 점이 영역 색을 가리키고, 라벨·점에 hover/focus 하면 그 회사 영역만 강조한다.
+ *  LG 기준점은 잉크색 다이아몬드(형태로 구분). 영역 안의 번호 배지와 회사명 라벨 앞의 미니 배지는 같은 번호이고,
+ *  차트 바로 아래의 영역 색인(ActuatorHullIndex)이 번호별 회사·로봇 수·조달 태세·포함 로봇을 보여 준다.
+ *  색인 행·라벨·점에 hover/focus 하면 그 회사 영역만 강조하고 반대로 차트에서 hover 하면 색인의 같은 행이 강조된다.
  *  지역은 색이 아니라 필터·툴팁·표로만 제공한다.
  *  레이아웃 계산은 actuator-map-layout.ts(순수 함수)에 있고 이 파일은 그리기·상호작용만 담당한다.
  *  컨트롤은 모두 no-print. 색은 chartColors 팔레트 토큰 + Tailwind ink 토큰만 사용한다.
@@ -15,7 +17,8 @@ import { Table2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ActuatorMapResponse, DifficultyWeights, RobotSourcing, SourcingPosture } from '@/types/actuator-map';
 import { SegmentedToggle, SubCard } from '../timeline-shared';
-import { HullSwatch, PostureSwatch } from './ActuatorSwatches';
+import { ActuatorHullIndex } from './ActuatorHullIndex';
+import { HullBadge, HullSwatch, PostureSwatch } from './ActuatorSwatches';
 import {
   POSTURE_LABEL,
   POSTURE_ORDER,
@@ -37,11 +40,18 @@ import {
   difficultyOf,
   hullEmphasis,
   hullLabelDot,
-  HULL_DOT_R,
-  HULL_DOT_STROKE_W,
+  HULL_BADGE_FONT,
+  HULL_BADGE_R,
+  HULL_BADGE_STROKE_W,
   HULL_FILL,
+  HULL_FILL_OFF,
+  HULL_MINI_FONT,
+  HULL_MINI_R,
+  HULL_MINI_STROKE_W,
   HULL_STROKE,
   HULL_STROKE_W,
+  badgeTextTone,
+  badgeTextY,
   numText,
   priceText,
   type LayoutOptions,
@@ -68,6 +78,9 @@ interface TipState {
   left: number;
   top: number;
 }
+
+/** 비강조 hull 의 번호 배지·미니 배지 불투명도 */
+const BADGE_DIM = 0.35;
 
 const CHK = 'inline-flex items-center gap-1.5 text-[12px] text-ink-700 cursor-pointer select-none';
 const TH = 'text-left px-2 py-1.5 text-[11px] font-medium text-ink-600 whitespace-nowrap print:whitespace-normal border-b border-ink-200';
@@ -112,6 +125,7 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
     setTip({ point: p, left, top });
   };
 
+  const showIndex = opts.hull && layout.hulls.length > 0;
   const regionsOff = REGION_GROUPS.every((g) => !opts.regions[g]);
   const posturesOff = POSTURE_ORDER.every((p) => !opts.postures[p]);
 
@@ -195,222 +209,264 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
                 : '현재 필터에 해당하는 로봇이 없습니다. (스펙 미등록 로봇은 표에서 확인)'}
         </div>
       ) : (
-        <div className="relative w-full">
-          <svg
-            ref={svgRef}
-            viewBox={`0 0 ${layout.width} ${layout.height}`}
-            className="w-full h-auto block"
-            role="img"
-            aria-label={`${layout.title} 산점도 — ${layout.meta}`}
-            onPointerLeave={() => {
-              setTip(null);
-              setHoverCompany(null);
-            }}
-          >
-            {/* 격자·축 */}
-            <g>
-              {layout.xTicks.map((t) => (
-                <g key={`x${t.label}`}>
-                  <line x1={t.x} x2={t.x} y1={layout.plot.y} y2={layout.plot.y + layout.plot.h} className="stroke-ink-100" strokeWidth={1} />
-                  <text x={t.x} y={layout.plot.y + layout.plot.h + 18} textAnchor="middle" fontSize={11} className="fill-ink-500">
-                    {t.label}
-                  </text>
-                </g>
-              ))}
-              {layout.gridY.map((y, i) => (
-                <line key={`g${i}`} x1={layout.plot.x} x2={layout.plot.x + layout.plot.w} y1={y} y2={y} className="stroke-ink-100" strokeWidth={1} />
-              ))}
-              {layout.yTicks.map((t) => (
-                <text key={`y${t.label}`} x={layout.plot.x - 10} y={t.y + 4} textAnchor="end" fontSize={11} className="fill-ink-500">
-                  {t.label}
-                </text>
-              ))}
-              <line
-                x1={layout.plot.x}
-                x2={layout.plot.x + layout.plot.w}
-                y1={layout.plot.y + layout.plot.h}
-                y2={layout.plot.y + layout.plot.h}
-                className="stroke-ink-300"
-                strokeWidth={1}
-              />
-              <line x1={layout.plot.x} x2={layout.plot.x} y1={layout.plot.y} y2={layout.plot.y + layout.plot.h} className="stroke-ink-300" strokeWidth={1} />
-              <text x={layout.plot.x + layout.plot.w / 2} y={layout.height - 14} textAnchor="middle" fontSize={12} className="fill-ink-600">
-                {layout.xAxisTitle}
-              </text>
-              <text x={16} y={layout.plot.y - 10} fontSize={12} className="fill-ink-600">
-                {layout.yAxisTitle}
-              </text>
-            </g>
-
-            {/* 커버리지 헐 */}
-            <g>
-              {hullDrawOrder.map((h) => {
-                const em = emphasis[h.company];
-                return (
-                  <path
-                    key={h.company}
-                    d={h.d}
-                    fill={h.color}
-                    fillOpacity={em?.fillOpacity ?? HULL_FILL}
-                    stroke={h.color}
-                    strokeOpacity={em?.strokeOpacity ?? HULL_STROKE}
-                    strokeWidth={em?.strokeWidth ?? HULL_STROKE_W}
-                    style={{ pointerEvents: 'none' }}
-                  />
-                );
-              })}
-            </g>
-
-            {/* 가격 범위 막대 */}
-            <g>
-              {layout.priceBars.map((b, i) => (
-                <line key={i} x1={b.px} x2={b.px} y1={b.y1} y2={b.y2} stroke={b.color} strokeWidth={2} strokeLinecap="round" strokeOpacity={0.7} />
-              ))}
-            </g>
-
-            {/* 점 + 라벨 */}
-            <g>
-              {layout.points.map((p) => {
-                const r = p.robot;
-                const active = tip?.point.robot.id === r.id;
-                return (
-                  <g
-                    key={r.id}
-                    tabIndex={0}
-                    role="img"
-                    aria-label={p.ariaLabel}
-                    className="outline-none cursor-default"
-                    onPointerMove={() => {
-                      showTip(p);
-                      setHoverCompany(r.company);
-                    }}
-                    onPointerLeave={() => setHoverCompany(null)}
-                    onFocus={() => {
-                      showTip(p);
-                      setHoverCompany(r.company);
-                    }}
-                    onBlur={() => {
-                      setTip(null);
-                      setHoverCompany(null);
-                    }}
-                  >
-                    <circle cx={p.px} cy={p.py} r={14} fill="transparent" />
-                    {r.isLG ? (
-                      <>
-                        <path d={diamondPath(p.px, p.py, 9)} className="fill-white" />
-                        <path d={diamondPath(p.px, p.py, 7)} className={cn('fill-ink-900', active && 'stroke-ink-900')} strokeWidth={active ? 2 : 0} />
-                      </>
-                    ) : (
-                      <>
-                        <circle cx={p.px} cy={p.py} r={7} className="fill-white stroke-white" strokeWidth={active ? 3 : 2} />
-                        {p.hollow ? (
-                          <circle
-                            cx={p.px}
-                            cy={p.py}
-                            r={4.5}
-                            className="fill-white"
-                            stroke={p.color}
-                            strokeWidth={2}
-                            strokeDasharray={r.forecast ? '2 2' : undefined}
-                          />
-                        ) : (
-                          <circle
-                            cx={p.px}
-                            cy={p.py}
-                            r={5}
-                            fill={p.color}
-                            fillOpacity={r.forecast ? 0.35 : 1}
-                            stroke={r.forecast ? p.color : undefined}
-                            strokeWidth={r.forecast ? 1.5 : 0}
-                            strokeDasharray={r.forecast ? '2 2' : undefined}
-                          />
-                        )}
-                      </>
-                    )}
-                    {p.label.leader && (
-                      <line x1={p.px} y1={p.py} x2={p.label.leader.x2} y2={p.label.leader.y2} className="stroke-ink-400" strokeWidth={1} />
-                    )}
-                    <text
-                      x={p.label.x}
-                      y={p.label.y}
-                      textAnchor={p.label.anchor}
-                      fontSize={11}
-                      className="fill-ink-900 stroke-white"
-                      strokeWidth={3}
-                      strokeLinejoin="round"
-                      style={{ paintOrder: 'stroke' }}
-                    >
-                      {r.name}
+        <div className="flex flex-col gap-3">
+          <div className="relative w-full min-w-0">
+            <svg
+              ref={svgRef}
+              viewBox={`0 0 ${layout.width} ${layout.height}`}
+              className="w-full h-auto block"
+              role="img"
+              aria-label={`${layout.title} 산점도 — ${layout.meta}`}
+              onPointerLeave={() => {
+                setTip(null);
+                setHoverCompany(null);
+              }}
+            >
+              {/* 격자·축 */}
+              <g>
+                {layout.xTicks.map((t) => (
+                  <g key={`x${t.label}`}>
+                    <line x1={t.x} x2={t.x} y1={layout.plot.y} y2={layout.plot.y + layout.plot.h} className="stroke-ink-100" strokeWidth={1} />
+                    <text x={t.x} y={layout.plot.y + layout.plot.h + 18} textAnchor="middle" fontSize={11} className="fill-ink-500">
+                      {t.label}
                     </text>
                   </g>
-                );
-              })}
-            </g>
+                ))}
+                {layout.gridY.map((y, i) => (
+                  <line key={`g${i}`} x1={layout.plot.x} x2={layout.plot.x + layout.plot.w} y1={y} y2={y} className="stroke-ink-100" strokeWidth={1} />
+                ))}
+                {layout.yTicks.map((t) => (
+                  <text key={`y${t.label}`} x={layout.plot.x - 10} y={t.y + 4} textAnchor="end" fontSize={11} className="fill-ink-500">
+                    {t.label}
+                  </text>
+                ))}
+                <line
+                  x1={layout.plot.x}
+                  x2={layout.plot.x + layout.plot.w}
+                  y1={layout.plot.y + layout.plot.h}
+                  y2={layout.plot.y + layout.plot.h}
+                  className="stroke-ink-300"
+                  strokeWidth={1}
+                />
+                <line x1={layout.plot.x} x2={layout.plot.x} y1={layout.plot.y} y2={layout.plot.y + layout.plot.h} className="stroke-ink-300" strokeWidth={1} />
+                <text x={layout.plot.x + layout.plot.w / 2} y={layout.height - 14} textAnchor="middle" fontSize={12} className="fill-ink-600">
+                  {layout.xAxisTitle}
+                </text>
+                <text x={16} y={layout.plot.y - 10} fontSize={12} className="fill-ink-600">
+                  {layout.yAxisTitle}
+                </text>
+              </g>
 
-            {/* 회사명 라벨 */}
-            <g>
-              {layout.hulls.map((h) => {
-                const dot = hullLabelDot(h);
-                return (
+              {/* 커버리지 헐 */}
+              <g>
+                {hullDrawOrder.map((h) => {
+                  const em = emphasis[h.company];
+                  return (
+                    <path
+                      key={h.company}
+                      d={h.d}
+                      fill={h.color}
+                      fillOpacity={em?.fillOpacity ?? HULL_FILL}
+                      stroke={h.color}
+                      strokeOpacity={em?.strokeOpacity ?? HULL_STROKE}
+                      strokeWidth={em?.strokeWidth ?? HULL_STROKE_W}
+                      style={{ pointerEvents: 'none' }}
+                    />
+                  );
+                })}
+              </g>
+
+              {/* 가격 범위 막대 */}
+              <g>
+                {layout.priceBars.map((b, i) => (
+                  <line key={i} x1={b.px} x2={b.px} y1={b.y1} y2={b.y2} stroke={b.color} strokeWidth={2} strokeLinecap="round" strokeOpacity={0.7} />
+                ))}
+              </g>
+
+              {/* 영역 번호 배지 (점·라벨 아래 레이어 — 데이터 점을 가리지 않는다) */}
+              <g>
+                {layout.hulls.map((h) => (
                   <g
-                    key={`hl-${h.company}`}
+                    key={`hb-${h.company}`}
+                    role="img"
+                    aria-label={`영역 ${h.index}: ${h.company}`}
+                    opacity={emphasis[h.company]?.fillOpacity === HULL_FILL_OFF ? BADGE_DIM : 1}
                     onPointerEnter={() => setHoverCompany(h.company)}
                     onPointerMove={() => setHoverCompany(h.company)}
                     onPointerLeave={() => setHoverCompany(null)}
                   >
-                    <circle cx={dot.cx} cy={dot.cy} r={HULL_DOT_R} fill={h.color} className="stroke-white" strokeWidth={HULL_DOT_STROKE_W} />
+                    <circle cx={h.badge.x} cy={h.badge.y} r={HULL_BADGE_R} fill={h.color} className="stroke-white" strokeWidth={HULL_BADGE_STROKE_W} />
                     <text
-                      x={h.label.x}
-                      y={h.label.y}
-                      textAnchor={h.label.anchor}
-                      fontSize={11}
-                      fontWeight={600}
-                      className="fill-ink-900 stroke-white"
-                      strokeWidth={3}
-                      style={{ paintOrder: 'stroke' }}
+                      x={h.badge.x}
+                      y={badgeTextY(h.badge.y, HULL_BADGE_FONT)}
+                      textAnchor="middle"
+                      fontSize={HULL_BADGE_FONT}
+                      fontWeight={700}
+                      className={badgeTextTone(h.colorIndex) === 'light' ? 'fill-white' : 'fill-ink-900'}
                     >
-                      {h.company}
+                      {h.index}
                     </text>
                   </g>
-                );
-              })}
-            </g>
-          </svg>
+                ))}
+              </g>
 
-          {tip && (
-            <div
-              role="status"
-              aria-live="polite"
-              className="pointer-events-none absolute z-10 min-w-[200px] max-w-[320px] rounded-[8px] border border-ink-200 bg-white px-3 py-2 text-[12px] text-ink-800 shadow-report-lg"
-              style={{ left: tip.left, top: tip.top }}
-            >
-              <p className="text-[15px] font-semibold text-ink-900">
-                {opts.yAxis === 'price' ? priceText(tip.point.robot.price) : yd.fmt(tip.point.yValue)}
-              </p>
-              <p className="text-ink-600">
-                {tip.point.robot.name} · {tip.point.robot.company}
-                {tip.point.robot.forecast ? ' · 예측' : ''}
-              </p>
-              <TipRow k="제어 난이도" v={`${tip.point.x.toFixed(1)} / 10`} />
-              <TipRow
-                k="보행·DOF·손DOF·속도"
-                v={`${tip.point.robot.locomotion} · ${numText(tip.point.robot.dof)} · ${numText(tip.point.robot.handDof)} · ${numText(tip.point.robot.speed, ' m/s')}`}
-              />
-              <TipRow
-                k="무게·키·가반하중"
-                v={`${numText(tip.point.robot.weight, ' kg')} · ${numText(tip.point.robot.height, ' cm')} · ${numText(tip.point.robot.payload, ' kg')}`}
-              />
-              <TipRow k="액추에이터" v={tip.point.robot.actuatorTypeLabel} />
-              <TipRow k="지역" v={REGION_LABEL[tip.point.robot.region]} />
-              <SourcingTip sourcing={tip.point.robot.sourcing} />
-              {tip.point.robot.price && <TipRow k="가격" v={`${priceText(tip.point.robot.price)} (${tip.point.robot.price.conf})`} />}
-              <p className="mt-1 text-[11px] text-ink-500">{tip.point.robot.actuatorTypeNote}</p>
-              <p className="text-[11px] text-ink-500">
-                출처: {tip.point.robot.sources.join(' · ')}
-                {tip.point.robot.price ? ` · 가격: ${tip.point.robot.price.src}` : ''}
-              </p>
-            </div>
-          )}
+              {/* 점 + 라벨 */}
+              <g>
+                {layout.points.map((p) => {
+                  const r = p.robot;
+                  const active = tip?.point.robot.id === r.id;
+                  return (
+                    <g
+                      key={r.id}
+                      tabIndex={0}
+                      role="img"
+                      aria-label={p.ariaLabel}
+                      className="outline-none cursor-default"
+                      onPointerMove={() => {
+                        showTip(p);
+                        setHoverCompany(r.company);
+                      }}
+                      onPointerLeave={() => setHoverCompany(null)}
+                      onFocus={() => {
+                        showTip(p);
+                        setHoverCompany(r.company);
+                      }}
+                      onBlur={() => {
+                        setTip(null);
+                        setHoverCompany(null);
+                      }}
+                    >
+                      <circle cx={p.px} cy={p.py} r={14} fill="transparent" />
+                      {r.isLG ? (
+                        <>
+                          <path d={diamondPath(p.px, p.py, 9)} className="fill-white" />
+                          <path d={diamondPath(p.px, p.py, 7)} className={cn('fill-ink-900', active && 'stroke-ink-900')} strokeWidth={active ? 2 : 0} />
+                        </>
+                      ) : (
+                        <>
+                          <circle cx={p.px} cy={p.py} r={7} className="fill-white stroke-white" strokeWidth={active ? 3 : 2} />
+                          {p.hollow ? (
+                            <circle
+                              cx={p.px}
+                              cy={p.py}
+                              r={4.5}
+                              className="fill-white"
+                              stroke={p.color}
+                              strokeWidth={2}
+                              strokeDasharray={r.forecast ? '2 2' : undefined}
+                            />
+                          ) : (
+                            <circle
+                              cx={p.px}
+                              cy={p.py}
+                              r={5}
+                              fill={p.color}
+                              fillOpacity={r.forecast ? 0.35 : 1}
+                              stroke={r.forecast ? p.color : undefined}
+                              strokeWidth={r.forecast ? 1.5 : 0}
+                              strokeDasharray={r.forecast ? '2 2' : undefined}
+                            />
+                          )}
+                        </>
+                      )}
+                      {p.label.leader && (
+                        <line x1={p.px} y1={p.py} x2={p.label.leader.x2} y2={p.label.leader.y2} className="stroke-ink-400" strokeWidth={1} />
+                      )}
+                      <text
+                        x={p.label.x}
+                        y={p.label.y}
+                        textAnchor={p.label.anchor}
+                        fontSize={11}
+                        className="fill-ink-900 stroke-white"
+                        strokeWidth={3}
+                        strokeLinejoin="round"
+                        style={{ paintOrder: 'stroke' }}
+                      >
+                        {r.name}
+                      </text>
+                    </g>
+                  );
+                })}
+              </g>
+
+              {/* 회사명 라벨 */}
+              <g>
+                {layout.hulls.map((h) => {
+                  const dot = hullLabelDot(h);
+                  return (
+                    <g
+                      key={`hl-${h.company}`}
+                      onPointerEnter={() => setHoverCompany(h.company)}
+                      onPointerMove={() => setHoverCompany(h.company)}
+                      onPointerLeave={() => setHoverCompany(null)}
+                    >
+                      <g aria-hidden="true" opacity={emphasis[h.company]?.fillOpacity === HULL_FILL_OFF ? BADGE_DIM : 1}>
+                        <circle cx={dot.cx} cy={dot.cy} r={HULL_MINI_R} fill={h.color} className="stroke-white" strokeWidth={HULL_MINI_STROKE_W} />
+                        <text
+                          x={dot.cx}
+                          y={badgeTextY(dot.cy, HULL_MINI_FONT)}
+                          textAnchor="middle"
+                          fontSize={HULL_MINI_FONT}
+                          fontWeight={700}
+                          className={badgeTextTone(h.colorIndex) === 'light' ? 'fill-white' : 'fill-ink-900'}
+                        >
+                          {h.index}
+                        </text>
+                      </g>
+                      <text
+                        x={h.label.x}
+                        y={h.label.y}
+                        textAnchor={h.label.anchor}
+                        fontSize={11}
+                        fontWeight={600}
+                        className="fill-ink-900 stroke-white"
+                        strokeWidth={3}
+                        style={{ paintOrder: 'stroke' }}
+                      >
+                        {h.company}
+                      </text>
+                    </g>
+                  );
+                })}
+              </g>
+            </svg>
+
+            {tip && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="pointer-events-none absolute z-10 min-w-[200px] max-w-[320px] rounded-[8px] border border-ink-200 bg-white px-3 py-2 text-[12px] text-ink-800 shadow-report-lg"
+                style={{ left: tip.left, top: tip.top }}
+              >
+                <p className="text-[15px] font-semibold text-ink-900">
+                  {opts.yAxis === 'price' ? priceText(tip.point.robot.price) : yd.fmt(tip.point.yValue)}
+                </p>
+                <p className="text-ink-600">
+                  {tip.point.robot.name} · {tip.point.robot.company}
+                  {tip.point.robot.forecast ? ' · 예측' : ''}
+                </p>
+                <TipRow k="제어 난이도" v={`${tip.point.x.toFixed(1)} / 10`} />
+                <TipRow
+                  k="보행·DOF·손DOF·속도"
+                  v={`${tip.point.robot.locomotion} · ${numText(tip.point.robot.dof)} · ${numText(tip.point.robot.handDof)} · ${numText(tip.point.robot.speed, ' m/s')}`}
+                />
+                <TipRow
+                  k="무게·키·가반하중"
+                  v={`${numText(tip.point.robot.weight, ' kg')} · ${numText(tip.point.robot.height, ' cm')} · ${numText(tip.point.robot.payload, ' kg')}`}
+                />
+                <TipRow k="액추에이터" v={tip.point.robot.actuatorTypeLabel} />
+                <TipRow k="지역" v={REGION_LABEL[tip.point.robot.region]} />
+                <SourcingTip sourcing={tip.point.robot.sourcing} />
+                {tip.point.robot.price && <TipRow k="가격" v={`${priceText(tip.point.robot.price)} (${tip.point.robot.price.conf})`} />}
+                <p className="mt-1 text-[11px] text-ink-500">{tip.point.robot.actuatorTypeNote}</p>
+                <p className="text-[11px] text-ink-500">
+                  출처: {tip.point.robot.sources.join(' · ')}
+                  {tip.point.robot.price ? ` · 가격: ${tip.point.robot.price.src}` : ''}
+                </p>
+              </div>
+            )}
+          </div>
+          {showIndex && <ActuatorHullIndex hulls={layout.hulls} hoverCompany={hoverCompany} onHover={setHoverCompany} />}
         </div>
       )}
 
@@ -432,10 +488,16 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
           <HullSwatch />
           회사 커버리지(색은 회사 구분용, 의미 없음)
         </span>
+        {showIndex && (
+          <span className="inline-flex items-center gap-1.5 text-[11.5px] text-ink-600">
+            <HullBadge index={1} colorIndex={0} size={16} />
+            번호 배지 = 색인 번호
+          </span>
+        )}
         {hasForecast && <span className="text-[11.5px] text-ink-600">○ 점선 테두리 = 예측 모델</span>}
       </div>
       <p className="text-[11px] text-ink-500">
-        점 색은 액추에이터 조달 태세입니다(속 빈 회색 링 = 근거 부족으로 확인 불가). 자체 개발 확인은 근거 등급 A·B만 셉니다. 영역 색은 회사 구분용으로 겹치는 영역끼리 다른 색을 자동 배정한 것이며 의미는 없습니다. 회사명 라벨 앞의 색 점이 영역 색을 가리키고, 라벨이나 점에 마우스를 올리거나 포커스하면 그 회사 영역이 강조됩니다. 지역은 필터·툴팁·표에서 확인하세요.
+        점 색은 액추에이터 조달 태세입니다(속 빈 회색 링 = 근거 부족으로 확인 불가). 자체 개발 확인은 근거 등급 A·B만 셉니다. 영역 색은 회사 구분용으로 겹치는 영역끼리 다른 색을 자동 배정한 것이며 의미는 없습니다. 영역 안의 번호 배지와 회사명 라벨 앞의 번호는 같은 번호이며, 색인 표에서 번호로 회사를 찾을 수 있습니다. 색인 행·라벨·점에 마우스를 올리거나 포커스하면 그 회사 영역이 강조됩니다. 지역은 필터·툴팁·표에서 확인하세요.
       </p>
 
       {/* 가중치 슬라이더 */}

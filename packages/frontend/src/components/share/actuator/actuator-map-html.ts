@@ -1,5 +1,5 @@
 /**
- * 다운로드 HTML용 액추에이터 카드 — 헤드라인 → 조달 태세 요약 막대 → 포지션 맵(타입 × 난이도, 점 색 = 조달 태세) SVG → 로봇 표 →
+ * 다운로드 HTML용 액추에이터 카드 — 헤드라인 → 조달 태세 요약 막대 → 포지션 맵(타입 × 난이도, 점 색 = 조달 태세, 영역 번호 배지) SVG → 영역 색인 표 → 범례 → 로봇 표 →
  * 공급망 표 2개(외부 조달 관계 / 수요 사례) → 공급사 제품 맵 SVG → 공급사 표 → 각주.
  * 외부 스크립트/스타일/이미지 없음, 모든 텍스트는 escapeHtml, 링크는 pageUrl(safeHref 통과분)만이고 데이터의 URL 은 https 인 경우에만 텍스트로 표시한다.
  * 색: chartColors 팔레트 토큰 + tailwind ink 토큰 hex (tech-trend-report-html.ts 와 동일 값). 새 hex 없음.
@@ -15,11 +15,20 @@ import {
   diamondPath,
   fmtUSD,
   hullLabelDot,
-  HULL_DOT_R,
-  HULL_DOT_STROKE_W,
+  hullIndexRows,
+  HULL_BADGE_FONT,
+  HULL_BADGE_R,
+  HULL_BADGE_STROKE_W,
   HULL_FILL,
+  HULL_INDEX_FOOTNOTE,
+  HULL_INDEX_TITLE,
+  HULL_MINI_FONT,
+  HULL_MINI_R,
+  HULL_MINI_STROKE_W,
   HULL_STROKE,
   HULL_STROKE_W,
+  badgeTextTone,
+  badgeTextY,
   numText,
   priceText,
   type ChartLayout,
@@ -67,6 +76,12 @@ import {
 const n1 = (v: number) => v.toFixed(1);
 const e = escapeHtml;
 
+/** 번호 배지 원 + 숫자 (SVG 문자열). 숫자 색은 badgeTextTone */
+function numberBadge(cx: number, cy: number, r: number, strokeW: number, fontSize: number, index: number, color: string, colorIndex: number): string {
+  const fill = badgeTextTone(colorIndex) === 'light' ? WHITE : INK[900];
+  return `<circle cx="${n1(cx)}" cy="${n1(cy)}" r="${r}" fill="${color}" stroke="${WHITE}" stroke-width="${strokeW}"/><text x="${n1(cx)}" y="${n1(badgeTextY(cy, fontSize))}" text-anchor="middle" font-size="${fontSize}" font-weight="700" fill="${fill}">${index}</text>`;
+}
+
 export function buildActuatorMapSvg(layout: ChartLayout): string {
   const parts: string[] = [];
   const P = layout.plot;
@@ -90,6 +105,9 @@ export function buildActuatorMapSvg(layout: ChartLayout): string {
   // 가격 막대
   for (const b of layout.priceBars)
     parts.push(`<line x1="${n1(b.px)}" x2="${n1(b.px)}" y1="${n1(b.y1)}" y2="${n1(b.y2)}" stroke="${b.color}" stroke-width="2" stroke-linecap="round" stroke-opacity="0.7"/>`);
+  // 영역 번호 배지 (점·라벨 아래 레이어)
+  for (const h of layout.hulls)
+    parts.push(`<g role="img" aria-label="${e(`영역 ${h.index}: ${h.company}`)}">${numberBadge(h.badge.x, h.badge.y, HULL_BADGE_R, HULL_BADGE_STROKE_W, HULL_BADGE_FONT, h.index, h.color, h.colorIndex)}</g>`);
   // 점 + 라벨
   for (const p of layout.points) {
     const r = p.robot;
@@ -116,7 +134,7 @@ export function buildActuatorMapSvg(layout: ChartLayout): string {
   }
   for (const h of layout.hulls) {
     const dot = hullLabelDot(h);
-    parts.push(`<circle cx="${n1(dot.cx)}" cy="${n1(dot.cy)}" r="${HULL_DOT_R}" fill="${h.color}" stroke="${WHITE}" stroke-width="${HULL_DOT_STROKE_W}"/>`);
+    parts.push(`<g aria-hidden="true">${numberBadge(dot.cx, dot.cy, HULL_MINI_R, HULL_MINI_STROKE_W, HULL_MINI_FONT, h.index, h.color, h.colorIndex)}</g>`);
     parts.push(
       `<text x="${n1(h.label.x)}" y="${n1(h.label.y)}" text-anchor="${h.label.anchor}" font-size="11" font-weight="600" fill="${INK[900]}" stroke="${WHITE}" stroke-width="3" paint-order="stroke">${e(h.company)}</text>`
     );
@@ -160,7 +178,13 @@ function hullChip(): string {
   return `<i style="position:relative;display:inline-block;width:34px;height:10px">${chip(0, 18, 0)}${chip(1, 10, 14)}${chip(2, 10, 24)}</i>`;
 }
 
-function legendHtml(hasLG: boolean, hasForecast: boolean): string {
+/** 색인 표·범례용 원형 번호 배지 (HTML span) */
+function badgeSpan(index: number, color: string, colorIndex: number, size = 20): string {
+  const fill = badgeTextTone(colorIndex) === 'light' ? WHITE : INK[900];
+  return `<span style="display:inline-flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:50%;box-sizing:border-box;border:1.5px solid ${WHITE};background:${color};color:${fill};font-size:${size >= 20 ? 11 : 10}px;font-weight:700;line-height:1;${EXACT}">${index}</span>`;
+}
+
+function legendHtml(hasLG: boolean, hasForecast: boolean, hasHull: boolean): string {
   const items = POSTURE_ORDER.map(
     (p) =>
       `<span style="display:inline-flex;align-items:center;gap:6px;margin-right:14px">${dot(POSTURE_COLOR[p], POSTURE_HOLLOW[p])}${e(POSTURE_LABEL[p])}</span>`
@@ -170,8 +194,10 @@ function legendHtml(hasLG: boolean, hasForecast: boolean): string {
       `<span style="display:inline-flex;align-items:center;gap:6px;margin-right:14px"><i style="display:inline-block;width:10px;height:10px;background:${INK[900]};transform:rotate(45deg)"></i>LG 기준점</span>`
     );
   items.push(`<span style="display:inline-flex;align-items:center;gap:6px;margin-right:14px">${hullChip()}회사 커버리지(색은 회사 구분용, 의미 없음)</span>`);
+  if (hasHull)
+    items.push(`<span style="display:inline-flex;align-items:center;gap:6px;margin-right:14px">${badgeSpan(1, CATEGORY_PALETTE[0] as string, 0, 16)}번호 배지 = 색인 번호</span>`);
   if (hasForecast) items.push(`<span style="margin-right:14px">○ 점선 테두리 = 예측 모델</span>`);
-  return `<div style="font-size:11.5px;color:${INK[600]};margin-top:8px">${items.join('')}</div><p style="${SMALL};margin:4px 0 0">점 색은 액추에이터 조달 태세입니다(속 빈 회색 링 = 근거 부족으로 확인 불가). 자체 개발 확인은 근거 등급 A·B만 셉니다. 영역 색은 회사 구분용으로 겹치는 영역끼리 다른 색을 자동 배정한 것이며 의미는 없습니다. 회사명 라벨 앞의 색 점이 영역 색을 가리킵니다. 지역은 색으로 구분하지 않습니다.</p>`;
+  return `<div style="font-size:11.5px;color:${INK[600]};margin-top:8px">${items.join('')}</div><p style="${SMALL};margin:4px 0 0">점 색은 액추에이터 조달 태세입니다(속 빈 회색 링 = 근거 부족으로 확인 불가). 자체 개발 확인은 근거 등급 A·B만 셉니다. 영역 색은 회사 구분용으로 겹치는 영역끼리 다른 색을 자동 배정한 것이며 의미는 없습니다. 영역 안의 번호 배지와 회사명 라벨 앞의 번호는 같은 번호이며, 색인 표에서 번호로 회사를 찾을 수 있습니다. 지역은 색으로 구분하지 않습니다.</p>`;
 }
 
 /** 조달 태세 요약 막대 + 범례 (div flex, 인라인 스타일) */
@@ -202,6 +228,30 @@ export function buildSourcingSummaryHtml(robots: ActuatorMapRobot[]): string {
     `<div style="font-size:12px;color:${INK[600]};margin-top:6px">${legend}</div>`,
     `<p style="${SMALL};margin:2px 0 0">${e(`로봇 ${sum.robots}기(예측 모델 제외). 자체 개발 확인 ${sum.inHouse + sum.inHouseSells}기 중 근거 등급 A ${sum.confirmedGradeA}기 / B ${sum.confirmedGradeB}기.${comp}`)}</p>`,
     '</div>',
+  ].join('');
+}
+
+/** 영역 색인 표 — 제목·표·각주. hull 이 없으면 ''. 번호 칸의 원형 배지는 SVG 배지와 같은 색·번호 */
+export function buildHullIndexTableHtml(layout: ChartLayout): string {
+  const rows = hullIndexRows(layout.hulls);
+  if (rows.length === 0) return '';
+  const th = [
+    `<th scope="col" ${TH}>번호</th>`,
+    `<th scope="col" ${TH}>회사</th>`,
+    `<th scope="col" ${THN}>로봇 수</th>`,
+    `<th scope="col" ${TH}>조달 태세</th>`,
+    `<th scope="col" ${TH}>포함 로봇</th>`,
+  ].join('');
+  const body = rows
+    .map(
+      (r) =>
+        `${TR}<td ${TD}>${badgeSpan(r.index, r.color, r.colorIndex)}</td><td ${TD}><b>${e(r.company)}</b></td><td ${TDN}>${r.robotCount}기</td><td ${TD}><span style="display:inline-flex;align-items:center;gap:6px">${dot(POSTURE_COLOR[r.posture], POSTURE_HOLLOW[r.posture])}${e(r.postureLabel)}</span></td><td ${TD} title="${e(r.robotsFull)}">${e(r.robots)}</td></tr>`
+    )
+    .join('');
+  return [
+    `<h3 style="font-size:14px;margin:18px 0 4px;color:${INK[900]}">${e(`${HULL_INDEX_TITLE}(차트의 번호 배지와 같은 번호)`)}</h3>`,
+    `<div class="tbl-wrap" style="overflow-x:auto"><table ${TABLE_STYLE}><caption style="${SR_ONLY}">${e(`${HULL_INDEX_TITLE} — 번호, 회사, 로봇 수, 조달 태세, 포함 로봇`)}</caption><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div>`,
+    `<p style="${SMALL};margin:6px 0 0">${e(HULL_INDEX_FOOTNOTE)}</p>`,
   ].join('');
 }
 
@@ -416,7 +466,7 @@ export function buildActuatorMapCardHtml(data: ActuatorMapResponse | null | unde
   const chart =
     layout.points.length === 0
       ? emptyP('포지션 맵에 올릴 스펙 완결 로봇이 없습니다.')
-      : `<div style="${AVOID}">${buildActuatorMapSvg(layout)}</div>${legendHtml(hasLG, hasForecast)}`;
+      : `<div style="${AVOID}">${buildActuatorMapSvg(layout)}</div>${buildHullIndexTableHtml(layout)}${legendHtml(hasLG, hasForecast, layout.hulls.length > 0)}`;
   const marketChart = `<div style="${AVOID}">${buildSupplierMarketMapSvg(market)}</div>${market.counts.plotted + market.counts.lane + market.counts.lg > 0 ? marketLegendHtml(market, order) : ''}`;
   const excluded =
     market.excludedNoTorque.length > 0

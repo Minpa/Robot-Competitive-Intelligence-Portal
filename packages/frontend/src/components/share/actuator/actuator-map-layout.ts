@@ -9,15 +9,19 @@
  *
  * 점 색 = 조달 태세 4단계(자체 개발 확인 / 자체+외판 / 외부 조달·혼합 / 확인 불가=속 빈 링). 지역은 색이 아니라 필터·툴팁·표로만 쓴다.
  * 커버리지 영역(hull)은 회사 구분 전용 색이다(의미 없음). 바운딩 박스가 겹치거나 인접한 영역끼리 다른 색이 되도록
- * CATEGORY_PALETTE 6색을 그리디로 배정하고(assignHullColors), 회사명 라벨 앞에 같은 색 점을 붙여 영역과 연결한다(hullLabelDot).
+ * CATEGORY_PALETTE 6색을 그리디로 배정한다(assignHullColors). 색만으로는 6색이 반복되므로 영역마다 번호를 붙인다:
+ *  - 번호(index)는 로봇 수 내림차순 → polygon centroid x 오름차순 → 회사명 순으로 1..N (표시 중인 hull 기준 재부여)
+ *  - 영역 안에 번호 배지(badge), 회사명 라벨 앞에 같은 번호의 미니 배지(hullLabelDot 중심)를 둔다. 배지는 점·라벨 배치가 끝난 뒤 마지막에 놓아
+ *    기존 좌표를 바꾸지 않고, 기존 박스만 피한다.
+ *  - 색인 표 행(hullIndexRows)이 번호·회사·로봇 수·조달 태세·포함 로봇을 같은 번호·색으로 보여 준다.
  * 라벨 글자색은 잉크색이다.
- * 웹에서 라벨·점에 hover/focus 하면 그 회사 영역만 강조한다(hullEmphasis, 순수 함수).
+ * 웹에서 색인 행·라벨·점에 hover/focus 하면 그 회사 영역만 강조한다(hullEmphasis, 순수 함수).
  * 색은 chartColors 토큰만 사용한다 (새 hex 없음).
  */
 
 import { CATEGORY_PALETTE } from '@/app/events/wrc2026/components/chartColors';
 import type { ActuatorMapRegion, ActuatorMapRobot, DifficultyWeights, RobotPrice, SourcingPosture } from '@/types/actuator-map';
-import { DEFAULT_POSTURES, POSTURE_COLOR, POSTURE_HOLLOW, POSTURE_LABEL, postureDetailLabel, postureOf } from './actuator-sourcing';
+import { DEFAULT_POSTURES, POSTURE_COLOR, POSTURE_HOLLOW, POSTURE_LABEL, companyPosture, postureDetailLabel, postureOf } from './actuator-sourcing';
 
 export type YAxisKey = 'type' | 'size' | 'payload' | 'price';
 export type RegionGroup = 'na' | 'cn' | 'eu' | 'other';
@@ -165,6 +169,16 @@ export interface HullShape {
   color: string;
   colorIndex: number;
   label: { x: number; y: number; anchor: 'start' | 'middle' | 'end' };
+  /** 영역 번호 (1부터, 표시 중인 hull 기준) — layout.hulls 배열 순서와는 무관 */
+  index: number;
+  /** 영역 번호 배지 중심 (SVG 좌표, 반올림 안 함) */
+  badge: { x: number; y: number };
+  /** 현재 표시 중인 이 회사 로봇 수 (includeForecast 면 예측 모델 포함) */
+  robotCount: number;
+  /** 로봇 이름 전체 — 난이도 x 오름차순, 동률이면 이름 사전순 */
+  robotNames: string[];
+  /** 회사 단위 대표 조달 태세 (예측 모델만 있으면 'unknown') */
+  posture: SourcingPosture;
 }
 
 export interface HullBox {
@@ -223,12 +237,30 @@ export function assignHullColors(hullBoxes: HullBox[]): number[] {
   return result;
 }
 
-/** 회사명 라벨 앞 색 점 반지름·테두리 (웹·정적 공용) */
-export const HULL_DOT_R = 4;
-export const HULL_DOT_STROKE_W = 1;
+/** 영역 번호 배지 (웹·정적 공용): 반지름·흰 테두리·숫자 크기(굵게) */
+export const HULL_BADGE_R = 9;
+export const HULL_BADGE_STROKE_W = 1.5;
+export const HULL_BADGE_FONT = 11;
+/** 회사명 라벨 앞 미니 번호 배지 */
+export const HULL_MINI_R = 7;
+export const HULL_MINI_STROKE_W = 1.5;
+export const HULL_MINI_FONT = 10;
+
+/** 배지 숫자 baseline y — 원 중심 cy 기준 (SVG text 는 baseline 정렬이라 글자 높이의 0.35배를 내린다) */
+export const badgeTextY = (cy: number, fontSize: number): number => cy + fontSize * 0.35;
+
+/** 배지 숫자 색 톤: 파랑(0)·초록(5) 위는 흰색, 나머지 밝은 색 위는 잉크색 (WCAG 대비 기준) */
+export function badgeTextTone(colorIndex: number): 'light' | 'dark' {
+  return colorIndex === 0 || colorIndex === 5 ? 'light' : 'dark';
+}
+
+/** 색인 패널·정적 색인 표 공통 문구 */
+export const HULL_INDEX_TITLE = '영역 색인';
+export const HULL_INDEX_FOOTNOTE =
+  '커버리지 영역은 로봇 2기 이상 회사만 그려집니다(로봇 1기 회사는 영역·색인 없음). 조달 태세는 회사 로봇 중 우선순위가 가장 높은 태세입니다(자체 개발+외판 > 자체 개발 > 외부 조달·혼합 > 확인 불가).';
 
 /**
- * 회사명 라벨 앞 색 점의 중심. 라벨 좌표는 그대로 두고 anchor 기준 텍스트 앞쪽에 둔다:
+ * 회사명 라벨 앞 미니 번호 배지의 중심. 라벨 좌표는 그대로 두고 anchor 기준 텍스트 앞쪽에 둔다:
  * start 면 x-8, end 면 x+8(텍스트 끝 쪽), middle 이면 x - labelWidth/2 - 8. 세로는 글자 가운데(y-4).
  */
 export function hullLabelDot(h: Pick<HullShape, 'company' | 'label'>): { cx: number; cy: number } {
@@ -258,6 +290,43 @@ export function hullEmphasis(hoverCompany: string | null, hulls: { company: stri
         : { fillOpacity: HULL_FILL_OFF, strokeOpacity: HULL_STROKE_OFF, strokeWidth: HULL_STROKE_W };
   }
   return out;
+}
+
+/** "A, B, C" (max 이하) 또는 "A, B, C 외 n기" */
+export function formatRobotNames(names: string[], max = 3): string {
+  if (names.length <= max) return names.join(', ');
+  return `${names.slice(0, max).join(', ')} 외 ${names.length - max}기`;
+}
+
+export interface HullIndexRow {
+  index: number;
+  color: string;
+  colorIndex: number;
+  company: string;
+  robotCount: number;
+  posture: SourcingPosture;
+  postureLabel: string;
+  /** 포함 로봇 (3개까지, 초과는 "외 n기") */
+  robots: string;
+  /** 포함 로봇 전체 */
+  robotsFull: string;
+}
+
+/** 색인 표 행 — 번호 오름차순 복사본 (layout.hulls 원본 순서는 바꾸지 않는다) */
+export function hullIndexRows(hulls: HullShape[]): HullIndexRow[] {
+  return [...hulls]
+    .sort((a, b) => a.index - b.index)
+    .map((h) => ({
+      index: h.index,
+      color: h.color,
+      colorIndex: h.colorIndex,
+      company: h.company,
+      robotCount: h.robotCount,
+      posture: h.posture,
+      postureLabel: POSTURE_LABEL[h.posture],
+      robots: formatRobotNames(h.robotNames),
+      robotsFull: h.robotNames.join(', '),
+    }));
 }
 
 export interface ChartLayout {
@@ -345,6 +414,51 @@ export function hullPath(poly: Pt[]): string {
   return `M${poly.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('L')}Z`;
 }
 
+/** 다각형 면적 가중 중심 (shoelace, 방향 무관). 면적이 0 에 가까우면 꼭짓점 평균 */
+export function polygonCentroid(poly: Pt[]): Pt {
+  const n = poly.length;
+  if (n === 0) return [0, 0];
+  let a2 = 0;
+  let cx = 0;
+  let cy = 0;
+  for (let i = 0; i < n; i++) {
+    const p = poly[i]!;
+    const q = poly[(i + 1) % n]!;
+    const c = p[0] * q[1] - q[0] * p[1];
+    a2 += c;
+    cx += (p[0] + q[0]) * c;
+    cy += (p[1] + q[1]) * c;
+  }
+  if (Math.abs(a2) < 1e-9) return [poly.reduce((s, p) => s + p[0], 0) / n, poly.reduce((s, p) => s + p[1], 0) / n];
+  return [cx / (3 * a2), cy / (3 * a2)];
+}
+
+/** 로봇 중심 중 서로 가장 먼 두 점 (P 는 x 가 작은 쪽, 같으면 y 가 작은 쪽. 거리 동률이면 (P.x,P.y,Q.x,Q.y) 사전순 최소) */
+function majorAxis(pts: Pt[]): [Pt, Pt] {
+  const lex = (p: Pt, q: Pt) => p[0] - q[0] || p[1] - q[1];
+  let best: [Pt, Pt] = [pts[0]!, pts[0]!];
+  let bestD = -1;
+  for (let i = 0; i < pts.length; i++) {
+    for (let j = i + 1; j < pts.length; j++) {
+      const [p, q] = lex(pts[i]!, pts[j]!) <= 0 ? [pts[i]!, pts[j]!] : [pts[j]!, pts[i]!];
+      const d = (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2;
+      if (d > bestD + 1e-9 || (Math.abs(d - bestD) <= 1e-9 && (lex(p, best[0]) || lex(q, best[1])) < 0)) {
+        best = [p, q];
+        bestD = d;
+      }
+    }
+  }
+  return best;
+}
+
+/** 배지 후보 순서: 중심 → 주축 25% → 75% → 50%, 40%, 60%, 15%, 85% */
+const BADGE_AXIS_T = [0.25, 0.75, 0.5, 0.4, 0.6, 0.15, 0.85];
+/** 배지 충돌 판정 박스(한 변)와 점 중심까지 최소 거리(배지 외반경 10 + 점 halo 7) */
+const BADGE_BOX = 20;
+const BADGE_DOT_CLEAR = 17;
+const BADGE_GAP = 20;
+const MINI_BOX = 14;
+
 export type Cand = [number, number, 'start' | 'middle' | 'end'];
 export const boxOf = (c: Cand, w: number, h: number): Box => ({ x: c[2] === 'start' ? c[0] : c[2] === 'end' ? c[0] - w : c[0] - w / 2, y: c[1] - h, w, h });
 
@@ -414,13 +528,14 @@ export function buildLayout(robots: ActuatorMapRobot[], o: LayoutOptions): Chart
   }
 
   // 커버리지 헐
-  const hullBoxes: (HullBox & { d: string })[] = [];
+  const hullBoxes: (HullBox & { d: string; poly: Pt[]; pts: Pt[]; robots: ActuatorMapRobot[]; names: string[] })[] = [];
   if (o.hull) {
     const byCo = new Map<string, typeof pts>();
     for (const d of pts) byCo.set(d.r.company, [...(byCo.get(d.r.company) ?? []), d]);
     for (const [company, ds] of byCo) {
       if (ds.length < 2) continue;
-      const poly = paddedHull(ds.map((d) => [d.px, d.py] as Pt), 16);
+      const centers = ds.map((d) => [d.px, d.py] as Pt);
+      const poly = paddedHull(centers, 16);
       const xs = poly.map((p) => p[0]);
       const ys = poly.map((p) => p[1]);
       hullBoxes.push({
@@ -430,6 +545,10 @@ export function buildLayout(robots: ActuatorMapRobot[], o: LayoutOptions): Chart
         maxX: Math.max(...xs),
         minY: Math.min(...ys),
         maxY: Math.max(...ys),
+        poly,
+        pts: centers,
+        robots: ds.map((d) => d.r),
+        names: [...ds].sort((a, b) => a.x - b.x || (a.r.name < b.r.name ? -1 : a.r.name > b.r.name ? 1 : 0)).map((d) => d.r.name),
       });
     }
   }
@@ -507,7 +626,7 @@ export function buildLayout(robots: ActuatorMapRobot[], o: LayoutOptions): Chart
   }
 
   // 회사명 라벨: 헐 바깥 상·하·우·좌 중 점·라벨과 겹치지 않는 첫 위치
-  const hulls: HullShape[] = [];
+  const labelled: Pick<HullShape, 'company' | 'd' | 'color' | 'colorIndex' | 'label'>[] = [];
   const hullColorIdx = assignHullColors(hullBoxes);
   for (const [hi, hb] of hullBoxes.entries()) {
     const w = labelWidth(hb.company) + 4;
@@ -548,8 +667,73 @@ export function buildLayout(robots: ActuatorMapRobot[], o: LayoutOptions): Chart
       if (sc === 0) break;
     }
     placed.push(boxOf(pick, w, hh));
-    hulls.push({ company: hb.company, d: hb.d, color: CATEGORY_PALETTE[hullColorIdx[hi]!]!, colorIndex: hullColorIdx[hi]!, label: { x: pick[0], y: pick[1], anchor: pick[2] } });
+    labelled.push({ company: hb.company, d: hb.d, color: CATEGORY_PALETTE[hullColorIdx[hi]!]!, colorIndex: hullColorIdx[hi]!, label: { x: pick[0], y: pick[1], anchor: pick[2] } });
   }
+
+  // centroid x 가 부동소수 오차(1e-6 미만)만 다르면 동률로 보고 회사명으로 정한다
+  const tieZero = (v: number) => (Math.abs(v) < 1e-6 ? 0 : v);
+  // 영역 번호 (로봇 수 내림차순 → polygon centroid x 오름차순 → 회사명). hulls 배열 순서는 그대로 두고 index 만 부여한다.
+  const centroids = hullBoxes.map((hb) => polygonCentroid(hb.poly));
+  const order = hullBoxes
+    .map((_, i) => i)
+    .sort((a, b) => {
+      const ca = hullBoxes[a]!;
+      const cb = hullBoxes[b]!;
+      return cb.robots.length - ca.robots.length || tieZero(centroids[a]![0] - centroids[b]![0]) || (ca.company < cb.company ? -1 : ca.company > cb.company ? 1 : 0);
+    });
+  const indexOf = new Array<number>(hullBoxes.length).fill(0);
+  order.forEach((hi, k) => {
+    indexOf[hi] = k + 1;
+  });
+
+  // 번호 배지 배치: 점·점 라벨·회사 라벨이 모두 정해진 뒤 번호 순서로, 기존 박스만 장애물로 본다 (선택한 배지만 후속 배지의 장애물)
+  const plot = { x: M.l, y: M.t, w: pw, h: ph };
+  const miniBoxes: Box[] = labelled.map((h) => {
+    const dot = hullLabelDot(h);
+    return { x: dot.cx - MINI_BOX / 2, y: dot.cy - MINI_BOX / 2, w: MINI_BOX, h: MINI_BOX };
+  });
+  const badges: Pt[] = new Array<Pt>(hullBoxes.length);
+  const chosenBadges: Pt[] = [];
+  for (const hi of order) {
+    const hb = hullBoxes[hi]!;
+    const [P, Q] = majorAxis(hb.pts);
+    const cands: Pt[] = [centroids[hi]!, ...BADGE_AXIS_T.map((t): Pt => [P[0] + (Q[0] - P[0]) * t, P[1] + (Q[1] - P[1]) * t])];
+    const score = (c: Pt) => {
+      const b: Box = { x: c[0] - BADGE_BOX / 2, y: c[1] - BADGE_BOX / 2, w: BADGE_BOX, h: BADGE_BOX };
+      const outside = b.x < plot.x || b.x + b.w > plot.x + plot.w || b.y < plot.y || b.y + b.h > plot.y + plot.h ? 10 : 0;
+      return (
+        outside +
+        placed.filter((x) => overlaps(x, b)).length * 2 +
+        miniBoxes.filter((x) => overlaps(x, b)).length * 2 +
+        pts.filter((p) => Math.hypot(p.px - c[0], p.py - c[1]) < BADGE_DOT_CLEAR).length * 3 +
+        chosenBadges.filter((x) => Math.hypot(x[0] - c[0], x[1] - c[1]) < BADGE_GAP).length * 5
+      );
+    };
+    let pick = cands[0]!;
+    let best = Infinity;
+    for (const c of cands) {
+      const sc = score(c);
+      if (sc < best) {
+        best = sc;
+        pick = c;
+      }
+      if (sc === 0) break;
+    }
+    badges[hi] = pick;
+    chosenBadges.push(pick);
+  }
+  const hulls: HullShape[] = labelled.map((h, hi) => {
+    const hb = hullBoxes[hi]!;
+    const cp = [...companyPosture(hb.robots).values()][0];
+    return {
+      ...h,
+      index: indexOf[hi]!,
+      badge: { x: badges[hi]![0], y: badges[hi]![1] },
+      robotCount: hb.robots.length,
+      robotNames: hb.names,
+      posture: cp?.posture ?? 'unknown',
+    };
+  });
 
   const w = o.weights;
   const excludedWord = o.yAxis === 'price' ? '가격 미공개' : '값 없음';
