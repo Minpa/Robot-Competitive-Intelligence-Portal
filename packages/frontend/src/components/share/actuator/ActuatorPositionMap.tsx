@@ -3,7 +3,8 @@
 /**
  * 액추에이터 관점 경쟁사 포지션·커버리지 맵 — SVG 산점도.
  *  X: 제어 난이도 지수(가중치 슬라이더), Y: 액추에이터 타입/무게/가반하중/가격(로그) 세그먼트 토글.
- *  점 = 로봇 1기(지역 색), 반투명 영역 = 같은 회사 제품군 커버리지, LG 기준점은 잉크색 다이아몬드(형태로 구분).
+ *  점 = 로봇 1기(색 = 조달 태세 4단계, 확인 불가는 속 빈 회색 링), 반투명 무채색 영역 = 같은 회사 제품군 커버리지, LG 기준점은 잉크색 다이아몬드(형태로 구분).
+ *  지역은 색이 아니라 필터·툴팁·표로만 제공한다.
  *  레이아웃 계산은 actuator-map-layout.ts(순수 함수)에 있고 이 파일은 그리기·상호작용만 담당한다.
  *  컨트롤은 모두 no-print. 색은 chartColors 팔레트 토큰 + Tailwind ink 토큰만 사용한다.
  */
@@ -11,11 +12,18 @@
 import { useMemo, useRef, useState } from 'react';
 import { Table2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { ActuatorMapResponse, DifficultyWeights } from '@/types/actuator-map';
-import { LegendChip, SegmentedToggle, SubCard } from '../timeline-shared';
+import type { ActuatorMapResponse, DifficultyWeights, RobotSourcing, SourcingPosture } from '@/types/actuator-map';
+import { SegmentedToggle, SubCard } from '../timeline-shared';
+import { PostureSwatch } from './ActuatorSwatches';
+import {
+  POSTURE_LABEL,
+  POSTURE_ORDER,
+  componentSourcingText,
+  postureDetailLabel,
+  postureOf,
+} from './actuator-sourcing';
 import {
   REGION_GROUPS,
-  REGION_GROUP_COLOR,
   REGION_GROUP_LABEL,
   REGION_GROUP_OF,
   REGION_LABEL,
@@ -74,6 +82,7 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
   const update = (patch: Partial<LayoutOptions>) => setOpts((o) => ({ ...o, ...patch }));
   const setWeight = (key: keyof DifficultyWeights, value: number) => setOpts((o) => ({ ...o, weights: { ...o.weights, [key]: value } }));
   const toggleRegion = (g: RegionGroup) => setOpts((o) => ({ ...o, regions: { ...o.regions, [g]: !o.regions[g] } }));
+  const togglePosture = (p: SourcingPosture) => setOpts((o) => ({ ...o, postures: { ...o.postures, [p]: !o.postures[p] } }));
 
   const showTip = (p: PlottedPoint) => {
     const svg = svgRef.current;
@@ -82,13 +91,14 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
     const scale = box.width / layout.width;
     let left = p.px * scale + 16;
     let top = p.py * scale - 10;
-    if (left + 300 > box.width) left = Math.max(0, p.px * scale - 306);
-    if (top + 170 > box.height) top = Math.max(0, box.height - 180);
+    if (left + 320 > box.width) left = Math.max(0, p.px * scale - 326);
+    if (top + 300 > box.height) top = Math.max(0, box.height - 310);
     if (top < 0) top = 0;
     setTip({ point: p, left, top });
   };
 
   const regionsOff = REGION_GROUPS.every((g) => !opts.regions[g]);
+  const posturesOff = POSTURE_ORDER.every((p) => !opts.postures[p]);
 
   return (
     <SubCard
@@ -117,8 +127,17 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
           {REGION_GROUPS.map((g) => (
             <label key={g} className={CHK}>
               <input type="checkbox" checked={opts.regions[g]} onChange={() => toggleRegion(g)} className="accent-brand" />
-              <span aria-hidden className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: REGION_GROUP_COLOR[g] }} />
               {REGION_GROUP_LABEL[g]}
+            </label>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="text-[11px] text-ink-500">조달 태세</span>
+          {POSTURE_ORDER.map((p) => (
+            <label key={p} className={CHK}>
+              <input type="checkbox" checked={opts.postures[p]} onChange={() => togglePosture(p)} className="accent-brand" />
+              <PostureSwatch posture={p} />
+              {POSTURE_LABEL[p]}
             </label>
           ))}
         </div>
@@ -154,7 +173,9 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
             ? '포지션 맵에 올릴 로봇 데이터가 없습니다.'
             : regionsOff
               ? '표시할 지역을 하나 이상 선택하세요.'
-              : opts.yAxis === 'price'
+              : posturesOff
+                ? '표시할 조달 태세를 하나 이상 선택하세요.'
+                : opts.yAxis === 'price'
                 ? '가격이 기록된 로봇이 없습니다. 다른 Y축을 선택하세요.'
                 : '현재 필터에 해당하는 로봇이 없습니다. (스펙 미등록 로봇은 표에서 확인)'}
         </div>
@@ -242,16 +263,28 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
                     ) : (
                       <>
                         <circle cx={p.px} cy={p.py} r={7} className="fill-white stroke-white" strokeWidth={active ? 3 : 2} />
-                        <circle
-                          cx={p.px}
-                          cy={p.py}
-                          r={5}
-                          fill={p.color}
-                          fillOpacity={r.forecast ? 0.35 : 1}
-                          stroke={r.forecast ? p.color : undefined}
-                          strokeWidth={r.forecast ? 1.5 : 0}
-                          strokeDasharray={r.forecast ? '2 2' : undefined}
-                        />
+                        {p.hollow ? (
+                          <circle
+                            cx={p.px}
+                            cy={p.py}
+                            r={4.5}
+                            className="fill-white"
+                            stroke={p.color}
+                            strokeWidth={2}
+                            strokeDasharray={r.forecast ? '2 2' : undefined}
+                          />
+                        ) : (
+                          <circle
+                            cx={p.px}
+                            cy={p.py}
+                            r={5}
+                            fill={p.color}
+                            fillOpacity={r.forecast ? 0.35 : 1}
+                            stroke={r.forecast ? p.color : undefined}
+                            strokeWidth={r.forecast ? 1.5 : 0}
+                            strokeDasharray={r.forecast ? '2 2' : undefined}
+                          />
+                        )}
                       </>
                     )}
                     {p.label.leader && (
@@ -298,7 +331,7 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
             <div
               role="status"
               aria-live="polite"
-              className="pointer-events-none absolute z-10 min-w-[200px] max-w-[300px] rounded-[8px] border border-ink-200 bg-white px-3 py-2 text-[12px] text-ink-800 shadow-report-lg"
+              className="pointer-events-none absolute z-10 min-w-[200px] max-w-[320px] rounded-[8px] border border-ink-200 bg-white px-3 py-2 text-[12px] text-ink-800 shadow-report-lg"
               style={{ left: tip.left, top: tip.top }}
             >
               <p className="text-[15px] font-semibold text-ink-900">
@@ -306,7 +339,7 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
               </p>
               <p className="text-ink-600">
                 {tip.point.robot.name} · {tip.point.robot.company}
-                {tip.point.robot.forecast ? ' · 예측' : ''} · {REGION_LABEL[tip.point.robot.region]}
+                {tip.point.robot.forecast ? ' · 예측' : ''}
               </p>
               <TipRow k="제어 난이도" v={`${tip.point.x.toFixed(1)} / 10`} />
               <TipRow
@@ -318,6 +351,8 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
                 v={`${numText(tip.point.robot.weight, ' kg')} · ${numText(tip.point.robot.height, ' cm')} · ${numText(tip.point.robot.payload, ' kg')}`}
               />
               <TipRow k="액추에이터" v={tip.point.robot.actuatorTypeLabel} />
+              <TipRow k="지역" v={REGION_LABEL[tip.point.robot.region]} />
+              <SourcingTip sourcing={tip.point.robot.sourcing} />
               {tip.point.robot.price && <TipRow k="가격" v={`${priceText(tip.point.robot.price)} (${tip.point.robot.price.conf})`} />}
               <p className="mt-1 text-[11px] text-ink-500">{tip.point.robot.actuatorTypeNote}</p>
               <p className="text-[11px] text-ink-500">
@@ -331,8 +366,11 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
 
       {/* 범례 */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-        {REGION_GROUPS.map((g) => (
-          <LegendChip key={g} color={REGION_GROUP_COLOR[g]} label={REGION_GROUP_LABEL[g]} />
+        {POSTURE_ORDER.map((p) => (
+          <span key={p} className="inline-flex items-center gap-1.5 text-[11.5px] text-ink-600">
+            <PostureSwatch posture={p} />
+            {POSTURE_LABEL[p]}
+          </span>
         ))}
         {hasLG && (
           <span className="inline-flex items-center gap-1.5 text-[11.5px] text-ink-600">
@@ -346,6 +384,9 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
         </span>
         {hasForecast && <span className="text-[11.5px] text-ink-600">○ 점선 테두리 = 예측 모델</span>}
       </div>
+      <p className="text-[11px] text-ink-500">
+        점 색은 액추에이터 조달 태세입니다(속 빈 회색 링 = 근거 부족으로 확인 불가). 자체 개발 확인은 근거 등급 A·B만 셉니다. 지역은 필터·툴팁·표에서 확인하세요.
+      </p>
 
       {/* 가중치 슬라이더 */}
       <div className="no-print rounded-[10px] border border-ink-200 p-3">
@@ -387,14 +428,14 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
           <div>
             <p className="text-[12px] font-medium text-ink-800">데이터 표 (차트와 동일한 슬라이스 + 스펙 미등록 로봇)</p>
             <p className="text-[11px] text-ink-500 mt-0.5">
-              출처 등급은 ARGOS CI 신뢰도(A 공식 ~ D 추정). 가격은 DB에 있는 경우만 표시합니다.
+              출처 등급은 ARGOS CI 신뢰도(A 공식 ~ D 추정). 조달 태세의 등급은 자체 개발 근거의 등급입니다. 가격은 DB에 있는 경우만 표시합니다.
               {incompleteCount > 0 && ` 스펙 미등록 ${incompleteCount}기는 난이도를 계산할 수 없어 차트에서 제외됩니다.`}
             </p>
             <div className="overflow-x-auto print:overflow-visible mt-2">
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
-                    {['로봇', '회사', '지역', '보행', '전신 DOF', '손 DOF', '속도 m/s', '난이도', '무게 kg', '키 cm', '가반하중 kg', '액추에이터 타입', '가격 (등급)', '출처'].map(
+                    {['로봇', '회사', '지역', '보행', '전신 DOF', '손 DOF', '속도 m/s', '난이도', '무게 kg', '키 cm', '가반하중 kg', '액추에이터 타입', '조달 태세', '가격 (등급)', '출처'].map(
                       (h, i) => (
                         <th key={h} className={cn(TH, i >= 4 && i <= 10 && NUM)}>
                           {h}
@@ -405,7 +446,7 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
                 </thead>
                 <tbody>
                   {[...data.robots]
-                    .filter((r) => opts.regions[REGION_GROUP_OF[r.region]] && (opts.includeForecast || !r.forecast))
+                    .filter((r) => opts.regions[REGION_GROUP_OF[r.region]] && opts.postures[postureOf(r)] && (opts.includeForecast || !r.forecast))
                     .map((r) => ({ r, x: r.incomplete ? null : difficultyOf(r, opts.weights) }))
                     .sort((a, b) => (b.x ?? -1) - (a.x ?? -1))
                     .map(({ r, x }) => (
@@ -426,12 +467,20 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
                         <td className={cn(TD, NUM)}>{numText(r.height)}</td>
                         <td className={cn(TD, NUM)}>{numText(r.payload)}</td>
                         <td className={cn(TD, 'whitespace-nowrap print:whitespace-normal')}>{r.actuatorTypeLabel}</td>
+                        <td className={cn(TD, 'min-w-[150px] print:min-w-0')}>
+                          <span className="inline-flex items-center gap-1.5">
+                            <PostureSwatch posture={postureOf(r)} />
+                            {postureDetailLabel(r.sourcing)}
+                          </span>
+                          {componentSourcingText(r.sourcing) && <span className="block text-[11px] text-ink-500">{componentSourcingText(r.sourcing)}</span>}
+                        </td>
                         <td className={cn(TD, 'whitespace-nowrap print:whitespace-normal')}>
                           {priceText(r.price)}
                           {r.price ? ` ${r.price.conf}` : ''}
                         </td>
-                        <td className={cn(TD, 'min-w-[220px] text-ink-600')}>
+                        <td className={cn(TD, 'min-w-[220px] print:min-w-0 text-ink-600')}>
                           {r.sources.join(' · ')} · {r.actuatorTypeNote}
+                          {r.sourcing.noteKo ? ` · ${r.sourcing.noteKo}` : ''}
                         </td>
                       </tr>
                     ))}
@@ -448,7 +497,7 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
                 <table className="w-full border-collapse">
                   <thead>
                     <tr>
-                      {['회사', '지역', '모델 수', '난이도 범위', yd.kind === 'cat' ? '액추에이터 타입' : `${yd.axis} 범위`, ...(yd.kind === 'cat' ? [] : ['액추에이터 타입'])].map((h) => (
+                      {['회사', '지역', '모델 수', '난이도 범위', yd.kind === 'cat' ? '액추에이터 타입' : `${yd.axis} 범위`, ...(yd.kind === 'cat' ? [] : ['액추에이터 타입']), '조달 태세'].map((h) => (
                         <th key={h} className={TH}>
                           {h}
                         </th>
@@ -468,6 +517,7 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
                         </td>
                         <td className={TD}>{c.yRange}</td>
                         {yd.kind !== 'cat' && <td className={TD}>{c.types.join(', ')}</td>}
+                        <td className={TD}>{c.posture}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -478,6 +528,39 @@ export function ActuatorPositionMap({ data, initialYAxis = 'type' }: Props) {
         </div>
       )}
     </SubCard>
+  );
+}
+
+const BASIS_TEXT: Record<RobotSourcing['basis'], string> = {
+  regrade: '재판정 기록',
+  derived: '재판정 기록 없음(공급사 기록 기준의 보수적 판정)',
+};
+
+/** 툴팁의 조달 태세 블록: 라벨(등급) · 판정 근거 방식 · 메모 · 근거 1건 · 부품 층 외부 조달 */
+function SourcingTip({ sourcing }: { sourcing: RobotSourcing }) {
+  const ev = sourcing.evidence[0];
+  const comp = componentSourcingText(sourcing);
+  return (
+    <div className="mt-1 border-t border-ink-100 pt-1">
+      <div className="flex justify-between gap-3">
+        <span className="text-ink-500">조달 태세</span>
+        <span className="text-right font-medium inline-flex items-center gap-1.5">
+          <PostureSwatch posture={sourcing.posture} />
+          {postureDetailLabel(sourcing)}
+        </span>
+      </div>
+      <p className="text-[11px] text-ink-500">
+        근거 등급 {sourcing.evidenceGrade ?? '—'} · {BASIS_TEXT[sourcing.basis]}
+      </p>
+      {comp && <p className="text-[11px] text-ink-700">{comp}</p>}
+      {sourcing.noteKo && <p className="text-[11px] text-ink-600">{sourcing.noteKo}</p>}
+      {ev && (
+        <p className="text-[11px] text-ink-500 break-all">
+          근거: {[ev.claim, ev.source, ev.grade, ev.date].filter(Boolean).join(' · ')}
+          {ev.url ? ` · ${ev.url}` : ''}
+        </p>
+      )}
+    </div>
   );
 }
 

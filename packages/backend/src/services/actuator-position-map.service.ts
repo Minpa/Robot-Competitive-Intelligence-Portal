@@ -8,13 +8,19 @@
  *  - 공급망 엣지 (로봇 → 공급사 / 자체 생산)
  * 를 반환한다. 제어 난이도 지수 계산은 프런트(가중치 가변)에서 하고, 서버는 기본 가중치만 내려준다.
  *
- * 순수 함수(정규화·파싱·기본 난이도)는 export 해 단위 테스트한다. DB 접근은 클래스 메서드에만 있다.
- * 캐시: view_cache 테이블(10분) + 인플라이트 공유.
+ * 조달 태세(actuator_sourcing, 로봇당 1행 재판정), 공개 채택 사례(actuator_adoptions), 공급사 타깃 시장
+ * (actuator_vendor_markets)을 함께 조립한다. 세 테이블은 없을 수 있으므로(마이그레이션 전) 조회 실패는 빈 값으로 처리한다.
+ *
+ * 순수 함수(정규화·파싱·기본 난이도·조달 태세·세그먼트 분류)는 export 해 단위 테스트한다. DB 접근은 클래스 메서드에만 있다.
+ * 캐시: view_cache 테이블(10분) + 인플라이트 공유. 응답 형태가 바뀌면 schemaVersion 을 올려 구캐시를 재계산한다.
  */
 
 import { eq, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import {
+  actuatorAdoptions,
+  actuatorSourcing,
+  actuatorVendorMarkets,
   bodySpecs,
   ciCompetitors,
   ciItems,
@@ -30,6 +36,24 @@ import {
   type ComponentSpecs,
   type DynamicSpecs,
 } from '../db/schema.js';
+import {
+  SOURCING_KINDS,
+  MARKET_SEGMENTS,
+  sameVendor,
+  vendorKey,
+  modelMatches,
+  sanitizeSourcingEvidence,
+  sanitizeSourcingVendors,
+  sanitizeAdoptionSources,
+  type SourcingKind,
+  type SourcingLevel,
+  type MarketSegment,
+  type AdoptionSegment,
+} from '../db/actuator-update.util.js';
+
+// 공급사 키·매칭 함수는 util 에 있다 (적용 스크립트와 공유). 서비스에서도 그대로 쓸 수 있게 다시 내보낸다.
+export { vendorKey, sameVendor, modelMatches };
+export type { SourcingKind, SourcingLevel, MarketSegment, AdoptionSegment };
 
 // ── 공개 타입 (frontend/src/types/actuator-map.ts 와 1:1) ────────────────────
 
@@ -46,6 +70,40 @@ export const ACTUATOR_TYPE_LABELS = [
   '미확인',
 ] as const;
 export type ActuatorTypeLabel = (typeof ACTUATOR_TYPE_LABELS)[number];
+
+/** 조달 태세 4단계 (SourcingKind 5종을 화면용으로 접은 값) */
+export type SourcingPosture = 'in_house' | 'in_house_sells' | 'external' | 'unknown';
+
+export interface SourcingEvidenceItem {
+  claim: string;
+  source: string;
+  url: string | null;
+  grade: string;
+  date: string | null;
+}
+
+export interface SourcingExternalVendor {
+  vendor: string;
+  role: string | null;
+  grade: string | null;
+  url: string | null;
+  /** module = 통합 관절·모듈 단위 공급, component = 모터·감속기 등 부품 단위 공급 */
+  level: SourcingLevel;
+}
+
+export interface RobotSourcing {
+  posture: SourcingPosture;
+  kind: SourcingKind;
+  sellsExternally: boolean | null;
+  evidenceGrade: string | null;
+  evidence: SourcingEvidenceItem[];
+  externalVendors: SourcingExternalVendor[];
+  noteKo: string | null;
+  /** regrade = 재판정 레코드 기준, derived = 재판정 레코드 없음(보수적 폴백) */
+  basis: 'regrade' | 'derived';
+  /** 모듈(통합 관절) 층은 자체 설계이고 모터·감속기 등 부품 층만 외부 조달 — posture 는 in_house 로 둔다 */
+  componentSourcing: boolean;
+}
 
 export interface DifficultyWeights {
   /** 보행 방식 (바퀴 0 · 하이브리드 0.5 · 이족 1) */
@@ -106,6 +164,7 @@ export interface ActuatorMapRobot {
   actuatorTypeNote: string;
   price: RobotPrice | null;
   sources: string[];
+  sourcing: RobotSourcing;
 }
 
 export interface ActuatorSupplierProduct {
@@ -122,6 +181,17 @@ export interface ActuatorSupplierProduct {
   targetMarket: string | null;
   /** 'products' | 'components' */
   source: 'products' | 'components';
+  /** dynamicSpecs.diameterRangeMm ("40-120") 파싱 결과 */
+  diameterRangeMm: { min: number; max: number } | null;
+  integrationLevel: string | null;
+  isLG: boolean;
+  /** 대표 세그먼트 */
+  segment: MarketSegment;
+  /** 적중한 전체 세그먼트 (우선순위 순) */
+  segments: MarketSegment[];
+  segmentBasis: 'override' | 'vendor_segments' | 'adoptions' | 'keywords' | 'none';
+  /** 이 제품에 매칭된 수요 사례 id */
+  adoptionIds: string[];
 }
 
 export interface ActuatorSupplyEdge {
@@ -133,16 +203,79 @@ export interface ActuatorSupplyEdge {
   type: ActuatorTypeLabel;
   quantity: number;
   confidence: string;
+  /** self = 자체 확인된 로봇의 자체 엣지, unverified = 자체로 보이나 로봇 조달 태세가 확인 불가, external = 외부 조달 */
+  basis: 'self' | 'external' | 'unverified';
+  /** 엣지가 속한 로봇의 조달 태세 */
+  posture: SourcingPosture;
+  role: string | null;
+  /** 외부 공급 층 (자체 엣지·CI 파생 엣지는 module) */
+  level: SourcingLevel;
 }
 
+export interface ActuatorAdoptionCase {
+  id: string;
+  robotName: string;
+  company: string;
+  country: string | null;
+  segment: AdoptionSegment;
+  marketSegment: MarketSegment;
+  /** module = 통합 관절·모듈 단위 채택, component = 모터·감속기 등 부품 단위 채택 */
+  level: SourcingLevel;
+  robotClass: string | null;
+  actuatorVendor: string;
+  vendorKey: string;
+  actuatorModel: string | null;
+  usage: string | null;
+  evidenceGrade: string | null;
+  sources: { url: string; title: string | null }[];
+  noteKo: string | null;
+  year: number | null;
+}
+
+export interface VendorTargetMarket {
+  vendor: string;
+  vendorKey: string;
+  targetMarketsKo: string[];
+  segments: MarketSegment[] | null;
+  grade: string | null;
+  url: string | null;
+}
+
+export interface SourcingStats {
+  /** forecast 제외 로봇 수 */
+  robots: number;
+  inHouse: number;
+  inHouseSells: number;
+  external: number;
+  /** external 중 kind 가 mixed 인 로봇 (externalMixed ⊂ external) */
+  externalMixed: number;
+  unknown: number;
+  /** unknown 중 자체 개발 추정(in_house_presumed) 로봇 (unknownPresumed ⊂ unknown) */
+  unknownPresumed: number;
+  regraded: number;
+  derived: number;
+  /** 부품 층만 외부 조달이라 in_house 로 분류된 로봇 */
+  componentSourcing: number;
+}
+
+export const ACTUATOR_MAP_SCHEMA_VERSION = 2 as const;
+
+/** 시장 세그먼트 표시 순서 */
+export const MARKET_SEGMENT_ORDER: MarketSegment[] = ['tier1_oem', 'tier2_legged', 'research_edu', 'industrial_cobot', 'service', 'captive', 'other'];
+
 export interface ActuatorMapBody {
+  schemaVersion: typeof ACTUATOR_MAP_SCHEMA_VERSION;
   generatedAt: string;
   difficultyDefault: DifficultyWeights;
   typeOrder: ActuatorTypeLabel[];
   robots: ActuatorMapRobot[];
   suppliers: ActuatorSupplierProduct[];
   edges: ActuatorSupplyEdge[];
-  stats: { robots: number; complete: number; incomplete: number; suppliers: number; edges: number };
+  adoptions: ActuatorAdoptionCase[];
+  vendorMarkets: VendorTargetMarket[];
+  sourcingStats: SourcingStats;
+  segmentOrder: MarketSegment[];
+  stats: { robots: number; complete: number; incomplete: number; suppliers: number; edges: number; adoptions: number };
 }
 
 export interface ActuatorMapResponse extends ActuatorMapBody {
@@ -328,6 +461,310 @@ export function lookupVendorType(map: Map<string, ActuatorTypeLabel>, vendor: st
   return null;
 }
 
+// ── 조달 태세 ────────────────────────────────────────────────────────────────
+
+/**
+ * 재판정 종류 → 조달 태세 4단계.
+ *  - in_house_confirmed: 외판(true)이면 in_house_sells, 아니면 in_house
+ *  - external → external
+ *  - mixed: 모듈(통합 관절) 층 외부 공급사가 하나라도 있거나 공급사 정보가 없으면 external(외부 조달·혼합),
+ *           외부 공급사가 전부 부품(component) 층이면 모듈 층은 자체 설계이므로 in_house
+ *  - in_house_presumed, unknown → unknown (in_house_presumed 는 외판 true 여도 unknown)
+ */
+export function postureOf(
+  kind: SourcingKind,
+  sellsExternally: boolean | null | undefined,
+  externalVendors: { level?: SourcingLevel | null }[] = []
+): SourcingPosture {
+  switch (kind) {
+    case 'in_house_confirmed':
+      return sellsExternally === true ? 'in_house_sells' : 'in_house';
+    case 'external':
+      return 'external';
+    case 'mixed':
+      return externalVendors.length > 0 && externalVendors.every((v) => v.level === 'component') ? 'in_house' : 'external';
+    default:
+      return 'unknown';
+  }
+}
+
+/** actuator_sourcing 행 (DB 조회 결과 — jsonb 컬럼은 방어적으로 다시 정규화한다) */
+export interface SourcingRow {
+  robotId: string;
+  sourcing: string;
+  sellsExternally: boolean | null;
+  evidenceGrade: string | null;
+  evidence: unknown;
+  externalVendors: unknown;
+  noteKo: string | null;
+}
+
+const isSourcingKind = (v: string): v is SourcingKind => (SOURCING_KINDS as readonly string[]).includes(v);
+
+/**
+ * 로봇의 조달 태세 확정. 재판정 행이 있으면 postureOf 규칙(basis 'regrade').
+ * 없으면 폴백(basis 'derived'): 외부 공급사가 명시된(inHouse === false, 공급사명 있음, '(공급사 미상)' 아님) 액추에이터가
+ * 하나라도 있으면 external, 아니면 무조건 unknown — 근거 없이 자체 개발로 보지 않는다.
+ */
+export function resolveSourcing(row: SourcingRow | null, actuators: RobotActuator[], company: string): RobotSourcing {
+  if (row) {
+    const kind: SourcingKind = isSourcingKind(row.sourcing) ? row.sourcing : 'unknown';
+    const externalVendors: SourcingExternalVendor[] = sanitizeSourcingVendors(row.externalVendors).map((v) => ({
+      vendor: v.vendor,
+      role: v.role,
+      grade: v.grade,
+      url: v.url,
+      level: v.level,
+    }));
+    const evidence: SourcingEvidenceItem[] = sanitizeSourcingEvidence(row.evidence).map((e) => ({
+      claim: e.claim,
+      source: e.source ?? '',
+      url: e.url,
+      grade: e.grade ?? 'D',
+      date: e.date,
+    }));
+    const posture = postureOf(kind, row.sellsExternally, externalVendors);
+    return {
+      posture,
+      kind,
+      sellsExternally: row.sellsExternally ?? null,
+      evidenceGrade: row.evidenceGrade ?? null,
+      evidence,
+      externalVendors,
+      noteKo: row.noteKo ?? null,
+      basis: 'regrade',
+      componentSourcing: kind === 'mixed' && posture === 'in_house',
+    };
+  }
+  const explicit = actuators.filter(
+    (a) => !a.inHouse && !!a.vendor && a.vendor.trim() !== '' && !a.vendor.includes('(공급사 미상)') && !isSameCompany(a.vendor, company)
+  );
+  const external = explicit.length > 0;
+  const vendors: SourcingExternalVendor[] = [];
+  for (const a of explicit) {
+    if (vendors.some((v) => sameVendor(v.vendor, a.vendor))) continue;
+    vendors.push({ vendor: (a.vendor ?? '').trim(), role: null, grade: a.confidence ?? null, url: null, level: 'module' });
+  }
+  return {
+    posture: external ? 'external' : 'unknown',
+    kind: external ? 'external' : 'unknown',
+    sellsExternally: null,
+    evidenceGrade: null,
+    evidence: [],
+    externalVendors: vendors,
+    noteKo: null,
+    basis: 'derived',
+    componentSourcing: false,
+  };
+}
+
+/** 서버 집계 — forecast 가 아닌 로봇만 */
+export function computeSourcingStats(robots: Pick<ActuatorMapRobot, 'forecast' | 'sourcing'>[]): SourcingStats {
+  const stats: SourcingStats = {
+    robots: 0, inHouse: 0, inHouseSells: 0, external: 0, externalMixed: 0, unknown: 0, unknownPresumed: 0,
+    regraded: 0, derived: 0, componentSourcing: 0,
+  };
+  for (const r of robots) {
+    if (r.forecast) continue;
+    const s = r.sourcing;
+    stats.robots += 1;
+    if (s.posture === 'in_house') stats.inHouse += 1;
+    else if (s.posture === 'in_house_sells') stats.inHouseSells += 1;
+    else if (s.posture === 'external') {
+      stats.external += 1;
+      if (s.kind === 'mixed') stats.externalMixed += 1;
+    } else {
+      stats.unknown += 1;
+      if (s.kind === 'in_house_presumed') stats.unknownPresumed += 1;
+    }
+    if (s.basis === 'regrade') stats.regraded += 1;
+    else stats.derived += 1;
+    if (s.componentSourcing) stats.componentSourcing += 1;
+  }
+  return stats;
+}
+
+// ── 시장 세그먼트 ────────────────────────────────────────────────────────────
+
+/** 수요 사례 세그먼트 → 시장 세그먼트 */
+export const ADOPTION_TO_MARKET_SEGMENT: Record<AdoptionSegment, MarketSegment> = {
+  humanoid_tier1: 'tier1_oem',
+  humanoid_tier2: 'tier2_legged',
+  quadruped: 'tier2_legged',
+  research_platform: 'research_edu',
+  robot_arm: 'industrial_cobot',
+  industrial: 'industrial_cobot',
+  service_robot: 'service',
+  exoskeleton: 'service',
+};
+
+export function marketSegmentOfAdoption(segment: AdoptionSegment): MarketSegment {
+  return ADOPTION_TO_MARKET_SEGMENT[segment] ?? 'other';
+}
+
+/** 공급사·모델 텍스트(정규식)로 시장 세그먼트를 강제하는 예외. 앞에서부터 처음 맞는 것을 쓴다 */
+export const SEGMENT_OVERRIDES: { pattern: RegExp; segments: MarketSegment[] }[] = [
+  // LG AXIUM: 공개 로드맵(가정용 CLOiD 2026 → 외부 파트너 2027 → 산업용 고토크 2030) 기준 — 대표 service, 보조 industrial_cobot
+  { pattern: /lg electronics.*axium/i, segments: ['service', 'industrial_cobot'] },
+];
+
+type KeywordSegment = Exclude<MarketSegment, 'captive' | 'other'>;
+
+/** 키워드 규칙 — 규칙(정규식) 하나당 최대 1회 카운트. 키 순서가 동점 우선순위다 */
+const SEGMENT_KEYWORD_RULES: Record<KeywordSegment, RegExp[]> = {
+  tier1_oem: [/tier.?1|1군|mass.?production|contract\s*manufactur|위탁\s*제조/],
+  tier2_legged: [/humanoid|휴머노이드/, /legged|quadruped|biped|보행|사족|이족/],
+  research_edu: [/research|연구|academ|\blab\b/, /education|educational|교육|maker|메이커|student|formula student/],
+  industrial_cobot: [
+    /industrial|산업|manufactur|제조/,
+    /cobot|collaborative|협동|robot arm|로봇 ?암|arm joints|positioner|machine tool|공작|semiconductor|반도체/,
+  ],
+  service: [
+    /service|서비스|delivery|배송|home|household|가정|logistics|물류|warehouse|창고/,
+    /agv|amr|medical|healthcare|의료|prosthetic|exoskeleton|외골격/,
+  ],
+};
+const KEYWORD_SEGMENT_ORDER = Object.keys(SEGMENT_KEYWORD_RULES) as KeywordSegment[];
+
+export interface SegmentClassification {
+  /** 대표 세그먼트 — 항상 segments[0] */
+  segment: MarketSegment;
+  /** 대표를 맨 앞에 두고 나머지는 우선순위(MARKET_SEGMENT_ORDER) 순 */
+  segments: MarketSegment[];
+  basis: 'override' | 'vendor_segments' | 'adoptions' | 'keywords' | 'none';
+}
+
+/** 대표 세그먼트를 맨 앞에 두고 나머지(중복 제거)는 MARKET_SEGMENT_ORDER 순서로 */
+function representativeFirst(rep: MarketSegment, all: MarketSegment[]): MarketSegment[] {
+  const rest = MARKET_SEGMENT_ORDER.filter((s) => s !== rep && all.includes(s));
+  return [rep, ...rest];
+}
+
+/** 수요 사례 1건이 제품 세그먼트 판정에 쓰이는 형태 */
+export interface AdoptionSegmentVote {
+  marketSegment: MarketSegment;
+  /** 사례의 actuatorModel 이 이 제품과 실제로 매칭된 경우 true. 모델이 없거나 벤더 수준 문자열이면 false(동점 타이브레이커로만 사용) */
+  modelSpecific: boolean;
+}
+
+/** 모델 미상이거나 시리즈·세트처럼 벤더 수준으로 적힌 모델 문자열 */
+const VENDOR_LEVEL_MODEL = /series|시리즈|세트|등(?:\s|$)/i;
+export function isVendorLevelModel(model: string | null | undefined): boolean {
+  return model == null || model.trim() === '' || VENDOR_LEVEL_MODEL.test(model);
+}
+
+/** candidates(우선순위 순) 중 counts 가 가장 큰 것. 동률이면 앞(우선순위 높은 것). counts 가 모두 0 이면 null */
+function mostFrequent(candidates: MarketSegment[], counts: Map<MarketSegment, number>): MarketSegment | null {
+  let best: MarketSegment | null = null;
+  let bestN = 0;
+  for (const s of candidates) {
+    const n = counts.get(s) ?? 0;
+    if (n > bestN) { best = s; bestN = n; }
+  }
+  return best;
+}
+
+const countSegments = (votes: AdoptionSegmentVote[]): Map<MarketSegment, number> => {
+  const m = new Map<MarketSegment, number>();
+  for (const v of votes) m.set(v.marketSegment, (m.get(v.marketSegment) ?? 0) + 1);
+  return m;
+};
+
+/**
+ * 공급사 제품의 시장 세그먼트 분류 (순수). 우선순위:
+ *  1) SEGMENT_OVERRIDES (정규식 `vendor model`)
+ *  2) 공급사 제공 segments
+ *  3) targetMarket 이 "(in-house)" 로 끝나면 captive (채택 사례가 있어도 captive 유지)
+ *  4) 모델 특정 수요 사례(modelSpecific)의 marketSegment 최빈값 (basis 'adoptions'; 동점이면 우선순위 tier1_oem > tier2_legged > research_edu > industrial_cobot > service)
+ *  5) 키워드 규칙 — 적중 수 최대가 대표. 동점이면 벤더 수준 사례(모델 미상·series·세트 등)의 최빈값, 그래도 동점이면 같은 우선순위. 없으면 other.
+ * segments 는 항상 대표가 맨 앞이며, 나머지는 우선순위 순(4번은 사례 세그먼트 ∪ 키워드 적중).
+ */
+export function classifyMarketSegments(
+  product: { vendor: string; model: string; targetMarket: string | null },
+  vendorMarket: { targetMarketsKo?: string[] | null; segments?: MarketSegment[] | null } | null,
+  adoptions: AdoptionSegmentVote[] = []
+): SegmentClassification {
+  const id = `${product.vendor} ${product.model}`;
+  for (const o of SEGMENT_OVERRIDES) {
+    if (o.pattern.test(id)) {
+      const rep = o.segments[0] ?? 'other';
+      return { segment: rep, segments: [rep, ...o.segments.filter((s) => s !== rep)], basis: 'override' };
+    }
+  }
+  const given = (vendorMarket?.segments ?? []).filter((s): s is MarketSegment => (MARKET_SEGMENTS as readonly string[]).includes(s));
+  if (given.length > 0) return { segment: given[0]!, segments: [...given], basis: 'vendor_segments' };
+  if (/\(in-house\)\s*$/i.test(product.targetMarket ?? '')) return { segment: 'captive', segments: ['captive'], basis: 'keywords' };
+
+  const text = `${product.targetMarket ?? ''} ${(vendorMarket?.targetMarketsKo ?? []).join(' ')}`.toLowerCase();
+  const hits = KEYWORD_SEGMENT_ORDER.map((seg) => ({ seg, count: SEGMENT_KEYWORD_RULES[seg].filter((re) => re.test(text)).length })).filter((h) => h.count > 0);
+
+  const specificCounts = countSegments(adoptions.filter((a) => a.modelSpecific));
+  const specificRep = mostFrequent(MARKET_SEGMENT_ORDER, specificCounts);
+  if (specificRep) {
+    return { segment: specificRep, segments: representativeFirst(specificRep, [...specificCounts.keys(), ...hits.map((h) => h.seg)]), basis: 'adoptions' };
+  }
+
+  if (hits.length === 0) return { segment: 'other', segments: ['other'], basis: 'none' };
+  const max = Math.max(...hits.map((h) => h.count));
+  const tied = hits.filter((h) => h.count === max).map((h) => h.seg);
+  const rep = (tied.length > 1 ? mostFrequent(tied, countSegments(adoptions.filter((a) => !a.modelSpecific))) : null) ?? tied[0]!;
+  return { segment: rep, segments: representativeFirst(rep, hits.map((h) => h.seg)), basis: 'keywords' };
+}
+
+/** dynamicSpecs.diameterRangeMm — "40-120", "Φ40–Φ120", "40~120" → {min, max}. 숫자 하나면 min=max, 없으면 null */
+export function parseDiameterRange(text: unknown): { min: number; max: number } | null {
+  if (typeof text !== 'string') return null;
+  const nums = (text.match(/\d+(?:\.\d+)?/g) ?? []).map(Number).filter((n) => Number.isFinite(n) && n > 0);
+  if (nums.length === 0) return null;
+  const a = nums[0]!;
+  const b = nums.length > 1 ? nums[1]! : a;
+  return { min: Math.min(a, b), max: Math.max(a, b) };
+}
+
+/** 공급사 타깃 시장 조회 — 키 정확 일치 우선, 없으면 sameVendor */
+export function findVendorMarket<T extends { vendor: string; vendorKey: string }>(markets: T[], vendor: string): T | null {
+  const key = vendorKey(vendor);
+  return markets.find((m) => m.vendorKey === key) ?? markets.find((m) => sameVendor(m.vendor, vendor)) ?? null;
+}
+
+/** 이 제품에 연결되는 수요 사례 — 같은 공급사이고 (사례 모델이 미상·벤더 수준 문자열(series·세트 등)이거나 모델 매칭). 벤더 수준 사례는 그 공급사 모든 제품에 붙는다 */
+export function matchAdoptionIds(
+  product: { vendor: string; model: string },
+  adoptions: { id: string; actuatorVendor: string; actuatorModel: string | null }[]
+): string[] {
+  return adoptions
+    .filter((c) => sameVendor(c.actuatorVendor, product.vendor) && (isVendorLevelModel(c.actuatorModel) || modelMatches(c.actuatorModel, product.model)))
+    .map((c) => c.id);
+}
+
+/**
+ * products(type='actuator') 와 같은 제품을 가리키는 components 행("Vendor Model" 이름의 쌍둥이)을 제외한다.
+ * 적용 스크립트가 공급사 제품을 products + components 로 이중 기록하므로 그대로 합치면 제품이 2배로 보인다.
+ * 같은 공급사(sameVendor)이고 모델명이 서로 포함 관계(modelMatches, 3자 이상)이면 쌍둥이로 본다.
+ */
+export function dedupeLooseComponents<T extends { vendor: string; model: string }>(
+  products: { vendor: string; model: string }[],
+  loose: T[]
+): T[] {
+  return loose.filter((c) => !products.some((p) => sameVendor(p.vendor, c.vendor) && modelMatches(p.model, c.model)));
+}
+
+export type SupplierProductBase = Omit<ActuatorSupplierProduct, 'segment' | 'segments' | 'segmentBasis' | 'adoptionIds'>;
+
+/** 기본 제품 행에 세그먼트 분류와 수요 사례 연결을 붙인다 */
+export function enrichSupplierProduct(
+  base: SupplierProductBase,
+  vendorMarkets: VendorTargetMarket[],
+  adoptions: { id: string; actuatorVendor: string; actuatorModel: string | null; marketSegment: MarketSegment }[]
+): ActuatorSupplierProduct {
+  const adoptionIds = matchAdoptionIds(base, adoptions);
+  const votes: AdoptionSegmentVote[] = adoptions
+    .filter((c) => adoptionIds.includes(c.id))
+    .map((c) => ({ marketSegment: c.marketSegment, modelSpecific: !isVendorLevelModel(c.actuatorModel) }));
+  const cls = classifyMarketSegments(base, findVendorMarket(vendorMarkets, base.vendor), votes);
+  return { ...base, segment: cls.segment, segments: cls.segments, segmentBasis: cls.basis, adoptionIds };
+}
+
 // ── 조립 (DB 행 → 응답) ──────────────────────────────────────────────────────
 
 interface RobotRow {
@@ -384,7 +821,15 @@ export function matchCiToRobot(
   return null;
 }
 
-export function assembleRobot(row: RobotRow, actuatorRows: RobotActuatorRow[], ci: CiRobotFacts | null): ActuatorMapRobot {
+/** CI '액추에이터 공급사' 에 공급사명 대신 적힌 "자체" 표기 */
+const SELF_VENDOR_TOKEN = /^(자체|자사|독자|in-?house|self)$/i;
+
+export function assembleRobot(
+  row: RobotRow,
+  actuatorRows: RobotActuatorRow[],
+  ci: CiRobotFacts | null,
+  sourcingRow: SourcingRow | null = null
+): ActuatorMapRobot {
   const company = row.companyName ?? '(회사 미상)';
   const sources: string[] = ['humanoid_robots'];
   const hasBody = row.heightCm != null || row.weightKg != null || row.dofCount != null || row.maxSpeedMps != null;
@@ -424,11 +869,14 @@ export function assembleRobot(row: RobotRow, actuatorRows: RobotActuatorRow[], c
   const ciTorqueNm = ciTorque ? parseLeadingNumber(ciTorque.value) : null;
   const ciVendors = parseVendorList(ciVendor?.value);
   for (const v of ciVendors) {
-    if (actuators.some((a) => isSameCompany(a.vendor, v))) continue;
+    // CI 공급사 값 "자체 (회사명)" 의 괄호 제거 결과인 "자체" 는 외부 공급사가 아니라 제조사 자신이다
+    const selfToken = SELF_VENDOR_TOKEN.test(v);
+    const vendorName = selfToken ? company : v;
+    if (actuators.some((a) => isSameCompany(a.vendor, vendorName))) continue;
     actuators.push({
-      name: `${v} (CI)`,
-      vendor: v,
-      inHouse: isSameCompany(v, company),
+      name: `${vendorName} (CI)`,
+      vendor: vendorName,
+      inHouse: selfToken || isSameCompany(v, company),
       type: ciTypeFromDrive ?? '미확인',
       torqueNm: ciTorqueNm,
       weightKg: null,
@@ -488,6 +936,7 @@ export function assembleRobot(row: RobotRow, actuatorRows: RobotActuatorRow[], c
 
   const dof = row.dofCount;
   const incomplete = !hasBody || dof == null;
+  if (sourcingRow) sources.push('actuator_sourcing');
 
   return {
     id: row.id,
@@ -512,6 +961,7 @@ export function assembleRobot(row: RobotRow, actuatorRows: RobotActuatorRow[], c
     actuatorTypeNote,
     price,
     sources,
+    sourcing: resolveSourcing(sourcingRow, actuators, company),
   };
 }
 
@@ -524,21 +974,30 @@ export function parseLeadingNumber(text: string | null | undefined): number | nu
   return Number.isFinite(n) ? n : null;
 }
 
-export function buildEdges(robots: ActuatorMapRobot[]): ActuatorSupplyEdge[] {
+/**
+ * 로봇 → 공급사 엣지.
+ *  - 액추에이터 행마다 엣지 1개(같은 로봇·같은 공급사는 수량 합산). 자체 엣지의 basis 는 로봇 조달 태세가 unknown 이면 'unverified', 아니면 'self'.
+ *  - 조달 태세 재판정의 externalVendors 가 같은 로봇에 없으면 엣지를 추가한다(quantity 1, 등급 없으면 B, 타입은 같은 공급사 제품의 타입 또는 '미확인').
+ *    이미 있으면 role/level 만 채운다.
+ */
+export function buildEdges(
+  robots: ActuatorMapRobot[],
+  suppliers: Pick<ActuatorSupplierProduct, 'vendor' | 'type'>[] = []
+): ActuatorSupplyEdge[] {
   const edges: ActuatorSupplyEdge[] = [];
+  const labels = ACTUATOR_TYPE_LABELS as readonly string[];
   for (const r of robots) {
-    const seen = new Set<string>();
+    const posture: SourcingPosture = r.sourcing?.posture ?? 'unknown';
+    const robotEdges: ActuatorSupplyEdge[] = [];
     for (const a of r.actuators) {
       const vendor = a.inHouse ? r.company : (a.vendor ?? '').trim() || '(공급사 미상)';
       const key = vendor.toLowerCase();
-      const existing = edges.find((e) => e.robotId === r.id && e.vendor.toLowerCase() === key);
+      const existing = robotEdges.find((e) => e.vendor.toLowerCase() === key);
       if (existing) {
         existing.quantity += a.quantity;
         continue;
       }
-      if (seen.has(key)) continue;
-      seen.add(key);
-      edges.push({
+      robotEdges.push({
         robotId: r.id,
         robotName: r.name,
         company: r.company,
@@ -547,10 +1006,74 @@ export function buildEdges(robots: ActuatorMapRobot[]): ActuatorSupplyEdge[] {
         type: a.type,
         quantity: a.quantity,
         confidence: a.confidence,
+        basis: a.inHouse ? (posture === 'unknown' ? 'unverified' : 'self') : 'external',
+        posture,
+        role: null,
+        level: 'module',
       });
     }
+    for (const v of r.sourcing?.externalVendors ?? []) {
+      const existing = robotEdges.find((e) => !e.inHouse && sameVendor(e.vendor, v.vendor));
+      if (existing) {
+        if (existing.role == null) existing.role = v.role;
+        existing.level = v.level;
+        continue;
+      }
+      const sameVendorType = suppliers.find((s) => sameVendor(s.vendor, v.vendor) && labels.includes(s.type))?.type;
+      robotEdges.push({
+        robotId: r.id,
+        robotName: r.name,
+        company: r.company,
+        vendor: v.vendor,
+        inHouse: false,
+        type: (sameVendorType as ActuatorTypeLabel | undefined) ?? '미확인',
+        quantity: 1,
+        confidence: v.grade ?? 'B',
+        basis: 'external',
+        posture,
+        role: v.role,
+        level: v.level,
+      });
+    }
+    edges.push(...robotEdges);
   }
   return edges;
+}
+
+/** actuator_adoptions 행 → API 사례 */
+export function adoptionRowToCase(r: typeof actuatorAdoptions.$inferSelect): ActuatorAdoptionCase {
+  const segment = r.segment as AdoptionSegment;
+  return {
+    id: r.id,
+    robotName: r.robotName,
+    company: r.company,
+    country: r.country ?? null,
+    segment,
+    marketSegment: marketSegmentOfAdoption(segment),
+    level: r.level === 'component' ? 'component' : 'module',
+    robotClass: r.robotClass ?? null,
+    actuatorVendor: r.actuatorVendor,
+    vendorKey: vendorKey(r.actuatorVendor),
+    actuatorModel: r.actuatorModel ?? null,
+    usage: r.usageText ?? null,
+    evidenceGrade: r.evidenceGrade ?? null,
+    sources: sanitizeAdoptionSources(r.sources).map((s) => ({ url: s.url, title: s.title })),
+    noteKo: r.noteKo ?? null,
+    year: r.adoptedYear ?? null,
+  };
+}
+
+/** actuator_vendor_markets 행 → API 공급사 타깃 시장 */
+export function vendorMarketRowToModel(r: typeof actuatorVendorMarkets.$inferSelect): VendorTargetMarket {
+  const segments = Array.isArray(r.segments) ? r.segments.filter((s): s is MarketSegment => (MARKET_SEGMENTS as readonly string[]).includes(s)) : null;
+  return {
+    vendor: r.vendor,
+    vendorKey: r.vendorKey,
+    targetMarketsKo: Array.isArray(r.targetMarketsKo) ? r.targetMarketsKo.filter((s): s is string => typeof s === 'string') : [],
+    segments: segments && segments.length > 0 ? segments : null,
+    grade: r.grade ?? null,
+    url: r.url ?? null,
+  };
 }
 
 // ── 서비스 ───────────────────────────────────────────────────────────────────
@@ -566,7 +1089,14 @@ export class ActuatorPositionMapService {
       const [cached] = await db.select().from(viewCache).where(eq(viewCache.viewName, CACHE_KEY)).limit(1);
       if (cached && Date.now() - cached.cachedAt.getTime() < TTL_MS) {
         const data = cached.data as unknown as ActuatorMapBody;
-        if (data && Array.isArray(data.robots) && Array.isArray(data.suppliers) && Array.isArray(data.edges)) {
+        // 구버전(schemaVersion 없음) 캐시는 인정하지 않고 재계산한다
+        if (
+          data &&
+          data.schemaVersion === ACTUATOR_MAP_SCHEMA_VERSION &&
+          Array.isArray(data.robots) &&
+          Array.isArray(data.suppliers) &&
+          Array.isArray(data.edges)
+        ) {
           return { ...data, cached: true };
         }
       }
@@ -591,12 +1121,15 @@ export class ActuatorPositionMapService {
   }
 
   private async compute(): Promise<ActuatorMapBody> {
-    const [robotRows, actuatorRows, ciFacts, allActuatorComponents, companyRows] = await Promise.all([
+    const [robotRows, actuatorRows, ciFacts, allActuatorComponents, companyRows, sourcingRows, adoptions, vendorMarkets] = await Promise.all([
       this.fetchRobots(),
       this.fetchRobotActuators(),
       this.fetchCiFacts(),
       this.fetchAllActuatorComponents(),
       db.select({ name: companies.name, country: companies.country }).from(companies),
+      this.fetchSourcingRows(),
+      this.fetchAdoptions(),
+      this.fetchVendorMarkets(),
     ]);
     const typeByVendor = vendorTypeMap(allActuatorComponents);
     const [supplierProducts, looseComponents] = await Promise.all([
@@ -616,25 +1149,38 @@ export class ActuatorPositionMapService {
       list.push(a);
       actuatorsByRobot.set(a.robotId, list);
     }
+    const sourcingByRobot = new Map(sourcingRows.map((s) => [s.robotId, s]));
 
     const robots = robotRows
-      .map((r) => assembleRobot(r, actuatorsByRobot.get(r.id) ?? [], ciByRobot.get(r.id) ?? null))
+      .map((r) => assembleRobot(r, actuatorsByRobot.get(r.id) ?? [], ciByRobot.get(r.id) ?? null, sourcingByRobot.get(r.id) ?? null))
       .sort((a, b) => a.company.localeCompare(b.company) || a.name.localeCompare(b.name));
 
-    const suppliers: ActuatorSupplierProduct[] = [...supplierProducts, ...looseComponents].sort(
-      (a, b) => a.vendor.localeCompare(b.vendor) || a.model.localeCompare(b.model)
-    );
-    const edges = buildEdges(robots);
+    const suppliers: ActuatorSupplierProduct[] = [...supplierProducts, ...dedupeLooseComponents(supplierProducts, looseComponents)]
+      .sort((a, b) => a.vendor.localeCompare(b.vendor) || a.model.localeCompare(b.model))
+      .map((p) => enrichSupplierProduct(p, vendorMarkets, adoptions));
+    const edges = buildEdges(robots, suppliers);
     const complete = robots.filter((r) => !r.incomplete).length;
 
     const body: ActuatorMapBody = {
+      schemaVersion: ACTUATOR_MAP_SCHEMA_VERSION,
       generatedAt: new Date().toISOString(),
       difficultyDefault: { ...DIFFICULTY_DEFAULT },
       typeOrder: [...ACTUATOR_TYPE_LABELS],
       robots,
       suppliers,
       edges,
-      stats: { robots: robots.length, complete, incomplete: robots.length - complete, suppliers: suppliers.length, edges: edges.length },
+      adoptions,
+      vendorMarkets,
+      sourcingStats: computeSourcingStats(robots),
+      segmentOrder: [...MARKET_SEGMENT_ORDER],
+      stats: {
+        robots: robots.length,
+        complete,
+        incomplete: robots.length - complete,
+        suppliers: suppliers.length,
+        edges: edges.length,
+        adoptions: adoptions.length,
+      },
     };
 
     try {
@@ -646,6 +1192,53 @@ export class ActuatorPositionMapService {
       // 캐시 저장 실패는 치명적이지 않음
     }
     return body;
+  }
+
+  /** actuator_sourcing — 테이블이 없는 환경(마이그레이션 전)에서는 빈 배열 */
+  private async fetchSourcingRows(): Promise<SourcingRow[]> {
+    try {
+      return await db
+        .select({
+          robotId: actuatorSourcing.robotId,
+          sourcing: actuatorSourcing.sourcing,
+          sellsExternally: actuatorSourcing.sellsExternally,
+          evidenceGrade: actuatorSourcing.evidenceGrade,
+          evidence: actuatorSourcing.evidence,
+          externalVendors: actuatorSourcing.externalVendors,
+          noteKo: actuatorSourcing.noteKo,
+        })
+        .from(actuatorSourcing);
+    } catch {
+      return [];
+    }
+  }
+
+  /** actuator_adoptions — 테이블이 없으면 빈 배열 */
+  private async fetchAdoptions(): Promise<ActuatorAdoptionCase[]> {
+    try {
+      const rows = await db.select().from(actuatorAdoptions);
+      return rows
+        .map(adoptionRowToCase)
+        .sort(
+          (a, b) =>
+            a.company.localeCompare(b.company) ||
+            a.robotName.localeCompare(b.robotName) ||
+            a.actuatorVendor.localeCompare(b.actuatorVendor) ||
+            (a.actuatorModel ?? '').localeCompare(b.actuatorModel ?? '')
+        );
+    } catch {
+      return [];
+    }
+  }
+
+  /** actuator_vendor_markets — 테이블이 없으면 빈 배열 */
+  private async fetchVendorMarkets(): Promise<VendorTargetMarket[]> {
+    try {
+      const rows = await db.select().from(actuatorVendorMarkets);
+      return rows.map(vendorMarketRowToModel).sort((a, b) => a.vendor.localeCompare(b.vendor));
+    } catch {
+      return [];
+    }
   }
 
   private async fetchRobots(): Promise<RobotRow[]> {
@@ -722,7 +1315,7 @@ export class ActuatorPositionMapService {
     return [...byCompetitor.values()];
   }
 
-  private async fetchSupplierProducts(typeByVendor: Map<string, ActuatorTypeLabel>): Promise<ActuatorSupplierProduct[]> {
+  private async fetchSupplierProducts(typeByVendor: Map<string, ActuatorTypeLabel>): Promise<SupplierProductBase[]> {
     const rows = await db
       .select({
         vendor: companies.name,
@@ -763,6 +1356,9 @@ export class ActuatorPositionMapService {
         status: r.status,
         targetMarket: r.targetMarket,
         source: 'products',
+        diameterRangeMm: parseDiameterRange(ds.diameterRangeMm),
+        integrationLevel: typeof ds.integrationLevel === 'string' ? ds.integrationLevel : null,
+        isLG: isLGCompany(r.vendor),
       };
     });
   }
@@ -778,7 +1374,7 @@ export class ActuatorPositionMapService {
   private async fetchLooseActuatorComponents(
     all: ActuatorComponentRow[],
     companyRows: { name: string; country: string }[]
-  ): Promise<ActuatorSupplierProduct[]> {
+  ): Promise<SupplierProductBase[]> {
     if (all.length === 0) return [];
     const linked = await db
       .select({ componentId: robotComponents.componentId })
@@ -804,6 +1400,9 @@ export class ActuatorPositionMapService {
           status: null,
           targetMarket: typeof specs.integrationLevel === 'string' ? specs.integrationLevel : null,
           source: 'components',
+          diameterRangeMm: parseDiameterRange(specs.diameterRangeMm),
+          integrationLevel: typeof specs.integrationLevel === 'string' ? specs.integrationLevel : null,
+          isLG: isLGCompany(vendor),
         };
       });
   }

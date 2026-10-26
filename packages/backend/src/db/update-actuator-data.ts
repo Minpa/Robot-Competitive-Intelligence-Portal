@@ -4,14 +4,16 @@
  * 실제 로직은 `apply-actuator-data-update.ts` 라이브러리에 있다 (기동 시 자동 적용과 공유).
  * 이 파일은 인자 파싱, 콘솔 로거 주입, 결과 출력, process.exit 만 담당한다.
  *
- * 입력: `src/db/seed-data/actuator-update/robots.json`, `suppliers.json`
- *       (스키마는 actuator-update.util.ts 의 RobotsFile / SuppliersFile 참고.
+ * 입력: `src/db/seed-data/actuator-update/robots.json`, `suppliers.json`, `sourcing-regrade.json`, `demand-cases.json`
+ *       (스키마는 actuator-update.util.ts 의 RobotsFile / SuppliersFile / SourcingFile / AdoptionsFile 참고.
+ *        sourcing-regrade.json / demand-cases.json 이 없으면 해당 섹션만 경고와 함께 건너뛴다.
  *        `*.sample.json` 은 개발용 픽스처이며 자동으로 사용되지 않는다 — 실제 파일이 없으면 에러 종료.)
  *
  * 실행 (Railway 백엔드 콘솔 또는 로컬, packages/backend 에서):
- *   npx tsx src/db/update-actuator-data.ts                  # 전체 (suppliers → robots → ci)
+ *   npx tsx src/db/update-actuator-data.ts                  # 전체 (suppliers → robots → ci → sourcing → adoptions)
  *   npx tsx src/db/update-actuator-data.ts --dry-run        # 쓰기 없이 변경 요약만
- *   npx tsx src/db/update-actuator-data.ts --only robots    # robots | suppliers | ci (쉼표로 복수 지정)
+ *   npx tsx src/db/update-actuator-data.ts --only robots    # robots | suppliers | ci | sourcing | adoptions (쉼표로 복수 지정)
+  npx tsx src/db/update-actuator-data.ts --only sourcing,adoptions   # 조달 태세·수요 사례만 (테이블은 없으면 자동 생성)
  *   npx tsx src/db/update-actuator-data.ts --data-dir /path/with/robots.json   # 입력 디렉터리 변경
  *   npx tsx src/db/update-actuator-data.ts --create-companies  # robots.json 의 미등록 회사를 신규 생성 허용
  *   DATABASE_URL 환경변수 필요 (db/index.ts 와 동일).
@@ -33,10 +35,10 @@ const consoleLogger: ApplyLogger = {
 };
 
 function printHelp() {
-  console.log(`사용법: npx tsx src/db/update-actuator-data.ts [--dry-run] [--only robots|suppliers|ci[,..]] [--data-dir DIR]
+  console.log(`사용법: npx tsx src/db/update-actuator-data.ts [--dry-run] [--only robots|suppliers|ci|sourcing|adoptions[,..]] [--data-dir DIR]
   --dry-run        DB 쓰기 없이 변경 요약만 출력
-  --only           실행 섹션 선택 (기본: ${ALL_SECTIONS.join(',')})
-  --data-dir       robots.json / suppliers.json 이 있는 디렉터리 (기본: ${DEFAULT_DATA_DIR})
+  --only           실행 섹션 선택 (기본: ${ALL_SECTIONS.join(',')}; 실행 순서는 항상 suppliers → robots → ci → sourcing → adoptions)
+  --data-dir       robots.json / suppliers.json / sourcing-regrade.json / demand-cases.json 이 있는 디렉터리 (기본: ${DEFAULT_DATA_DIR})
   --create-companies  robots.json 의 회사가 DB 에 없으면 신규 생성 (기본: 경고 후 건너뜀)`);
 }
 

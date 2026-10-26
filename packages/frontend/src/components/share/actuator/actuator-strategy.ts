@@ -5,8 +5,22 @@
  * 입력은 ActuatorMapResponse 의 robots[]·suppliers[] 만 쓴다 (edges 는 쓰지 않음).
  */
 
-import type { ActuatorMapResponse, ActuatorMapRobot, ActuatorSupplierProduct } from '@/types/actuator-map';
+import type { ActuatorMapResponse, ActuatorMapRobot, ActuatorSupplierProduct, MarketSegment } from '@/types/actuator-map';
 import { fmtUSD } from './actuator-map-layout';
+import {
+  SEGMENT_LABEL,
+  adoptionBySegment,
+  adoptionByVendor,
+  adoptionTotals,
+  companyPosture,
+  resolveSegmentOrder,
+  roleKo,
+  segmentLabelList,
+  summarizeSourcing,
+  type SegmentCount,
+  type SourcingSummary,
+  type VendorCount,
+} from './actuator-sourcing';
 
 // ── 출처 ─────────────────────────────────────────────────────────────────────
 
@@ -63,6 +77,22 @@ export const STRATEGY_SOURCES: StrategySource[] = [
   },
   { id: 'S23', label: 'Apptronik Apollo 2', url: 'https://apptronik.com/apollo/apollo-2', grade: 'A' },
   { id: 'S24', label: 'FAULHABER BXT H', url: 'https://www.faulhaber.com/en/products/series/4221bxth/', grade: 'A' },
+  {
+    id: 'S25',
+    label: 'Tesla Optimus 3세대 공급사 실사 보도(TrendForce, Bloomberg 인용)',
+    url: 'https://trendforce.com/news/2026/09/21/news-tesla-reportedly-audits-china-suppliers-for-optimus-gen-3-ramp-eyes-20000-price-target/',
+    grade: 'B',
+  },
+  {
+    id: 'S26',
+    label: 'Schaeffler–NEURA Robotics 기술 파트너십(보도자료)',
+    url: 'https://vn.tradingview.com/news/eqs:7725b32b0094b:0-schaeffler-and-neura-robotics-launch-future-oriented-technology-partnership',
+    grade: 'A',
+  },
+  { id: 'S27', label: 'AGILOped 오픈소스 휴머노이드(arXiv 2509.09364)', url: 'https://arxiv.org/pdf/2509.09364', grade: 'A' },
+  { id: 'S28', label: 'Hello Robot Stretch 3 하드웨어 가이드', url: 'https://docs.hello-robot.com/0.3/hardware/hardware_guide_stretch_3', grade: 'A' },
+  { id: 'S29', label: '모듈형 고관절·무릎 외골격(arXiv 2110.01562)', url: 'https://arxiv.org/pdf/2110.01562', grade: 'A' },
+  { id: 'S30', label: 'Stanford Pupper 공식 페이지', url: 'https://stanfordstudentrobotics.org/pupper', grade: 'A' },
 ];
 
 const HOST_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
@@ -112,6 +142,14 @@ export interface StrategyCollabModel {
   evidence: string;
 }
 
+export interface StrategyRole {
+  kind: string;
+  item: string;
+  content: string;
+  evidence: string;
+  limits: string;
+}
+
 export interface StrategyMetricDef {
   id: string;
   name: string;
@@ -121,33 +159,34 @@ export interface StrategyMetricDef {
 }
 
 export const STRATEGY_CONTENT = {
-  version: 1,
-  asOf: '2026-10-25',
+  version: 2,
+  asOf: '2026-10-26',
   title: '세트 제조사의 액추에이터 사업화 전략',
   kicker: 'Actuator · Set-maker Commercialization Strategy',
   notice:
-    "이 카드는 ARGOS DB와 조사 자료에서 확인된 사실과 검토 중인 가설을 구분해 정리한 것입니다. '(데이터)'는 ARGOS 기록에서 확인된 내용, '(가설)'은 데이터로 입증되지 않은 검토안, '(일반 지식)'은 ARGOS DB에 없는 외부 지식입니다. 부품 사업부는 그룹 내 부품 조직을 뜻하며 특정 조직을 지칭하지 않습니다. 확정된 LG전자 방침이 아닙니다.",
+    "이 카드는 ARGOS DB와 조사 자료에서 확인된 사실과 검토 중인 가설을 구분해 정리한 것입니다. '(데이터)'는 ARGOS 기록에서 확인된 내용, '(가설)'은 데이터로 입증되지 않은 검토안, '(일반 지식)'은 ARGOS DB에 없는 외부 지식입니다. 부품 사업부는 그룹 내 부품 조직을 뜻하며 특정 조직을 지칭하지 않습니다. 확정된 LG전자 방침이 아닙니다. '수요 사례'는 외부 액추에이터를 쓰는 공개 채택 사례이며 공급 계약 여부는 별도입니다. 세트 역할(직접·간접 기여)은 검토용 (가설)입니다.",
   question:
     '세트 제조사가 액추에이터까지 개발할 때, 액추에이터만 사업화해 부품 경쟁력을 확보하려면 어떤 방법이 있고, 부품 사업부와 어떻게 협업할 수 있는가.',
   sections: {
     diagnosis: '1. 현황 진단',
-    options: '2. 사업화 경로 옵션',
-    collab: '3. 부품 사업부(그룹 내 부품 조직)와의 협업 모델',
-    metrics: '4. ARGOS로 추적할 지표',
-    questions: '5. 의사결정 질문',
+    roles: '2. 세트(LG CLOiD)의 역할: 직접 3 + 간접 3',
+    options: '3. 사업화 경로 옵션',
+    collab: '4. 부품 사업부(그룹 내 부품 조직)와의 협업 모델',
+    metrics: '5. ARGOS로 추적할 지표',
+    questions: '6. 의사결정 질문',
     sources: '출처',
   },
   factsHeading: '확인된 사실',
   factColumns: ['구분', '사례', '확인된 사실', '근거'],
   factRows: [
     {
-      category: '자체 개발',
+      category: '자체 설계 기록 + 외부 조달·혼합',
       subject: 'Tesla Optimus',
-      fact: '회전형 3종(20/110/180 Nm)과 선형 3종(500/3,900/8,000 N)을 자체 설계한 것으로 기록되어 있습니다. 공식 데이터시트가 없고, AI Day 2022 내용을 2차 자료가 재구성한 값입니다. (데이터)',
-      evidence: '[S21] C',
+      fact: '회전형 3종(20/110/180 Nm)과 선형 3종(500/3,900/8,000 N)을 자체 설계한 것으로 기록되어 있습니다. 공식 데이터시트가 없고, AI Day 2022 내용을 2차 자료가 재구성한 값입니다. 조달 태세 재판정에서는 Tuopu·Sanhua 등 중국 공급사에 위탁제조한다는 보도에 따라 외부 조달·혼합으로 분류하며, 공급사별 역할 분담은 매체 간 상충합니다. (데이터)',
+      evidence: '[S21] C, [S25] B',
     },
     {
-      category: '자체 개발',
+      category: '자체 개발(확인)',
       subject: 'Kepler Forerunner',
       fact: '회전형 액추에이터 피크 200 Nm, 유성 롤러 스크류 선형 액추에이터(보도 기준 8,000 N)를 자사 로봇용으로 씁니다. (데이터)',
       evidence: '[S20] A·B',
@@ -177,9 +216,9 @@ export const STRATEGY_CONTENT = {
       evidence: '[S7] A',
     },
     {
-      category: '외부 조달',
+      category: '외부 조달(그룹 내 부품사, 혼합)',
       subject: 'Atlas와 Hyundai Mobis',
-      fact: 'Atlas는 자체 설계 전동 액추에이터를 쓰면서, 2026-01 CES에서 양산 단계 액추에이터를 Hyundai Mobis가 공급하는 계약이 발표됐습니다. 사양은 미공개입니다. ARGOS 기록상 Boston Dynamics는 현대차그룹 소속입니다. Mobis가 같은 그룹의 부품사라는 점은 (일반 지식)이며, 이 사례는 그룹 내 공급입니다. (데이터)',
+      fact: 'Atlas는 자체 설계 전동 액추에이터를 쓰면서, 2026-01 CES에서 양산 단계 액추에이터를 Hyundai Mobis가 공급하는 계약이 발표됐습니다. 사양은 미공개입니다. 설계는 세트 제조사(Boston Dynamics)가 하고 양산 단계 액추에이터의 공급은 부품사(Hyundai Mobis)가 맡는 역할 분담입니다. (데이터) ARGOS 기록상 Boston Dynamics는 현대차그룹 소속입니다. Mobis가 같은 그룹의 부품사라는 점은 (일반 지식)이며, 이 사례는 그룹 내 공급입니다. (데이터)',
       evidence: '[S8] B, [S9] A',
     },
     {
@@ -206,16 +245,106 @@ export const STRATEGY_CONTENT = {
       fact: '자체 액추에이터로 1 kg 미만, 이전 모델 대비 약 60% 원가라고 보도됐습니다. 핸드 사례이며 액추에이터 외판 사례는 아닙니다. (데이터)',
       evidence: '[S22]',
     },
+    {
+      category: '수요 사례(외부 채택)',
+      subject: 'Optimus V3',
+      fact: 'Optimus V3(Tesla, US, 2026)는 Tuopu Group과 Sanhua Intelligent Controls의 선형·회전 액추에이터 모듈을 전 관절 위탁제조에 씁니다. 설계는 Tesla가 하는 패턴으로 보도됐으며 선형·회전 분담은 매체 간 상충합니다. (데이터)',
+      evidence: '[S25] B',
+    },
+    {
+      category: '수요 사례(외부 채택)',
+      subject: '4NE1',
+      fact: '4NE1(NEURA Robotics, DE, 2025)은 Schaeffler의 유성기어 액추에이터(최대 250 N·m)를 어깨·팔꿈치·무릎·손목 관절에 씁니다. (데이터)',
+      evidence: '[S26] A',
+    },
+    {
+      category: '수요 사례(외부 채택)',
+      subject: 'AGILOped',
+      fact: 'AGILOped(오픈소스 휴머노이드 연구 프로젝트, 2025)는 MyActuator RMD-X6-40의 액추에이터를 전 관절에 씁니다. (데이터)',
+      evidence: '[S27] A',
+    },
+    {
+      category: '수요 사례(외부 채택)',
+      subject: 'Stretch 3',
+      fact: 'Stretch 3(Hello Robot, US, 2024)는 Robotis Dynamixel XL430 등 X 시리즈 서보를 손목·그리퍼에 씁니다. 팔 본체는 자체 스텝모터로 구동합니다. (데이터)',
+      evidence: '[S28] A',
+    },
+    {
+      category: '수요 사례(외부 채택)',
+      subject: '모듈형 고관절·무릎 외골격',
+      fact: '모듈형 고관절·무릎 외골격(연구팀, 2021)은 CubeMars AK80-9의 액추에이터를 고관절·무릎 관절에 씁니다. (데이터)',
+      evidence: '[S29] A',
+    },
+    {
+      category: '수요 사례(외부 채택)',
+      subject: 'Stanford Pupper',
+      fact: 'Stanford Pupper(Stanford Student Robotics, US, 2020)는 JX Servo CLS6336HV 12개를 전 관절에 씁니다. (데이터)',
+      evidence: '[S30] A',
+    },
   ] as StrategyFactRow[],
   factsFootnote:
-    'peak 토크는 제조사별 정의가 달라 직접 비교에 한계가 있습니다. 가격은 공식 스토어 정가 기준이며 판매가와 다를 수 있습니다. 자체 여부는 DB의 공급사명 일치로 추정한 값입니다.',
+    'peak 토크는 제조사별 정의가 달라 직접 비교에 한계가 있습니다. 가격은 공식 스토어 정가 기준이며 판매가와 다를 수 있습니다. 자체 여부는 조달 태세 재판정(근거 등급 A/B 확인, C/D·근거 없음은 확인 불가)을 따릅니다.',
+  rolesIntro:
+    '세트 제조사가 부품 사업에 기여하는 경로를 직접 기여(세트가 고객이자 사양 오너로서 하는 일)와 간접 기여(세트가 외부 고객 확보를 돕는 일)로 나눴습니다. 기여 크기는 추정하지 않았고 아래 항목은 검토용 (가설)을 포함합니다.',
+  roleColumns: ['구분', '기여 항목', '내용', '현재 근거', '전제·한계'],
+  roles: [
+    {
+      kind: '직접 1',
+      item: '1차 고객 물량',
+      content: 'CLOiD가 AXIUM의 첫 내부 고객이 되어 초기 양산 물량과 수율 학습 기회를 제공합니다. (가설)',
+      evidence: 'AXIUM은 Φ40~Φ120 9개 라인업이며 국내 자체 생산이 보도됐습니다. (데이터, [S10][S12]) CLOiD의 상용화 단계는 concept이고 비판매 기술 데모입니다. (데이터)',
+      limits: '물량 규모와 출시 일정은 미공개입니다. 내부 물량만으로는 외판 가격 경쟁력이 입증되지 않습니다.',
+    },
+    {
+      kind: '직접 2',
+      item: '양산 사양·인터페이스 표준 정의',
+      content: '세트가 요구 토크·무게·통신·커넥터를 정의해 외판 표준 사양의 기준선을 만듭니다. (가설)',
+      evidence: '경쟁 제품은 대부분 CAN이고 일부는 EtherCAT·CANopen을 제공합니다. (데이터, [S16][S19]) AXIUM의 토크·무게·통신은 DB에 비어 있습니다. (데이터)',
+      limits: '세트 전용 사양과 외판 사양의 차이를 어디까지 허용할지 결정이 필요합니다(6절 질문 6).',
+    },
+    {
+      kind: '직접 3',
+      item: '필드 내구 데이터',
+      content: 'CLOiD의 가정 환경 운용에서 수명·고장·소음 데이터를 쌓아 외부 채택의 신뢰 근거로 씁니다. (가설)',
+      evidence: '공급사 제품 레코드에는 수명·내구 항목이 없습니다. (데이터 공백)',
+      limits: 'CLOiD가 concept 단계라 현재 쌓이는 필드 데이터는 없습니다. 공개 범위 승인이 필요합니다.',
+    },
+    {
+      kind: '간접 1',
+      item: '레퍼런스 로봇 데모',
+      content: 'CLOiD 시연으로 AXIUM이 실제 로봇에서 동작함을 외부 로봇사에게 보여줍니다. (가설)',
+      evidence: 'AXIUM은 CES 2026에서 공개됐고 CLOiD용으로 소개됐습니다. (데이터, [S10]) 외부 공개 채택의 규모는 동적 문장 8을 따릅니다.',
+      limits: '시연은 성능 근거가 아닙니다. 비판매 데모라 구매 의사결정 근거로는 약합니다. (가설)',
+    },
+    {
+      kind: '간접 2',
+      item: '외부 로봇사 공동개발 플랫폼',
+      content: '외부 로봇사와 공동 개발하는 로봇에 AXIUM을 기본 탑재해 채택 사례를 만듭니다. (가설)',
+      evidence: 'Mobis–Atlas는 설계 주체와 양산 공급 주체가 다른 공개 사례입니다. (데이터, [S8][S9])',
+      limits: '공동개발 상대와 계약 구조는 DB에 없습니다. 경쟁 세트 제조사가 상대일 때 정보 차단이 필요합니다(4절 협업 모델 5번).',
+    },
+    {
+      kind: '간접 3',
+      item: 'ARGOS 벤치마크 공유',
+      content: 'ARGOS의 공급사 제품 맵(가격×토크)과 채택 사례 표를 외판 영업 자료로 공유합니다. (가설)',
+      evidence: 'ARGOS는 공급사 제품과 공개 채택 사례를 함께 비교합니다. (데이터)',
+      limits: '가격 등록 제품이 중국계 QDD에 치우쳐(동적 문장 4) 중가 구간 비교는 아직 불가합니다. 공유 범위 승인이 필요합니다.',
+    },
+    {
+      kind: '비교 사례',
+      item: 'Atlas–Hyundai Mobis: 설계는 세트, 양산·공급은 부품사',
+      content: 'Atlas는 자체 설계 전동 액추에이터를 쓰면서 양산 단계 액추에이터는 Hyundai Mobis가 공급합니다. 설계는 세트 제조사가, 양산과 공급은 부품사가 맡는 역할 분담입니다.',
+      evidence: '2026-01 CES 공급 계약 발표, 사양 미공개. 같은 그룹 내 사례입니다. (데이터, [S8][S9]) Mobis가 같은 그룹 부품사라는 점은 (일반 지식)입니다.',
+      limits: 'LG는 세트(CLOiD)와 부품(AXIUM)이 한 회사 안에 있어 역할 분담이 조직 간 약정으로 바뀝니다(4절 협업 모델 1·3). Mobis의 Atlas 외 고객 공급 근거는 DB에 없습니다.',
+    },
+  ] as StrategyRole[],
   optionColumns: ['옵션', '핵심 내용', '근거', '필요 역량', '리스크', '선행 조건'],
   options: [
     {
       name: 'A. 레퍼런스 고객형 "검증된 부품"',
       core: '자사 세트(CLOiD)를 1차 고객으로 쌓은 장기 내구·필드 데이터를 근거로 외부 설계 채택의 신뢰 장벽을 낮춥니다.',
       evidence:
-        '완성 로봇사가 양산형 공급 계약으로 외부 액추에이터를 채택한 DB 사례는 Mobis–Atlas뿐입니다(데이터, [S8][S9]). 외부 채택에서 실적 데이터가 결정 요인이라는 점은 (가설)입니다.',
+        '완성 로봇사가 양산형 공급 계약으로 외부 액추에이터를 채택한 DB 사례는 Mobis–Atlas뿐입니다(데이터, [S8][S9]). 외부 채택에서 실적 데이터가 결정 요인이라는 점은 (가설)입니다. 이 외 공개 채택 사례는 동적 문장 8을 따릅니다(공급 계약 형태는 확인되지 않음).',
       capability: '필드·내구 시험 인프라, 고장·수명 통계 체계, 공개 가능한 데이터 거버넌스',
       risk: 'CLOiD의 상용화 단계가 concept이고 비판매 기술 데모라 레퍼런스 물량이 작습니다(데이터). 데이터 공개가 자사 로봇의 약점을 노출할 수 있습니다.',
       prerequisite: '내구 시험 프로토콜 정의, 공개 범위 승인, CLOiD 출시 일정 확정',
@@ -268,10 +397,10 @@ export const STRATEGY_CONTENT = {
       name: 'G. 전략 고객 공동개발(OEM 공급 계약)',
       core: '완성차·물류 등 휴머노이드 OEM과 고객 사양 기반 공동개발 후 장기 공급 계약을 맺습니다.',
       evidence:
-        'Mobis–Atlas는 CES 2026 공급 계약이고, 후속으로 모터 드라이버·전력 반도체 공급 논의가 보도됐습니다(데이터, [S8][S9]). 다만 그룹 내 사례입니다. 고객 후보군은 (가설)이며 특정 고객사는 명시하지 않습니다.',
+        'Mobis–Atlas는 CES 2026 공급 계약이고, 후속으로 모터 드라이버·전력 반도체 공급 논의가 보도됐습니다(데이터, [S8][S9]). 다만 그룹 내 사례입니다. 고객 후보군은 (가설)이며 특정 고객사는 명시하지 않습니다. 이 외 공개 채택 사례는 동적 문장 8을 따릅니다(공급 계약 형태는 확인되지 않음).',
       capability: '고객 사양 맞춤 설계, 장기 공급·품질 보증, 양산 캐파',
       risk: '특정 고객 의존, 맞춤화로 표준화가 훼손되고, 고객이 경쟁사일 때 정보 차단이 필요합니다.',
-      prerequisite: '후보 고객 목록, 계약 구조(독점·비독점), 정보 차단벽(3-3의 5번)',
+      prerequisite: '후보 고객 목록, 계약 구조(독점·비독점), 정보 차단벽(4절 협업 모델 5번)',
     },
   ] as StrategyOption[],
   collabColumns: ['모델', '내용', '장점', '단점', '의사결정 필요 항목', '근거'],
@@ -320,8 +449,20 @@ export const STRATEGY_CONTENT = {
   ] as StrategyCollabModel[],
   metricColumns: ['지표', '정의', '계산 가능 여부', '데이터 원천', '현재값'],
   metricDefs: [
-    { id: 'M1', name: 'M1 자체 개발 회사 비율', definition: '동적 문장 1의 값', availability: '가능(시점 값)', source: '포지션 맵 API robots[].actuators' },
-    { id: 'M2', name: 'M2 외판 확인 세트 제조사 수', definition: '분류가 confirmed인 회사 수', availability: '가능(시점 값)', source: 'suppliers[], robots[]' },
+    {
+      id: 'M1',
+      name: 'M1 자체 개발 확인 회사 비율',
+      definition: '자체 개발 확인(자체·자체+외판) 회사 수 ÷ 조달 태세 판정 가능 회사 수. 확인 불가 회사는 분모에서 제외하고 건수를 따로 표기',
+      availability: '가능(시점 값)',
+      source: '포지션 맵 API robots[].sourcing',
+    },
+    {
+      id: 'M2',
+      name: 'M2 외판 확인 세트 제조사 수',
+      definition: '외판 확인 회사(제품 기준 외판 확인 ∪ 조달 태세 자체 개발+외판)와 외판 계획 회사(제품 기준)의 수. 계획은 확인에 합치지 않음',
+      availability: '가능(시점 값)',
+      source: 'suppliers[], robots[].sourcing',
+    },
     { id: 'M3', name: 'M3 외판 제품 수와 가격 중앙값', definition: 'priceUsd가 있는 제품 수와 중앙값', availability: '가능(시점 값)', source: 'suppliers[].priceUsd' },
     {
       id: 'M4',
@@ -354,6 +495,13 @@ export const STRATEGY_CONTENT = {
     { id: 'M8', name: 'M8 LG AXIUM 스펙 공개율', definition: '토크 공개 제품 수 / 전체', availability: '가능', source: 'suppliers[]' },
     { id: 'M9', name: 'M9 가정용 명시 외판 제품 수', definition: 'LG 제외', availability: '가능', source: 'suppliers[].targetMarket' },
     { id: 'M10', name: 'M10 부품 사업 수주 현황', definition: '고객사 수·계약 건수', availability: '추가 수집 필요(수동 입력)', source: '—' },
+    {
+      id: 'M11',
+      name: 'M11 외부 조달 확인 사례 수',
+      definition: '조달 태세가 외부 조달·혼합인 로봇 수 + 외부 액추에이터를 쓰는 공개 채택 사례 수',
+      availability: '가능(시점 값, 수요 사례는 조사 시점 스냅샷)',
+      source: 'robots[].sourcing, adoptions[]',
+    },
   ] as StrategyMetricDef[],
   questionsIntro: '연구소와 사업부가 답할 질문입니다.',
   questions: [
@@ -368,7 +516,7 @@ export const STRATEGY_CONTENT = {
   ] as string[],
   /** {generatedAt} 자리에 집계 시각이 들어간다 (formatFooter) */
   footer:
-    '정적 본문 기준일 2026-10-25 · 동적 수치 집계 {generatedAt}. 사업화 옵션과 협업 모델은 검토용 가설을 포함하며 사내 검토용입니다. 외부 배포 전 공유 범위를 확인하십시오.',
+    '정적 본문 기준일 {asOf} · 동적 수치 집계 {generatedAt}. 사업화 옵션과 협업 모델은 검토용 가설을 포함하며 사내 검토용입니다. 외부 배포 전 공유 범위를 확인하십시오.',
 };
 
 /** 본문의 [S#] 참조 ID 목록 (중복 제거, 등장 순서) */
@@ -418,7 +566,8 @@ const finiteNum = (v: unknown): v is number => typeof v === 'number' && Number.i
 export function classifySale(p: { status?: string | null; priceUsd?: unknown; targetMarket?: string | null }): SaleStatus {
   const tm = p.targetMarket ?? '';
   if (/\(in-house\)\s*$/i.test(tm)) return 'inhouseOnly';
-  if (p.status === 'available' && (validPrice(p.priceUsd) || /\bexternal\b|makers|research|education/i.test(tm))) return 'confirmed';
+  // 외판 확인: 판매 중이고 가격이 공개됐거나 메이커·연구·교육을 대상으로 명시한 경우. 타깃 시장의 'external' 문구만으로는 확인으로 보지 않는다.
+  if (p.status === 'available' && (validPrice(p.priceUsd) || /makers|research|education/i.test(tm))) return 'confirmed';
   if (p.status === 'announced' && /\bexternal\b/i.test(tm)) return 'planned';
   return 'unconfirmed';
 }
@@ -429,6 +578,8 @@ export interface ExternalSourcingEntry {
   robotName: string;
   company: string;
   vendors: string[];
+  /** vendors 와 같은 순서의 역할(한글, 없으면 null) */
+  roles: (string | null)[];
 }
 
 export interface SetMakerSellerProduct {
@@ -452,20 +603,61 @@ export interface PriceBand {
   max: number;
 }
 
+export interface StrategySourcingStats extends SourcingSummary {
+  companies: {
+    /** forecast 제외 로봇이 있는 회사 수 */
+    total: number;
+    /** 조달 태세 판정 가능(확인 불가 아님) 회사 수 */
+    judged: number;
+    /** 자체 개발 확인(자체·자체+외판) 회사 수 */
+    confirmed: number;
+    /** 확인 불가 회사 수 (모든 로봇이 확인 불가) */
+    unknown: number;
+  };
+}
+
+export interface StrategyAdoptionStats {
+  /** 전체 (모듈 + 부품) */
+  total: number;
+  /** 모듈 층 — 1차 수치 */
+  module: number;
+  /** 부품 층 — "부품 단위 채택 n건" */
+  component: number;
+  /** 모듈 층 우선, 부품 층은 componentCount */
+  bySegment: SegmentCount[];
+  byVendor: VendorCount[];
+  componentByVendor: VendorCount[];
+  /** 모듈 층 채택이 확인된 세그먼트 (segmentOrder 순) */
+  externalSegments: MarketSegment[];
+}
+
 export interface StrategyStats {
   /** 응답이 있었는지 (null/undefined 입력이면 false) */
   hasData: boolean;
   generatedAt: string | null;
   robotCount: number;
   supplierProductCount: number;
+  /** 조달 태세 판정 가능 회사 수 (확인 불가 회사 제외) — 지표 M1 의 분모 */
   companyCount: number;
+  /** 자체 개발 확인(자체·자체+외판) 회사 수 */
   inHouseCompanyCount: number;
   inHouseCompanyPct: number | null;
+  inHouseCompanyNames: string[];
+  /** 조달 태세가 확인 불가가 아닌 로봇 수 */
   robotsWithActuatorCount: number;
+  /** 자체 개발 확인(자체·자체+외판) 로봇 수 */
   inHouseRobotCount: number;
+  sourcing: StrategySourcingStats;
   externalSourcing: ExternalSourcingEntry[];
   setMakerSellers: SetMakerSeller[];
   sale: Record<SaleStatus, string[]>;
+  /** 외판 확인: 제품 기준 외판 확인 ∪ 조달 태세 자체+외판인 회사 (제품 기준 '외판 계획'인 회사는 제외) */
+  sellsCompanyNames: string[];
+  sellsExternally: number;
+  /** 외판 계획: 제품 기준 외판 계획 회사 (예: 2027 외부 공급 로드맵) — 확인에 합치지 않는다 */
+  sellsPlannedNames: string[];
+  sellsPlanned: number;
+  adoptions: StrategyAdoptionStats;
   price: {
     pricedCount: number;
     min: number | null;
@@ -496,32 +688,42 @@ function band(values: number[]): PriceBand | null {
 export function computeStrategyStats(data: ActuatorMapResponse | null | undefined): StrategyStats {
   const robots: ActuatorMapRobot[] = arr(data?.robots).filter((r) => r && !r.forecast);
   const suppliers: ActuatorSupplierProduct[] = arr(data?.suppliers).filter((s) => s && typeof s.vendor === 'string');
+  const adoptionList = arr(data?.adoptions).filter(Boolean);
 
-  // 회사 단위 (같은 회사의 여러 로봇은 1)
-  const companies = new Map<string, { inHouse: boolean; hasActuator: boolean }>();
-  let robotsWithActuatorCount = 0;
-  let inHouseRobotCount = 0;
+  // 조달 태세 (로봇·회사 단위). 회사 단위는 자체+외판 > 자체 > 외부 > 확인 불가 우선순위.
+  const summary = summarizeSourcing(robots);
+  const coMap = companyPosture(robots);
+  const coList = [...coMap.values()];
+  const judged = coList.filter((c) => c.posture !== 'unknown');
+  const confirmed = judged.filter((c) => c.posture === 'in_house' || c.posture === 'in_house_sells');
+  const sellsPostureCompanies = coList.filter((c) => c.posture === 'in_house_sells').map((c) => c.company);
+
+  // 외부 조달 로봇: 조달 태세가 외부 조달·혼합. 공급사는 모듈 층만(부품 층은 제외), 비어 있으면 액추에이터의 외부 공급사로 폴백
   const external: ExternalSourcingEntry[] = [];
   for (const r of robots) {
-    const acts = arr(r.actuators);
-    if (acts.length === 0) continue;
-    robotsWithActuatorCount++;
-    const hasInHouse = acts.some((a) => a.inHouse === true);
-    if (hasInHouse) inHouseRobotCount++;
-    const key = norm(r.company);
-    const cur = companies.get(key) ?? { inHouse: false, hasActuator: true };
-    cur.inHouse = cur.inHouse || hasInHouse;
-    companies.set(key, cur);
-
+    if (r.sourcing?.posture !== 'external') continue;
+    const ev = arr(r.sourcing.externalVendors);
+    const moduleVendors = ev.filter((v) => v.level !== 'component' && v.vendor.trim());
+    const pool = moduleVendors.length ? moduleVendors : ev.filter((v) => v.vendor.trim());
     const vendors: string[] = [];
-    for (const a of acts) {
-      const v = (a.vendor ?? '').trim();
-      if (a.inHouse === false && v && v !== UNKNOWN_VENDOR && !vendors.includes(v)) vendors.push(v);
+    const roles: (string | null)[] = [];
+    for (const v of pool) {
+      if (!vendors.includes(v.vendor.trim())) {
+        vendors.push(v.vendor.trim());
+        roles.push(roleKo(v.role));
+      }
     }
-    if (vendors.length > 0) external.push({ robotName: r.name, company: r.company, vendors });
+    if (vendors.length === 0) {
+      for (const a of arr(r.actuators)) {
+        const v = (a.vendor ?? '').trim();
+        if (a.inHouse === false && v && v !== UNKNOWN_VENDOR && !vendors.includes(v)) {
+          vendors.push(v);
+          roles.push(null);
+        }
+      }
+    }
+    if (vendors.length > 0) external.push({ robotName: r.name, company: r.company, vendors, roles });
   }
-  const companyCount = companies.size;
-  const inHouseCompanyCount = [...companies.values()].filter((c) => c.inHouse).length;
 
   // 공급사 제품 ↔ 세트 제조사 매칭
   const robotCompanies: string[] = [];
@@ -553,6 +755,18 @@ export function computeStrategyStats(data: ActuatorMapResponse | null | undefine
     seller.status = SALE_PRIORITY.find((st) => seller.products.some((p) => p.status === st)) ?? 'unconfirmed';
     sale[seller.status].push(seller.company);
   }
+  // 외판 확인 = 제품 기준 확인 ∪ 조달 태세 자체+외판 (회사명 정규화로 중복 제거). 제품 기준 '외판 계획'인 회사는 확인에 넣지 않고 계획 쪽에만 둔다.
+  const sellsCompanyNames: string[] = [];
+  for (const c of [...sale.confirmed, ...sellsPostureCompanies]) {
+    if (sale.planned.some((x) => norm(x) === norm(c)) && !sale.confirmed.some((x) => norm(x) === norm(c))) continue;
+    if (!sellsCompanyNames.some((x) => norm(x) === norm(c))) sellsCompanyNames.push(c);
+  }
+  const sellsPlannedNames = [...sale.planned];
+
+  // 수요 사례 — 모듈 층을 1차 수치로, 부품 층은 따로
+  const order = resolveSegmentOrder(data?.segmentOrder);
+  const totals = adoptionTotals(adoptionList);
+  const bySegment = adoptionBySegment(adoptionList, order);
 
   // 가격
   const priced = suppliers.filter((s) => validPrice(s.priceUsd));
@@ -571,14 +785,32 @@ export function computeStrategyStats(data: ActuatorMapResponse | null | undefine
     generatedAt: data?.generatedAt ?? null,
     robotCount: robots.length,
     supplierProductCount: suppliers.length,
-    companyCount,
-    inHouseCompanyCount,
-    inHouseCompanyPct: companyCount > 0 ? Math.round((inHouseCompanyCount / companyCount) * 100) : null,
-    robotsWithActuatorCount,
-    inHouseRobotCount,
+    companyCount: judged.length,
+    inHouseCompanyCount: confirmed.length,
+    inHouseCompanyPct: judged.length > 0 ? Math.round((confirmed.length / judged.length) * 100) : null,
+    inHouseCompanyNames: confirmed.map((c) => c.company),
+    robotsWithActuatorCount: summary.robots - summary.unknown,
+    inHouseRobotCount: summary.inHouse + summary.inHouseSells,
+    sourcing: {
+      ...summary,
+      companies: { total: coList.length, judged: judged.length, confirmed: confirmed.length, unknown: coList.length - judged.length },
+    },
     externalSourcing: external,
     setMakerSellers,
     sale,
+    sellsCompanyNames,
+    sellsExternally: sellsCompanyNames.length,
+    sellsPlannedNames,
+    sellsPlanned: sellsPlannedNames.length,
+    adoptions: {
+      total: totals.total,
+      module: totals.module,
+      component: totals.component,
+      bySegment,
+      byVendor: adoptionByVendor(adoptionList, 'module'),
+      componentByVendor: adoptionByVendor(adoptionList, 'component'),
+      externalSegments: bySegment.filter((c) => c.count > 0).map((c) => c.segment),
+    },
     price: {
       pricedCount: prices.length,
       min: prices.length ? Math.min(...prices) : null,
@@ -604,7 +836,6 @@ const DASH = '—';
 
 const usd = (v: number | null): string => (v == null || !Number.isFinite(v) ? DASH : fmtUSD(v));
 const names = (list: string[]): string => (list.length ? list.join(', ') : '없음');
-const pctText = (p: number | null): string => (p == null ? DASH : `${p}%`);
 
 function bandText(label: string, b: PriceBand | null): string {
   return b ? `${label} ${b.count}개(최저 ${usd(b.min)}~최고 ${usd(b.max)})` : `${label} 0개`;
@@ -622,23 +853,55 @@ export function formatGeneratedAt(iso: string | null | undefined): string {
 
 export function formatFooter(stats: Pick<StrategyStats, 'hasData' | 'generatedAt'> | null | undefined): string {
   const g = stats && stats.hasData ? formatGeneratedAt(stats.generatedAt) : DASH;
-  return STRATEGY_CONTENT.footer.replace('{generatedAt}', g);
+  return STRATEGY_CONTENT.footer.replace('{asOf}', STRATEGY_CONTENT.asOf).replace('{generatedAt}', g);
 }
 
 /** 카드 부제 (동적). 데이터가 없으면 동적 자리를 '—'로 둔다. */
 export function buildSubtitle(stats: StrategyStats | null | undefined): string {
   const has = !!stats && stats.hasData;
-  return `데이터 집계 ${has ? formatGeneratedAt(stats!.generatedAt) : DASH} · 로봇 ${has ? stats!.robotCount : DASH}기 · 공급사 제품 ${has ? stats!.supplierProductCount : DASH}개 · 정적 본문 기준일 ${STRATEGY_CONTENT.asOf}`;
+  return `데이터 집계 ${has ? formatGeneratedAt(stats!.generatedAt) : DASH} · 로봇 ${has ? stats!.robotCount : DASH}기 · 공급사 제품 ${has ? stats!.supplierProductCount : DASH}개 · 수요 사례 ${has ? stats!.adoptions.total : DASH}건 · 정적 본문 기준일 ${STRATEGY_CONTENT.asOf}`;
 }
 
-/** 1절 동적 문장 7개 — 웹·다운로드 HTML 공용 */
+/** 채택 사례 세그먼트 요약 문구: "1군 세트사 양산 공급·위탁제조 3건, 2군 휴머노이드·레그드 4건" (모듈 층 기준, 사례 있는 세그먼트만) */
+export function adoptionSegmentSummary(a: StrategyAdoptionStats): string {
+  return segmentLabelList(a.bySegment, '건');
+}
+
+/**
+ * 헤드라인 메시지 — 웹 섹션 최상단, 지도 카드 최상단, 전략 카드 최상단에서 같은 문장을 쓴다.
+ * 데이터가 없으면 수치 자리는 '—'.
+ */
+export function buildHeadlineMessage(s: StrategyStats): string {
+  const has = s.hasData;
+  const v = (n: number) => (has ? String(n) : DASH);
+  const sc = s.sourcing;
+  const a = s.adoptions;
+  let tail: string;
+  if (!has) tail = `(가설) 외부 채택이 확인된 시장은 ${DASH}입니다.`;
+  else if (a.total === 0) tail = '외부 채택 사례는 아직 수집되지 않았습니다.';
+  else if (a.module === 0) tail = `(가설) 외부 채택이 확인된 시장은 부품 단위 사례 ${a.component}건뿐이며 모듈 단위 채택은 확인되지 않았습니다.`;
+  else tail = `(가설) 외부 채택이 확인된 시장은 ${adoptionSegmentSummary(a)}입니다.${a.component > 0 ? ` (부품 단위 채택 ${a.component}건은 별도)` : ''}`;
+  return `핵심 메시지: 로봇 제조사 현황을 보면 액추에이터는 자체 개발 확인 ${v(sc.inHouse)}기, 자체 개발+외판 ${v(sc.inHouseSells)}기, 외부 조달 ${v(sc.external)}기이고 ${v(sc.unknown)}기는 근거 부족으로 확인 불가입니다. 세트(LG CLOiD)는 직접 기여 3(1차 고객 물량, 양산 사양·인터페이스 표준 정의, 필드 내구 데이터)과 간접 기여 3(레퍼런스 로봇 데모, 외부 로봇사 공동개발 플랫폼, ARGOS 벤치마크 공유)으로 액추에이터 사업에 기여할 수 있다는 것이 검토안입니다. ${tail}`;
+}
+
+const MOBIS_SENTENCE =
+  ' 그룹 내 부품사 공급 사례는 Hyundai Mobis–Atlas로, 설계는 세트 제조사가 하고 양산 단계 액추에이터 공급은 부품사가 맡는 구조입니다. Mobis가 같은 그룹 계열이라는 점은 (일반 지식)입니다.';
+
+/** 1절 동적 문장 8개 — 웹·다운로드 HTML 공용. 4~7번은 이전 버전과 같은 위치·의미를 유지한다. */
 export function buildDiagnosisLines(s: StrategyStats): string[] {
+  const sc = s.sourcing;
+  const pct = s.inHouseCompanyPct == null ? '—' : `${s.inHouseCompanyPct}%`;
+  const line1 = `ARGOS에 등록된 로봇 ${sc.robots}기의 액추에이터 조달 태세는 자체 개발 확인 ${sc.inHouse}기, 자체 개발+외판 ${sc.inHouseSells}기, 외부 조달(혼합 포함) ${sc.external}기, 확인 불가 ${sc.unknown}기입니다. 자체 개발 확인은 A·B 등급 근거가 있는 경우만 세며, 근거를 찾지 못한 ${sc.unknown}기는 확인 불가로 분리했습니다(이 중 자체 개발로 추정되는 로봇 ${sc.unknownPresumed}기). 회사 기준으로 자체 개발이 확인된 회사는 판정 가능한 ${sc.companies.judged}개사 중 ${sc.companies.confirmed}개사(${pct})이고, 확인 불가 ${sc.companies.unknown}개사는 비율에서 제외했습니다.`;
+
   const ext =
     s.externalSourcing.length === 0
       ? '외부 조달이 기록된 로봇은 없습니다.'
       : `외부 조달이 기록된 로봇은 ${s.externalSourcing.length}기입니다. ${s.externalSourcing
-          .map((e) => `${e.robotName}(${e.company}) – ${e.vendors.join(', ')}`)
+          .map((e) => `${e.robotName}(${e.company}) – ${e.vendors.map((v, i) => (e.roles[i] ? `${v}(${e.roles[i]})` : v)).join(', ')}`)
           .join('; ')}`;
+  const hasMobis = s.externalSourcing.some((e) => e.vendors.some((v) => /mobis/i.test(v)));
+  // 목록 뒤에 마침표를 붙여 다음 문장과 이어지지 않게 한다 (없음 문장은 이미 마침표로 끝난다)
+  const line2 = s.externalSourcing.length === 0 ? ext : `${ext}.${hasMobis ? MOBIS_SENTENCE : ''}`;
 
   const sellerCount = s.setMakerSellers.length;
   const price = s.price;
@@ -651,14 +914,31 @@ export function buildDiagnosisLines(s: StrategyStats): string[] {
     `QDD 외 타입으로 분류된 제품 ${s.precision.nonQddCount}개 중 가격이 등록된 제품은 ${s.precision.nonQddPriced}개입니다.` +
     (s.precision.nonQddPriced === 0 ? ' 일본·유럽 정밀 감속기·모터 진영과의 가격 직접 비교는 현재 데이터로 할 수 없습니다.' : '');
 
+  const line3 = `세트 제조사이면서 액추에이터 제품이 등록된 회사는 ${sellerCount}개사입니다. 외판 확인 ${s.sale.confirmed.length}개사(${names(s.sale.confirmed)}), 외판 계획 ${s.sale.planned.length}개사(${names(s.sale.planned)}), 외판 근거 미확인 ${s.sale.unconfirmed.length}개사(${names(s.sale.unconfirmed)}), 자사 전용 ${s.sale.inhouseOnly.length}개사(${names(s.sale.inhouseOnly)})입니다. 제품 등록과 조달 태세를 합쳐 보면 외판 확인 ${s.sellsExternally}개사(${names(s.sellsCompanyNames)}), 외판 계획 ${s.sellsPlanned}개사(${names(s.sellsPlannedNames)})입니다.`;
+
+  const a = s.adoptions;
+  let line8: string;
+  if (a.total === 0) line8 = '공개 채택 사례는 아직 수집되지 않았습니다.';
+  else {
+    const vendors = a.byVendor.slice(0, 8).map((v) => `${v.vendor} ×${v.count}`);
+    const more = a.byVendor.length > 8 ? ` 외 ${a.byVendor.length - 8}개 공급사` : '';
+    line8 =
+      `외부 액추에이터를 쓰는 공개 채택 사례는 모듈 단위 ${a.module}건입니다` +
+      (a.component > 0 ? `(부품 단위 채택 ${a.component}건은 따로 셉니다). ` : '. ') +
+      (a.module > 0
+        ? `세그먼트별로 ${adoptionSegmentSummary(a)}이며, 공급사별로는 ${vendors.join(', ')}${more}입니다. LG가 판매할 수 있는 시장은 이 채택이 확인된 세그먼트 안에서 찾는 것이 합리적입니다. (가설)`
+        : '모듈 단위 채택은 확인되지 않았습니다.');
+  }
+
   return [
-    `ARGOS에 등록된 세트 제조사 ${s.companyCount}개사 중 ${s.inHouseCompanyCount}개사(${pctText(s.inHouseCompanyPct)})가 자체 액추에이터를 보유한 것으로 기록되어 있습니다. 로봇 기준으로는 ${s.inHouseRobotCount}/${s.robotsWithActuatorCount}기입니다. 자체 여부는 공급사명과 제조사명의 일치로 판정한 값입니다.`,
-    ext,
-    `세트 제조사이면서 액추에이터 제품이 등록된 회사는 ${sellerCount}개사입니다. 외판 확인 ${s.sale.confirmed.length}개사(${names(s.sale.confirmed)}), 외판 계획 ${s.sale.planned.length}개사(${names(s.sale.planned)}), 외판 근거 미확인 ${s.sale.unconfirmed.length}개사(${names(s.sale.unconfirmed)}), 자사 전용 ${s.sale.inhouseOnly.length}개사(${names(s.sale.inhouseOnly)})입니다.`,
+    line1,
+    line2,
+    line3,
     priceLine,
     nonQdd,
     `LG전자 액추에이터 제품 ${s.lg.count}개 중 토크 공개 ${s.lg.torque}개, 가격 공개 ${s.lg.price}개입니다.`,
     `LG전자를 제외한 등록 제품 중 타깃 시장에 가정용을 명시한 제품은 ${s.home.nonLgCount}개입니다.`,
+    line8,
   ];
 }
 
@@ -671,15 +951,20 @@ export interface StrategyMetricRow {
   currentValue: string;
 }
 
-/** 4절 지표 표 — 데이터가 없으면(hasData=false) 현재값은 모두 '—' */
+/** 5절 지표 표 — 데이터가 없으면(hasData=false) 현재값은 모두 '—' */
 export function buildMetricRows(s: StrategyStats): StrategyMetricRow[] {
   const has = s.hasData;
+  const m1 =
+    s.companyCount > 0 ? `${s.inHouseCompanyPct}% (${s.inHouseCompanyCount}/${s.companyCount}개사) · 확인 불가 ${s.sourcing.companies.unknown}개사` : DASH;
+  const a = s.sourcing.external;
+  const b = s.adoptions.module;
   const cur: Record<string, string> = {
-    M1: pctText(s.inHouseCompanyPct),
-    M2: `${s.sale.confirmed.length}개사`,
+    M1: m1,
+    M2: `확인 ${s.sellsExternally} · 계획 ${s.sellsPlanned}`,
     M3: `${s.price.pricedCount}개 / ${usd(s.price.median)}`,
     M8: `${s.lg.torque}/${s.lg.count}`,
     M9: `${s.home.nonLgCount}개`,
+    M11: `${a + b}건 (제조사 로봇 ${a} + 공개 채택 ${b})${s.adoptions.component > 0 ? ` · 부품 단위 ${s.adoptions.component}건 별도` : ''}`,
   };
   return STRATEGY_CONTENT.metricDefs.map((d) => ({
     id: d.id,
@@ -690,3 +975,6 @@ export function buildMetricRows(s: StrategyStats): StrategyMetricRow[] {
     currentValue: has && cur[d.id] != null ? cur[d.id]! : DASH,
   }));
 }
+
+/** 세그먼트 라벨 (정적 HTML·카드 공용 재노출) */
+export { SEGMENT_LABEL };

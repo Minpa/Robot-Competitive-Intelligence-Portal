@@ -2655,3 +2655,77 @@ export const dataMigrations = pgTable('data_migrations', {
   appliedAt: timestamp('applied_at').defaultNow().notNull(),
   summary:   jsonb('summary').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 액추에이터 조달 태세 · 수요 사례 · 공급사 타깃 시장
+// 정식 생성 경로는 런타임 ensureActuatorSourcingTables() (src/db/actuator-sourcing.ddl.ts, CREATE TABLE IF NOT EXISTS).
+// drizzle/0028 은 수동 migrate 호환용 (동일 DDL).
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ActuatorSourcingEvidenceJson {
+  claim: string;
+  source: string | null;
+  url: string | null;
+  grade: string | null;
+  date: string | null;
+}
+
+export interface ActuatorSourcingVendorJson {
+  vendor: string;
+  role: string | null;
+  grade: string | null;
+  url: string | null;
+  /** module = 통합 관절·모듈 단위 공급, component = 모터·감속기 등 부품 단위 공급 */
+  level: 'module' | 'component';
+}
+
+export interface ActuatorAdoptionSourceJson {
+  url: string;
+  title: string | null;
+  date: string | null;
+}
+
+// 로봇당 1행 조달 태세 (sourcing: in_house_confirmed|in_house_presumed|external|mixed|unknown)
+export const actuatorSourcing = pgTable('actuator_sourcing', {
+  robotId:         uuid('robot_id').primaryKey().references(() => humanoidRobots.id, { onDelete: 'cascade' }),
+  sourcing:        varchar('sourcing', { length: 24 }).notNull(),
+  sellsExternally: boolean('sells_externally'),
+  evidenceGrade:   varchar('evidence_grade', { length: 8 }),
+  evidence:        jsonb('evidence').$type<ActuatorSourcingEvidenceJson[]>().notNull().default(sql`'[]'::jsonb`),
+  externalVendors: jsonb('external_vendors').$type<ActuatorSourcingVendorJson[]>().notNull().default(sql`'[]'::jsonb`),
+  noteKo:          text('note_ko'),
+  updatedAt:       timestamp('updated_at').defaultNow().notNull(),
+});
+
+// 외부 액추에이터 공개 채택 사례 (humanoid_robots 와 무관: 사족·외골격·로봇 암 포함)
+export const actuatorAdoptions = pgTable('actuator_adoptions', {
+  id:             uuid('id').primaryKey().defaultRandom(),
+  caseKey:        varchar('case_key', { length: 400 }).notNull().unique(),
+  robotName:      varchar('robot_name', { length: 255 }).notNull(),
+  company:        varchar('company', { length: 255 }).notNull(),
+  country:        varchar('country', { length: 100 }),
+  segment:        varchar('segment', { length: 32 }).notNull(),
+  level:          varchar('level', { length: 16 }).notNull().default('module'),
+  robotClass:     varchar('robot_class', { length: 100 }),
+  actuatorVendor: varchar('actuator_vendor', { length: 255 }).notNull(),
+  actuatorModel:  varchar('actuator_model', { length: 255 }),
+  usageText:      text('usage_text'),
+  evidenceGrade:  varchar('evidence_grade', { length: 8 }),
+  sources:        jsonb('sources').$type<ActuatorAdoptionSourceJson[]>().notNull().default(sql`'[]'::jsonb`),
+  noteKo:         text('note_ko'),
+  adoptedYear:    integer('adopted_year'),
+  updatedAt:      timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  vendorIdx: index('actuator_adoptions_vendor_idx').on(table.actuatorVendor),
+}));
+
+// 공급사 공개 타깃 시장 (vendor_key = vendorKey(vendor))
+export const actuatorVendorMarkets = pgTable('actuator_vendor_markets', {
+  vendorKey:       varchar('vendor_key', { length: 200 }).primaryKey(),
+  vendor:          varchar('vendor', { length: 255 }).notNull(),
+  targetMarketsKo: jsonb('target_markets_ko').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  segments:        jsonb('segments').$type<string[] | null>(),
+  grade:           varchar('grade', { length: 8 }),
+  url:             text('url'),
+  updatedAt:       timestamp('updated_at').defaultNow().notNull(),
+});

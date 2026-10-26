@@ -13,6 +13,7 @@ import { handBenchmarkService } from './services/hand-benchmark.service.js';
 import { schedulerService } from './services/scheduler.service.js';
 import { dataMigrationService } from './services/data-migration.service.js';
 import { autoApplyActuatorData } from './services/actuator-auto-apply.service.js';
+import { ensureActuatorSourcingTables } from './db/actuator-sourcing.ddl.js';
 import {
   PIPELINE_TASK_NAME,
   isStartupPipelineEnabled,
@@ -68,6 +69,10 @@ const start = async () => {
     // 데이터 적용/작업 완료 마커 테이블 (ci_layers 시드 이후). 실패해도 기동은 계속한다
     await dataMigrationService.ensureTable().catch((err) => {
       console.warn('[DataMigrations] ensureTable 실패:', err?.message ?? err);
+    });
+    // 액추에이터 조달 태세·수요 사례 테이블 (humanoid_robots 이후). 실패해도 기동은 계속한다
+    await ensureActuatorSourcingTables().catch((err) => {
+      console.warn('[ActuatorSourcing] ensureTables 실패:', err?.message ?? err);
     });
     await coverageFieldService.ensureTables();
     const cfs = await coverageFieldService.seedFromFiles().catch((err) => {

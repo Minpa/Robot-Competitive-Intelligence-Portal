@@ -4,6 +4,7 @@
  * - env ACTUATOR_DATA_AUTO_APPLY: true(기본) | false | dry-run
  * - 키 = 데이터 파일 내용 해시(+LOGIC_VERSION). data_migrations 에 키가 있으면 건너뛴다.
  * - pg_advisory_xact_lock 후 같은 트랜잭션에서 키를 재확인하고, 데이터 쓰기와 마커 기록을 한 트랜잭션으로 묶는다.
+ * - 정상 적용(applied, dry-run 제외) 직후 포지션 맵 캐시를 무효화한다 (실패해도 throw 하지 않음).
  * - 어떤 실패에도 throw 하지 않는다 (서버 기동 유지). 실패 시 마커가 없으므로 다음 기동에서 재시도된다.
  */
 
@@ -17,6 +18,7 @@ import {
   type ApplyResult,
 } from '../db/apply-actuator-data-update.js';
 import { dataMigrationService } from './data-migration.service.js';
+import { actuatorPositionMapService } from './actuator-position-map.service.js';
 import { formatLogLine } from './ops-log.util.js';
 
 const TAG = 'ActuatorAutoApply';
@@ -125,6 +127,13 @@ export async function autoApplyActuatorData(): Promise<AutoApplyOutcome> {
       return { status: 'skipped', key, reason: 'already-applied', result };
     }
     const status: AutoApplyStatus = dryRun ? 'dry-run' : 'applied';
+    if (status === 'applied') {
+      try {
+        await actuatorPositionMapService.invalidate();
+      } catch (err) {
+        logLine('warn', { key, warn: 'position map cache invalidation failed', error: err instanceof Error ? err.message : String(err) });
+      }
+    }
     logLine('log', {
       key,
       status,

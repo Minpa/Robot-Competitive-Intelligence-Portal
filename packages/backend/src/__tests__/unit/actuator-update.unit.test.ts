@@ -67,6 +67,16 @@ import {
   parseArgs,
   bump,
   formatCounters,
+  validateSourcingFile,
+  validateAdoptionsFile,
+  sanitizeSourcingEvidence,
+  sanitizeSourcingVendors,
+  sanitizeAdoptionSources,
+  adoptionCaseKey,
+  vendorKey,
+  sameVendor,
+  modelMatches,
+  ALL_SECTIONS,
   MIN_OVERWRITE_CONFIDENCE,
   CI_ACTUATOR_ITEMS,
   type Counters,
@@ -697,10 +707,11 @@ describe('입력 검증 / CLI / 카운터', () => {
 
   it('parseArgs', () => {
     expect(parseArgs([])).toMatchObject({ dryRun: false, dataDir: null, createRobotCompanies: false, help: false });
-    expect([...parseArgs([]).only]).toEqual(['robots', 'suppliers', 'ci']);
+    expect([...parseArgs([]).only]).toEqual(['robots', 'suppliers', 'ci', 'sourcing', 'adoptions']);
     expect(parseArgs(['--dry-run']).dryRun).toBe(true);
     expect([...parseArgs(['--only', 'robots']).only]).toEqual(['robots']);
     expect([...parseArgs(['--only=suppliers,ci']).only]).toEqual(['suppliers', 'ci']);
+    expect([...parseArgs(['--only', 'sourcing,adoptions']).only]).toEqual(['sourcing', 'adoptions']);
     expect(parseArgs(['--data-dir', '/tmp/x']).dataDir).toBe('/tmp/x');
     expect(parseArgs(['--data-dir=/tmp/y']).dataDir).toBe('/tmp/y');
     expect(parseArgs(['--create-companies']).createRobotCompanies).toBe(true);
@@ -721,5 +732,218 @@ describe('입력 검증 / CLI / 카운터', () => {
     expect(txt).toContain('components');
     expect(txt).toMatch(/\(writes\)\s+2/);
     expect(formatCounters({})).toBe('(변경 없음)');
+  });
+});
+
+
+// ============================================================
+describe('Section / ALL_SECTIONS', () => {
+  it('has the five sections and --only accepts the new ones', () => {
+    expect(ALL_SECTIONS).toEqual(['robots', 'suppliers', 'ci', 'sourcing', 'adoptions']);
+    expect(() => parseArgs(['--only', 'sourcing,adoptions'])).not.toThrow();
+    expect(() => parseArgs(['--only', 'market'])).toThrow(/--only/);
+  });
+});
+
+// ============================================================
+describe('validateSourcingFile', () => {
+  const ok = (over: Record<string, unknown> = {}) => ({
+    name: 'Atlas (Electric)', company: 'Boston Dynamics', sourcing: 'mixed', sellsExternally: false, evidenceGrade: 'A',
+    evidence: [{ claim: 'c', source: 's', url: 'https://x.test/a', grade: 'A', date: '2026-01' }],
+    externalVendors: [{ vendor: 'Hyundai Mobis', role: 'mass-production supply', grade: 'A', url: 'https://x.test/b', level: 'module' }],
+    noteKo: ' note ',
+    ...over,
+  });
+
+  it('accepts a valid element and normalizes it', () => {
+    const v = validateSourcingFile({ generatedAt: 'g', robots: [ok()] });
+    expect(v.errors).toEqual([]);
+    expect(v.warnings).toEqual([]);
+    expect(v.file!.generatedAt).toBe('g');
+    expect(v.file!.robots[0]).toMatchObject({ name: 'Atlas (Electric)', sourcing: 'mixed', sellsExternally: false, noteKo: 'note' });
+    expect(v.file!.robots[0]!.externalVendors[0]).toEqual({ vendor: 'Hyundai Mobis', role: 'mass-production supply', grade: 'A', url: 'https://x.test/b', level: 'module' });
+  });
+
+  it('level defaults to module and only component is kept as component', () => {
+    const v = sanitizeSourcingVendors([{ vendor: 'a' }, { vendor: 'b', level: 'component' }, { vendor: 'c', level: 'weird' }, { role: 'x' }, 'str']);
+    expect(v.map((x) => [x.vendor, x.level])).toEqual([['a', 'module'], ['b', 'component'], ['c', 'module']]);
+  });
+
+  it('sellsExternally accepts boolean/null/undefined', () => {
+    for (const s of [true, false, null, undefined]) {
+      const v = validateSourcingFile({ robots: [ok({ sellsExternally: s })] });
+      expect(v.warnings).toEqual([]);
+      expect(v.file!.robots[0]!.sellsExternally).toBe(s ?? null);
+    }
+  });
+
+  it('skips violating elements with a warning (other elements survive)', () => {
+    const v = validateSourcingFile({
+      robots: [
+        ok(),
+        ok({ name: '' }),
+        ok({ company: undefined }),
+        ok({ sourcing: 'maybe' }),
+        ok({ sellsExternally: 'yes' }),
+        ok({ evidence: 'x' }),
+        ok({ externalVendors: {} }),
+        'nope',
+      ],
+    });
+    expect(v.errors).toEqual([]);
+    expect(v.file!.robots).toHaveLength(1);
+    expect(v.warnings).toHaveLength(7);
+    expect(v.warnings.some((w) => w.includes('sourcing 값'))).toBe(true);
+  });
+
+  it('only a broken structure is fatal', () => {
+    expect(validateSourcingFile(null).errors).toHaveLength(1);
+    expect(validateSourcingFile([]).errors).toHaveLength(1);
+    expect(validateSourcingFile({}).errors[0]).toContain('"robots" 배열');
+    expect(validateSourcingFile({ robots: [] }).errors).toEqual([]);
+  });
+
+  it('evidence keeps only string fields, drops claimless items and caps at 20', () => {
+    const many = Array.from({ length: 30 }, (_, i) => ({ claim: `c${i}`, source: 's', url: 'u', grade: 'B', date: 'd', extra: 1 }));
+    const ev = sanitizeSourcingEvidence([...many, { source: 'no claim' }, 3]);
+    expect(ev).toHaveLength(20);
+    expect(Object.keys(ev[0]!).sort()).toEqual(['claim', 'date', 'grade', 'source', 'url']);
+    expect(sanitizeSourcingEvidence([{ claim: 'x', source: 5, url: null, grade: {}, date: undefined }])).toEqual([
+      { claim: 'x', source: null, url: null, grade: null, date: null },
+    ]);
+  });
+
+  it('accepts the bundled sourcing-regrade.json with no warnings', () => {
+    const f = path.join(FIXTURE_DIR, 'sourcing-regrade.json');
+    if (!fs.existsSync(f)) return;
+    const v = validateSourcingFile(JSON.parse(fs.readFileSync(f, 'utf-8')));
+    expect(v.errors).toEqual([]);
+    expect(v.warnings).toEqual([]);
+    expect(v.file!.robots.length).toBe(46);
+  });
+});
+
+// ============================================================
+describe('validateAdoptionsFile', () => {
+  const c = (over: Record<string, unknown> = {}) => ({
+    robotName: 'K-Bot', company: 'K-Scale Labs', country: 'US', segment: 'research_platform', robotClass: 'humanoid',
+    actuatorVendor: 'RobStride Dynamics', actuatorModel: null, usage: 'legs', evidenceGrade: 'C',
+    sources: [{ source: 'AI Wiki', url: 'https://aiwiki.test/x', date: null }], noteKo: 'n', year: 2025, vendorInSuppliersJson: true,
+    ...over,
+  });
+
+  it('maps source objects to {url,title,date} and tolerates string sources', () => {
+    const v = validateAdoptionsFile({ cases: [c({ sources: ['https://a.test', { url: 'https://b.test', title: 'T', source: 'S', date: '2026' }, { source: 'no url' }, { url: 'https://c.test', source: 'Pub' }] })] });
+    expect(v.warnings).toEqual([]);
+    expect(v.file!.cases[0]!.sources).toEqual([
+      { url: 'https://a.test', title: null, date: null },
+      { url: 'https://b.test', title: 'T', date: '2026' },
+      { url: 'https://c.test', title: 'Pub', date: null },
+    ]);
+    expect(sanitizeAdoptionSources('x')).toEqual([]);
+  });
+
+  it('segment enum includes humanoid_tier1; level defaults to module', () => {
+    const v = validateAdoptionsFile({ cases: [c({ segment: 'humanoid_tier1' }), c({ robotName: 'B', level: 'component' }), c({ robotName: 'C', level: null })] });
+    expect(v.file!.cases.map((x) => [x.segment, x.level])).toEqual([['humanoid_tier1', 'module'], ['research_platform', 'component'], ['research_platform', 'module']]);
+  });
+
+  it('skips violating cases with a warning', () => {
+    const v = validateAdoptionsFile({
+      cases: [c(), c({ robotName: '' }), c({ company: 1 }), c({ actuatorVendor: ' ' }), c({ segment: 'toy' }), c({ level: 'sub' }), c({ sources: 'x' }), null],
+    });
+    expect(v.errors).toEqual([]);
+    expect(v.file!.cases).toHaveLength(1);
+    expect(v.warnings).toHaveLength(7);
+  });
+
+  it('validates vendorTargetMarkets elements and optional segments', () => {
+    const v = validateAdoptionsFile({
+      cases: [],
+      vendorTargetMarkets: [
+        { vendor: 'A', targetMarketsKo: ['x'], segments: ['captive'], grade: 'B', url: 'https://a.test' },
+        { vendor: 'B', targetMarketsKo: [] },
+        { vendor: '', targetMarketsKo: [] },
+        { vendor: 'C' },
+        { vendor: 'D', targetMarketsKo: ['x'], segments: ['moon'] },
+      ],
+    });
+    expect(v.file!.vendorTargetMarkets.map((x) => [x.vendor, x.segments])).toEqual([['A', ['captive']], ['B', null]]);
+    expect(v.warnings).toHaveLength(3);
+  });
+
+  it('only structure problems are fatal', () => {
+    expect(validateAdoptionsFile(undefined).errors).toHaveLength(1);
+    expect(validateAdoptionsFile({}).errors[0]).toContain('"cases" 배열');
+    expect(validateAdoptionsFile({ cases: [], vendorTargetMarkets: 'x' }).errors).toHaveLength(1);
+    expect(validateAdoptionsFile({ cases: [] }).file!.vendorTargetMarkets).toEqual([]);
+  });
+
+  it('accepts the bundled demand-cases.json with no warnings', () => {
+    const f = path.join(FIXTURE_DIR, 'demand-cases.json');
+    if (!fs.existsSync(f)) return;
+    const v = validateAdoptionsFile(JSON.parse(fs.readFileSync(f, 'utf-8')));
+    expect(v.errors).toEqual([]);
+    expect(v.warnings).toEqual([]);
+    expect(v.file!.cases.length).toBe(30);
+    expect(v.file!.cases.filter((x) => x.level === 'component').length).toBe(8);
+    expect(v.file!.cases.filter((x) => x.segment === 'humanoid_tier1').length).toBe(3);
+  });
+});
+
+// ============================================================
+describe('vendorKey / sameVendor / modelMatches / adoptionCaseKey', () => {
+  it('normalizes vendor aliases to one key', () => {
+    expect(vendorKey('CubeMars (T-Motor)')).toBe(vendorKey('CubeMars'));
+    expect(vendorKey('CubeMars')).toBe(vendorKey('T-Motor'));
+    expect(vendorKey('RobStride Dynamics')).toBe(vendorKey('RobStride'));
+    expect(vendorKey('Unitree')).toBe(vendorKey('Unitree Robotics'));
+    expect(vendorKey('MyActuator (ex-Gyems)')).toBe(vendorKey('Gyems'));
+    expect(vendorKey('Maxon Motor')).toBe(vendorKey('maxon'));
+    expect(vendorKey('AgiBot (PowerFlow)')).toBe(vendorKey('AgiBot (Zhiyuan Robotics)'));
+    expect(vendorKey(null)).toBe('');
+    expect(vendorKey('x'.repeat(500)).length).toBeLessThanOrEqual(200);
+  });
+
+  it('sameVendor: equal keys or containment of a 5+ char key', () => {
+    expect(sameVendor('Mobis', 'Hyundai Mobis')).toBe(true);
+    expect(sameVendor('Hyundai Mobis', 'Mobis')).toBe(true);
+    expect(sameVendor('Tuopu Group', 'Tuopu Group / Sanhua Intelligent Controls')).toBe(true);
+    expect(sameVendor('Unitree', 'Unitree Robotics')).toBe(true);
+    expect(sameVendor('maxon', 'Mobis')).toBe(false);
+    expect(sameVendor('Harmonic Drive', 'Nabtesco')).toBe(false);
+    expect(sameVendor('Tesla', 'Tuopu Group')).toBe(false);
+    expect(sameVendor('abc', 'abcdef')).toBe(false); // 짧은 쪽 키가 5자 미만이면 포함 비교 안 함
+    expect(sameVendor('', 'Mobis')).toBe(false);
+    expect(sameVendor(null, undefined)).toBe(false);
+  });
+
+  it('modelMatches: containment after normalization, min 3 chars', () => {
+    expect(modelMatches('RS-04', 'RobStride 04 (RS-04)')).toBe(true);
+    expect(modelMatches('AK80-9', 'AK80-9 V3.0 KV100')).toBe(true);
+    expect(modelMatches('AK80-9', 'AK80-64 KV80')).toBe(false);
+    expect(modelMatches('X6', 'RMD-X6-40')).toBe(false); // 3자 미만
+    expect(modelMatches(null, 'RS-04')).toBe(false);
+    expect(modelMatches('RS-04', null)).toBe(false);
+  });
+
+  it('adoptionCaseKey is pure and stable under formatting noise, distinct per vendor/model/robot', () => {
+    const base = { company: 'Agibot (智元)', robotName: 'Genie G1', actuatorVendor: 'RobStride Dynamics', actuatorModel: 'RS-04' };
+    const k = adoptionCaseKey(base);
+    expect(adoptionCaseKey({ ...base })).toBe(k);
+    expect(adoptionCaseKey({ ...base, company: 'AGIBOT', actuatorVendor: 'RobStride' })).toBe(k);
+    expect(adoptionCaseKey({ ...base, robotName: 'genie-g1' })).toBe(k);
+    expect(adoptionCaseKey({ ...base, actuatorModel: 'RS-05' })).not.toBe(k);
+    expect(adoptionCaseKey({ ...base, actuatorVendor: 'Unitree' })).not.toBe(k);
+    expect(adoptionCaseKey({ ...base, actuatorModel: undefined })).toMatch(/\|$/);
+    expect(k.split('|')).toHaveLength(4);
+    expect(adoptionCaseKey({ ...base, robotName: 'x'.repeat(600) }).length).toBeLessThanOrEqual(400);
+  });
+
+  it('bundled demand cases produce unique case keys', () => {
+    const f = path.join(FIXTURE_DIR, 'demand-cases.json');
+    if (!fs.existsSync(f)) return;
+    const cases = validateAdoptionsFile(JSON.parse(fs.readFileSync(f, 'utf-8'))).file!.cases;
+    expect(new Set(cases.map(adoptionCaseKey)).size).toBe(cases.length);
   });
 });

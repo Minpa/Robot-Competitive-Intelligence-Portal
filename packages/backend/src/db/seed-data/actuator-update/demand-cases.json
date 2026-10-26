@@ -1,0 +1,1017 @@
+{
+  "generatedAt": "2026-10-26T02:17:26+00:00",
+  "method": "websearch-only",
+  "legend": {
+    "A": "manufacturer official page/datasheet/press release",
+    "B": "major media citing official announcement",
+    "C": "secondary media/aggregator/reseller",
+    "D": "estimate/unverified",
+    "segments": [
+      "humanoid_tier1",
+      "humanoid_tier2",
+      "research_platform",
+      "service_robot",
+      "quadruped",
+      "exoskeleton",
+      "robot_arm",
+      "industrial"
+    ],
+    "vendorInSuppliersJson": "actuatorVendor가 suppliers.json 44개 제품의 벤더와 연결되는지 여부",
+    "level": "module=통합 관절·모듈 단위 공급 / component=모터·감속기 등 부품 단위 공급"
+  },
+  "caseCount": 30,
+  "cases": [
+    {
+      "robotName": "K-Bot",
+      "company": "K-Scale Labs",
+      "country": "US",
+      "segment": "research_platform",
+      "robotClass": "humanoid",
+      "actuatorVendor": "RobStride Dynamics",
+      "actuatorModel": null,
+      "usage": "legs/arms (20 DOF, QDD 6:1~10:1, RobStride 4종)",
+      "evidenceGrade": "C",
+      "sources": [
+        {
+          "source": "AI Wiki (aggregator)",
+          "url": "https://aiwiki.ai/wiki/k_scale_k_bot",
+          "date": null
+        },
+        {
+          "source": "Smithery skill listing (community)",
+          "url": "https://smithery.ai/skills/plurigrid/kbot-humanoid",
+          "date": null
+        },
+        {
+          "source": "K-Scale actuator driver (Rust crate 'robstride')",
+          "url": "https://rust-digger.code-maven.com/crates/robstride",
+          "date": null
+        }
+      ],
+      "noteKo": "오픈소스 휴머노이드(CERN-OHL-S). RobStride 모터 채택은 2차·커뮤니티 출처(C)와 공식 드라이버 코드로 뒷받침. 회사는 2025-11 운영 종료 보도(aiwiki).",
+      "year": 2025,
+      "vendorInSuppliersJson": true,
+      "level": "module"
+    },
+    {
+      "robotName": "LeRobot Humanoid (community build)",
+      "company": "Hugging Face LeRobot community",
+      "country": "US",
+      "segment": "research_platform",
+      "robotClass": "humanoid",
+      "actuatorVendor": "RobStride Dynamics",
+      "actuatorModel": "RobStride 02/04 등 세트",
+      "usage": "legs (2족 프로젝트용 모터 세트)",
+      "evidenceGrade": "C",
+      "sources": [
+        {
+          "source": "OpenELAB (reseller product page)",
+          "url": "https://openelab.io/es/products/lerobot-humanoid-robstride-motor-set",
+          "date": null
+        },
+        {
+          "source": "OpenELAB blog",
+          "url": "https://openelab.io/blogs/learn/robstride-02-vs-robstride-04-17nm-or-120nm-qdd-actuator-for-humanoid-robots",
+          "date": null
+        }
+      ],
+      "noteKo": "리셀러가 LeRobot 휴머노이드용 RobStride 모터 세트를 판매. 공식 LeRobot BOM은 확인되지 않음(C).",
+      "year": 2025,
+      "vendorInSuppliersJson": true,
+      "level": "module"
+    },
+    {
+      "robotName": "AGILOped",
+      "company": "AGILOped open-source humanoid project (arXiv 2509.09364)",
+      "country": null,
+      "segment": "research_platform",
+      "robotClass": "humanoid",
+      "actuatorVendor": "MyActuator (ex-Gyems)",
+      "actuatorModel": "RMD-X6-40",
+      "usage": "all joints",
+      "evidenceGrade": "A",
+      "sources": [
+        {
+          "source": "arXiv 2509.09364",
+          "url": "https://arxiv.org/pdf/2509.09364",
+          "date": "2025-09"
+        }
+      ],
+      "noteKo": "연구용 오픈소스 휴머노이드. 전 관절에 MyActuator RMD X6-40(2단 유성) 채택, Unitree A1 대비 절반 가격·80% 토크를 선택 이유로 명시.",
+      "year": 2025,
+      "vendorInSuppliersJson": true,
+      "level": "module"
+    },
+    {
+      "robotName": "Solo 12",
+      "company": "Open Dynamic Robot Initiative (MPI-IS 등)",
+      "country": "DE",
+      "segment": "quadruped",
+      "robotClass": "quadruped",
+      "actuatorVendor": "CubeMars (T-Motor)",
+      "actuatorModel": "T-Motor Antigravity 4004 300KV",
+      "usage": "all 12 joints (자체 9:1 벨트 모듈에 T-Motor 모터 내장)",
+      "evidenceGrade": "A",
+      "sources": [
+        {
+          "source": "ODRI open_robot_actuator_hardware docs (mirror)",
+          "url": "https://www.mintlify.com/open-dynamic-robot-initiative/open_robot_actuator_hardware/overview",
+          "date": null
+        },
+        {
+          "source": "arXiv 1910.00093",
+          "url": "https://arxiv.org/pdf/1910.00093.pdf",
+          "date": "2019-10"
+        },
+        {
+          "source": "Automated Warehouse (PAL Robotics 상용화)",
+          "url": "https://www.automatedwarehouseonline.com/?p=1149",
+          "date": null
+        }
+      ],
+      "noteKo": "오픈소스 4족. 액추에이터 모듈은 자체 설계이나 모터는 T-Motor(CubeMars 모회사) Antigravity 상용품. PAL Robotics가 완제품/키트 판매.",
+      "year": 2019,
+      "vendorInSuppliersJson": true,
+      "level": "component"
+    },
+    {
+      "robotName": "Small-scale bipedal robot (5-DoF legs)",
+      "company": "Research bipedal robot (arXiv 2104.00065 / 2209.08664)",
+      "country": null,
+      "segment": "research_platform",
+      "robotClass": "humanoid",
+      "actuatorVendor": "Unitree",
+      "actuatorModel": "Unitree A1 modular actuator (33.5N·m, 0.6kg, 9:1)",
+      "usage": "all leg joints (ab/ad, hip, thigh, calf, ankle)",
+      "evidenceGrade": "A",
+      "sources": [
+        {
+          "source": "arXiv 2104.00065",
+          "url": "https://arxiv.org/pdf/2104.00065",
+          "date": "2021-04"
+        },
+        {
+          "source": "arXiv 2209.08664",
+          "url": "https://arxiv.org/pdf/2209.08664",
+          "date": "2022-09"
+        }
+      ],
+      "noteKo": "Unitree A1 4족 로봇의 모듈형 액추에이터를 2족 연구 플랫폼에 전용. 저자 소속은 USC로 추정되나 확인되지 않음.",
+      "year": 2021,
+      "vendorInSuppliersJson": true,
+      "level": "module"
+    },
+    {
+      "robotName": "Modular backdrivable hip/knee orthoses",
+      "company": "Research team (arXiv 2110.01562)",
+      "country": null,
+      "segment": "exoskeleton",
+      "robotClass": "exoskeleton",
+      "actuatorVendor": "CubeMars (T-Motor)",
+      "actuatorModel": "AK80-9",
+      "usage": "hip/knee joints",
+      "evidenceGrade": "A",
+      "sources": [
+        {
+          "source": "arXiv 2110.01562",
+          "url": "https://arxiv.org/pdf/2110.01562",
+          "date": "2021-10"
+        }
+      ],
+      "noteKo": "토크밀도·9:1·저가를 이유로 AK80-9 선택, 최대 ~30N·m.",
+      "year": 2021,
+      "vendorInSuppliersJson": true,
+      "level": "module"
+    },
+    {
+      "robotName": "Bilateral hip exoskeleton (elderly)",
+      "company": "Research team (arXiv 2603.22580)",
+      "country": null,
+      "segment": "exoskeleton",
+      "robotClass": "exoskeleton",
+      "actuatorVendor": "CubeMars (T-Motor)",
+      "actuatorModel": "AK80-9 (+Dephy FASTER driver)",
+      "usage": "hip joints",
+      "evidenceGrade": "A",
+      "sources": [
+        {
+          "source": "arXiv 2603.22580",
+          "url": "https://arxiv.org/pdf/2603.22580",
+          "date": "2026-03"
+        }
+      ],
+      "noteKo": "AK80-9 2기, 피크 ~25N·m, 실험 시 22N·m 제한.",
+      "year": 2026,
+      "vendorInSuppliersJson": true,
+      "level": "module"
+    },
+    {
+      "robotName": "OpenExo",
+      "company": "Northern Arizona University",
+      "country": "US",
+      "segment": "exoskeleton",
+      "robotClass": "exoskeleton",
+      "actuatorVendor": "CubeMars (T-Motor)",
+      "actuatorModel": "AK series",
+      "usage": "hip/ankle/elbow modules",
+      "evidenceGrade": "B",
+      "sources": [
+        {
+          "source": "CubeMars (vendor case page)",
+          "url": "https://www.cubemars.com/openexo-open-source-exoskeleton-powered-by-cubemars-ak-motor.html",
+          "date": null
+        },
+        {
+          "source": "CubeMars (vendor case page 2)",
+          "url": "https://www.cubemars.com/openexo-modular-exoskeleton-with-ak-robotic-actuators.html",
+          "date": null
+        }
+      ],
+      "noteKo": "오픈소스 모듈형 외골격(Science Robotics 게재). 공급사 공식 사례 페이지 기반이며 공급사 자체 홍보 자료임.",
+      "year": 2025,
+      "vendorInSuppliersJson": true,
+      "level": "module"
+    },
+    {
+      "robotName": "Georgia Tech exoskeleton",
+      "company": "Georgia Tech",
+      "country": "US",
+      "segment": "exoskeleton",
+      "robotClass": "exoskeleton",
+      "actuatorVendor": "CubeMars (T-Motor)",
+      "actuatorModel": "AK80-9",
+      "usage": "hip",
+      "evidenceGrade": "C",
+      "sources": [
+        {
+          "source": "CubeMars (vendor page)",
+          "url": "https://www.cubemars.com/robotic-actuator-powering-georgia-tech-is-ai-exoskeletons.html",
+          "date": null
+        }
+      ],
+      "noteKo": "공급사 홍보 페이지 기반(Science Advances 게재 주장). 1차 논문은 확인되지 않음.",
+      "year": 2024,
+      "vendorInSuppliersJson": true,
+      "level": "module"
+    },
+    {
+      "robotName": "Rex",
+      "company": "Rex Bionics",
+      "country": "NZ",
+      "segment": "exoskeleton",
+      "robotClass": "exoskeleton",
+      "actuatorVendor": "maxon",
+      "actuatorModel": "DC RE 40 (150W) ×10",
+      "usage": "legs",
+      "evidenceGrade": "A",
+      "sources": [
+        {
+          "source": "maxon Story",
+          "url": "https://www.maxongroup.com/maxon/view/application/Robotic-exoskeleton-For-a-better-quality-of-life",
+          "date": null
+        },
+        {
+          "source": "Automate.org tech paper",
+          "url": "https://www.automate.org/tech-papers/robotic-exoskeleton-for-more-quality-of-life",
+          "date": null
+        }
+      ],
+      "noteKo": "공급사 공식 고객 사례. 외골격 1기당 maxon RE 40 10개.",
+      "year": 2016,
+      "vendorInSuppliersJson": true,
+      "level": "component"
+    },
+    {
+      "robotName": "ReWalk",
+      "company": "ReWalk Robotics (Lifeward)",
+      "country": "IL",
+      "segment": "exoskeleton",
+      "robotClass": "exoskeleton",
+      "actuatorVendor": "maxon",
+      "actuatorModel": "brushed DC + ceramic planetary gearhead ×4",
+      "usage": "hip/knee",
+      "evidenceGrade": "A",
+      "sources": [
+        {
+          "source": "maxon Story",
+          "url": "https://www.maxongroup.com/maxon/view/application/EXOSKELETT-AB",
+          "date": null
+        }
+      ],
+      "noteKo": "공급사 공식 사례: 고관절·무릎 구동에 maxon DC 모터 4개 + 세라믹 유성기어헤드(5년/100만 스텝 수명 목표).",
+      "year": 2016,
+      "vendorInSuppliersJson": true,
+      "level": "component"
+    },
+    {
+      "robotName": "EXO PRO (Cybathlon 2024)",
+      "company": "EXO PRO team (Taiwan)",
+      "country": "TW",
+      "segment": "exoskeleton",
+      "robotClass": "exoskeleton",
+      "actuatorVendor": "maxon",
+      "actuatorModel": null,
+      "usage": "lower limb",
+      "evidenceGrade": "A",
+      "sources": [
+        {
+          "source": "maxon blog",
+          "url": "https://www.maxongroup.com/zh-tw/knowledge-and-support/blog/exo-pro-building-affordable-solutions-for-mobility-at-cybathlon-2024-253158",
+          "date": "2024"
+        }
+      ],
+      "noteKo": "공급사 공식 블로그 사례.",
+      "year": 2024,
+      "vendorInSuppliersJson": true,
+      "level": "component"
+    },
+    {
+      "robotName": "DRC-HUBO / DRC-HUBO+",
+      "company": "KAIST HUBO Lab (Rainbow Robotics 계보)",
+      "country": "KR",
+      "segment": "research_platform",
+      "robotClass": "humanoid",
+      "actuatorVendor": "maxon",
+      "actuatorModel": "EC-4pole brushless ×33",
+      "usage": "all main joints",
+      "evidenceGrade": "A",
+      "sources": [
+        {
+          "source": "drive.tech (maxon magazine)",
+          "url": "https://drive.tech/en/stream-content/the-lifesaver",
+          "date": null
+        },
+        {
+          "source": "KAIST DSpace (DRC-HUBO+)",
+          "url": "https://dspace.kaist.ac.kr/handle/10203/240563?mode=full",
+          "date": "2018"
+        }
+      ],
+      "noteKo": "DARPA 로보틱스 챌린지 우승기. 관절 설계는 자체, 모터는 maxon 33개(공급사 공식 매거진).",
+      "year": 2015,
+      "vendorInSuppliersJson": true,
+      "level": "component"
+    },
+    {
+      "robotName": "TALOS",
+      "company": "PAL Robotics",
+      "country": "ES",
+      "segment": "research_platform",
+      "robotClass": "humanoid",
+      "actuatorVendor": "Harmonic Drive",
+      "actuatorModel": "strain wave reducers (모델 미상)",
+      "usage": "all 32 joints (+TQ RoboDrive motors)",
+      "evidenceGrade": "C",
+      "sources": [
+        {
+          "source": "AI Wiki (aggregator)",
+          "url": "https://aiwiki.ai/wiki/pal_robotics_talos",
+          "date": null
+        },
+        {
+          "source": "Humanoid.Guide",
+          "url": "https://humanoid.guide/?p=18837",
+          "date": null
+        },
+        {
+          "source": "TQ-Group RoboDrive (PAL 모터 공급)",
+          "url": "https://www.tq-group.com/en/products/tq-robodrive/landingpages/pal-robotics/",
+          "date": null
+        }
+      ],
+      "noteKo": "연구용 풀사이즈 휴머노이드. Harmonic Drive 감속기(2차 출처 C) + TQ RoboDrive 프레임리스 모터(공급사 공식 A, 로봇 미특정).",
+      "year": 2017,
+      "vendorInSuppliersJson": true,
+      "level": "component"
+    },
+    {
+      "robotName": "Moxi",
+      "company": "Diligent Robotics",
+      "country": "US",
+      "segment": "service_robot",
+      "robotClass": "mobile manipulator",
+      "actuatorVendor": "Kinova",
+      "actuatorModel": "Jaco / Gen2 (OEM)",
+      "usage": "arm (+Robotiq gripper, Fetch base)",
+      "evidenceGrade": "B",
+      "sources": [
+        {
+          "source": "IEEE Spectrum",
+          "url": "https://spectrum.ieee.org/moxi-prototype-from-diligent-robotics-starts-helping-out-in-hospitals",
+          "date": "2018-09"
+        },
+        {
+          "source": "The Robot Report",
+          "url": "https://www.therobotreport.com/diligent-robotics-raises-series-a-funding-to-scale-moxi-hospital-robot/",
+          "date": "2020"
+        }
+      ],
+      "noteKo": "병원 서비스 로봇. 팔 전체를 Kinova OEM 암으로 조달(액추에이터 포함).",
+      "year": 2018,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "4NE1",
+      "company": "NEURA Robotics",
+      "country": "DE",
+      "segment": "humanoid_tier2",
+      "robotClass": "humanoid",
+      "actuatorVendor": "Schaeffler",
+      "actuatorModel": "planetary gear actuators (≤250N·m)",
+      "usage": "shoulders/elbows/knees/wrists",
+      "evidenceGrade": "A",
+      "sources": [
+        {
+          "source": "Schaeffler AG EQS press release (TradingView)",
+          "url": "https://vn.tradingview.com/news/eqs:7725b32b0094b:0-schaeffler-and-neura-robotics-launch-future-oriented-technology-partnership",
+          "date": "2025-11"
+        },
+        {
+          "source": "Robotics 24/7",
+          "url": "https://www.robotics247.com/article/schaeffler_neura_robotics_partner_to_jointly_develop_and_supply_components_for_humanoids",
+          "date": "2025-11"
+        }
+      ],
+      "noteKo": "유럽 휴머노이드가 Tier-1 자동차 부품사(Schaeffler)로부터 관절 액추에이터를 조달하는 공식 사례.",
+      "year": 2025,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "Atlas (Electric)",
+      "company": "Boston Dynamics",
+      "country": "US",
+      "segment": "humanoid_tier1",
+      "robotClass": "humanoid",
+      "actuatorVendor": "Hyundai Mobis",
+      "actuatorModel": null,
+      "usage": "all (mass-production units)",
+      "evidenceGrade": "A",
+      "sources": [
+        {
+          "source": "Hyundai Mobis press release (PR Newswire via Barchart)",
+          "url": "https://www.barchart.com/story/news/36939666/hyundai-mobis-forms-strategic-collaboration-framework-with-boston-dynamics",
+          "date": "2026-01"
+        },
+        {
+          "source": "Korea Herald",
+          "url": "https://www.koreaherald.com/article/10651569",
+          "date": "2026-01"
+        }
+      ],
+      "noteKo": "자체 설계 액추에이터의 양산을 그룹 부품사에 위탁. 모비스 첫 로봇 고객.",
+      "year": 2026,
+      "vendorInSuppliersJson": true,
+      "level": "module"
+    },
+    {
+      "robotName": "Optimus V3",
+      "company": "Tesla",
+      "country": "US",
+      "segment": "humanoid_tier1",
+      "robotClass": "humanoid",
+      "actuatorVendor": "Tuopu Group / Sanhua Intelligent Controls",
+      "actuatorModel": "linear & rotary actuator modules (분담 매체 간 상충)",
+      "usage": "all (contract manufacturing)",
+      "evidenceGrade": "B",
+      "sources": [
+        {
+          "source": "TrendForce (citing Bloomberg)",
+          "url": "https://trendforce.com/news/2026/09/21/news-tesla-reportedly-audits-china-suppliers-for-optimus-gen-3-ramp-eyes-20000-price-target/",
+          "date": "2026-09"
+        },
+        {
+          "source": "Counterpoint Research",
+          "url": "https://counterpointresearch.com/cn/insights/blog-tesla-to-leverage-ev-experience-and-chinese-partners-to-ace-humanoids-market-unlock-huge-revenue-potential",
+          "date": "2026"
+        }
+      ],
+      "noteKo": "설계 자체·제조 외주 패턴의 대표 사례. 공급사 공식 확인은 Sanhua의 '주요 고객과 개발 중' 발언 수준.",
+      "year": 2026,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "Xiaobumi(小布米) / N2 계열",
+      "company": "Noetix Robotics (松延动力)",
+      "country": "CN",
+      "segment": "humanoid_tier2",
+      "robotClass": "humanoid",
+      "actuatorVendor": "Quanzhibo (泉智博)",
+      "actuatorModel": "P100-20-10",
+      "usage": "all 20 joints (상지~허리~하지)",
+      "evidenceGrade": "B",
+      "sources": [
+        {
+          "source": "The Paper (澎湃)",
+          "url": "https://m.thepaper.cn/newsDetail_forward_34022797",
+          "date": "2026"
+        },
+        {
+          "source": "NBD (每日经济新闻)",
+          "url": "https://www.nbd.com.cn/articles/2026-04-03/4325170.html",
+          "date": "2026-04"
+        },
+        {
+          "source": "Beijing News",
+          "url": "https://m.bjnews.com.cn/detail/1788600417129849.html",
+          "date": "2026"
+        }
+      ],
+      "noteKo": "2026 춘완 출연 로봇의 관절 20개 전부 泉智博 모듈. 泉智博 제품은 2~400N·m, 행성/하모닉/사이클로이드.",
+      "year": 2026,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "Leju humanoid (모델 미상)",
+      "company": "Leju Robotics (乐聚)",
+      "country": "CN",
+      "segment": "humanoid_tier2",
+      "robotClass": "humanoid",
+      "actuatorVendor": "Quanzhibo (泉智博)",
+      "actuatorModel": null,
+      "usage": "joints (상세 미상)",
+      "evidenceGrade": "C",
+      "sources": [
+        {
+          "source": "iFeng Tech",
+          "url": "https://tech.ifeng.com/c/8wAbG8majlY",
+          "date": "2026"
+        },
+        {
+          "source": "NBD",
+          "url": "https://www.nbd.com.cn/articles/2026-04-03/4325170.html",
+          "date": "2026-04"
+        }
+      ],
+      "noteKo": "泉智博 고객사로 보도(C). 적용 모델·수량 미공개.",
+      "year": 2026,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "Galaxea humanoid (모델 미상)",
+      "company": "Galaxea (星海图)",
+      "country": "CN",
+      "segment": "humanoid_tier2",
+      "robotClass": "humanoid",
+      "actuatorVendor": "Quanzhibo (泉智博)",
+      "actuatorModel": null,
+      "usage": "joints (상세 미상)",
+      "evidenceGrade": "C",
+      "sources": [
+        {
+          "source": "iFeng Tech",
+          "url": "https://tech.ifeng.com/c/8wAbG8majlY",
+          "date": "2026"
+        }
+      ],
+      "noteKo": "泉智博 고객사로 보도(C).",
+      "year": 2026,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "AgiBot (전략 투자·공급 파트너)",
+      "company": "Agibot (智元)",
+      "country": "CN",
+      "segment": "humanoid_tier1",
+      "robotClass": "humanoid",
+      "actuatorVendor": "Quanzhibo (泉智博)",
+      "actuatorModel": null,
+      "usage": "joint modules (수만 대 양산 대응용 외부 조달 파트너)",
+      "evidenceGrade": "B",
+      "sources": [
+        {
+          "source": "36Kr",
+          "url": "https://www.36kr.com/p/3879589408977155",
+          "date": "2026-07"
+        },
+        {
+          "source": "ChinaVenture (投中网)",
+          "url": "https://m.chinaventure.com.cn/news/114-20260703-392130.html",
+          "date": "2026-07"
+        }
+      ],
+      "noteKo": "PowerFlow 자체 관절 보유 기업도 양산 확대를 위해 외부 관절 공급사(泉智博)에 전략 투자·조달. 구체 적용 모델은 미공개.",
+      "year": 2026,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "미공개 중국 상위 5개 구체지능 업체 중 1곳",
+      "company": "Direct Drive Tech (本末科技) 고객",
+      "country": "CN",
+      "segment": "humanoid_tier2",
+      "robotClass": "humanoid",
+      "actuatorVendor": "Direct Drive Tech (本末科技)",
+      "actuatorModel": "구체 관절 모듈",
+      "usage": "joints",
+      "evidenceGrade": "C",
+      "sources": [
+        {
+          "source": "Huxiu (本末科技 상장 서류 인용)",
+          "url": "https://www.huxiu.com/article/4896180.html",
+          "date": "2026"
+        },
+        {
+          "source": "36Kr",
+          "url": "https://36kr.com/p/3324371342944770",
+          "date": null
+        }
+      ],
+      "noteKo": "2025년 관절 모듈 1.2만 세트 판매(680만 위안), 2026-06 기준 중국 수주잔고 상위 5개 업체 중 1곳에 공급. 고객명 비공개.",
+      "year": 2026,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "OpenArm 2.0",
+      "company": "Enactic",
+      "country": "JP",
+      "segment": "robot_arm",
+      "robotClass": "robot arm (7-DOF, bimanual)",
+      "actuatorVendor": "Damiao",
+      "actuatorModel": "DM-J8009P-2EC ×2, DM-J4340P/4340 ×2, DM-J4310-2EC ×4 (per arm)",
+      "usage": "all arm joints + gripper",
+      "evidenceGrade": "B",
+      "sources": [
+        {
+          "source": "CNX Software",
+          "url": "https://www.cnx-software.com/2026/09/30/openarm-2-0-an-open-source-7-dof-robot-arm-with-qdd-joints-bilateral-force-feedback-in-hand-camera/",
+          "date": "2026-09"
+        },
+        {
+          "source": "roboticscenter.ai OpenArm hardware wiki",
+          "url": "https://roboticscenter.ai/wiki/openarm/hardware",
+          "date": null
+        }
+      ],
+      "noteKo": "오픈소스 연구용 암(CERN-OHL-S). Damiao는 중국 QDD 액추에이터 업체.",
+      "year": 2026,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "Stretch 3",
+      "company": "Hello Robot",
+      "country": "US",
+      "segment": "service_robot",
+      "robotClass": "mobile manipulator",
+      "actuatorVendor": "Robotis",
+      "actuatorModel": "Dynamixel XL430 (wrist yaw) + X-series TTL bus (pitch/roll)",
+      "usage": "wrist/gripper (팔 본체는 자체 스텝모터 구동)",
+      "evidenceGrade": "A",
+      "sources": [
+        {
+          "source": "Hello Robot docs (Stretch 3 hardware guide)",
+          "url": "https://docs.hello-robot.com/0.3/hardware/hardware_guide_stretch_3",
+          "date": null
+        },
+        {
+          "source": "Hello Robot docs (hardware overview)",
+          "url": "https://docs-arch.hello-robot.com/0.3/getting_started/stretch_hardware_overview/",
+          "date": null
+        }
+      ],
+      "noteKo": "자체 구동계(스텝모터) + 손목 DOF는 Dynamixel 서보 외부 조달.",
+      "year": 2024,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "HopeJR",
+      "company": "Hugging Face (LeRobot)",
+      "country": "FR",
+      "segment": "research_platform",
+      "robotClass": "humanoid (upper body/arms)",
+      "actuatorVendor": "Feetech",
+      "actuatorModel": "STS3215",
+      "usage": "arm/hand (66 DOF 중 다수)",
+      "evidenceGrade": "B",
+      "sources": [
+        {
+          "source": "LeRobot docs (mirror)",
+          "url": "https://www.mintlify.com/huggingface/lerobot/robots/hope-jr",
+          "date": null
+        },
+        {
+          "source": "TechCrunch",
+          "url": "https://techcrunch.com/2025/05/29/hugging-face-unveils-two-new-humanoid-robots/",
+          "date": "2025-05"
+        }
+      ],
+      "noteKo": "$3,000급 오픈소스 휴머노이드. 저가 직렬 버스 서보(Feetech) 전면 채택.",
+      "year": 2025,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "Stanford Pupper",
+      "company": "Stanford Student Robotics",
+      "country": "US",
+      "segment": "quadruped",
+      "robotClass": "quadruped",
+      "actuatorVendor": "JX Servo",
+      "actuatorModel": "CLS6336HV ×12",
+      "usage": "all 12 joints",
+      "evidenceGrade": "A",
+      "sources": [
+        {
+          "source": "Stanford Student Robotics (official)",
+          "url": "https://stanfordstudentrobotics.org/pupper",
+          "date": null
+        }
+      ],
+      "noteKo": "교육용 오픈소스 4족. 상용 서보 12개. v3는 RobStride/Damiao/Unitree/CyberGear/Feetech 문서와 함께 소개되나 v3 BOM 미확인.",
+      "year": 2020,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "산업용 다관절 로봇(FANUC·Yaskawa·ABB·KUKA 등)",
+      "company": "FANUC / Yaskawa / ABB / KUKA",
+      "country": null,
+      "segment": "industrial",
+      "robotClass": "industrial arm",
+      "actuatorVendor": "Nabtesco",
+      "actuatorModel": "RV series precision reducers",
+      "usage": "main axes (중대형 로봇)",
+      "evidenceGrade": "B",
+      "sources": [
+        {
+          "source": "Morningstar analyst report",
+          "url": "https://www.morningstar.com/quotes/0P0000EKF2",
+          "date": null
+        },
+        {
+          "source": "Bloomberg (sponsored, Japan Gov)",
+          "url": "https://sponsored.bloomberg.com/article/japangov/japan-innovating-the-future-industrial-robots",
+          "date": null
+        }
+      ],
+      "noteKo": "RV 감속기 세계 점유율 약 60%(중대형). 외판 액추에이터 부품 시장의 기준 사례.",
+      "year": 2024,
+      "vendorInSuppliersJson": true,
+      "level": "component"
+    },
+    {
+      "robotName": "북미 휴머노이드 고객(복수, 미공개)",
+      "company": "Harmonic Drive Systems 고객",
+      "country": "US",
+      "segment": "humanoid_tier2",
+      "robotClass": "humanoid",
+      "actuatorVendor": "Harmonic Drive",
+      "actuatorModel": "strain wave gears (프로토타입용)",
+      "usage": "joints",
+      "evidenceGrade": "B",
+      "sources": [
+        {
+          "source": "Investing.com (Reuters)",
+          "url": "https://www.investing.com/news/stock-market-news/this-japanese-stock-is-surging-on-positive-outlook-for-humanoid-robot-orders-4367329",
+          "date": "2025-11"
+        },
+        {
+          "source": "Humanoid Alpha (Substack, HDS IR 분석)",
+          "url": "https://humanoidalpha.substack.com/p/harmonic-drive-systems-the-reducer",
+          "date": null
+        }
+      ],
+      "noteKo": "HDS FY3/26 2Q 휴머노이드 관련 수주 약 13억엔, 연간 25억엔 전망, 미국 고객 프로토타입 수주 가시성 언급. 고객명 비공개.",
+      "year": 2025,
+      "vendorInSuppliersJson": true,
+      "level": "component"
+    },
+    {
+      "robotName": "중국 구체지능 정합기 업체(복수, 미공개)",
+      "company": "RobStride Dynamics 고객(WRC 2025 참가 정합기 중 48.6% 파트너 주장)",
+      "country": "CN",
+      "segment": "humanoid_tier2",
+      "robotClass": "humanoid",
+      "actuatorVendor": "RobStride Dynamics",
+      "actuatorModel": "RobStride series (1.5~120N·m)",
+      "usage": "joints",
+      "evidenceGrade": "B",
+      "sources": [
+        {
+          "source": "36Kr",
+          "url": "https://www.36kr.com/p/3459194287216261",
+          "date": "2025-09"
+        },
+        {
+          "source": "KrASIA",
+          "url": "https://kr-asia.com/robstride-builds-the-joints-that-keep-chinas-robots-moving-and-a-thriving-industry-around-them",
+          "date": "2025"
+        },
+        {
+          "source": "36Kr Japan",
+          "url": "https://36kr.jp/375117/",
+          "date": "2025-09"
+        }
+      ],
+      "noteKo": "설립 18개월에 중국 구체지능 정합기 업체 절반 고객 확보 주장, 26개국 5만 대 출하. 매출의 60~70%는 비휴머노이드(전동 모빌리티·수영장 청소 로봇·산업자동화), 30%는 개발자 리테일. 고객명은 비공개(회사 주장).",
+      "year": 2025,
+      "vendorInSuppliersJson": true,
+      "level": "module"
+    }
+  ],
+  "vendorTargetMarkets": [
+    {
+      "vendor": "RobStride Dynamics",
+      "targetMarketsKo": [
+        "휴머노이드(오픈소스 하드웨어 플랫폼: 연구소·대학·개발자)",
+        "산업자동화",
+        "전동 모빌리티",
+        "서비스 로봇",
+        "구체지능 정합기(관절 모듈)"
+      ],
+      "grade": "A",
+      "url": "https://wrc.cie.org.cn/list_339/644.html",
+      "noteKo": "WRC 공식 참가사 소개(자기 기술). 36Kr/KrASIA: 매출 60~70%가 비휴머노이드, 개발자 리테일 ~30%."
+    },
+    {
+      "vendor": "CubeMars (T-Motor)",
+      "targetMarketsKo": [
+        "휴머노이드",
+        "4족 로봇",
+        "외골격",
+        "산업자동화",
+        "무인 시스템"
+      ],
+      "grade": "A",
+      "url": "https://www.cubemars.com/upgrade-your-robot-with-high-performance-actuators.html",
+      "noteKo": "공식: AK70-10은 외골격·4족용, AK60-39는 휴머노이드 손목용 등 모델별 용도 명시. OpenExo·Georgia Tech 외골격 사례 페이지 보유."
+    },
+    {
+      "vendor": "MyActuator (ex-Gyems)",
+      "targetMarketsKo": [
+        "휴머노이드",
+        "로봇 암",
+        "외골격",
+        "4족 로봇",
+        "AGV/SCARA"
+      ],
+      "grade": "C",
+      "url": "https://aifitlab.com/products/myactuator-rmd-x6-40-motor",
+      "noteKo": "공식 사이트 발췌 미확인, 리셀러 용도 표기 기준(C). 연구 채택 사례: AGILOped(arXiv)."
+    },
+    {
+      "vendor": "Unitree",
+      "targetMarketsKo": [
+        "로봇 경진대회",
+        "DIY/메이커",
+        "과학 연구·교육",
+        "로봇 관절·동력 부품 전반"
+      ],
+      "grade": "A",
+      "url": "https://www.unitree.com/go1motor/",
+      "noteKo": "공식 GO-M8010-6 페이지. 휴머노이드·외골격 명시는 리셀러 표기(C)에만 존재."
+    },
+    {
+      "vendor": "Xiaomi (CyberGear)",
+      "targetMarketsKo": [
+        "4족 로봇",
+        "휴머노이드",
+        "외골격",
+        "개발자/메이커(499위안)"
+      ],
+      "grade": "C",
+      "url": "https://aifitlab-wiki.super.site/xiaomi-cybergear-docs",
+      "noteKo": "커뮤니티 문서 기준(C). 자사 CyberDog 2에 탑재(공식). 제3자 완성 로봇 채택 사례는 미확인."
+    },
+    {
+      "vendor": "Harmonic Drive",
+      "targetMarketsKo": [
+        "산업용·협동 로봇 정밀 감속기",
+        "휴머노이드 관절(북미 고객 프로토타입 수주, 복수사 양산 공급 확정 언급)",
+        "SHA 시리즈 통합 액추에이터(중공축 서보+감속기+드라이브)"
+      ],
+      "grade": "B",
+      "url": "https://www.investing.com/news/stock-market-news/this-japanese-stock-is-surging-on-positive-outlook-for-humanoid-robot-orders-4367329",
+      "noteKo": "HDS FY3/26 수주 코멘트(Reuters 인용). 고객명 비공개."
+    },
+    {
+      "vendor": "maxon",
+      "targetMarketsKo": [
+        "외골격(Rex Bionics, ReWalk, Cybathlon 팀)",
+        "의료기기",
+        "로봇 관절 구동(외골격 관절 액추에이터 54/120N·m)",
+        "연구용 휴머노이드(DRC-HUBO)"
+      ],
+      "grade": "A",
+      "url": "https://www.maxongroup.com/maxon/view/application/Robotic-exoskeleton-For-a-better-quality-of-life",
+      "noteKo": "공급사 공식 고객 사례 다수. 휴머노이드 관절 전용 제품군은 미확인."
+    },
+    {
+      "vendor": "FAULHABER",
+      "targetMarketsKo": [
+        "의수·보철",
+        "휴머노이드 손/그리퍼용 소형 구동(모터+기어+센서)",
+        "협소 공간 정밀 구동"
+      ],
+      "grade": "B",
+      "url": "https://www.industrial-production.de/drive-technology/humanoid-robots--great-power-in-a-small-space.htm",
+      "noteKo": "FAULHABER 기고(공급사 자체 서술). 고객명은 비공개."
+    },
+    {
+      "vendor": "Nabtesco",
+      "targetMarketsKo": [
+        "중대형 산업용 로봇 RV 감속기(FANUC·Yaskawa·ABB·KUKA 등, 점유율 ~60%)",
+        "휴머노이드 관절(어깨·팔꿈치·고관절·다리)용 무백래시 기어·액추에이터"
+      ],
+      "grade": "B",
+      "url": "https://www.industrial-production.de/drive-technology/drive-technology-for-humanoid-robots--nabtesco-offers-shaft-gears-and-actuators-for-robot-joints.htm",
+      "noteKo": "업계지(제조사 인용). 휴머노이드 고객명 미공개."
+    },
+    {
+      "vendor": "Fourier",
+      "targetMarketsKo": [
+        "자사 GR 시리즈(FSA) — 외판 여부 확인 불가"
+      ],
+      "grade": "C",
+      "url": "https://fftai.com/products",
+      "noteKo": "개발자 문서에 액추에이터 SDK 존재. 외부 판매 근거 미확인."
+    },
+    {
+      "vendor": "AgiBot (PowerFlow)",
+      "targetMarketsKo": [
+        "자사 로봇(X1 오픈소스 포함) 핵심 부품 — 외판 여부 확인 불가"
+      ],
+      "grade": "A",
+      "url": "https://agibot.com/products/X1",
+      "noteKo": "외판은 간접 언급(ifanr, C)만 존재. 2026-07 외부 관절 공급사 泉智博에 전략 투자."
+    },
+    {
+      "vendor": "LG Electronics (AXIUM)",
+      "targetMarketsKo": [
+        "가정용 로봇(CLOiD, 2026 양산)",
+        "2027~ 외부 고객(빅테크 포함) 공급",
+        "2030 산업용 고토크 시장"
+      ],
+      "grade": "B",
+      "url": "https://www.hankyung.com/article/2026090668691",
+      "noteKo": "CEO 로드맵·IFA 2026 발언(B). 계약 확정 건은 2026-09 기준 없음."
+    },
+    {
+      "vendor": "Hyundai Mobis",
+      "targetMarketsKo": [
+        "휴머노이드 관절 액추에이터(Boston Dynamics Atlas 양산 공급, 첫 로봇 고객)",
+        "로봇 부품 시장 진입"
+      ],
+      "grade": "A",
+      "url": "https://www.barchart.com/story/news/36939666/hyundai-mobis-forms-strategic-collaboration-framework-with-boston-dynamics",
+      "noteKo": "CES 2026 공식 보도자료. '2종 공개' 세부는 확인되지 않음."
+    },
+    {
+      "vendor": "Schaeffler",
+      "targetMarketsKo": [
+        "휴머노이드 관절(어깨·팔꿈치·무릎·손목) 유성기어 액추에이터 ≤250N·m",
+        "2027 strain wave 기어박스 양산(독일)"
+      ],
+      "grade": "A",
+      "url": "https://vn.tradingview.com/news/eqs:7725b32b0094b:0-schaeffler-and-neura-robotics-launch-future-oriented-technology-partnership",
+      "noteKo": "복수 제조사와 협업 중이라고 명시."
+    },
+    {
+      "vendor": "Quanzhibo (泉智博)",
+      "targetMarketsKo": [
+        "휴머노이드 정합기(智元·乐聚·松延动力·星海图 등)",
+        "일체형 관절 2~400N·m(행성/하모닉/사이클로이드)"
+      ],
+      "grade": "B",
+      "url": "https://m.thepaper.cn/newsDetail_forward_34022797",
+      "noteKo": "2025 출하 10만 대 돌파 주장, 2026 A+++/B 라운드."
+    },
+    {
+      "vendor": "Direct Drive Tech (本末科技)",
+      "targetMarketsKo": [
+        "청소로봇 등 소비자 로봇 직구동 모듈(주력)",
+        "구체지능 관절 모듈(중국 상위 5개 업체 중 1곳 공급)",
+        "자사 휠-레그 로봇(TITA 등)"
+      ],
+      "grade": "C",
+      "url": "https://www.huxiu.com/article/4896180.html",
+      "noteKo": "관절 모듈 매출 비중 5% 미만."
+    },
+    {
+      "vendor": "Tesla",
+      "targetMarketsKo": [
+        "자사 Optimus 전용(외판 없음)"
+      ],
+      "grade": "B",
+      "url": "https://www.engineering.com/tesla-ai-day-2022-tesla-is-not-a-car-company/",
+      "noteKo": "설계 자체·제조는 Tuopu/Sanhua 위탁 보도."
+    },
+    {
+      "vendor": "Kepler Robotics",
+      "targetMarketsKo": [
+        "자사 Forerunner 전용 — 외판 여부 확인 불가"
+      ],
+      "grade": "C",
+      "url": "https://equalocean.com/news/2026051321887-inside-kepler-focusing-industrial-implementation-embodied-ai",
+      "noteKo": "외판 근거는 확인되지 않음."
+    }
+  ]
+}

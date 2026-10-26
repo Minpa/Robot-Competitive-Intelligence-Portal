@@ -10,6 +10,7 @@ const h = vi.hoisted(() => ({
   inserted: [] as unknown[],
   locked: [] as unknown[],
   markerExists: { value: false },
+  invalidateMock: vi.fn(),
 }));
 
 vi.mock('../../db/index.js', async () => {
@@ -18,6 +19,9 @@ vi.mock('../../db/index.js', async () => {
 });
 vi.mock('../../services/data-migration.service.js', () => ({
   dataMigrationService: { has: h.hasMock },
+}));
+vi.mock('../../services/actuator-position-map.service.js', () => ({
+  actuatorPositionMapService: { invalidate: h.invalidateMock },
 }));
 vi.mock('../../db/apply-actuator-data-update.js', () => ({
   applyActuatorDataUpdate: h.applyMock,
@@ -40,7 +44,7 @@ function fakeApply(result: Record<string, unknown> = {}) {
     };
     const base = {
       counters: { robots: { insert: 1, update: 0, skip: 0 } }, warnings: ['w'], createdCompanies: [], createdRobots: [],
-      sectionsRun: ['suppliers', 'robots', 'ci'], dryRun: opts.dryRun, files: { robotsGeneratedAt: 'r', suppliersGeneratedAt: 's' }, ...result,
+      sectionsRun: ['suppliers', 'robots', 'ci'], dryRun: opts.dryRun, files: { robotsGeneratedAt: 'r', suppliersGeneratedAt: 's', sourcingGeneratedAt: 'so', adoptionsGeneratedAt: 'ad' }, ...result,
     };
     if (opts.txHooks) {
       if ((await opts.txHooks.beforeWrite(tx)) === 'skip') return { ...base, skipped: true, sectionsRun: [] };
@@ -57,6 +61,7 @@ beforeEach(() => {
   h.hasMock.mockReset().mockResolvedValue(false);
   h.applyMock.mockReset().mockImplementation(fakeApply());
   h.keyMock.mockReset().mockReturnValue(KEY);
+  h.invalidateMock.mockReset().mockResolvedValue(undefined);
   h.inserted.length = 0;
   h.locked.length = 0;
   h.markerExists.value = false;
@@ -129,7 +134,9 @@ describe('autoApplyActuatorData', () => {
     const marker = h.inserted[0] as { key: string; summary: Record<string, any> };
     expect(marker.key).toBe(KEY);
     expect(marker.summary.counters.robots.insert).toBe(1);
-    expect(marker.summary.files).toMatchObject({ robotsGeneratedAt: 'r', suppliersGeneratedAt: 's', sha: '0123456789ab' });
+    expect(marker.summary.files).toMatchObject({
+      robotsGeneratedAt: 'r', suppliersGeneratedAt: 's', sourcingGeneratedAt: 'so', adoptionsGeneratedAt: 'ad', sha: '0123456789ab',
+    });
     expect(marker.summary.warningCount).toBe(1);
     expect(logSpy.mock.calls[0]![0]).toMatch(/^\[ActuatorAutoApply\] key=actuator-update:0123456789ab status=applied durationMs=\d+ counts=\{/);
     expect(ADVISORY_LOCK_KEY).toBeTypeOf('number');
@@ -193,15 +200,68 @@ describe('autoApplyActuatorData', () => {
   });
 });
 
+describe('position map cache invalidation', () => {
+  it('applied: invalidate() is awaited once, after the apply transaction finished', async () => {
+    const order: string[] = [];
+    h.applyMock.mockImplementation(async (opts: any) => {
+      const r = await fakeApply()(opts);
+      order.push('apply-done');
+      return r;
+    });
+    h.invalidateMock.mockImplementation(async () => { order.push('invalidate'); });
+    const r = await autoApplyActuatorData();
+    expect(r.status).toBe('applied');
+    expect(h.invalidateMock).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(['apply-done', 'invalidate']);
+  });
+
+  it('skipped (marker exists), disabled, failed and dry-run never invalidate', async () => {
+    h.hasMock.mockResolvedValue(true);
+    await autoApplyActuatorData(); // skipped
+    h.hasMock.mockResolvedValue(false);
+    h.markerExists.value = true;
+    await autoApplyActuatorData(); // in-transaction skip (lock + recheck)
+    h.markerExists.value = false;
+    h.applyMock.mockRejectedValueOnce(new Error('db down'));
+    await autoApplyActuatorData(); // failed
+    process.env.ACTUATOR_DATA_AUTO_APPLY = 'dry-run';
+    await autoApplyActuatorData(); // dry-run
+    process.env.ACTUATOR_DATA_AUTO_APPLY = 'false';
+    await autoApplyActuatorData(); // disabled
+    expect(h.invalidateMock).not.toHaveBeenCalled();
+  });
+
+  it('an invalidate failure does not change the outcome', async () => {
+    h.invalidateMock.mockRejectedValue(new Error('cache down'));
+    const r = await autoApplyActuatorData();
+    expect(r.status).toBe('applied');
+    expect(warnSpy.mock.calls.some((c) => String(c[0]).includes('cache invalidation failed'))).toBe(true);
+  });
+});
+
 describe('buildMarkerSummary', () => {
   it('caps warnings at 50 and keeps the full count', () => {
     const warnings = Array.from({ length: 80 }, (_, i) => `w${i}`);
     const s = buildMarkerSummary(
-      { counters: {}, warnings, createdCompanies: [], createdRobots: [], sectionsRun: ['ci'], dryRun: false, files: { robotsGeneratedAt: null, suppliersGeneratedAt: null } },
+      {
+        counters: {}, warnings, createdCompanies: [], createdRobots: [], sectionsRun: ['ci'], dryRun: false,
+        files: { robotsGeneratedAt: null, suppliersGeneratedAt: null, sourcingGeneratedAt: null, adoptionsGeneratedAt: null },
+      },
       KEY, 5,
     ) as any;
     expect(s.warnings).toHaveLength(50);
     expect(s.warningCount).toBe(80);
     expect(s.durationMs).toBe(5);
+  });
+  it('carries all four generatedAt values in files', () => {
+    const s = buildMarkerSummary(
+      {
+        counters: {}, warnings: [], createdCompanies: [], createdRobots: [], sectionsRun: ['sourcing', 'adoptions'], dryRun: false,
+        files: { robotsGeneratedAt: 'a', suppliersGeneratedAt: 'b', sourcingGeneratedAt: 'c', adoptionsGeneratedAt: 'd' },
+      },
+      KEY, 1,
+    ) as any;
+    expect(s.files).toEqual({ robotsGeneratedAt: 'a', suppliersGeneratedAt: 'b', sourcingGeneratedAt: 'c', adoptionsGeneratedAt: 'd', sha: '0123456789ab' });
+    expect(s.sections).toEqual(['sourcing', 'adoptions']);
   });
 });

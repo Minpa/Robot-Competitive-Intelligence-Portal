@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { buildTechTrendReportHtml, safeHref } from '@/lib/tech-trend-report-html';
 import type { TechTrendReport } from '@/types/tech-trend-report';
 import { buildActuatorMapCardHtml, buildActuatorStrategyCardHtml } from './actuator-map-html';
-import { STRATEGY_CONTENT, STRATEGY_SOURCES, safeSourceHref } from './actuator-strategy';
+import { STRATEGY_CONTENT, STRATEGY_SOURCES, buildHeadlineMessage, computeStrategyStats, safeSourceHref } from './actuator-strategy';
 import { act, response, robot, seedResponse, sp } from './actuator-strategy.fixtures';
 
 /** actuator-map-html.ts 의 INK·WHITE 값 (새 hex 금지 검증용) */
 const ALLOWED_HEX = new Set(['#1f2328', '#5c636e', '#8a909a', '#9aa1ac', '#c6cad0', '#e6e7ea', '#ececef', '#f6f7f8', '#fff']);
 const count = (s: string, re: RegExp) => (s.match(re) ?? []).length;
 
+const esc2 = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 const XSS = '<img src=x onerror=alert(1)>"';
 
 describe('buildActuatorStrategyCardHtml', () => {
@@ -79,10 +80,10 @@ describe('buildActuatorStrategyCardHtml', () => {
       expect(count(h, /<\/section>/g)).toBe(1);
       expect(count(h, /<table[\s>]/g)).toBe(count(h, /<\/table>/g));
       expect(count(h, /<tr[\s>]/g)).toBe(count(h, /<\/tr>/g));
-      expect(count(h, /<table[\s>]/g)).toBe(4);
-      expect(count(h, /<caption/g)).toBe(4);
+      expect(count(h, /<table[\s>]/g)).toBe(5);
+      expect(count(h, /<caption/g)).toBe(5);
       expect(count(h, /<th /g)).toBe(count(h, /<th scope="col"/g));
-      expect(count(h, /<tr style="[^"]*break-inside:avoid/g)).toBe(count(h, /<tr[\s>]/g) - 4);
+      expect(count(h, /<tr style="[^"]*break-inside:avoid/g)).toBe(count(h, /<tr[\s>]/g) - 5);
     }
   });
 
@@ -91,14 +92,46 @@ describe('buildActuatorStrategyCardHtml', () => {
     for (const o of STRATEGY_CONTENT.options) expect(html).toContain(esc(o.name));
     for (const m of STRATEGY_CONTENT.collabModels) expect(html).toContain(esc(m.name));
     for (const q of STRATEGY_CONTENT.questions) expect(html).toContain(esc(q));
-    expect(count(html, /<li style="margin:3px 0;break-inside:avoid;page-break-inside:avoid">/g)).toBe(7 + 8);
+    expect(count(html, /<li style="margin:3px 0;break-inside:avoid;page-break-inside:avoid">/g)).toBe(8 + 8);
   });
 
   it('동적 문장·지표·푸터가 시드 값으로 채워진다', () => {
     expect(html).toContain('가격이 등록된 제품 13개의 가격은 $110~$990, 중앙값 $230입니다.');
-    expect(html).toContain('외판 확인 3개사');
+    expect(html).toContain('외판 확인 2개사(Unitree Robotics, Xiaomi)');
+    expect(html).toContain('외판 확인 2개사(Unitree Robotics, Xiaomi), 외판 계획 1개사(LG Electronics)입니다.');
+    expect(html).toContain('확인 2 · 계획 1');
     expect(html).toContain('2026.10.25 12:04 KST');
     expect(html).toContain('13개 / $230');
+    expect(html).toContain('78% (7/9개사) · 확인 불가 1개사');
+    expect(html).toContain('8건 (제조사 로봇 2 + 공개 채택 6)');
+  });
+
+  it('헤드라인이 카드 최상단에 있고 지도 카드와 같은 문장이다 (AC-42)', () => {
+    const data = seedResponse();
+    const headline = buildHeadlineMessage(computeStrategyStats(data));
+    const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    expect(html.indexOf(esc(headline))).toBeGreaterThan(-1);
+    expect(html.indexOf(esc(headline))).toBeLessThan(html.indexOf(esc(STRATEGY_CONTENT.notice)));
+    expect(buildActuatorMapCardHtml(data)).toContain(esc(headline));
+  });
+
+  it('절 번호 1~6, 세트 역할 7행 표, 구 번호(3-3)·구 절 제목 없음 (AC-37·39)', () => {
+    const C = STRATEGY_CONTENT;
+    expect(Object.values(C.sections).slice(0, 6).map((t) => t.charAt(0))).toEqual(['1', '2', '3', '4', '5', '6']);
+    expect(html).toContain('2. 세트(LG CLOiD)의 역할: 직접 3 + 간접 3');
+    expect(html).not.toContain('3-3');
+    expect(html).not.toContain('5. 의사결정 질문');
+    expect(html).toContain('정보 차단벽(4절 협업 모델 5번)');
+    expect(C.roles).toHaveLength(7);
+    // roles 표: 헤더 1 + 7행
+    const rolesTable = html.slice(html.indexOf('<caption', html.indexOf(esc2(C.sections.roles)) - 200));
+    expect(rolesTable).toContain('1차 고객 물량');
+    expect(rolesTable).toContain('비교 사례');
+  });
+
+  it('인쇄 규칙: 전략 카드의 표 래퍼도 tbl-wrap, <style> 하나', () => {
+    expect(count(html, /<style>@media print\{/g)).toBe(1);
+    expect(count(html, /class="tbl-wrap"/g)).toBe(count(html, /<table[\s>]/g));
   });
 
   it('T36 buildTechTrendReportHtml: 전략 카드가 지도 카드 뒤에 위치', () => {
@@ -128,6 +161,7 @@ describe('buildActuatorStrategyCardHtml', () => {
     const strategyAt = full.indexOf(STRATEGY_CONTENT.kicker);
     expect(mapAt).toBeGreaterThan(-1);
     expect(strategyAt).toBeGreaterThan(mapAt);
+    expect(strategyAt).toBeGreaterThan(full.indexOf('공급사 제품 맵'));
     expect(full.indexOf('</html>')).toBeGreaterThan(strategyAt);
     // 지도 데이터가 없어도 전략 카드는 단독으로 포함된다
     const only = buildTechTrendReportHtml(report, { pageUrl: 'https://x.test/a', titleKo: '액', titleEn: 'A' }, null, buildActuatorStrategyCardHtml(undefined));

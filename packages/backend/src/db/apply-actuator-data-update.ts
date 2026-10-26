@@ -4,7 +4,7 @@
  * CLI(`update-actuator-data.ts`)와 기동 시 자동 적용(`actuator-auto-apply.service.ts`)이 공유한다.
  * 이 모듈은 import 만으로 아무것도 실행하지 않는다 — 최상위 main() 호출, process.exit, process.argv 접근 금지.
  *
- * 입력: `src/db/seed-data/actuator-update/robots.json`, `suppliers.json`
+ * 입력: `src/db/seed-data/actuator-update/robots.json`, `suppliers.json`, `sourcing-regrade.json`, `demand-cases.json`
  *       (스키마는 actuator-update.util.ts 의 RobotsFile / SuppliersFile 참고.
  *        `*.sample.json` 은 개발용 픽스처이며 자동으로 사용되지 않는다 — 실제 파일이 없으면 에러.)
  *
@@ -22,6 +22,11 @@
  *   ci        : hw 레이어 '액추에이터' 카테고리에 항목 보장 → ci_competitors 매핑(제품명 일치 > 같은 회사 + 제품군 토큰)
  *               → ci_values 업서트(기존 값보다 신뢰도가 낮으면 건너뜀, 변경 시 ci_value_history 기록),
  *               '가격대' 항목이 있으면 가격 반영
+ *   sourcing  : sourcing-regrade.json → actuator_sourcing (로봇당 1행; humanoid_robots 는 같은 회사 안에서 매칭만, 생성하지 않음.
+ *               행 단위 덮어쓰기 — 같은 내용이면 skip). 같은 트랜잭션에서 방금 만든 로봇도 본다.
+ *   adoptions : demand-cases.json → actuator_adoptions(case_key 업서트), actuator_vendor_markets(vendor_key 업서트). companies 는 건드리지 않음.
+ *               sourcing/adoptions 파일이 없으면 해당 섹션은 경고 1건과 함께 건너뛴다(배포 순서 이슈로 기동이 막히지 않게).
+ *               두 섹션이 있으면 트랜잭션 시작 직후 DDL(CREATE TABLE IF NOT EXISTS)을 먼저 실행한다.
  *   모든 쓰기는 하나의 트랜잭션. 매칭 실패는 경고로 수집. 모든 출력은 주입된 logger 를 경유한다.
  *   txHooks 로 같은 트랜잭션 안에서 중복 방지(beforeWrite)와 완료 마커 기록(afterWrite)을 할 수 있다.
  */
@@ -32,6 +37,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { and, eq, sql } from 'drizzle-orm';
 import { db } from './index.js';
+import { runActuatorSourcingDdl } from './actuator-sourcing.ddl.js';
 import {
   companies,
   products,
@@ -47,6 +53,9 @@ import {
   ciItems,
   ciValues,
   ciValueHistory,
+  actuatorSourcing,
+  actuatorAdoptions,
+  actuatorVendorMarkets,
   type ComponentSpecs,
   type DynamicSpecs,
 } from './schema.js';
@@ -54,6 +63,9 @@ import {
   type RobotsFile,
   type SuppliersFile,
   type RobotInput,
+  type SourcingFile,
+  type AdoptionsFile,
+  type FileValidation,
   type Counters,
   type Section,
   type Confidence,
@@ -61,6 +73,11 @@ import {
   type CompetitorMatch,
   validateRobotsFile,
   validateSuppliersFile,
+  validateSourcingFile,
+  validateAdoptionsFile,
+  adoptionCaseKey,
+  vendorKey,
+  deepEqual,
   bump,
   matchCompany,
   matchRobot,
@@ -127,7 +144,12 @@ export interface ApplyResult {
   sectionsRun: Section[];
   skipped?: true;
   dryRun: boolean;
-  files: { robotsGeneratedAt: string | null; suppliersGeneratedAt: string | null };
+  files: {
+    robotsGeneratedAt: string | null;
+    suppliersGeneratedAt: string | null;
+    sourcingGeneratedAt: string | null;
+    adoptionsGeneratedAt: string | null;
+  };
 }
 
 export interface ApplyTxHooks {
@@ -160,6 +182,7 @@ class Ctx {
   private dryCounter = 0;
   private companyCache: CompanyRow[] | null = null;
   private componentCache: ComponentCacheRow[] | null = null;
+  private robotCache: RobotCacheRow[] | null = null;
 
   constructor(public tx: Tx, public dryRun: boolean, public createRobotCompanies: boolean, public logger: ApplyLogger) {}
 
@@ -171,6 +194,29 @@ class Ctx {
         .from(companies);
     }
     return this.companyCache;
+  }
+
+  /** humanoid_robots 캐시 — robots 단계가 만든 행(dry-run 가짜 id 포함)을 sourcing 단계가 같이 보도록 공유 */
+  async robotRows(): Promise<RobotCacheRow[]> {
+    if (!this.robotCache) {
+      this.robotCache = await this.tx
+        .select({
+          id: humanoidRobots.id,
+          companyId: humanoidRobots.companyId,
+          name: humanoidRobots.name,
+          announcementYear: humanoidRobots.announcementYear,
+          announcementQuarter: humanoidRobots.announcementQuarter,
+          status: humanoidRobots.status,
+          purpose: humanoidRobots.purpose,
+          locomotionType: humanoidRobots.locomotionType,
+          handType: humanoidRobots.handType,
+          commercializationStage: humanoidRobots.commercializationStage,
+          region: humanoidRobots.region,
+          description: humanoidRobots.description,
+        })
+        .from(humanoidRobots);
+    }
+    return this.robotCache;
   }
 
   async actuatorComponents(): Promise<ComponentCacheRow[]> {
@@ -233,6 +279,11 @@ export function loadJson<T>(filePath: string, label: string, validate: (d: unkno
 // ------------------------------------------------------------
 
 type CompanyRow = { id: string; name: string; category: string; country: string };
+type RobotCacheRow = {
+  id: string; companyId: string; name: string; announcementYear: number | null; announcementQuarter: number | null;
+  status: string | null; purpose: string | null; locomotionType: string | null; handType: string | null;
+  commercializationStage: string | null; region: string | null; description: string | null;
+};
 
 /**
  * 회사 매칭. 실패 시 allowCreate 면 생성(경고 없이 "신규 생성" 목록에 기록), 아니면 경고 후 null.
@@ -331,22 +382,7 @@ async function upsertComponent(
 async function runRobots(ctx: Ctx, file: RobotsFile): Promise<void> {
   ctx.logger.info(`\n=== [robots] ${file.robots.length}건 (generatedAt=${file.generatedAt ?? '?'}) ===`);
   const companyCache = await ctx.companies();
-  const robotCache = await ctx.tx
-    .select({
-      id: humanoidRobots.id,
-      companyId: humanoidRobots.companyId,
-      name: humanoidRobots.name,
-      announcementYear: humanoidRobots.announcementYear,
-      announcementQuarter: humanoidRobots.announcementQuarter,
-      status: humanoidRobots.status,
-      purpose: humanoidRobots.purpose,
-      locomotionType: humanoidRobots.locomotionType,
-      handType: humanoidRobots.handType,
-      commercializationStage: humanoidRobots.commercializationStage,
-      region: humanoidRobots.region,
-      description: humanoidRobots.description,
-    })
-    .from(humanoidRobots);
+  const robotCache = await ctx.robotRows();
   const componentCache = await ctx.actuatorComponents();
 
   for (const robot of file.robots) {
@@ -731,6 +767,161 @@ async function runCi(ctx: Ctx, file: RobotsFile): Promise<void> {
 }
 
 // ------------------------------------------------------------
+// 4. sourcing-regrade.json → actuator_sourcing
+// ------------------------------------------------------------
+
+type SourcingDbRow = typeof actuatorSourcing.$inferSelect;
+
+/** 비교·기록 대상 컬럼만 (updated_at 제외) */
+function sourcingComparable(r: Pick<SourcingDbRow, 'sourcing' | 'sellsExternally' | 'evidenceGrade' | 'evidence' | 'externalVendors' | 'noteKo'>) {
+  return {
+    sourcing: r.sourcing,
+    sellsExternally: r.sellsExternally ?? null,
+    evidenceGrade: r.evidenceGrade ?? null,
+    evidence: r.evidence ?? [],
+    externalVendors: r.externalVendors ?? [],
+    noteKo: r.noteKo ?? null,
+  };
+}
+
+async function runSourcing(ctx: Ctx, file: SourcingFile): Promise<void> {
+  ctx.logger.info(`\n=== [sourcing] ${file.robots.length}건 ===`);
+  const companyCache = await ctx.companies();
+  const robotCache = await ctx.robotRows();
+
+  // 로봇 해석 — 회사는 생성하지 않고, 로봇은 같은 회사 안에서만 매칭. 같은 로봇이 중복되면 마지막 항목 사용
+  const targets = new Map<string, { robotId: string; label: string; entry: SourcingFile['robots'][number] }>();
+  for (const entry of file.robots) {
+    ctx.logger.detail(`\n- ${entry.company} / ${entry.name}`);
+    const company = matchCompany(companyCache, entry.company, entry.companyAliases);
+    const rm = company ? matchRobot(robotCache, { name: entry.name, aliases: entry.aliases, company: entry.company }, company.row.id) : null;
+    if (!rm) {
+      ctx.warn(`sourcing 대상 로봇 없음: ${entry.company} / ${entry.name}`);
+      continue;
+    }
+    const label = `${entry.company} / ${entry.name}`;
+    const prev = targets.get(rm.row.id);
+    if (prev) ctx.warn(`sourcing 중복 로봇: "${prev.label}" 과 "${label}" 이 같은 로봇(${rm.row.name})으로 매칭됨 — 마지막 항목 사용`);
+    targets.set(rm.row.id, { robotId: rm.row.id, label, entry });
+  }
+
+  const realIds = [...targets.keys()].filter((id) => !ctx.isDryId(id));
+  const existingRows: SourcingDbRow[] = realIds.length > 0 ? await ctx.tx.select().from(actuatorSourcing) : [];
+  const existingById = new Map(existingRows.map((r) => [r.robotId, r]));
+
+  for (const { robotId, label, entry } of targets.values()) {
+    const desired = {
+      sourcing: entry.sourcing,
+      sellsExternally: entry.sellsExternally,
+      evidenceGrade: entry.evidenceGrade,
+      evidence: entry.evidence,
+      externalVendors: entry.externalVendors,
+      noteKo: entry.noteKo,
+    };
+    if (ctx.isDryId(robotId)) {
+      bump(ctx.counters, 'actuator_sourcing', 'insert');
+      ctx.log(`actuator_sourcing 생성: ${label} [${entry.sourcing}]`);
+      continue;
+    }
+    const cur = existingById.get(robotId);
+    if (cur && deepEqual(sourcingComparable(cur), desired)) {
+      bump(ctx.counters, 'actuator_sourcing', 'skip');
+      continue;
+    }
+    bump(ctx.counters, 'actuator_sourcing', cur ? 'update' : 'insert');
+    ctx.log(`actuator_sourcing ${cur ? '갱신' : '생성'}: ${label} [${entry.sourcing}]`);
+    if (!ctx.dryRun) {
+      await ctx.tx
+        .insert(actuatorSourcing)
+        .values({ robotId, ...desired })
+        .onConflictDoUpdate({ target: actuatorSourcing.robotId, set: { ...desired, updatedAt: new Date() } });
+    }
+  }
+
+  // 파일에서 빠진 행은 삭제하지 않고 기록만
+  const missing = existingRows.filter((r) => !targets.has(r.robotId));
+  if (missing.length > 0) ctx.log(`actuator_sourcing: 파일에 없는 기존 행 ${missing.length}건 유지 (삭제하지 않음)`);
+}
+
+// ------------------------------------------------------------
+// 5. demand-cases.json → actuator_adoptions / actuator_vendor_markets
+// ------------------------------------------------------------
+
+async function runAdoptions(ctx: Ctx, file: AdoptionsFile): Promise<void> {
+  ctx.logger.info(`\n=== [adoptions] 사례 ${file.cases.length}건, 공급사 타깃 시장 ${file.vendorTargetMarkets.length}건 ===`);
+
+  // vendorTargetMarkets — 같은 키가 중복되면 마지막 항목 사용
+  const markets = new Map<string, AdoptionsFile['vendorTargetMarkets'][number]>();
+  for (const v of file.vendorTargetMarkets) {
+    const key = vendorKey(v.vendor);
+    if (!key) { ctx.warn(`vendorTargetMarkets 키를 만들 수 없음: "${v.vendor}" — 건너뜀`); continue; }
+    if (markets.has(key)) ctx.warn(`vendorTargetMarkets 중복 공급사: "${v.vendor}" (키 ${key}) — 마지막 항목 사용`);
+    markets.set(key, v);
+  }
+  const existingMarkets = new Map((await ctx.tx.select().from(actuatorVendorMarkets)).map((r) => [r.vendorKey, r]));
+  for (const [key, v] of markets) {
+    const desired = { vendor: v.vendor, targetMarketsKo: v.targetMarketsKo, segments: v.segments, grade: v.grade, url: v.url };
+    const cur = existingMarkets.get(key);
+    const curCmp = cur ? { vendor: cur.vendor, targetMarketsKo: cur.targetMarketsKo ?? [], segments: cur.segments ?? null, grade: cur.grade ?? null, url: cur.url ?? null } : null;
+    if (curCmp && deepEqual(curCmp, desired)) { bump(ctx.counters, 'actuator_vendor_markets', 'skip'); continue; }
+    bump(ctx.counters, 'actuator_vendor_markets', cur ? 'update' : 'insert');
+    ctx.log(`actuator_vendor_markets ${cur ? '갱신' : '생성'}: ${v.vendor}`);
+    if (!ctx.dryRun) {
+      await ctx.tx
+        .insert(actuatorVendorMarkets)
+        .values({ vendorKey: key, ...desired })
+        .onConflictDoUpdate({ target: actuatorVendorMarkets.vendorKey, set: { ...desired, updatedAt: new Date() } });
+    }
+  }
+
+  // cases — case_key 로 업서트 (같은 키 중복은 마지막 항목 사용)
+  const cases = new Map<string, AdoptionsFile['cases'][number]>();
+  for (const c of file.cases) {
+    const key = adoptionCaseKey(c);
+    if (cases.has(key)) ctx.warn(`수요 사례 중복: ${c.company} / ${c.robotName} / ${c.actuatorVendor} — 마지막 항목 사용`);
+    cases.set(key, c);
+  }
+  const existingCases = new Map((await ctx.tx.select().from(actuatorAdoptions)).map((r) => [r.caseKey, r]));
+  for (const [key, c] of cases) {
+    const desired = {
+      robotName: c.robotName,
+      company: c.company,
+      country: c.country,
+      segment: c.segment,
+      level: c.level,
+      robotClass: c.robotClass,
+      actuatorVendor: c.actuatorVendor,
+      actuatorModel: c.actuatorModel,
+      usageText: c.usage,
+      evidenceGrade: c.evidenceGrade,
+      sources: c.sources,
+      noteKo: c.noteKo,
+      adoptedYear: c.year,
+    };
+    const cur = existingCases.get(key);
+    const curCmp = cur
+      ? {
+          robotName: cur.robotName, company: cur.company, country: cur.country ?? null, segment: cur.segment, level: cur.level,
+          robotClass: cur.robotClass ?? null, actuatorVendor: cur.actuatorVendor, actuatorModel: cur.actuatorModel ?? null,
+          usageText: cur.usageText ?? null, evidenceGrade: cur.evidenceGrade ?? null, sources: cur.sources ?? [],
+          noteKo: cur.noteKo ?? null, adoptedYear: cur.adoptedYear ?? null,
+        }
+      : null;
+    if (curCmp && deepEqual(curCmp, desired)) { bump(ctx.counters, 'actuator_adoptions', 'skip'); continue; }
+    bump(ctx.counters, 'actuator_adoptions', cur ? 'update' : 'insert');
+    ctx.log(`actuator_adoptions ${cur ? '갱신' : '생성'}: ${c.company} / ${c.robotName} ← ${c.actuatorVendor}`);
+    if (!ctx.dryRun) {
+      await ctx.tx
+        .insert(actuatorAdoptions)
+        .values({ caseKey: key, ...desired })
+        .onConflictDoUpdate({ target: actuatorAdoptions.caseKey, set: { ...desired, updatedAt: new Date() } });
+    }
+  }
+  const missingCases = [...existingCases.keys()].filter((k) => !cases.has(k));
+  if (missingCases.length > 0) ctx.log(`actuator_adoptions: 파일에 없는 기존 행 ${missingCases.length}건 유지 (삭제하지 않음)`);
+}
+
+// ------------------------------------------------------------
 // 진입점
 // ------------------------------------------------------------
 
@@ -738,38 +929,92 @@ class DryRunRollback extends Error {
   constructor() { super('dry-run rollback'); }
 }
 
+export const SOURCING_FILE_NAME = 'sourcing-regrade.json';
+export const ADOPTIONS_FILE_NAME = 'demand-cases.json';
+
+/**
+ * 선택 입력 파일 로딩. 파일이 없으면 file=null + 경고 1건(호출 측이 섹션을 건너뜀),
+ * JSON 파손·최상위 구조 오류는 throw, 위반 원소는 경고와 함께 제거된 정규화 결과를 돌려준다.
+ */
+export function loadOptionalJson<T>(
+  filePath: string,
+  label: string,
+  validate: (d: unknown) => FileValidation<T>,
+): { file: T | null; warnings: string[] } {
+  if (!fs.existsSync(filePath)) {
+    return { file: null, warnings: [`${label} 파일이 없어 해당 섹션을 건너뜁니다: ${filePath}`] };
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  } catch (e) {
+    throw new Error(`${label} JSON 파싱 실패 (${filePath}): ${(e as Error).message}`);
+  }
+  const v = validate(parsed);
+  if (v.errors.length > 0) throw new Error(`${label} 형식 오류:\n  - ${v.errors.join('\n  - ')}`);
+  return { file: v.file, warnings: v.warnings };
+}
+
 /**
  * 입력 파일을 읽고 검증한다 (DB 접속 전). 필요한 섹션의 파일만 읽는다.
- * 파일 없음·JSON 파싱 실패·형식 오류는 throw.
+ * robots/suppliers: 파일 없음·JSON 파싱 실패·형식 오류는 throw.
+ * sourcing/adoptions: 파일 없음은 null + 경고(throw 안 함), JSON 파손·최상위 형식 오류는 throw.
+ * `warnings` 는 적용 단계에서 결과 경고에 합쳐진다.
  */
 export function loadActuatorDataFiles(
   dataDir: string,
   sections: Iterable<Section> = ALL_SECTIONS,
-): { robotsFile: RobotsFile | null; suppliersFile: SuppliersFile | null } {
+): {
+  robotsFile: RobotsFile | null;
+  suppliersFile: SuppliersFile | null;
+  sourcingFile: SourcingFile | null;
+  adoptionsFile: AdoptionsFile | null;
+  warnings: string[];
+} {
   const only = new Set(sections);
   const needRobots = only.has('robots') || only.has('ci');
   const needSuppliers = only.has('suppliers');
   const robotsFile = needRobots ? loadJson<RobotsFile>(path.join(dataDir, 'robots.json'), 'robots.json', validateRobotsFile) : null;
   const suppliersFile = needSuppliers ? loadJson<SuppliersFile>(path.join(dataDir, 'suppliers.json'), 'suppliers.json', validateSuppliersFile) : null;
-  return { robotsFile, suppliersFile };
+  const warnings: string[] = [];
+  let sourcingFile: SourcingFile | null = null;
+  let adoptionsFile: AdoptionsFile | null = null;
+  if (only.has('sourcing')) {
+    const r = loadOptionalJson(path.join(dataDir, SOURCING_FILE_NAME), SOURCING_FILE_NAME, validateSourcingFile);
+    sourcingFile = r.file;
+    warnings.push(...r.warnings);
+  }
+  if (only.has('adoptions')) {
+    const r = loadOptionalJson(path.join(dataDir, ADOPTIONS_FILE_NAME), ADOPTIONS_FILE_NAME, validateAdoptionsFile);
+    adoptionsFile = r.file;
+    warnings.push(...r.warnings);
+  }
+  return { robotsFile, suppliersFile, sourcingFile, adoptionsFile, warnings };
 }
 
-/** 업서트 로직 버전 — 로직을 바꿔 같은 데이터를 다시 적용해야 할 때만 올린다 (자동 적용 키에 포함). */
-export const LOGIC_VERSION = 1;
+/** 업서트 로직 버전 — 로직을 바꿔 같은 데이터를 다시 적용해야 할 때만 올린다 (자동 적용 키에 포함). 2: sourcing/adoptions 섹션 추가 */
+export const LOGIC_VERSION = 2;
 
 /**
  * 데이터 파일의 내용 해시 키 — `actuator-update:<sha256 12자리>`.
- * sha256(LOGIC_VERSION \0 robots.json 원본 바이트 \0 suppliers.json 원본 바이트). `*.sample.json` 은 사용하지 않는다.
+ * sha256(LOGIC_VERSION \0 robots.json \0 suppliers.json \0 sourcing-regrade.json \0 demand-cases.json) — 원본 바이트.
+ * sourcing/adoptions 파일이 없으면 0바이트로 취급한다(배포 순서 이슈로 기동이 막히지 않게). `*.sample.json` 은 사용하지 않는다.
  */
 export function computeActuatorDataKey(dataDir: string = resolveDefaultDataDir(), logicVersion: number = LOGIC_VERSION): string {
-  const robotsPath = path.join(dataDir, 'robots.json');
-  const suppliersPath = path.join(dataDir, 'suppliers.json');
+  const readOptional = (name: string): Buffer => {
+    const p = path.join(dataDir, name);
+    return fs.existsSync(p) ? fs.readFileSync(p) : Buffer.alloc(0);
+  };
   const hash = createHash('sha256');
   hash.update(String(logicVersion));
   hash.update('\0');
-  hash.update(fs.readFileSync(robotsPath));
+  hash.update(fs.readFileSync(path.join(dataDir, 'robots.json')));
   hash.update('\0');
-  hash.update(fs.readFileSync(suppliersPath));
+  hash.update(fs.readFileSync(path.join(dataDir, 'suppliers.json')));
+  hash.update('\0');
+  hash.update(readOptional(SOURCING_FILE_NAME));
+  hash.update('\0');
+  hash.update(readOptional(ADOPTIONS_FILE_NAME));
   return `actuator-update:${hash.digest('hex').slice(0, 12)}`;
 }
 
@@ -784,7 +1029,7 @@ export async function applyActuatorDataUpdate(options: ApplyOptions): Promise<Ap
   const createRobotCompanies = options.createRobotCompanies ?? false;
 
   // 입력 파일을 먼저 모두 검증 (DB 접속 전 실패)
-  const { robotsFile, suppliersFile } = loadActuatorDataFiles(dataDir, only);
+  const { robotsFile, suppliersFile, sourcingFile, adoptionsFile, warnings: loadWarnings } = loadActuatorDataFiles(dataDir, only);
 
   logger.detail(`=== 액추에이터 데이터 업데이트 ${dryRun ? '(DRY-RUN: 쓰기 없음)' : ''} ===`);
   logger.detail(`data-dir: ${dataDir}`);
@@ -800,6 +1045,8 @@ export async function applyActuatorDataUpdate(options: ApplyOptions): Promise<Ap
     files: {
       robotsGeneratedAt: robotsFile?.generatedAt ?? null,
       suppliersGeneratedAt: suppliersFile?.generatedAt ?? null,
+      sourcingGeneratedAt: sourcingFile?.generatedAt ?? null,
+      adoptionsGeneratedAt: adoptionsFile?.generatedAt ?? null,
     },
   };
 
@@ -812,10 +1059,18 @@ export async function applyActuatorDataUpdate(options: ApplyOptions): Promise<Ap
       }
     }
     const ctx = new Ctx(tx, dryRun, createRobotCompanies, logger);
-    // suppliers 를 먼저 실행: 공급사로 생성된 회사(예: 액추에이터도 만드는 로봇 회사)가 같은 실행의 robots 단계에서 보이도록
+    for (const w of loadWarnings) ctx.warn(w);
+    // 새 테이블 보장 (CREATE TABLE IF NOT EXISTS) — 같은 트랜잭션이므로 dry-run 이면 롤백된다
+    if ((only.has('sourcing') && sourcingFile) || (only.has('adoptions') && adoptionsFile)) {
+      await runActuatorSourcingDdl(tx);
+    }
+    // suppliers 를 먼저 실행: 공급사로 생성된 회사(예: 액추에이터도 만드는 로봇 회사)가 같은 실행의 robots 단계에서 보이도록.
+    // sourcing 은 같은 트랜잭션에서 방금 만든 로봇을 봐야 하므로 robots 뒤에 실행한다
     if (only.has('suppliers') && suppliersFile) { await runSuppliers(ctx, suppliersFile); result.sectionsRun.push('suppliers'); }
     if (only.has('robots') && robotsFile) { await runRobots(ctx, robotsFile); result.sectionsRun.push('robots'); }
     if (only.has('ci') && robotsFile) { await runCi(ctx, robotsFile); result.sectionsRun.push('ci'); }
+    if (only.has('sourcing') && sourcingFile) { await runSourcing(ctx, sourcingFile); result.sectionsRun.push('sourcing'); }
+    if (only.has('adoptions') && adoptionsFile) { await runAdoptions(ctx, adoptionsFile); result.sectionsRun.push('adoptions'); }
     result.counters = ctx.counters;
     result.warnings = ctx.warnings;
     result.createdCompanies = ctx.createdCompanies;

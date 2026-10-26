@@ -5,7 +5,7 @@
  * DB 접근 없음. 단위 테스트: `src/__tests__/unit/actuator-update.unit.test.ts`
  *
  * 포함 내용
- *  - 입력 JSON 타입 (robots.json / suppliers.json)
+ *  - 입력 JSON 타입 (robots.json / suppliers.json / sourcing-regrade.json / demand-cases.json)
  *  - 이름 정규화·별칭 매칭 (회사 / 로봇 / CI 경쟁사)
  *  - 신뢰도(A~F) 비교 규칙 (스펙 덮어쓰기, CI 값 교체)
  *  - 단위 변환 / 숫자 파싱 / decimal 문자열 변환
@@ -1276,11 +1276,344 @@ function uniq<T>(xs: T[]): T[] {
 }
 
 // ============================================================
-// 9. CLI 인자 / 카운터
+// 9. 조달 태세 재판정 · 수요 사례 입력 (sourcing-regrade.json / demand-cases.json)
 // ============================================================
 
-export type Section = 'robots' | 'suppliers' | 'ci';
-export const ALL_SECTIONS: Section[] = ['robots', 'suppliers', 'ci'];
+export const SOURCING_KINDS = ['in_house_confirmed', 'in_house_presumed', 'external', 'mixed', 'unknown'] as const;
+export type SourcingKind = (typeof SOURCING_KINDS)[number];
+
+/** 수요 사례 세그먼트 (demand-cases.json cases[].segment) */
+export const ADOPTION_SEGMENTS = [
+  'humanoid_tier1',
+  'humanoid_tier2',
+  'research_platform',
+  'service_robot',
+  'quadruped',
+  'exoskeleton',
+  'robot_arm',
+  'industrial',
+] as const;
+export type AdoptionSegment = (typeof ADOPTION_SEGMENTS)[number];
+
+/** 공급사 시장 세그먼트 (vendorTargetMarkets[].segments, API MarketSegment) */
+export const MARKET_SEGMENTS = ['tier1_oem', 'tier2_legged', 'research_edu', 'industrial_cobot', 'service', 'captive', 'other'] as const;
+export type MarketSegment = (typeof MARKET_SEGMENTS)[number];
+
+/** 공급 층: module = 통합 관절·모듈, component = 모터·감속기 등 부품 (없으면 module) */
+export const SOURCING_LEVELS = ['module', 'component'] as const;
+export type SourcingLevel = (typeof SOURCING_LEVELS)[number];
+
+export const MAX_SOURCING_EVIDENCE = 20;
+
+export interface SourcingEvidenceEntry {
+  claim: string;
+  source: string | null;
+  url: string | null;
+  grade: string | null;
+  date: string | null;
+}
+
+export interface SourcingVendorEntry {
+  vendor: string;
+  role: string | null;
+  grade: string | null;
+  url: string | null;
+  level: SourcingLevel;
+}
+
+/** 검증·정규화를 마친 sourcing-regrade.json 원소 */
+export interface SourcingRobotEntry {
+  name: string;
+  company: string;
+  aliases: string[];
+  companyAliases: string[];
+  sourcing: SourcingKind;
+  sellsExternally: boolean | null;
+  evidenceGrade: string | null;
+  evidence: SourcingEvidenceEntry[];
+  externalVendors: SourcingVendorEntry[];
+  noteKo: string | null;
+}
+
+export interface SourcingFile {
+  generatedAt?: string;
+  method?: string;
+  robots: SourcingRobotEntry[];
+}
+
+export interface AdoptionSourceItem {
+  url: string;
+  title: string | null;
+  date: string | null;
+}
+
+/** 검증·정규화를 마친 demand-cases.json cases[] 원소 */
+export interface AdoptionCaseEntry {
+  robotName: string;
+  company: string;
+  country: string | null;
+  segment: AdoptionSegment;
+  level: SourcingLevel;
+  robotClass: string | null;
+  actuatorVendor: string;
+  actuatorModel: string | null;
+  usage: string | null;
+  evidenceGrade: string | null;
+  sources: AdoptionSourceItem[];
+  noteKo: string | null;
+  year: number | null;
+}
+
+export interface VendorMarketEntry {
+  vendor: string;
+  targetMarketsKo: string[];
+  segments: MarketSegment[] | null;
+  grade: string | null;
+  url: string | null;
+}
+
+export interface AdoptionsFile {
+  generatedAt?: string;
+  method?: string;
+  cases: AdoptionCaseEntry[];
+  vendorTargetMarkets: VendorMarketEntry[];
+}
+
+/**
+ * 검증 결과. errors 는 치명적(JSON 구조 자체 문제 — 호출 측이 throw), warnings 는 위반 원소를 건너뛴 기록.
+ * errors 가 비어 있으면 file 은 위반 원소가 제거된 정규화 결과다.
+ */
+export interface FileValidation<T> {
+  errors: string[];
+  warnings: string[];
+  file: T | null;
+}
+
+const nonEmptyStr = (v: unknown): string | null => (typeof v === 'string' && v.trim() !== '' ? v.trim() : null);
+const strOrNull = (v: unknown): string | null => (typeof v === 'string' && v.trim() !== '' ? v.trim() : null);
+const strList = (v: unknown): string[] => (Array.isArray(v) ? v.map(nonEmptyStr).filter((s): s is string => s !== null) : []);
+
+/** evidence 정규화: 객체 원소 중 claim 문자열이 있는 것만, 필드는 문자열(아니면 null), 최대 20건 */
+export function sanitizeSourcingEvidence(list: unknown): SourcingEvidenceEntry[] {
+  if (!Array.isArray(list)) return [];
+  const out: SourcingEvidenceEntry[] = [];
+  for (const e of list) {
+    if (!e || typeof e !== 'object') continue;
+    const o = e as Record<string, unknown>;
+    const claim = nonEmptyStr(o.claim);
+    if (!claim) continue;
+    out.push({ claim, source: strOrNull(o.source), url: strOrNull(o.url), grade: strOrNull(o.grade), date: strOrNull(o.date) });
+    if (out.length >= MAX_SOURCING_EVIDENCE) break;
+  }
+  return out;
+}
+
+/** externalVendors 정규화: vendor 문자열이 있는 객체만. level 은 'component' 만 인정하고 나머지는 module */
+export function sanitizeSourcingVendors(list: unknown): SourcingVendorEntry[] {
+  if (!Array.isArray(list)) return [];
+  const out: SourcingVendorEntry[] = [];
+  for (const e of list) {
+    if (!e || typeof e !== 'object') continue;
+    const o = e as Record<string, unknown>;
+    const vendor = nonEmptyStr(o.vendor);
+    if (!vendor) continue;
+    out.push({ vendor, role: strOrNull(o.role), grade: strOrNull(o.grade), url: strOrNull(o.url), level: o.level === 'component' ? 'component' : 'module' });
+  }
+  return out;
+}
+
+function topLevelObject(data: unknown, label: string): { obj: Record<string, unknown> | null; errors: string[] } {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return { obj: null, errors: [`${label}: 최상위가 객체가 아닙니다`] };
+  return { obj: data as Record<string, unknown>, errors: [] };
+}
+
+/** sourcing-regrade.json 검증·정규화 — 위반 원소는 경고 후 건너뜀, 최상위 구조 오류만 errors */
+export function validateSourcingFile(data: unknown): FileValidation<SourcingFile> {
+  const label = 'sourcing-regrade.json';
+  const top = topLevelObject(data, label);
+  if (!top.obj) return { errors: top.errors, warnings: [], file: null };
+  const robots = top.obj.robots;
+  if (!Array.isArray(robots)) return { errors: [`${label}: "robots" 배열이 없습니다`], warnings: [], file: null };
+  const warnings: string[] = [];
+  const out: SourcingRobotEntry[] = [];
+  robots.forEach((r, i) => {
+    if (!r || typeof r !== 'object') { warnings.push(`${label} robots[${i}]: 객체가 아니어서 건너뜀`); return; }
+    const o = r as Record<string, unknown>;
+    const name = nonEmptyStr(o.name);
+    const company = nonEmptyStr(o.company);
+    const tag = `${label} robots[${i}] (${name ?? '?'})`;
+    if (!name) { warnings.push(`${tag}: name 누락 — 건너뜀`); return; }
+    if (!company) { warnings.push(`${tag}: company 누락 — 건너뜀`); return; }
+    if (typeof o.sourcing !== 'string' || !(SOURCING_KINDS as readonly string[]).includes(o.sourcing)) {
+      warnings.push(`${tag}: sourcing 값이 올바르지 않음 (${JSON.stringify(o.sourcing)}; 허용 ${SOURCING_KINDS.join('|')}) — 건너뜀`);
+      return;
+    }
+    if (o.sellsExternally !== undefined && o.sellsExternally !== null && typeof o.sellsExternally !== 'boolean') {
+      warnings.push(`${tag}: sellsExternally 는 boolean 또는 null 이어야 함 — 건너뜀`);
+      return;
+    }
+    if (o.evidence !== undefined && !Array.isArray(o.evidence)) { warnings.push(`${tag}: evidence 가 배열이 아님 — 건너뜀`); return; }
+    if (o.externalVendors !== undefined && !Array.isArray(o.externalVendors)) { warnings.push(`${tag}: externalVendors 가 배열이 아님 — 건너뜀`); return; }
+    out.push({
+      name,
+      company,
+      aliases: strList(o.aliases),
+      companyAliases: strList(o.companyAliases),
+      sourcing: o.sourcing as SourcingKind,
+      sellsExternally: typeof o.sellsExternally === 'boolean' ? o.sellsExternally : null,
+      evidenceGrade: strOrNull(o.evidenceGrade)?.slice(0, 8) ?? null,
+      evidence: sanitizeSourcingEvidence(o.evidence),
+      externalVendors: sanitizeSourcingVendors(o.externalVendors),
+      noteKo: strOrNull(o.noteKo),
+    });
+  });
+  return {
+    errors: [],
+    warnings,
+    file: { generatedAt: typeof top.obj.generatedAt === 'string' ? top.obj.generatedAt : undefined, method: typeof top.obj.method === 'string' ? top.obj.method : undefined, robots: out },
+  };
+}
+
+/** sources 원소: 문자열(URL) 또는 {url, title?, source?, date?} — 기사/출처명은 title 로 매핑 */
+export function sanitizeAdoptionSources(list: unknown): AdoptionSourceItem[] {
+  if (!Array.isArray(list)) return [];
+  const out: AdoptionSourceItem[] = [];
+  for (const s of list) {
+    if (typeof s === 'string') {
+      const url = nonEmptyStr(s);
+      if (url) out.push({ url, title: null, date: null });
+    } else if (s && typeof s === 'object') {
+      const o = s as Record<string, unknown>;
+      const url = nonEmptyStr(o.url);
+      if (url) out.push({ url, title: strOrNull(o.title) ?? strOrNull(o.source), date: strOrNull(o.date) });
+    }
+  }
+  return out;
+}
+
+/** demand-cases.json 검증·정규화 — 위반 원소는 경고 후 건너뜀, 최상위 구조 오류만 errors */
+export function validateAdoptionsFile(data: unknown): FileValidation<AdoptionsFile> {
+  const label = 'demand-cases.json';
+  const top = topLevelObject(data, label);
+  if (!top.obj) return { errors: top.errors, warnings: [], file: null };
+  const cases = top.obj.cases;
+  if (!Array.isArray(cases)) return { errors: [`${label}: "cases" 배열이 없습니다`], warnings: [], file: null };
+  const vtm = top.obj.vendorTargetMarkets;
+  if (vtm !== undefined && !Array.isArray(vtm)) return { errors: [`${label}: "vendorTargetMarkets" 가 배열이 아닙니다`], warnings: [], file: null };
+
+  const warnings: string[] = [];
+  const outCases: AdoptionCaseEntry[] = [];
+  cases.forEach((c, i) => {
+    if (!c || typeof c !== 'object') { warnings.push(`${label} cases[${i}]: 객체가 아니어서 건너뜀`); return; }
+    const o = c as Record<string, unknown>;
+    const robotName = nonEmptyStr(o.robotName);
+    const company = nonEmptyStr(o.company);
+    const actuatorVendor = nonEmptyStr(o.actuatorVendor);
+    const tag = `${label} cases[${i}] (${robotName ?? '?'})`;
+    if (!robotName) { warnings.push(`${tag}: robotName 누락 — 건너뜀`); return; }
+    if (!company) { warnings.push(`${tag}: company 누락 — 건너뜀`); return; }
+    if (!actuatorVendor) { warnings.push(`${tag}: actuatorVendor 누락 — 건너뜀`); return; }
+    if (typeof o.segment !== 'string' || !(ADOPTION_SEGMENTS as readonly string[]).includes(o.segment)) {
+      warnings.push(`${tag}: segment 값이 올바르지 않음 (${JSON.stringify(o.segment)}; 허용 ${ADOPTION_SEGMENTS.join('|')}) — 건너뜀`);
+      return;
+    }
+    if (o.level !== undefined && o.level !== null && (typeof o.level !== 'string' || !(SOURCING_LEVELS as readonly string[]).includes(o.level))) {
+      warnings.push(`${tag}: level 값이 올바르지 않음 (${JSON.stringify(o.level)}; 허용 ${SOURCING_LEVELS.join('|')}) — 건너뜀`);
+      return;
+    }
+    if (o.sources !== undefined && !Array.isArray(o.sources)) { warnings.push(`${tag}: sources 가 배열이 아님 — 건너뜀`); return; }
+    const year = parseInteger(o.year);
+    outCases.push({
+      robotName,
+      company,
+      country: strOrNull(o.country),
+      segment: o.segment as AdoptionSegment,
+      level: o.level === 'component' ? 'component' : 'module',
+      robotClass: strOrNull(o.robotClass),
+      actuatorVendor,
+      actuatorModel: strOrNull(o.actuatorModel),
+      usage: strOrNull(o.usage),
+      evidenceGrade: strOrNull(o.evidenceGrade)?.slice(0, 8) ?? null,
+      sources: sanitizeAdoptionSources(o.sources),
+      noteKo: strOrNull(o.noteKo),
+      year: year !== null && year >= 1900 && year <= 2100 ? year : null,
+    });
+  });
+
+  const outVendors: VendorMarketEntry[] = [];
+  (Array.isArray(vtm) ? vtm : []).forEach((v, i) => {
+    if (!v || typeof v !== 'object') { warnings.push(`${label} vendorTargetMarkets[${i}]: 객체가 아니어서 건너뜀`); return; }
+    const o = v as Record<string, unknown>;
+    const vendor = nonEmptyStr(o.vendor);
+    const tag = `${label} vendorTargetMarkets[${i}] (${vendor ?? '?'})`;
+    if (!vendor) { warnings.push(`${tag}: vendor 누락 — 건너뜀`); return; }
+    if (!Array.isArray(o.targetMarketsKo)) { warnings.push(`${tag}: targetMarketsKo 배열 누락 — 건너뜀`); return; }
+    let segments: MarketSegment[] | null = null;
+    if (o.segments !== undefined && o.segments !== null) {
+      if (!Array.isArray(o.segments) || o.segments.some((s) => typeof s !== 'string' || !(MARKET_SEGMENTS as readonly string[]).includes(s))) {
+        warnings.push(`${tag}: segments 값이 올바르지 않음 (허용 ${MARKET_SEGMENTS.join('|')}) — 건너뜀`);
+        return;
+      }
+      segments = o.segments as MarketSegment[];
+    }
+    outVendors.push({ vendor, targetMarketsKo: strList(o.targetMarketsKo), segments, grade: strOrNull(o.grade)?.slice(0, 8) ?? null, url: strOrNull(o.url) });
+  });
+
+  return {
+    errors: [],
+    warnings,
+    file: {
+      generatedAt: typeof top.obj.generatedAt === 'string' ? top.obj.generatedAt : undefined,
+      method: typeof top.obj.method === 'string' ? top.obj.method : undefined,
+      cases: outCases,
+      vendorTargetMarkets: outVendors,
+    },
+  };
+}
+
+// ------------------------------------------------------------
+// 공급사 정규화 / 키
+// ------------------------------------------------------------
+
+/**
+ * 공급사 키: 별칭표로 표준명을 찾은 뒤 느슨한 회사 키.
+ * "CubeMars (T-Motor)" = "CubeMars" = "T-Motor", "RobStride Dynamics" = "RobStride", "Unitree" = "Unitree Robotics".
+ */
+export function vendorKey(v: string | null | undefined): string {
+  if (!v) return '';
+  return looseCompanyKey(COMPANY_ALIASES[normalizeCompanyName(v)] ?? v).slice(0, 200);
+}
+
+/** 같은 공급사인가 — 키 동일, 또는 짧은 쪽 키가 5자 이상이면서 긴 쪽에 포함 ("Mobis" = "Hyundai Mobis") */
+export function sameVendor(a: string | null | undefined, b: string | null | undefined): boolean {
+  const ka = vendorKey(a);
+  const kb = vendorKey(b);
+  if (!ka || !kb) return false;
+  if (ka === kb) return true;
+  const [short, long] = ka.length <= kb.length ? [ka, kb] : [kb, ka];
+  return short.length >= 5 && long.includes(short);
+}
+
+/** 모델명 매칭 — normalizeName 후 한쪽이 3자 이상이고 다른 쪽에 포함 ("RS-04" vs "RobStride 04 (RS-04)") */
+export function modelMatches(caseModel: string | null | undefined, productModel: string | null | undefined): boolean {
+  const a = normalizeName(caseModel);
+  const b = normalizeName(productModel);
+  if (!a || !b) return false;
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  return short.length >= 3 && long.includes(short);
+}
+
+/** 수요 사례 고유 키 (순수): company | robotName | vendorKey(actuatorVendor) | actuatorModel */
+export function adoptionCaseKey(c: { company: string; robotName: string; actuatorVendor: string; actuatorModel?: string | null }): string {
+  return `${normalizeCompanyName(c.company)}|${normalizeName(c.robotName)}|${vendorKey(c.actuatorVendor)}|${normalizeName(c.actuatorModel ?? '')}`.slice(0, 400);
+}
+
+// ============================================================
+// 10. CLI 인자 / 카운터
+// ============================================================
+
+export type Section = 'robots' | 'suppliers' | 'ci' | 'sourcing' | 'adoptions';
+export const ALL_SECTIONS: Section[] = ['robots', 'suppliers', 'ci', 'sourcing', 'adoptions'];
 
 export interface CliArgs {
   dryRun: boolean;

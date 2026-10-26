@@ -1,0 +1,1458 @@
+{
+  "generatedAt": "2026-10-26T02:17:26+00:00",
+  "method": "websearch-only",
+  "legend": {
+    "A": "manufacturer official page/datasheet/press release",
+    "B": "major media citing official announcement",
+    "C": "secondary media/aggregator/reseller",
+    "D": "estimate/unverified",
+    "sourcing": {
+      "in_house_confirmed": "제조사가 자체 설계/개발 액추에이터임을 명시한 A/B 근거 존재",
+      "in_house_presumed": "자체라는 명시 근거 없고 외부 공급사도 미확인 → UI '확인 불가'",
+      "external": "외부 공급사 액추에이터/관절 사용이 A/B/C로 확인",
+      "mixed": "자체 설계 + 외부 양산/위탁제조/핵심 부품 공급",
+      "unknown": "어느 쪽으로도 판단할 단서 없음(또는 회사 단위 단서만 있고 해당 모델 미확인)"
+    },
+    "level": "externalVendors[].level: module=통합 관절·모듈 단위 공급 / component=모터·감속기 등 부품 단위 공급 (생략 시 module)"
+  },
+  "robotCount": 46,
+  "robots": [
+    {
+      "name": "Optimus Gen 2",
+      "company": "Tesla",
+      "sourcing": "mixed",
+      "sellsExternally": false,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "AI Day 2022: 옵티머스 액추에이터는 테슬라가 자체 설계·제조(3 회전형 + 3 선형, 6종)",
+          "source": "engineering.com (AI Day 2022 coverage)",
+          "url": "https://www.engineering.com/tesla-ai-day-2022-tesla-is-not-a-car-company/",
+          "grade": "B",
+          "date": "2022-10"
+        },
+        {
+          "claim": "머스크: 옵티머스에 맞는 상용(off-the-shelf) 액추에이터가 없어 자체 개발",
+          "source": "InsideEVs",
+          "url": "https://insideevs.com/news/677958/tesla-built-only-5-6-optimus-robots/",
+          "grade": "B",
+          "date": "2023-06"
+        },
+        {
+          "claim": "Counterpoint: Tuopu가 옵티머스 V3 선형 액추에이터 조립 독점 공급사(테슬라 공동개발), Sanhua는 회전형 모듈 주공급사. humanoid.guide는 선형/회전 배정을 반대로 기술해 역할 분담은 확정되지 않음",
+          "source": "Counterpoint Research",
+          "url": "https://counterpointresearch.com/cn/insights/blog-tesla-to-leverage-ev-experience-and-chinese-partners-to-ace-humanoids-market-unlock-huge-revenue-potential",
+          "grade": "C",
+          "date": "2026"
+        },
+        {
+          "claim": "테슬라가 2026-09 Tuopu·Sanhua·Joyson 등 중국 공급사 실사(Bloomberg 인용), 초도 약 5,000대분 발주 보도; Sanhua는 '주요 고객과 관절 액추에이터 개발 중' 확인",
+          "source": "TrendForce (citing Bloomberg)",
+          "url": "https://trendforce.com/news/2026/09/21/news-tesla-reportedly-audits-china-suppliers-for-optimus-gen-3-ramp-eyes-20000-price-target/",
+          "grade": "B",
+          "date": "2026-09"
+        },
+        {
+          "claim": "공급사별 선형/회전 분담에 대해 매체 간 상충; Sanhua는 보도된 대규모 수주액 부인",
+          "source": "Humanoid.Guide",
+          "url": "https://humanoid.guide/?p=18163",
+          "grade": "C",
+          "date": "2026"
+        }
+      ],
+      "externalVendors": [
+        {
+          "vendor": "Tuopu Group",
+          "role": "contract manufacturing",
+          "grade": "B",
+          "url": "https://trendforce.com/news/2026/09/21/news-tesla-reportedly-audits-china-suppliers-for-optimus-gen-3-ramp-eyes-20000-price-target/",
+          "level": "module"
+        },
+        {
+          "vendor": "Sanhua Intelligent Controls",
+          "role": "contract manufacturing",
+          "grade": "B",
+          "url": "https://trendforce.com/news/2026/09/21/news-tesla-reportedly-audits-china-suppliers-for-optimus-gen-3-ramp-eyes-20000-price-target/",
+          "level": "module"
+        }
+      ],
+      "noteKo": "설계는 테슬라 자체(AI Day 2022), 양산 조립은 Tuopu·Sanhua 등 중국 공급사 위탁 보도(B/C). 공급사별 선형/회전 분담은 매체 간 상충."
+    },
+    {
+      "name": "Optimus V3",
+      "company": "Tesla",
+      "sourcing": "mixed",
+      "sellsExternally": false,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "AI Day 2022: 옵티머스 액추에이터는 테슬라가 자체 설계·제조(3 회전형 + 3 선형, 6종)",
+          "source": "engineering.com (AI Day 2022 coverage)",
+          "url": "https://www.engineering.com/tesla-ai-day-2022-tesla-is-not-a-car-company/",
+          "grade": "B",
+          "date": "2022-10"
+        },
+        {
+          "claim": "머스크: 옵티머스에 맞는 상용(off-the-shelf) 액추에이터가 없어 자체 개발",
+          "source": "InsideEVs",
+          "url": "https://insideevs.com/news/677958/tesla-built-only-5-6-optimus-robots/",
+          "grade": "B",
+          "date": "2023-06"
+        },
+        {
+          "claim": "Counterpoint: Tuopu가 옵티머스 V3 선형 액추에이터 조립 독점 공급사(테슬라 공동개발), Sanhua는 회전형 모듈 주공급사. humanoid.guide는 선형/회전 배정을 반대로 기술해 역할 분담은 확정되지 않음",
+          "source": "Counterpoint Research",
+          "url": "https://counterpointresearch.com/cn/insights/blog-tesla-to-leverage-ev-experience-and-chinese-partners-to-ace-humanoids-market-unlock-huge-revenue-potential",
+          "grade": "C",
+          "date": "2026"
+        },
+        {
+          "claim": "테슬라가 2026-09 Tuopu·Sanhua·Joyson 등 중국 공급사 실사(Bloomberg 인용), 초도 약 5,000대분 발주 보도; Sanhua는 '주요 고객과 관절 액추에이터 개발 중' 확인",
+          "source": "TrendForce (citing Bloomberg)",
+          "url": "https://trendforce.com/news/2026/09/21/news-tesla-reportedly-audits-china-suppliers-for-optimus-gen-3-ramp-eyes-20000-price-target/",
+          "grade": "B",
+          "date": "2026-09"
+        },
+        {
+          "claim": "공급사별 선형/회전 분담에 대해 매체 간 상충; Sanhua는 보도된 대규모 수주액 부인",
+          "source": "Humanoid.Guide",
+          "url": "https://humanoid.guide/?p=18163",
+          "grade": "C",
+          "date": "2026"
+        }
+      ],
+      "externalVendors": [
+        {
+          "vendor": "Tuopu Group",
+          "role": "contract manufacturing",
+          "grade": "B",
+          "url": "https://trendforce.com/news/2026/09/21/news-tesla-reportedly-audits-china-suppliers-for-optimus-gen-3-ramp-eyes-20000-price-target/",
+          "level": "module"
+        },
+        {
+          "vendor": "Sanhua Intelligent Controls",
+          "role": "contract manufacturing",
+          "grade": "B",
+          "url": "https://trendforce.com/news/2026/09/21/news-tesla-reportedly-audits-china-suppliers-for-optimus-gen-3-ramp-eyes-20000-price-target/",
+          "level": "module"
+        }
+      ],
+      "noteKo": "V3 양산을 앞두고 테슬라가 Tuopu·Sanhua·Joyson 실사(2026-09, Bloomberg 인용). 자체 설계와 위탁 제조 구조로 보도됨. 최종 공급 구성은 비공개."
+    },
+    {
+      "name": "Atlas (Electric)",
+      "company": "Boston Dynamics",
+      "sourcing": "mixed",
+      "sellsExternally": false,
+      "evidenceGrade": "A",
+      "evidence": [
+        {
+          "claim": "CES 2026: 현대모비스가 차세대 Atlas용 액추에이터 공급 계약(양산 단계), 모비스 첫 로봇 고객",
+          "source": "Hyundai Mobis press release (PR Newswire via Barchart)",
+          "url": "https://www.barchart.com/story/news/36939666/hyundai-mobis-forms-strategic-collaboration-framework-with-boston-dynamics",
+          "grade": "A",
+          "date": "2026-01"
+        },
+        {
+          "claim": "현대모비스, 보스턴다이내믹스 Atlas에 액추에이터 공급",
+          "source": "Korea Herald",
+          "url": "https://www.koreaherald.com/article/10651569",
+          "grade": "B",
+          "date": "2026-01"
+        },
+        {
+          "claim": "보스턴다이내믹스 공식 블로그: 완전 회전 관절의 자체 설계 전동 Atlas",
+          "source": "Boston Dynamics",
+          "url": "https://bostondynamics.com/blog/boston-dynamics-unveils-new-atlas-robot-to-revolutionize-industry/",
+          "grade": "A",
+          "date": "2026-01"
+        }
+      ],
+      "externalVendors": [
+        {
+          "vendor": "Hyundai Mobis",
+          "role": "mass-production supply",
+          "grade": "A",
+          "url": "https://www.barchart.com/story/news/36939666/hyundai-mobis-forms-strategic-collaboration-framework-with-boston-dynamics",
+          "level": "module"
+        }
+      ],
+      "noteKo": "자체 설계(보스턴다이내믹스), 양산 액추에이터는 현대모비스 공급(CES 2026 공식)."
+    },
+    {
+      "name": "Digit",
+      "company": "Agility Robotics",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": false,
+      "evidenceGrade": "A",
+      "evidence": [
+        {
+          "claim": "Digit 5: 반복 리프트용 다리 설계는 독자(proprietary) 사이클로이드 액추에이터 기술 기반",
+          "source": "Agility Robotics press release",
+          "url": "https://www.agilityrobotics.com/content/agility-unveils-digit-5-humanoid-robot-built-for-cooperatively-safe-work-at-scale",
+          "grade": "A",
+          "date": "2026-09"
+        },
+        {
+          "claim": "Digit 5 다리 '독자 사이클로이드 액추에이터' 보도",
+          "source": "Automate.org (A3)",
+          "url": "https://www.automate.org/robotics/industry-insights/agilitys-digit-v5-update-brings-more-safety-features-better-battery-and-new-knees",
+          "grade": "B",
+          "date": "2026-09"
+        },
+        {
+          "claim": "Digit 액추에이터 20개(팔 4×2, 다리 6×2), 다리 4개는 대형 타입",
+          "source": "Agility Robotics",
+          "url": "https://agilityrobotics.com/content/how-digit-moves-the-case-for-highly-effective-actuators",
+          "grade": "A",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "Agility 공식 자료에 '독자 사이클로이드 액추에이터' 명시. 부품(모터 등) 공급사는 비공개."
+    },
+    {
+      "name": "Figure 01",
+      "company": "Figure AI",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": false,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "BotQ: 휴머노이드 공급망 부재로 액추에이터·모터·센서·배터리·전자부품 등 로봇 거의 전부를 자체 설계; 액추에이터·손·배터리·최종조립 사내 생산",
+          "source": "Figure AI",
+          "url": "https://figure.ai/news/botq",
+          "grade": "A",
+          "date": "2025-03"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "Figure 공식(BotQ)에 '액추에이터 포함 로봇 거의 전부 자체 설계' 명시. 회사 단위 서술이며 Figure 01 모델을 특정한 근거는 아님."
+    },
+    {
+      "name": "Figure 02",
+      "company": "Figure AI",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": false,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "BotQ: 휴머노이드 공급망 부재로 액추에이터·모터·센서·배터리·전자부품 등 로봇 거의 전부를 자체 설계; 액추에이터·손·배터리·최종조립 사내 생산",
+          "source": "Figure AI",
+          "url": "https://figure.ai/news/botq",
+          "grade": "A",
+          "date": "2025-03"
+        },
+        {
+          "claim": "F.02 전완 3-DOF 액추에이터 패키징 등 자체 설계(공식 블로그)",
+          "source": "Figure AI",
+          "url": "https://www.figure.ai/news/production-at-bmw",
+          "grade": "A",
+          "date": "2025"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "Figure 공식 자료 기반 자체 설계. 모델 특정 액추에이터 사양은 비공개."
+    },
+    {
+      "name": "Figure 03",
+      "company": "Figure AI",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": false,
+      "evidenceGrade": "A",
+      "evidence": [
+        {
+          "claim": "BotQ: 휴머노이드 공급망 부재로 액추에이터·모터·센서·배터리·전자부품 등 로봇 거의 전부를 자체 설계; 액추에이터·손·배터리·최종조립 사내 생산",
+          "source": "Figure AI",
+          "url": "https://figure.ai/news/botq",
+          "grade": "A",
+          "date": "2025-03"
+        },
+        {
+          "claim": "Figure 03: 액추에이터·배터리·센서·구조물·전자부품 전부 사내 설계, BotQ 양산",
+          "source": "Figure AI",
+          "url": "https://www.figure.ai/news/introducing-figure-03",
+          "grade": "A",
+          "date": "2025-10"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "공식 발표에 액추에이터 사내 설계·BotQ 생산 명시."
+    },
+    {
+      "name": "NEO Beta",
+      "company": "1X Technologies",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": false,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "1X: 모터·배터리·구조물·전동(transmission)·센서 등 핵심 부품을 사내 설계·제조; 자동화 모터 생산 라인(Hayward NEO Factory)",
+          "source": "GlobeNewswire (1X press release)",
+          "url": "https://www.globenewswire.com/news-release/2026/04/30/3285118/0/en/1X-opens-NEO-Factory.html",
+          "grade": "A",
+          "date": "2026-04"
+        },
+        {
+          "claim": "독자 Revo2 모터를 공장 내에서 원자재(동선·강재)부터 제조",
+          "source": "Humanoids Daily",
+          "url": "https://www.humanoidsdaily.com/news/1x-goes-vertical-inside-the-hayward-factory-aiming-for-100-000-humanoids",
+          "grade": "C",
+          "date": "2026-04"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "1X는 모터(Revo 계열)·전동계를 사내 설계·제조한다고 공식 발표. NEO Beta 모델을 특정한 문구는 없음."
+    },
+    {
+      "name": "NEO Gamma",
+      "company": "1X Technologies",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": false,
+      "evidenceGrade": "A",
+      "evidence": [
+        {
+          "claim": "1X: 모터·배터리·구조물·전동(transmission)·센서 등 핵심 부품을 사내 설계·제조; 자동화 모터 생산 라인(Hayward NEO Factory)",
+          "source": "GlobeNewswire (1X press release)",
+          "url": "https://www.globenewswire.com/news-release/2026/04/30/3285118/0/en/1X-opens-NEO-Factory.html",
+          "grade": "A",
+          "date": "2026-04"
+        },
+        {
+          "claim": "독자 Revo2 모터를 공장 내에서 원자재(동선·강재)부터 제조",
+          "source": "Humanoids Daily",
+          "url": "https://www.humanoidsdaily.com/news/1x-goes-vertical-inside-the-hayward-factory-aiming-for-100-000-humanoids",
+          "grade": "C",
+          "date": "2026-04"
+        },
+        {
+          "claim": "NEO Gamma: Tendon Drive 관절 구동, 소프트 커버(공식)",
+          "source": "1X Technologies",
+          "url": "https://www.1x.tech/discover/introducing-neo-gamma",
+          "grade": "A",
+          "date": "2025-02"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "공식 Tendon Drive + 사내 모터 제조 발표."
+    },
+    {
+      "name": "NEO",
+      "company": "1X Technologies",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": false,
+      "evidenceGrade": "A",
+      "evidence": [
+        {
+          "claim": "1X: 모터·배터리·구조물·전동(transmission)·센서 등 핵심 부품을 사내 설계·제조; 자동화 모터 생산 라인(Hayward NEO Factory)",
+          "source": "GlobeNewswire (1X press release)",
+          "url": "https://www.globenewswire.com/news-release/2026/04/30/3285118/0/en/1X-opens-NEO-Factory.html",
+          "grade": "A",
+          "date": "2026-04"
+        },
+        {
+          "claim": "독자 Revo2 모터를 공장 내에서 원자재(동선·강재)부터 제조",
+          "source": "Humanoids Daily",
+          "url": "https://www.humanoidsdaily.com/news/1x-goes-vertical-inside-the-hayward-factory-aiming-for-100-000-humanoids",
+          "grade": "C",
+          "date": "2026-04"
+        },
+        {
+          "claim": "NEO 공식 스펙: 저관성 텐던 드라이브, 자체 개발 Revo2 모터(2015년부터 노르웨이 Moss에서 개발)",
+          "source": "1X Technologies",
+          "url": "https://www.1x.tech/neo",
+          "grade": "A",
+          "date": "2025-10"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "공식 페이지에 Revo2 자체 개발 명시. 외판 없음."
+    },
+    {
+      "name": "H1",
+      "company": "Unitree Robotics",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": true,
+      "evidenceGrade": "A",
+      "evidence": [
+        {
+          "claim": "Unitree 공식 샵에서 자사 관절모터 GO-M8010-6를 단품 판매($369)",
+          "source": "Unitree Shop",
+          "url": "https://shop.unitree.com/products/go1-motor",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "H1 공식 페이지: M107 관절모터 사양(최대 360N·m, 1.9kg, 중공축, 듀얼 엔코더)",
+          "source": "Unitree Robotics",
+          "url": "https://unitree.com/h1",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "H1은 자체 제조(in-house manufactured) M107 전동 관절모터 사용",
+          "source": "Inspenet",
+          "url": "https://inspenet.com/en/?p=140447",
+          "grade": "B",
+          "date": "2024-03"
+        },
+        {
+          "claim": "관절모터 단품 판매(공식 샵) 및 리셀러 유통",
+          "source": "Unitree Shop",
+          "url": "https://shop.unitree.com/products/go1-motor",
+          "grade": "A",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "H1 공식 페이지에 M107 자체 관절모터 사양 게재, 매체 'in-house' 명시. Unitree는 관절모터를 단품으로 외판(공식 샵)."
+    },
+    {
+      "name": "H1-2",
+      "company": "Unitree Robotics",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": true,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "Unitree 공식 샵에서 자사 관절모터 GO-M8010-6를 단품 판매($369)",
+          "source": "Unitree Shop",
+          "url": "https://shop.unitree.com/products/go1-motor",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "H1 공식 페이지: M107 관절모터 사양(최대 360N·m, 1.9kg, 중공축, 듀얼 엔코더)",
+          "source": "Unitree Robotics",
+          "url": "https://unitree.com/h1",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "H1은 자체 제조(in-house manufactured) M107 전동 관절모터 사용",
+          "source": "Inspenet",
+          "url": "https://inspenet.com/en/?p=140447",
+          "grade": "B",
+          "date": "2024-03"
+        },
+        {
+          "claim": "H1 공식 페이지 H1-2 섹션: H1 계열 관절모터 공유",
+          "source": "Unitree Robotics",
+          "url": "https://www.unitree.com/h1/",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "관절모터 단품 판매(공식 샵) 및 리셀러 유통",
+          "source": "Unitree Shop",
+          "url": "https://shop.unitree.com/products/go1-motor",
+          "grade": "A",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "H1 계열 자체 M107 모터 공유(공식). 회사 단위 근거."
+    },
+    {
+      "name": "G1",
+      "company": "Unitree Robotics",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": true,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "Unitree 공식 샵에서 자사 관절모터 GO-M8010-6를 단품 판매($369)",
+          "source": "Unitree Shop",
+          "url": "https://shop.unitree.com/products/go1-motor",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "H1 공식 페이지: M107 관절모터 사양(최대 360N·m, 1.9kg, 중공축, 듀얼 엔코더)",
+          "source": "Unitree Robotics",
+          "url": "https://unitree.com/h1",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "H1은 자체 제조(in-house manufactured) M107 전동 관절모터 사용",
+          "source": "Inspenet",
+          "url": "https://inspenet.com/en/?p=140447",
+          "grade": "B",
+          "date": "2024-03"
+        },
+        {
+          "claim": "G1 공식 페이지: 관절모터 무릎 최대 90N·m(EDU 120N·m)",
+          "source": "Unitree Robotics",
+          "url": "https://www.unitree.com/g1/",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "관절모터 단품 판매(공식 샵) 및 리셀러 유통",
+          "source": "Unitree Shop",
+          "url": "https://shop.unitree.com/products/go1-motor",
+          "grade": "A",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "G1 모터 원산지 명시 문구는 없으나 Unitree는 자사 관절모터 제조·판매 업체(A). 회사 단위 근거."
+    },
+    {
+      "name": "G1-D",
+      "company": "Unitree Robotics",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": true,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "Unitree 공식 샵에서 자사 관절모터 GO-M8010-6를 단품 판매($369)",
+          "source": "Unitree Shop",
+          "url": "https://shop.unitree.com/products/go1-motor",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "H1 공식 페이지: M107 관절모터 사양(최대 360N·m, 1.9kg, 중공축, 듀얼 엔코더)",
+          "source": "Unitree Robotics",
+          "url": "https://unitree.com/h1",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "H1은 자체 제조(in-house manufactured) M107 전동 관절모터 사용",
+          "source": "Inspenet",
+          "url": "https://inspenet.com/en/?p=140447",
+          "grade": "B",
+          "date": "2024-03"
+        },
+        {
+          "claim": "관절모터 단품 판매(공식 샵) 및 리셀러 유통",
+          "source": "Unitree Shop",
+          "url": "https://shop.unitree.com/products/go1-motor",
+          "grade": "A",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "G1 상체 공유 플랫폼. 모델 특정 근거 없음, Unitree 회사 단위(자사 모터 제조·외판) 근거."
+    },
+    {
+      "name": "H2",
+      "company": "Unitree Robotics",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": true,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "Unitree 공식 샵에서 자사 관절모터 GO-M8010-6를 단품 판매($369)",
+          "source": "Unitree Shop",
+          "url": "https://shop.unitree.com/products/go1-motor",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "H1 공식 페이지: M107 관절모터 사양(최대 360N·m, 1.9kg, 중공축, 듀얼 엔코더)",
+          "source": "Unitree Robotics",
+          "url": "https://unitree.com/h1",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "H1은 자체 제조(in-house manufactured) M107 전동 관절모터 사용",
+          "source": "Inspenet",
+          "url": "https://inspenet.com/en/?p=140447",
+          "grade": "B",
+          "date": "2024-03"
+        },
+        {
+          "claim": "H2: 저관성 고속 내전형 PMSM 관절모터, 다리 360N·m/팔 120N·m(리셀러 스펙)",
+          "source": "PB Tech (reseller)",
+          "url": "https://www.pbtech.com/product/TOYUNT0005/Unitree-Humanoid-Robot-Unitree-H2-1820-x-456-x-218",
+          "grade": "C",
+          "date": "2025"
+        },
+        {
+          "claim": "관절모터 단품 판매(공식 샵) 및 리셀러 유통",
+          "source": "Unitree Shop",
+          "url": "https://shop.unitree.com/products/go1-motor",
+          "grade": "A",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "H2 모터 자체 개발 명시 문구 미확인. Unitree 회사 단위 근거(자사 관절모터 제조·외판)."
+    },
+    {
+      "name": "Walker X",
+      "company": "UBTECH",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": null,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "UBTECH은 5년간 자체 개발한 서보 드라이버로 0.2~200N·m 범위 서보 양산(甲子光年 보도, 周剑 발언)",
+          "source": "TMTPost(甲子光年)",
+          "url": "https://www.tmtpost.com/6398323.html",
+          "grade": "B",
+          "date": null
+        },
+        {
+          "claim": "Walker X 공식 페이지: 41개 고성능 서보 관절",
+          "source": "UBTECH",
+          "url": "https://www.ubtrobot.com/en/WalkerX",
+          "grade": "A",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "UBTECH은 자체 서보(0.2~200N·m) 양산 업체로 보도됨(B); Walker X는 41 고성능 서보 관절(공식). 외판 여부 미확인."
+    },
+    {
+      "name": "Walker S1",
+      "company": "UBTECH",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": null,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "UBTECH은 5년간 자체 개발한 서보 드라이버로 0.2~200N·m 범위 서보 양산(甲子光年 보도, 周剑 발언)",
+          "source": "TMTPost(甲子光年)",
+          "url": "https://www.tmtpost.com/6398323.html",
+          "grade": "B",
+          "date": null
+        },
+        {
+          "claim": "Walker X 공식 페이지: 41개 고성능 서보 관절",
+          "source": "UBTECH",
+          "url": "https://www.ubtrobot.com/en/WalkerX",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "Walker S1: 41개 힘피드백 서보 관절",
+          "source": "Qviro (aggregator)",
+          "url": "https://qviro.com/product/ubtech-robotics/walker-s/specifications",
+          "grade": "C",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "UBTECH 자체 서보 양산 보도(B) 기반. 모델 특정 공식 문구는 서보 수치만 존재."
+    },
+    {
+      "name": "Walker S2",
+      "company": "UBTECH",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": null,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "UBTECH은 5년간 자체 개발한 서보 드라이버로 0.2~200N·m 범위 서보 양산(甲子光年 보도, 周剑 발언)",
+          "source": "TMTPost(甲子光年)",
+          "url": "https://www.tmtpost.com/6398323.html",
+          "grade": "B",
+          "date": null
+        },
+        {
+          "claim": "Walker X 공식 페이지: 41개 고성능 서보 관절",
+          "source": "UBTECH",
+          "url": "https://www.ubtrobot.com/en/WalkerX",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "Walker S2 공식: 고출력·고토크 허리 서보 모터 설계(15kg 리프트)",
+          "source": "UBTECH",
+          "url": "https://www.ubtrobot.com/en/humanoid/products/WalkerS2",
+          "grade": "A",
+          "date": "2025"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "공식 페이지 허리 서보 모터 '설계' 언급 + 회사 자체 서보 양산 보도."
+    },
+    {
+      "name": "CyberOne",
+      "company": "Xiaomi",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": true,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "CyberOne: AI·기계 시스템 전부 Xiaomi Robotics Lab 자체 개발; 고관절 순간 피크 300N·m, 상지 500g/30N·m 모터",
+          "source": "The Robot Report",
+          "url": "https://www.therobotreport.com/xiaomi-demonstrates-new-bipedal-robot-cyberone/",
+          "grade": "B",
+          "date": "2022-08"
+        },
+        {
+          "claim": "Xiaomi CyberGear 마이크로모터 단품 판매(499위안, 피크 12N·m)",
+          "source": "Metal.com (SMM)",
+          "url": "https://news.metal.com/newscontent/102352716",
+          "grade": "B",
+          "date": "2023-08"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "샤오미 공식 발표(매체 인용) 자체 개발 관절모터. 샤오미는 CyberGear 소형 관절모터를 외판(CyberOne 탑재 여부는 미확인)."
+    },
+    {
+      "name": "CyberOne 2",
+      "company": "Xiaomi",
+      "sourcing": "in_house_presumed",
+      "sellsExternally": true,
+      "evidenceGrade": "D",
+      "evidence": [
+        {
+          "claim": "CyberOne 2 관절모터에 관한 공식·매체 근거 없음(1세대·CyberGear 자체 개발 계보로 추정)",
+          "source": "n/a",
+          "url": "https://www.therobotreport.com/xiaomi-demonstrates-new-bipedal-robot-cyberone/",
+          "grade": "D",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "2세대 관절모터 출처에 대한 명시 근거 없음. 샤오미는 CyberGear를 외판하며, 외판 여부는 회사 단위 근거."
+    },
+    {
+      "name": "GR-1",
+      "company": "Fourier Intelligence",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": null,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "GR-2: 관절별 토크 요구에 맞춘 7종 FSA 액추에이터 자체 제작(FSA 2.0, 피크 380N·m 초과)",
+          "source": "Fourier press release via Affaritaliani",
+          "url": "https://www.affaritaliani.it/lavoro/notiziario/fourier-unveils-the-next-generation-humanoid-robot-gr-2-401791.html",
+          "grade": "B",
+          "date": "2024-09"
+        },
+        {
+          "claim": "GR-1은 Fourier 독자 FSA(Fourier Smart Actuator) 기술 기반; 모터·드라이버·감속기·엔코더 통합 모듈",
+          "source": "AI Wiki (aggregator)",
+          "url": "https://aiwiki.ai/wiki/fourier_intelligence_gr_1",
+          "grade": "C",
+          "date": null
+        },
+        {
+          "claim": "fftai.com 개발자 문서에 액추에이터 SDK가 존재하나 외부 판매(하드웨어) 여부는 확인되지 않음",
+          "source": "Fourier (fftai.com)",
+          "url": "https://fftai.com/products",
+          "grade": "C",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "Fourier 독자 FSA 액추에이터(보도자료 B). 외판은 SDK 존재만 확인되었고 판매 여부는 확인되지 않음."
+    },
+    {
+      "name": "GR-2",
+      "company": "Fourier Intelligence",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": null,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "GR-2: 관절별 토크 요구에 맞춘 7종 FSA 액추에이터 자체 제작(FSA 2.0, 피크 380N·m 초과)",
+          "source": "Fourier press release via Affaritaliani",
+          "url": "https://www.affaritaliani.it/lavoro/notiziario/fourier-unveils-the-next-generation-humanoid-robot-gr-2-401791.html",
+          "grade": "B",
+          "date": "2024-09"
+        },
+        {
+          "claim": "GR-1은 Fourier 독자 FSA(Fourier Smart Actuator) 기술 기반; 모터·드라이버·감속기·엔코더 통합 모듈",
+          "source": "AI Wiki (aggregator)",
+          "url": "https://aiwiki.ai/wiki/fourier_intelligence_gr_1",
+          "grade": "C",
+          "date": null
+        },
+        {
+          "claim": "fftai.com 개발자 문서에 액추에이터 SDK가 존재하나 외부 판매(하드웨어) 여부는 확인되지 않음",
+          "source": "Fourier (fftai.com)",
+          "url": "https://fftai.com/products",
+          "grade": "C",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "GR-2용 7종 FSA 2.0 자체 제작(보도자료). 외판 여부는 확인되지 않음."
+    },
+    {
+      "name": "GR-3",
+      "company": "Fourier Intelligence",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": null,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "GR-2: 관절별 토크 요구에 맞춘 7종 FSA 액추에이터 자체 제작(FSA 2.0, 피크 380N·m 초과)",
+          "source": "Fourier press release via Affaritaliani",
+          "url": "https://www.affaritaliani.it/lavoro/notiziario/fourier-unveils-the-next-generation-humanoid-robot-gr-2-401791.html",
+          "grade": "B",
+          "date": "2024-09"
+        },
+        {
+          "claim": "GR-1은 Fourier 독자 FSA(Fourier Smart Actuator) 기술 기반; 모터·드라이버·감속기·엔코더 통합 모듈",
+          "source": "AI Wiki (aggregator)",
+          "url": "https://aiwiki.ai/wiki/fourier_intelligence_gr_1",
+          "grade": "C",
+          "date": null
+        },
+        {
+          "claim": "fftai.com 개발자 문서에 액추에이터 SDK가 존재하나 외부 판매(하드웨어) 여부는 확인되지 않음",
+          "source": "Fourier (fftai.com)",
+          "url": "https://fftai.com/products",
+          "grade": "C",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "GR-3 특정 FSA 문구는 확인되지 않음. GR-1/GR-2 FSA 계보(회사 단위) 근거."
+    },
+    {
+      "name": "Phoenix",
+      "company": "Sanctuary AI",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": false,
+      "evidenceGrade": "A",
+      "evidence": [
+        {
+          "claim": "Sanctuary 21-DOF 유압 손: 독자 소형화 유압 밸브로 구현, 20억 사이클 시험, 특허 보유 주장",
+          "source": "Sanctuary AI",
+          "url": "https://sanctuary.ai/news/sanctuary-ai-demonstrates-in-hand-manipulation-capabilities-for-improved-general-purpose-robot-dexterity",
+          "grade": "A",
+          "date": "2024-12"
+        },
+        {
+          "claim": "유압이 케이블/전기기계 대비 10배 파워밀도 주장; 유지보수 트레이드오프",
+          "source": "The Robot Report",
+          "url": "https://www.therobotreport.com/sanctuary-ai-showing-new-dexterity-with-in-hand-manipulation-skills/",
+          "grade": "B",
+          "date": "2024-12"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "공식 자료에 독자 소형 유압 밸브 액추에이터 명시(손 기준). 몸체 관절 액추에이터 출처는 비공개."
+    },
+    {
+      "name": "Apollo",
+      "company": "Apptronik",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": null,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "아폴로는 상용 회전 관절·모터를 배제하고 자체 IP(선형 액추에이터) 채택; 13세대 이상 전동 액추에이터 개발",
+          "source": "The Robot Report (RBR50 2024)",
+          "url": "https://www.therobotreport.com/rbr50-company-2024/apptronik-releases-humanoid-robot-with-bespoke-linear-actuators/",
+          "grade": "B",
+          "date": "2024"
+        },
+        {
+          "claim": "Apptronik 공식: 35종 전동 액추에이션 시스템 개발 이력",
+          "source": "Apptronik",
+          "url": "https://apptronik.com/company/our-work",
+          "grade": "A",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "상용 관절 배제·자체 IP 선형 액추에이터(TRR B, 공식 35종 이력 A). 특허 번호는 확인되지 않음. 외판 미확인."
+    },
+    {
+      "name": "Apollo 2",
+      "company": "Apptronik",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": null,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "아폴로는 상용 회전 관절·모터를 배제하고 자체 IP(선형 액추에이터) 채택; 13세대 이상 전동 액추에이터 개발",
+          "source": "The Robot Report (RBR50 2024)",
+          "url": "https://www.therobotreport.com/rbr50-company-2024/apptronik-releases-humanoid-robot-with-bespoke-linear-actuators/",
+          "grade": "B",
+          "date": "2024"
+        },
+        {
+          "claim": "Apptronik 공식: 35종 전동 액추에이션 시스템 개발 이력",
+          "source": "Apptronik",
+          "url": "https://apptronik.com/company/our-work",
+          "grade": "A",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "회사 단위 자체 액추에이터 근거(B). Apollo 2 특정 액추에이터 타입 비공개."
+    },
+    {
+      "name": "Forerunner K2 Bumblebee",
+      "company": "Kepler Robot",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": null,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "K2 핵심 부품 체계: 자체 개발 행성 롤러스크류 액추에이터 + 정밀 회전 액추에이터 + 6축 힘센서 손목 + 덱스터러스 핸드",
+          "source": "EqualOcean",
+          "url": "https://equalocean.com/news/2026051321887-inside-kepler-focusing-industrial-implementation-embodied-ai",
+          "grade": "B",
+          "date": "2026-05"
+        },
+        {
+          "claim": "Kepler 하드웨어 디렉터: 행성 롤러스크류 + 회전 액추에이터 직·병렬 구성의 독자 설계",
+          "source": "PR Newswire Asia",
+          "url": "https://en.prnasia.com/lightnews/lightnews-0-101-70420.shtml",
+          "grade": "B",
+          "date": "2024-10"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "자체 행성 롤러스크류 선형 + 회전 액추에이터(복수 매체 B). 외판·부품 외공급 근거는 확인되지 않음."
+    },
+    {
+      "name": "CL-1",
+      "company": "LimX Dynamics",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": false,
+      "evidenceGrade": "A",
+      "evidence": [
+        {
+          "claim": "CL-1: 빠른 응답·고토크밀도의 자체 개발 관절(self-developed joints) 탑재",
+          "source": "LimX Dynamics",
+          "url": "https://www.limxdynamics.com/ko/news/BK000087",
+          "grade": "A",
+          "date": "2024"
+        },
+        {
+          "claim": "CL-1은 충격 내성·정밀 토크제어의 자체 개발 액추에이터 사용",
+          "source": "The Robot Report",
+          "url": "https://www.therobotreport.com/limx-dynamics-shows-off-its-cl-1-humanoids-stair-climbing-abilities/",
+          "grade": "B",
+          "date": "2023-12"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "LimX 공식 뉴스에 자체 개발 관절 명시(A). 사양(토크·감속비) 비공개."
+    },
+    {
+      "name": "Oli",
+      "company": "LimX Dynamics",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": false,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "CL-1: 빠른 응답·고토크밀도의 자체 개발 관절(self-developed joints) 탑재",
+          "source": "LimX Dynamics",
+          "url": "https://www.limxdynamics.com/ko/news/BK000087",
+          "grade": "A",
+          "date": "2024"
+        },
+        {
+          "claim": "CL-1은 충격 내성·정밀 토크제어의 자체 개발 액추에이터 사용",
+          "source": "The Robot Report",
+          "url": "https://www.therobotreport.com/limx-dynamics-shows-off-its-cl-1-humanoids-stair-climbing-abilities/",
+          "grade": "B",
+          "date": "2023-12"
+        },
+        {
+          "claim": "LimX Oli: 자체 개발 하드웨어 + 전신 제어, 31 능동 DOF",
+          "source": "LimX Dynamics",
+          "url": "https://www.limxdynamics.com/zh/news/BK000043",
+          "grade": "A",
+          "date": "2025"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "공식 '자체 개발 하드웨어' 문구는 액추에이터 특정이 아니어서 B. CL-1 자체 관절 계보."
+    },
+    {
+      "name": "Genie G1",
+      "company": "Agibot",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": null,
+      "evidenceGrade": "A",
+      "evidence": [
+        {
+          "claim": "AgiBot X1 공식 페이지 'Core Components'에 PowerFlow 관절(R86-3/R86-2/R52/L28) 사양 게재",
+          "source": "AgiBot",
+          "url": "https://agibot.com/products/X1",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "灵犀X1은 자체 개발 PowerFlow 관절 PF86·PF52 2종 채택(공개 1.2GB 도면 포함 오픈소스)",
+          "source": "IT之家 via thepaper",
+          "url": "https://m.thepaper.cn/newsDetail_forward_29148058",
+          "grade": "B",
+          "date": "2024-10"
+        },
+        {
+          "claim": "ifanr 보도에 '해당 관절이 외부 판매된다는 보도도 있다'는 간접 언급만 있고, 외판 가격·고객 등 직접 근거 미확인",
+          "source": "ifanr",
+          "url": "https://www.ifanr.com/1596409",
+          "grade": "C",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "AgiBot 공식 X1 페이지 PowerFlow 핵심부품 게재(A). PowerFlow 외판은 간접 언급(C)만 있음."
+    },
+    {
+      "name": "Yuanzheng A2",
+      "company": "Agibot",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": null,
+      "evidenceGrade": "A",
+      "evidence": [
+        {
+          "claim": "AgiBot X1 공식 페이지 'Core Components'에 PowerFlow 관절(R86-3/R86-2/R52/L28) 사양 게재",
+          "source": "AgiBot",
+          "url": "https://agibot.com/products/X1",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "灵犀X1은 자체 개발 PowerFlow 관절 PF86·PF52 2종 채택(공개 1.2GB 도면 포함 오픈소스)",
+          "source": "IT之家 via thepaper",
+          "url": "https://m.thepaper.cn/newsDetail_forward_29148058",
+          "grade": "B",
+          "date": "2024-10"
+        },
+        {
+          "claim": "A2 공식 페이지: 자체 개발·양산 통합 관절(피크 512N·m)",
+          "source": "AgiBot",
+          "url": "https://agibot.com/product/a2",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "ifanr 보도에 '해당 관절이 외부 판매된다는 보도도 있다'는 간접 언급만 있고, 외판 가격·고객 등 직접 근거 미확인",
+          "source": "ifanr",
+          "url": "https://www.ifanr.com/1596409",
+          "grade": "C",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "공식 A2 페이지 자체 통합 관절 명시. 관절 공급사 泉智博에 전략 투자(2026-07) 보도도 있어 향후 외부 조달 가능성 주시 필요."
+    },
+    {
+      "name": "Lingxi X2",
+      "company": "Agibot",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": null,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "AgiBot X1 공식 페이지 'Core Components'에 PowerFlow 관절(R86-3/R86-2/R52/L28) 사양 게재",
+          "source": "AgiBot",
+          "url": "https://agibot.com/products/X1",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "灵犀X1은 자체 개발 PowerFlow 관절 PF86·PF52 2종 채택(공개 1.2GB 도면 포함 오픈소스)",
+          "source": "IT之家 via thepaper",
+          "url": "https://m.thepaper.cn/newsDetail_forward_29148058",
+          "grade": "B",
+          "date": "2024-10"
+        },
+        {
+          "claim": "灵犀X2: 소뇌 제어기·도메인 컨트롤러·전원관리·핵심 관절 모듈 전부 자체 개발(X-Lab)",
+          "source": "IT之家",
+          "url": "https://www.ithome.com/0/855/787.htm",
+          "grade": "B",
+          "date": "2025-03"
+        },
+        {
+          "claim": "ifanr 보도에 '해당 관절이 외부 판매된다는 보도도 있다'는 간접 언급만 있고, 외판 가격·고객 등 직접 근거 미확인",
+          "source": "ifanr",
+          "url": "https://www.ifanr.com/1596409",
+          "grade": "C",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "매체(B) 핵심 관절 자체 개발 명시."
+    },
+    {
+      "name": "4NE1",
+      "company": "NEURA Robotics",
+      "sourcing": "mixed",
+      "sellsExternally": null,
+      "evidenceGrade": "A",
+      "evidence": [
+        {
+          "claim": "Schaeffler-NEURA 기술 파트너십(2025-11): Schaeffler 유성기어 액추에이터(최대 250N·m)를 4NE1 등 휴머노이드 관절(어깨·팔꿈치·무릎·손목)에 공급; NEURA는 액추에이터 수요의 상당 부분을 확보",
+          "source": "Schaeffler AG (EQS press release via TradingView)",
+          "url": "https://vn.tradingview.com/news/eqs:7725b32b0094b:0-schaeffler-and-neura-robotics-launch-future-oriented-technology-partnership",
+          "grade": "A",
+          "date": "2025-11"
+        },
+        {
+          "claim": "Schaeffler-NEURA 공동 개발·부품 공급 파트너십",
+          "source": "Robotics 24/7",
+          "url": "https://www.robotics247.com/article/schaeffler_neura_robotics_partner_to_jointly_develop_and_supply_components_for_humanoids",
+          "grade": "B",
+          "date": "2025-11"
+        },
+        {
+          "claim": "NEURA CEO: LiWA 암에 자체 모터·엔코더·기어박스·브레이크·힘토크센서 사용(4NE1 아님)",
+          "source": "Robotics 24/7",
+          "url": "https://www.robotics247.com/article/neura_robotics_builds_cognitive_cobots_4ne_1_humanoid",
+          "grade": "B",
+          "date": null
+        }
+      ],
+      "externalVendors": [
+        {
+          "vendor": "Schaeffler",
+          "role": "component supply",
+          "grade": "A",
+          "url": "https://vn.tradingview.com/news/eqs:7725b32b0094b:0-schaeffler-and-neura-robotics-launch-future-oriented-technology-partnership",
+          "level": "module"
+        }
+      ],
+      "noteKo": "NEURA 자체 구동 기술(협동로봇)이 있으며 4NE1 관절 액추에이터는 Schaeffler가 공급(공식 PR)."
+    },
+    {
+      "name": "RB-Y1",
+      "company": "Rainbow Robotics",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": null,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "레인보우로보틱스 핵심기술 페이지: 액추에이터·감속기·모터드라이버·제어보드 자체 개발",
+          "source": "Rainbow Robotics",
+          "url": "https://rainbow-robotics.com/company/%ED%9A%8C%EC%82%AC%EC%86%8C%EA%B0%9C/%ED%95%B5%EC%8B%AC%EA%B8%B0%EC%88%A0/",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "협동로봇 카탈로그: 액추에이터·엔코더·브레이크·제어기 자체 개발(RB 시리즈)",
+          "source": "Rainbow Robotics Cobot Catalog (EN, 2024-08)",
+          "url": "https://uploads.unchainedrobotics.de/media/file_upload/%5BRainbow_Robotics%5D_Cobot_Catalog_EN_release_240822_edda217f.pdf",
+          "grade": "A",
+          "date": "2024-08"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "회사 공식 핵심기술 페이지·카탈로그에 액추에이터 자체 개발 명시(A). RB-Y1 모델을 특정한 문구는 없음."
+    },
+    {
+      "name": "HUBO 2 / DRC-HUBO",
+      "company": "Rainbow Robotics",
+      "sourcing": "mixed",
+      "sellsExternally": null,
+      "evidenceGrade": "A",
+      "evidence": [
+        {
+          "claim": "DRC-HUBO: 주 관절에 maxon DC 모터 33개(주로 브러시리스 EC-4pole) 사용, 공냉으로 과부하 운용",
+          "source": "drive.tech (maxon group magazine)",
+          "url": "https://drive.tech/en/stream-content/the-lifesaver",
+          "grade": "A",
+          "date": null
+        },
+        {
+          "claim": "DRC-HUBO+ 논문: 모듈화 관절, 고감속비+공냉으로 관절 토크 향상(감속기 종류 미기재)",
+          "source": "KAIST DSpace (IEEE T-RO 2018)",
+          "url": "https://dspace.kaist.ac.kr/handle/10203/240563?mode=full",
+          "grade": "A",
+          "date": "2018"
+        }
+      ],
+      "externalVendors": [
+        {
+          "vendor": "maxon",
+          "role": "component supply",
+          "grade": "A",
+          "url": "https://drive.tech/en/stream-content/the-lifesaver",
+          "level": "component"
+        }
+      ],
+      "noteKo": "관절 설계는 KAIST/Rainbow 자체, 모터는 maxon 외부 조달(공급사 공식 매거진). 감속기(하모닉 등) 공급사는 미확인."
+    },
+    {
+      "name": "MenteeBot V3",
+      "company": "Mentee Robotics",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": null,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "MenteeBot V3: 상용품 대비 3배 출력의 자체 설계(custom-designed) 액추에이터(CEO Amnon Shashua)",
+          "source": "Globes",
+          "url": "https://en.globes.co.il/en/article-amnon-shashuas-mentee-mobotics-launches-new-robot-1001501983",
+          "grade": "B",
+          "date": "2025-02"
+        },
+        {
+          "claim": "액추에이터·모터드라이버·로봇핸드 사내 설계",
+          "source": "AI Wiki (aggregator)",
+          "url": "https://aiwiki.ai/wiki/mentee_robotics_menteebot_v3",
+          "grade": "C",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "주요 매체(B)가 CEO 발언으로 자체 설계 액추에이터 명시."
+    },
+    {
+      "name": "CLOiD",
+      "company": "LG Electronics",
+      "sourcing": "in_house_confirmed",
+      "sellsExternally": true,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "LG전자 AXIUM: 모터+감속기+드라이브 일체형 모듈 9종 라인업, 2026 양산 준비, CLOiD 적용 시작",
+          "source": "한국경제",
+          "url": "https://www.hankyung.com/article/2026032306091",
+          "grade": "B",
+          "date": "2026-03"
+        },
+        {
+          "claim": "LG전자: 2027년부터 외부 고객사 공급 확대, 2030년 산업용 고토크 시장 진출 로드맵; 복수 빅테크와 공급 논의(IFA 2026)",
+          "source": "한국경제",
+          "url": "https://www.hankyung.com/article/2026090668691",
+          "grade": "B",
+          "date": "2026-09"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "LG 자체 AXIUM 액추에이터 모듈(9종) 적용. 2027년 외부 고객 공급 확대 계획·빅테크 협의 보도(계약 미확정)."
+    },
+    {
+      "name": "Ameca",
+      "company": "Engineered Arts",
+      "sourcing": "in_house_presumed",
+      "sellsExternally": false,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "Engineered Arts: 부품의 약 90%를 Falmouth 사내 생산, 상용 드라이버 보드 사용 불가해 자체 전자부품; 모터 공급사 명시 없음(52 모터)",
+          "source": "The Engineer",
+          "url": "https://theengineer.co.uk/articles/behind-the-scenes-at-cornish-robot-specialist-engineered-arts",
+          "grade": "B",
+          "date": "2022-05"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "확인 불가: 사내 제작 비중은 높으나 모터/액추에이터 자체 설계 명시 근거 없음, 외부 공급사도 미확인."
+    },
+    {
+      "name": "TALOS",
+      "company": "PAL Robotics",
+      "sourcing": "mixed",
+      "sellsExternally": false,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "TALOS: 브러시리스 DC 모터 32개 + Harmonic Drive 감속기 + 관절 토크센서",
+          "source": "AI Wiki (aggregator)",
+          "url": "https://aiwiki.ai/wiki/pal_robotics_talos",
+          "grade": "C",
+          "date": null
+        },
+        {
+          "claim": "TALOS 관절은 커스텀 설계, 모션제어 전자부품은 유럽 공급사(Elmo, AMC)",
+          "source": "Humanoid.Guide",
+          "url": "https://humanoid.guide/?p=18837",
+          "grade": "C",
+          "date": null
+        },
+        {
+          "claim": "TQ-RoboDrive: PAL Robotics에 고성능 모터(ILM 시리즈) 공급 및 통합 지원(모델 미특정)",
+          "source": "TQ-Group",
+          "url": "https://www.tq-group.com/en/products/tq-robodrive/landingpages/pal-robotics/",
+          "grade": "A",
+          "date": null
+        }
+      ],
+      "externalVendors": [
+        {
+          "vendor": "Harmonic Drive",
+          "role": "component supply",
+          "grade": "C",
+          "url": "https://aiwiki.ai/wiki/pal_robotics_talos",
+          "level": "component"
+        },
+        {
+          "vendor": "TQ-Group (RoboDrive)",
+          "role": "component supply",
+          "grade": "A",
+          "url": "https://www.tq-group.com/en/products/tq-robodrive/landingpages/pal-robotics/",
+          "level": "component"
+        }
+      ],
+      "noteKo": "관절 설계는 PAL 자체, 감속기(Harmonic Drive, C)·모터(TQ RoboDrive, 공급사 공식 A)는 외부 조달."
+    },
+    {
+      "name": "TIAGo",
+      "company": "PAL Robotics",
+      "sourcing": "unknown",
+      "sellsExternally": false,
+      "evidenceGrade": "C",
+      "evidence": [
+        {
+          "claim": "TQ-RoboDrive가 PAL Robotics에 모터 공급(어느 로봇인지 미특정)",
+          "source": "TQ-Group",
+          "url": "https://www.tq-group.com/en/products/tq-robodrive/landingpages/pal-robotics/",
+          "grade": "A",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "확인 불가: PAL이 TQ 모터를 구매하는 사실(A)은 있으나 TIAGo 암 액추에이터 구성은 미공개."
+    },
+    {
+      "name": "Avatar Robot",
+      "company": "Honda",
+      "sourcing": "in_house_presumed",
+      "sellsExternally": false,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "혼다 공식: 다지 손(16 능동 관절)과 아바타 로봇을 혼다가 연구개발(기구·제어·AI 전문가 보유); 액추에이터 출처 미기재",
+          "source": "Honda",
+          "url": "https://global.honda/innovation/advanced-technology/avatarrobot.html",
+          "grade": "A",
+          "date": null
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "확인 불가: 손 개발 주체는 혼다이나 액추에이터(모터·감속기) 자체 설계/외부 조달 여부 명시 없음."
+    },
+    {
+      "name": "HSR",
+      "company": "Toyota",
+      "sourcing": "unknown",
+      "sellsExternally": false,
+      "evidenceGrade": null,
+      "evidence": [
+        {
+          "claim": "토요타 HSR 공식 자료는 사양·안전 설계만 기술, 액추에이터/모터 공급사 미기재",
+          "source": "Toyota",
+          "url": "https://global.toyota/en/detail/125275",
+          "grade": "A",
+          "date": "2012-09"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "확인 불가: 액추에이터 출처에 대한 단서 없음."
+    },
+    {
+      "name": "Pepper",
+      "company": "SoftBank Robotics",
+      "sourcing": "unknown",
+      "sellsExternally": false,
+      "evidenceGrade": null,
+      "evidence": [
+        {
+          "claim": "Pepper는 Aldebaran(파리) 설계, Foxconn(Hon Hai)이 완제품 위탁 제조; 모터/서보 공급사 미확인",
+          "source": "Prensa Libre",
+          "url": "https://www.prensalibre.com/?p=143019",
+          "grade": "C",
+          "date": "2014"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "확인 불가: 완제품은 Foxconn 위탁 생산이나 서보/액추에이터 설계·공급 주체 근거 없음."
+    },
+    {
+      "name": "Moxi",
+      "company": "Diligent Robotics",
+      "sourcing": "external",
+      "sellsExternally": false,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "Moxi: Kinova Jaco 암 + Robotiq 어댑티브 그리퍼 + Fetch Freight 모바일 베이스",
+          "source": "IEEE Spectrum",
+          "url": "https://spectrum.ieee.org/moxi-prototype-from-diligent-robotics-starts-helping-out-in-hospitals",
+          "grade": "B",
+          "date": "2018-09"
+        },
+        {
+          "claim": "Fetch 모바일 플랫폼, Kinova 암, Robotiq 그리퍼 구성",
+          "source": "The Robot Report",
+          "url": "https://www.therobotreport.com/diligent-robotics-raises-series-a-funding-to-scale-moxi-hospital-robot/",
+          "grade": "B",
+          "date": "2020"
+        },
+        {
+          "claim": "Kinova 협동 암의 OEM 버전 탑재",
+          "source": "Automated Warehouse",
+          "url": "https://www.automatedwarehouseonline.com/diligent-robotics/",
+          "grade": "C",
+          "date": null
+        }
+      ],
+      "externalVendors": [
+        {
+          "vendor": "Kinova",
+          "role": "component supply",
+          "grade": "B",
+          "url": "https://spectrum.ieee.org/moxi-prototype-from-diligent-robotics-starts-helping-out-in-hospitals",
+          "level": "module"
+        },
+        {
+          "vendor": "Robotiq",
+          "role": "component supply",
+          "grade": "B",
+          "url": "https://spectrum.ieee.org/moxi-prototype-from-diligent-robotics-starts-helping-out-in-hospitals",
+          "level": "component"
+        },
+        {
+          "vendor": "Fetch Robotics",
+          "role": "component supply",
+          "grade": "B",
+          "url": "https://www.therobotreport.com/diligent-robotics-raises-series-a-funding-to-scale-moxi-hospital-robot/",
+          "level": "component"
+        }
+      ],
+      "noteKo": "팔은 Kinova(OEM) 로봇 암(액추에이터 포함), 그리퍼 Robotiq, 베이스 Fetch."
+    },
+    {
+      "name": "aeo",
+      "company": "Aeolus Robotics",
+      "sourcing": "in_house_presumed",
+      "sellsExternally": false,
+      "evidenceGrade": "B",
+      "evidence": [
+        {
+          "claim": "Aeolus: 팔 포함 대부분 독자(proprietary) 부품으로 구성 주장; 7-DOF 팔",
+          "source": "TechCrunch",
+          "url": "https://techcrunch.com/?p=2465155",
+          "grade": "B",
+          "date": "2023-01"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "확인 불가: '독자 부품' 주장(B)은 있으나 액추에이터 설계/공급사 명시 없음."
+    },
+    {
+      "name": "Relay",
+      "company": "Savioke",
+      "sourcing": "in_house_presumed",
+      "sellsExternally": false,
+      "evidenceGrade": "C",
+      "evidence": [
+        {
+          "claim": "Savioke는 소프트웨어·하드웨어를 사내에서 개발(출자사 보도자료); 구동 모터 사양·공급사 미기재",
+          "source": "Recruit press release (digitalpr.jp)",
+          "url": "https://digitalpr.jp/r/18713",
+          "grade": "C",
+          "date": "2016"
+        }
+      ],
+      "externalVendors": [],
+      "noteKo": "확인 불가: 휠 구동 모터 등 액추에이터 출처 단서 없음(서비스 배송 로봇, 관절 액추에이터 비해당)."
+    }
+  ]
+}

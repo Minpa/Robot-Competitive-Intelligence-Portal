@@ -1,14 +1,18 @@
 'use client';
 
 /**
- * 액추에이터 리포트 섹션 — 포지션 맵 + 공급망 맵 + 공급사 표를 한 Panel 로 묶는다.
+ * 액추에이터 리포트 섹션 — 조달 태세 요약(헤드라인) → 포지션 맵 → 공급망 맵 → 공급사 제품 맵 → 공급사 표 → 각주를 한 Panel 로 묶는다.
  * TechTrendShareView 에서 `report.domain === 'actuator'` 일 때 넣는다. 데이터는 useActuatorMap(['actuator-map']) 하나로 공유한다.
  */
 
+import { useMemo } from 'react';
 import { Panel } from '@/components/ui';
 import { ActuatorPositionMap } from './ActuatorPositionMap';
-import { ActuatorSupplyChainMap } from './ActuatorSupplyChainMap';
+import { ActuatorSourcingSummary } from './ActuatorSourcingSummary';
+import { ActuatorSupplierMarketMap } from './ActuatorSupplierMarketMap';
 import { ActuatorSupplierTable } from './ActuatorSupplierTable';
+import { ActuatorSupplyChainMap } from './ActuatorSupplyChainMap';
+import { unregisteredVendorNames } from './actuator-supply-graph';
 import { useActuatorMap } from './useActuatorMap';
 
 function fmtDateTime(iso?: string | null) {
@@ -23,8 +27,13 @@ export function ActuatorMapSection() {
   const query = useActuatorMap();
   const data = query.data;
 
+  const unregistered = useMemo(
+    () => (data ? unregisteredVendorNames(data.edges, data.robots, data.adoptions, data.suppliers) : []),
+    [data]
+  );
+
   const subtitle = data
-    ? `로봇 ${data.stats.robots}기(스펙 완결 ${data.stats.complete}) · 공급사 제품 ${data.stats.suppliers}개 · 공급 관계 ${data.stats.edges}건 · 집계 ${fmtDateTime(data.generatedAt)}${data.cached ? ' (캐시)' : ''}`
+    ? `로봇 ${data.stats.robots}기(스펙 완결 ${data.stats.complete}) · 공급사 제품 ${data.stats.suppliers}개 · 공급 관계 ${data.stats.edges}건 · 수요 사례 ${data.stats.adoptions}건 · 집계 ${fmtDateTime(data.generatedAt)}${data.cached ? ' (캐시)' : ''}`
     : query.isError
       ? 'DB 집계를 불러오지 못했습니다.'
       : 'ARGOS DB(humanoid_robots·body_specs·components·CI 매트릭스)에서 집계하는 중…';
@@ -51,12 +60,27 @@ export function ActuatorMapSection() {
       )}
       {data && (
         <div className="flex flex-col gap-4">
+          <ActuatorSourcingSummary data={data} />
           <ActuatorPositionMap data={data} />
-          <ActuatorSupplyChainMap edges={data.edges} robots={data.robots} />
-          <ActuatorSupplierTable suppliers={data.suppliers} />
+          <ActuatorSupplyChainMap
+            edges={data.edges}
+            robots={data.robots}
+            adoptions={data.adoptions}
+            vendorMarkets={data.vendorMarkets}
+            suppliers={data.suppliers}
+            segmentOrder={data.segmentOrder}
+          />
+          <ActuatorSupplierMarketMap suppliers={data.suppliers} adoptions={data.adoptions} segmentOrder={data.segmentOrder} />
+          <ActuatorSupplierTable suppliers={data.suppliers} adoptions={data.adoptions} />
           <p className="text-[11px] text-ink-500 leading-relaxed">
             X축은 DB 필드(보행 방식·전신 DOF·손 DOF·최고 속도)만으로 계산한 지수이며, 액추에이터 타입은 components·CI '구동 방식' 근거가 있는 경우만 분류하고
             없으면 '미확인'으로 둡니다. 가격은 CI '가격대'·로봇 설명에 기록된 값만 사용합니다(범위는 세로 막대, 점은 기하 평균).
+          </p>
+          <p className="text-[11px] text-ink-500 leading-relaxed">
+            조달 태세: 자체 개발 확인은 근거 등급 A·B가 있는 경우만 세고, C·D 등급이거나 근거가 없으면 확인 불가로 둡니다(자체 개발로 추정되는 로봇은 별도 표기). 외부 조달에는 일부만 외부에서 조달하는 혼합을 포함하며,
+            모듈(통합 관절)은 자체 설계이고 부품(모터·감속기)만 외부에서 조달하는 경우는 자체 개발 확인으로 두고 부품 외부 조달을 따로 적습니다. 수요 사례는 외부 액추에이터를 쓰는 공개 채택 사례이며 공급 계약 여부는 별도입니다.
+            시장 세그먼트는 공급사 기재 타깃 시장과 키워드 규칙으로 분류했고 (가설)을 포함합니다.
+            {unregistered.length > 0 && ` 제품 스펙 미등록 공급사 ${unregistered.length}개(${unregistered.join(', ')})는 공급망 맵에만 표시하며 공급사 제품 맵·표에는 없습니다.`}
           </p>
         </div>
       )}

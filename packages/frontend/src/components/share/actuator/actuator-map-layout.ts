@@ -7,11 +7,14 @@
  *  회사별 커버리지 = 같은 회사 2기 이상일 때 점 반경 16px 샘플의 convex hull.
  *  라벨은 근접 8후보 → 원거리 8후보(리더선) → 최소 충돌 후보 순으로 배치한다.
  *
+ * 점 색 = 조달 태세 4단계(자체 개발 확인 / 자체+외판 / 외부 조달·혼합 / 확인 불가=속 빈 링). 지역은 색이 아니라 필터·툴팁·표로만 쓴다.
+ * 커버리지 영역(hull)은 무채색이다.
  * 색은 chartColors 토큰만 사용한다 (새 hex 없음).
  */
 
-import { CATEGORY_PALETTE, CATEGORY_OTHER } from '@/app/events/wrc2026/components/chartColors';
-import type { ActuatorMapRegion, ActuatorMapRobot, DifficultyWeights, RobotPrice } from '@/types/actuator-map';
+import { CHART_HUE_MUTED } from '@/app/events/wrc2026/components/chartColors';
+import type { ActuatorMapRegion, ActuatorMapRobot, DifficultyWeights, RobotPrice, SourcingPosture } from '@/types/actuator-map';
+import { DEFAULT_POSTURES, POSTURE_COLOR, POSTURE_HOLLOW, POSTURE_LABEL, postureDetailLabel, postureOf } from './actuator-sourcing';
 
 export type YAxisKey = 'type' | 'size' | 'payload' | 'price';
 export type RegionGroup = 'na' | 'cn' | 'eu' | 'other';
@@ -23,7 +26,7 @@ export const Y_AXIS_OPTIONS: { value: YAxisKey; label: string }[] = [
   { value: 'price', label: '가격' },
 ];
 
-/** 유럽·한국·일본은 한 색으로 묶는다 (지역 3색 + 기타) */
+/** 유럽·한국·일본은 한 필터로 묶는다 (북미·중국·유럽/한국/일본·기타) */
 export const REGION_GROUP_OF: Record<ActuatorMapRegion, RegionGroup> = {
   na: 'na',
   cn: 'cn',
@@ -39,12 +42,6 @@ export const REGION_GROUP_LABEL: Record<RegionGroup, string> = {
   eu: '유럽·한국·일본',
   other: '기타',
 };
-export const REGION_GROUP_COLOR: Record<RegionGroup, string> = {
-  na: CATEGORY_PALETTE[0] as string,
-  cn: CATEGORY_PALETTE[1] as string,
-  eu: CATEGORY_PALETTE[2] as string,
-  other: CATEGORY_OTHER,
-};
 export const REGION_LABEL: Record<ActuatorMapRegion, string> = {
   na: '북미',
   cn: '중국',
@@ -58,9 +55,14 @@ export const CHART_W = 1100;
 export const CHART_H = 640;
 export const MARGIN = { t: 28, r: 40, b: 64, l: 170 } as const;
 
+/** 커버리지 영역(hull) 무채색 — 채움 0.10 · 테두리 0.45 불투명도로 그린다 */
+export const HULL_COLOR = CHART_HUE_MUTED;
+
 export interface LayoutOptions {
   yAxis: YAxisKey;
   regions: Record<RegionGroup, boolean>;
+  /** 조달 태세 필터 (기본 전부 true) */
+  postures: Record<SourcingPosture, boolean>;
   hull: boolean;
   showLG: boolean;
   includeForecast: boolean;
@@ -71,7 +73,7 @@ export interface LayoutOptions {
 export const DEFAULT_REGIONS: Record<RegionGroup, boolean> = { na: true, cn: true, eu: true, other: true };
 
 export function defaultLayoutOptions(weights: DifficultyWeights, typeOrder: string[]): LayoutOptions {
-  return { yAxis: 'type', regions: { ...DEFAULT_REGIONS }, hull: true, showLG: true, includeForecast: false, weights, typeOrder };
+  return { yAxis: 'type', regions: { ...DEFAULT_REGIONS }, postures: { ...DEFAULT_POSTURES }, hull: true, showLG: true, includeForecast: false, weights, typeOrder };
 }
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -111,10 +113,16 @@ export const Y_DEF: Record<
   },
 };
 
-/** 차트에 올릴 수 있는 로봇 (스펙 완결 + 지역/LG/예측 필터) */
+/** 차트에 올릴 수 있는 로봇 (스펙 완결 + 지역/조달 태세/LG/예측 필터) */
 export function visibleRobots(robots: ActuatorMapRobot[], o: LayoutOptions): ActuatorMapRobot[] {
+  const postures = o.postures ?? DEFAULT_POSTURES;
   return robots.filter(
-    (r) => !r.incomplete && o.regions[REGION_GROUP_OF[r.region]] && (o.showLG || !r.isLG) && (o.includeForecast || !r.forecast)
+    (r) =>
+      !r.incomplete &&
+      o.regions[REGION_GROUP_OF[r.region]] &&
+      postures[postureOf(r)] !== false &&
+      (o.showLG || !r.isLG) &&
+      (o.includeForecast || !r.forecast)
   );
 }
 
@@ -132,7 +140,11 @@ export interface PlottedPoint {
   yValue: number | string;
   px: number;
   py: number;
+  /** 조달 태세 색 (확인 불가는 회색 링 테두리 색) */
   color: string;
+  posture: SourcingPosture;
+  /** true 면 흰 채움 + 색 테두리 링으로 그린다 (확인 불가) */
+  hollow: boolean;
   ariaLabel: string;
   label: LabelPlacement;
 }
@@ -164,14 +176,14 @@ export interface ChartLayout {
   formula: string;
 }
 
-interface Box {
+export interface Box {
   x: number;
   y: number;
   w: number;
   h: number;
 }
 
-const overlaps = (a: Box, b: Box) => !(a.x + a.w < b.x || b.x + b.w < a.x || a.y + a.h < b.y || b.y + b.h < a.y);
+export const overlaps = (a: Box, b: Box) => !(a.x + a.w < b.x || b.x + b.w < a.x || a.y + a.h < b.y || b.y + b.h < a.y);
 
 /** 라벨 폭 추정 — ASCII 6.6px, 그 외(한글 등) 11px */
 export function labelWidth(s: string): number {
@@ -229,8 +241,8 @@ export function hullPath(poly: Pt[]): string {
   return `M${poly.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('L')}Z`;
 }
 
-type Cand = [number, number, 'start' | 'middle' | 'end'];
-const boxOf = (c: Cand, w: number, h: number): Box => ({ x: c[2] === 'start' ? c[0] : c[2] === 'end' ? c[0] - w : c[0] - w / 2, y: c[1] - h, w, h });
+export type Cand = [number, number, 'start' | 'middle' | 'end'];
+export const boxOf = (c: Cand, w: number, h: number): Box => ({ x: c[2] === 'start' ? c[0] : c[2] === 'end' ? c[0] - w : c[0] - w / 2, y: c[1] - h, w, h });
 
 export function buildLayout(robots: ActuatorMapRobot[], o: LayoutOptions): ChartLayout {
   const yd = Y_DEF[o.yAxis];
@@ -309,7 +321,7 @@ export function buildLayout(robots: ActuatorMapRobot[], o: LayoutOptions): Chart
       const ys = poly.map((p) => p[1]);
       hullBoxes.push({
         company,
-        color: REGION_GROUP_COLOR[REGION_GROUP_OF[ds[0]!.r.region]],
+        color: HULL_COLOR,
         d: hullPath(poly),
         minX: Math.min(...xs),
         maxX: Math.max(...xs),
@@ -323,7 +335,7 @@ export function buildLayout(robots: ActuatorMapRobot[], o: LayoutOptions): Chart
   if (o.yAxis === 'price') {
     for (const d of pts) {
       const p = d.r.price;
-      if (p && p.min !== p.max) priceBars.push({ px: d.px, y1: sy(p.min), y2: sy(p.max), color: REGION_GROUP_COLOR[REGION_GROUP_OF[d.r.region]] });
+      if (p && p.min !== p.max) priceBars.push({ px: d.px, y1: sy(p.min), y2: sy(p.max), color: POSTURE_COLOR[postureOf(d.r)] });
     }
   }
 
@@ -383,8 +395,10 @@ export function buildLayout(robots: ActuatorMapRobot[], o: LayoutOptions): Chart
       yValue: d.y,
       px: d.px,
       py: d.py,
-      color: REGION_GROUP_COLOR[REGION_GROUP_OF[d.r.region]],
-      ariaLabel: `${d.r.name} (${d.r.company}) 난이도 ${d.x.toFixed(1)} · ${o.yAxis === 'price' ? priceText(d.r.price) : yd.fmt(d.y)}`,
+      color: POSTURE_COLOR[postureOf(d.r)],
+      posture: postureOf(d.r),
+      hollow: POSTURE_HOLLOW[postureOf(d.r)],
+      ariaLabel: `${d.r.name} (${d.r.company}) 난이도 ${d.x.toFixed(1)} · ${o.yAxis === 'price' ? priceText(d.r.price) : yd.fmt(d.y)} · 조달 태세 ${POSTURE_LABEL[postureOf(d.r)]}`,
       label: { x: chosen[0], y: chosen[1], anchor: chosen[2], leader },
     });
   }
@@ -469,6 +483,21 @@ export interface CoverageRow {
   xMax: number;
   yRange: string;
   types: string[];
+  /** 회사 단위 조달 태세 (자체+외판 > 자체 > 외부 > 확인 불가 우선) — 상세 라벨 */
+  posture: string;
+}
+
+const POSTURE_PRIORITY: SourcingPosture[] = ['in_house_sells', 'in_house', 'external', 'unknown'];
+
+/** 회사 로봇들의 조달 태세 요약 — 가장 우선순위 높은 태세의 라벨 + 해당 로봇 수 ("자체 개발(확인·B) 2기 / 확인 불가 1기") */
+export function companyPostureText(robots: ActuatorMapRobot[]): string {
+  const parts: string[] = [];
+  for (const p of POSTURE_PRIORITY) {
+    const rs = robots.filter((r) => postureOf(r) === p);
+    if (rs.length === 0) continue;
+    parts.push(robots.length === 1 ? postureDetailLabel(rs[0]!.sourcing) : `${POSTURE_LABEL[p]} ${rs.length}기`);
+  }
+  return parts.join(' · ');
 }
 
 /** 회사별 커버리지 요약 (현재 Y축 기준) */
@@ -499,6 +528,7 @@ export function coverageRows(layout: ChartLayout, yAxis: YAxisKey): CoverageRow[
         xMax: Math.max(...xs),
         yRange,
         types: [...new Set(ds.map((d) => d.robot.actuatorTypeLabel))],
+        posture: companyPostureText(ds.map((d) => d.robot)),
       };
     });
 }

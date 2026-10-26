@@ -1,0 +1,1344 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildLayout 좌표·라벨 배치 (조달 태세 색 개편 전후 불변) > Y축 payload 스냅샷 1`] = `
+{
+  "excludedCount": 0,
+  "gridY": [
+    576,
+    436.2,
+    296.4,
+    156.6,
+  ],
+  "hulls": [
+    {
+      "company": "Boston Dynamics",
+      "d": "M228.8,478.1L230.9,470.1L236.8,464.3L244.8,462.1L686.2,483.1L694.2,485.3L700.1,491.1L702.2,499.1L700.1,507.1L694.2,513.0L686.2,515.1L244.8,494.1L236.8,492.0L230.9,486.1Z",
+      "label": {
+        "anchor": "end",
+        "x": 222.8,
+        "y": 492.6,
+      },
+    },
+    {
+      "company": "Figure AI",
+      "d": "M715.9,436.2L718.0,428.2L723.9,422.3L731.9,420.2L783.5,420.2L791.5,422.3L797.4,428.2L799.5,436.2L797.4,444.2L791.5,450.1L783.5,452.2L731.9,452.2L723.9,450.1L718.0,444.2Z",
+      "label": {
+        "anchor": "middle",
+        "x": 757.7,
+        "y": 400.2,
+      },
+    },
+    {
+      "company": "Unitree Robotics",
+      "d": "M303.5,520.1L305.7,512.1L311.5,506.2L319.5,504.1L607.9,525.1L615.9,527.2L621.7,533.1L623.9,541.1L621.7,549.1L615.9,554.9L587.4,568.9L579.4,571.0L319.5,536.1L311.5,533.9L305.7,528.1Z",
+      "label": {
+        "anchor": "middle",
+        "x": 463.7,
+        "y": 498.1,
+      },
+    },
+    {
+      "company": "Crowd Co",
+      "d": "M670.2,492.1L672.3,484.1L678.2,478.3L687.1,471.3L695.1,469.1L703.1,471.3L709.0,477.1L711.1,485.1L711.1,499.1L709.0,507.1L703.1,513.0L694.2,520.0L686.2,522.1L678.2,520.0L672.3,514.1L670.2,506.1Z",
+      "label": {
+        "anchor": "middle",
+        "x": 690.7,
+        "y": 550.1,
+      },
+    },
+    {
+      "company": "Other Crowd",
+      "d": "M670.2,464.2L672.3,456.2L678.2,450.3L686.2,448.2L694.2,450.3L703.1,457.3L709.0,463.2L711.1,471.2L709.0,479.2L703.1,485.0L694.2,492.0L686.2,494.1L678.2,492.0L672.3,486.1L670.2,478.1Z",
+      "label": {
+        "anchor": "end",
+        "x": 652.2,
+        "y": 438.2,
+      },
+    },
+  ],
+  "meta": "로봇 21기 표시 · X = 제어 난이도 지수 0~10 (가중치 L20/D40/H20/S20)",
+  "plot": {
+    "h": 548,
+    "w": 890,
+    "x": 170,
+    "y": 28,
+  },
+  "points": [
+    {
+      "id": "Boston Dynamics-Spot",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 254.8,
+        "y": 482.1,
+      },
+      "px": 244.8,
+      "py": 478.1,
+    },
+    {
+      "id": "Unitree Robotics-Go2",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 329.5,
+        "y": 524.1,
+      },
+      "px": 319.5,
+      "py": 520.1,
+    },
+    {
+      "id": "LG Electronics-CLOiD",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 408.4,
+        "y": 545.1,
+      },
+      "px": 398.4,
+      "py": 541.1,
+    },
+    {
+      "id": "Kawasaki-Kenshiro",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 473.1,
+        "y": 531.1,
+      },
+      "px": 463.1,
+      "py": 527.1,
+    },
+    {
+      "id": "Agility Robotics-Digit",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 500.4,
+        "y": 468.2,
+      },
+      "px": 490.4,
+      "py": 464.2,
+    },
+    {
+      "id": "1X Technologies-Neo",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 588.8,
+        "y": 90.7,
+      },
+      "px": 578.8,
+      "py": 86.7,
+    },
+    {
+      "id": "Unitree Robotics-G1",
+      "label": {
+        "anchor": "end",
+        "leader": null,
+        "x": 569.4,
+        "y": 559,
+      },
+      "px": 579.4,
+      "py": 555,
+    },
+    {
+      "id": "Unitree Robotics-H1",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 617.9,
+        "y": 545.1,
+      },
+      "px": 607.9,
+      "py": 541.1,
+    },
+    {
+      "id": "Apptronik-Apollo",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 652.9,
+        "y": 405.3,
+      },
+      "px": 642.9,
+      "py": 401.3,
+    },
+    {
+      "id": "Boston Dynamics-Atlas",
+      "label": {
+        "anchor": "end",
+        "leader": null,
+        "x": 676.2,
+        "y": 503.1,
+      },
+      "px": 686.2,
+      "py": 499.1,
+    },
+    {
+      "id": "Crowd Co-Dense Model 0",
+      "label": {
+        "anchor": "middle",
+        "leader": null,
+        "x": 686.2,
+        "y": 526.1,
+      },
+      "px": 686.2,
+      "py": 506.1,
+    },
+    {
+      "id": "Crowd Co-Dense Model 2",
+      "label": {
+        "anchor": "end",
+        "leader": null,
+        "x": 677.2,
+        "y": 483.1,
+      },
+      "px": 686.2,
+      "py": 492.1,
+    },
+    {
+      "id": "Other Crowd-Dense Model 4",
+      "label": {
+        "anchor": "end",
+        "leader": null,
+        "x": 677.2,
+        "y": 469.1,
+      },
+      "px": 686.2,
+      "py": 478.1,
+    },
+    {
+      "id": "Other Crowd-Dense Model 6",
+      "label": {
+        "anchor": "end",
+        "leader": null,
+        "x": 677.2,
+        "y": 455.2,
+      },
+      "px": 686.2,
+      "py": 464.2,
+    },
+    {
+      "id": "Crowd Co-Dense Model 1",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 705.1,
+        "y": 503.1,
+      },
+      "px": 695.1,
+      "py": 499.1,
+    },
+    {
+      "id": "Crowd Co-Dense Model 3",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 705.1,
+        "y": 489.1,
+      },
+      "px": 695.1,
+      "py": 485.1,
+    },
+    {
+      "id": "Other Crowd-Dense Model 5",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 705.1,
+        "y": 475.2,
+      },
+      "px": 695.1,
+      "py": 471.2,
+    },
+    {
+      "id": "Figure AI-Figure 02",
+      "label": {
+        "anchor": "end",
+        "leader": null,
+        "x": 721.9,
+        "y": 440.2,
+      },
+      "px": 731.9,
+      "py": 436.2,
+    },
+    {
+      "id": "Figure AI-Figure 03",
+      "label": {
+        "anchor": "middle",
+        "leader": null,
+        "x": 783.5,
+        "y": 424.2,
+      },
+      "px": 783.5,
+      "py": 436.2,
+    },
+    {
+      "id": "Tesla-Optimus",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 866.5,
+        "y": 440.2,
+      },
+      "px": 856.5,
+      "py": 436.2,
+    },
+    {
+      "id": "Fourier Intelligence-GR-2",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 867.1,
+        "y": 559,
+      },
+      "px": 857.1,
+      "py": 555,
+    },
+  ],
+  "priceBars": [],
+  "title": "가반하중 × 제어 난이도",
+  "xTicks": [
+    [
+      170,
+      "0",
+    ],
+    [
+      348,
+      "2",
+    ],
+    [
+      526,
+      "4",
+    ],
+    [
+      704,
+      "6",
+    ],
+    [
+      882,
+      "8",
+    ],
+    [
+      1060,
+      "10",
+    ],
+  ],
+  "yTicks": [
+    [
+      576,
+      "0",
+    ],
+    [
+      436.2,
+      "20",
+    ],
+    [
+      296.4,
+      "40",
+    ],
+    [
+      156.6,
+      "60",
+    ],
+  ],
+}
+`;
+
+exports[`buildLayout 좌표·라벨 배치 (조달 태세 색 개편 전후 불변) > Y축 price 스냅샷 1`] = `
+{
+  "excludedCount": 8,
+  "gridY": [
+    510.8,
+    404,
+    323.2,
+    242.5,
+    135.7,
+    54.9,
+  ],
+  "hulls": [
+    {
+      "company": "Unitree Robotics",
+      "d": "M303.5,504.2L305.7,496.2L594.0,59.2L599.9,53.4L607.9,51.2L615.9,53.4L621.7,59.2L623.9,67.2L595.4,251.0L593.3,259.0L587.4,264.8L327.5,518.0L319.5,520.2L311.5,518.0L305.7,512.2Z",
+      "label": {
+        "anchor": "middle",
+        "x": 463.7,
+        "y": 45.2,
+      },
+    },
+    {
+      "company": "Crowd Co",
+      "d": "M670.2,401.7L672.3,393.7L678.2,387.9L686.2,385.7L695.1,384.6L703.1,386.7L709.0,392.6L711.1,400.6L711.1,402.9L709.0,410.9L703.1,416.7L695.1,418.9L686.2,420.0L678.2,417.9L672.3,412.0L670.2,404.0Z",
+      "label": {
+        "anchor": "end",
+        "x": 711.1,
+        "y": 434,
+      },
+    },
+    {
+      "company": "Other Crowd",
+      "d": "M670.2,397.2L672.3,389.2L678.2,383.4L686.2,381.2L695.1,382.3L703.1,384.5L709.0,390.3L711.1,398.3L709.0,406.3L703.1,412.2L695.1,414.3L686.2,415.4L678.2,413.3L672.3,407.4L670.2,399.4Z",
+      "label": {
+        "anchor": "middle",
+        "x": 690.7,
+        "y": 361.2,
+      },
+    },
+  ],
+  "meta": "로봇 13기 표시 · 가격 미공개 8기 제외(표 참조) · X = 제어 난이도 지수 0~10 (가중치 L20/D40/H20/S20)",
+  "plot": {
+    "h": 548,
+    "w": 890,
+    "x": 170,
+    "y": 28,
+  },
+  "points": [
+    {
+      "id": "Boston Dynamics-Spot",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 254.8,
+        "y": 93.2,
+      },
+      "px": 244.8,
+      "py": 89.2,
+    },
+    {
+      "id": "Unitree Robotics-Go2",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 329.5,
+        "y": 508.2,
+      },
+      "px": 319.5,
+      "py": 504.2,
+    },
+    {
+      "id": "1X Technologies-Neo",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 588.8,
+        "y": 246.5,
+      },
+      "px": 578.8,
+      "py": 242.5,
+    },
+    {
+      "id": "Unitree Robotics-G1",
+      "label": {
+        "anchor": "end",
+        "leader": null,
+        "x": 569.4,
+        "y": 255,
+      },
+      "px": 579.4,
+      "py": 251,
+    },
+    {
+      "id": "Unitree Robotics-H1",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 617.9,
+        "y": 71.2,
+      },
+      "px": 607.9,
+      "py": 67.2,
+    },
+    {
+      "id": "Crowd Co-Dense Model 0",
+      "label": {
+        "anchor": "end",
+        "leader": null,
+        "x": 676.2,
+        "y": 408,
+      },
+      "px": 686.2,
+      "py": 404,
+    },
+    {
+      "id": "Crowd Co-Dense Model 2",
+      "label": {
+        "anchor": "end",
+        "leader": null,
+        "x": 677.2,
+        "y": 392.7,
+      },
+      "px": 686.2,
+      "py": 401.7,
+    },
+    {
+      "id": "Other Crowd-Dense Model 4",
+      "label": {
+        "anchor": "start",
+        "leader": {
+          "x2": 710.2,
+          "y2": 372.4,
+        },
+        "x": 712.2,
+        "y": 377.4,
+      },
+      "px": 686.2,
+      "py": 399.4,
+    },
+    {
+      "id": "Other Crowd-Dense Model 6",
+      "label": {
+        "anchor": "start",
+        "leader": {
+          "x2": 710.2,
+          "y2": 422.2,
+        },
+        "x": 712.2,
+        "y": 427.2,
+      },
+      "px": 686.2,
+      "py": 397.2,
+    },
+    {
+      "id": "Crowd Co-Dense Model 1",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 705.1,
+        "y": 406.9,
+      },
+      "px": 695.1,
+      "py": 402.9,
+    },
+    {
+      "id": "Crowd Co-Dense Model 3",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 704.1,
+        "y": 391.6,
+      },
+      "px": 695.1,
+      "py": 400.6,
+    },
+    {
+      "id": "Other Crowd-Dense Model 5",
+      "label": {
+        "anchor": "end",
+        "leader": {
+          "x2": 671.1,
+          "y2": 371.3,
+        },
+        "x": 669.1,
+        "y": 376.3,
+      },
+      "px": 695.1,
+      "py": 398.3,
+    },
+    {
+      "id": "Tesla-Optimus",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 866.5,
+        "y": 222.9,
+      },
+      "px": 856.5,
+      "py": 218.9,
+    },
+  ],
+  "priceBars": [
+    [
+      856.5,
+      242.5,
+      195.2,
+    ],
+    [
+      579.4,
+      268.5,
+      233.5,
+    ],
+    [
+      319.5,
+      536.8,
+      471.6,
+    ],
+  ],
+  "title": "가격 × 제어 난이도",
+  "xTicks": [
+    [
+      170,
+      "0",
+    ],
+    [
+      348,
+      "2",
+    ],
+    [
+      526,
+      "4",
+    ],
+    [
+      704,
+      "6",
+    ],
+    [
+      882,
+      "8",
+    ],
+    [
+      1060,
+      "10",
+    ],
+  ],
+  "yTicks": [
+    [
+      510.8,
+      "$2K",
+    ],
+    [
+      404,
+      "$5K",
+    ],
+    [
+      323.2,
+      "$10K",
+    ],
+    [
+      242.5,
+      "$20K",
+    ],
+    [
+      135.7,
+      "$50K",
+    ],
+    [
+      54.9,
+      "$100K",
+    ],
+  ],
+}
+`;
+
+exports[`buildLayout 좌표·라벨 배치 (조달 태세 색 개편 전후 불변) > Y축 size 스냅샷 1`] = `
+{
+  "excludedCount": 0,
+  "gridY": [
+    576,
+    466,
+    356.1,
+    246.1,
+    136.2,
+  ],
+  "hulls": [
+    {
+      "company": "Boston Dynamics",
+      "d": "M228.8,400.1L230.9,392.1L236.8,386.2L678.2,72.9L686.2,70.7L694.2,72.9L700.1,78.7L702.2,86.7L700.1,94.7L694.2,100.6L252.8,413.9L244.8,416.1L236.8,413.9L230.9,408.1Z",
+      "label": {
+        "anchor": "middle",
+        "x": 465.5,
+        "y": 64.7,
+      },
+    },
+    {
+      "company": "Figure AI",
+      "d": "M715.9,191.2L718.0,183.2L723.9,177.3L731.9,175.2L739.9,177.3L745.7,183.2L797.4,238.1L799.5,246.1L797.4,254.1L791.5,260.0L783.5,262.1L775.5,260.0L769.7,254.1L718.0,199.2Z",
+      "label": {
+        "anchor": "middle",
+        "x": 757.7,
+        "y": 169.2,
+      },
+    },
+    {
+      "company": "Unitree Robotics",
+      "d": "M303.5,493.5L305.7,485.5L311.5,479.7L599.9,303.8L607.9,301.6L615.9,303.8L621.7,309.6L623.9,317.6L621.7,325.6L593.3,391.6L587.4,397.4L327.5,507.4L319.5,509.5L311.5,507.4L305.7,501.5Z",
+      "label": {
+        "anchor": "middle",
+        "x": 463.7,
+        "y": 295.6,
+      },
+    },
+    {
+      "company": "Crowd Co",
+      "d": "M670.2,290.1L672.3,282.1L678.2,276.3L687.1,270.8L695.1,268.6L703.1,270.8L709.0,276.6L711.1,284.6L711.1,295.6L709.0,303.6L703.1,309.5L694.2,315.0L686.2,317.1L678.2,315.0L672.3,309.1L670.2,301.1Z",
+      "label": {
+        "anchor": "middle",
+        "x": 690.7,
+        "y": 331.1,
+      },
+    },
+    {
+      "company": "Other Crowd",
+      "d": "M670.2,268.1L672.3,260.1L678.2,254.3L686.2,252.1L694.2,254.3L703.1,259.8L709.0,265.6L711.1,273.6L709.0,281.6L703.1,287.5L694.2,293.0L686.2,295.1L678.2,293.0L672.3,287.1L670.2,279.1Z",
+      "label": {
+        "anchor": "middle",
+        "x": 690.7,
+        "y": 232.1,
+      },
+    },
+  ],
+  "meta": "로봇 21기 표시 · X = 제어 난이도 지수 0~10 (가중치 L20/D40/H20/S20)",
+  "plot": {
+    "h": 548,
+    "w": 890,
+    "x": 170,
+    "y": 28,
+  },
+  "points": [
+    {
+      "id": "Boston Dynamics-Spot",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 254.8,
+        "y": 404.1,
+      },
+      "px": 244.8,
+      "py": 400.1,
+    },
+    {
+      "id": "Unitree Robotics-Go2",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 329.5,
+        "y": 497.5,
+      },
+      "px": 319.5,
+      "py": 493.5,
+    },
+    {
+      "id": "LG Electronics-CLOiD",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 408.4,
+        "y": 250.1,
+      },
+      "px": 398.4,
+      "py": 246.1,
+    },
+    {
+      "id": "Kawasaki-Kenshiro",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 473.1,
+        "y": 140.2,
+      },
+      "px": 463.1,
+      "py": 136.2,
+    },
+    {
+      "id": "Agility Robotics-Digit",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 500.4,
+        "y": 222.7,
+      },
+      "px": 490.4,
+      "py": 218.7,
+    },
+    {
+      "id": "1X Technologies-Neo",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 588.8,
+        "y": 415.1,
+      },
+      "px": 578.8,
+      "py": 411.1,
+    },
+    {
+      "id": "Unitree Robotics-G1",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 589.4,
+        "y": 387.6,
+      },
+      "px": 579.4,
+      "py": 383.6,
+    },
+    {
+      "id": "Unitree Robotics-H1",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 617.9,
+        "y": 321.6,
+      },
+      "px": 607.9,
+      "py": 317.6,
+    },
+    {
+      "id": "Apptronik-Apollo",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 652.9,
+        "y": 184.2,
+      },
+      "px": 642.9,
+      "py": 180.2,
+    },
+    {
+      "id": "Boston Dynamics-Atlas",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 696.2,
+        "y": 90.7,
+      },
+      "px": 686.2,
+      "py": 86.7,
+    },
+    {
+      "id": "Crowd Co-Dense Model 0",
+      "label": {
+        "anchor": "end",
+        "leader": null,
+        "x": 676.2,
+        "y": 305.1,
+      },
+      "px": 686.2,
+      "py": 301.1,
+    },
+    {
+      "id": "Crowd Co-Dense Model 2",
+      "label": {
+        "anchor": "end",
+        "leader": null,
+        "x": 677.2,
+        "y": 281.1,
+      },
+      "px": 686.2,
+      "py": 290.1,
+    },
+    {
+      "id": "Other Crowd-Dense Model 4",
+      "label": {
+        "anchor": "start",
+        "leader": {
+          "x2": 710.2,
+          "y2": 304.1,
+        },
+        "x": 712.2,
+        "y": 309.1,
+      },
+      "px": 686.2,
+      "py": 279.1,
+    },
+    {
+      "id": "Other Crowd-Dense Model 6",
+      "label": {
+        "anchor": "middle",
+        "leader": null,
+        "x": 686.2,
+        "y": 256.1,
+      },
+      "px": 686.2,
+      "py": 268.1,
+    },
+    {
+      "id": "Crowd Co-Dense Model 1",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 704.1,
+        "y": 286.6,
+      },
+      "px": 695.1,
+      "py": 295.6,
+    },
+    {
+      "id": "Crowd Co-Dense Model 3",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 705.1,
+        "y": 288.6,
+      },
+      "px": 695.1,
+      "py": 284.6,
+    },
+    {
+      "id": "Other Crowd-Dense Model 5",
+      "label": {
+        "anchor": "start",
+        "leader": {
+          "x2": 719.1,
+          "y2": 298.6,
+        },
+        "x": 721.1,
+        "y": 303.6,
+      },
+      "px": 695.1,
+      "py": 273.6,
+    },
+    {
+      "id": "Figure AI-Figure 02",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 741.9,
+        "y": 195.2,
+      },
+      "px": 731.9,
+      "py": 191.2,
+    },
+    {
+      "id": "Figure AI-Figure 03",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 793.5,
+        "y": 250.1,
+      },
+      "px": 783.5,
+      "py": 246.1,
+    },
+    {
+      "id": "Tesla-Optimus",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 866.5,
+        "y": 266.6,
+      },
+      "px": 856.5,
+      "py": 262.6,
+    },
+    {
+      "id": "Fourier Intelligence-GR-2",
+      "label": {
+        "anchor": "end",
+        "leader": null,
+        "x": 847.1,
+        "y": 277.6,
+      },
+      "px": 857.1,
+      "py": 273.6,
+    },
+  ],
+  "priceBars": [],
+  "title": "크기(본체 무게) × 제어 난이도",
+  "xTicks": [
+    [
+      170,
+      "0",
+    ],
+    [
+      348,
+      "2",
+    ],
+    [
+      526,
+      "4",
+    ],
+    [
+      704,
+      "6",
+    ],
+    [
+      882,
+      "8",
+    ],
+    [
+      1060,
+      "10",
+    ],
+  ],
+  "yTicks": [
+    [
+      576,
+      "0",
+    ],
+    [
+      466,
+      "20",
+    ],
+    [
+      356.1,
+      "40",
+    ],
+    [
+      246.1,
+      "60",
+    ],
+    [
+      136.2,
+      "80",
+    ],
+  ],
+}
+`;
+
+exports[`buildLayout 좌표·라벨 배치 (조달 태세 색 개편 전후 불변) > Y축 type 스냅샷 1`] = `
+{
+  "excludedCount": 0,
+  "gridY": [
+    106.3,
+    184.6,
+    262.9,
+    341.1,
+    419.4,
+    497.7,
+  ],
+  "hulls": [
+    {
+      "company": "Boston Dynamics",
+      "d": "M228.8,223.7L230.9,215.7L236.8,209.9L678.2,53.3L686.2,51.1L694.2,53.3L700.1,59.1L702.2,67.1L700.1,75.1L694.2,81.0L252.8,237.6L244.8,239.7L236.8,237.6L230.9,231.7Z",
+      "label": {
+        "anchor": "middle",
+        "x": 465.5,
+        "y": 45.1,
+      },
+    },
+    {
+      "company": "Figure AI",
+      "d": "M715.9,536.9L718.0,528.9L723.9,523.0L731.9,520.9L783.5,520.9L791.5,523.0L797.4,528.9L799.5,536.9L797.4,544.9L791.5,550.7L783.5,552.9L731.9,552.9L723.9,550.7L718.0,544.9Z",
+      "label": {
+        "anchor": "middle",
+        "x": 757.7,
+        "y": 514.9,
+      },
+    },
+    {
+      "company": "Unitree Robotics",
+      "d": "M303.5,223.7L305.7,215.7L311.5,209.9L319.5,207.7L607.9,207.7L615.9,209.9L621.7,215.7L623.9,223.7L621.7,231.7L615.9,237.6L607.9,239.7L319.5,239.7L311.5,237.6L305.7,231.7Z",
+      "label": {
+        "anchor": "middle",
+        "x": 463.7,
+        "y": 201.7,
+      },
+    },
+    {
+      "company": "Crowd Co",
+      "d": "M670.2,223.7L672.3,215.7L681.2,201.7L687.1,195.9L695.1,193.7L703.1,195.9L709.0,201.7L711.1,209.7L711.1,237.7L709.0,245.7L703.1,251.6L695.1,253.7L686.2,253.7L678.2,251.6L672.3,245.7L670.2,237.7Z",
+      "label": {
+        "anchor": "end",
+        "x": 711.1,
+        "y": 187.7,
+      },
+    },
+    {
+      "company": "Other Crowd",
+      "d": "M670.2,209.7L672.3,201.7L678.2,195.9L686.2,193.7L694.2,195.9L700.1,201.7L709.0,215.7L711.1,223.7L709.0,231.7L703.1,237.6L695.1,239.7L686.2,239.7L678.2,237.6L672.3,231.7L670.2,223.7Z",
+      "label": {
+        "anchor": "middle",
+        "x": 690.7,
+        "y": 173.7,
+      },
+    },
+  ],
+  "meta": "로봇 21기 표시 · X = 제어 난이도 지수 0~10 (가중치 L20/D40/H20/S20)",
+  "plot": {
+    "h": 548,
+    "w": 890,
+    "x": 170,
+    "y": 28,
+  },
+  "points": [
+    {
+      "id": "Boston Dynamics-Spot",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 254.8,
+        "y": 227.7,
+      },
+      "px": 244.8,
+      "py": 223.7,
+    },
+    {
+      "id": "Unitree Robotics-Go2",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 329.5,
+        "y": 227.7,
+      },
+      "px": 319.5,
+      "py": 223.7,
+    },
+    {
+      "id": "LG Electronics-CLOiD",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 408.4,
+        "y": 540.9,
+      },
+      "px": 398.4,
+      "py": 536.9,
+    },
+    {
+      "id": "Kawasaki-Kenshiro",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 473.1,
+        "y": 149.4,
+      },
+      "px": 463.1,
+      "py": 145.4,
+    },
+    {
+      "id": "Agility Robotics-Digit",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 500.4,
+        "y": 306,
+      },
+      "px": 490.4,
+      "py": 302,
+    },
+    {
+      "id": "1X Technologies-Neo",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 588.8,
+        "y": 384.3,
+      },
+      "px": 578.8,
+      "py": 380.3,
+    },
+    {
+      "id": "Unitree Robotics-G1",
+      "label": {
+        "anchor": "end",
+        "leader": null,
+        "x": 569.4,
+        "y": 227.7,
+      },
+      "px": 579.4,
+      "py": 223.7,
+    },
+    {
+      "id": "Unitree Robotics-H1",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 617.9,
+        "y": 227.7,
+      },
+      "px": 607.9,
+      "py": 223.7,
+    },
+    {
+      "id": "Apptronik-Apollo",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 652.9,
+        "y": 306,
+      },
+      "px": 642.9,
+      "py": 302,
+    },
+    {
+      "id": "Boston Dynamics-Atlas",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 696.2,
+        "y": 71.1,
+      },
+      "px": 686.2,
+      "py": 67.1,
+    },
+    {
+      "id": "Crowd Co-Dense Model 0",
+      "label": {
+        "anchor": "start",
+        "leader": {
+          "x2": 710.2,
+          "y2": 196.7,
+        },
+        "x": 712.2,
+        "y": 201.7,
+      },
+      "px": 686.2,
+      "py": 223.7,
+    },
+    {
+      "id": "Crowd Co-Dense Model 2",
+      "label": {
+        "anchor": "end",
+        "leader": null,
+        "x": 677.2,
+        "y": 254.7,
+      },
+      "px": 686.2,
+      "py": 237.7,
+    },
+    {
+      "id": "Other Crowd-Dense Model 4",
+      "label": {
+        "anchor": "end",
+        "leader": null,
+        "x": 676.2,
+        "y": 213.7,
+      },
+      "px": 686.2,
+      "py": 209.7,
+    },
+    {
+      "id": "Other Crowd-Dense Model 6",
+      "label": {
+        "anchor": "start",
+        "leader": {
+          "x2": 710.2,
+          "y2": 248.7,
+        },
+        "x": 712.2,
+        "y": 253.7,
+      },
+      "px": 686.2,
+      "py": 223.7,
+    },
+    {
+      "id": "Crowd Co-Dense Model 1",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 704.1,
+        "y": 228.7,
+      },
+      "px": 695.1,
+      "py": 237.7,
+    },
+    {
+      "id": "Crowd Co-Dense Model 3",
+      "label": {
+        "anchor": "start",
+        "leader": {
+          "x2": 719.1,
+          "y2": 182.7,
+        },
+        "x": 721.1,
+        "y": 187.7,
+      },
+      "px": 695.1,
+      "py": 209.7,
+    },
+    {
+      "id": "Other Crowd-Dense Model 5",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 705.1,
+        "y": 227.7,
+      },
+      "px": 695.1,
+      "py": 223.7,
+    },
+    {
+      "id": "Figure AI-Figure 02",
+      "label": {
+        "anchor": "end",
+        "leader": null,
+        "x": 721.9,
+        "y": 540.9,
+      },
+      "px": 731.9,
+      "py": 536.9,
+    },
+    {
+      "id": "Figure AI-Figure 03",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 793.5,
+        "y": 540.9,
+      },
+      "px": 783.5,
+      "py": 536.9,
+    },
+    {
+      "id": "Tesla-Optimus",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 866.5,
+        "y": 462.6,
+      },
+      "px": 856.5,
+      "py": 458.6,
+    },
+    {
+      "id": "Fourier Intelligence-GR-2",
+      "label": {
+        "anchor": "start",
+        "leader": null,
+        "x": 867.1,
+        "y": 227.7,
+      },
+      "px": 857.1,
+      "py": 223.7,
+    },
+  ],
+  "priceBars": [],
+  "title": "액추에이터 타입 × 제어 난이도",
+  "xTicks": [
+    [
+      170,
+      "0",
+    ],
+    [
+      348,
+      "2",
+    ],
+    [
+      526,
+      "4",
+    ],
+    [
+      704,
+      "6",
+    ],
+    [
+      882,
+      "8",
+    ],
+    [
+      1060,
+      "10",
+    ],
+  ],
+  "yTicks": [
+    [
+      67.1,
+      "유압→전기 전환",
+    ],
+    [
+      145.4,
+      "사이클로이드·유성",
+    ],
+    [
+      223.7,
+      "직구동/QDD",
+    ],
+    [
+      302,
+      "리니어·스크류",
+    ],
+    [
+      380.3,
+      "소프트·텐던",
+    ],
+    [
+      458.6,
+      "커스텀 전기(상세 미공개)",
+    ],
+    [
+      536.9,
+      "미확인",
+    ],
+  ],
+}
+`;
