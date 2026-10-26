@@ -110,6 +110,11 @@ export async function fetchRows(deps: CollectDeps, range: WeekRange): Promise<{ 
              'thirdParty', x.m->'thirdParty',
              'thumbnail', x.m->'thumbnail',
              'videoId', x.m->'videoId',
+             'authors', CASE jsonb_typeof(x.m->'authors')
+               WHEN 'array' THEN (SELECT jsonb_agg(left(e.v, 80) ORDER BY e.o) FROM (SELECT t.v, t.o FROM jsonb_array_elements_text(x.m->'authors') WITH ORDINALITY AS t(v, o) ORDER BY t.o LIMIT 20) e)
+               WHEN 'string' THEN to_jsonb(left(x.m->>'authors', 120))
+               ELSE NULL END,
+             'arxivId', left(x.m->>'arxivId', 40),
              'description', left(x.m->>'description', 400),
              'geminiAnalyzedAt', x.m->>'geminiAnalyzedAt',
              'geminiAnalysis', jsonb_build_object(

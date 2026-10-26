@@ -7,6 +7,7 @@ import type {
   WeeklyArticleItem,
   WeeklyBriefResponse,
   WeeklyKeyword,
+  WeeklyPaperItem,
   WeeklyVideoItem,
 } from '@/types/weekly-brief';
 
@@ -42,6 +43,22 @@ export function makeArticle(i: number, over: Partial<WeeklyArticleItem> = {}): W
   };
 }
 
+export function makePaper(i: number, over: Partial<WeeklyPaperItem> = {}): WeeklyPaperItem {
+  const arxivId = `2610.${String(10000 + i)}`;
+  const domains: (BriefDomainKey | null)[] = ['hand', 'actuator', 'rfm', 'production', null, 'hand'];
+  return {
+    id: `pap${i}`,
+    title: `Dexterous manipulation with tactile feedback ${i}`,
+    authors: i % 2 === 0 ? 'A. Kim, B. Lee, C. Park 외 4명' : 'D. Choi',
+    publishedAt: '2026-10-21T01:00:00.000Z',
+    url: `https://arxiv.org/abs/${arxivId}`,
+    arxivId,
+    summaryLine: i % 3 === 0 ? `We propose a method ${i}.` : null,
+    domain: domains[i % domains.length],
+    ...over,
+  };
+}
+
 export function makeKeyword(i: number, over: Partial<WeeklyKeyword> = {}): WeeklyKeyword {
   return {
     keywordId: `kw${i}`,
@@ -72,8 +89,8 @@ export function makeFullBrief(): WeeklyBriefResponse {
         periodStartAt: '2026-10-18T15:00:00.000Z',
         periodEndAt: '2026-10-25T14:59:59.999Z',
         generatedAt: '2026-10-25T23:05:00.000Z',
-        counts: { articles: 187, videosNew: 41, videosAnalyzed: 29, ciUpdates: 6, alerts: 3, newRobots: 2 },
-        deltas: { articles: 12, videosNew: -3.5, videosAnalyzed: null, ciUpdates: 0, alerts: 50 },
+        counts: { articles: 187, papers: 23, videosNew: 41, videosAnalyzed: 29, ciUpdates: 6, alerts: 3, newRobots: 2 },
+        deltas: { articles: 12, papers: 15.5, videosNew: -3.5, videosAnalyzed: null, ciUpdates: 0, alerts: 50 },
       },
       keyMessages: [
         {
@@ -130,6 +147,7 @@ export function makeFullBrief(): WeeklyBriefResponse {
       ciSummary: { updates: 6, companies: 3 },
       keywords: Array.from({ length: 8 }, (_, i) => makeKeyword(i)),
       videos: Array.from({ length: 8 }, (_, i) => makeVideo(i + 1)),
+      papers: Array.from({ length: 6 }, (_, i) => makePaper(i)),
       articles: Array.from({ length: 12 }, (_, i) => makeArticle(i)),
       meta: { aiUsed: true, ruleBasedMessages: 1, warnings: [], truncated: false },
     },
@@ -142,13 +160,14 @@ export function makeEmptyBrief(): WeeklyBriefResponse {
   b.status = 'partial';
   b.payload = {
     ...b.payload,
-    header: { ...b.payload.header, counts: { articles: 0, videosNew: 0, videosAnalyzed: 0, ciUpdates: 0, alerts: 0 }, deltas: { articles: null, videosNew: null, videosAnalyzed: null, ciUpdates: null, alerts: null } },
+    header: { ...b.payload.header, counts: { articles: 0, papers: 0, videosNew: 0, videosAnalyzed: 0, ciUpdates: 0, alerts: 0 }, deltas: { articles: null, papers: null, videosNew: null, videosAnalyzed: null, ciUpdates: null, alerts: null } },
     keyMessages: [],
     topVideo: null,
     ciChanges: [],
     ciSummary: { updates: 0, companies: 0 },
     keywords: [],
     videos: [],
+    papers: [],
     articles: [],
     meta: { aiUsed: false, ruleBasedMessages: 0, warnings: ['no_data'], truncated: false },
   };

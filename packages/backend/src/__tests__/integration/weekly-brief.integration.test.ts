@@ -219,13 +219,14 @@ describe.skipIf(!TEST_URL)('weekly brief (temp PostgreSQL)', () => {
         periodStartAt: '2026-10-18T15:00:00.000Z', periodEndAt: '2026-10-25T14:59:59.999Z', generatedAt: NOW.toISOString(),
       });
       expect(p.header.counts).toEqual({
-        articles: EXP.current.news, videosNew: EXP.current.videos, videosAnalyzed: EXP.current.videosAnalyzed,
+        articles: EXP.current.news, videosNew: EXP.current.videos, videosAnalyzed: EXP.current.videosAnalyzed, papers: EXP.current.papers,
         ciUpdates: EXP.current.ciUpdates, alerts: EXP.current.alerts, newRobots: EXP.current.newRobots,
       });
       expect(p.header.deltas).toEqual({
         articles: Math.round(((43 - 30) / 30) * 1000) / 10,
         videosNew: Math.round(((25 - 13) / 13) * 1000) / 10,
         videosAnalyzed: Math.round(((10 - 4) / 4) * 1000) / 10,
+        papers: Math.round(((EXP.current.papers - EXP.prev.papers) / EXP.prev.papers) * 1000) / 10,
         ciUpdates: 200,
         alerts: 50,
       });
@@ -233,6 +234,7 @@ describe.skipIf(!TEST_URL)('weekly brief (temp PostgreSQL)', () => {
       // AC-05 한도
       expect(p.videos.length).toBeLessThanOrEqual(8);
       expect(p.articles.length).toBeLessThanOrEqual(12);
+      expect(p.papers.length).toBeLessThanOrEqual(8);
       expect(p.ciChanges.length).toBeLessThanOrEqual(4);
       expect(p.keywords.length).toBeLessThanOrEqual(8);
       expect(p.keyMessages.length).toBeGreaterThanOrEqual(1);
@@ -252,7 +254,7 @@ describe.skipIf(!TEST_URL)('weekly brief (temp PostgreSQL)', () => {
       expect(domain.bigNumber.caption).toBe('액추에이터 관련 22건 / 전체 80건');
       // 직전 주: (3 + 8) / (13 + 30 + 8) = 21.57% -> +5.9%p
       expect(domain.delta).toEqual({ value: '+5.9', unit: '%p', label: '지난주 대비' });
-      expect(domain.basis).toBe('근거: 도메인 태그 집계 (영상 10 · 기사·논문 12)');
+      expect(domain.basis).toBe('근거: 도메인 태그 집계 (영상 10 · 논문 12 / 전체 영상 25 · 기사 43 · 논문 12)');
       expect(domain.evidence.length).toBeLessThanOrEqual(3);
       // 대표 키워드 = wb-tactile (40 vs 30 = +33.3%)
       expect(p.keywords[0]).toMatchObject({ term: 'wb-tactile', count: 40, prevCount: 30, deltaPct: 33.3, direction: 'up' });
@@ -294,6 +296,24 @@ describe.skipIf(!TEST_URL)('weekly brief (temp PostgreSQL)', () => {
       expect(Math.max(...Object.values(per))).toBeLessThanOrEqual(3);
       expect(row.payload.articles).toHaveLength(12);
       expect(row.payload.articles.map((a: any) => a.source)).not.toContain('github');
+    });
+
+    it('papers: arxiv.org https only (export.arxiv.org excluded), up to 8 with bucket cap relaxed, authors and arxivId filled', async () => {
+      const [row] = await q<any>(`SELECT payload FROM weekly_briefs WHERE week_start = '${WEEK}'`);
+      const papers = row.payload.papers as any[];
+      expect(papers).toHaveLength(8); // 후보 11건(12번째 제외)이 전부 actuator 버킷 -> 버킷 상한 3으로는 8건이 안 차 상한을 풀어 8건
+      for (const pp of papers) {
+        expect(pp.url).toMatch(/^https:\/\/arxiv\.org\/abs\/2610\.\d{5}$/);
+        expect(pp.arxivId).toMatch(/^2610\.\d{5}$/);
+        expect(pp.title).not.toBe('Compact actuator with harmonic drive 12');
+        expect(pp.domain).toBe('actuator');
+        expect(pp.summaryLine).toBe('We present an actuator design.');
+        expect(pp.authors === null || Array.from(pp.authors as string).length <= 120).toBe(true);
+      }
+      const byTitle = new Map(papers.map((pp) => [pp.title, pp]));
+      const arr = [...byTitle.values()].find((pp) => /^Author \d+A, /.test(pp.authors ?? ''));
+      expect(arr.authors).toMatch(/^Author (\d+)A, Author \1B, Author \1C 외 2명$/);
+      expect([...byTitle.values()].some((pp) => /^Solo Author \d+$/.test(pp.authors ?? ''))).toBe(true);
     });
 
     it('rule-only mode (AI disabled) still generates: partial + ai_disabled, no AI call', async () => {
@@ -383,7 +403,7 @@ describe.skipIf(!TEST_URL)('weekly brief (temp PostgreSQL)', () => {
       expect(p.header.weekNumber).toBe(2);
       expect(p.keyMessages).toEqual([]);
       expect(p.topVideo).toBeNull();
-      expect([p.ciChanges, p.keywords, p.videos, p.articles].every((a: unknown[]) => a.length === 0)).toBe(true);
+      expect([p.ciChanges, p.keywords, p.videos, p.articles, p.papers].every((a: unknown[]) => a.length === 0)).toBe(true);
       expect(p.meta.warnings).toContain('no_data');
       await q(`DELETE FROM weekly_briefs WHERE week_start = '${emptyWeek}'`);
     });
@@ -464,7 +484,7 @@ describe.skipIf(!TEST_URL)('weekly brief (temp PostgreSQL)', () => {
       const items = res.json().items;
       expect(items.map((i: any) => i.weekStart)).toEqual([WEEK, PREV]);
       expect(items[0]).toMatchObject({ weekEnd: '2026-10-25', isoYear: 2026, weekNumber: 43, status: 'ok' });
-      expect(items[0].counts).toMatchObject({ articles: EXP.current.news, videosNew: EXP.current.videos });
+      expect(items[0].counts).toMatchObject({ articles: EXP.current.news, videosNew: EXP.current.videos, papers: EXP.current.papers });
       expect(items[1]).toMatchObject({ weekEnd: '2026-10-18', weekNumber: 42 });
       expect((await get('/api/weekly-brief?limit=1')).json().items).toHaveLength(1);
       expect((await get('/api/weekly-brief?limit=0')).json().items).toHaveLength(1);
@@ -547,13 +567,13 @@ function expectPayloadShape(p: any): void {
   const isStr = (v: unknown) => typeof v === 'string';
   const isNum = (v: unknown) => typeof v === 'number' && Number.isFinite(v);
   const strOrNull = (v: unknown) => v === null || isStr(v);
-  expect(Object.keys(p).sort()).toEqual(['articles', 'ciChanges', 'ciSummary', 'header', 'keyMessages', 'keywords', 'meta', 'schemaVersion', 'topVideo', 'videos']);
+  expect(Object.keys(p).sort()).toEqual(['articles', 'ciChanges', 'ciSummary', 'header', 'keyMessages', 'keywords', 'meta', 'papers', 'schemaVersion', 'topVideo', 'videos']);
   expect(p.schemaVersion).toBe(1);
   const h = p.header;
   for (const k of ['weekStart', 'weekEnd', 'periodStartAt', 'periodEndAt', 'generatedAt']) expect(isStr(h[k])).toBe(true);
   expect(isNum(h.isoYear) && isNum(h.weekNumber)).toBe(true);
-  for (const k of ['articles', 'videosNew', 'videosAnalyzed', 'ciUpdates', 'alerts']) expect(isNum(h.counts[k])).toBe(true);
-  for (const k of ['articles', 'videosNew', 'videosAnalyzed', 'ciUpdates', 'alerts']) expect(h.deltas[k] === null || isNum(h.deltas[k])).toBe(true);
+  for (const k of ['articles', 'videosNew', 'videosAnalyzed', 'papers', 'ciUpdates', 'alerts']) expect(isNum(h.counts[k])).toBe(true);
+  for (const k of ['articles', 'videosNew', 'videosAnalyzed', 'papers', 'ciUpdates', 'alerts']) expect(h.deltas[k] === null || isNum(h.deltas[k])).toBe(true);
   for (const km of p.keyMessages) {
     expect(['domain_share', 'keyword_surge', 'ci_change', 'top_company', 'volume_change']).toContain(km.candidateType);
     expect(['stat', 'cause_effect']).toContain(km.kind);
@@ -596,6 +616,11 @@ function expectPayloadShape(p: any): void {
   for (const a of p.articles) {
     expect([a.id, a.title, a.source, a.url].every(isStr) && strOrNull(a.publishedAt) && strOrNull(a.summaryLine)).toBe(true);
     expect(a.domain === null || ['hand', 'actuator', 'rfm', 'expo', 'production'].includes(a.domain)).toBe(true);
+  }
+  for (const pp of p.papers) {
+    expect([pp.id, pp.title, pp.url].every(isStr) && strOrNull(pp.authors) && strOrNull(pp.publishedAt) && strOrNull(pp.arxivId) && strOrNull(pp.summaryLine)).toBe(true);
+    expect(pp.url).toMatch(/^https:\/\/arxiv\.org\//);
+    expect(pp.domain === null || ['hand', 'actuator', 'rfm', 'expo', 'production'].includes(pp.domain)).toBe(true);
   }
   expect(typeof p.meta.aiUsed).toBe('boolean');
   expect(isNum(p.meta.ruleBasedMessages)).toBe(true);

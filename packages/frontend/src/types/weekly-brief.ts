@@ -16,6 +16,8 @@ export interface WeeklyBriefCounts {
   videosNew: number;
   /** geminiAnalyzedAt 이 구간 내인 영상 (발행일 무관) */
   videosAnalyzed: number;
+  /** 구간 내 논문 수 (source='arxiv') */
+  papers: number;
   /** 구간 내 갱신된 ci_values 고유 수 */
   ciUpdates: number;
   /** competitive_alerts.created_at 이 구간 내인 수 */
@@ -29,6 +31,7 @@ export interface WeeklyBriefDeltas {
   articles: number | null;
   videosNew: number | null;
   videosAnalyzed: number | null;
+  papers: number | null;
   ciUpdates: number | null;
   alerts: number | null;
 }
@@ -129,6 +132,19 @@ export interface WeeklyArticleItem {
   domain: BriefDomainKey | null;
 }
 
+export interface WeeklyPaperItem {
+  id: string;
+  title: string;
+  /** 앞 3명 + "외 n명" 또는 문자열 원문(최대 120자) */
+  authors: string | null;
+  publishedAt: string | null;
+  /** https + 호스트 arxiv.org 만 */
+  url: string;
+  arxivId: string | null;
+  domain: BriefDomainKey | null;
+  summaryLine: string | null;
+}
+
 export interface WeeklyBriefPayload {
   schemaVersion: 1;
   header: WeeklyBriefHeader;
@@ -144,6 +160,8 @@ export interface WeeklyBriefPayload {
   videos: WeeklyVideoItem[];
   /** 0~12 */
   articles: WeeklyArticleItem[];
+  /** 0~8 (구 payload 에는 없을 수 있음 — 읽을 때 [] 로 정규화) */
+  papers: WeeklyPaperItem[];
   meta: { aiUsed: boolean; ruleBasedMessages: number; warnings: string[]; truncated: boolean };
 }
 

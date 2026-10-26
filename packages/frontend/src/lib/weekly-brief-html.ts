@@ -16,6 +16,7 @@ import type {
   WeeklyCiChange,
   WeeklyEvidence,
   WeeklyKeyMessage,
+  WeeklyPaperItem,
   WeeklyTopVideo,
   WeeklyVideoItem,
 } from '@/types/weekly-brief';
@@ -31,6 +32,7 @@ import {
 } from '@/lib/weekly-brief-theme';
 import {
   EVIDENCE_TYPE_LABELS,
+  PAPERS_BAND_TITLE,
   POSTER_EMPTY_NOTICE,
   POSTER_FOOTER_NOTICE,
   POSTER_PARTIAL_NOTICE,
@@ -47,9 +49,12 @@ import {
   isPosterEmpty,
   keywordDeltaText,
   keywordHero,
+  normalizeWeeklyBrief,
+  papersBandSubtitle,
   planKeyMessages,
   safeArticleHref,
   safeEvidenceHref,
+  safePaperHref,
   safeThumbSrc,
   safeVideoHref,
   weeklyBriefFileNameOf,
@@ -161,6 +166,7 @@ function buildCss(): string {
   .list li:first-child{border-top:0}
   .list a{color:var(--fg);text-decoration:none}
   .list .sl{display:block;font-size:12px;color:var(--fg2);margin-top:2px}
+  .list .au{display:block;font-size:11.5px;color:var(--fg3);margin-top:2px;overflow-wrap:anywhere}
   .list .m{color:var(--fg2);font-size:12px;white-space:nowrap}
   .chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
   .chip{border:1px solid var(--line);padding:4px 12px;font-size:12px;border-radius:999px}
@@ -266,9 +272,19 @@ function articleRowHtml(a: WeeklyArticleItem): string {
   return `<li><div>${badge ? `<i class="bd">${t(badge)}</i>` : ''}${title}${summary}</div><div class="m">${m}</div></li>`;
 }
 
+function paperRowHtml(a: WeeklyPaperItem): string {
+  const badge = domainLabel(a.domain);
+  const title = maybeLink(safePaperHref(a.url), t(a.title));
+  const authors = a.authors ? `<span class="au">${t(a.authors)}</span>` : '';
+  const summary = a.summaryLine ? `<span class="sl">${t(a.summaryLine)}</span>` : '';
+  const m = ['arXiv', a.publishedAt ? t(formatKstMonthDay(a.publishedAt)) : ''].filter(Boolean).join(' · ');
+  return `<li><div>${badge ? `<i class="bd">${t(badge)}</i>` : ''}${title}${authors}${summary}</div><div class="m">${m}</div></li>`;
+}
+
 // ───────────────────────── 빌더 ─────────────────────────
 
-export function buildWeeklyBriefHtml(brief: WeeklyBriefResponse, _meta: WeeklyBriefHtmlMeta): string {
+export function buildWeeklyBriefHtml(rawBrief: WeeklyBriefResponse, _meta: WeeklyBriefHtmlMeta): string {
+  const brief = normalizeWeeklyBrief(rawBrief); // papers 도입 이전 payload 호환
   const p = brief.payload;
   const h = p.header;
   const periodTitle = formatWeekTitle(h.weekStart, h.weekEnd, h.weekNumber);
@@ -321,6 +337,13 @@ export function buildWeeklyBriefHtml(brief: WeeklyBriefResponse, _meta: WeeklyBr
   if (p.videos.length > 0) {
     sections.push(
       `<div class="band"><h2>이번 주 영상</h2><p>조회수·분석 기준 상위 8 · 수집 시점 조회수 · 클릭하면 유튜브 원본</p></div><div class="sec"><div class="thumbs">${p.videos.map(videoCardHtml).join('')}</div></div>`
+    );
+  }
+
+  // 논문 (영상 다음, 기사 앞)
+  if (p.papers.length > 0) {
+    sections.push(
+      `<div class="band"><h2>${t(PAPERS_BAND_TITLE)}</h2><p>${t(papersBandSubtitle(p.papers.length))}</p></div><div class="sec"><ul class="list">${p.papers.map(paperRowHtml).join('')}</ul></div>`
     );
   }
 

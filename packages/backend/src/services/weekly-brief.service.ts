@@ -20,7 +20,7 @@ import { dataMigrationService } from './data-migration.service.js';
 import { formatLogLine } from './ops-log.util.js';
 import { isStartupChainRunning } from './tech-trend-pipeline.service.js';
 import { collectWeek } from './weekly-brief-collect.js';
-import { buildCandidates, composePayload, computeCounts, isArticleSummaryEnabled, type CollectedWeek } from './weekly-brief-compose.js';
+import { buildCandidates, composePayload, computeCounts, isArticleSummaryEnabled, normalizeStoredPayload, type CollectedWeek } from './weekly-brief-compose.js';
 import {
   addDaysYmd,
   getWeekRange,
@@ -699,7 +699,7 @@ async function toResponse(row: typeof weeklyBriefs.$inferSelect): Promise<Weekly
     model: row.model ?? null,
     prevWeekStart: prev,
     nextWeekStart: next,
-    payload: row.payload as unknown as WeeklyBriefPayload,
+    payload: normalizeStoredPayload(row.payload as unknown as WeeklyBriefPayload),
   };
 }
 
@@ -724,7 +724,7 @@ export async function getBriefByWeek(weekStart: string): Promise<WeeklyBriefResp
   return row ? toResponse(row) : null;
 }
 
-const ZERO_COUNTS: WeeklyBriefCounts = { articles: 0, videosNew: 0, videosAnalyzed: 0, ciUpdates: 0, alerts: 0 };
+const ZERO_COUNTS: WeeklyBriefCounts = { articles: 0, videosNew: 0, videosAnalyzed: 0, papers: 0, ciUpdates: 0, alerts: 0 };
 
 /** week_start 내림차순, failed 제외 */
 export async function listBriefs(limit: number): Promise<WeeklyBriefListItem[]> {

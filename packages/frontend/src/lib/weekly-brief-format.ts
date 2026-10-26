@@ -10,7 +10,9 @@ import type {
   BriefDomainKey,
   WeeklyBriefCounts,
   WeeklyBriefDeltas,
+  WeeklyBriefListItem,
   WeeklyBriefPayload,
+  WeeklyBriefResponse,
   WeeklyKeyMessage,
   WeeklyKeyword,
 } from '@/types/weekly-brief';
@@ -193,6 +195,7 @@ export interface StatItem {
 export function buildStatItems(counts: WeeklyBriefCounts, deltas: WeeklyBriefDeltas): StatItem[] {
   const items: StatItem[] = [
     { label: '기사', value: counts.articles, delta: formatDeltaPct(deltas.articles) },
+    { label: '논문', value: counts.papers, delta: formatDeltaPct(deltas.papers) },
     { label: '영상', value: counts.videosNew, delta: formatDeltaPct(deltas.videosNew) },
     { label: '분석', value: counts.videosAnalyzed, delta: formatDeltaPct(deltas.videosAnalyzed) },
     { label: 'CI 변경', value: counts.ciUpdates, delta: formatDeltaPct(deltas.ciUpdates) },
@@ -206,7 +209,7 @@ export function buildStatItems(counts: WeeklyBriefCounts, deltas: WeeklyBriefDel
 
 /** 아카이브 행의 건수 요약 한 줄 (증감 없음) */
 export function formatCountsSummary(counts: WeeklyBriefCounts): string {
-  return buildStatItems(counts, { articles: null, videosNew: null, videosAnalyzed: null, ciUpdates: null, alerts: null })
+  return buildStatItems(counts, { articles: null, papers: null, videosNew: null, videosAnalyzed: null, ciUpdates: null, alerts: null })
     .map((i) => `${i.label} ${i.value}`)
     .join(' · ');
 }
@@ -228,6 +231,7 @@ export function domainLabel(d: BriefDomainKey | null | undefined): string {
 const MAX_URL_LENGTH = 2000;
 const VIDEO_HOSTS = new Set(['youtube.com', 'www.youtube.com', 'youtu.be']);
 const THUMB_HOSTS = new Set(['i.ytimg.com']);
+const PAPER_HOSTS = new Set(['arxiv.org']);
 
 function parseHttps(url: string | null | undefined): URL | null {
   if (!url || typeof url !== 'string') return null;
@@ -265,6 +269,15 @@ export function safeThumbSrc(url: string | null | undefined): string {
 export function safeArticleHref(url: string | null | undefined): string {
   const u = parseHttps(url);
   if (!u) return '';
+  const out = u.toString();
+  return out.length > MAX_URL_LENGTH ? '' : out;
+}
+
+/** https + arxiv.org 만 통과(safeArticleHref 규칙 + 호스트 검사, 포트 거부). 불합격은 '' */
+export function safePaperHref(url: string | null | undefined): string {
+  const u = parseHttps(url);
+  if (!u || u.port) return '';
+  if (!PAPER_HOSTS.has(u.hostname.toLowerCase())) return '';
   const out = u.toString();
   return out.length > MAX_URL_LENGTH ? '' : out;
 }
@@ -311,15 +324,51 @@ export function planKeyMessages(keyMessages: WeeklyKeyMessage[]): KeyMessagePlan
 }
 
 /** 모든 본문 섹션이 비었는지 ("이번 주 수집된 데이터가 부족합니다" 안내 판정) */
-export function isPosterEmpty(p: Pick<WeeklyBriefPayload, 'keyMessages' | 'topVideo' | 'ciChanges' | 'keywords' | 'videos' | 'articles'>): boolean {
+export function isPosterEmpty(
+  p: Pick<WeeklyBriefPayload, 'keyMessages' | 'topVideo' | 'ciChanges' | 'keywords' | 'videos' | 'articles'> &
+    Partial<Pick<WeeklyBriefPayload, 'papers'>>
+): boolean {
   return (
     p.keyMessages.length === 0 &&
     !p.topVideo &&
     p.ciChanges.length === 0 &&
     p.keywords.length === 0 &&
     p.videos.length === 0 &&
+    (p.papers?.length ?? 0) === 0 &&
     p.articles.length === 0
   );
+}
+
+// ───────────────────────── 구 payload 호환 ─────────────────────────
+
+/** papers 도입(§14) 이전에 저장된 counts/deltas — papers 없음 → counts.papers=0, deltas.papers=null */
+export function normalizeCounts<T extends Partial<Pick<WeeklyBriefCounts, 'papers'>>>(counts: T): T & Pick<WeeklyBriefCounts, 'papers'> {
+  return { ...counts, papers: typeof counts.papers === 'number' ? counts.papers : 0 };
+}
+
+/**
+ * 서버 응답 정규화 — papers 도입 이전 payload(papers/counts.papers/deltas.papers 없음)를
+ * papers=[]·counts.papers=0·deltas.papers=null 로 채운다. 입력은 변경하지 않는다.
+ */
+export function normalizeWeeklyBrief(brief: WeeklyBriefResponse): WeeklyBriefResponse {
+  const p = brief.payload;
+  const h = p.header;
+  return {
+    ...brief,
+    payload: {
+      ...p,
+      header: {
+        ...h,
+        counts: normalizeCounts(h.counts),
+        deltas: { ...h.deltas, papers: typeof h.deltas.papers === 'number' ? h.deltas.papers : null },
+      },
+      papers: Array.isArray(p.papers) ? p.papers : [],
+    },
+  };
+}
+
+export function normalizeWeeklyBriefListItem(item: WeeklyBriefListItem): WeeklyBriefListItem {
+  return { ...item, counts: normalizeCounts(item.counts) };
 }
 
 export const EVIDENCE_TYPE_LABELS: Record<'video' | 'article' | 'ci' | 'keyword', string> = {
@@ -328,6 +377,12 @@ export const EVIDENCE_TYPE_LABELS: Record<'video' | 'article' | 'ci' | 'keyword'
   ci: 'CI',
   keyword: '키워드',
 };
+
+/** 논문 밴드 제목·부제 (화면·정적 HTML 공유) */
+export const PAPERS_BAND_TITLE = '이번 주 논문';
+export function papersBandSubtitle(n: number): string {
+  return `arXiv 상위 ${n} · 도메인 다양성 반영 · 제목 클릭 시 arXiv 원문`;
+}
 
 export const POSTER_FOOTER_NOTICE =
   '본 브리프는 공개 메타데이터(제목·썸네일 URL·링크)와 ARGOS 집계값, AI 생성 문장만 포함하며 원문을 복제하지 않습니다. 큰 숫자는 모두 DB 집계에서 산출됩니다. 조회수는 수집 시점 값입니다.';

@@ -18,9 +18,14 @@ import {
   isValidWeekStart,
   keywordDeltaText,
   keywordHero,
+  normalizeCounts,
+  normalizeWeeklyBrief,
+  normalizeWeeklyBriefListItem,
+  papersBandSubtitle,
   planKeyMessages,
   safeArticleHref,
   safeEvidenceHref,
+  safePaperHref,
   safeThumbSrc,
   safeVideoHref,
   weeklyBriefFileNameOf,
@@ -141,6 +146,7 @@ describe('통계 띠', () => {
     const items = buildStatItems(b.counts, b.deltas);
     expect(items.map((i) => `${i.label} ${i.value}${i.delta ? ` (${i.delta})` : ''}`)).toEqual([
       '기사 187 (▲12%)',
+      '논문 23 (▲15.5%)',
       '영상 41 (▼3.5%)',
       '분석 29',
       'CI 변경 6 (±0%)',
@@ -148,8 +154,59 @@ describe('통계 띠', () => {
       '신규 로봇 2',
     ]);
     const { newRobots: _n, ...counts } = b.counts;
-    expect(buildStatItems(counts, b.deltas)).toHaveLength(5);
-    expect(formatCountsSummary(b.counts)).toBe('기사 187 · 영상 41 · 분석 29 · CI 변경 6 · 알림 3 · 신규 로봇 2');
+    expect(buildStatItems(counts, b.deltas)).toHaveLength(6);
+    expect(formatCountsSummary(b.counts)).toBe('기사 187 · 논문 23 · 영상 41 · 분석 29 · CI 변경 6 · 알림 3 · 신규 로봇 2');
+  });
+});
+
+describe('논문 (§14)', () => {
+  it('safePaperHref: https + arxiv.org 만', () => {
+    expect(safePaperHref('https://arxiv.org/abs/2610.10000')).toBe('https://arxiv.org/abs/2610.10000');
+    expect(safePaperHref('http://arxiv.org/abs/2610.10000')).toBe('');
+    expect(safePaperHref('https://export.arxiv.org/abs/2610.10000')).toBe('');
+    expect(safePaperHref('https://arxiv.org.evil.example.com/abs/1')).toBe('');
+    expect(safePaperHref('https://evil.example.com/arxiv.org/abs/1')).toBe('');
+    expect(safePaperHref('https://user:pass@arxiv.org/abs/1')).toBe('');
+    expect(safePaperHref('https://arxiv.org:8443/abs/1')).toBe('');
+    expect(safePaperHref('javascript:alert(1)')).toBe('');
+    expect(safePaperHref(`https://arxiv.org/${'a'.repeat(2000)}`)).toBe('');
+    expect(safePaperHref(null)).toBe('');
+  });
+  it('papersBandSubtitle', () => {
+    expect(papersBandSubtitle(6)).toBe('arXiv 상위 6 · 도메인 다양성 반영 · 제목 클릭 시 arXiv 원문');
+  });
+  it('구 payload(papers 없음)는 papers=[]·counts.papers=0·deltas.papers=null 로 정규화', () => {
+    const old = makeFullBrief() as unknown as { payload: Record<string, unknown> & { header: { counts: Record<string, unknown>; deltas: Record<string, unknown> } } };
+    delete old.payload.papers;
+    delete old.payload.header.counts.papers;
+    delete old.payload.header.deltas.papers;
+    const n = normalizeWeeklyBrief(old as never);
+    expect(n.payload.papers).toEqual([]);
+    expect(n.payload.header.counts.papers).toBe(0);
+    expect(n.payload.header.deltas.papers).toBeNull();
+    expect(buildStatItems(n.payload.header.counts, n.payload.header.deltas).map((i) => i.label)).toContain('논문');
+  });
+  it('신 payload 는 값을 보존하고 입력을 변경하지 않는다', () => {
+    const b = makeFullBrief();
+    const n = normalizeWeeklyBrief(b);
+    expect(n.payload.papers).toHaveLength(6);
+    expect(n.payload.header.counts.papers).toBe(23);
+    expect(n.payload.header.deltas.papers).toBe(15.5);
+    expect(n).not.toBe(b);
+  });
+  it('목록 항목 counts 정규화', () => {
+    expect(normalizeCounts({}).papers).toBe(0);
+    const item = normalizeWeeklyBriefListItem({
+      weekStart: '2026-10-19', weekEnd: '2026-10-25', isoYear: 2026, weekNumber: 43, status: 'ok',
+      generatedAt: '2026-10-25T23:05:00.000Z',
+      counts: { articles: 1, videosNew: 2, videosAnalyzed: 3, ciUpdates: 4, alerts: 5 } as never,
+    });
+    expect(item.counts.papers).toBe(0);
+  });
+  it('isPosterEmpty: papers 만 있어도 비어 있지 않다', () => {
+    const e = makeEmptyBrief().payload;
+    expect(isPosterEmpty(e)).toBe(true);
+    expect(isPosterEmpty({ ...e, papers: makeFullBrief().payload.papers })).toBe(false);
   });
 });
 

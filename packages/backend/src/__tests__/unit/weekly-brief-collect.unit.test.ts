@@ -78,6 +78,16 @@ describe('collectWeek', () => {
     expect(t).not.toContain('a.content');
   });
 
+  it('projects only a capped authors list and the arxivId for papers (no whole metadata)', async () => {
+    const { deps, seen } = fakeDeps();
+    await collectWeek(range, prevRange, deps);
+    const t = seen.find((s) => s.text.includes('jsonb_strip_nulls'))!.text;
+    expect(t).toContain("'authors'");
+    expect(t).toContain('LIMIT 20');
+    expect(t).toContain("left(x.m->>'authors', 120)");
+    expect(t).toContain("'arxivId'");
+  });
+
   it('decodes HTML entities in titles and fills an empty metadata object', async () => {
     const { deps } = fakeDeps({ rows: 2 });
     const w = await collectWeek(range, prevRange, deps);

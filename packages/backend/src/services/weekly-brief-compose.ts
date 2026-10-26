@@ -28,6 +28,7 @@ import type {
   WeeklyEvidence,
   WeeklyKeyMessage,
   WeeklyKeyword,
+  WeeklyPaperItem,
   WeeklyTopVideo,
   WeeklyVideoItem,
 } from '../types/weekly-brief.js';
@@ -45,6 +46,7 @@ export const WEEKLY_BRIEF_SCORING = {
   volumeChange: { minCur: 20, minPrev: 20, minAbsDeltaPct: 10, base: 30, divisor: 3, cap: 20 },
   video: { viewsWeight: 10, analyzedBonus: 5, thumbnailBonus: 2, bucketCap: 3, channelCap: 2, max: 8 },
   article: { domainMatch: 3, summary: 1, company: 1, sourceCap: 3, max: 12 },
+  paper: { domainMatch: 3, summary: 1, bucketCap: 3, max: 8, authorsShown: 3, authorsText: 120 },
   ci: { max: 4, perCompany: 2, lowConfidenceFillTo: 2 },
   keyword: { minCount: 5, repMinPrevCount: 3, max: 8, flatBelowPct: 5 },
   messages: { max: 3, min: 2, ciChangeMax: 2 },
@@ -434,6 +436,99 @@ export function selectArticles(rows: readonly BriefRow[], showSummary: boolean =
   return out;
 }
 
+const ARXIV_ABS_RE = /\/abs\/((?:\d{4}\.\d{4,5}|[a-z-]+(?:\.[A-Z]{2})?\/\d{7})(?:v\d+)?)/;
+const ARXIV_ID_ONLY_RE = /^(?:\d{4}\.\d{4,5}|[a-z-]+(?:\.[A-Z]{2})?\/\d{7})(?:v\d+)?$/;
+
+/** https + 호스트 arxiv.org 만 허용 (www. 등 다른 호스트 거부) */
+export function safeArxivUrl(url: string | null | undefined): string | null {
+  const safe = safeHttpsUrl(url);
+  if (!safe) return null;
+  try {
+    return new URL(safe).hostname === 'arxiv.org' ? safe : null;
+  } catch {
+    return null;
+  }
+}
+
+/** url `arxiv.org/abs/{id}` 에서 먼저, 없으면 metadata.arxivId 에서 (형식이 맞을 때만) */
+export function resolveArxivId(url: string | null | undefined, metaObj: { arxivId?: unknown } | null | undefined): string | null {
+  if (typeof url === 'string') {
+    const m = ARXIV_ABS_RE.exec(url);
+    if (m) return m[1]!;
+  }
+  const id = metaObj?.arxivId;
+  return typeof id === 'string' && ARXIV_ID_ONLY_RE.test(id.trim()) ? id.trim() : null;
+}
+
+/** extracted_metadata.authors → 배열이면 앞 3명 + "외 n명", 문자열이면 그대로(120자). 없으면 null */
+export function formatAuthors(authors: unknown): string | null {
+  const t = WEEKLY_BRIEF_SCORING.paper;
+  if (typeof authors === 'string') {
+    const text = normalizeSpaces(authors);
+    return text ? truncateText(text, t.authorsText) : null;
+  }
+  if (!Array.isArray(authors)) return null;
+  const names = authors.filter((a): a is string => typeof a === 'string').map(normalizeSpaces).filter((a) => a.length > 0);
+  if (names.length === 0) return null;
+  const shown = names.slice(0, t.authorsShown).join(', ');
+  const rest = names.length - t.authorsShown;
+  return truncateText(rest > 0 ? `${shown} 외 ${rest}명` : shown, t.authorsText);
+}
+
+/**
+ * 논문 상위 8건 — 점수 (도메인 일치 3) + (summary 1) + 최신성(0~1).
+ * 도메인 버킷(hand/actuator/rfm/production/expo/other)당 최대 3건, 8건이 안 차면 상한 해제.
+ * url 은 https + 호스트 arxiv.org 만(아니면 제외). 동률은 ts 최신, id 오름차순.
+ */
+export function selectPapers(rows: readonly BriefRow[], showSummary: boolean = true): WeeklyPaperItem[] {
+  const s = WEEKLY_BRIEF_SCORING.paper;
+  const papers = rows.filter((r) => classifyRow(r) === 'paper' && safeArxivUrl(r.url) !== null);
+  if (papers.length === 0) return [];
+  const times = papers.map(tsMs);
+  const minT = Math.min(...times);
+  const maxT = Math.max(...times);
+  const recency = (r: BriefRow) => (maxT > minT ? (tsMs(r) - minT) / (maxT - minT) : 1);
+  const scored = papers
+    .map((r) => {
+      const domain = articleDomainBadge(r);
+      const score = (domain ? s.domainMatch : 0) + (r.summary && r.summary.trim() ? s.summary : 0) + recency(r);
+      return { row: r, domain, score };
+    })
+    .sort((a, b) => b.score - a.score || tsMs(b.row) - tsMs(a.row) || a.row.id.localeCompare(b.row.id));
+
+  const picked = new Set<string>();
+  const bucketCount = new Map<string, number>();
+  const chosen: typeof scored = [];
+  const phase = (bucketLimit: boolean) => {
+    for (const c of scored) {
+      if (chosen.length >= s.max) return;
+      if (picked.has(c.row.id)) continue;
+      const bucket = c.domain ?? 'other';
+      if (bucketLimit && (bucketCount.get(bucket) ?? 0) >= s.bucketCap) continue;
+      picked.add(c.row.id);
+      bucketCount.set(bucket, (bucketCount.get(bucket) ?? 0) + 1);
+      chosen.push(c);
+    }
+  };
+  phase(true);
+  if (chosen.length < s.max) phase(false);
+
+  chosen.sort((a, b) => b.score - a.score || tsMs(b.row) - tsMs(a.row) || a.row.id.localeCompare(b.row.id));
+  return chosen.map((c) => {
+    const m = meta(c.row);
+    return {
+      id: c.row.id,
+      title: c.row.title,
+      authors: formatAuthors(m.authors),
+      publishedAt: toIso(c.row.publishedAt),
+      url: c.row.url as string,
+      arxivId: resolveArxivId(c.row.url, m),
+      domain: c.domain,
+      summaryLine: showSummary ? firstSentence(c.row.summary) : null,
+    };
+  });
+}
+
 const CONFIDENCE_RANK: Record<string, number> = { A: 0, B: 1, C: 2, D: 3, F: 4 };
 
 function normalizeConfidence(c: string | null | undefined): WeeklyCiChange['confidence'] {
@@ -630,6 +725,11 @@ interface DomainShareStat {
   den: number;
   videoNum: number;
   secondNum: number;
+  /** 분자의 두 번째 항목 이름 — 핸드·RFM·액추에이터는 논문, 전시·양산은 기사 */
+  secondKind: '논문' | '기사';
+  denVideos: number;
+  denNews: number;
+  denPapers: number;
   share: number;
   prevShare: number | null;
   deltaPp: number | null;
@@ -637,14 +737,26 @@ interface DomainShareStat {
   secondRows: BriefRow[];
 }
 
-function domainStat(domain: TechTrendDomain, rows: readonly BriefRow[]): Omit<DomainShareStat, 'prevShare' | 'deltaPp' | 'domain'> & { den: number } {
+function domainStat(domain: TechTrendDomain, rows: readonly BriefRow[]): Omit<DomainShareStat, 'prevShare' | 'deltaPp' | 'domain'> {
   const { videos, papers, news } = splitRows(rows);
   const videoRows = videos.filter((r) => matchesDomainVideo(domain, r) && getDomainFocus(domain, r) !== 'none');
   const secondPool = domain === 'hand' || domain === 'rfm' || domain === 'actuator' ? papers : news;
   const secondRows = secondPool.filter((r) => matchesDomainSecondary(domain, r));
   const den = videos.length + papers.length + news.length;
   const num = videoRows.length + secondRows.length;
-  return { num, den, videoNum: videoRows.length, secondNum: secondRows.length, share: den > 0 ? (num / den) * 100 : 0, videoRows, secondRows };
+  return {
+    num,
+    den,
+    videoNum: videoRows.length,
+    secondNum: secondRows.length,
+    secondKind: secondPool === papers ? '논문' : '기사',
+    denVideos: videos.length,
+    denNews: news.length,
+    denPapers: papers.length,
+    share: den > 0 ? (num / den) * 100 : 0,
+    videoRows,
+    secondRows,
+  };
 }
 
 export function domainShareCandidate(input: Pick<CollectedWeek, 'rows' | 'prevRows'>): Candidate | null {
@@ -676,11 +788,11 @@ export function domainShareCandidate(input: Pick<CollectedWeek, 'rows' | 'prevRo
     label,
     bigNumber: { value: String(share), unit: '%', caption: clampCaption(caption) },
     delta: st.deltaPp === null ? null : { value: signed(st.deltaPp, 1), unit: '%p', label: '지난주 대비' },
-    basis: `근거: 도메인 태그 집계 (영상 ${st.videoNum} · 기사·논문 ${st.secondNum})`,
+    basis: `근거: 도메인 태그 집계 (영상 ${st.videoNum} · ${st.secondKind} ${st.secondNum} / 전체 영상 ${st.denVideos} · 기사 ${st.denNews} · 논문 ${st.denPapers})`,
     evidence,
     rule: { headline: clampHeadline(`이번 주 수집된 영상·기사 중 ${share}%가 ${label} 주제였습니다`), caption: clampCaption(caption) },
     allowedNumbers: allowedFrom(
-      [share, st.share, st.num, st.den, st.videoNum, st.secondNum, ...(st.deltaPp !== null ? [st.deltaPp] : []), ...(st.prevShare !== null ? [st.prevShare] : [])],
+      [share, st.share, st.num, st.den, st.videoNum, st.secondNum, st.denVideos, st.denNews, st.denPapers, ...(st.deltaPp !== null ? [st.deltaPp] : []), ...(st.prevShare !== null ? [st.prevShare] : [])],
       [label],
     ),
     extra: { domain: st.domain, numerator: st.num, denominator: st.den, previousSharePct: st.prevShare === null ? null : round1(st.prevShare) },
@@ -1019,6 +1131,7 @@ export function computeCounts(input: CollectedWeek): { counts: WeeklyBriefCounts
     articles: cur.news.length,
     videosNew: cur.videos.length,
     videosAnalyzed: input.videosAnalyzed,
+    papers: cur.papers.length,
     ciUpdates: input.ciUpdates,
     alerts: input.alerts,
     ...(input.newRobots !== null ? { newRobots: input.newRobots } : {}),
@@ -1027,6 +1140,7 @@ export function computeCounts(input: CollectedWeek): { counts: WeeklyBriefCounts
     articles: pctChange(cur.news.length, prev.news.length),
     videosNew: pctChange(cur.videos.length, prev.videos.length),
     videosAnalyzed: pctChange(input.videosAnalyzed, input.prevVideosAnalyzed),
+    papers: pctChange(cur.papers.length, prev.papers.length),
     ciUpdates: pctChange(input.ciUpdates, input.prevCiUpdates),
     alerts: pctChange(input.alerts, input.prevAlerts),
   };
@@ -1051,7 +1165,9 @@ export function composePayload(input: CollectedWeek, ai: AiSelection | null, now
 
   const topVideo = selectTopVideo(input.rows);
   const videos = selectVideos(input.rows, topVideo?.id ?? null);
-  const articles = selectArticles(input.rows, options.showArticleSummary ?? isArticleSummaryEnabled());
+  const showSummary = options.showArticleSummary ?? isArticleSummaryEnabled();
+  const articles = selectArticles(input.rows, showSummary);
+  const papers = selectPapers(input.rows, showSummary);
   const { ciChanges, companies } = selectCiChanges(input.ciChanges);
   const { keywords } = selectKeywords(input.keywords);
   const { counts, deltas } = computeCounts(input);
@@ -1089,6 +1205,7 @@ export function composePayload(input: CollectedWeek, ai: AiSelection | null, now
     keywords,
     videos,
     articles,
+    papers,
     meta: {
       aiUsed: keyMessages.some((m) => m.generatedBy === 'ai'),
       ruleBasedMessages,
@@ -1106,4 +1223,25 @@ export function composePayload(input: CollectedWeek, ai: AiSelection | null, now
   };
 
   return { payload, status, stats, candidates };
+}
+
+/**
+ * 저장된 payload 를 읽을 때의 호환 처리 — 논문 섹션이 생기기 전 payload 에는 papers / counts.papers / deltas.papers 가 없다.
+ * 원본을 바꾸지 않고 누락된 필드만 채운 복사본을 돌려준다.
+ */
+export function normalizeStoredPayload(raw: WeeklyBriefPayload): WeeklyBriefPayload {
+  const header = raw.header;
+  const needsHeader = !header || typeof header.counts?.papers !== 'number' || header.deltas?.papers === undefined;
+  if (Array.isArray(raw.papers) && !needsHeader) return raw;
+  return {
+    ...raw,
+    header: needsHeader && header
+      ? {
+          ...header,
+          counts: { ...header.counts, papers: typeof header.counts?.papers === 'number' ? header.counts.papers : 0 },
+          deltas: { ...header.deltas, papers: header.deltas?.papers ?? null },
+        }
+      : header,
+    papers: Array.isArray(raw.papers) ? raw.papers : [],
+  };
 }

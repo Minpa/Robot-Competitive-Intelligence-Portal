@@ -94,11 +94,15 @@ export async function seedWeeklyBriefFixture(exec: SeedExec): Promise<void> {
   `);
 
   // ── 논문(arXiv) — 이번 주 12건 / 직전 주 8건 (액추에이터 정규식에 걸리는 제목) ──
+  //  이번 주 12번째는 호스트가 export.arxiv.org 라 총량에는 들어가지만 목록에서는 제외된다. 저자는 배열(5명) 또는 문자열(3의 배수).
   await exec(`
     INSERT INTO articles (title, source, url, published_at, summary, content_hash, collected_at, product_type, extracted_metadata)
-    SELECT 'Compact actuator with harmonic drive ' || i, 'arxiv', 'https://arxiv.org/abs/2610.' || lpad(i::text, 5, '0'),
+    SELECT 'Compact actuator with harmonic drive ' || i, 'arxiv',
+           CASE WHEN i = 12 THEN 'https://export.arxiv.org/abs/2610.' ELSE 'https://arxiv.org/abs/2610.' END || lpad(i::text, 5, '0'),
            TIMESTAMP '${CUR_START}' + (i * INTERVAL '10 hours'), 'We present an actuator design. Results follow.',
-           'wb-fixture-cur-paper-' || i, TIMESTAMP '${CUR_START}' + (i * INTERVAL '10 hours'), 'none', '{}'::jsonb
+           'wb-fixture-cur-paper-' || i, TIMESTAMP '${CUR_START}' + (i * INTERVAL '10 hours'), 'none',
+           CASE WHEN i % 3 = 0 THEN jsonb_build_object('authors', 'Solo Author ' || i)
+                ELSE jsonb_build_object('authors', jsonb_build_array('Author ' || i || 'A', 'Author ' || i || 'B', 'Author ' || i || 'C', 'Author ' || i || 'D', 'Author ' || i || 'E')) END
     FROM generate_series(1, 12) AS i
   `);
   await exec(`

@@ -35,7 +35,7 @@ describe('weekly-brief type contract', () => {
 });
 
 describe('sample fixtures', () => {
-  const REQUIRED_PAYLOAD_KEYS = ['schemaVersion', 'header', 'keyMessages', 'topVideo', 'ciChanges', 'ciSummary', 'keywords', 'videos', 'articles', 'meta'];
+  const REQUIRED_PAYLOAD_KEYS = ['schemaVersion', 'header', 'keyMessages', 'topVideo', 'ciChanges', 'ciSummary', 'keywords', 'videos', 'articles', 'papers', 'meta'];
 
   it.each([
     ['ok', weeklyBriefSample],
@@ -49,6 +49,9 @@ describe('sample fixtures', () => {
     expect(s.payload.keywords.length).toBeLessThanOrEqual(8);
     expect(s.payload.videos.length).toBeLessThanOrEqual(8);
     expect(s.payload.articles.length).toBeLessThanOrEqual(12);
+    expect(s.payload.papers.length).toBeLessThanOrEqual(8);
+    expect(typeof s.payload.header.counts.papers).toBe('number');
+    expect(s.payload.header.deltas).toHaveProperty('papers');
     expect(s.payload.header.weekStart).toBe('2026-10-19');
     expect(s.payload.header.weekEnd).toBe('2026-10-25');
     expect(s.payload.header.weekNumber).toBe(43);
@@ -65,10 +68,11 @@ describe('sample fixtures', () => {
     expect(ok.articles).toHaveLength(12);
     expect(ok.ciChanges).toHaveLength(4);
     expect(ok.keywords).toHaveLength(8);
+    expect(ok.papers).toHaveLength(6);
     const empty = weeklyBriefEmptySample.payload;
     expect(empty.keyMessages).toEqual([]);
     expect(empty.topVideo).toBeNull();
-    expect([empty.ciChanges, empty.keywords, empty.videos, empty.articles].every((a) => a.length === 0)).toBe(true);
+    expect([empty.ciChanges, empty.keywords, empty.videos, empty.articles, empty.papers].every((a) => a.length === 0)).toBe(true);
     expect(weeklyBriefEmptySample.status).toBe('partial');
     expect(weeklyBriefPartialSample.payload.keyMessages.every((m) => m.generatedBy === 'rule')).toBe(true);
   });
@@ -80,6 +84,7 @@ describe('sample fixtures', () => {
         if (v.thumbnail) expect(v.thumbnail).toMatch(/^https:\/\/i\.ytimg\.com\//);
       }
       for (const a of s.payload.articles) expect(a.url).toMatch(/^https:\/\//);
+      for (const p of s.payload.papers) expect(p.url).toMatch(/^https:\/\/arxiv\.org\//);
     }
   });
 });

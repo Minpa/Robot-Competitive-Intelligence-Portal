@@ -1,7 +1,7 @@
 /**
  * 주간 브리프 샘플 payload 픽스처 (계약 확인 · 프론트 개발용).
  *
- *  - weeklyBriefSample        : status ok, 모든 섹션이 가득 찬 1건 (2026-10-19 ~ 10-25, ISO Week 43)
+ *  - weeklyBriefSample        : status ok, 모든 섹션이 가득 찬 1건(논문 6건 포함) (2026-10-19 ~ 10-25, ISO Week 43)
  *  - weeklyBriefEmptySample   : 데이터 전무 (모든 섹션이 빈 배열/null, partial + no_data)
  *  - weeklyBriefPartialSample : 규칙 문장이 섞인 partial (AI 미사용, ci/키워드 섹션 일부 비어 있음)
  *
@@ -16,6 +16,7 @@ import type {
   WeeklyCiChange,
   WeeklyKeyMessage,
   WeeklyKeyword,
+  WeeklyPaperItem,
   WeeklyTopVideo,
   WeeklyVideoItem,
 } from '../../types/weekly-brief.js';
@@ -151,6 +152,25 @@ const articles: WeeklyArticleItem[] = articleSeeds.map(([title, source, slug, do
   domain,
 }));
 
+const paperSeeds: Array<[string, string, string | null, WeeklyPaperItem['domain'], string | null]> = [
+  ['Tactile Sensing Skin for Dexterous Multi-Finger Hands', '2610.01234', 'A. Kim, B. Lee, C. Park 외 4명', 'hand', 'We present a tactile skin that improves in-hand manipulation success.'],
+  ['Compact Quasi-Direct-Drive Actuator with Integrated Torque Sensing', '2610.02345', 'D. Chen, E. Zhao, F. Wang', 'actuator', 'A compact actuator design with integrated torque sensing is evaluated on a leg joint.'],
+  ['Vision-Language-Action Policies for Long-Horizon Humanoid Tasks', '2610.03456', 'G. Singh, H. Ito 외 9명', 'rfm', 'We study VLA policies on long-horizon tasks and report success rates.'],
+  ['Harmonic Drive Efficiency Under Cyclic Humanoid Loads', '2610.04567', 'I. Novak', 'actuator', null],
+  ['Learning Whole-Body Control from Teleoperation Data', '2610.05678', 'J. Garcia, K. Muller 외 2명', 'rfm', 'Teleoperated demonstrations are used to train a whole-body controller.'],
+  ['A Survey of Gripper Designs for Warehouse Picking', '2610.06789', null, null, 'This survey groups gripper designs by payload and cycle time.'],
+];
+const papers: WeeklyPaperItem[] = paperSeeds.map(([title, arxivId, authors, domain, summaryLine], i) => ({
+  id: `d4000000-0000-4000-8000-0000000003${String(i).padStart(2, '0')}`,
+  title,
+  authors,
+  publishedAt: `2026-10-${String(19 + i).padStart(2, '0')}T02:00:00.000Z`,
+  url: `https://arxiv.org/abs/${arxivId}`,
+  arxivId,
+  domain,
+  summaryLine,
+}));
+
 const okPayload: WeeklyBriefPayload = {
   schemaVersion: 1,
   header: {
@@ -161,8 +181,8 @@ const okPayload: WeeklyBriefPayload = {
     periodStartAt: '2026-10-18T15:00:00.000Z',
     periodEndAt: '2026-10-25T14:59:59.999Z',
     generatedAt: '2026-10-25T23:00:41.000Z',
-    counts: { articles: 187, videosNew: 41, videosAnalyzed: 29, ciUpdates: 6, alerts: 3, newRobots: 2 },
-    deltas: { articles: 12.0, videosNew: -4.7, videosAnalyzed: 20.8, ciUpdates: null, alerts: 50.0 },
+    counts: { articles: 187, videosNew: 41, videosAnalyzed: 29, papers: 52, ciUpdates: 6, alerts: 3, newRobots: 2 },
+    deltas: { articles: 12.0, videosNew: -4.7, videosAnalyzed: 20.8, papers: 8.3, ciUpdates: null, alerts: 50.0 },
   },
   keyMessages,
   topVideo,
@@ -171,6 +191,7 @@ const okPayload: WeeklyBriefPayload = {
   keywords,
   videos,
   articles,
+  papers,
   meta: { aiUsed: true, ruleBasedMessages: 2, warnings: [], truncated: false },
 };
 
@@ -197,8 +218,8 @@ export const weeklyBriefEmptySample: WeeklyBriefResponse = {
     header: {
       ...okPayload.header,
       generatedAt: '2026-10-25T23:00:05.000Z',
-      counts: { articles: 0, videosNew: 0, videosAnalyzed: 0, ciUpdates: 0, alerts: 0, newRobots: 0 },
-      deltas: { articles: null, videosNew: null, videosAnalyzed: null, ciUpdates: null, alerts: null },
+      counts: { articles: 0, videosNew: 0, videosAnalyzed: 0, papers: 0, ciUpdates: 0, alerts: 0, newRobots: 0 },
+      deltas: { articles: null, videosNew: null, videosAnalyzed: null, papers: null, ciUpdates: null, alerts: null },
     },
     keyMessages: [],
     topVideo: null,
@@ -207,6 +228,7 @@ export const weeklyBriefEmptySample: WeeklyBriefResponse = {
     keywords: [],
     videos: [],
     articles: [],
+    papers: [],
     meta: { aiUsed: false, ruleBasedMessages: 0, warnings: ['no_data'], truncated: false },
   },
 };
@@ -224,8 +246,8 @@ export const weeklyBriefPartialSample: WeeklyBriefResponse = {
     header: {
       ...okPayload.header,
       generatedAt: '2026-10-25T23:00:30.000Z',
-      counts: { articles: 64, videosNew: 12, videosAnalyzed: 5, ciUpdates: 0, alerts: 0 },
-      deltas: { articles: -8.3, videosNew: null, videosAnalyzed: null, ciUpdates: null, alerts: null },
+      counts: { articles: 64, videosNew: 12, videosAnalyzed: 5, papers: 18, ciUpdates: 0, alerts: 0 },
+      deltas: { articles: -8.3, videosNew: null, videosAnalyzed: null, papers: -5.3, ciUpdates: null, alerts: null },
     },
     keyMessages: [
       {
@@ -240,6 +262,7 @@ export const weeklyBriefPartialSample: WeeklyBriefResponse = {
     keywords: [],
     videos: videos.slice(0, 3),
     articles: articles.slice(0, 5),
+    papers: papers.slice(0, 3),
     meta: { aiUsed: false, ruleBasedMessages: 1, warnings: ['ai_disabled', 'ci_failed'], truncated: false },
   },
 };

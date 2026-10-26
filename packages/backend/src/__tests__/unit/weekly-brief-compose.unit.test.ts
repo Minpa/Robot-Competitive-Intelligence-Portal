@@ -10,6 +10,11 @@ import {
   decideStatus,
   domainShareCandidate,
   extractNumberTokens,
+  formatAuthors,
+  normalizeStoredPayload,
+  resolveArxivId,
+  safeArxivUrl,
+  selectPapers,
   firstSentence,
   keywordDirection,
   keywordSurgeCandidate,
@@ -217,7 +222,7 @@ describe('domain_share candidate', () => {
     expect(c.bigNumber).toMatchObject({ value: '25', unit: '%' });
     expect(c.bigNumber.caption).toBe('액추에이터 관련 5건 / 전체 20건');
     // 행 하나가 none 이라도 분모에는 포함된다
-    expect(c.basis).toBe('근거: 도메인 태그 집계 (영상 5 · 기사·논문 0)');
+    expect(c.basis).toBe('근거: 도메인 태그 집계 (영상 5 · 논문 0 / 전체 영상 20 · 기사 0 · 논문 0)');
   });
 
   it('paper domains count arxiv rows, news domains count news rows', () => {
@@ -238,6 +243,9 @@ describe('domain_share candidate', () => {
     ];
     const p = domainShareCandidate({ rows: prodRows, prevRows: [] })!;
     expect(p.extra.domain).toBe('production');
+    // 논문 수가 근거 문구에 명시된다 (분자 구성 + 분모 구성)
+    expect(c.basis).toBe('근거: 도메인 태그 집계 (영상 0 · 논문 6 / 전체 영상 14 · 기사 4 · 논문 6)');
+    expect(p.basis).toBe('근거: 도메인 태그 집계 (영상 0 · 기사 6 / 전체 영상 10 · 기사 6 · 논문 6)');
     expect(p.extra.numerator).toBe(6);
   });
 
@@ -557,6 +565,114 @@ describe('selectArticles', () => {
   });
 });
 
+describe('selectPapers', () => {
+  const arxivUrl = (n: number) => `https://arxiv.org/abs/2610.${String(n).padStart(5, '0')}`;
+  const P = (n: number, extra: Partial<BriefRow> = {}) => paper({ title: `Paper ${n}`, url: arxivUrl(n), ...extra });
+
+  it('ignores videos, news and other non-paper sources', () => {
+    const out = selectPapers([video({}), news({}, 'a'), news({}, 'github'), P(1)]);
+    expect(out.map((o) => o.title)).toEqual(['Paper 1']);
+  });
+
+  it('only https + arxiv.org hosts are kept (http, other hosts, subdomains, credentials and junk are excluded)', () => {
+    const rows = [
+      P(1),
+      paper({ title: 'http', url: 'http://arxiv.org/abs/2610.00002' }),
+      paper({ title: 'export host', url: 'https://export.arxiv.org/abs/2610.00003' }),
+      paper({ title: 'www host', url: 'https://www.arxiv.org/abs/2610.00004' }),
+      paper({ title: 'lookalike', url: 'https://arxiv.org.evil.example/abs/2610.00005' }),
+      paper({ title: 'creds', url: 'https://user:pw@arxiv.org/abs/2610.00006' }),
+      paper({ title: 'js', url: 'javascript:alert(1)' }),
+      paper({ title: 'null url', url: null }),
+    ];
+    expect(selectPapers(rows).map((o) => o.title)).toEqual(['Paper 1']);
+    expect(safeArxivUrl('https://arxiv.org/abs/2610.00001')).toBe('https://arxiv.org/abs/2610.00001');
+    expect(safeArxivUrl('https://export.arxiv.org/abs/2610.00001')).toBeNull();
+  });
+
+  it('domain matches rank above plain rows, then summary, then recency; ties go to newest then id', () => {
+    const plain = P(1, { title: 'A plain study', summary: 'Plain. Text.', ts: '2026-10-22T00:00:00.000Z', publishedAt: '2026-10-22T00:00:00.000Z' });
+    const matched = P(2, { title: 'Compact actuator with harmonic drive', summary: null, ts: '2026-10-20T00:00:00.000Z', publishedAt: '2026-10-20T00:00:00.000Z' });
+    const out = selectPapers([plain, matched]);
+    expect(out.map((o) => o.id)).toEqual([matched.id, plain.id]);
+    expect(out[0]!.domain).toBe('actuator');
+    expect(out[1]!.domain).toBeNull();
+
+    const a = P(3, { id: '00000000-0000-4000-8000-0000000000aa', title: 'same A', summary: null });
+    const b = P(4, { id: '00000000-0000-4000-8000-0000000000bb', title: 'same B', summary: null });
+    expect(selectPapers([b, a]).map((o) => o.id)).toEqual([a.id, b.id]);
+  });
+
+  it('caps each domain bucket at 3 while 8 can still be filled by other buckets', () => {
+    const act = Array.from({ length: 6 }, (_, i) => P(i, { title: `Actuator drive ${i}`, summary: 'S. T.' }));
+    const hand = Array.from({ length: 3 }, (_, i) => P(10 + i, { title: `Dexterous hand tactile ${i}`, summary: 'S. T.' }));
+    const other = Array.from({ length: 4 }, (_, i) => P(20 + i, { title: `Unrelated topic ${i}`, summary: null }));
+    const out = selectPapers([...act, ...hand, ...other]);
+    expect(out).toHaveLength(8);
+    const buckets = new Map<string, number>();
+    for (const o of out) buckets.set(o.domain ?? 'other', (buckets.get(o.domain ?? 'other') ?? 0) + 1);
+    expect(buckets.get('actuator')).toBe(3);
+    expect(buckets.get('hand')).toBe(3);
+    expect(buckets.get('other')).toBe(2);
+  });
+
+  it('releases the bucket cap when fewer than 8 would be picked, and never exceeds 8', () => {
+    const act = Array.from({ length: 6 }, (_, i) => P(i, { title: `Actuator drive ${i}` }));
+    expect(selectPapers(act)).toHaveLength(6);
+    const many = Array.from({ length: 30 }, (_, i) => P(i, { title: `Actuator drive ${i}` }));
+    expect(selectPapers(many)).toHaveLength(8);
+    expect(selectPapers([])).toEqual([]);
+  });
+
+  it('fills authors (3 + "외 n명", plain string up to 120 chars), arxivId and a 90-char summary line', () => {
+    const arr = P(1, { summary: 'x'.repeat(200), extractedMetadata: { authors: ['A One', 'B Two', 'C Three', 'D Four', 'E Five'] } });
+    const str = P(2, { extractedMetadata: { authors: 'Solo Author' } });
+    const none = P(3, { summary: null, extractedMetadata: {} });
+    const out = Object.fromEntries(selectPapers([arr, str, none]).map((o) => [o.title, o]));
+    expect(out['Paper 1']!.authors).toBe('A One, B Two, C Three 외 2명');
+    expect(out['Paper 1']!.arxivId).toBe('2610.00001');
+    expect(Array.from(out['Paper 1']!.summaryLine!).length).toBe(90);
+    expect(out['Paper 2']!.authors).toBe('Solo Author');
+    expect(out['Paper 3']!.authors).toBeNull();
+    expect(out['Paper 3']!.summaryLine).toBeNull();
+    expect(selectPapers([arr], false)[0]!.summaryLine).toBeNull();
+  });
+
+  it('formatAuthors / resolveArxivId edge cases', () => {
+    expect(formatAuthors(['A', 'B', 'C'])).toBe('A, B, C');
+    expect(formatAuthors(['A', 'B', 'C', 'D'])).toBe('A, B, C 외 1명');
+    expect(formatAuthors(['A', 7, '', '  ', 'B'])).toBe('A, B');
+    expect(formatAuthors([])).toBeNull();
+    expect(formatAuthors('  ')).toBeNull();
+    expect(formatAuthors(undefined)).toBeNull();
+    expect(Array.from(formatAuthors('x'.repeat(300))!).length).toBe(120);
+    expect(resolveArxivId('https://arxiv.org/abs/2610.01234v2', {})).toBe('2610.01234v2');
+    expect(resolveArxivId('https://arxiv.org/abs/hep-th/9901001', {})).toBe('hep-th/9901001');
+    expect(resolveArxivId('https://arxiv.org/pdf/2610.01234', { arxivId: '2610.09999' })).toBe('2610.09999');
+    expect(resolveArxivId('https://arxiv.org/pdf/2610.01234', { arxivId: '<script>' })).toBeNull();
+    expect(resolveArxivId(null, {})).toBeNull();
+  });
+});
+
+describe('normalizeStoredPayload (payloads stored before the papers section)', () => {
+  it('fills papers=[], counts.papers=0 and deltas.papers=null without touching the original', () => {
+    const fresh = composePayload(emptyWeek(), null, NOW).payload;
+    const { papers: _p, ...rest } = fresh;
+    const old = JSON.parse(JSON.stringify({ ...rest, header: { ...fresh.header, counts: { ...fresh.header.counts, papers: undefined }, deltas: { ...fresh.header.deltas, papers: undefined } } }));
+    expect(old.papers).toBeUndefined();
+    const n = normalizeStoredPayload(old);
+    expect(n.papers).toEqual([]);
+    expect(n.header.counts.papers).toBe(0);
+    expect(n.header.deltas.papers).toBeNull();
+    expect(old.papers).toBeUndefined();
+  });
+
+  it('leaves a current payload untouched (same reference)', () => {
+    const p = composePayload(emptyWeek({ rows: [paper({})] }), null, NOW).payload;
+    expect(normalizeStoredPayload(p)).toBe(p);
+  });
+});
+
 describe('rule sentences', () => {
   it('domain_share template', () => {
     const c = domainShareCandidate({ rows: domainRows(10, 40), prevRows: [] })!;
@@ -743,10 +859,28 @@ describe('selectKeyMessages / composePayload', () => {
       periodStartAt: '2026-10-18T15:00:00.000Z',
       periodEndAt: '2026-10-25T14:59:59.999Z',
       generatedAt: NOW.toISOString(),
-      counts: { articles: 6, videosNew: 4, videosAnalyzed: 3, ciUpdates: 6, alerts: 2, newRobots: 1 },
-      deltas: { articles: 20, videosNew: 100, videosAnalyzed: null, ciUpdates: 100, alerts: -50 },
+      counts: { articles: 6, videosNew: 4, videosAnalyzed: 3, papers: 0, ciUpdates: 6, alerts: 2, newRobots: 1 },
+      deltas: { articles: 20, videosNew: 100, videosAnalyzed: null, papers: null, ciUpdates: 100, alerts: -50 },
     });
     expect(composePayload(emptyWeek({ rows }), null, NOW).payload.header.counts).not.toHaveProperty('newRobots');
+  });
+
+  it('header counts.papers counts arxiv rows (excluded sources are not counted) with the week-over-week delta', () => {
+    const rows = [...Array.from({ length: 6 }, () => paper({})), news({}, 'github'), news({}, 'a')];
+    const prevRows = Array.from({ length: 4 }, () => paper({}));
+    const h = composePayload(emptyWeek({ rows, prevRows }), null, NOW).payload.header;
+    expect(h.counts.papers).toBe(6);
+    expect(h.deltas.papers).toBe(50);
+    expect(composePayload(emptyWeek({ rows }), null, NOW).payload.header.deltas.papers).toBeNull();
+  });
+
+  it('payload.papers is part of the composed payload (0~8) and follows the summary switch', () => {
+    const rows = Array.from({ length: 12 }, (_, i) => paper({ title: `Paper ${i}`, url: `https://arxiv.org/abs/2610.${String(i).padStart(5, '0')}`, summary: 'First. Second.' }));
+    const on = composePayload(emptyWeek({ rows }), null, NOW, { showArticleSummary: true }).payload;
+    expect(on.papers).toHaveLength(8);
+    expect(on.papers[0]!.summaryLine).toBe('First.');
+    const off = composePayload(emptyWeek({ rows }), null, NOW, { showArticleSummary: false }).payload;
+    expect(off.papers.every((p) => p.summaryLine === null)).toBe(true);
   });
 
   it('respects section limits', () => {

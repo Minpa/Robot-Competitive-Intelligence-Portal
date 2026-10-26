@@ -4,6 +4,7 @@ import { ArticleList } from './ArticleList';
 import { CiChangesBand } from './CiChangesBand';
 import { CauseEffectMessage, StatMessage } from './KeyMessageBlocks';
 import { KeywordsBand } from './KeywordsBand';
+import { PaperList } from './PaperList';
 import { PosterFooter, PosterHero, PosterSection, PosterTopBar } from './PosterSections';
 import { TopVideoBox } from './TopVideoBox';
 import { VideoThumbGrid } from './VideoThumbGrid';
@@ -50,6 +51,7 @@ export function WeeklyBriefPoster({ brief }: { brief: WeeklyBriefResponse }) {
       {p.ciChanges.length > 0 && <CiChangesBand changes={p.ciChanges} summary={p.ciSummary} />}
       {p.keywords.length > 0 && <KeywordsBand keywords={p.keywords} />}
       {p.videos.length > 0 && <VideoThumbGrid videos={p.videos} />}
+      {p.papers.length > 0 && <PaperList papers={p.papers} />}
       {p.articles.length > 0 && <ArticleList articles={p.articles} />}
 
       {empty && (

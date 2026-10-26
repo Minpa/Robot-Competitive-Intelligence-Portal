@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { WeeklyBriefResponse } from '@/types/weekly-brief';
 import { POSTER_COLORS } from './weekly-brief-theme';
 import { buildWeeklyBriefHtml, weeklyBriefFileName } from './weekly-brief-html';
-import { makeArticle, makeEmptyBrief, makeFullBrief, makePartialBrief, makeVideo } from './weekly-brief-test-fixtures';
+import { makeArticle, makeEmptyBrief, makeFullBrief, makePaper, makePartialBrief, makeVideo } from './weekly-brief-test-fixtures';
 
 const META = { pageUrl: 'https://argos.example.com/share/weekly/2026-10-19' };
 
@@ -91,6 +91,7 @@ describe('buildWeeklyBriefHtml', () => {
     // 썸네일: topVideo 1 + videos 8
     expect((html.match(/<img\b/g) ?? []).length).toBe(9);
     expect(html).toContain('기사 187 (▲12%)');
+    expect(html).toContain('논문 23 (▲15.5%)');
     expect(html).toContain('신규 로봇 2');
     expect(html).toContain('조회 1.2M');
     expect(html).toContain('12:40');
@@ -107,12 +108,51 @@ describe('buildWeeklyBriefHtml', () => {
   it('빈 섹션은 통째로 생략하고 안내만 남긴다', () => {
     const html = buildWeeklyBriefHtml(makeEmptyBrief(), META);
     expectClean(html);
-    for (const s of ['CI 변화', '키워드 흐름', '이번 주 영상', '주요 기사', '이번 주 가장 많이 본 영상']) {
+    for (const s of ['CI 변화', '키워드 흐름', '이번 주 영상', '이번 주 논문', '주요 기사', '이번 주 가장 많이 본 영상']) {
       expect(html).not.toContain(s);
     }
     expect(html).not.toContain('<img');
     expect(html).toContain('이번 주 수집된 데이터가 부족합니다');
     expect(html).toContain('주간 브리프');
+  });
+
+  it('논문 밴드는 영상 밴드 다음·기사 밴드 앞에 있고 링크는 모두 arxiv.org 이다', () => {
+    const html = buildWeeklyBriefHtml(makeFullBrief(), META);
+    expectClean(html);
+    const iVideo = html.indexOf('<h2>이번 주 영상</h2>');
+    const iPaper = html.indexOf('<h2>이번 주 논문</h2>');
+    const iArticle = html.indexOf('<h2>주요 기사</h2>');
+    expect(iVideo).toBeGreaterThan(-1);
+    expect(iPaper).toBeGreaterThan(iVideo);
+    expect(iArticle).toBeGreaterThan(iPaper);
+    expect(html).toContain('arXiv 상위 6 · 도메인 다양성 반영 · 제목 클릭 시 arXiv 원문');
+    const section = html.slice(iPaper, iArticle);
+    const hrefs = [...section.matchAll(/\bhref="([^"]*)"/g)].map((m) => m[1]);
+    expect(hrefs).toHaveLength(6);
+    for (const h of hrefs) expect(h.startsWith('https://arxiv.org/'), h).toBe(true);
+    expect(section).toContain('A. Kim, B. Lee, C. Park 외 4명');
+    expect(section).toContain('We propose a method 0.');
+    expect(section).toContain('arXiv · 10-21');
+  });
+
+  it('papers 가 비면 논문 밴드만 생략한다', () => {
+    const b = makeFullBrief();
+    b.payload.papers = [];
+    const html = buildWeeklyBriefHtml(b, META);
+    expectClean(html);
+    expect(html).not.toContain('이번 주 논문');
+    expect(html).toContain('주요 기사');
+  });
+
+  it('구 payload(papers 없음)도 오류 없이 렌더되고 논문 밴드는 없다', () => {
+    const b = makeFullBrief() as unknown as { payload: { papers?: unknown; header: { counts: { papers?: number }; deltas: { papers?: number | null } } } };
+    delete b.payload.papers;
+    delete b.payload.header.counts.papers;
+    delete b.payload.header.deltas.papers;
+    const html = buildWeeklyBriefHtml(b as never, META);
+    expectClean(html);
+    expect(html).not.toContain('이번 주 논문');
+    expect(html).toContain('논문 0');
   });
 
   it('일부 섹션만 비면 그 섹션만 생략한다', () => {
@@ -182,6 +222,11 @@ describe('악성 입력', () => {
     p.articles[2] = makeArticle(2, { url: 'https://user:pass@news.example.com/x' });
     p.articles[3] = makeArticle(3, { url: 'https://news.example.com/redirect?u=javascript:alert(1)' });
     p.articles[4] = makeArticle(4, { title: 'Robot data: a study; see http://example.com and url(x) onload onclick', url: 'https://news.example.com/ok' });
+    p.papers[0] = makePaper(0, { title: XSS, authors: XSS, summaryLine: XSS, url: 'javascript:alert(1)' });
+    p.papers[1] = makePaper(1, { url: 'http://arxiv.org/abs/2610.1' });
+    p.papers[2] = makePaper(2, { url: 'https://evil.example.com/abs/2610.2' });
+    p.papers[3] = makePaper(3, { url: 'https://user:pass@arxiv.org/abs/2610.3' });
+    p.papers[4] = makePaper(4, { title: 'Paper data: see http://example.com onload', url: 'https://arxiv.org/abs/2610.4' });
     return b;
   }
 
@@ -201,6 +246,10 @@ describe('악성 입력', () => {
     expect(html).not.toContain('news.example.com/x');
     expect(html).not.toContain('example.com/insecure');
     expect(html).not.toContain('redirect?u=');
+    expect(html).not.toContain('2610.2');
+    expect(html).not.toContain('abs/2610.1"');
+    expect(html).not.toContain('abs/2610.3"');
+    expect(html).toContain('https://arxiv.org/abs/2610.4');
     // 정상 URL 은 유지
     expect(html).toContain('https://news.example.com/ok');
     // 텍스트로는 남는다 (링크만 제거)
