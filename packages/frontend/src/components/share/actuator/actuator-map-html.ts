@@ -1,8 +1,8 @@
 /**
  * 다운로드 HTML용 액추에이터 카드 — 헤드라인 → 조달 태세 요약 막대 → 포지션 맵(타입 × 난이도, 점 색 = 조달 태세, 영역 번호 배지) SVG → 영역 색인 표 → 범례 → 로봇 표 →
- * 공급망 표 2개(외부 조달 관계 / 수요 사례) → 공급사 제품 맵 SVG → 공급사 표 → 각주.
+ * 조달 방식 보드(결론·타일·표·각주) → 공급망 표 2개(외부 조달 관계 / 수요 사례) → 공급사 제품 맵 SVG → 공급사 표 → 각주.
  * 외부 스크립트/스타일/이미지 없음, 모든 텍스트는 escapeHtml, 링크는 pageUrl(safeHref 통과분)만이고 데이터의 URL 은 https 인 경우에만 텍스트로 표시한다.
- * 색: chartColors 팔레트 토큰 + tailwind ink 토큰 hex (tech-trend-report-html.ts 와 동일 값). 새 hex 없음.
+ * 색: chartColors 팔레트 토큰 + tailwind ink 토큰 hex (tech-trend-report-html.ts 와 동일 값) + 보드 타일 색(tailwind info/pos/neg 값 복제). 새 hex 없음.
  */
 
 import { CATEGORY_PALETTE } from '@/app/events/wrc2026/components/chartColors';
@@ -60,6 +60,7 @@ import {
   roleKo,
   summarizeSourcing,
 } from './actuator-sourcing';
+import { BOARD_COLUMNS, BOARD_EMPTY_TEXT, buildSourcingBoard, type BoardLine } from './actuator-sourcing-board';
 import { unregisteredVendorNames } from './actuator-supply-graph';
 import {
   STRATEGY_CONTENT,
@@ -325,6 +326,54 @@ export function buildAdoptionTableHtml(adoptions: ActuatorAdoptionCase[]): strin
   return `<div class="tbl-wrap" style="overflow-x:auto"><table ${TABLE_STYLE}><thead><tr><th ${TH}>로봇</th><th ${TH}>회사</th><th ${TH}>국가</th><th ${TH}>세그먼트</th><th ${TH}>공급사/모델</th><th ${TH}>용도</th><th ${THN}>등급</th><th ${THN}>연도</th><th ${TH}>출처</th></tr></thead><tbody>${rows}</tbody></table></div><p style="font-size:11.5px;color:${INK[500]};margin:6px 0 0">수요 사례는 외부 액추에이터를 쓰는 공개 채택 사례이며 공급 계약 여부는 별도입니다. 부품 = 부품(모터·감속기) 단위 채택.</p>`;
 }
 
+// ── 조달 방식 보드 ────────────────────────────────────────────────────────────
+
+/**
+ * 조달 방식 보드 — 제목 → 결론 문장 → 숫자 타일 4개 → 조달 방식 표 → 각주. 문장·셀은 buildSourcingBoard 가 만든 것을 그대로 쓴다(웹과 동일).
+ * 인라인 스타일만 쓰고 색은 INK·보드 색 상수(tailwind 값 복제)만 쓴다. data 가 없으면 ''. 대상 회사가 없으면 제목 + 안내 한 줄.
+ */
+export function buildSourcingBoardHtml(data: ActuatorMapResponse | null | undefined): string {
+  if (!data) return '';
+  const b = buildSourcingBoard(data);
+  const h3 = `<h3 style="font-size:14px;margin:18px 0 4px;color:${INK[900]}">${e(b.title)}</h3>`;
+  if (!b.hasData) return `${h3}${emptyP('표시할 회사가 없습니다.')}`;
+
+  const conclusion = b.conclusion.map((s) => (s.strong ? `<b>${e(s.text)}</b>` : e(s.text))).join('');
+  const tiles = b.tiles
+    .map(
+      (t) =>
+        `<div role="group" aria-label="${e(t.ariaLabel)}" style="flex:1 1 150px;min-width:0;box-sizing:border-box;border:1px solid ${INK[200]};background:${INK[50]};border-radius:10px;padding:8px 12px;${AVOID};${EXACT}"><span style="font-size:26px;font-weight:700;line-height:1.15;color:${t.color}">${t.count}</span> <span style="font-size:11px;color:${INK[600]}">개사</span><div style="font-size:11.5px;color:${INK[600]};margin-top:2px">${e(t.label)}</div></div>`
+    )
+    .join('');
+
+  const th = BOARD_COLUMNS.map((c) => `<th scope="col" ${TH}>${e(c)}</th>`).join('');
+  const lineHtml = (l: BoardLine, rowMuted: boolean) => {
+    const color = l.muted ? INK[500] : rowMuted ? INK[600] : INK[900];
+    const size = l.muted ? 'font-size:11px;' : '';
+    return `<div style="${size}color:${color}"${l.title ? ` title="${e(l.title)}"` : ''}>${e(l.text)}</div>`;
+  };
+  const cell = (inner: string, rowMuted: boolean) =>
+    `<td style="padding:5px 8px;border-bottom:1px solid ${INK[100]};vertical-align:top;line-height:1.55;word-break:keep-all;overflow-wrap:anywhere;color:${rowMuted ? INK[600] : INK[900]}">${inner}</td>`;
+  const body = b.rows
+    .map((r) => {
+      const companies = r.empty
+        ? `<span style="color:${INK[500]}">${e(BOARD_EMPTY_TEXT)}</span>`
+        : r.companies.map((c) => `<span title="${e(c.title)}">${e(c.label)}</span>`).join(', ');
+      return `${TR}<th scope="row" style="text-align:left;padding:5px 8px;border-bottom:1px solid ${INK[100]};vertical-align:top;line-height:1.55;font-weight:700;color:${r.color}">${r.rowLabel.map((l) => e(l)).join('<br>')}</th>${cell(companies, r.muted)}${cell(e(r.designMfg), r.muted)}${cell(r.bought.map((l) => lineHtml(l, r.muted)).join(''), r.muted)}${cell(r.sold.map((l) => lineHtml(l, r.muted)).join(''), r.muted)}</tr>`;
+    })
+    .join('');
+  const notes = b.footnotes.map((f, i) => `<p style="${SMALL};margin:${i === 0 ? 8 : 3}px 0 0">${e(f.text)}</p>`).join('');
+
+  return [
+    h3,
+    `<p class="meta" style="${META};margin:0 0 6px">${e(b.description)}</p>`,
+    `<p style="font-size:12.5px;color:${INK[900]};line-height:1.65;margin:0 0 8px;${AVOID}">${conclusion}</p>`,
+    `<div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px">${tiles}</div>`,
+    `<div class="tbl-wrap" style="overflow-x:auto"><table ${TABLE_STYLE}><caption style="${SR_ONLY}">${e(`${b.title} — ${BOARD_COLUMNS.join(', ')}`)}</caption><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div>`,
+    notes,
+  ].join('');
+}
+
 function supplyChainParagraphsHtml(data: ActuatorMapResponse): string {
   const unknown = data.robots.filter((r) => !r.forecast && postureOf(r) === 'unknown');
   const confirmed = [...companyPosture(data.robots).values()].filter((c) => c.posture === 'in_house' || c.posture === 'in_house_sells').map((c) => c.company);
@@ -489,6 +538,7 @@ export function buildActuatorMapCardHtml(data: ActuatorMapResponse | null | unde
     `<h3 style="font-size:14px;margin:18px 0 4px;color:${INK[900]}">데이터 표</h3>`,
     `<p class="meta" style="${META}">스펙 미등록 로봇은 난이도 없이 표에만 포함됩니다. 출처 등급 A 공식 ~ D 추정(CI). 조달 태세의 등급은 자체 개발 근거의 등급입니다.</p>`,
     robotTableHtml(data, layout),
+    buildSourcingBoardHtml(data),
     `<h3 style="font-size:14px;margin:18px 0 6px;color:${INK[900]}">공급망 (외부 조달 관계 · 공개 채택 사례)</h3>`,
     `<p class="meta" style="${META};margin:0 0 6px">외부 조달 관계 표</p>`,
     buildSupplyChainTableHtml(data.edges, data),
