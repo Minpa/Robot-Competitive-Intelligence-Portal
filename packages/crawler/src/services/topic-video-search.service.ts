@@ -37,6 +37,8 @@ export const TOPIC_SEARCHES: TopicSearchConfig[] = [
       'five-finger robot hand | anthropomorphic robot hand',
       '"Shadow Hand" | "Sharpa" | "Tesollo" | "Inspire Hand" | "Allegro Hand" | "LEAP Hand" | "Ability Hand"',
       '"Boston Dynamics" Atlas hand | "Tesla Optimus" hand | Figure humanoid hand',
+      // Revo 2/3 는 1X NEO 모터명(Revo2)과 충돌하므로 항상 BrainCo 와 결합한다
+      '"BrainCo" Revo hand | "BrainCo Revo 2" | "BrainCo Revo 3" | 强脑科技 灵巧手',
       '灵巧手 机器人',
       '로봇 핸드 그리퍼',
     ],

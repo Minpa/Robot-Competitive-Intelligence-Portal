@@ -98,8 +98,9 @@ const start = async () => {
       console.warn('[HandBenchmark] seed 실패:', err?.message ?? err);
       return null;
     });
-    if (hbs && (hbs.axes > 0 || hbs.competitors > 0 || hbs.scores > 0)) {
-      console.log(`[HandBenchmark] axes +${hbs.axes}, hands +${hbs.competitors}, scores +${hbs.scores} (${hbs.files} file)`);
+    if (hbs && (hbs.axes > 0 || hbs.competitors > 0 || hbs.scores > 0 || hbs.updated)) {
+      const upd = hbs.updated ? `, updated hands ${hbs.updated.competitors}/scores ${hbs.updated.scores}` : '';
+      console.log(`[HandBenchmark] axes +${hbs.axes}, hands +${hbs.competitors}, scores +${hbs.scores}${upd} (${hbs.files} file)`);
     }
     const staleJobs = await dataGeneratorService.reconcileStaleJobs().catch(() => 0);
     if (staleJobs > 0) console.log(`[DataGenerator] Reconciled ${staleJobs} stale job(s) as failed`);

@@ -1,5 +1,6 @@
 // 핸드 벤치마크/리스트에서 공유하는 시각 설정 + 전략 텍스트.
-// 8종 핸드 slug 기준.
+// 핸드 slug 기준 (hand-benchmark-v1.json + hand-benchmark-v1_1-brainco.json 의 모든 slug).
+// 새 핸드를 시드에 추가하면 HAND_COLORS / HAND_STRATEGIES 에도 키를 추가할 것 (hand-config.test.ts 가 검사).
 
 export const HAND_COLORS: Record<string, string> = {
   'shadow-e3m5': '#22d3ee',
@@ -10,6 +11,8 @@ export const HAND_COLORS: Record<string, string> = {
   'linkerhand-l20': '#fbbf24',
   'sanctuary-phoenix': '#ff6b9d',
   'schunk-svh': '#94a3b8',
+  'brainco-revo3-u21t': '#3b82f6',
+  'brainco-revo2-tactile': '#84cc16',
 };
 
 // "10점 = N" Perfect Hand Spec 천장값 (레이더 차트 축 보조 표기용)
@@ -39,4 +42,8 @@ export const HAND_STRATEGIES: Record<string, string> = {
     '자체 휴머노이드 통합 핸드. 그립력 강점. 촉각 + 외부 SDK 부재가 한계.',
   'schunk-svh':
     '산업용 5지형 베이스라인. 응답속도/촉각이 다지형 핸드 대비 약점. 산업 도구 그립력은 강점.',
+  'brainco-revo3-u21t':
+    '21 능동 DoF 직접구동에 전손 451 포인트 촉각을 더해 6축 모두 9~10점 — 종합 1위 후보. 무게 430g(리셀러·매체 수치)과 그립력 100N(공식)/70N(매체) 불일치는 검증 과제.',
+  'brainco-revo2-tactile':
+    '6 능동 DoF 저가형 포지션 — 페이로드·그립력·응답속도·무게 효율은 만점이나 DoF(4점)와 지문 한정 촉각 30채널(2점)이 약점. 촉각은 Revo 3에서 보강.',
 };

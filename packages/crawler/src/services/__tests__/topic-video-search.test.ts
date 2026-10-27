@@ -41,9 +41,26 @@ describe('TOPIC_SEARCHES', () => {
     expect(new Set(all).size).toBe(all.length);
   });
 
-  it('has 11 hand queries', () => {
+  it('has 12 hand queries', () => {
     const hand = TOPIC_SEARCHES.find((c) => c.domain === 'hand');
-    expect(hand?.queries).toHaveLength(11);
+    expect(hand?.queries).toHaveLength(12);
+  });
+
+  it('has a BrainCo hand query, and Revo 2/3 never appear without BrainCo (Revo2 is also the 1X NEO motor name)', () => {
+    const hand = TOPIC_SEARCHES.find((c) => c.domain === 'hand')!;
+    const brainco = hand.queries.filter((q) => /brainco/i.test(q));
+    expect(brainco.length).toBeGreaterThanOrEqual(1);
+    for (const q of TOPIC_SEARCHES.flatMap((c) => c.queries)) {
+      for (const term of q.split('|').map((t) => t.trim())) {
+        if (/\brevo\s?\d?\b/i.test(term)) expect(term, `"${term}" in "${q}"`).toMatch(/brainco/i);
+      }
+    }
+  });
+
+  it('keeps the total quota within budget with the BrainCo query (34 queries x 100 units)', () => {
+    const n = TOPIC_SEARCHES.reduce((sum, c) => sum + c.queries.length, 0);
+    expect(estimateQuotaUnits(TOPIC_SEARCHES, 1)).toBe(n * 100);
+    expect(estimateQuotaUnits(TOPIC_SEARCHES, 1)).toBeLessThanOrEqual(4000);
   });
 
   it('has 12 English actuator queries covering the main actuator families', () => {

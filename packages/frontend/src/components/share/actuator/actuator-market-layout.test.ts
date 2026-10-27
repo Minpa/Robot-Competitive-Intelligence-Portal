@@ -246,7 +246,7 @@ describe('buildLgCallout', () => {
     expect(buildLgCallout(d.suppliers, [], d.segmentOrder)[0]).toContain('아직 수집되지 않음');
     expect(buildLgCallout([sp('V', 'm')], [adoption()])).toEqual([]);
   });
-  it('실데이터 수요 사례(30건)로도 예외 없이 생성', () => {
+  it('실데이터 수요 사례(38건)로도 예외 없이 생성', () => {
     const cases = seedAdoptionCases();
     if (!cases) return;
     expect(buildLgCallout(seedResponse().suppliers, cases).join(' ')).toContain('1군 세트사');

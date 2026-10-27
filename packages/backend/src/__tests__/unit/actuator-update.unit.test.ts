@@ -885,9 +885,9 @@ describe('validateAdoptionsFile', () => {
     const v = validateAdoptionsFile(JSON.parse(fs.readFileSync(f, 'utf-8')));
     expect(v.errors).toEqual([]);
     expect(v.warnings).toEqual([]);
-    expect(v.file!.cases.length).toBe(30);
+    expect(v.file!.cases.length).toBe(38);
     expect(v.file!.cases.filter((x) => x.level === 'component').length).toBe(8);
-    expect(v.file!.cases.filter((x) => x.segment === 'humanoid_tier1').length).toBe(3);
+    expect(v.file!.cases.filter((x) => x.segment === 'humanoid_tier1').length).toBe(8);
   });
 });
 

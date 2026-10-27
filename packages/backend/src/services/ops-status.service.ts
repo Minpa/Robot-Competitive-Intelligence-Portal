@@ -6,6 +6,7 @@
 import { computeActuatorDataKey, resolveDefaultDataDir } from '../db/apply-actuator-data-update.js';
 import { dataMigrationService } from './data-migration.service.js';
 import { parseMode } from './actuator-auto-apply.service.js';
+import { HAND_BENCHMARK_MARKER_PREFIX } from './hand-benchmark.service.js';
 import {
   PIPELINE_MARKER_KEY,
   PIPELINE_TASK_NAME,
@@ -52,6 +53,11 @@ export async function getOpsStatus() {
     (await dataMigrationService.listRecent('actuator-update:', 20)).map(serializeRow),
   );
 
+  // 핸드 벤치마크 업서트 마커 (`hand-benchmark:<파일명>:<sha12>`)
+  const handBenchmarkMigrations = await guard(async () =>
+    (await dataMigrationService.listRecent(HAND_BENCHMARK_MARKER_PREFIX, 20)).map(serializeRow),
+  );
+
   const currentDataKey = await guard(async () => {
     const key = computeActuatorDataKey(resolveDefaultDataDir());
     return { key, applied: await dataMigrationService.has(key) };
@@ -74,5 +80,5 @@ export async function getOpsStatus() {
   // 주간 브리프: 크론·캐치업 설정, 실행 중 여부, 마지막 실행 요약 (비밀값 없음)
   const weeklyBrief = await guard(() => getWeeklyBriefOpsSummary());
 
-  return { generatedAt: new Date().toISOString(), config, dataMigrations, currentDataKey, pipeline, crawler, weeklyBrief };
+  return { generatedAt: new Date().toISOString(), config, dataMigrations, handBenchmarkMigrations, currentDataKey, pipeline, crawler, weeklyBrief };
 }

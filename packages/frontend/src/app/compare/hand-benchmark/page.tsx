@@ -10,7 +10,7 @@ function HandBenchmarkContent() {
       <PageHeader
         titleKo="Hand Perfect 대비 분석"
         titleEn="HAND BENCHMARK"
-        description="이상적 다지형 핸드 스펙 대비 시장 8종 (Shadow / Allegro / Tesollo / Inspire / PaXini / LinkerHand / Sanctuary / Schunk) 차이점 분석"
+        description="이상적 다지형 핸드 스펙 대비 시장 주요 핸드 (Shadow / Allegro / Tesollo / Inspire / PaXini / LinkerHand / Sanctuary / Schunk / BrainCo) 차이점 분석"
       />
       <PerfectHandBenchmark />
     </div>

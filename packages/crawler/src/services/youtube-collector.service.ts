@@ -18,7 +18,7 @@ export type ChannelDomain = 'robot' | 'hand' | 'rfm' | 'actuator';
 export interface YoutubeChannel {
   company: string;      // companies.name 매칭용 (ILIKE)
   channelName: string;  // 표시용 채널명
-  handle: string;       // @handle (channelId 해석용)
+  handle: string | null; // @handle (channelId 해석용). 미확인이면 null — 이때 channelId 가 반드시 있어야 하며 이름 검색 폴백은 쓰지 않는다
   channelId: string | null; // UC... (알고 있으면 직접 지정 — API 없이 동작)
   domain: ChannelDomain; // 기술 축 분류 (robot=완제품, hand=핸드/그리퍼, rfm=파운데이션모델, actuator=구동계)
   /**
@@ -56,6 +56,10 @@ export const YOUTUBE_CHANNELS: YoutubeChannel[] = [
   { company: 'Robotiq', channelName: 'Robotiq', handle: 'Robotiq', channelId: null, domain: 'hand' },
   { company: 'Tesollo', channelName: 'Tesollo', handle: 'tesollo', channelId: null, domain: 'hand' },
   { company: 'Wonik Robotics', channelName: 'Wonik Robotics', handle: 'wonikrobotics', channelId: null, domain: 'hand' },
+  // BrainCo(强脑科技): channelId 는 BrainCo 보도자료 소셜 링크로 확인(B), @handle 은 미확인이라 null.
+  // 채널에 BCI(헤드밴드)·의수·교육 콘텐츠가 섞여 있어 핸드 관련 영상만 수집한다(비매칭 기존 수집분은 collect() 에서 정리됨).
+  // Revo 1(의수 계보)은 게이트에서 제외 — `\brevo ?[23]\b`
+  { company: 'BrainCo', channelName: 'BrainCo', handle: null, channelId: 'UCW4m4Zy44IkDtY-rp0wN75g', domain: 'hand', onlyMatching: '\\brevo ?[23]\\b|dexterous|robot(ic)? hands?|humanoid|灵巧手|tactile' },
 
   // ── 로봇 파운데이션 모델 (rfm) ──
   { company: 'Google DeepMind', channelName: 'Google DeepMind', handle: 'GoogleDeepMind', channelId: null, domain: 'rfm', onlyMatching: '\\brobots?\\b|\\brobotics?\\b|\\bhumanoid\\b|\\bembodied\\b|manipulat' },
@@ -127,6 +131,8 @@ class YoutubeCollectorService {
    * 핸들이 틀렸을 경우 채널명 검색으로 폴백한다.
    */
   private async resolveChannelId(channel: YoutubeChannel): Promise<string | null> {
+    // 핸들 미확인(null) 채널은 추측하지 않는다 — 채널명 검색 폴백이 엉뚱한 채널을 잡을 수 있다
+    if (!channel.handle) return null;
     const cached = this.resolvedIds.get(channel.handle);
     if (cached) return cached;
 
@@ -282,7 +288,7 @@ class YoutubeCollectorService {
       const channelId = channel.channelId ?? (await this.resolveChannelId(channel));
       if (!channelId) {
         result.channelsSkipped++;
-        result.skippedChannels.push(`${channel.channelName} (@${channel.handle})`);
+        result.skippedChannels.push(`${channel.channelName} (${channel.handle ? `@${channel.handle}` : 'handle/channelId 미확인'})`);
         continue; // channelId 해석 실패 (핸들 오류 + 검색 실패, 또는 API 키 없음) → 스킵
       }
 

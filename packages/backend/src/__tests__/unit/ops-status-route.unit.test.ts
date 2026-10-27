@@ -78,12 +78,15 @@ describe('GET /api/admin/ops/status', () => {
     const res = await get('admin');
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(Object.keys(body)).toEqual(['generatedAt', 'config', 'dataMigrations', 'currentDataKey', 'pipeline', 'crawler', 'weeklyBrief']);
+    expect(Object.keys(body)).toEqual(['generatedAt', 'config', 'dataMigrations', 'handBenchmarkMigrations', 'currentDataKey', 'pipeline', 'crawler', 'weeklyBrief']);
     expect(body.config).toEqual({
       actuatorAutoApply: 'true', techTrendAutoDomains: ['actuator', 'hand'], pipelineOnStartup: true, pipelineCron: '30 5 * * *', schedulerEnabled: true,
     });
     expect(body.dataMigrations[0]).toMatchObject({ key: 'actuator-update:aaaaaaaaaaaa', appliedAt: '2026-10-25T00:00:00.000Z' });
     expect(h.listRecent).toHaveBeenCalledWith('actuator-update:', 20);
+    // 핸드 벤치마크 업서트 마커는 별도 접두로 노출한다
+    expect(h.listRecent).toHaveBeenCalledWith('hand-benchmark:', 20);
+    expect(Array.isArray(body.handBenchmarkMigrations)).toBe(true);
     expect(body.currentDataKey).toEqual({ key: 'actuator-update:aaaaaaaaaaaa', applied: true });
     expect(body.pipeline.last).toEqual({ status: 'ok' });
     expect(body.pipeline.running).toBe(false);
@@ -103,6 +106,7 @@ describe('GET /api/admin/ops/status', () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.dataMigrations).toEqual({ error: 'table missing' });
+    expect(body.handBenchmarkMigrations).toEqual({ error: 'table missing' });
     expect(body.currentDataKey).toEqual({ error: 'robots.json missing' });
     expect(body.config.actuatorAutoApply).toBe('true');
     expect(body.crawler.actuatorBackfill).not.toBeNull();

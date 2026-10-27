@@ -72,10 +72,10 @@ describe.skipIf(!TEST_URL)('actuator sourcing / adoptions apply (temp PostgreSQL
     const robotsBefore = await count('humanoid_robots');
     const r = await runApply();
     expect(r.counters.actuator_sourcing!.insert).toBeGreaterThan(0);
-    expect(r.counters.actuator_adoptions!.insert).toBe(30);
+    expect(r.counters.actuator_adoptions!.insert).toBe(38);
     expect(r.counters.actuator_vendor_markets!.insert).toBe(18);
     expect(await count('actuator_sourcing')).toBe(r.counters.actuator_sourcing!.insert);
-    expect(await count('actuator_adoptions')).toBe(30);
+    expect(await count('actuator_adoptions')).toBe(38);
     expect(await count('actuator_vendor_markets')).toBe(18);
     // sourcing/adoptions 는 로봇을 만들지 않는다: 늘어난 로봇 수 = robots 섹션이 만든 수
     expect((await count('humanoid_robots')) - robotsBefore).toBe(r.createdRobots.length);
@@ -115,10 +115,10 @@ describe.skipIf(!TEST_URL)('actuator sourcing / adoptions apply (temp PostgreSQL
     await m.svc.actuatorPositionMapService.invalidate();
     const map = await m.svc.actuatorPositionMapService.getMap();
     expect(map.schemaVersion).toBe(2);
-    expect(map.adoptions).toHaveLength(30);
+    expect(map.adoptions).toHaveLength(38);
     expect(map.vendorMarkets).toHaveLength(18);
     expect(map.segmentOrder).toEqual(['tier1_oem', 'tier2_legged', 'research_edu', 'industrial_cobot', 'service', 'captive', 'other']);
-    expect(map.stats.adoptions).toBe(30);
+    expect(map.stats.adoptions).toBe(38);
 
     const byName = (n: string) => map.robots.find((r) => r.name === n)!;
     expect(byName('Atlas (Electric)').sourcing).toMatchObject({ posture: 'external', kind: 'mixed', basis: 'regrade' });

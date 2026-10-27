@@ -14,6 +14,7 @@ const MFG_GRADIENTS: Record<string, { from: string; to: string; accent: string }
   'LinkerHand':           { from: 'from-amber-50', to: 'to-amber-100', accent: 'text-amber-600' },
   'Sanctuary AI':         { from: 'from-pink-50', to: 'to-pink-100', accent: 'text-pink-600' },
   'Schunk':               { from: 'from-slate-50', to: 'to-slate-100', accent: 'text-slate-600' },
+  'BrainCo (强脑科技)':    { from: 'from-sky-50', to: 'to-sky-100', accent: 'text-sky-600' },
 };
 
 const DEFAULT_GRADIENT = { from: 'from-slate-50', to: 'to-slate-100', accent: 'text-ink-500' };

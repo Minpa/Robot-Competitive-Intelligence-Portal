@@ -1,0 +1,116 @@
+{
+  "version": "v1.1",
+  "generatedAt": "2026-10-27",
+  "source": "manual",
+  "mode": "upsert",
+  "_note": "BrainCo(强脑科技) 핸드. mode=upsert: 내용 해시 마커(hand-benchmark:<파일명>:<sha12>)로 이 파일의 slug 만 배포 시 갱신된다(기존 v1 8종은 불변). 수치·점수는 조사 산출물 기준(Revo 3 무게 430g=C등급, 그립 100N(공식)/70N(매체) 불일치). Revo 1 은 레거시라 제외. imageUrl 은 공식 이미지 미확보로 null(프론트 그라디언트 폴백). axes 는 v1.json 이 정의한다.",
+  "axes": [],
+  "competitors": [
+    {
+      "slug": "brainco-revo3-u21t",
+      "name": "BrainCo Revo 3 U21T",
+      "manufacturer": "BrainCo (强脑科技)",
+      "country": "중국",
+      "category": "dexterous",
+      "imageUrl": null,
+      "sortOrder": 9,
+      "scores": [
+        {
+          "axisKey": "dof",
+          "currentScore": 9,
+          "targetScore": 10,
+          "rawValue": "21 DoF (21 능동, 직접구동)",
+          "rationale": "21 능동 DoF — Phoenix(21)와 동급, Shadow(24) 바로 아래. 결합 관절 없이 전부 직접구동·역구동 가능해 실질 제어 자유도는 Phoenix 이상."
+        },
+        {
+          "axisKey": "payload",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "20 kg (전손) / 5 kg (4지)",
+          "rationale": "공식 파라미터 20kg 전손 페이로드 — Inspire(10kg) 기준 만점 초과. 4지 능동 페이로드는 5kg."
+        },
+        {
+          "axisKey": "gripForce",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "100 N 전손 (공식) / 70 N (매체), 핀치 ≥25 N",
+          "rationale": "공식 100N, 보수적으로 매체 70N 을 취해도 만점 기준 50N 초과."
+        },
+        {
+          "axisKey": "responseSpeed",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "500 Hz 제어 주기, 개폐 0.33 s (3 Hz)",
+          "rationale": "500Hz 제어/통신 주기 + 3Hz 개폐 — 10Hz+ 만점 기준 충족. PaXini 와 동급."
+        },
+        {
+          "axisKey": "tactileChannels",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "451 포인트 전손 압저항 어레이 (0.01 N 분해능)",
+          "rationale": "전손 451 텍셀 — 100+ 만점 기준 충족. PaXini(~1300)보다 적지만 Shadow(129) 이상. U21VT 는 지문 시촉각 ~2000 마커 추가."
+        },
+        {
+          "axisKey": "weightEfficiency",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "20kg / 0.43kg = 46.5",
+          "rationale": "430g 에 20kg 페이로드 — 5.0 만점 기준 대폭 초과. 단 무게 430g 은 공식 문서 미기재(리셀러·매체 수치)."
+        }
+      ]
+    },
+    {
+      "slug": "brainco-revo2-tactile",
+      "name": "BrainCo Revo 2 Tactile",
+      "manufacturer": "BrainCo (强脑科技)",
+      "country": "중국",
+      "category": "dexterous",
+      "imageUrl": null,
+      "sortOrder": 10,
+      "scores": [
+        {
+          "axisKey": "dof",
+          "currentScore": 4,
+          "targetScore": 6,
+          "rawValue": "11 DoF (6 능동 + 5 결합)",
+          "rationale": "5핑거 6-능동 자유도 — Inspire(12 DoF/6 능동=5점)보다 결합 관절 1개 적어 4점. 휴머노이드 표준 저가형 형태."
+        },
+        {
+          "axisKey": "payload",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "20 kg",
+          "rationale": "공식 20kg 최대 부하 — 10kg 만점 기준 2배. 다만 '수동 매달기' 성격의 부하로 능동 파지와는 구분 필요."
+        },
+        {
+          "axisKey": "gripForce",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "≥50 N (핀치 ≥15 N)",
+          "rationale": "공식 보도자료 50N — 만점 기준 50N 충족. 직접구동 소형 모터로 동급 최강 수준."
+        },
+        {
+          "axisKey": "responseSpeed",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "1 kHz 통신 주기, 개폐 ≤0.65 s",
+          "rationale": "최대 1kHz 통신/제어 주기 — 10Hz+ 만점 기준 충족. 촉각 센서 갱신은 >50Hz."
+        },
+        {
+          "axisKey": "tactileChannels",
+          "currentScore": 2,
+          "targetScore": 5,
+          "rawValue": "30 채널 (지문 3D 촉각 5개 × 6ch; 압저항형은 45 포인트)",
+          "rationale": "지문 전용 촉각 — Tesollo(30ch=2점)와 동급. 압력·마찰·방향·근접 감지 가능하나 전손 어레이가 아니라 텍타일 VLA 수준 미달. Revo 3 에서 451 포인트로 보강."
+        },
+        {
+          "axisKey": "weightEfficiency",
+          "currentScore": 10,
+          "targetScore": 10,
+          "rawValue": "20kg / 0.383kg = 52.2",
+          "rationale": "383g 업계 최경량(전문급) + 20kg 부하 — Inspire(18.2) 보다도 높은 효율. 휴머노이드 손목 부담 최소."
+        }
+      ]
+    }
+  ]
+}

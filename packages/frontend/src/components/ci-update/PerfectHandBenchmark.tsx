@@ -60,7 +60,7 @@ export function PerfectHandBenchmark() {
           <p className="text-base text-ink-500">완벽한 다지형 핸드까지의 거리</p>
         </div>
         <p className="text-sm text-ink-500 mt-2">
-          DoF · 페이로드 · 그립력 · 응답속도 · 촉각 채널 · 무게 효율 — 6축 총 60점 기준으로 다지형 핸드 8종의 현재 위치와 목표 방향을 시각화합니다.
+          DoF · 페이로드 · 그립력 · 응답속도 · 촉각 채널 · 무게 효율 — 6축 총 60점 기준으로 다지형 핸드 {data.competitors.length}종의 현재 위치와 목표 방향을 시각화합니다.
         </p>
       </div>
 

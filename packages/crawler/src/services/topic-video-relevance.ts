@@ -24,9 +24,11 @@ const ROBOT_CONTEXT_REGEX = /\brobot|robotic|humanoid|휴머노이드|로봇|机
 /**
  * 도메인별 브랜드 문맥 — 제목에 "robot"이 없어도 해당 업체·제품명이 있으면 로봇 문맥으로 인정
  * (예: "Atlas Goes Hands On", "Shadow Hand teleoperation demo")
+ * BrainCo 는 단독 `brainco`/`revo` 로 통과시키지 않는다 — BCI 헤드밴드 영상("hands-free")이 오탐되고, Revo2 는 1X NEO 모터 이름이기도 하다.
+ * 반드시 BrainCo 와 Revo 가 근접해 함께 나오거나(강脑 … 灵巧手 포함) 해야 한다.
  */
 const DOMAIN_CONTEXT_REGEX: Partial<Record<TopicDomain, RegExp>> = {
-  hand: /shadow (robot|hand)|sharpa|tesollo|inspire (robots?|hand)|psyonic|ability hand|sanctuary|wonik|allegro hand|leap hand|robotiq|linker ?bot|daimon|paxini|\boptimus\b|\batlas\b|figure 0\d|figure ai|unitree|agibot|dexmate|orca hand|\bruka\b|toyota research|\btri\b|boston dynamics|\btesla\b|1x technologies|\bneo\b/i,
+  hand: /shadow (robot|hand)|sharpa|tesollo|inspire (robots?|hand)|psyonic|ability hand|sanctuary|wonik|allegro hand|leap hand|robotiq|linker ?bot|daimon|paxini|\boptimus\b|\batlas\b|figure 0\d|figure ai|unitree|agibot|dexmate|orca hand|\bruka\b|toyota research|\btri\b|boston dynamics|\btesla\b|1x technologies|\bneo\b|\bbrain ?co\b[\s\S]{0,120}\brevo ?\d?\b|\brevo ?\d?\b[\s\S]{0,120}\bbrain ?co\b|强脑[\s\S]{0,60}灵巧手|灵巧手[\s\S]{0,60}强脑/i,
   // 액추에이터·관절 모듈 업체와 이를 자체 개발하는 휴머노이드 업체 (제목에 "robot"이 없는 티어다운·벤치 영상 수용)
   actuator:
     /robstride|cubemars|t-?motor|myactuator|unitree|fourier|nabtesco|maxon|faulhaber|\btesla\b|\boptimus\b|figure 0\d|figure ai|apptronik|agibot|kepler|hyundai mobis|lg axium|\bmit cheetah\b|\bhebi\b|\bdynamixel\b/i,

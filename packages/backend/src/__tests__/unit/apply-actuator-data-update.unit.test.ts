@@ -473,7 +473,7 @@ describe('applyActuatorDataUpdate: sourcing + adoptions (mock transaction)', () 
     useTx(store);
     const r = await applyActuatorDataUpdate({ dryRun: true, dataDir: realDir, sections: ['adoptions', 'sourcing'], logger: logger() });
     expect(r.sectionsRun).toEqual(['sourcing', 'adoptions']); // 입력 순서와 무관하게 고정 순서
-    expect(r.counters.actuator_adoptions!.insert).toBe(30);
+    expect(r.counters.actuator_adoptions!.insert).toBe(38);
     expect(r.counters.actuator_vendor_markets!.insert).toBe(18);
     expect(r.warnings.filter((w) => !w.startsWith('sourcing 대상 로봇 없음'))).toEqual([]);
   });

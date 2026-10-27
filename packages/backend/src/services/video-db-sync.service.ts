@@ -31,6 +31,7 @@ const COMPANY_COUNTRY: Record<string, string> = {
   PSYONIC: 'USA',
   'Shadow Robot': 'UK',
   'Inspire Robots': 'China',
+  BrainCo: 'China',
   Robotiq: 'Canada',
   Tesollo: 'South Korea',
   'Wonik Robotics': 'South Korea',

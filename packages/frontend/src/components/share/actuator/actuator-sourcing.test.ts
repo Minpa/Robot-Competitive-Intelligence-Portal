@@ -171,11 +171,11 @@ describe('수요 사례 집계', () => {
     expect(adoptionTotals(list)).toEqual({ total: 6, module: 4, component: 2 });
     expect(adoptionTotals([])).toEqual({ total: 0, module: 0, component: 0 });
   });
-  it('실데이터 30건: 모듈 22 / 부품 8, 세그먼트 매핑', () => {
+  it('실데이터 38건: 모듈 30 / 부품 8, 세그먼트 매핑', () => {
     const cases = seedAdoptionCases();
     if (!cases) return;
-    expect(adoptionTotals(cases)).toEqual({ total: 30, module: 22, component: 8 });
+    expect(adoptionTotals(cases)).toEqual({ total: 38, module: 30, component: 8 });
     const seg = Object.fromEntries(adoptionBySegment(cases).map((r) => [r.segment, r.count]));
-    expect(seg.tier1_oem).toBe(3);
+    expect(seg.tier1_oem).toBe(8);
   });
 });

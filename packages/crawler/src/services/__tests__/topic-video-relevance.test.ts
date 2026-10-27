@@ -69,6 +69,40 @@ describe('isRelevantTopicVideo', () => {
     it('rejects unrelated text', () => {
       expect(isRelevantTopicVideo('hand', 'Robot vacuum cleaner review', 'household robot cleaning')).toBe(false);
     });
+
+    describe('BrainCo', () => {
+      it('accepts BrainCo Revo 2/3 hand videos without the word "robot" in the title', () => {
+        const accepted: Array<[string, string | null]> = [
+          ['BrainCo Revo 2 dexterous hand demo', null],
+          ['BrainCo Revo 3 U21T tactile dexterous hand', null],
+          ['强脑科技 Revo 2 灵巧手 实机演示', null],
+          ['强脑科技灵巧手 Revo 3 发布', null],
+          ['Revo 2 dexterous hand demo', 'by BrainCo'],
+          ['Revo2 dexterous hand demo', 'Official video from BrainCo\nhttps://brainco.tech'],
+        ];
+        for (const [title, desc] of accepted) {
+          expect(isRelevantTopicVideo('hand', title, desc), title).toBe(true);
+        }
+      });
+
+      it('rejects "Revo" on its own, BrainCo BCI/headband content, and prosthetic titles', () => {
+        const rejected: Array<[string, string | null]> = [
+          ['Revo 2 hand cream review', null],
+          ['Revo 3 electric bike hand brake', null],
+          ['Revo2 motor teardown hand', null],
+          ['BrainCo Focus headband for students', 'a hands-free focus trainer'],
+          ['BrainCo EEG headband hand gesture demo', 'hands-free control with brain signals'],
+          ['BrainCo Revo 1 prosthetic hand for amputee', null],
+        ];
+        for (const [title, desc] of rejected) {
+          expect(isRelevantTopicVideo('hand', title, desc), title).toBe(false);
+        }
+      });
+
+      it('does not let BrainCo leak into other domains', () => {
+        expect(isRelevantTopicVideo('actuator', 'BrainCo Revo 2 hand', null)).toBe(false);
+      });
+    });
   });
 
   describe('rfm', () => {

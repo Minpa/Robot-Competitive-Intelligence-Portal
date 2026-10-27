@@ -19,7 +19,7 @@
     "vendorInSuppliersJson": "actuatorVendor가 suppliers.json 44개 제품의 벤더와 연결되는지 여부",
     "level": "module=통합 관절·모듈 단위 공급 / component=모터·감속기 등 부품 단위 공급"
   },
-  "caseCount": 30,
+  "caseCount": 38,
   "cases": [
     {
       "robotName": "K-Bot",
@@ -814,6 +814,242 @@
       "noteKo": "설립 18개월에 중국 구체지능 정합기 업체 절반 고객 확보 주장, 26개국 5만 대 출하. 매출의 60~70%는 비휴머노이드(전동 모빌리티·수영장 청소 로봇·산업자동화), 30%는 개발자 리테일. 고객명은 비공개(회사 주장).",
       "year": 2025,
       "vendorInSuppliersJson": true,
+      "level": "module"
+    },
+    {
+      "robotName": "G1",
+      "company": "Unitree Robotics",
+      "country": "CN",
+      "segment": "humanoid_tier1",
+      "robotClass": "humanoid",
+      "actuatorVendor": "BrainCo",
+      "actuatorModel": "Revo 2 (Basic / Tactile)",
+      "usage": "핸드 (공식 옵션)",
+      "evidenceGrade": "A",
+      "sources": [
+        {
+          "source": "BrainCo 공식 문서 'Revo 2 Adaptation for Unitree G1'",
+          "url": "https://www.brainco-hz.com/docs/revolimb-hand/en/ecology/unitree.html",
+          "date": "2025~2026"
+        },
+        {
+          "source": "Unitree 공식 GitHub brainco_hand_service",
+          "url": "https://github.com/unitreerobotics/brainco_hand_service",
+          "date": "2025~2026"
+        },
+        {
+          "source": "BrainCoTech GitHub unitree-g1-brainco-hand",
+          "url": "https://github.com/BrainCoTech/unitree-g1-brainco-hand",
+          "date": "2025~2026"
+        },
+        {
+          "source": "RobotShop (G1-D Standard E, Revo 2 Tactile Hands)",
+          "url": "https://www.robotshop.com/products/unitree-g1-d-standard-e-humanoid-robot-platform-revo-2-tactile-hands",
+          "date": "2026"
+        }
+      ],
+      "noteKo": "G1에 BrainCo Revo 2(6 능동 DoF)를 장착하는 공식 옵션. BrainCo 공식 적응 문서와 Unitree 공식 GitHub 서비스(Serial2DDS)가 모두 있어 양사 소프트웨어 지원이 확인된다. 'G1-D 전용 에디션'(Basic $6,680 / Tactile $8,680)은 리셀러 명칭이다.",
+      "year": 2026,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "H2",
+      "company": "Unitree Robotics",
+      "country": "CN",
+      "segment": "humanoid_tier1",
+      "robotClass": "humanoid",
+      "actuatorVendor": "BrainCo",
+      "actuatorModel": "Revo 2 (Basic / Tactile)",
+      "usage": "핸드 (리셀러 EDU 번들; Unitree 공식 스토어 미확인)",
+      "evidenceGrade": "C",
+      "sources": [
+        {
+          "source": "RobotShop (Revo2 Basic Hand for Unitree H2, pair)",
+          "url": "https://www.robotshop.com/products/revo2-basic-hand-for-unitree-h2-pair",
+          "date": "2026"
+        },
+        {
+          "source": "RobotShop (Revo2 Tactile Hand for Unitree H2, pair)",
+          "url": "https://www.robotshop.com/products/revo2-tactile-hand-for-unitree-h2-pair",
+          "date": "2026"
+        },
+        {
+          "source": "Scan UK (Unitree BrainCo Revo 2 Touch for H2)",
+          "url": "https://www.scan.co.uk/products/unitree-brainco-revo-2-touch-robotic-hand-right-hand-for-h2-humanoid-5-fingers-11-degrees-of-freedom",
+          "date": "2026"
+        },
+        {
+          "source": "Robotixmarket (Unitree H2 EDU SMART)",
+          "url": "https://robotixmarket.com/products/unitree-h2-edu-smart-g-humanoid-robot",
+          "date": "2026"
+        },
+        {
+          "source": "RobotShop (Unitree H2 EDU, 핸드 옵션 가격표)",
+          "url": "https://www.robotshop.com/products/unitree-h2-edu-humanoid-robot",
+          "date": "2026"
+        },
+        {
+          "source": "Unitree 공식 GitHub brainco_hand_service",
+          "url": "https://github.com/unitreerobotics/brainco_hand_service",
+          "date": "2025~2026"
+        },
+        {
+          "source": "新浪财经 (2026 宇树 파트너 생태대회 보도)",
+          "url": "https://finance.sina.com.cn/tech/roll/2026-10-26/doc-iniwpfmz5690373.shtml",
+          "date": "2026-10-26"
+        }
+      ],
+      "noteKo": "H2 EDU의 핸드 선택지(Dex1-1·Dex3-1·Dex5-1·Inspire·BrainCo Revo 2 Basic/Touch) 중 하나로 유통사가 판매하는 전용 SKU. Unitree 공식 스토어(shop.unitree.com) H2 페이지에서는 BrainCo 등재를 확인하지 못해 공식 옵션으로 단정하지 않는다.",
+      "year": 2026,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "H2",
+      "company": "Unitree Robotics",
+      "country": "CN",
+      "segment": "humanoid_tier1",
+      "robotClass": "humanoid",
+      "actuatorVendor": "BrainCo",
+      "actuatorModel": "Revo 3 U21T",
+      "usage": "핸드 (리셀러 번들; Unitree 공식 스토어 미확인)",
+      "evidenceGrade": "C",
+      "sources": [
+        {
+          "source": "Scan UK (Unitree BrainCo Revo 3 U21T for H2)",
+          "url": "https://www.scan.co.uk/products/unitree-brainco-revo-3-u21t-right-hand-for-h2-robot-with-tactile",
+          "date": "2026"
+        },
+        {
+          "source": "Robots Europa (BrainCo Revo 3 번들)",
+          "url": "https://www.robotseuropa.com/BrainCo.htm?cs_region=robotseuropa",
+          "date": "2026"
+        }
+      ],
+      "noteKo": "Revo 3 U21T(451 포인트 전손 촉각)를 H2 전용으로 묶은 유통사 SKU/번들(Robots Europa: H2 + U21T 약 EUR 26,447). 유통사 근거만 확인되어 C.",
+      "year": 2026,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "R1",
+      "company": "Unitree Robotics",
+      "country": "CN",
+      "segment": "humanoid_tier1",
+      "robotClass": "humanoid",
+      "actuatorVendor": "BrainCo",
+      "actuatorModel": "Revo 2 Touch",
+      "usage": "핸드 (리셀러 번들)",
+      "evidenceGrade": "C",
+      "sources": [
+        {
+          "source": "Scan UK (Unitree BrainCo Revo 2 Touch for R1)",
+          "url": "https://www.scan.co.uk/products/unitree-brainco-revo-2-touch-robotic-hand-left-hand-for-r1-humanoid-5-fingers-11-degrees-of-freedom",
+          "date": "2026"
+        }
+      ],
+      "noteKo": "R1 전용 Revo 2 Touch 좌/우수 SKU를 Scan UK가 판매. 단일 유통사 근거.",
+      "year": 2026,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "Oli",
+      "company": "LimX Dynamics",
+      "country": "CN",
+      "segment": "humanoid_tier1",
+      "robotClass": "humanoid",
+      "actuatorVendor": "BrainCo",
+      "actuatorModel": "Revo 2 Basic",
+      "usage": "핸드 (리셀러 번들)",
+      "evidenceGrade": "C",
+      "sources": [
+        {
+          "source": "Looking Glass XR (BrainCo Revo 2 for LimX Oli)",
+          "url": "https://lookingglassxr.com/product/brainco-revo-2-dexterous-hands-for-limx-oli/",
+          "date": "2026"
+        },
+        {
+          "source": "EnduX (Revo 2 리뷰, 유통사 통합 목록)",
+          "url": "https://endux.co.uk/blog/brainco-revo-2-dexterous-hand-review",
+          "date": "2026"
+        }
+      ],
+      "noteKo": "LimX Oli용 Revo 2 Basic 핸드를 유통사가 판매. 유통사 근거(C).",
+      "year": 2026,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "Leju humanoid (모델 미상)",
+      "company": "Leju Robotics (乐聚)",
+      "country": "CN",
+      "segment": "humanoid_tier2",
+      "robotClass": "humanoid",
+      "actuatorVendor": "BrainCo",
+      "actuatorModel": null,
+      "usage": "핸드 (구매 고객; 모델·변형 미확정)",
+      "evidenceGrade": "B",
+      "sources": [
+        {
+          "source": "163.com (BrainCo 파트너 인터뷰, 2026-06)",
+          "url": "https://www.163.com/dy/article/KUE92B6J05198NMR.html",
+          "date": "2026-06-02"
+        },
+        {
+          "source": "飞象网 (cctime)",
+          "url": "http://www.cctime.com/m/1732293.htm",
+          "date": "2026-04"
+        }
+      ],
+      "noteKo": "BrainCo 파트너가 宇树·乐聚 등 수십 개 로봇사가 5지 핸드 구매를 시작했다고 밝힌 보도(B). 乐聚의 특정 기체(Roban 2/Kuavo 계열)와 핸드 변형은 확인 불가.",
+      "year": 2026,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "Tien Kung 계열 (모델 미확정)",
+      "company": "Beijing Humanoid Robot Innovation Center (北京人形机器人创新中心)",
+      "country": "CN",
+      "segment": "humanoid_tier2",
+      "robotClass": "humanoid",
+      "actuatorVendor": "BrainCo",
+      "actuatorModel": null,
+      "usage": "핸드 (적응 고객; 모델·변형 미확정)",
+      "evidenceGrade": "C",
+      "sources": [
+        {
+          "source": "飞象网 (cctime)",
+          "url": "http://www.cctime.com/m/1732293.htm",
+          "date": "2026-04"
+        }
+      ],
+      "noteKo": "飞象网 보도의 BrainCo 핸드 적응 고객 목록에 포함(2차 매체, C). 기체 모델과 핸드 변형은 확인 불가.",
+      "year": 2026,
+      "vendorInSuppliersJson": false,
+      "level": "module"
+    },
+    {
+      "robotName": "Walker 2",
+      "company": "DroidUp",
+      "country": "CN",
+      "segment": "humanoid_tier2",
+      "robotClass": "humanoid",
+      "actuatorVendor": "BrainCo",
+      "actuatorModel": "Revo 2",
+      "usage": "핸드 (유통사 통합 목록)",
+      "evidenceGrade": "C",
+      "sources": [
+        {
+          "source": "EnduX (Revo 2 리뷰, 유통사 통합 목록)",
+          "url": "https://endux.co.uk/blog/brainco-revo-2-dexterous-hand-review",
+          "date": "2026"
+        }
+      ],
+      "noteKo": "유통사(EnduX)가 Revo 2 통합 대상으로 나열한 벤더 측 주장. 독립 확인 없음.",
+      "year": 2026,
+      "vendorInSuppliersJson": false,
       "level": "module"
     }
   ],

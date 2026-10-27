@@ -54,12 +54,12 @@ describe('buildSupplyGraph', () => {
     expect(buildSupplyGraph([], [], [], []).empty).toBe(true);
   });
 
-  it('실데이터 30건: 사례 노드 30, 병합 후 공급사 노드가 사례 공급사 수 이하', () => {
+  it('실데이터 38건: 사례 노드 38, 병합 후 공급사 노드가 사례 공급사 수 이하', () => {
     const cases = seedAdoptionCases();
     if (!cases) return;
     const gg = buildSupplyGraph([], [], cases, []);
-    expect(gg.cases).toHaveLength(30);
+    expect(gg.cases).toHaveLength(38);
     expect(gg.vendors.length).toBeLessThanOrEqual(new Set(cases.map((c) => c.actuatorVendor)).size + 1);
-    expect(gg.links.filter((l) => l.side === 'right').length).toBeGreaterThanOrEqual(30);
+    expect(gg.links.filter((l) => l.side === 'right').length).toBeGreaterThanOrEqual(38);
   });
 });
