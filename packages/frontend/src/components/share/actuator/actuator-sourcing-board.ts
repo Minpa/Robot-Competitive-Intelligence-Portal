@@ -4,9 +4,12 @@
  * 같은 문장·셀을 쓰도록 문장 생성은 buildSourcingBoard 한 곳에서만 한다.
  *
  *  G1 자체 설계·자체 제조      posture in_house / in_house_sells (부품만 외부 조달해도 G1)
- *  G2 자체 설계·외부 제조/양산  posture external 이고 모듈 층 공급사 role 이 전부 위탁제조·양산 공급
- *  G3 외부 모듈 구매           posture external 이고 그 외 (role 이 다르거나 비었거나 모듈 층 공급사가 없음)
- *  G4 확인 불가               posture unknown
+ *  G2 자체 설계·외부에 맡겨 제조  posture external 이고 모듈 층 공급사 role 이 전부 위탁제조·양산 공급
+ *  G3 외부 설계               posture external 이고 그 외 (role 이 다르거나 비었거나 모듈 층 공급사가 없음)
+ *  G4 공개 근거 없음            posture unknown
+ *
+ * 같은 그룹을 "질문 순서대로 쪼개는 분류 트리"(SourcingTree)로도 내보낸다: 로봇 제조사 → ① 설계 → ② 제조 → ③ 속 부품. 말단 5개가 가로 막대 2개(actuator-sourcing-bars.ts)의 데이터다. 트리의 회사별 detail 과 표의 셀은
+ * 같은 회사별 공급사 라벨 헬퍼를 쓴다(표와 차트가 어긋나지 않도록).
  *
  * module / component 구분은 반드시 externalVendors[].level 로 한다 (role 문자열이 아니다).
  * 입력은 robots·suppliers·adoptions·generatedAt 만 쓴다 (edges·vendorMarkets 는 쓰지 않음).
@@ -29,19 +32,15 @@ export const BOARD_COLOR: Record<BoardGroupId, string> = {
   G4: INK[400],
 };
 
-export const BOARD_TILE_LABEL: Record<BoardGroupId, string> = {
-  G1: '자체 설계 · 자체 제조',
-  G2: '자체 설계 · 외부 제조/양산',
-  G3: '외부 모듈 구매',
-  G4: '확인 불가',
-};
+/** 트리 노드 채움 색 — tailwind info-soft / pos-soft / neg-soft 값 복제 (새 색이 아니다) */
+export const BOARD_SOFT = { info: '#D4E0EE', pos: '#D8E9DF', neg: '#EED4CA' } as const;
 
 /** 표 첫 열 라벨 (두 줄로 쓸 수 있음) */
 export const BOARD_ROW_LABEL: Record<BoardGroupId, string[]> = {
   G1: ['자체 설계', '자체 제조'],
-  G2: ['자체 설계', '외부 제조·양산'],
-  G3: ['외부 모듈 구매'],
-  G4: ['확인 불가'],
+  G2: ['자체 설계', '외부에 맡겨 제조'],
+  G3: ['외부 설계'],
+  G4: ['공개 근거 없음'],
 };
 
 /** 고정 열 "관절 모듈 설계/제조" */
@@ -94,14 +93,6 @@ export interface BoardCompany {
   title: string;
 }
 
-export interface BoardTile {
-  id: BoardGroupId;
-  count: number;
-  label: string;
-  ariaLabel: string;
-  color: string;
-}
-
 export interface BoardRow {
   id: BoardGroupId;
   rowLabel: string[];
@@ -121,12 +112,78 @@ export interface ConclusionSegment {
   strong: boolean;
 }
 
-export type BoardFootnoteId = 'source' | 'mismatch' | 'counter' | 'partKind';
+export type BoardFootnoteId = 'source' | 'mismatch' | 'counter' | 'partKind' | 'reading';
 
 export interface BoardFootnote {
   id: BoardFootnoteId;
   text: string;
 }
+
+// ── 분류 트리 ────────────────────────────────────────────────────────────────
+
+export type TreeQuestion = '①' | '②' | '③';
+export type TreeNodeId = 'root' | 'inhouse_design' | 'inhouse_mfg' | 'inhouse_all' | 'inhouse_parts_bought' | 'inhouse_design_external_mfg' | 'external_module' | 'unknown';
+
+export interface TreeCompany {
+  name: string;
+  /** 로봇 수 */
+  robots: number;
+  detail?: string;
+}
+
+export interface SourcingTreeNode {
+  id: TreeNodeId;
+  question?: TreeQuestion;
+  label: string;
+  hint?: string;
+  count: number;
+  companies: TreeCompany[];
+  children: SourcingTreeNode[];
+}
+
+export interface SourcingTree {
+  root: SourcingTreeNode;
+  /** 대상(LG·예측 모델 제외) 로봇 수 — 막대 1 캡션의 "로봇 N기" */
+  robotCount?: number;
+  /** 위→아래 표시 순서의 말단 5개 */
+  leaves: SourcingTreeNode[];
+}
+
+export interface SalesSeller {
+  company: string;
+  products: string[];
+}
+
+export interface SalesAnswer {
+  humanoidSellers: number;
+  humanoidSellerList: SalesSeller[];
+  smallMotorSellers: SalesSeller[];
+  sentence: string;
+}
+
+export const TREE_QUESTION_TEXT: Record<TreeQuestion, string> = {
+  '①': '① 관절 모듈을 누가 설계했나?',
+  '②': '② 그 모듈을 누가 만드나?',
+  '③': '③ 모터·감속기 같은 속 부품은?',
+};
+
+export const TREE_NODE_LABEL: Record<TreeNodeId, string> = {
+  root: '로봇 제조사',
+  inhouse_design: '자체 설계',
+  inhouse_mfg: '자체 제조',
+  inhouse_all: '외부 구매 기록 없음',
+  inhouse_parts_bought: '외부 구매',
+  inhouse_design_external_mfg: '외부에 맡겨 제조',
+  external_module: '외부 설계',
+  unknown: '공개 근거 없음',
+};
+
+const HINT_EXTERNAL = '남이 만든 모듈을 사서 씀';
+const HINT_UNKNOWN = '근거가 없을 뿐, 외부 조달이라는 뜻은 아님';
+/** ④ 카드 문장의 고정 라벨 */
+const SALES_LEAD = '휴머노이드용 액추에이터(관절 모듈): ';
+const SMALL_MOTOR_LABEL = '소형·사족용 모터만 판매';
+const OTHER_SALES_LABEL = '그 외 판매';
 
 export interface SourcingBoard {
   /** 대상 회사가 1개 이상 */
@@ -137,8 +194,13 @@ export interface SourcingBoard {
   excluded: { companies: number; robots: number };
   title: string;
   description: string;
-  tiles: BoardTile[];
+  /** 테스트·집계용 그룹별 회사 수 */
+  groupCounts: Record<BoardGroupId, number>;
   rows: BoardRow[];
+  /** 분류 트리 — 빈 보드면 null */
+  tree: SourcingTree | null;
+  /** ④ 액추에이터를 남에게 파나? — 빈 보드이거나 suppliers 가 비어 있으면 null */
+  salesAnswer: SalesAnswer | null;
   conclusion: ConclusionSegment[];
   conclusionText: string;
   footnotes: BoardFootnote[];
@@ -199,7 +261,99 @@ function productText(p: ActuatorSupplierProduct): string {
   return tm ? `${p.model} (${truncate(tm, TARGET_MARKET_MAX)})` : p.model;
 }
 
+// ── 회사별 공급사 라벨 (표와 트리가 함께 쓴다) ─────────────────────────────────
+
+const externalRobotsOf = (c: CompanyInfo) => c.robots.filter((r) => r.sourcing?.posture === 'external');
+/** 로봇들의 모듈 층 공급사 (중복 제거) */
+const moduleVendorsOf = (robots: ActuatorMapRobot[]): SourcingExternalVendor[] =>
+  uniqueBy(
+    robots.flatMap((r) => vendorsOf(r).filter((v) => !isComponent(v))),
+    (v) => norm(v.vendor)
+  );
+
+interface G1Purchase {
+  /** "maxon 모터" 형태 (부품 종류를 모르면 vendor 만) */
+  labels: string[];
+  hasComponent: boolean;
+  /** 부품 종류 매핑을 하나라도 썼는가 (각주 4) */
+  partKindUsed: boolean;
+  /** 일부 로봇만 외부 조달인 경우의 모듈 층 공급사명 (회사 posture 는 우선순위로 G1) */
+  partial: string[];
+}
+
+function g1Purchase(c: CompanyInfo): G1Purchase {
+  const comps = uniqueBy(
+    c.robots.flatMap((r) => vendorsOf(r).filter(isComponent)),
+    (v) => norm(v.vendor)
+  );
+  let partKindUsed = false;
+  const labels = comps.map((v) => {
+    const part = componentPartKo(v.vendor);
+    if (part) partKindUsed = true;
+    return part ? `${v.vendor.trim()} ${part}` : v.vendor.trim();
+  });
+  const partial = moduleVendorsOf(externalRobotsOf(c))
+    .filter((v) => !comps.some((x) => norm(x.vendor) === norm(v.vendor)))
+    .map((v) => v.vendor.trim());
+  return { labels, hasComponent: comps.length > 0, partKindUsed, partial };
+}
+
+/** G2 회사의 모듈 공급사를 role 별로 묶는다 — 표는 "{vendors}({role})", 트리는 "{vendors} {role}" */
+function g2RoleGroups(c: CompanyInfo): { vendors: string[]; role: string }[] {
+  const byRole = new Map<string, string[]>();
+  for (const v of moduleVendorsOf(externalRobotsOf(c))) {
+    const role = norm(v.role);
+    const list = byRole.get(role) ?? [];
+    list.push(v.vendor.trim());
+    byRole.set(role, list);
+  }
+  return [...byRole.entries()].map(([role, vendors]) => ({ vendors, role: roleKo(role) ?? role }));
+}
+
+/** G3 회사의 external 로봇 전체에서 모듈 층 공급사 (중복 제거) */
+const g3VendorNames = (c: CompanyInfo): string[] => moduleVendorsOf(externalRobotsOf(c)).map((v) => v.vendor.trim());
+
+// ── 트리 ─────────────────────────────────────────────────────────────────────
+
+function treeLeaf(id: TreeNodeId, question: TreeQuestion, companies: TreeCompany[], hint?: string): SourcingTreeNode {
+  return { id, question, label: TREE_NODE_LABEL[id], ...(hint ? { hint } : {}), count: companies.length, companies, children: [] };
+}
+
+function treeInternal(id: TreeNodeId, question: TreeQuestion | undefined, children: SourcingTreeNode[]): SourcingTreeNode {
+  // 내부 노드의 회사 목록은 자식 순서대로 이은 것이고 detail 은 말단에만 둔다
+  const companies = children.flatMap((c) => c.companies.map((x): TreeCompany => ({ name: x.name, robots: x.robots })));
+  return { id, ...(question ? { question } : {}), label: TREE_NODE_LABEL[id], count: companies.length, companies, children };
+}
+
+/** 트리 불변식 검사 — 위반 메시지 배열(빈 배열이면 정상) */
+export function checkSourcingTree(tree: SourcingTree | null, companyCount: number): string[] {
+  const out: string[] = [];
+  if (!tree) return companyCount === 0 ? out : ['트리가 없습니다'];
+  const walk = (n: SourcingTreeNode) => {
+    if (n.count !== n.companies.length) out.push(`${n.id}: count(${n.count}) != companies(${n.companies.length})`);
+    const names = n.companies.map((c) => c.name);
+    if (new Set(names).size !== names.length) out.push(`${n.id}: 회사 중복`);
+    if (n.children.length > 0) {
+      const joined = n.children.flatMap((c) => c.companies.map((x) => x.name));
+      if (joined.join('\u0000') !== names.join('\u0000')) out.push(`${n.id}: companies 가 자식의 합과 다름`);
+      if (n.companies.some((c) => c.detail !== undefined)) out.push(`${n.id}: 내부 노드에 detail`);
+      if (n.hint) out.push(`${n.id}: 내부 노드에 hint`);
+    }
+    n.children.forEach(walk);
+  };
+  walk(tree.root);
+  if (tree.root.count !== companyCount) out.push(`root.count(${tree.root.count}) != ${companyCount}`);
+  const leafIds = tree.leaves.map((l) => l.id).join(',');
+  if (leafIds !== 'inhouse_all,inhouse_parts_bought,inhouse_design_external_mfg,external_module,unknown') out.push(`말단 순서가 다름: ${leafIds}`);
+  const sum = tree.leaves.reduce((a, l) => a + l.count, 0);
+  if (sum !== tree.root.count) out.push(`말단 합(${sum}) != root.count(${tree.root.count})`);
+  return out;
+}
+
 // ── 메인 ─────────────────────────────────────────────────────────────────────
+
+const BOARD_TITLE_EMPTY = '로봇 제조사의 액추에이터 조달 방식';
+const BOARD_DESCRIPTION = '회사 기준 · LG 제외';
 
 function emptyBoard(): SourcingBoard {
   return {
@@ -207,15 +361,19 @@ function emptyBoard(): SourcingBoard {
     companyCount: 0,
     robotCount: 0,
     excluded: { companies: 0, robots: 0 },
-    title: '휴머노이드 세트 제조사의 액추에이터 조달 방식',
-    description: '회사 기준 · LG 제외',
-    tiles: BOARD_GROUP_ORDER.map((id) => ({ id, count: 0, label: BOARD_TILE_LABEL[id], ariaLabel: `${BOARD_TILE_LABEL[id]} 0개사`, color: BOARD_COLOR[id] })),
+    title: BOARD_TITLE_EMPTY,
+    description: BOARD_DESCRIPTION,
+    groupCounts: { G1: 0, G2: 0, G3: 0, G4: 0 },
     rows: [],
+    tree: null,
+    salesAnswer: null,
     conclusion: [],
     conclusionText: '',
     footnotes: [],
   };
 }
+
+const sellerText = (s: SalesSeller) => `${s.company}(${s.products.join(', ')})`;
 
 /** 입력이 null/undefined 이거나 대상 회사가 없으면 hasData=false 인 빈 보드를 돌려준다 */
 export function buildSourcingBoard(data: ActuatorMapResponse | null | undefined): SourcingBoard {
@@ -270,6 +428,9 @@ export function buildSourcingBoard(data: ActuatorMapResponse | null | undefined)
   const noHumanoidSale =
     soldProducts.every((p) => !HUMANOID_RE.test(p.targetMarket ?? '')) &&
     soldProducts.every((p) => p.segment !== 'tier1_oem' && !arr(p.segments).includes('tier1_oem'));
+  /** 휴머노이드 판매로 세는 제품 (noHumanoidSale 의 부정과 같은 조건) */
+  const isHumanoidSold = (p: ActuatorSupplierProduct) =>
+    soldProducts.includes(p) && (HUMANOID_RE.test(p.targetMarket ?? '') || p.segment === 'tier1_oem' || arr(p.segments).includes('tier1_oem'));
 
   // 수요 사례 (tier1 module)
   const tier1Adoptions: ActuatorAdoptionCase[] = arr(data.adoptions).filter(
@@ -278,26 +439,13 @@ export function buildSourcingBoard(data: ActuatorMapResponse | null | undefined)
   const tier1Of = (c: CompanyInfo) => tier1Adoptions.filter((a) => sameCompany(a.company, c.name));
 
   // ── 행 ──
-  let partKindUsed = false;
+  const g1Info = new Map(groups.G1.map((c) => [c.key, g1Purchase(c)] as const));
+  const partKindUsed = [...g1Info.values()].some((x) => x.partKindUsed);
   const g1Buy = (): BoardLine[] => {
     const perCompany = groups.G1.map((c) => {
-      const comps = uniqueBy(
-        c.robots.flatMap((r) => vendorsOf(r).filter(isComponent)),
-        (v) => norm(v.vendor)
-      );
-      const labels = comps.map((v) => {
-        const part = componentPartKo(v.vendor);
-        if (part) partKindUsed = true;
-        return part ? `${v.vendor.trim()} ${part}` : v.vendor.trim();
-      });
+      const info = g1Info.get(c.key)!;
       // 일부 로봇만 외부 조달인 경우 (회사 posture 는 우선순위로 G1) — 모듈 층 공급사를 "(일부 로봇)"으로 병기
-      const partial = uniqueBy(
-        c.robots.filter((r) => r.sourcing?.posture === 'external').flatMap((r) => vendorsOf(r).filter((v) => !isComponent(v))),
-        (v) => norm(v.vendor)
-      )
-        .filter((v) => !comps.some((x) => norm(x.vendor) === norm(v.vendor)))
-        .map((v) => `${v.vendor.trim()}(일부 로봇)`);
-      return { name: c.name, labels: [...labels, ...partial], hasComponent: comps.length > 0 };
+      return { name: c.name, labels: [...info.labels, ...info.partial.map((v) => `${v}(일부 로봇)`)], hasComponent: info.hasComponent };
     });
     const withBuy = perCompany.filter((x) => x.labels.length > 0);
     const lines: BoardLine[] = [];
@@ -332,18 +480,7 @@ export function buildSourcingBoard(data: ActuatorMapResponse | null | undefined)
   const g2Buy = (): BoardLine[] => {
     const lines: BoardLine[] = [{ text: '자사 설계 모듈의 양산품' }];
     for (const c of groups.G2) {
-      const mods = uniqueBy(
-        c.robots.filter((r) => r.sourcing?.posture === 'external').flatMap((r) => vendorsOf(r).filter((v) => !isComponent(v))),
-        (v) => norm(v.vendor)
-      );
-      const byRole = new Map<string, string[]>();
-      for (const v of mods) {
-        const role = norm(v.role);
-        const list = byRole.get(role) ?? [];
-        list.push(v.vendor.trim());
-        byRole.set(role, list);
-      }
-      const parts = [...byRole.entries()].map(([role, vendors]) => `${vendors.join(', ')}(${roleKo(role) ?? role})`);
+      const parts = g2RoleGroups(c).map((g) => `${g.vendors.join(', ')}(${g.role})`);
       lines.push({ text: `${c.name}: ${parts.join(', ')}` });
     }
     return lines;
@@ -401,10 +538,67 @@ export function buildSourcingBoard(data: ActuatorMapResponse | null | undefined)
     };
   });
 
-  const hasComponentBuy = groups.G1.some((c) => c.robots.some((r) => vendorsOf(r).some(isComponent)));
+  // ── 분류 트리 ──
+  const toTree = (c: CompanyInfo, detail?: string): TreeCompany => ({ name: c.name, robots: c.robots.length, ...(detail ? { detail } : {}) });
+  const partialNote = (names: string[]) => (names.length > 0 ? `일부 로봇 외부 조달: ${names.join(', ')}` : '');
+  const allG1: TreeCompany[] = [];
+  const boughtG1: TreeCompany[] = [];
+  for (const c of groups.G1) {
+    const info = g1Info.get(c.key)!;
+    const note = partialNote(info.partial);
+    if (info.hasComponent) boughtG1.push(toTree(c, [...info.labels, ...(note ? [note] : [])].join(', ')));
+    else allG1.push(toTree(c, note));
+  }
+  const g2Tree = groups.G2.map((c) =>
+    toTree(
+      c,
+      g2RoleGroups(c)
+        .map((g) => `${g.vendors.join(', ')} ${g.role}`)
+        .join(' / ')
+    )
+  );
+  const g3Tree = groups.G3.map((c) => {
+    const names = g3VendorNames(c);
+    return toTree(c, names.length > 0 ? names.join(', ') : '공급사 정보 없음');
+  });
+  const g4Tree = groups.G4.map((c) => toTree(c));
 
-  // ── 결론 문장 ──
-  const g3 = counts.G3;
+  const leafAll = treeLeaf('inhouse_all', '③', allG1);
+  const leafBought = treeLeaf('inhouse_parts_bought', '③', boughtG1);
+  const leafExtMfg = treeLeaf('inhouse_design_external_mfg', '②', g2Tree);
+  const leafExtModule = treeLeaf('external_module', '①', g3Tree, HINT_EXTERNAL);
+  const leafUnknown = treeLeaf('unknown', '①', g4Tree, HINT_UNKNOWN);
+  const inhouseMfg = treeInternal('inhouse_mfg', '②', [leafAll, leafBought]);
+  const inhouseDesign = treeInternal('inhouse_design', '①', [inhouseMfg, leafExtMfg]);
+  const tree: SourcingTree = {
+    root: treeInternal('root', undefined, [inhouseDesign, leafExtModule, leafUnknown]),
+    leaves: [leafAll, leafBought, leafExtMfg, leafExtModule, leafUnknown],
+    robotCount: eligible.length,
+  };
+
+  // ── ④ 판매 ──
+  const hasSuppliers = arr(data.suppliers).length > 0;
+  let salesAnswer: SalesAnswer | null = null;
+  if (hasSuppliers) {
+    const humanoidSellerList: SalesSeller[] = [];
+    for (const c of companies) {
+      const models = (productsByCompany.get(c.key) ?? []).filter(isHumanoidSold).map((p) => p.model);
+      if (models.length > 0) humanoidSellerList.push({ company: c.name, products: models });
+    }
+    const smallMotorSellers: SalesSeller[] = [];
+    for (const c of groups.G1) {
+      if (posture.get(c.key)?.posture !== 'in_house_sells') continue;
+      const open = (productsByCompany.get(c.key) ?? []).filter((p) => classifySale(p) !== 'inhouseOnly' && !isHumanoidSold(p));
+      if (open.length > 0) smallMotorSellers.push({ company: c.name, products: open.map((p) => p.model) });
+    }
+    const n = humanoidSellerList.length;
+    let sentence = `${SALES_LEAD}${n}개사`;
+    if (n > 0) sentence += ` — ${humanoidSellerList.map(sellerText).join(', ')}`;
+    if (smallMotorSellers.length > 0) sentence += ` · ${n > 0 ? OTHER_SALES_LABEL : SMALL_MOTOR_LABEL}: ${smallMotorSellers.map(sellerText).join(', ')}`;
+    salesAnswer = { humanoidSellers: n, humanoidSellerList, smallMotorSellers, sentence };
+  }
+
+  // ── 결론 문장 ── (조립은 여기 한 곳에서만)
   const conclusion: ConclusionSegment[] = [];
   const push = (text: string, strong = false) => {
     if (!text) return;
@@ -413,30 +607,26 @@ export function buildSourcingBoard(data: ActuatorMapResponse | null | undefined)
     else conclusion.push({ text, strong });
   };
   const confirmedDesign = counts.G1 + counts.G2;
-  const g4Part = counts.G4 > 0 ? `, 확인 불가 ${counts.G4}개사` : '';
-  push(`조사한 ${N}개사 중 `);
-  if (g3 === 0) push('액추에이터 설계를 외부에 맡긴 곳은 없습니다', true);
-  else if (g3 * 5 <= N) push(`액추에이터 설계를 외부에 맡긴 곳은 ${g3}개사뿐`, true);
-  else push(`액추에이터 설계를 외부에 맡긴 곳은 ${g3}개사`, true);
-  push(`${g3 === 0 ? '' : '입니다'}(자체 설계 확인 ${confirmedDesign}개사${g4Part}).`);
-
-  if (!groups.G3.some((c) => tier1Of(c).length > 0)) {
-    const lead: string[] = [];
-    if (counts.G2 > 0) lead.push('자사 설계 모듈의 양산품(위탁제조·그룹 부품사)');
-    if (hasComponentBuy) lead.push('모터·감속기 같은 하위 부품');
-    push(' ');
-    if (lead.length > 0) push(`자체 설계 회사가 외부에서 사는 것은 ${lead.length === 2 ? `${lead[0]}이나 ${lead[1]}` : lead[0]}이며, `);
-    push('완성 관절 모듈을 카탈로그로 구매하는 휴머노이드 1군 제조사는 없습니다', true);
-    push('.');
+  const partsBought = leafBought.count;
+  push(`${N}개사 중 `);
+  const clauses = [counts.G3 > 0 ? `설계를 외부에 맡긴 곳 ${counts.G3}` : '설계를 외부에 맡긴 곳 없음'];
+  if (counts.G2 > 0) clauses.push(`제조를 외부에 맡긴 곳 ${counts.G2}`);
+  if (partsBought > 0) clauses.push(`속 부품을 사는 곳 ${partsBought}`);
+  clauses.forEach((cl, i) => {
+    if (i > 0) push(', ');
+    push(cl, true);
+  });
+  push('.');
+  if (noHumanoidSale && hasSuppliers) {
+    push(' 휴머노이드 액추에이터를 파는 세트 제조사는 없음.', true);
   }
-  if (noHumanoidSale) push(' 휴머노이드 관절 모듈을 외부에 파는 세트 제조사도 없습니다.');
   const conclusionText = conclusion.map((s) => s.text).join('');
 
   // ── 각주 ──
   const footnotes: BoardFootnote[] = [
     {
       id: 'source',
-      text: `출처: ARGOS 조달 태세 재판정 데이터(공개 자료) · 집계 ${formatGeneratedAt(data.generatedAt)} · 설계 = 통합 관절 모듈 기준, 모터·감속기 등 하위 부품은 '사는 것' 열에만 표기 · '외부에 파는 것'은 액추에이터 관련 제품의 외판 여부 · 확인 불가 = 공개 근거 없음(외부 조달이라는 뜻 아님) · 회사 기준, LG 제외`,
+      text: `출처: ARGOS 조달 태세 재판정 데이터(공개 자료) · 집계 ${formatGeneratedAt(data.generatedAt)} · 설계 = 통합 관절 모듈 기준, 모터·감속기 등 하위 부품은 ③ 속 부품 단계와 상세 표의 '외부에서 사는 것' 열에만 표기 · '외부에 파는 것'은 액추에이터 관련 제품의 외판 여부 · 공개 근거 없음 = 확인할 자료가 없다는 뜻(외부 조달이라는 뜻 아님) · 회사 기준, LG 제외`,
     },
   ];
 
@@ -445,9 +635,10 @@ export function buildSourcingBoard(data: ActuatorMapResponse | null | undefined)
   const co = stats.sourcing.companies;
   if (counts.G1 + counts.G2 + counts.G3 !== co.judged || confirmedDesign !== co.confirmed) {
     const lg = excluded.companies > 0 ? ' LG 포함' : '';
-    let t = `자체 설계 확인은 자체 제조 ${counts.G1} + 외부 제조·양산 ${counts.G2}입니다. 조달 태세 기준(헤드라인·전략 카드)의 자체 개발 확인은 판정 가능 ${co.judged}개사 중 ${co.confirmed}개사이며${lg}, 외부 제조·양산 회사는 '외부 조달·혼합'으로 분류됩니다.`;
-    const summaryRobots = summarizeSourcing(arr(data.robots)).robots;
-    if (excluded.robots > 0 && summaryRobots !== eligible.length) t += ` 요약 막대·헤드라인의 로봇 ${summaryRobots}기는 LG ${excluded.robots}기 포함.`;
+    let t = `자체 설계 확인은 자체 제조 ${counts.G1} + 외부에 맡겨 제조 ${counts.G2}입니다. 조달 태세 기준(헤드라인·전략 카드)의 자체 개발 확인은 판정 가능 ${co.judged}개사 중 ${co.confirmed}개사이며${lg}, 외부에 맡겨 제조하는 회사는 '외부 조달·혼합'으로 분류됩니다.`;
+    // 로봇 기준 조달 태세 4단계 수치 (헤드라인·전략 카드와 같은 집계 — 예측 모델 제외, LG 포함 여부 명시) + 자체 개발 확인의 근거 등급 A/B 건수
+    const sum = summarizeSourcing(arr(data.robots));
+    t += ` 로봇 기준(${sum.robots}기, 예측 모델 제외, ${excluded.robots > 0 ? `LG ${excluded.robots}기 포함` : 'LG 없음'}): 자체 확인 ${sum.inHouse}기 · 자체+외판 ${sum.inHouseSells}기 · 외부 조달·혼합 ${sum.external}기 · 확인 불가 ${sum.unknown}기 (자체 개발 확인 중 근거 등급 A ${sum.confirmedGradeA}기 / B ${sum.confirmedGradeB}기).`;
     if (excluded.companies > 0) t += ' 상세 그래프의 회사 수는 LG 포함.';
     footnotes.push({ id: 'mismatch', text: t });
   }
@@ -467,15 +658,22 @@ export function buildSourcingBoard(data: ActuatorMapResponse | null | undefined)
 
   if (partKindUsed) footnotes.push({ id: 'partKind', text: '부품 종류(모터·감속기) 표기는 공급사 주력 제품 기준(일반 지식)입니다.' });
 
+  footnotes.push({
+    id: 'reading',
+    text: '회사명은 로봇 제조사, 괄호 안은 액추에이터·부품 공급사입니다. 막대 폭은 회사 수에 비례하며 두 막대는 같은 회사·같은 스케일입니다. 점선 테두리 = 속 부품만 외부에서 구매.',
+  });
+
   return {
     hasData: true,
     companyCount: N,
     robotCount: eligible.length,
     excluded,
-    title: `휴머노이드 세트 제조사 ${N}개사의 액추에이터 조달 방식`,
-    description: `회사 기준 · LG 제외 · 로봇 ${eligible.length}기`,
-    tiles: BOARD_GROUP_ORDER.map((id) => ({ id, count: counts[id], label: BOARD_TILE_LABEL[id], ariaLabel: `${BOARD_TILE_LABEL[id]} ${counts[id]}개사`, color: BOARD_COLOR[id] })),
+    title: `로봇 제조사 ${N}개사의 액추에이터 조달 방식`,
+    description: BOARD_DESCRIPTION,
+    groupCounts: counts,
     rows,
+    tree,
+    salesAnswer,
     conclusion,
     conclusionText,
     footnotes,

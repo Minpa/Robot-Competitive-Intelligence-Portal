@@ -1,6 +1,8 @@
 'use client';
 
 /**
+ * @deprecated ActuatorMapSection 은 더 이상 렌더하지 않는다(조달 태세 그래프는 분류 트리 하나뿐 — ActuatorSourcingBoard). PRINT_EXACT 상수만 다른 컴포넌트가 가져다 쓴다.
+ *
  * 조달 태세 요약 — 섹션 최상단. 헤드라인 메시지(웹·HTML 지도 카드·전략 카드 공통 문장) 아래에
  * 로봇 조달 태세 4단계 누적 가로 막대와 범례(건수)를 보여준다. forecast 로봇은 제외하고, 총합이 0이면 막대를 숨긴다.
  * 색은 actuator-sourcing.ts(chartColors 토큰)만 사용한다.

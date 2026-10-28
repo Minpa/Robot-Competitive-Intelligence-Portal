@@ -1,7 +1,8 @@
 'use client';
 
 /**
- * 액추에이터 리포트 섹션 — 조달 태세 요약(헤드라인) → 포지션 맵 → 조달 방식 보드 → 상세 공급망 그래프 토글(기본 접힘, 인쇄 제외) → 공급사 제품 맵 → 공급사 표 → 각주를 한 Panel 로 묶는다.
+ * 액추에이터 리포트 섹션 — 헤드라인 한 문장 → 포지션 맵 → 조달 방식 보드(가로 막대 2개·④ 카드·상세 표 토글 포함) → 상세 공급망 그래프 토글(기본 접힘, 인쇄 제외) → 공급사 제품 맵 → 공급사 표 → 각주를 한 Panel 로 묶는다.
+ * 조달 그래프는 보드의 가로 막대 2개(설계 / 조달 방식)뿐이다(4단계 누적 막대 ActuatorSourcingSummary 는 이 섹션에서 쓰지 않는다).
  * TechTrendShareView 에서 `report.domain === 'actuator'` 일 때 넣는다. 데이터는 useActuatorMap(['actuator-map']) 하나로 공유한다.
  */
 
@@ -9,10 +10,10 @@ import { useId, useMemo, useState } from 'react';
 import { Panel } from '@/components/ui';
 import { ActuatorPositionMap } from './ActuatorPositionMap';
 import { ActuatorSourcingBoard } from './ActuatorSourcingBoard';
-import { ActuatorSourcingSummary } from './ActuatorSourcingSummary';
 import { ActuatorSupplierMarketMap } from './ActuatorSupplierMarketMap';
 import { ActuatorSupplierTable } from './ActuatorSupplierTable';
 import { ActuatorSupplyChainMap } from './ActuatorSupplyChainMap';
+import { buildHeadlineMessage, computeStrategyStats } from './actuator-strategy';
 import { unregisteredVendorNames } from './actuator-supply-graph';
 import { useActuatorMap } from './useActuatorMap';
 
@@ -35,6 +36,8 @@ export function ActuatorMapSection() {
     () => (data ? unregisteredVendorNames(data.edges, data.robots, data.adoptions, data.suppliers) : []),
     [data]
   );
+
+  const headline = useMemo(() => (data ? buildHeadlineMessage(computeStrategyStats(data)) : ''), [data]);
 
   const subtitle = data
     ? `로봇 ${data.stats.robots}기(스펙 완결 ${data.stats.complete}) · 공급사 제품 ${data.stats.suppliers}개 · 공급 관계 ${data.stats.edges}건 · 수요 사례 ${data.stats.adoptions}건 · 집계 ${fmtDateTime(data.generatedAt)}${data.cached ? ' (캐시)' : ''}`
@@ -64,7 +67,7 @@ export function ActuatorMapSection() {
       )}
       {data && (
         <div className="flex flex-col gap-4">
-          <ActuatorSourcingSummary data={data} />
+          <p className="text-[13px] text-ink-900 leading-relaxed font-medium rounded-[10px] border border-ink-200 bg-ink-50 px-3 py-2.5">{headline}</p>
           <ActuatorPositionMap data={data} />
           <ActuatorSourcingBoard data={data} />
           <div className="no-print flex flex-col gap-4">

@@ -5,6 +5,7 @@ import { normalizeActuatorMap } from './actuator-map-normalize';
 import {
   BOARD_COLOR,
   BOARD_EMPTY_TEXT,
+  BOARD_GROUP_ORDER,
   COMPONENT_PART_KO,
   buildSourcingBoard,
   componentPartKo,
@@ -29,7 +30,7 @@ const data = (robots: ActuatorMapRobot[], suppliers: ActuatorSupplierProduct[] =
 const row = (b: SourcingBoard, id: BoardGroupId) => b.rows.find((r) => r.id === id)!;
 const texts = (lines: { text: string }[]) => lines.map((l) => l.text);
 const names = (b: SourcingBoard, id: BoardGroupId) => row(b, id).companies.map((c) => c.name);
-const countsOf = (b: SourcingBoard) => b.tiles.map((t) => t.count);
+const countsOf = (b: SourcingBoard) => BOARD_GROUP_ORDER.map((id) => b.groupCounts[id]);
 
 // ── 그룹 판정 ────────────────────────────────────────────────────────────────
 
@@ -196,14 +197,14 @@ describe('buildSourcingBoard — 제외·정렬·표시', () => {
     expect(countsOf(b)).toEqual([1, 0, 0, 0]);
   });
 
-  it('타일: 라벨·aria-label·색 (tailwind info/pos/neg/ink-400 복제)', () => {
+  it('제목·부제·행 라벨(용어 통일)·색 상수 (tailwind info/pos/neg/ink-400 복제)', () => {
     const b = buildSourcingBoard(data([rb('A', 'Alpha', 'in_house'), rb('U', 'Unk', 'unknown')]));
-    expect(b.tiles.map((t) => t.label)).toEqual(['자체 설계 · 자체 제조', '자체 설계 · 외부 제조/양산', '외부 모듈 구매', '확인 불가']);
-    expect(b.tiles.map((t) => t.ariaLabel)).toEqual(['자체 설계 · 자체 제조 1개사', '자체 설계 · 외부 제조/양산 0개사', '외부 모듈 구매 0개사', '확인 불가 1개사']);
-    expect(b.tiles.map((t) => t.color)).toEqual([BOARD_COLOR.G1, BOARD_COLOR.G2, BOARD_COLOR.G3, BOARD_COLOR.G4]);
+    expect(b.rows.map((r) => r.rowLabel)).toEqual([['자체 설계', '자체 제조'], ['자체 설계', '외부에 맡겨 제조'], ['외부 설계'], ['공개 근거 없음']]);
+    expect(b.rows.map((r) => r.color)).toEqual([BOARD_COLOR.G1, BOARD_COLOR.G2, BOARD_COLOR.G3, BOARD_COLOR.G4]);
     expect(BOARD_COLOR).toEqual({ G1: '#1F4A7A', G2: '#2F7D5A', G3: '#B0452A', G4: '#9AA1AC' });
-    expect(b.title).toBe('휴머노이드 세트 제조사 2개사의 액추에이터 조달 방식');
-    expect(b.description).toBe('회사 기준 · LG 제외 · 로봇 2기');
+    expect(b.title).toBe('로봇 제조사 2개사의 액추에이터 조달 방식');
+    expect(b.description).toBe('회사 기준 · LG 제외');
+    expect(JSON.stringify(b.rows)).not.toMatch(/외부 모듈 구매|확인 불가|외부 제조·양산/);
   });
 
   it('부품 종류 매핑: sameVendorName 으로 매칭하고 없으면 vendor 명만', () => {
@@ -277,72 +278,55 @@ describe('buildSourcingBoard — 외부에 파는 것', () => {
 
 describe('buildSourcingBoard — 결론 문장', () => {
   const g3Robot = (company = 'Buyer') => rb('B1', company, 'external', { externalVendors: [ev('Vend', 'component supply')] });
+  const g2Robot = (company = 'Tes') => rb('T', company, 'external', { externalVendors: [ev('Tuopu', 'contract manufacturing')] });
+  const compRobot = (company = 'Pal') => rb('P', company, 'in_house', { componentSourcing: true, externalVendors: [ev('Harmonic Drive', 'component supply', 'component')] });
   const manyG1 = (n: number) => Array.from({ length: n }, (_, i) => rb(`r${i}`, `Co${String(i).padStart(2, '0')}`, 'in_house'));
   const strong = (b: SourcingBoard) => b.conclusion.filter((s) => s.strong).map((s) => s.text);
 
-  it('S1: G3 가 N 의 20% 이하면 "N개사뿐", 평문과 세그먼트가 같다', () => {
-    const b = buildSourcingBoard(data([...manyG1(9), g3Robot(), rb('U', 'Unk', 'unknown')]));
-    expect(b.conclusionText.startsWith('조사한 11개사 중 액추에이터 설계를 외부에 맡긴 곳은 1개사뿐입니다(자체 설계 확인 9개사, 확인 불가 1개사).')).toBe(true);
-    expect(strong(b)[0]).toBe('액추에이터 설계를 외부에 맡긴 곳은 1개사뿐');
+  it('절 구성: 설계 절은 항상, 제조 절은 G2 > 0, 속 부품 절은 > 0 일 때 — 절은 strong, 쉼표·마침표는 평문, 평문과 세그먼트가 같다', () => {
+    const b = buildSourcingBoard(data([g3Robot('B1'), g3Robot('B2'), g2Robot(), compRobot(), rb('A', 'Alpha', 'in_house')]));
+    expect(b.conclusionText).toBe('5개사 중 설계를 외부에 맡긴 곳 2, 제조를 외부에 맡긴 곳 1, 속 부품을 사는 곳 1.');
+    expect(strong(b)).toEqual(['설계를 외부에 맡긴 곳 2', '제조를 외부에 맡긴 곳 1', '속 부품을 사는 곳 1']);
     expect(b.conclusion.map((s) => s.text).join('')).toBe(b.conclusionText);
   });
 
-  it('S1: G3 가 20% 를 넘으면 "뿐" 을 쓰지 않는다', () => {
-    const b = buildSourcingBoard(data([...manyG1(2), g3Robot('B1'), g3Robot('B2')]));
-    expect(b.conclusionText.startsWith('조사한 4개사 중 액추에이터 설계를 외부에 맡긴 곳은 2개사입니다(자체 설계 확인 2개사).')).toBe(true);
-    expect(b.conclusionText).not.toContain('뿐');
+  it('G3 = 0 이면 "설계를 외부에 맡긴 곳 없음", G2·속 부품이 0 이면 해당 절을 생략한다', () => {
+    const none = buildSourcingBoard(data(manyG1(3)));
+    expect(none.conclusionText).toBe('3개사 중 설계를 외부에 맡긴 곳 없음.');
+    expect(strong(none)).toEqual(['설계를 외부에 맡긴 곳 없음']);
+    expect(buildSourcingBoard(data([g2Robot(), rb('A', 'Alpha', 'in_house')])).conclusionText).toBe('2개사 중 설계를 외부에 맡긴 곳 없음, 제조를 외부에 맡긴 곳 1.');
+    expect(buildSourcingBoard(data([compRobot()])).conclusionText).toBe('1개사 중 설계를 외부에 맡긴 곳 없음, 속 부품을 사는 곳 1.');
+    expect(buildSourcingBoard(data([g3Robot()])).conclusionText).toBe('1개사 중 설계를 외부에 맡긴 곳 1.');
   });
 
-  it('S1: 20% 경계(G3*5 == N)는 "뿐"', () => {
-    const b = buildSourcingBoard(data([...manyG1(4), g3Robot()]));
-    expect(b.conclusionText).toContain('1개사뿐입니다');
+  it('옛 문구(20% "뿐", 확인 불가 괄호, 카탈로그 구매 1군 절)는 더 이상 나오지 않는다 — tier1 수요 사례가 있어도 같다', () => {
+    const rs = [g3Robot('Buyer Inc'), rb('A', 'Alpha', 'in_house'), rb('U', 'Unk', 'unknown')];
+    const withTier1 = buildSourcingBoard(data(rs, [], [adoption({ company: 'Buyer Inc', marketSegment: 'tier1_oem', segment: 'humanoid_tier1', level: 'module' })]));
+    for (const b of [buildSourcingBoard(data(rs)), withTier1, buildSourcingBoard(data(manyG1(9)))]) {
+      expect(b.conclusionText).not.toMatch(/뿐|카탈로그|1군|확인 불가|조사한|입니다/);
+    }
+    expect(withTier1.conclusionText).toBe('3개사 중 설계를 외부에 맡긴 곳 1.');
   });
 
-  it('S1: G3 = 0 이면 "곳은 없습니다"', () => {
-    const b = buildSourcingBoard(data(manyG1(3)));
-    expect(b.conclusionText.startsWith('조사한 3개사 중 액추에이터 설계를 외부에 맡긴 곳은 없습니다(자체 설계 확인 3개사).')).toBe(true);
-    expect(strong(b)[0]).toBe('액추에이터 설계를 외부에 맡긴 곳은 없습니다');
-  });
-
-  it('S1: G4 = 0 이면 ", 확인 불가" 를 생략한다', () => {
-    expect(buildSourcingBoard(data(manyG1(3))).conclusionText).not.toContain('확인 불가');
-    expect(buildSourcingBoard(data([...manyG1(3), rb('U', 'Unk', 'unknown')])).conclusionText).toContain('(자체 설계 확인 3개사, 확인 불가 1개사)');
-  });
-
-  it('S2: G2 와 부품 조달이 모두 있으면 두 절, G2 만 / 부품만 있으면 해당 절만, 둘 다 없으면 앞 절을 통째로 생략', () => {
-    const g2 = rb('T', 'Tes', 'external', { externalVendors: [ev('Tuopu', 'contract manufacturing')] });
-    const comp = rb('P', 'Pal', 'in_house', { componentSourcing: true, externalVendors: [ev('Harmonic Drive', 'component supply', 'component')] });
-    const both = buildSourcingBoard(data([g2, comp])).conclusionText;
-    expect(both).toContain('자체 설계 회사가 외부에서 사는 것은 자사 설계 모듈의 양산품(위탁제조·그룹 부품사)이나 모터·감속기 같은 하위 부품이며, 완성 관절 모듈을 카탈로그로 구매하는 휴머노이드 1군 제조사는 없습니다.');
-    const onlyG2 = buildSourcingBoard(data([g2, rb('A', 'Alpha', 'in_house')])).conclusionText;
-    expect(onlyG2).toContain('외부에서 사는 것은 자사 설계 모듈의 양산품(위탁제조·그룹 부품사)이며, ');
-    expect(onlyG2).not.toContain('하위 부품');
-    const onlyComp = buildSourcingBoard(data([comp])).conclusionText;
-    expect(onlyComp).toContain('외부에서 사는 것은 모터·감속기 같은 하위 부품이며, ');
-    expect(onlyComp).not.toContain('양산품');
-    const neither = buildSourcingBoard(data([rb('A', 'Alpha', 'in_house')])).conclusionText;
-    expect(neither).not.toContain('자체 설계 회사가 외부에서 사는 것은');
-    expect(neither).toContain('완성 관절 모듈을 카탈로그로 구매하는 휴머노이드 1군 제조사는 없습니다.');
-    expect(strong(buildSourcingBoard(data([comp])))).toContain('완성 관절 모듈을 카탈로그로 구매하는 휴머노이드 1군 제조사는 없습니다');
-  });
-
-  it('S2: G3 회사에 tier1 수요 사례(module)가 있으면 S2 전체를 생략, component 층 tier1 은 무시', () => {
-    const rs = [rb('B', 'Buyer Inc', 'external', { externalVendors: [ev('Vend', 'component supply')] }), rb('A', 'Alpha', 'in_house')];
-    const withTier1 = buildSourcingBoard(data(rs, [], [adoption({ company: 'Buyer Inc (US)', marketSegment: 'tier1_oem', segment: 'humanoid_tier1', level: 'module' })]));
-    expect(withTier1.conclusionText).not.toContain('1군 제조사는 없습니다');
-    expect(withTier1.conclusionText).not.toContain('자체 설계 회사가 외부에서 사는 것은');
-    const bySegmentOnly = buildSourcingBoard(data(rs, [], [adoption({ company: 'Buyer Inc', marketSegment: 'tier2_legged', segment: 'humanoid_tier1', level: 'module' })]));
-    expect(bySegmentOnly.conclusionText).not.toContain('1군 제조사는 없습니다');
-    const componentLevel = buildSourcingBoard(data(rs, [], [adoption({ company: 'Buyer Inc', marketSegment: 'tier1_oem', segment: 'humanoid_tier1', level: 'component' })]));
-    expect(componentLevel.conclusionText).toContain('1군 제조사는 없습니다');
-    const otherCompany = buildSourcingBoard(data(rs, [], [adoption({ company: 'Somebody Else', marketSegment: 'tier1_oem', segment: 'humanoid_tier1' })]));
-    expect(otherCompany.conclusionText).toContain('1군 제조사는 없습니다');
+  it('판매 절: 휴머노이드 판매가 없고 suppliers 가 있으면 strong 으로 붙고, suppliers 가 비어 있으면 생략한다 (salesAnswer 도 null)', () => {
+    const quad = [sp('Alpha', 'Quad', { targetMarket: 'quadruped robots, research' })];
+    const withSupp = buildSourcingBoard(data([rb('A', 'Alpha', 'in_house_sells')], quad));
+    expect(withSupp.conclusionText).toBe('1개사 중 설계를 외부에 맡긴 곳 없음. 휴머노이드 액추에이터를 파는 세트 제조사는 없음.');
+    expect(withSupp.conclusion[withSupp.conclusion.length - 1]).toEqual({ text: ' 휴머노이드 액추에이터를 파는 세트 제조사는 없음.', strong: true });
+    expect(withSupp.salesAnswer).not.toBeNull();
+    const noSupp = buildSourcingBoard(data([rb('A', 'Alpha', 'in_house_sells')], []));
+    expect(noSupp.conclusionText).toBe('1개사 중 설계를 외부에 맡긴 곳 없음.');
+    expect(noSupp.conclusionText).not.toContain('파는');
+    expect(noSupp.salesAnswer).toBeNull();
+    // 표의 "휴머노이드 관절 모듈은 판매 안 함" 줄은 기존 동작 그대로 (suppliers 가 비어도 나온다)
+    expect(texts(row(noSupp, 'G1').sold)).toContain('휴머노이드 관절 모듈은 판매 안 함');
   });
 
   it('S3: 외판 확인·계획 제품 중 휴머노이드 타깃이 없으면 문장과 셀 줄이 나온다', () => {
     const b = buildSourcingBoard(data([rb('A', 'Alpha', 'in_house_sells')], [sp('Alpha', 'Quad', { targetMarket: 'quadruped robots, research' })]));
-    expect(b.conclusionText.endsWith('휴머노이드 관절 모듈을 외부에 파는 세트 제조사도 없습니다.')).toBe(true);
+    expect(b.conclusionText.endsWith('휴머노이드 액추에이터를 파는 세트 제조사는 없음.')).toBe(true);
     expect(texts(row(b, 'G1').sold)).toContain('휴머노이드 관절 모듈은 판매 안 함');
+    expect(b.salesAnswer!.humanoidSellers).toBe(0);
   });
 
   it('S3: 휴머노이드 타깃의 외판 확인/계획 제품이 있으면 문장과 셀 줄을 생략한다 (확인·계획 각각, 한글 키워드 포함)', () => {
@@ -353,8 +337,9 @@ describe('buildSourcingBoard — 결론 문장', () => {
     ];
     for (const s of variants) {
       const b = buildSourcingBoard(data([rb('A', 'Alpha', 'in_house_sells')], [s]));
-      expect(b.conclusionText).not.toContain('외부에 파는 세트 제조사도 없습니다');
+      expect(b.conclusionText).not.toContain('파는 세트 제조사는 없음');
       expect(texts(row(b, 'G1').sold)).not.toContain('휴머노이드 관절 모듈은 판매 안 함');
+      expect(b.salesAnswer!.humanoidSellers).toBe(1);
     }
   });
 
@@ -362,7 +347,7 @@ describe('buildSourcingBoard — 결론 문장', () => {
     const b = buildSourcingBoard(
       data([rb('A', 'Alpha', 'in_house')], [sp('Alpha', 'Weak (series, 7 variants)', { targetMarket: 'humanoid robots, in-house and external', status: 'available' })])
     );
-    expect(b.conclusionText).toContain('외부에 파는 세트 제조사도 없습니다');
+    expect(b.conclusionText).toContain('파는 세트 제조사는 없음');
     const counter = b.footnotes.find((f) => f.id === 'counter')!;
     expect(counter.text).toContain('외판 확인되지 않음(근거 약함): Alpha 제품 1개 (Weak)');
   });
@@ -371,7 +356,7 @@ describe('buildSourcingBoard — 결론 문장', () => {
     const b = buildSourcingBoard(
       data([rb('A', 'Alpha', 'in_house_sells')], [sp('Alpha', 'T1', { targetMarket: 'research', status: 'available', segments: ['tier1_oem', 'research_edu'], segment: 'tier1_oem' })])
     );
-    expect(b.conclusionText).not.toContain('외부에 파는 세트 제조사도 없습니다');
+    expect(b.conclusionText).not.toContain('파는 세트 제조사는 없음');
   });
 
   it('S3: LG 제품은 판정에서 제외된다', () => {
@@ -381,7 +366,7 @@ describe('buildSourcingBoard — 결론 문장', () => {
         [sp('LG Electronics', 'AXIUM', { isLG: true, targetMarket: 'humanoid, external partners', status: 'announced' })]
       )
     );
-    expect(b.conclusionText).toContain('외부에 파는 세트 제조사도 없습니다');
+    expect(b.conclusionText).toContain('파는 세트 제조사는 없음');
   });
 });
 
@@ -393,9 +378,20 @@ describe('buildSourcingBoard — 각주', () => {
     const f1 = b.footnotes[0]!;
     expect(f1.id).toBe('source');
     expect(f1.text).toContain('출처: ARGOS 조달 태세 재판정 데이터(공개 자료) · 집계 2026.10.25 12:04 KST');
-    expect(f1.text).toContain("모터·감속기 등 하위 부품은 '사는 것' 열에만 표기");
-    expect(f1.text).toContain('확인 불가 = 공개 근거 없음(외부 조달이라는 뜻 아님)');
+    expect(f1.text).toContain("모터·감속기 등 하위 부품은 ③ 속 부품 단계와 상세 표의 '외부에서 사는 것' 열에만 표기");
+    expect(f1.text).toContain('공개 근거 없음 = 확인할 자료가 없다는 뜻(외부 조달이라는 뜻 아님)');
+    expect(f1.text).not.toContain('확인 불가');
     expect(f1.text.endsWith('회사 기준, LG 제외')).toBe(true);
+  });
+
+  it('각주 5(reading): 데이터가 있으면 항상 맨 끝에 있다', () => {
+    for (const d of [data([rb('A', 'Alpha', 'in_house')]), liveSnapshotTrimmed()]) {
+      const fns = buildSourcingBoard(d).footnotes;
+      expect(fns[fns.length - 1]!.id).toBe('reading');
+      expect(fns[fns.length - 1]!.text).toBe(
+        '회사명은 로봇 제조사, 괄호 안은 액추에이터·부품 공급사입니다. 막대 폭은 회사 수에 비례하며 두 막대는 같은 회사·같은 스케일입니다. 점선 테두리 = 속 부품만 외부에서 구매.'
+      );
+    }
   });
 
   it('각주 2: 보드와 조달 태세 기준 수치가 일치하면 생략, 다르면 동적 숫자로 표시', () => {
@@ -412,17 +408,20 @@ describe('buildSourcingBoard — 각주', () => {
     const diff = buildSourcingBoard(d);
     const f2 = diff.footnotes.find((f) => f.id === 'mismatch')!;
     const st = computeStrategyStats(d).sourcing.companies;
-    expect(f2.text).toContain(`자체 설계 확인은 자체 제조 1 + 외부 제조·양산 1입니다.`);
+    expect(f2.text).toContain(`자체 설계 확인은 자체 제조 1 + 외부에 맡겨 제조 1입니다.`);
     expect(f2.text).toContain(`판정 가능 ${st.judged}개사 중 ${st.confirmed}개사이며 LG 포함`);
     expect(f2.text).toContain("'외부 조달·혼합'으로 분류됩니다");
-    expect(f2.text).toContain('요약 막대·헤드라인의 로봇 3기는 LG 1기 포함.');
+    // 로봇 기준 4단계 수치(+ A/B 건수)가 각주 2 에 한 줄로 들어간다 — 요약 막대는 없다
+    expect(f2.text).toContain('로봇 기준(3기, 예측 모델 제외, LG 1기 포함): 자체 확인 1기 · 자체+외판 1기 · 외부 조달·혼합 1기 · 확인 불가 0기 (자체 개발 확인 중 근거 등급 A 0기 / B 2기).');
+    expect(f2.text).not.toContain('요약 막대');
     expect(f2.text).toContain('상세 그래프의 회사 수는 LG 포함.');
   });
 
   it('각주 2: LG 가 없으면 "LG 포함" 문구를 쓰지 않는다', () => {
     const b = buildSourcingBoard(data([rb('T', 'Tes', 'external', { externalVendors: [ev('Tuopu', 'contract manufacturing')] })]));
     const f2 = b.footnotes.find((f) => f.id === 'mismatch')!;
-    expect(f2.text).not.toContain('LG');
+    expect(f2.text).not.toContain('LG 포함');
+    expect(f2.text).toContain('로봇 기준(1기, 예측 모델 제외, LG 없음)');
   });
 
   it('각주 3: 자체 설계 회사의 tier1 수요 사례(공급사·근거 등급) 와 근거 약한 휴머노이드 제품', () => {
@@ -459,6 +458,9 @@ describe('buildSourcingBoard — 안전성', () => {
       expect(b.conclusion).toEqual([]);
       expect(b.conclusionText).toBe('');
       expect(b.footnotes).toEqual([]);
+      expect(b.tree).toBeNull();
+      expect(b.salesAnswer).toBeNull();
+      expect(b.title).toBe('로봇 제조사의 액추에이터 조달 방식');
       expect(countsOf(b)).toEqual([0, 0, 0, 0]);
       expect(JSON.stringify(b)).not.toMatch(/NaN|undefined|Infinity/);
     }
@@ -541,22 +543,33 @@ function expectLiveBoard(b: SourcingBoard) {
   expect(row(b, 'G2').designMfg).toBe('자체 / 외부');
   expect(row(b, 'G3').designMfg).toBe('외부 / 외부');
 
-  expect(b.conclusionText.startsWith('조사한 25개사 중 액추에이터 설계를 외부에 맡긴 곳은 2개사뿐입니다(자체 설계 확인 17개사, 확인 불가 6개사).')).toBe(true);
-  expect(b.conclusionText).toContain('완성 관절 모듈을 카탈로그로 구매하는 휴머노이드 1군 제조사는 없습니다');
-  expect(b.conclusionText.endsWith('휴머노이드 관절 모듈을 외부에 파는 세트 제조사도 없습니다.')).toBe(true);
+  expect(b.conclusionText).toBe('25개사 중 설계를 외부에 맡긴 곳 2, 제조를 외부에 맡긴 곳 2, 속 부품을 사는 곳 2. 휴머노이드 액추에이터를 파는 세트 제조사는 없음.');
+  expect(b.salesAnswer!.sentence).toBe('휴머노이드용 액추에이터(관절 모듈): 0개사 · 소형·사족용 모터만 판매: Unitree Robotics(GO-M8010-6), Xiaomi(CyberGear Micro Motor)');
+  expect(b.title).toBe('로봇 제조사 25개사의 액추에이터 조달 방식');
+  expect(b.tree!.leaves.map((l) => [l.id, l.count])).toEqual([
+    ['inhouse_all', 13],
+    ['inhouse_parts_bought', 2],
+    ['inhouse_design_external_mfg', 2],
+    ['external_module', 2],
+    ['unknown', 6],
+  ]);
+  expect(b.tree!.root.count).toBe(25);
 
   const fn = (id: string) => b.footnotes.find((f) => f.id === id)?.text ?? '';
   expect(fn('source')).toContain('회사 기준, LG 제외');
   expect(fn('mismatch')).toContain('판정 가능 20개사 중 16개사이며 LG 포함');
-  expect(fn('mismatch')).toContain('요약 막대·헤드라인의 로봇 46기는 LG 1기 포함');
+  expect(fn('mismatch')).toContain('로봇 기준(46기, 예측 모델 제외, LG 1기 포함): 자체 확인 ');
+  expect(fn('mismatch')).toContain(' 근거 등급 A ');
+  expect(b.tree!.robotCount).toBe(b.robotCount);
   expect(fn('counter')).toContain('Agibot(Quanzhibo (泉智博), 근거 B)');
   expect(fn('counter')).toContain('Fourier Intelligence 제품 1개 (FSA 2.0)');
   expect(fn('counter')).toContain('Agibot 제품 3개 (PowerFlow R52, PowerFlow R86-2, PowerFlow R86-3)');
   expect(fn('partKind')).toContain('일반 지식');
+  expect(b.footnotes[b.footnotes.length - 1]!.id).toBe('reading');
 }
 
 describe('buildSourcingBoard — 실데이터 (커밋된 trimmed 스냅샷)', () => {
-  it('타일 15/2/2/6, 회사·로봇 수, 셀 문구, 결론, 각주가 기대값과 같다', () => {
+  it('그룹 15/2/2/6, 회사·로봇 수, 셀 문구, 결론, ④ 문장, 트리 말단, 각주가 기대값과 같다', () => {
     expectLiveBoard(buildSourcingBoard(liveSnapshotTrimmed()));
   });
 

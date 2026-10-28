@@ -1,8 +1,8 @@
 /**
- * 다운로드 HTML용 액추에이터 카드 — 헤드라인 → 조달 태세 요약 막대 → 포지션 맵(타입 × 난이도, 점 색 = 조달 태세, 영역 번호 배지) SVG → 영역 색인 표 → 범례 → 로봇 표 →
- * 조달 방식 보드(결론·타일·표·각주) → 공급망 표 2개(외부 조달 관계 / 수요 사례) → 공급사 제품 맵 SVG → 공급사 표 → 각주.
+ * 다운로드 HTML용 액추에이터 카드 — 헤드라인 → 포지션 맵(타입 × 난이도, 점 색 = 조달 태세, 영역 번호 배지) SVG → 영역 색인 표 → 범례 → 로봇 표 →
+ * 조달 방식 보드(결론·가로 누적 막대 2개와 범례·④ 판매 카드·상세 표·각주) → 공급망 표 2개(외부 조달 관계 / 수요 사례) → 공급사 제품 맵 SVG → 공급사 표 → 각주.
  * 외부 스크립트/스타일/이미지 없음, 모든 텍스트는 escapeHtml, 링크는 pageUrl(safeHref 통과분)만이고 데이터의 URL 은 https 인 경우에만 텍스트로 표시한다.
- * 색: chartColors 팔레트 토큰 + tailwind ink 토큰 hex (tech-trend-report-html.ts 와 동일 값) + 보드 타일 색(tailwind info/pos/neg 값 복제). 새 hex 없음.
+ * 색: chartColors 팔레트 토큰 + tailwind ink 토큰 hex (tech-trend-report-html.ts 와 동일 값) + 보드 색(tailwind info/pos/neg 및 soft 값 복제). 새 hex 없음.
  */
 
 import { CATEGORY_PALETTE } from '@/app/events/wrc2026/components/chartColors';
@@ -58,9 +58,9 @@ import {
   postureOf,
   resolveSegmentOrder,
   roleKo,
-  summarizeSourcing,
 } from './actuator-sourcing';
 import { BOARD_COLUMNS, BOARD_EMPTY_TEXT, buildSourcingBoard, type BoardLine } from './actuator-sourcing-board';
+import { BAR_CAPTION, BAR_LEGEND_TITLE, bar1Caption, buildSourcingBars, legendParts, type BarSegment, type SourcingBars } from './actuator-sourcing-bars';
 import { unregisteredVendorNames } from './actuator-supply-graph';
 import {
   STRATEGY_CONTENT,
@@ -201,37 +201,6 @@ function legendHtml(hasLG: boolean, hasForecast: boolean, hasHull: boolean): str
   return `<div style="font-size:11.5px;color:${INK[600]};margin-top:8px">${items.join('')}</div><p style="${SMALL};margin:4px 0 0">점 색은 액추에이터 조달 태세입니다(속 빈 회색 링 = 근거 부족으로 확인 불가). 자체 개발 확인은 근거 등급 A·B만 셉니다. 영역 색은 회사 구분용으로 겹치는 영역끼리 다른 색을 자동 배정한 것이며 의미는 없습니다. 영역 안의 번호 배지와 회사명 라벨 앞의 번호는 같은 번호이며, 색인 표에서 번호로 회사를 찾을 수 있습니다. 지역은 색으로 구분하지 않습니다.</p>`;
 }
 
-/** 조달 태세 요약 막대 + 범례 (div flex, 인라인 스타일) */
-export function buildSourcingSummaryHtml(robots: ActuatorMapRobot[]): string {
-  const sum = summarizeSourcing(robots);
-  if (sum.robots === 0) return '';
-  const counts = { in_house: sum.inHouse, in_house_sells: sum.inHouseSells, external: sum.external, unknown: sum.unknown };
-  const bar = POSTURE_ORDER.filter((p) => counts[p] > 0)
-    .map(
-      (p) =>
-        `<div title="${e(POSTURE_LABEL[p])} ${counts[p]}기" style="flex:${counts[p]} 1 0;background:${POSTURE_HOLLOW[p] ? WHITE : POSTURE_COLOR[p]};${POSTURE_HOLLOW[p] ? `border-left:3px solid ${POSTURE_COLOR[p]};` : ''}${EXACT}"></div>`
-    )
-    .join('');
-  const legend = POSTURE_ORDER.map(
-    (p) =>
-      `<span style="display:inline-flex;align-items:center;gap:6px;margin:2px 16px 2px 0">${dot(POSTURE_COLOR[p], POSTURE_HOLLOW[p])}${e(POSTURE_LABEL[p])} <b>${counts[p]}기</b>${
-        p === 'external' && sum.externalMixed > 0 ? e(` (이 중 혼합 ${sum.externalMixed}기)`) : ''
-      }${p === 'unknown' ? e(` (이 중 자체 개발 추정 ${sum.unknownPresumed}기)`) : ''}</span>`
-  ).join('');
-  const comp =
-    sum.componentSourcing > 0
-      ? ` 모듈(통합 관절)은 자체 설계이고 부품(모터·감속기)만 외부에서 조달하는 ${sum.componentSourcing}기는 자체 개발 확인에 포함하고 표에 따로 표기합니다.`
-      : '';
-  return [
-    `<div style="margin:10px 0 0;${AVOID}">`,
-    `<h3 style="font-size:14px;margin:0 0 6px;color:${INK[900]}">조달 태세 요약</h3>`,
-    `<div role="img" aria-label="${e(`로봇 조달 태세 ${POSTURE_ORDER.map((p) => `${POSTURE_LABEL[p]} ${counts[p]}기`).join(', ')}`)}" style="display:flex;width:100%;height:22px;border:1px solid ${INK[200]};border-radius:6px;overflow:hidden">${bar}</div>`,
-    `<div style="font-size:12px;color:${INK[600]};margin-top:6px">${legend}</div>`,
-    `<p style="${SMALL};margin:2px 0 0">${e(`로봇 ${sum.robots}기(예측 모델 제외). 자체 개발 확인 ${sum.inHouse + sum.inHouseSells}기 중 근거 등급 A ${sum.confirmedGradeA}기 / B ${sum.confirmedGradeB}기.${comp}`)}</p>`,
-    '</div>',
-  ].join('');
-}
-
 /** 영역 색인 표 — 제목·표·각주. hull 이 없으면 ''. 번호 칸의 원형 배지는 SVG 배지와 같은 색·번호 */
 export function buildHullIndexTableHtml(layout: ChartLayout): string {
   const rows = hullIndexRows(layout.hulls);
@@ -329,8 +298,53 @@ export function buildAdoptionTableHtml(adoptions: ActuatorAdoptionCase[]): strin
 // ── 조달 방식 보드 ────────────────────────────────────────────────────────────
 
 /**
- * 조달 방식 보드 — 제목 → 결론 문장 → 숫자 타일 4개 → 조달 방식 표 → 각주. 문장·셀은 buildSourcingBoard 가 만든 것을 그대로 쓴다(웹과 동일).
- * 인라인 스타일만 쓰고 색은 INK·보드 색 상수(tailwind 값 복제)만 쓴다. data 가 없으면 ''. 대상 회사가 없으면 제목 + 안내 한 줄.
+ * 조달 방식 가로 누적 막대 2개 + 범례 — 웹(ActuatorSourcingBars)과 같은 SourcingBars 를 같은 순서(캡션 → 막대 1 → 캡션 → 막대 2 → 범례)로 그린다.
+ * SVG 없이 flex div + 인라인 스타일만 쓴다(클래스·<style>·이벤트 속성·url( 없음). 세그먼트 폭 = 회사 수 / 전체 %. 동적 텍스트는 전부 escapeHtml. 색은 상수뿐.
+ */
+export function buildSourcingBarsHtml(bars: SourcingBars): string {
+  const caption = (text: string) => `<p style="font-size:11px;font-weight:600;color:${INK[600]};margin:0 0 4px">${e(text)}</p>`;
+  const bar = (segs: BarSegment[], aria: string, last: boolean) => {
+    const anyOutside = segs.some((s) => s.outside);
+    const cells = segs
+      .map((s, i) => {
+        const border = s.dashed ? `border:1.5px dashed ${s.dashed};` : i > 0 ? `border-left:2px solid ${WHITE};` : '';
+        const num = s.outside
+          ? `<span style="position:absolute;left:0;right:0;top:100%;margin-top:2px;text-align:center;font-size:11px;font-weight:700;color:${INK[900]}">${s.count}</span>`
+          : `${s.count}`;
+        return `<div title="${e(s.title)}" style="position:relative;box-sizing:border-box;flex:none;width:${s.pct}%;display:flex;align-items:center;justify-content:center;background:${s.fill};${border}color:${s.numColor};font-size:13px;font-weight:700;line-height:1;${EXACT}">${num}</div>`;
+      })
+      .join('');
+    return `<div role="img" aria-label="${e(aria)}" style="display:flex;width:100%;height:32px;margin:0 0 ${anyOutside ? 20 : last ? 0 : 8}px">${cells}</div>`;
+  };
+  const legend = (title: string, segs: BarSegment[]) => {
+    const items = segs
+      .map((s) => {
+        const sw = `<span style="display:inline-block;box-sizing:border-box;width:10px;height:10px;margin:5px 8px 0 0;flex:none;background:${s.fill};${s.dashed ? `border:1px dashed ${s.dashed};` : ''}${EXACT}"></span>`;
+        const p = legendParts(s);
+        const hint = p.hint ? `<span style="color:${INK[600]}">${e(p.hint)}</span>` : '';
+        return `<li style="display:flex;align-items:flex-start;margin:0 0 4px;font-size:12px;line-height:1.6;color:${INK[900]};overflow-wrap:anywhere">${sw}<span><b>${e(p.head)}</b>${e(p.names)}${hint}</span></li>`;
+      })
+      .join('');
+    return `<div style="margin:8px 0 0"><p style="font-size:11px;font-weight:600;color:${INK[600]};margin:0 0 4px">${e(title)}</p><ul style="list-style:none;margin:0;padding:0">${items}</ul></div>`;
+  };
+  const omitted = bars.omitted.length > 0 ? `<p style="${SMALL};margin:4px 0 0">${e(`해당 회사 없음: ${bars.omitted.join(', ')}`)}</p>` : '';
+  return [
+    `<div style="margin:0;${AVOID};${EXACT}">`,
+    caption(bar1Caption(bars)),
+    bar(bars.bar1, bars.ariaLabel1, false),
+    caption(BAR_CAPTION.bar2),
+    bar(bars.bar2, bars.ariaLabel2, true),
+    legend(BAR_LEGEND_TITLE.bar1, bars.bar1),
+    legend(BAR_LEGEND_TITLE.bar2, bars.bar2),
+    omitted,
+    '</div>',
+  ].join('');
+}
+
+/**
+ * 조달 방식 보드 — 제목 → 부제 → 결론 문장 → 가로 누적 막대 2개(① 설계 / ② 조달 방식) + 범례 → ④ 판매 카드 → 펼친 상세 표 → 각주.
+ * 문장·셀은 buildSourcingBoard 가 만든 것을 그대로 쓴다(웹과 동일). JS 없음. 인라인 스타일만 쓰고 색은 INK·보드 색 상수(tailwind 값 복제)만 쓴다.
+ * data 가 없으면 ''. 대상 회사가 없으면 제목 + 안내 한 줄.
  */
 export function buildSourcingBoardHtml(data: ActuatorMapResponse | null | undefined): string {
   if (!data) return '';
@@ -339,12 +353,17 @@ export function buildSourcingBoardHtml(data: ActuatorMapResponse | null | undefi
   if (!b.hasData) return `${h3}${emptyP('표시할 회사가 없습니다.')}`;
 
   const conclusion = b.conclusion.map((s) => (s.strong ? `<b>${e(s.text)}</b>` : e(s.text))).join('');
-  const tiles = b.tiles
-    .map(
-      (t) =>
-        `<div role="group" aria-label="${e(t.ariaLabel)}" style="flex:1 1 150px;min-width:0;box-sizing:border-box;border:1px solid ${INK[200]};background:${INK[50]};border-radius:10px;padding:8px 12px;${AVOID};${EXACT}"><span style="font-size:26px;font-weight:700;line-height:1.15;color:${t.color}">${t.count}</span> <span style="font-size:11px;color:${INK[600]}">개사</span><div style="font-size:11.5px;color:${INK[600]};margin-top:2px">${e(t.label)}</div></div>`
-    )
-    .join('');
+
+  const barsData = buildSourcingBars(b.tree);
+  const chart = barsData ? buildSourcingBarsHtml(barsData) : '';
+
+  let salesCard = '';
+  if (b.salesAnswer) {
+    const sa = b.salesAnswer;
+    const m = sa.sentence.match(/^(.*?: )(\d+개사)([\s\S]*)$/);
+    const sentence = m ? `${e(m[1]!)}${sa.humanoidSellers === 0 ? `<b>${e(m[2]!)}</b>` : e(m[2]!)}${e(m[3]!)}` : e(sa.sentence);
+    salesCard = `<div style="margin:10px 0 0;box-sizing:border-box;border:1px solid ${INK[200]};background:${INK[50]};border-radius:10px;padding:8px 12px;font-size:12.5px;line-height:1.6;color:${INK[900]};${AVOID};${EXACT}"><b>④ 액추에이터를 남에게 파나?</b> ${sentence}</div>`;
+  }
 
   const th = BOARD_COLUMNS.map((c) => `<th scope="col" ${TH}>${e(c)}</th>`).join('');
   const lineHtml = (l: BoardLine, rowMuted: boolean) => {
@@ -368,7 +387,9 @@ export function buildSourcingBoardHtml(data: ActuatorMapResponse | null | undefi
     h3,
     `<p class="meta" style="${META};margin:0 0 6px">${e(b.description)}</p>`,
     `<p style="font-size:12.5px;color:${INK[900]};line-height:1.65;margin:0 0 8px;${AVOID}">${conclusion}</p>`,
-    `<div style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px">${tiles}</div>`,
+    chart,
+    salesCard,
+    `<p class="meta" style="${META};margin:14px 0 6px">상세 표 (회사별 조달 방식)</p>`,
     `<div class="tbl-wrap" style="overflow-x:auto"><table ${TABLE_STYLE}><caption style="${SR_ONLY}">${e(`${b.title} — ${BOARD_COLUMNS.join(', ')}`)}</caption><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div>`,
     notes,
   ].join('');
@@ -531,7 +552,6 @@ export function buildActuatorMapCardHtml(data: ActuatorMapResponse | null | unde
     `<p class="kicker" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:${INK[500]};margin:0 0 6px">Actuator · Position &amp; Supply Chain</p>`,
     `<h2 style="font-size:16px;margin:0 0 4px;color:${INK[900]}">${e(layout.title)}</h2>`,
     `<p style="font-size:12.5px;color:${INK[900]};line-height:1.65;margin:6px 0 8px;font-weight:600;${AVOID}">${e(headline)}</p>`,
-    buildSourcingSummaryHtml(data.robots),
     `<p class="meta" style="${META};margin:12px 0 10px">${e(layout.meta)} · ${e(layout.formula)}</p>`,
     chart,
     link,

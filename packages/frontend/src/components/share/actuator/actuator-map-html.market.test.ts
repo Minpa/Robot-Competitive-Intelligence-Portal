@@ -5,7 +5,6 @@ import {
   buildActuatorMapSvg,
   buildAdoptionTableHtml,
   buildHullIndexTableHtml,
-  buildSourcingSummaryHtml,
   buildSupplierMarketMapSvg,
   buildSupplyChainTableHtml,
 } from './actuator-map-html';
@@ -116,10 +115,9 @@ describe('buildActuatorMapCardHtml', () => {
   const data = seed44 ? { ...seedResponse(), suppliers: seed44 } : seedResponse();
   const html = buildActuatorMapCardHtml(data, 'https://argos.example.com/share/tech-trend/actuator');
 
-  it('카드 순서: 헤드라인 → 조달 태세 요약 → 포지션 맵 → 로봇 표 → 공급망 → 공급사 제품 맵 → 공급사 표 → 각주', () => {
+  it('카드 순서: 헤드라인 → 포지션 맵 → 로봇 표 → 공급망 → 공급사 제품 맵 → 공급사 표 → 각주', () => {
     const idx = [
       html.indexOf('핵심 메시지:'),
-      html.indexOf('조달 태세 요약'),
       html.indexOf('<svg'),
       html.indexOf('>데이터 표<'),
       html.indexOf('공급망 (외부 조달 관계'),
@@ -136,12 +134,12 @@ describe('buildActuatorMapCardHtml', () => {
     expect(html).toContain(headline.replace(/&/g, '&amp;'));
   });
 
-  it('요약 막대: 4단계 범례, 확인 불가 중 자체 개발 추정, 확인 A/B 건수', () => {
-    const bar = buildSourcingSummaryHtml(data.robots);
-    for (const l of ['자체 개발(확인)', '자체 개발+외판', '외부 조달·혼합', '확인 불가']) expect(bar).toContain(l);
-    expect(bar).toContain('이 중 자체 개발 추정 1기');
-    expect(bar).toContain('근거 등급 A 2기 / B 5기');
-    expect(buildSourcingSummaryHtml([])).toBe('');
+  it('조달 태세 요약 막대(4단계 누적 막대)는 없다 — 조달 그래프는 막대 2개(설계·조달 방식)뿐, 헤드라인 문장은 유지', () => {
+    expect(html).not.toContain('조달 태세 요약');
+    expect(html).not.toContain('로봇 조달 태세');
+    expect(html).not.toMatch(/display:flex;width:100%;height:22px/);
+    expect(count(html, /role="img" aria-label="(설계|조달 방식): /g)).toBe(2);
+    expect(html.indexOf(buildHeadlineMessage(computeStrategyStats(data)).replace(/&/g, '&amp;'))).toBeGreaterThan(-1);
   });
 
   it('외부 참조 없음, 링크는 pageUrl 뿐 (데이터의 URL 은 링크가 되지 않는다)', () => {
