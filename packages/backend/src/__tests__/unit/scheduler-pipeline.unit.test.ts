@@ -1,5 +1,5 @@
 /**
- * scheduler.service — tech-trend-pipeline 태스크 등록/수동 트리거/가드, 기존 4개 태스크 불변
+ * scheduler.service — tech-trend-pipeline / weekly-brief / argos-i-export 태스크 등록/수동 트리거/가드, 기존 태스크 불변
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -7,6 +7,9 @@ const h = vi.hoisted(() => ({
   schedule: vi.fn(),
   runPipeline: vi.fn(),
   runWeeklyBrief: vi.fn(),
+  runArgosIExport: vi.fn(),
+  setUpstreamBusyProvider: vi.fn(),
+  chainRunning: vi.fn(),
 }));
 
 vi.mock('node-cron', () => ({ default: { schedule: h.schedule } }));
@@ -26,11 +29,16 @@ vi.mock('../../services/tech-trend-pipeline.service.js', () => ({
   runTechTrendPipeline: h.runPipeline,
   DEFAULT_PIPELINE_CRON: '30 5 * * *',
   PIPELINE_TASK_NAME: 'tech-trend-pipeline',
+  isStartupChainRunning: h.chainRunning,
 }));
 vi.mock('../../services/weekly-brief.service.js', () => ({
   runWeeklyBrief: h.runWeeklyBrief,
   DEFAULT_WEEKLY_BRIEF_CRON: '0 8 * * 1',
   WEEKLY_BRIEF_TASK_NAME: 'weekly-brief',
+}));
+vi.mock('../../services/argos-i-export.service.js', () => ({
+  runArgosIExport: h.runArgosIExport,
+  setUpstreamBusyProvider: h.setUpstreamBusyProvider,
 }));
 
 async function load() {
@@ -45,22 +53,28 @@ beforeEach(() => {
   h.schedule.mockReset().mockImplementation(() => ({ stop: vi.fn() }));
   h.runPipeline.mockReset().mockResolvedValue(null);
   h.runWeeklyBrief.mockReset().mockResolvedValue({ outcome: 'created' });
+  h.runArgosIExport.mockReset().mockResolvedValue({ outcome: 'created' });
+  h.setUpstreamBusyProvider.mockReset();
+  h.chainRunning.mockReset().mockReturnValue(false);
   delete process.env.CRON_TECH_TREND_PIPELINE;
   delete process.env.CRON_WEEKLY_BRIEF;
+  delete process.env.CRON_ARGOS_I_EXPORT;
   vi.spyOn(console, 'log').mockImplementation(() => {});
 });
 afterEach(() => vi.restoreAllMocks());
 
 describe('scheduler: tech-trend-pipeline', () => {
-  it('registers 6 tasks; pipeline defaults to 30 5 * * * in KST; weekly brief 0 8 * * 1; existing 4 unchanged', async () => {
+  it('registers 7 tasks; pipeline defaults to 30 5 * * * in KST; weekly brief 0 8 * * 1; argos-i-export 0 7 * * *; existing 4 unchanged', async () => {
+    const log = vi.spyOn(console, 'log');
     const s = await load();
     s.init();
     const status = s.getStatus().tasks;
-    expect(status.map((t) => t.name)).toEqual(['scoring', 'audit', 'briefing', 'video-tagging', 'tech-trend-pipeline', 'weekly-brief']);
+    expect(status.map((t) => t.name)).toEqual(['scoring', 'audit', 'briefing', 'video-tagging', 'tech-trend-pipeline', 'weekly-brief', 'argos-i-export']);
     expect(Object.fromEntries(status.map((t) => [t.name, t.cron]))).toEqual({
       scoring: '0 2 * * 1', audit: '0 3 * * 1', briefing: '0 4 * * 1', 'video-tagging': '0 4 * * *', 'tech-trend-pipeline': '30 5 * * *',
-      'weekly-brief': '0 8 * * 1',
+      'weekly-brief': '0 8 * * 1', 'argos-i-export': '0 7 * * *',
     });
+    expect(log).toHaveBeenCalledWith('[Scheduler] Initialized with 7 tasks');
     for (const c of cronCalls()) expect(c.opts).toMatchObject({ timezone: 'Asia/Seoul' });
   });
 
@@ -132,5 +146,49 @@ describe('scheduler: tech-trend-pipeline', () => {
     s.init();
     expect(await s.trigger('weekly-brief', 'startup')).toMatchObject({ success: true });
     await vi.waitFor(() => expect(h.runWeeklyBrief).toHaveBeenCalledWith({ reason: 'startup' }));
+  });
+
+  it('argos-i-export: CRON_ARGOS_I_EXPORT overrides the schedule', async () => {
+    process.env.CRON_ARGOS_I_EXPORT = '30 7 * * *';
+    const s = await load();
+    s.init();
+    expect(s.getStatus().tasks.find((t) => t.name === 'argos-i-export')?.cron).toBe('30 7 * * *');
+  });
+
+  it('argos-i-export: the cron handler runs with reason=cron in Asia/Seoul', async () => {
+    const s = await load();
+    s.init();
+    const call = cronCalls().find((c) => c.expr === '0 7 * * *')!;
+    expect(call.opts).toMatchObject({ timezone: 'Asia/Seoul' });
+    await call.fn();
+    expect(h.runArgosIExport).toHaveBeenCalledWith({ reason: 'cron' });
+    expect(s.isTaskRunning('argos-i-export')).toBe(false);
+  });
+
+  it('argos-i-export: trigger() reaches the service (switch case) with manual / startup reason', async () => {
+    const s = await load();
+    s.init();
+    expect(await s.trigger('argos-i-export', 'startup')).toMatchObject({ success: true });
+    await vi.waitFor(() => expect(h.runArgosIExport).toHaveBeenCalledWith({ reason: 'startup' }));
+    await vi.waitFor(() => expect(s.isTaskRunning('argos-i-export')).toBe(false));
+    await s.trigger('argos-i-export');
+    await vi.waitFor(() => expect(h.runArgosIExport).toHaveBeenLastCalledWith({ reason: 'manual' }));
+  });
+
+  it('argos-i-export: the upstream-busy provider covers video-tagging, the pipeline and the startup chain', async () => {
+    const s = await load();
+    s.init();
+    expect(h.setUpstreamBusyProvider).toHaveBeenCalledTimes(1);
+    const busy = h.setUpstreamBusyProvider.mock.calls[0]![0] as () => boolean;
+    expect(busy()).toBe(false);
+    h.chainRunning.mockReturnValue(true);
+    expect(busy()).toBe(true);
+    h.chainRunning.mockReturnValue(false);
+    let release!: () => void;
+    h.runPipeline.mockImplementation(() => new Promise<null>((r) => { release = () => r(null); }));
+    await s.trigger('tech-trend-pipeline');
+    await vi.waitFor(() => expect(busy()).toBe(true));
+    release();
+    await vi.waitFor(() => expect(busy()).toBe(false));
   });
 });

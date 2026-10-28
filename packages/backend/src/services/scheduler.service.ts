@@ -19,8 +19,10 @@ import { paperSummaryService } from './paper-summary.service.js';
 import { applicationCaseExtractionService } from './application-case-extraction.service.js';
 import { videoContentAnalysisService } from './video-content-analysis.service.js';
 import { eventVideoBriefService } from './event-video-brief.service.js';
-import { runTechTrendPipeline, DEFAULT_PIPELINE_CRON, PIPELINE_TASK_NAME, type PipelineReason } from './tech-trend-pipeline.service.js';
+import { runTechTrendPipeline, DEFAULT_PIPELINE_CRON, PIPELINE_TASK_NAME, isStartupChainRunning, type PipelineReason } from './tech-trend-pipeline.service.js';
 import { runWeeklyBrief, DEFAULT_WEEKLY_BRIEF_CRON, WEEKLY_BRIEF_TASK_NAME } from './weekly-brief.service.js';
+import { runArgosIExport, setUpstreamBusyProvider } from './argos-i-export.service.js';
+import { ARGOS_I_EXPORT_TASK_NAME, DEFAULT_ARGOS_I_EXPORT_CRON } from './argos-i-export-config.js';
 
 // ── Types ──
 
@@ -69,6 +71,7 @@ const SCHEDULE_BRIEFING = process.env.CRON_BRIEFING || '0 4 * * 1';     // Mon 0
 const SCHEDULE_VIDEO_TAGGING = process.env.CRON_VIDEO_TAGGING || '0 4 * * *'; // 매일 04:00 (크롤러 수집 후)
 const SCHEDULE_TECH_TREND_PIPELINE = process.env.CRON_TECH_TREND_PIPELINE || DEFAULT_PIPELINE_CRON; // 매일 05:30 KST (태깅 체인 이후)
 const SCHEDULE_WEEKLY_BRIEF = process.env.CRON_WEEKLY_BRIEF || DEFAULT_WEEKLY_BRIEF_CRON; // 매주 월 08:00 KST (직전 월~일 주간 브리프)
+const SCHEDULE_ARGOS_I_EXPORT = process.env.CRON_ARGOS_I_EXPORT || DEFAULT_ARGOS_I_EXPORT_CRON; // 매일 07:00 KST (ARGOS_I 일일 스냅샷 번들)
 
 class SchedulerService {
   private tasks: Map<string, ScheduledTask> = new Map();
@@ -95,7 +98,13 @@ class SchedulerService {
       await runWeeklyBrief({ reason: 'cron' });
     });
 
-    console.log('[Scheduler] Initialized with 6 tasks');
+    // ARGOS_I 일일 스냅샷: 상류 작업(영상 태깅 체인·기술 트렌드 파이프라인·기동 체인)이 돌면 서비스가 대기한다
+    setUpstreamBusyProvider(() => this.isTaskRunning('video-tagging') || this.isTaskRunning(PIPELINE_TASK_NAME) || isStartupChainRunning());
+    this.registerTask(ARGOS_I_EXPORT_TASK_NAME, 'ARGOS_I 일일 스냅샷 내보내기', SCHEDULE_ARGOS_I_EXPORT, async () => {
+      await runArgosIExport({ reason: 'cron' });
+    });
+
+    console.log('[Scheduler] Initialized with 7 tasks');
   }
 
   private registerTask(name: string, label: string, cronExpr: string, handler: () => Promise<void>) {
@@ -150,6 +159,7 @@ class SchedulerService {
           case 'video-tagging': await this.runVideoTagging(); break;
           case PIPELINE_TASK_NAME: await runTechTrendPipeline({ reason }); break;
           case WEEKLY_BRIEF_TASK_NAME: await runWeeklyBrief({ reason }); break;
+          case ARGOS_I_EXPORT_TASK_NAME: await runArgosIExport({ reason }); break;
         }
         task.lastRun = new Date();
       } catch (err) {

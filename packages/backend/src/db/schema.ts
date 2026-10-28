@@ -12,6 +12,9 @@ import {
   index,
   uniqueIndex,
   serial,
+  bigint,
+  customType,
+  primaryKey,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
@@ -2749,3 +2752,48 @@ export const weeklyBriefs = pgTable('weekly_briefs', {
   costUsd:      decimal('cost_usd', { precision: 10, scale: 6 }).notNull().default('0'),
   error:        text('error'),
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ARGOS_I 일일 스냅샷 내보내기 (번들 메타 날짜당 1행 + 파일 본문 BYTEA)
+// 정식 생성 경로는 런타임 ensureArgosIExportTables() (src/db/argos-i-export.ddl.ts, CREATE TABLE IF NOT EXISTS).
+// drizzle/0030 은 수동 migrate 호환용 (동일 DDL). export_date 는 끝까지 문자열(string 모드)로 다룬다.
+// drizzle-orm 0.29 에는 bytea 내장 타입이 없어 customType 으로 정의한다 (Buffer <-> bytea).
+// ─────────────────────────────────────────────────────────────────────────────
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return 'bytea';
+  },
+  toDriver(value: Buffer): Buffer {
+    return value;
+  },
+  fromDriver(value: Buffer): Buffer {
+    return Buffer.isBuffer(value) ? value : Buffer.from(value);
+  },
+});
+
+export const argosIExports = pgTable('argos_i_exports', {
+  exportDate:    date('export_date', { mode: 'string' }).primaryKey(),
+  status:        varchar('status', { length: 10 }).notNull(), // ok | partial
+  schemaVersion: integer('schema_version').notNull(),
+  generatedAt:   timestamp('generated_at', { withTimezone: true }).notNull(),
+  asOf:          timestamp('as_of', { withTimezone: true }).notNull(),
+  reason:        varchar('reason', { length: 16 }).notNull(), // cron | startup | manual | weekly-brief
+  fileCount:     integer('file_count').notNull(),
+  totalBytes:    bigint('total_bytes', { mode: 'number' }).notNull(),
+  bundleSha256:  varchar('bundle_sha256', { length: 64 }).notNull(),
+  durationMs:    integer('duration_ms').notNull(),
+  warnings:      jsonb('warnings').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+});
+
+export const argosIExportFiles = pgTable('argos_i_export_files', {
+  exportDate:  date('export_date', { mode: 'string' }).notNull().references(() => argosIExports.exportDate, { onDelete: 'cascade' }),
+  path:        varchar('path', { length: 100 }).notNull(),
+  area:        varchar('area', { length: 40 }),
+  format:      varchar('format', { length: 8 }).notNull(), // md | json
+  content:     bytea('content').notNull(),
+  sha256:      varchar('sha256', { length: 64 }).notNull(),
+  byteSize:    integer('byte_size').notNull(),
+  recordCount: integer('record_count'),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.exportDate, table.path] }),
+}));

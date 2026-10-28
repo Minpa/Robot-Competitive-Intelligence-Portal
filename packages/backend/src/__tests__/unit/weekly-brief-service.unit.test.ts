@@ -21,6 +21,7 @@ import {
   lastAttemptFromSummary,
   runStartupWeeklyBriefIfDue,
   runWeeklyBrief,
+  setWeeklyBriefSuccessHook,
   shouldRunStartupWeeklyBrief,
   startWeeklyBriefGeneration,
   type StoredBriefRow,
@@ -434,3 +435,47 @@ describe('runStartupWeeklyBriefIfDue', () => {
     expect(await runStartupWeeklyBriefIfDue(okTrigger(), common({ lastWeekExists: async () => { throw new Error('db'); } }))).toBe('skipped');
   });
 });
+
+describe('success hook (ARGOS_I 일일 스냅샷 재생성 연결)', () => {
+  it('fires once after a newly created ok/partial brief and its failure does not affect the result', async () => {
+    const hook = vi.fn();
+    setWeeklyBriefSuccessHook(hook);
+    try {
+      const { deps } = makeDeps();
+      const r = await runWeeklyBrief({ reason: 'cron' }, deps);
+      expect(r.outcome).toBe('created');
+      expect(hook).toHaveBeenCalledTimes(1);
+      expect(hook).toHaveBeenCalledWith({ weekStart: WEEK, status: expect.stringMatching(/^(ok|partial)$/) });
+
+      setWeeklyBriefSuccessHook(() => {
+        throw new Error('hook boom');
+      });
+      __resetWeeklyBriefStateForTests();
+      const again = makeDeps();
+      expect((await runWeeklyBrief({ reason: 'cron', force: true }, again.deps)).outcome).toBe('created');
+    } finally {
+      setWeeklyBriefSuccessHook(null);
+    }
+  });
+
+  it('does not fire for skipped_exists, failed or locked runs', async () => {
+    const hook = vi.fn();
+    setWeeklyBriefSuccessHook(hook);
+    try {
+      const store: Store = new Map();
+      const first = makeDeps({}, store);
+      await runWeeklyBrief({ reason: 'cron' }, first.deps);
+      hook.mockClear();
+      const exists = makeDeps({}, store);
+      expect((await runWeeklyBrief({ reason: 'cron' }, exists.deps)).outcome).toBe('skipped_exists');
+      const locked = makeDeps({ withLock: async () => ({ locked: false }) });
+      expect((await runWeeklyBrief({ reason: 'cron', force: true }, locked.deps)).outcome).toBe('skipped_locked');
+      const failed = makeDeps({ collect: async () => { throw new Error('db down'); } });
+      expect((await runWeeklyBrief({ reason: 'cron', force: true }, failed.deps)).outcome).toBe('failed');
+      expect(hook).not.toHaveBeenCalled();
+    } finally {
+      setWeeklyBriefSuccessHook(null);
+    }
+  });
+});
+

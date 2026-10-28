@@ -52,6 +52,9 @@ beforeEach(() => {
   delete process.env.TECH_TREND_AUTO_DOMAINS;
   delete process.env.CRON_WEEKLY_BRIEF;
   delete process.env.WEEKLY_BRIEF_ON_STARTUP;
+  delete process.env.CRON_ARGOS_I_EXPORT;
+  delete process.env.ARGOS_I_EXPORT_ON_STARTUP;
+  process.env.ARGOS_I_EXPORT_TOKEN = 'tok-secret-xyz-0123456789abcdef0123456789abcdef';
   delete process.env.DISABLE_SCHEDULER;
   h.listRecent.mockReset().mockResolvedValue([{ key: 'actuator-update:aaaaaaaaaaaa', appliedAt: new Date('2026-10-25T00:00:00Z'), summary: { counters: {} } }]);
   h.has.mockReset().mockResolvedValue(true);
@@ -59,6 +62,7 @@ beforeEach(() => {
   h.get.mockReset().mockImplementation(async (key: string) =>
     key === 'pipeline:last' ? { key, appliedAt: new Date(), summary: { status: 'ok' } }
       : key === 'weekly-brief:last' ? { key, appliedAt: new Date('2026-10-26T00:00:00Z'), summary: { weekStart: '2026-10-19', reason: 'cron', outcome: 'created', status: 'ok', finishedAt: '2026-10-25T23:01:00.000Z', startedAt: '2026-10-25T23:00:00.000Z', durationMs: 60000, costUsd: 0.04 } }
+      : key === 'argos-i-export:last' ? { key, appliedAt: new Date('2026-10-28T22:05:00Z'), summary: { date: '2026-10-29', reason: 'cron', outcome: 'created', status: 'ok', finishedAt: '2026-10-28T22:05:00.000Z', startedAt: '2026-10-28T22:00:00.000Z', durationMs: 300000, fileCount: 60, totalBytes: 123456, warnings: [], error: null } }
       : key === 'arxiv-backfill:actuator:12m' ? { key, appliedAt: new Date('2026-10-25T01:00:00Z'), summary: { status: 'ok', inserted: 10 } }
       : null);
 });
@@ -78,7 +82,7 @@ describe('GET /api/admin/ops/status', () => {
     const res = await get('admin');
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(Object.keys(body)).toEqual(['generatedAt', 'config', 'dataMigrations', 'handBenchmarkMigrations', 'currentDataKey', 'pipeline', 'crawler', 'weeklyBrief']);
+    expect(Object.keys(body)).toEqual(['generatedAt', 'config', 'dataMigrations', 'handBenchmarkMigrations', 'currentDataKey', 'pipeline', 'crawler', 'weeklyBrief', 'argosIExport']);
     expect(body.config).toEqual({
       actuatorAutoApply: 'true', techTrendAutoDomains: ['actuator', 'hand'], pipelineOnStartup: true, pipelineCron: '30 5 * * *', schedulerEnabled: true,
     });
@@ -98,6 +102,10 @@ describe('GET /api/admin/ops/status', () => {
     expect(Object.keys(body.weeklyBrief)).toEqual(['cron', 'schedulerEnabled', 'startupCatchup', 'running', 'last']);
     expect(body.weeklyBrief).toMatchObject({ cron: '0 8 * * 1', schedulerEnabled: true, startupCatchup: true, running: false });
     expect(body.weeklyBrief.last).toMatchObject({ weekStart: '2026-10-19', outcome: 'created', status: 'ok', reason: 'cron' });
+    // ARGOS_I 일일 스냅샷: 크론·캐치업 설정, 실행 중 여부, 마지막 실행 요약, 최신 번들 날짜 (DB 가 없으면 최신 번들 날짜는 null)
+    expect(Object.keys(body.argosIExport)).toEqual(['cron', 'schedulerEnabled', 'startupCatchup', 'running', 'last', 'latestBundleDate']);
+    expect(body.argosIExport).toMatchObject({ cron: '0 7 * * *', schedulerEnabled: true, startupCatchup: true, running: false, latestBundleDate: null });
+    expect(body.argosIExport.last).toMatchObject({ date: '2026-10-29', outcome: 'created', status: 'ok', reason: 'cron', fileCount: 60 });
   });
   it('a failing source only breaks its own section; the response stays 200', async () => {
     h.listRecent.mockRejectedValue(new Error('table missing'));
@@ -113,7 +121,7 @@ describe('GET /api/admin/ops/status', () => {
   });
   it('contains no secrets', async () => {
     const text = (await get('admin')).body;
-    for (const secret of ['sk-secret-anthropic', 'secret-gemini', 'pw-secret', 'DATABASE_URL', 'API_KEY']) {
+    for (const secret of ['sk-secret-anthropic', 'secret-gemini', 'pw-secret', 'DATABASE_URL', 'API_KEY', 'tok-secret-xyz', 'ARGOS_I_EXPORT_TOKEN']) {
       expect(text).not.toContain(secret);
     }
   });

@@ -39,6 +39,7 @@ import { issueRoutes } from './issues.js';
 import { ingestRoutes } from './ingest.js';
 import { actuatorMapRoutes } from './actuator-map.js';
 import { weeklyBriefRoutes, weeklyBriefAdminRoutes } from './weekly-brief.js';
+import { argosIRoutes, argosIAdminRoutes } from './argos-i.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -122,4 +123,8 @@ export async function registerRoutes(fastify: FastifyInstance) {
   // 주간 브리프 — 조회(로그인) / 수동 생성·상태(admin). admin.ts 는 무거운 서비스 import 가 많아 별도 모듈로 둔다
   fastify.register(weeklyBriefRoutes, { prefix: '/api/weekly-brief' });
   fastify.register(weeklyBriefAdminRoutes, { prefix: '/api/admin/weekly-brief' });
+
+  // ARGOS_I 일일 스냅샷 — 토큰(Bearer) 인증 pull API / 관리자 수동 생성·상태(adminOnly). 기존 /api/export(엑셀·PPT)와 별개
+  fastify.register(argosIRoutes, { prefix: '/api/argos-i' });
+  fastify.register(argosIAdminRoutes, { prefix: '/api/admin/argos-i' });
 }

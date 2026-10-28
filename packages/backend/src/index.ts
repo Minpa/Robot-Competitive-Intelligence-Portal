@@ -15,12 +15,23 @@ import { dataMigrationService } from './services/data-migration.service.js';
 import { autoApplyActuatorData } from './services/actuator-auto-apply.service.js';
 import { ensureActuatorSourcingTables } from './db/actuator-sourcing.ddl.js';
 import { ensureWeeklyBriefTables } from './db/weekly-brief.ddl.js';
+import { ensureArgosIExportTables } from './db/argos-i-export.ddl.js';
 import {
   WEEKLY_BRIEF_TASK_NAME,
   isStartupWeeklyBriefEnabled,
   resolveWeeklyBriefStartupDelayMs,
   runStartupWeeklyBriefIfDue,
+  setWeeklyBriefSuccessHook,
 } from './services/weekly-brief.service.js';
+import { regenerateAfterWeeklyBrief, runStartupArgosIExportIfDue } from './services/argos-i-export.service.js';
+import {
+  ARGOS_I_EXPORT_TASK_NAME,
+  isArgosITokenConfigured,
+  isArgosITokenTooShort,
+  isStartupArgosIExportEnabled,
+  redactArgosIQuery,
+  resolveArgosIStartupDelayMs,
+} from './services/argos-i-export-config.js';
 import {
   PIPELINE_TASK_NAME,
   isStartupPipelineEnabled,
@@ -30,7 +41,20 @@ import {
 } from './services/tech-trend-pipeline.service.js';
 
 const fastify = Fastify({
-  logger: true,
+  logger: {
+    serializers: {
+      // 기본 req 직렬화와 같은 필드. ARGOS_I 경로만 URL 의 쿼리 문자열을 가린다 (?token= 등이 로그에 남지 않게).
+      req(request) {
+        return {
+          method: request.method,
+          url: redactArgosIQuery(request.url),
+          hostname: request.hostname,
+          remoteAddress: request.ip,
+          remotePort: request.socket?.remotePort,
+        };
+      },
+    },
+  },
 });
 
 // File uploads (used for Excel import, etc.)
@@ -84,6 +108,16 @@ const start = async () => {
     // 주간 브리프 테이블 (실패해도 기동은 계속한다 — 수동 생성/조회만 영향)
     await ensureWeeklyBriefTables().catch((err) => {
       console.warn('[WeeklyBrief] ensureTables 실패:', err?.message ?? err);
+    });
+    // ARGOS_I 일일 스냅샷 테이블 (실패해도 기동은 계속한다 — 생성/다운로드만 영향)
+    await ensureArgosIExportTables().catch((err) => {
+      console.warn('[ArgosIExport] ensureTables 실패:', err?.message ?? err);
+    });
+    if (isArgosITokenTooShort()) console.warn('[ArgosIExport] warn=token_too_short minLength=32');
+    else if (!isArgosITokenConfigured()) console.log('[ArgosIExport] token=not_configured api=disabled');
+    // 주간 브리프 성공 직후 당일 번들을 재생성한다 (PM 결정: 월요일 브리프를 같은 날 번들에 반영). 순환 import 를 피하려고 여기서 연결한다
+    setWeeklyBriefSuccessHook(() => {
+      void regenerateAfterWeeklyBrief();
     });
     await coverageFieldService.ensureTables();
     const cfs = await coverageFieldService.seedFromFiles().catch((err) => {
@@ -177,6 +211,15 @@ const start = async () => {
           void runStartupWeeklyBriefIfDue(() => schedulerService.trigger(WEEKLY_BRIEF_TASK_NAME, 'startup'));
         }, delayMs);
         console.log(`[WeeklyBrief] Startup catch-up scheduled in ${Math.round(delayMs / 1000)}s`);
+      }
+
+      // ARGOS_I 일일 스냅샷 기동 캐치업 — 07:00 KST 이후이고 오늘 번들이 없을 때만 (3시간 가드, 상류 체인 대기)
+      if (isStartupArgosIExportEnabled()) {
+        const delayMs = resolveArgosIStartupDelayMs();
+        setTimeout(() => {
+          void runStartupArgosIExportIfDue(() => schedulerService.trigger(ARGOS_I_EXPORT_TASK_NAME, 'startup'));
+        }, delayMs);
+        console.log(`[ArgosIExport] Startup catch-up scheduled in ${Math.round(delayMs / 1000)}s`);
       }
     } else {
       console.log('[Scheduler] Disabled via DISABLE_SCHEDULER env');

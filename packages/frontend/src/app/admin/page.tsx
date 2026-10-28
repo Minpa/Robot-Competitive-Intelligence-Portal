@@ -28,6 +28,7 @@ import {
   Circle,
 } from 'lucide-react';
 import { PageHeader, ArgosCard, SectionTitle, PrimaryButton } from '@/components/layout/PageHeader';
+import ArgosIExportCard from '@/components/admin/ArgosIExportCard';
 
 interface CollectionResult {
   source: string;
@@ -358,6 +359,9 @@ export default function AdminPage() {
             </ArgosCard>
           ))}
         </div>
+
+        {/* ARGOS_I 연동: 일일 스냅샷 번들 상태 · 지금 생성 (관리자) */}
+        <ArgosIExportCard />
 
         {/* Public Data Collection */}
         <ArgosCard>

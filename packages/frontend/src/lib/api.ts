@@ -15,6 +15,7 @@ import type {
   WeeklyBriefResponse,
   WeeklyBriefRunStatus,
 } from '@/types/weekly-brief';
+import type { ArgosIExportGenerateResponse, ArgosIExportRunStatus } from '@/types/argos-i-export';
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const API_BASE = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
 
@@ -386,6 +387,21 @@ class ApiClient {
   /** 주간 브리프 생성 진행 상태 (관리자) */
   async getWeeklyBriefStatus() {
     return this.request<WeeklyBriefRunStatus>('/admin/weekly-brief/status');
+  }
+
+  // ───────── ARGOS_I 일일 스냅샷 (관리자) ─────────
+
+  /** ARGOS_I 내보내기 상태 (관리자). 토큰 값·길이는 응답에 없고 설정 여부(tokenConfigured)만 있다 */
+  async getArgosIExportStatus() {
+    return this.request<ArgosIExportRunStatus>('/admin/argos-i/export/status');
+  }
+
+  /** 오늘(KST) 번들 지금 생성 (관리자). 202 시작, 409 이미 실행 중 은 throw */
+  async generateArgosIExport() {
+    return this.request<ArgosIExportGenerateResponse>('/admin/argos-i/export/generate', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
   }
 
   /** 핸드 기술 시계열 트렌드 (수집 시작 이후 전체 기간, days 무관) */

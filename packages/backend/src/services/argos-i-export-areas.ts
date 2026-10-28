@@ -1,0 +1,80 @@
+/**
+ * ARGOS_I 내보내기 영역 레지스트리 — 번들에 들어가는 영역의 순서·메타·빌더를 한곳에서 정의한다.
+ * 순서는 manifest/README 의 영역 순서이기도 하다 (P0 → P1 → P2).
+ */
+
+import type { AreaDef } from './argos-i-export-areas-types.js';
+import {
+  ACTUATOR_MAP_AREA,
+  ACTUATOR_SOURCING_AREA,
+  CI_CHANGES_AREA,
+  CI_MATRIX_AREA,
+  COMPANIES_AREA,
+  COMPONENTS_AREA,
+  HAND_BENCHMARK_AREA,
+  ROBOTS_AREA,
+  ROBOT_BENCHMARK_AREA,
+} from './argos-i-export-areas-catalog.js';
+import {
+  EVENT_BRIEFS_AREA,
+  EXTERNAL_SOURCES_AREA,
+  NEWS_AREA,
+  PAPERS_AREA,
+  TECH_TRENDS_AREA,
+  VIDEOS_AREA,
+  WEEKLY_BRIEFS_AREA,
+} from './argos-i-export-areas-content.js';
+import {
+  AGGREGATIONS_AREA,
+  APPLICATION_CASES_AREA,
+  COMPETITIVE_ALERTS_AREA,
+  COVERAGE_FIELD_EVENTS_AREA,
+  DATA_QUALITY_AREA,
+  KEYWORDS_AREA,
+  LG_HUMANOID_MODELS_AREA,
+  OVERVIEW_AREA,
+  PRODUCTS_AREA,
+  REGULATIONS_AREA,
+  SCORES_AREA,
+  STRATEGY_WARROOM_AREA,
+  VISION_COST_AREA,
+} from './argos-i-export-areas-extra.js';
+
+/** 번들에 포함되는 모든 영역 (overview 는 다른 영역 결과를 합산하므로 마지막에 빌드한다) */
+export const AREA_DEFS: readonly AreaDef[] = [
+  OVERVIEW_AREA,
+  COMPANIES_AREA,
+  ROBOTS_AREA,
+  COMPONENTS_AREA,
+  ACTUATOR_MAP_AREA,
+  ACTUATOR_SOURCING_AREA,
+  ROBOT_BENCHMARK_AREA,
+  HAND_BENCHMARK_AREA,
+  CI_MATRIX_AREA,
+  CI_CHANGES_AREA,
+  VIDEOS_AREA,
+  PAPERS_AREA,
+  NEWS_AREA,
+  TECH_TRENDS_AREA,
+  WEEKLY_BRIEFS_AREA,
+  KEYWORDS_AREA,
+  APPLICATION_CASES_AREA,
+  SCORES_AREA,
+  VISION_COST_AREA,
+  PRODUCTS_AREA,
+  COMPETITIVE_ALERTS_AREA,
+  AGGREGATIONS_AREA,
+  STRATEGY_WARROOM_AREA,
+  LG_HUMANOID_MODELS_AREA,
+  COVERAGE_FIELD_EVENTS_AREA,
+  REGULATIONS_AREA,
+  EVENT_BRIEFS_AREA,
+  EXTERNAL_SOURCES_AREA,
+  DATA_QUALITY_AREA,
+];
+
+export const OVERVIEW_AREA_ID = OVERVIEW_AREA.id;
+
+export function getAreaDef(id: string): AreaDef | undefined {
+  return AREA_DEFS.find((a) => a.id === id);
+}

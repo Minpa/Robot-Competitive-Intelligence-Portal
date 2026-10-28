@@ -18,6 +18,7 @@ import { techTrendAnalysisService } from './tech-trend-analysis.service.js';
 import { getTopicClassificationService } from './hand-topic-classification.service.js';
 import { schedulerService } from './scheduler.service.js';
 import { getWeeklyBriefOpsSummary } from './weekly-brief.service.js';
+import { getArgosIExportOpsSummary } from './argos-i-export.service.js';
 
 export const CRAWLER_BACKFILL_KEY = 'arxiv-backfill:actuator:12m';
 export const CRAWLER_STATUS_HINT = '크롤러 서비스 GET /legal/arxiv-topic-backfill/status?domain=actuator';
@@ -80,5 +81,8 @@ export async function getOpsStatus() {
   // 주간 브리프: 크론·캐치업 설정, 실행 중 여부, 마지막 실행 요약 (비밀값 없음)
   const weeklyBrief = await guard(() => getWeeklyBriefOpsSummary());
 
-  return { generatedAt: new Date().toISOString(), config, dataMigrations, handBenchmarkMigrations, currentDataKey, pipeline, crawler, weeklyBrief };
+  // ARGOS_I 일일 스냅샷: 크론·캐치업 설정, 실행 중 여부, 마지막 실행 요약, 최신 번들 날짜 (비밀값 없음)
+  const argosIExport = await guard(() => getArgosIExportOpsSummary());
+
+  return { generatedAt: new Date().toISOString(), config, dataMigrations, handBenchmarkMigrations, currentDataKey, pipeline, crawler, weeklyBrief, argosIExport };
 }

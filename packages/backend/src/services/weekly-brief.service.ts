@@ -158,6 +158,17 @@ export interface WeeklyBriefDeps {
 
 type DbLike = typeof db;
 
+/**
+ * 생성 성공(ok/partial, 새로 만든 경우) 직후 호출되는 훅. index.ts 가 ARGOS_I 일일 스냅샷 재생성을 연결한다
+ * (이 서비스가 내보내기 서비스를 import 하면 순환 의존이 되므로 콜백 주입). 훅 오류는 브리프 결과에 영향을 주지 않는다.
+ */
+export type WeeklyBriefSuccessHook = (info: { weekStart: string; status: Exclude<WeeklyBriefStatusCode, 'failed'> }) => void;
+let successHook: WeeklyBriefSuccessHook | null = null;
+
+export function setWeeklyBriefSuccessHook(hook: WeeklyBriefSuccessHook | null): void {
+  successHook = hook;
+}
+
 async function dbGetExistingStatus(weekStart: string, executor?: unknown): Promise<WeeklyBriefStatusCode | null> {
   const ex = (executor as DbLike | undefined) ?? db;
   const rows = await ex.select({ status: weeklyBriefs.status }).from(weeklyBriefs).where(eq(weeklyBriefs.weekStart, weekStart)).limit(1);
@@ -485,6 +496,13 @@ async function executeClaimed(state: RunningState, deps: WeeklyBriefDeps): Promi
       warnings: built.warnings,
       error: built.error,
     });
+    if (outcome === 'created' && (built.status === 'ok' || built.status === 'partial') && successHook) {
+      try {
+        successHook({ weekStart, status: built.status });
+      } catch {
+        // 훅 실패는 브리프 결과에 영향을 주지 않는다
+      }
+    }
     return { outcome, weekStart, status: built.status, error: built.error ?? undefined, lastRun };
   } catch (err) {
     // 락/DB 오류 등 — 상태에만 기록하고 throw 하지 않는다
