@@ -53,3 +53,7 @@ cached-events.json
 
 # TypeScript incremental build cache (build artifact)
 *.tsbuildinfo
+
+# ARGOS_I pull 결과 — 일일 번들과 전체 DB 덤프(원문 포함, 민감 데이터). 커밋 금지
+argos-i-data/
+argos-i-full-db-data/

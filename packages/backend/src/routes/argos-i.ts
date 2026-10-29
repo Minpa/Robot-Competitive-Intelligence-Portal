@@ -13,6 +13,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { authMiddleware, requireRole } from './auth.js';
 import { requireArgosIToken } from './argos-i-export-auth.js';
+import { registerArgosIFullDbRoutes } from './argos-i-full-db.js';
 import { MANIFEST_LIST_LIMIT, resolveArgosIRetentionDays } from '../services/argos-i-export-config.js';
 import {
   getArgosIExportRunStatus,
@@ -151,6 +152,9 @@ export async function argosIRoutes(fastify: FastifyInstance) {
       .type(CONTENT_TYPES[stored.format])
       .send(stored.content);
   });
+
+  // 초기 적재용 전체 DB 덤프 (14절) — 위 훅(토큰 인증) 뒤에서 등록한다. 정적 경로라 위의 파라미터 경로보다 우선한다
+  registerArgosIFullDbRoutes(fastify);
 }
 
 const GenerateBodySchema = z.object({}).strict();

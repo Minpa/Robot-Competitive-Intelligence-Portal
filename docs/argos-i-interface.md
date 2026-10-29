@@ -2,6 +2,7 @@
 
 > 이 문서만 읽고 ARGOS_I 수집기를 구현할 수 있도록 쓴 계약 문서다. 스키마 메이저 버전은 **1** 이다.
 > ARGOS 는 매일 KST 07:00 에 그날까지 수집·분석한 **전체 데이터**를 영역별 Markdown + JSON 파일 묶음(번들)으로 만들어 두고, 사내 ARGOS_I 서버가 토큰 인증된 HTTPS 로 **가져간다(pull)**. ARGOS 가 먼저 보내는 일(push)은 없다.
+> 단, **14절 초기 적재용 전체 DB 덤프는 이 원칙의 예외**다(원문 포함, 1회성, 사내 이전 한정).
 
 ## 목차
 
@@ -18,6 +19,7 @@
 11. [스키마 버전 정책](#11-스키마-버전-정책)
 12. [데이터 이용 한도](#12-데이터-이용-한도)
 13. [샘플 스크립트 · FAQ · 변경 이력](#13-샘플-스크립트--faq--변경-이력)
+14. [초기 적재: 전체 DB 덤프](#14-초기-적재-전체-db-덤프)
 
 ---
 
@@ -38,6 +40,7 @@ ARGOS 는 로봇 업계 경쟁 정보 포털이다. 이 계약은 ARGOS 가 수�
 - 외부 공개 데이터와 ARGOS 의 **파생 분석**(규칙 계산, AI 생성 요약·시사점)만 담는다.
 - **원문은 담지 않는다**: 기사 본문, 논문 초록, 영상 설명·자막, 규제 원문은 어디에도 없다. 링크로 원문에 접근한다 (12절).
 - 개인 식별 정보(이메일, 담당자, 작성자·평가자), 사용자별 읽음 상태, 토큰·비용 같은 운영 정보는 담지 않는다.
+- 예외: 초기 적재용 전체 DB 덤프(**14절**)는 원문을 포함한다. 일일 번들이 아니라 별도 엔드포인트이며 1회성이다.
 
 ### 1.4 용어
 
@@ -1764,6 +1767,7 @@ ZIP 은 내용 동일성을 `files[].sha256` 으로 검증한다 (ZIP 바이트 
 - **썸네일**은 YouTube 썸네일 URL(`https://i.ytimg.com/...`)만 제공한다. 이미지·로고 파일/URL 은 포함하지 않는다.
 - 개인 식별 정보, 사용자별 상태, 내부 운영 정보(토큰·비용·로그)는 포함하지 않는다.
 - 일부 영역(`strategy-warroom`, `lg-humanoid-models`, `coverage-field-events`, `regulations`)은 LG 내부 평가·전략 성격의 데이터를 포함하므로 접근 권한을 제한해서 다룬다.
+- 위 원칙(원문 비포함)은 일일 번들에 대한 것이다. 초기 적재용 전체 DB 덤프(**14절**)는 의도된 예외로 원문을 포함하며, 사내 이전 한정·외부 재배포 금지다.
 
 ---
 
@@ -1824,5 +1828,287 @@ scripts/argos-i-pull.sh          # latest.zip → 해제 → manifest.json 의 f
 | 날짜 | 스키마 | 내용 |
 |---|---|---|
 | 2026-10-28 | v1 | **최초 공개.** 영역 29개: `overview`, `companies`, `robots`, `components`, `actuator-map`, `actuator-sourcing`, `robot-benchmark`, `hand-benchmark`, `ci-matrix`, `ci-changes`, `videos`, `papers`, `news`, `tech-trends`, `weekly-briefs`, `keywords`, `application-cases`, `scores`, `vision-cost`, `products`, `competitive-alerts`, `aggregations`, `strategy-warroom`, `lg-humanoid-models`, `coverage-field-events`, `regulations`, `event-briefs`, `external-sources`, `data-quality`. 엔드포인트 4개(`manifest`, `latest.zip`, `{date}.zip`, `{date}/{file}`), Bearer 토큰 인증(NEXT 이중 토큰), 30일 보존, 월요일 주간 브리프 반영 재생성(`reason: "weekly-brief"`) |
+| 2026-10-29 | 덤프 형식 v1 | **초기 적재용 전체 DB 덤프 추가**: 엔드포인트 2개(`full-db/manifest`, `full-db.zip`), 적재·pull 스크립트 3종(`argos-i-import-full-db.mjs`, `argos-i-pull-full-db.mjs`, `argos-i-pull-full-db.sh`). 일일 번들 스키마 변경 없음 (14절) |
 
 파괴적 변경은 적용일 14일 전에 이 표에 "예고" 행으로 먼저 올린다.
+
+---
+
+## 14. 초기 적재: 전체 DB 덤프
+
+> **이 절은 위의 "원문 미포함, 파생 데이터만" 원칙의 의도된 예외다.** 사내 ARGOS_I 서버를 처음 채울 때 **한 번만** 쓰는 전체 DB 덤프이며, 수집 **원문(기사 본문 등)이 포함**된다. 평소의 동기화는 일일 번들(1~13절)이 맡는다.
+
+### 14.1 목적과 일일 번들과의 관계
+
+| | 일일 번들 (1~13절) | 전체 DB 덤프 (14절) |
+|---|---|---|
+| 용도 | 매일 증분 참고 데이터 | **1회성 초기 적재** |
+| 내용 | 영역별 파생 데이터, 원문 제외 | **원본 테이블 그대로**, 원문 포함 (`articles.content`, `summary` 등) |
+| 형식 | 영역별 MD + JSON | 테이블별 JSONL + `schema.json` + `manifest.json` (스트리밍 ZIP) |
+| 생성 | 매일 07:00 KST 생성·저장 | **요청할 때마다** 서버가 즉석에서 스트리밍 (저장하지 않음) |
+| 활성화 | 항상 | `ARGOS_I_FULL_DB_ENABLED=true` 일 때만 |
+
+- 같은 토큰(`ARGOS_I_EXPORT_TOKEN`, Bearer)을 쓴다.
+- **사내 이전 한정, 외부 재배포 금지.** 덤프 파일은 원문을 담은 민감 데이터다. 저장소에 커밋하지 말고(`argos-i-full-db-data/` 는 `.gitignore` 대상), 전송은 HTTPS 로만 하며, 적재가 끝나면 안전하게 삭제한다.
+- 저장소의 `packages/backend/src/db/clear-article-content.ts` 는 "저작권 보호를 위해 본문 및 AI 요약 제거"용 스크립트다. 이 덤프는 DB 에 남아 있는 `articles.content`·`summary` 를 그대로 내보내므로, 필요하면 정책 담당 확인을 거친다.
+
+### 14.2 사전 준비 (ARGOS_I 쪽)
+
+1. **같은 소스 버전을 체크아웃**하고 루트에서 `npm ci` 를 실행한다. 덤프의 `manifest.json` 에 `generator.commit`(앞 7자, Railway 배포일 때) 과 `schemaHint.latestDrizzleSql` 이 있다. 적재 스크립트는 `git rev-parse` 결과가 다르면 경고만 한다.
+2. ARGOS_I 용 PostgreSQL DB 를 만든다 (확장은 `pg_trgm` 이 필요할 수 있으며 `db:migrate` 가 처리한다).
+3. `DATABASE_URL=<ARGOS_I DB> npm run db:migrate` 를 실행한다.
+4. 백엔드를 **`DISABLE_SCHEDULER=true`** 로 한 번 기동해 런타임 테이블(`ensure*`: ci_*, hand_*, actuator_*, weekly_briefs, coverage_*, data_migrations 등)을 만들고 **중지**한다. 이 기동은 시드 데이터도 넣는다(아래 "시드 충돌").
+5. **규제·컴플라이언스 6개 테이블**(`regulations`, `regulatory_updates`, `regulatory_sources`, `regulatory_documents`, `compliance_checklist`, `compliance_progress_logs`)은 `db:migrate` 에도 기동 시 `ensure*` 에도 없다(ARGOS 운영 DB 에는 `drizzle-kit push` 로 만들어졌다). 대상에 없으면 적재 스크립트가 `table_missing` 으로 건너뛰고 종료 코드 4 를 낸다. 함께 옮기려면 임시 DB 에서 스키마를 만들어 이 6개만 복사한다.
+
+   ```
+   createdb argos_i_schema_tmp
+   DATABASE_URL=postgres://.../argos_i_schema_tmp npm run db:migrate
+   (cd packages/backend && DATABASE_URL=postgres://.../argos_i_schema_tmp npx drizzle-kit push:pg)
+   pg_dump --schema-only -t regulations -t regulatory_updates -t regulatory_sources -t regulatory_documents \
+           -t compliance_checklist -t compliance_progress_logs postgres://.../argos_i_schema_tmp | psql "$DATABASE_URL"
+   dropdb argos_i_schema_tmp
+   ```
+
+   ⚠ ARGOS_I DB 자체에 `drizzle-kit push` 를 직접 실행하지 않는다. push 는 `ensure*` 가 만든 컬럼 타입(`timestamptz` 등)을 `schema.ts` 기준(`timestamp`)으로 바꾸려 하며, 타입이 다르면 적재 스크립트가 해당 테이블을 `type_mismatch` 로 건너뛴다.
+6. **크롤러·스케줄러를 멈춘다.** ARGOS_I 에서는 `DISABLE_SCHEDULER=true` 로 운영하고, 적재 중에는 백엔드를 띄우지 않는다.
+7. **시드 충돌과 `--mode truncate`:** 같은 소스로 기동한 백엔드는 기동 시 시드(`ci_*`, `hand_*`, coverage 등)가 **새 uuid** 로 행을 넣는데 `slug`·`key` 같은 유니크 키는 원본과 같다. 기본 모드(upsert, PK 기준)로 적재하면 유니크 위반으로 해당 테이블이 실패한다. **첫 적재는 `--mode truncate --yes` 를 쓴다.**
+8. **계정은 옮기지 않는다.** `users` 는 제외되므로 ARGOS_I 에서 계정을 따로 만든다.
+
+### 14.3 활성화
+
+- Railway 의 backend 서비스 Variables 에 `ARGOS_I_FULL_DB_ENABLED=true` 를 설정한다 (자동 재배포).
+- 꺼져 있으면 `full-db.zip` 은 인증 뒤에 `503 {"error":"full_db_disabled"}` 이고, `full-db/manifest` 는 `"enabled": false` 로 응답한다.
+- **사용을 마치면 변수를 제거하거나 `false` 로 되돌린다.** 토큰이 유출되면 일일 번들보다 피해가 크므로 토큰 교체(3.4절)도 권장한다.
+- 선택 변수: `ARGOS_I_FULL_DB_BATCH_ROWS`(기본 1000, 100~5000), `ARGOS_I_FULL_DB_TIMEOUT_MIN`(기본 60, 5~240), `ARGOS_I_FULL_DB_ZIP_LEVEL`(기본 6, 0~9, 0 이면 무압축).
+
+### 14.4 엔드포인트
+
+접두사 `/api/argos-i`, 인증은 3절과 같다(`Authorization: Bearer <TOKEN>`만 인정, 쿼리스트링 토큰은 무시되어 401).
+
+#### `GET /api/argos-i/export/full-db/manifest` — 사전 확인
+
+덤프를 만들지 않는다. 슬롯·락 없이 카탈로그만 읽는다. 스위치가 꺼져 있어도 200 이다.
+
+| 쿼리 | 의미 |
+|---|---|
+| (기본) | 행 수는 `pg_class.reltuples` 추정(한 번도 분석되지 않았으면 `null`), 크기는 `pg_table_size`(heap+TOAST, 압축 전). `count(*)` 를 하지 않는다 |
+| `exact=true` | 테이블별 `count(*)` (테이블당 10초 제한, 실패하면 추정값으로 대체하고 `rowCountKind:"estimate"`) |
+
+응답(200, `Cache-Control: no-store`):
+
+```json
+{
+  "enabled": true,
+  "dumpFormatVersion": 1,
+  "serverTime": "2026-10-29T03:00:00.000Z",
+  "selection": { "supported": true, "param": "tables", "note": "..." },
+  "hint": "...",
+  "tables": [ { "name": "companies", "estimatedRows": 61, "rowCountKind": "estimate", "estimatedBytes": 65536, "loadByDefault": true } ],
+  "excludedTables": [ { "name": "users", "reason": "accounts_and_password_hash" } ],
+  "excludedColumns": [ { "table": "...", "column": "...", "pattern": "...", "reason": "name_rule:..." } ],
+  "allowlistedColumns": [ { "table": "weekly_briefs", "column": "input_tokens", "pattern": "token" } ],
+  "nullifiedFkColumns": [ { "table": "articles", "column": "submitted_by", "refTable": "users" } ],
+  "scrubbedJsonColumns": [ { "table": "regulatory_sources", "column": "config" } ],
+  "totals": { "estimatedRows": 0, "estimatedBytes": 0 },
+  "zip32Risk": false,
+  "inProgress": false
+}
+```
+
+`tables` 는 적재 순서(`loadOrder`, FK 부모가 먼저)다. `zip32Risk` 는 추정 크기 합이 3 GiB 를 넘으면 `true`(→ `?tables=` 분할). `inProgress` 는 다른 덤프가 진행 중인지다.
+
+#### `GET /api/argos-i/export/full-db.zip[?tables=a,b]` — 덤프
+
+| 항목 | 값 |
+|---|---|
+| 쿼리 | `tables=a,b,c` (선택, 쉼표 구분, 이름 규칙 `^[a-z_][a-z0-9_]{0,62}$`). 알 수 없거나 제외된 이름은 400 `{"error":"invalid_tables","unknown":[...]}`. 지정해도 `schema.json` 은 전체 계획을 담고 `manifest.json` 의 `selection` 만 `"subset"` 이 된다. 순서는 항상 `loadOrder` |
+| 성공 | 200, `Content-Type: application/zip`, `Content-Disposition: attachment; filename="argos-i-full-db_<YYYYMMDDTHHMMSSZ>.zip"`, `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`, `X-Argos-I-Dump-Generated-At: <ISO UTC>` |
+| 전송 방식 | `Content-Length` 없음(chunked). `ETag`·`Range` 미지원 (끊기면 처음부터 다시 받는다) |
+| `HEAD` | 200 과 헤더만. DB 에 접속하지 않고 슬롯도 쓰지 않는다 |
+
+오류 코드
+
+| 코드 | 의미 | 본문 |
+|---|---|---|
+| 401 | 토큰 오류 (스위치가 꺼져 있어도 401) | `{"error":"Unauthorized"}` + `WWW-Authenticate: Bearer` |
+| 429 | 인증 실패 누적(60초 30회 초과) | `{"error":"too_many_requests"}` + `Retry-After` |
+| 503 | 토큰 미설정 | `{"error":"argos_i_export_disabled"}` |
+| 503 | 인증은 통과했으나 스위치가 꺼짐 | `{"error":"full_db_disabled"}` |
+| 400 | 잘못된 `tables` | `{"error":"invalid_tables","unknown":[...]}` |
+| 409 | 다른 덤프가 진행 중 (**동시에 1개만**) | `{"error":"full_db_in_progress"}` + `Retry-After: 60` |
+| 500 | 스트림 시작 전 실패 (DB 접속·스키마 조회) | `{"error":"full_db_failed"}` (내부 메시지는 싣지 않는다) |
+| (스트림 중 실패) | 상태 코드를 바꿀 수 없다 | 연결이 끊기고 **`manifest.json` 이 없는 ZIP** 이 된다 → 14.11 |
+
+덤프는 `REPEATABLE READ READ ONLY` 트랜잭션 하나(단일 스냅샷)에서 읽으므로, 덤프 중 크롤러가 써도 부모·자식 행이 어긋나지 않는다. 서버는 어디에도 쓰지 않는다(파일시스템·DB 모두). 전체 상한 시간(`ARGOS_I_FULL_DB_TIMEOUT_MIN`, 기본 60분)을 넘으면 스트림이 오류로 끝난다.
+
+### 14.5 덤프 구조
+
+```
+argos-i-full-db/<YYYYMMDDTHHMMSSZ>/      (UTC)
+  README.md             덤프 설명 (이 절의 요약)
+  schema.json           테이블·컬럼·키·FK·시퀀스·적재 순서
+  tables/<table>.jsonl  테이블별 데이터 (한 줄에 한 행)
+  manifest.json         ZIP 의 마지막 엔트리: 행 수·바이트·sha256, 제외 목록
+```
+
+- JSONL: UTF-8, BOM 없음, LF, 한 줄에 한 행, 마지막 줄 끝에도 개행. 키 순서는 `schema.json` 의 컬럼 순서다. 행이 0건인 테이블도 빈 파일로 들어 있다. 문자 U+2028·U+2029 는 JSON 이스케이프 시퀀스(백슬래시 + `u2028` / `u2029`)로 쓰여 있어 `\n` 분할이 안전하다.
+- `schema.json`: `dumpFormatVersion`(1), `generatedAt`, `loadOrder`(FK 부모 먼저, 같은 단계는 이름 순), `cycles`(FK 순환·자기참조 그룹, 현재 `[]`), `tables[]` = `{name, columns[{name, ordinalPosition, dataType, udtName, formatType, isNullable, default, isGenerated, isIdentity, identityGeneration, dumpEncoding}], primaryKey[], conflictTarget{kind, name, columns[]}, foreignKeys[{name, columns, refTable, refColumns, onDelete, refExcluded}], sequences[{column, sequenceName}], loadByDefault}`.
+  - `conflictTarget`: PK 가 있으면 PK, 없으면 NOT NULL 컬럼만으로 된 비부분·비식 유니크 인덱스 중 이름 오름차순 첫 번째(예: `article_keywords`), 둘 다 없으면 `{kind:null}`.
+- `manifest.json` 은 압축형(들여쓰기 없음)이며 스트리밍 중 누적된 값이다.
+
+  | 필드 | 내용 |
+  |---|---|
+  | `dumpFormatVersion`, `generatedAt`, `finishedAt` | 형식 버전, 스냅샷 시각, 마지막 테이블 종료 시각 |
+  | `snapshot` | `{isolation:"repeatable read", note}` |
+  | `selection`, `selectedTables` | `"all"` / `"subset"` 과 담긴 테이블 목록 |
+  | `generator` | `{name:"argos", commit}` (`RAILWAY_GIT_COMMIT_SHA` 앞 7자 또는 null) |
+  | `schemaHint` | `{schemaFingerprintSha256, tableCount, columnCount, latestDrizzleSql, gitCommit}` — 정보 제공용 |
+  | `tables[]` | `{name, path, rows, jsonlBytes, sha256, loadByDefault, loadOrderIndex}` (`loadOrder` 순). **`sha256`·`jsonlBytes` 는 압축 해제된 JSONL 기준**, `rows` 는 실제 직렬화한 줄 수 |
+  | `excludedTables[]`, `excludedColumns[]`, `allowlistedColumns[]`, `nullifiedFkColumns[]`, `scrubbedJsonKeys[]`, `textFallbackColumns[]` | 14.7절 |
+  | `totals` | `{tableCount, rows, jsonlBytes}` |
+  | `files` | `{"README.md": sha256, "schema.json": sha256}` |
+
+  ZIP 전체의 sha256 은 자기 참조라 넣을 수 없다. 필요하면 다운로드 후 직접 계산한다.
+
+### 14.6 값 인코딩과 역변환 규칙
+
+모든 테이블은 `schema.json` 의 `udtName` 으로 아래 규칙을 따른다 (`dumpEncoding` 에 이름이 있다). 적재 스크립트는 이 표의 역변환을 구현하고, INSERT 의 파라미터마다 **대상 DB 컬럼의 `format_type` 으로 명시 캐스트**한다(`$n::timestamp`, `$n::jsonb`, `$n::numeric(15,2)` ...).
+
+| PG 타입 | JSONL 값 | 적재 파라미터 |
+|---|---|---|
+| bool | `true`/`false` | 그대로 |
+| int2, int4 | JSON number | 그대로 |
+| int8 | **문자열** `"9007199254740993"` | 문자열 그대로 (정밀도 보존) |
+| numeric | **문자열** `"1234.50"`, 특수값 `"NaN"` | 문자열 그대로 (scale 보존) |
+| float4, float8 | JSON number. NaN·±Infinity 는 문자열 `"NaN"`, `"Infinity"`, `"-Infinity"` | 그대로 |
+| text, varchar, bpchar, uuid, name | 문자열 | 그대로 |
+| date | `YYYY-MM-DD`, 무한값은 `"infinity"`, `"-infinity"` | 문자열 그대로 |
+| timestamp (tz 없음) | `YYYY-MM-DDTHH:MM:SS[.ffffff]Z` | 문자열을 `::timestamp` 로 캐스트 |
+| timestamptz | 같은 형식 (UTC) | 문자열을 `::timestamptz` 로 캐스트 |
+| json, jsonb | JSON 값 그대로. SQL NULL 은 `null`, **JSON null 스칼라는 `{"$jsonNull":true}`** | `JSON.stringify` 한 문자열을 `::jsonb` 로 캐스트, 센티널은 `'null'` |
+| bytea | `{"$bytea":"<base64>"}` | `Buffer.from(b64, 'base64')` |
+| 배열 (`text[]` 등 text·varchar·bpchar·uuid·name·int2·int4·bool 요소) | JSON 배열 (요소 null 허용) | JS 배열 그대로, `::text[]` 등 캐스트 |
+| 그 밖의 타입 (enum, inet, interval, time, tsvector, `numeric[]`, `jsonb[]`, `bytea[]`, `int8[]` ...) | `::text` 문자열 | 문자열을 `format_type` 으로 캐스트 (`manifest.textFallbackColumns` 에 기록) |
+
+- **NULL** 은 모든 타입에서 JSON `null` 이다.
+- **timestamp 규약:** `timestamp`(tz 없음)는 ARGOS 에서 UTC wall-clock 으로 저장된다. 값에 `Z` 를 붙여 내보내지만 PG 는 `timestamp` 에서 시간대 표기를 무시하므로 wall-clock 이 그대로 보존된다. **JS `Date` 로 읽지 말 것**(마이크로초가 잘리고 로컬 시간대로 어긋난다). 소수부는 원문 그대로이며 끝자리 0 은 PG 가 이미 생략한다. `timestamptz` 는 UTC 로 내보낸다.
+- **node-pg 주의:** JS 배열 파라미터는 PG 배열로 직렬화되므로 jsonb 에는 반드시 `JSON.stringify` 한 문자열을 넘기고 캐스트한다.
+- **jsonb 정밀도:** 파싱 후 재직렬화하므로 17자리를 넘는 정수와 소수의 끝자리 0(`1.50` → `1.5`)은 보존되지 않는다(jsonb 의미상 같은 값).
+- 적재 INSERT 는 파라미터 상한(65535)을 넘지 않도록 행 수를 `min(배치, floor(60000/컬럼 수))` 로 낮춘다.
+
+### 14.7 제외 항목
+
+아래를 뺀 나머지는 **신규 테이블이 생겨도 자동으로 포함**된다. 블록리스트는 안전망이 아니다. 새 테이블을 추가하는 개발자는 `packages/backend/src/services/argos-i-full-db-config.ts` 의 `EXCLUDED_TABLES` 를 함께 검토한다.
+
+| 구분 | 내용 |
+|---|---|
+| 제외 테이블 (`public` 의 기본 테이블 중) | `users`(계정·`password_hash`), `allowed_emails`, `audit_logs`, `ai_usage_logs`, `argos_i_exports`, `argos_i_export_files`. 이름이 `__drizzle` 로 시작하는 테이블과 `public` 외 스키마도 제외(방어용) |
+| 제외 컬럼 (이름 규칙) | 컬럼명(소문자)에 `password`, `secret`, `token`, `api_key`, `apikey`, `credential` 이 들어가면 제외. 생성 컬럼(`GENERATED ALWAYS AS`)도 제외 |
+| 규칙의 예외 (허용 목록) | LLM 토큰 사용량 컬럼 4개는 비밀이 아니므로 포함: `weekly_briefs.input_tokens`·`output_tokens`, `issue_ai_call_log.input_tokens`·`output_tokens` (`manifest.allowlistedColumns`) |
+| 필수 컬럼이 제외되면 | NOT NULL 이고 기본값이 없는 컬럼이 제외되면 그 테이블 전체를 제외(`required_column_excluded:<컬럼>`). 그 테이블을 NOT NULL FK 로 참조하는 테이블도 연쇄 제외 |
+| 제외 테이블을 가리키는 FK | nullable FK 컬럼은 **NULL 로 내보낸다**(`manifest.nullifiedFkColumns`). 현재 7개: `articles.submitted_by`, `pipeline_runs.triggered_by`, `partner_evaluations.evaluated_by`, `competitive_alerts.read_by`, `whatif_scenarios.created_by`, `strategic_goals.created_by`, `spec_change_logs.changed_by` |
+| JSON 키 스크러빙 | `regulatory_sources.config`(jsonb)에서 키 이름이 위 컬럼 패턴 또는 `authorization`, `bearer`, `cookie`, `private_key` 를 포함하는 키를 **값째 재귀 제거**(대소문자 무시, `-`·공백은 `_` 로 취급). 제거 건수는 `manifest.scrubbedJsonKeys` |
+| 적재 기본 제외 | `data_migrations` 는 덤프에 들어 있지만 `loadByDefault:false`("마커 키 충돌, ARGOS_I에서는 적재하지 말 것"). 적재 스크립트는 기본으로 건너뛴다 |
+
+URL 컬럼(`crawl_targets.urls`·`patterns`, `regulatory_sources.url`, `issue_attachments.file_url`)은 그대로 포함한다. `user:pass@` 나 `?token=` 형태의 자격증명이 들어 있지 않은지는 ARGOS 운영자가 별도로 확인한다.
+
+### 14.8 적재 절차
+
+1. **받기** — pull 스크립트가 사전 확인, 스트리밍 저장, `unzip -t`, 압축 해제, 파일별 sha256·바이트 검증을 하고 최종 디렉터리를 출력한다.
+
+   ```
+   export ARGOS_I_EXPORT_TOKEN='<TOKEN>'
+   node scripts/argos-i-pull-full-db.mjs            # 또는 scripts/argos-i-pull-full-db.sh
+   # → .../argos-i-full-db-data/argos-i-full-db/<YYYYMMDDTHHMMSSZ>
+   ```
+
+   옵션: `--tables a,b`(분할 다운로드), `--keep-zip`, `--no-extract`(받아서 `unzip -t` 만), `--retries N`(기본 2, 처음부터 다시). 환경변수: `ARGOS_I_BASE_URL`, `ARGOS_I_EXPORT_TOKEN`, `ARGOS_I_FULL_DB_OUT_DIR`(기본 `./argos-i-full-db-data`). 압축 해제에는 시스템 `unzip` 이 필요하다.
+
+   | 종료 코드 | 의미 |
+   |---|---|
+   | 0 | 성공 |
+   | 1 | 일반 오류 (인자, 잘못된 tables, unzip 없음) |
+   | 2 | 인증 실패·비활성 (401, 503 `argos_i_export_disabled`·`full_db_disabled`, `enabled:false`) |
+   | 4 | 체크섬 불일치 또는 `manifest.json` 없음(불완전 ZIP) |
+   | 5 | 재시도 소진 (429·5xx·네트워크) |
+   | 6 | 다른 덤프가 진행 중 (409) |
+
+2. **검증만** — `node scripts/argos-i-import-full-db.mjs <덤프 디렉터리> --verify-only` (DB 불필요). 모든 파일의 sha256·바이트를 `manifest.json` 과 대조한다.
+3. **계획 보기** — `DATABASE_URL=<ARGOS_I DB> node scripts/argos-i-import-full-db.mjs <덤프 디렉터리> --dry-run` (DB 에는 읽기 쿼리만). 테이블별 적재/건너뜀, 행 수, 호환성 판정, FK 경고, TRUNCATE CASCADE 범위를 보여 준다.
+4. **적재** — 저장소 루트에서 (`npm ci` 를 마친 상태, Node 18+, 의존성은 `pg`):
+
+   ```
+   DATABASE_URL=postgres://... node scripts/argos-i-import-full-db.mjs <덤프 디렉터리> --mode truncate --yes
+   ```
+
+   DB 접속 정보는 환경변수 `DATABASE_URL` 로만 받는다(인자로 받지 않는다). 비밀번호는 출력하지 않고 `호스트:포트/DB명` 만 출력한다.
+
+   | 옵션 | 기본 | 설명 |
+   |---|---|---|
+   | `--mode upsert\|truncate` | upsert | upsert: PK(없으면 `conflictTarget`) 기준 `INSERT ... ON CONFLICT DO UPDATE`(비키 컬럼이 없으면 `DO NOTHING`). truncate: 테이블 단위 트랜잭션에서 `TRUNCATE ... CASCADE` 후 INSERT. **첫 적재는 truncate 권장** |
+   | `--yes` | - | truncate 에 필수 (없으면 종료 코드 1) |
+   | `--tables a,b` | 전체 | 지정 테이블만 (`loadOrder` 유지) |
+   | `--skip a,b` | `data_migrations` | 건너뛸 테이블을 추가. `data_migrations` 는 `--tables` 에 명시했을 때만 경고와 함께 적재 |
+   | `--dry-run` | 끔 | 쓰기 없이 계획만 출력 |
+   | `--batch-rows N` | 500 | INSERT 당 행 수 (파라미터 60000개·8MiB 상한으로 자동 하향) |
+   | `--defer-fk` | 끔 | `session_replication_role = replica` (슈퍼유저 필요, 종료 시 원복). FK 순환이 있을 때만 필요 (현재 순환 없음) |
+   | `--verify-only` | 끔 | 체크섬 검증만 |
+   | `--no-analyze` | 끔 | 적재 후 `ANALYZE` 생략 |
+   | `--continue-on-error` | 끔 | 한 테이블이 실패해도 다음 테이블 진행 (기본은 즉시 중단) |
+
+   동작: ① `manifest`/`schema` 형식 검증 ② **쓰기 전에** 전 파일 sha256 대조(하나라도 다르면 종료 코드 3) ③ 대상 스키마 조회와 테이블별 호환성 판정 ④ truncate 는 대상 DB 의 FK 로 CASCADE 범위를 계산해 적재 대상 밖 테이블이 비워질 것 같으면 **쓰기 전에 중단** ⑤ `loadOrder` 순서로 테이블 단위 트랜잭션(실패하면 그 테이블만 롤백) ⑥ `serial` 컬럼 시퀀스를 `setval`(행이 없으면 1 부터) ⑦ `ANALYZE` ⑧ 행 수 검증(truncate 는 manifest 와 같아야 하고, upsert 는 이상이면 정상) ⑨ 요약 표.
+
+   호환성 판정으로 건너뛰는 사유: `table_missing`, `columns_missing:[...]`, `type_mismatch:[...]`(같은 컬럼의 `udt_name` 이 다름), `target_required_column_missing:[...]`(대상에만 있는 NOT NULL·기본값 없는 컬럼), `target_generated_columns:[...]`, `no_key_target_not_empty`(키 없는 테이블인데 upsert 이고 대상이 비어 있지 않음). 건너뛴 테이블을 FK 로 참조하는 테이블이 있으면 경고한다.
+
+   | 종료 코드 | 의미 |
+   |---|---|
+   | 0 | 성공. 선택한 테이블을 모두 적재했고 행 수가 일치 |
+   | 1 | 인자 오류, `--yes` 누락, 지원하지 않는 덤프 버전, `pg` 미설치, FK 순환(`--defer-fk` 필요), TRUNCATE CASCADE 범위 초과 |
+   | 2 | DB 접속·권한 오류 (`--defer-fk` 권한 부족 포함) |
+   | 3 | 체크섬/크기 불일치 또는 manifest 손상 (쓰기 전에 종료) |
+   | 4 | 완료했으나 건너뛴 테이블이 있음 |
+   | 5 | 테이블 적재 실패 (그 테이블은 롤백됨, 이전 테이블은 커밋됨 → 출력된 `--tables` 로 재개) |
+   | 6 | 적재 후 행 수 불일치 (truncate 모드) |
+
+   **트리거:** upsert 는 사용자 트리거를 적재 중 비활성화한다(테이블 트랜잭션 안에서 `ALTER TABLE ... DISABLE TRIGGER USER` → 적재 → `ENABLE TRIGGER USER`, 사용자 트리거가 있는 테이블에만, 같은 트랜잭션이라 실패하면 롤백되어 원복된다). **소유자 권한이 없으면** 비활성화하지 못하고 경고 한 줄("updated_at 트리거가 값을 덮어쓸 수 있음")만 출력한 채 계속하며, 이때 `updated_at` 류 컬럼이 `now()` 로 덮어써질 수 있다(영향: `coverage_field_events`, `humanoid_models`). truncate 모드는 UPDATE 가 없어 트리거를 건드리지 않는다. 테이블 소유자(보통 마이그레이션을 실행한 DB 사용자)로 실행한다.
+
+   upsert 모드에서 유니크 위반(`23505`)이 나면 오류 줄에 "첫 적재라면 --mode truncate --yes 를 사용하세요" 가 덧붙는다. 행 데이터가 담긴 오류 상세(`detail`)는 출력하지 않는다.
+
+5. **적재 후 점검**
+   - 행 수: 요약 표의 `expected`/`count` 열이 같은지, 또는 `SELECT count(*) FROM <table>` 로 `manifest.json` 의 `rows` 와 대조한다.
+   - 시퀀스: 새 행 삽입이 PK 충돌 없이 되는지 (`serial` 17개 테이블은 스크립트가 `setval` 한다). 직접 확인: `SELECT last_value, is_called FROM <table>_id_seq;`
+   - 통계: 스크립트가 `ANALYZE` 했다(`--no-analyze` 가 아니라면).
+   - 사용자 id: `users` 가 없으므로 `pm_*`, `issue_*`, `report_downloads.user_id` 등이 가리키는 사용자 id 는 ARGOS_I 계정과 자동으로 매핑되지 않는다(14.11).
+
+### 14.9 소요·크기 주의
+
+- 먼저 `full-db/manifest` 의 `totals.estimatedBytes`(압축 전)와 `zip32Risk` 를 본다. 압축 후에는 대략 1/4~1/6 이다. 가장 큰 테이블은 `articles` 다.
+- 로컬 실측 예(합성 데이터, 같은 머신): 압축 전 441 MB(JSONL), ZIP 204 MB, 약 17초, 덤프 중 서버 RSS 증가 약 100 MB, `/health` 최대 지연 0.1초 미만. 실제 시간은 네트워크가 좌우한다.
+- 받는 쪽 디스크는 ZIP + 해제본 + DB 를 합쳐 추정 크기의 3배 이상 여유를 둔다(pull 스크립트가 `fs.statfs` 로 경고).
+- **서버 부하를 피하려고 KST 03:00(크롤러)·04:00(태깅)·05:30(파이프라인)·07:00(일일 번들) 전후는 피해서 실행한다.** 서버가 강제하지는 않는다.
+- 덤프 시간 동안 읽기 전용 트랜잭션 하나가 열려 있어 vacuum 이 지연된다(다른 쓰기는 막지 않는다). 그래서 1회성 사용만 권장한다. 이 동안 `ALTER TABLE` 같은 DDL 은 대기할 수 있으므로 배포·마이그레이션은 덤프 후에 한다.
+- **`zip32Risk` / 분할:** 서버의 ZIP 라이브러리는 ZIP64 를 쓰지 못한다. 엔트리 하나가 4 GiB-1 MiB, 전체가 4 GiB-16 MiB 를 넘으면 스트림이 오류로 끝난다(로그 `reason=zip32_limit`, `manifest.json` 없음). `--tables` 로 나눠 받는다. 예: `--tables articles` 와 나머지를 따로. 분할 덤프는 각각 완전한 ZIP 이며, 적재는 `--tables` 로 구간을 나눠 `loadOrder` 순서대로(부모 먼저) 한다.
+- **프록시 응답 시간 제한:** Railway 프록시의 한 응답 최대 지속 시간은 확인하지 못했다(미확인). 배포 후 `full-db/manifest` 로 크기를 보고 첫 덤프를 실측하며, 시간 초과가 의심되면 `--tables` 로 분할한다. 서버는 전송 내내 바이트를 흘려 보내고(역압 기반), 느린 클라이언트도 전체 상한(기본 60분) 안에서는 끊지 않는다.
+- 실패하면 **처음부터** 다시 받는다 (이어받기 없음). pull 스크립트는 `--retries` 만큼 자동으로 다시 시도한다.
+
+### 14.10 1회성 권장과 사용 후 조치
+
+1. 적재와 검증이 끝나면 ARGOS 의 `ARGOS_I_FULL_DB_ENABLED` 를 제거하거나 `false` 로 되돌린다.
+2. 받은 덤프(ZIP, 해제본, 임시 스키마 DB)를 안전하게 삭제한다. 원문이 들어 있다.
+3. 토큰을 교체한다(3.4절). 그 뒤의 동기화는 일일 번들(`argos-i-pull`)을 쓴다.
+
+### 14.11 FAQ
+
+| 증상 | 원인·해결 |
+|---|---|
+| 불완전한 ZIP 인지 어떻게 아나 | `unzip -t` 가 실패하거나 ZIP 에 `manifest.json` 이 없으면 전송 중 중단된 덤프다(상태 코드는 이미 200 이라 알릴 방법이 없다). 버리고 처음부터 다시 받는다. pull 스크립트는 종료 코드 4 로 알린다 |
+| 409 `full_db_in_progress` | 다른 덤프가 진행 중이다(동시에 1개). `Retry-After`(60초) 뒤 다시 시도. 클라이언트가 끊은 덤프는 서버가 곧 정리한다. 종료 코드 6 |
+| 429 | 인증 실패가 60초에 30회를 넘었다. 토큰을 확인하고 `Retry-After` 뒤 다시 시도 |
+| 503 `full_db_disabled` | 서버에 `ARGOS_I_FULL_DB_ENABLED=true` 가 없다 (14.3) |
+| 건너뛴 테이블이 있다 (종료 코드 4) | 소스 버전/스키마가 달라 `columns_missing`·`type_mismatch` 등이 났다. 14.2 의 같은 소스 버전을 쓰고, `ensure*` 로 만든 테이블에 `drizzle-kit push` 를 쓰지 않았는지 확인한다. 규제·컴플라이언스 6개 테이블이 `table_missing` 이면 14.2 의 5번 |
+| upsert 재실행 후 `coverage_field_events`·`humanoid_models` 의 `updated_at` 이 바뀌었다 | 이 테이블들에는 `BEFORE UPDATE` 트리거(`updated_at = now()`)가 있다. upsert 는 사용자 트리거를 적재 중 비활성화하지만 **소유자 권한이 없으면** 그러지 못하고 경고만 출력하므로 값이 덮어써질 수 있다. 테이블 소유자 계정으로 `DATABASE_URL` 을 지정해 다시 실행하거나, 첫 적재처럼 `--mode truncate --yes` 를 쓴다 |
+| 유니크 위반으로 실패 (종료 코드 5) | upsert 모드에서 기동 시 시드 행과 유니크 키가 충돌했다. `--mode truncate --yes` 로 다시 한다 |
+| `regulatory_documents` 파일이 없다 | 업로드된 파일 **본체**는 ARGOS 컨테이너 디스크에 있고 DB 에 없다. 메타데이터 행만 이전되며 ARGOS_I 에는 파일이 없다 |
+| `pm_*`, `issue_*` 의 사용자 id 가 어느 계정인지 모르겠다 | `users` 는 이전하지 않으므로 이 id 들은 ARGOS_I 에서 가리키는 계정이 없는 **고아 참조**다(FK 위반은 없다). ARGOS_I 에서 계정을 새로 만들며 기존 id 와 자동 매핑되지 않는다. `report_downloads.user_id`(varchar)는 이메일일 수 있다 |
+| 개인정보성 데이터가 들어 있나 | `issue_ask_history.query`, `issue_comments.body`, `pm_updates.body`, `compliance_checklist.assignee`, 각종 `*_by` varchar 컬럼은 "모든 데이터" 요구에 따라 포함된다. 외부로 반출하지 않는다 |
+| `ARGOS_I_FULL_DB_ENABLED` 가 `true` 인데 manifest 의 `estimatedRows` 가 `null` | 테이블이 아직 분석(`ANALYZE`)된 적이 없다. 추정치일 뿐이며 덤프에는 영향이 없다. 정확한 값은 `?exact=true` |

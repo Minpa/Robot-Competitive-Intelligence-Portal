@@ -4,7 +4,7 @@ import * as schema from './schema.js';
 
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/rcip';
 
-const pool = new Pool({
+export const pool = new Pool({
   connectionString,
 });
 
