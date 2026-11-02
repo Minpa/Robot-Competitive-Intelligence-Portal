@@ -13,6 +13,8 @@
 import type {
   WeeklyArticleItem,
   WeeklyBriefResponse,
+  WeeklyBriefV1Response,
+  WeeklyReportResponse,
   WeeklyCiChange,
   WeeklyEvidence,
   WeeklyKeyMessage,
@@ -21,6 +23,9 @@ import type {
   WeeklyVideoItem,
 } from '@/types/weekly-brief';
 import { escapeHtml } from '@/lib/tech-trend-report-html';
+import { ext, maybeLink, okHref, t } from '@/lib/weekly-brief-html-common';
+import { buildReportHtml } from '@/lib/weekly-brief-report-html';
+import { versionKindOf } from '@/lib/weekly-brief-report';
 import {
   POSTER_COLORS,
   POSTER_DURATION_BG,
@@ -49,6 +54,7 @@ import {
   isPosterEmpty,
   keywordDeltaText,
   keywordHero,
+  normalizeV1Brief,
   normalizeWeeklyBrief,
   papersBandSubtitle,
   planKeyMessages,
@@ -67,37 +73,6 @@ export interface WeeklyBriefHtmlMeta {
 
 export function weeklyBriefFileName(brief: Pick<WeeklyBriefResponse, 'weekStart' | 'payload'>): string {
   return weeklyBriefFileNameOf(brief.weekStart, brief.payload.header.weekNumber);
-}
-
-// ───────────────────────── 이스케이프 ─────────────────────────
-
-/** 이스케이프 후에도 남을 수 있는 금지 토큰(본문에 우연히 포함된 경우)을 폭 없는 공백으로 끊는다 */
-const FORBIDDEN_TOKEN_RE = /javascript:|data:|http:\/\/|url\(|@import|onerror|onclick|onload|src\s*=|href\s*=/gi;
-/** 링크 값에 금지 토큰이 들어 있으면(예: 쿼리의 http://) 링크를 포기한다 */
-const FORBIDDEN_HREF_RE = /javascript:|data:|http:\/\/|url\(|@import|onerror|onclick|onload|<|"/i;
-
-function defang(s: string): string {
-  return s.replace(FORBIDDEN_TOKEN_RE, (m) => `${m[0]}​${m.slice(1)}`);
-}
-
-/** 텍스트 노드·속성값용 */
-function t(s: string | null | undefined): string {
-  return defang(escapeHtml(s ?? ''));
-}
-
-function okHref(h: string): string {
-  return h && !FORBIDDEN_HREF_RE.test(h) ? h : '';
-}
-
-function ext(href: string, inner: string, cls?: string): string {
-  const c = cls ? ` class="${cls}"` : '';
-  return `<a${c} href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${inner}</a>`;
-}
-
-/** 링크가 안전하면 <a>, 아니면 텍스트 그대로 */
-function maybeLink(href: string, inner: string, cls?: string): string {
-  const h = okHref(href);
-  return h ? ext(h, inner, cls) : inner;
 }
 
 // ───────────────────────── 스타일 ─────────────────────────
@@ -283,8 +258,17 @@ function paperRowHtml(a: WeeklyPaperItem): string {
 
 // ───────────────────────── 빌더 ─────────────────────────
 
-export function buildWeeklyBriefHtml(rawBrief: WeeklyBriefResponse, _meta: WeeklyBriefHtmlMeta): string {
-  const brief = normalizeWeeklyBrief(rawBrief); // papers 도입 이전 payload 호환
+/**
+ * 공개 API — payload.schemaVersion 으로 분기한다: v2 는 장문 리포트 빌더, 그 외(1 또는 없음)는 기존 포스터 빌더.
+ * v1 출력은 변경 전과 바이트 단위로 같아야 한다(golden 회귀 테스트).
+ */
+export function buildWeeklyBriefHtml(rawBrief: WeeklyBriefResponse, meta: WeeklyBriefHtmlMeta): string {
+  if (versionKindOf(rawBrief.payload) === 'v2') return buildReportHtml(normalizeWeeklyBrief(rawBrief) as WeeklyReportResponse);
+  return buildPosterHtml(rawBrief as WeeklyBriefV1Response, meta);
+}
+
+function buildPosterHtml(rawBrief: WeeklyBriefV1Response, _meta: WeeklyBriefHtmlMeta): string {
+  const brief = normalizeV1Brief(rawBrief); // papers 도입 이전 payload 호환
   const p = brief.payload;
   const h = p.header;
   const periodTitle = formatWeekTitle(h.weekStart, h.weekEnd, h.weekNumber);

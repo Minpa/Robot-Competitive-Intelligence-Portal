@@ -5,11 +5,16 @@
 import type {
   BriefDomainKey,
   WeeklyArticleItem,
-  WeeklyBriefResponse,
+  WeeklyBriefV1Response,
   WeeklyKeyword,
   WeeklyPaperItem,
+  WeeklyReportResponse,
   WeeklyVideoItem,
 } from '@/types/weekly-brief';
+import reportEmpty from './__fixtures__/weekly-report-empty.json';
+import reportFull from './__fixtures__/weekly-report-full.json';
+import reportPartial from './__fixtures__/weekly-report-partial.json';
+import reportSparse from './__fixtures__/weekly-report-sparse.json';
 
 const YT = 'https://i.ytimg.com/vi';
 
@@ -71,7 +76,7 @@ export function makeKeyword(i: number, over: Partial<WeeklyKeyword> = {}): Weekl
   };
 }
 
-export function makeFullBrief(): WeeklyBriefResponse {
+export function makeFullBrief(): WeeklyBriefV1Response {
   return {
     weekStart: '2026-10-19',
     status: 'ok',
@@ -155,7 +160,7 @@ export function makeFullBrief(): WeeklyBriefResponse {
 }
 
 /** 빈 섹션 변형: 키 메시지·영상·기사·CI·키워드가 모두 없음 */
-export function makeEmptyBrief(): WeeklyBriefResponse {
+export function makeEmptyBrief(): WeeklyBriefV1Response {
   const b = makeFullBrief();
   b.status = 'partial';
   b.payload = {
@@ -174,9 +179,35 @@ export function makeEmptyBrief(): WeeklyBriefResponse {
   return b;
 }
 
-export function makePartialBrief(): WeeklyBriefResponse {
+export function makePartialBrief(): WeeklyBriefV1Response {
   const b = makeFullBrief();
   b.status = 'partial';
   b.payload.meta = { aiUsed: false, ruleBasedMessages: 3, warnings: ['ai_disabled'], truncated: false };
   return b;
+}
+
+// ───────────────────────── v2 (장문 리포트) ─────────────────────────
+// 백엔드 compose-report 파이프라인이 만든 샘플(src/lib/__fixtures__/*.json)을 그대로 쓴다.
+// 백엔드 weekly-brief-contract 테스트가 이 JSON 과 백엔드 샘플의 일치, 생성기와의 일치를 검사한다.
+
+const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+
+/** 모든 섹션이 가득 찬 ok 리포트 (영상 12 · 논문 8 · 기사 12 · 회사 6 · 도메인 5 활성) */
+export function makeFullReport(): WeeklyReportResponse {
+  return clone(reportFull) as unknown as WeeklyReportResponse;
+}
+
+/** 희소한 주: 영상 3건뿐, 도메인 전부 quiet, 회사·CI 없음 */
+export function makeSparseReport(): WeeklyReportResponse {
+  return clone(reportSparse) as unknown as WeeklyReportResponse;
+}
+
+/** 데이터 전무 (partial + no_data) */
+export function makeEmptyReport(): WeeklyReportResponse {
+  return clone(reportEmpty) as unknown as WeeklyReportResponse;
+}
+
+/** 도메인 호출만 실패해 도메인 서술이 규칙 문장인 partial */
+export function makePartialReport(): WeeklyReportResponse {
+  return clone(reportPartial) as unknown as WeeklyReportResponse;
 }

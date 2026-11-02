@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { Archive, Check, ChevronLeft, ChevronRight, FileDown, Link2, Loader2, RefreshCw } from 'lucide-react';
 import type { WeeklyBriefResponse, WeeklyBriefRunStatus } from '@/types/weekly-brief';
 import { buildWeeklyBriefHtml, weeklyBriefFileName } from '@/lib/weekly-brief-html';
-import { formatCostUsd, formatDurationMs, weeklyBriefPermalink } from '@/lib/weekly-brief-format';
+import { buildGenerateConfirmMessage, formatCostUsd, formatDurationMs, weeklyBriefPermalink } from '@/lib/weekly-brief-format';
+import { versionKindOf } from '@/lib/weekly-brief-report';
 import type { useWeeklyBriefGenerate } from './useWeeklyBriefGenerate';
 
 export type WeeklyGenerateState = ReturnType<typeof useWeeklyBriefGenerate>;
@@ -46,11 +47,7 @@ export function GenerateButton({ generate, targetWeekStart, targetExists, ready,
   const busy = generate.running || generate.starting || generate.waitingForStart;
   const handle = () => {
     if (!targetWeekStart) return;
-    const ok = window.confirm(
-      targetExists
-        ? `${targetWeekStart} 주 브리프가 이미 있습니다. 덮어쓰기로 다시 생성할까요?\nAI 문장 생성 비용(회당 약 $0.1 이하)이 발생합니다.`
-        : `${targetWeekStart} 주 브리프를 생성할까요?\nAI 문장 생성 비용(회당 약 $0.1 이하)이 발생할 수 있습니다.`
-    );
+    const ok = window.confirm(buildGenerateConfirmMessage({ weekStart: targetWeekStart, exists: targetExists, estimatedCostUsd: generate.status?.config?.estimatedCostUsd }));
     if (!ok) return;
     generate.start({ weekStart: targetWeekStart, force: targetExists });
   };
@@ -156,8 +153,11 @@ export function WeeklyBriefToolbar({ brief, isAdmin, generate, targetWeekStart, 
     }
   };
 
+  // 알 수 없는 형식(더 새로운 schemaVersion)은 정적 HTML 로 만들 수 없다
+  const downloadable = !!brief && versionKindOf(brief.payload) !== 'unknown';
+
   const handleDownload = () => {
-    if (!brief) return;
+    if (!brief || !downloadable) return;
     const html = buildWeeklyBriefHtml(brief, { pageUrl: weeklyBriefPermalink(window.location.origin, brief.weekStart) });
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -217,7 +217,7 @@ export function WeeklyBriefToolbar({ brief, isAdmin, generate, targetWeekStart, 
             <button
               type="button"
               onClick={handleDownload}
-              disabled={!brief}
+              disabled={!downloadable}
               className={BTN}
               title="단일 HTML 파일로 저장 (관리자)"
             >

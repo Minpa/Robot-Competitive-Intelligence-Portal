@@ -46,3 +46,20 @@ export const POSTER_THUMB_GRADIENT = `linear-gradient(135deg,${POSTER_THUMB_GRAD
 export const POSTER_WHITE = '#FFFFFF';
 /** 영상 길이 배지 배경 */
 export const POSTER_DURATION_BG = 'rgba(0,0,0,.72)';
+
+/**
+ * 장문 리포트(v2) 차트 색 — 스파크라인(SVG)·막대(CSS)가 화면과 다운로드 HTML 에서 같은 값을 쓴다. 모두 단색(그라디언트·url() 없음).
+ * 글자색이 아니라 도형 색이므로 대비 표(REPORT_CONTRAST_PAIRS)에는 들어가지 않는다.
+ */
+export const REPORT_CHART = {
+  /** 스파크라인 선·막대(이번 주) */
+  stroke: '#F4F5F6',
+  /** 스파크라인 마지막 점 */
+  dot: '#FFFFFF',
+  /** 지난주 막대 */
+  barPrev: '#9AA1AC',
+  /** 막대 바탕 */
+  track: '#3A3F47',
+  /** 격자·기준선 */
+  grid: '#7A808A',
+} as const;

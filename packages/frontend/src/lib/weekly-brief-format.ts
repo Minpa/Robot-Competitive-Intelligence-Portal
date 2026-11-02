@@ -13,9 +13,12 @@ import type {
   WeeklyBriefListItem,
   WeeklyBriefPayload,
   WeeklyBriefResponse,
+  WeeklyBriefV1Response,
   WeeklyKeyMessage,
   WeeklyKeyword,
+  WeeklyReportPayload,
 } from '@/types/weekly-brief';
+import { WEEKLY_BRIEF_REPORT_SCHEMA_VERSION, weeklyBriefSchemaVersionOf } from '@/types/weekly-brief';
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
@@ -172,6 +175,18 @@ export function formatCostUsd(v: number | null | undefined): string {
   if (v == null || !Number.isFinite(v) || v < 0) return '';
   if (v > 0 && v < 0.005) return '<$0.01';
   return `$${v.toFixed(2)}`;
+}
+
+/**
+ * "지금 생성" 확인 다이얼로그 문구 — 비용은 서버가 내려준 estimatedCostUsd 로 표기한다(하드코딩 금지).
+ * 값이 없으면 금액 없이 "AI 문장 생성 비용이 발생합니다" 로만 안내한다. 기존 브리프가 있으면 덮어쓰기(복구 불가)를 알린다.
+ */
+export function buildGenerateConfirmMessage(opts: { weekStart: string; exists: boolean; estimatedCostUsd?: number | null }): string {
+  const cost = formatCostUsd(opts.estimatedCostUsd);
+  const costLine = cost ? `AI 문장 생성 비용(회당 약 ${cost})이 발생합니다.` : 'AI 문장 생성 비용이 발생합니다.';
+  return opts.exists
+    ? `${opts.weekStart} 주 브리프가 이미 있습니다. 덮어쓰기로 다시 생성할까요?\n기존 브리프는 덮어써지며 복구되지 않습니다.\n${costLine}`
+    : `${opts.weekStart} 주 브리프를 생성할까요?\n${costLine}`;
 }
 
 /** 소요 시간(ms) → '12.3초' / '2분 5초' */
@@ -347,10 +362,10 @@ export function normalizeCounts<T extends Partial<Pick<WeeklyBriefCounts, 'paper
 }
 
 /**
- * 서버 응답 정규화 — papers 도입 이전 payload(papers/counts.papers/deltas.papers 없음)를
+ * v1 응답 정규화 — papers 도입 이전 payload(papers/counts.papers/deltas.papers 없음)를
  * papers=[]·counts.papers=0·deltas.papers=null 로 채운다. 입력은 변경하지 않는다.
  */
-export function normalizeWeeklyBrief(brief: WeeklyBriefResponse): WeeklyBriefResponse {
+export function normalizeV1Brief(brief: WeeklyBriefV1Response): WeeklyBriefV1Response {
   const p = brief.payload;
   const h = p.header;
   return {
@@ -365,6 +380,55 @@ export function normalizeWeeklyBrief(brief: WeeklyBriefResponse): WeeklyBriefRes
       papers: Array.isArray(p.papers) ? p.papers : [],
     },
   };
+}
+
+/** v2 payload 의 누락된 배열·객체를 기본값으로 채운다(마이너 필드 추가에도 화면이 깨지지 않게). 입력은 변경하지 않는다 */
+export function normalizeReportPayload(raw: WeeklyReportPayload): WeeklyReportPayload {
+  const r = raw as unknown as Record<string, unknown>;
+  const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+  const trends = (r.trends ?? {}) as Partial<WeeklyReportPayload['trends']>;
+  const metaIn = (r.meta ?? {}) as Partial<WeeklyReportPayload['meta']>;
+  const counts = normalizeCounts(raw.header.counts);
+  return {
+    ...raw,
+    header: { ...raw.header, counts, deltas: { ...raw.header.deltas, papers: typeof raw.header.deltas?.papers === 'number' ? raw.header.deltas.papers : null } },
+    highlights: arr(r.highlights) as WeeklyReportPayload['highlights'],
+    domains: arr(r.domains) as WeeklyReportPayload['domains'],
+    companies: arr(r.companies) as WeeklyReportPayload['companies'],
+    videos: arr(r.videos) as WeeklyReportPayload['videos'],
+    papers: arr(r.papers) as WeeklyReportPayload['papers'],
+    articles: arr(r.articles) as WeeklyReportPayload['articles'],
+    watchPoints: arr(r.watchPoints) as WeeklyReportPayload['watchPoints'],
+    ciSummary: (r.ciSummary as WeeklyReportPayload['ciSummary'] | undefined) ?? { updates: 0, companies: 0 },
+    trends: {
+      volume: { weeks: arr((trends.volume as { weeks?: unknown } | undefined)?.weeks) as WeeklyReportPayload['trends']['volume']['weeks'] },
+      keywords: arr(trends.keywords) as WeeklyReportPayload['trends']['keywords'],
+      keywordNote: trends.keywordNote ?? null,
+    },
+    meta: {
+      aiUsed: metaIn.aiUsed === true,
+      ruleBasedSections: typeof metaIn.ruleBasedSections === 'number' ? metaIn.ruleBasedSections : 0,
+      sectionSources: { highlights: 'none', domains: 'none', companies: 'none', papers: 'none', trends: 'none', watch: 'none', ...(metaIn.sectionSources ?? {}) },
+      warnings: arr(metaIn.warnings) as string[],
+      truncated: metaIn.truncated === true,
+    },
+  };
+}
+
+/**
+ * 서버 응답 정규화 — schemaVersion 으로 분기한다.
+ *  - v1(없거나 1): papers 도입 이전 payload 호환 보강
+ *  - v2: 누락된 배열·객체 기본값 보강
+ *  - 2 보다 큰 알 수 없는 형식: 그대로 통과 (화면이 안내 패널을 보여준다)
+ * 입력은 변경하지 않는다.
+ */
+export function normalizeWeeklyBrief(brief: WeeklyBriefResponse): WeeklyBriefResponse {
+  const version = weeklyBriefSchemaVersionOf(brief.payload);
+  if (version === WEEKLY_BRIEF_REPORT_SCHEMA_VERSION) {
+    return { ...brief, payload: normalizeReportPayload(brief.payload as WeeklyReportPayload) } as WeeklyBriefResponse;
+  }
+  if (version > WEEKLY_BRIEF_REPORT_SCHEMA_VERSION) return brief;
+  return normalizeV1Brief(brief as WeeklyBriefV1Response);
 }
 
 export function normalizeWeeklyBriefListItem(item: WeeklyBriefListItem): WeeklyBriefListItem {

@@ -1,0 +1,326 @@
+{
+  "weekStart": "2026-10-19",
+  "status": "ok",
+  "generatedAt": "2026-10-25T23:00:00.000Z",
+  "model": "sample-model",
+  "prevWeekStart": null,
+  "nextWeekStart": null,
+  "payload": {
+    "schemaVersion": 2,
+    "header": {
+      "weekStart": "2026-10-19",
+      "weekEnd": "2026-10-25",
+      "isoYear": 2026,
+      "weekNumber": 43,
+      "periodStartAt": "2026-10-18T15:00:00.000Z",
+      "periodEndAt": "2026-10-25T14:59:59.999Z",
+      "generatedAt": "2026-10-25T23:00:00.000Z",
+      "counts": {
+        "articles": 2,
+        "videosNew": 3,
+        "videosAnalyzed": 0,
+        "papers": 1,
+        "ciUpdates": 0,
+        "alerts": 0
+      },
+      "deltas": {
+        "articles": null,
+        "videosNew": null,
+        "videosAnalyzed": null,
+        "papers": null,
+        "ciUpdates": null,
+        "alerts": null
+      }
+    },
+    "highlights": [
+      {
+        "id": "top_video:c3000000-0000-4000-8000-000000000001",
+        "candidateType": "top_video",
+        "headline": "Humanoid walks a factory 관련 이번 주 동향",
+        "body": "Humanoid walks a factory shift 항목은 이번 주 집계에서 80,000회 수준으로 확인되었습니다. 연결된 근거 자료는 1건이며, 대표 항목은 'Humanoid walks a factory shift'입니다. 이번 주 전체 수집 건수는 영상 3건, 기사 2건, 논문 1건입니다. 집계 기간은 2026-10-19 ~ 2026-10-25이며 수치는 모두 서버 집계값입니다. 증감과 근거는 아래 수치 카드와 링크에서 확인할 수 있습니다.",
+        "figure": {
+          "value": "80,000",
+          "unit": "회",
+          "caption": "수집 시점 조회수",
+          "delta": null
+        },
+        "basis": "근거: 영상 조회수 집계 (수집 시점 값)",
+        "evidence": [
+          {
+            "type": "video",
+            "id": "c3000000-0000-4000-8000-000000000001",
+            "title": "Humanoid walks a factory shift",
+            "url": "https://www.youtube.com/watch?v=V0000000001",
+            "label": "Humanoid Daily"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "volume_summary:total",
+        "candidateType": "volume_summary",
+        "headline": "수집 현황 관련 이번 주 동향",
+        "body": "수집 현황 항목은 이번 주 집계에서 6건 수준으로 확인되었습니다. 연결된 근거 자료는 3건이며, 대표 항목은 'Humanoid walks a factory shift'입니다. 이번 주 전체 수집 건수는 영상 3건, 기사 2건, 논문 1건입니다. 집계 기간은 2026-10-19 ~ 2026-10-25이며 수치는 모두 서버 집계값입니다. 증감과 근거는 아래 수치 카드와 링크에서 확인할 수 있습니다.",
+        "figure": {
+          "value": "6",
+          "unit": "건",
+          "caption": "영상 3 · 기사 2 · 논문 1",
+          "delta": null
+        },
+        "basis": "근거: 수집 건수 집계 (영상 3 · 기사 2 · 논문 1)",
+        "evidence": [
+          {
+            "type": "video",
+            "id": "c3000000-0000-4000-8000-000000000001",
+            "title": "Humanoid walks a factory shift",
+            "url": "https://www.youtube.com/watch?v=V0000000001",
+            "label": "Humanoid Daily"
+          },
+          {
+            "type": "video",
+            "id": "c3000000-0000-4000-8000-000000000002",
+            "title": "Gripper test bench",
+            "url": "https://www.youtube.com/watch?v=V0000000002",
+            "label": "Hand Tech"
+          },
+          {
+            "type": "article",
+            "id": "c3000000-0000-4000-8000-000000000005",
+            "title": "Startup raises round",
+            "url": "https://news.example.com/Venture Post/00000005",
+            "label": "Venture Post"
+          }
+        ],
+        "generatedBy": "ai"
+      }
+    ],
+    "domains": [
+      {
+        "key": "hand",
+        "label": "핸드",
+        "status": "quiet",
+        "figures": {
+          "videos": 0,
+          "second": 1,
+          "secondKind": "paper",
+          "total": 1,
+          "sharePct": 16.7,
+          "prevSharePct": null,
+          "deltaPp": null
+        },
+        "topTags": [],
+        "narrative": null,
+        "evidence": [],
+        "generatedBy": "rule"
+      },
+      {
+        "key": "actuator",
+        "label": "액추에이터",
+        "status": "quiet",
+        "figures": {
+          "videos": 0,
+          "second": 0,
+          "secondKind": "paper",
+          "total": 0,
+          "sharePct": 0,
+          "prevSharePct": null,
+          "deltaPp": null
+        },
+        "topTags": [],
+        "narrative": null,
+        "evidence": [],
+        "generatedBy": "rule"
+      },
+      {
+        "key": "rfm",
+        "label": "파운데이션 모델·RFM",
+        "status": "quiet",
+        "figures": {
+          "videos": 0,
+          "second": 0,
+          "secondKind": "paper",
+          "total": 0,
+          "sharePct": 0,
+          "prevSharePct": null,
+          "deltaPp": null
+        },
+        "topTags": [],
+        "narrative": null,
+        "evidence": [],
+        "generatedBy": "rule"
+      },
+      {
+        "key": "expo",
+        "label": "전시·데모",
+        "status": "quiet",
+        "figures": {
+          "videos": 0,
+          "second": 0,
+          "secondKind": "article",
+          "total": 0,
+          "sharePct": 0,
+          "prevSharePct": null,
+          "deltaPp": null
+        },
+        "topTags": [],
+        "narrative": null,
+        "evidence": [],
+        "generatedBy": "rule"
+      },
+      {
+        "key": "production",
+        "label": "양산·사업화",
+        "status": "quiet",
+        "figures": {
+          "videos": 0,
+          "second": 0,
+          "secondKind": "article",
+          "total": 0,
+          "sharePct": 0,
+          "prevSharePct": null,
+          "deltaPp": null
+        },
+        "topTags": [],
+        "narrative": null,
+        "evidence": [],
+        "generatedBy": "rule"
+      }
+    ],
+    "companies": [],
+    "videos": [
+      {
+        "id": "c3000000-0000-4000-8000-000000000001",
+        "title": "Humanoid walks a factory shift",
+        "titleKo": "Humanoid walks a factory shift (한글)",
+        "channel": "Humanoid Daily",
+        "publishedAt": "2026-10-21T03:00:00.000Z",
+        "views": 80000,
+        "url": "https://www.youtube.com/watch?v=V0000000001",
+        "thumbnail": "https://i.ytimg.com/vi/V0000000001/mqdefault.jpg",
+        "analyzed": true,
+        "domain": null,
+        "durationSec": 480,
+        "isTop": true,
+        "summaryLines": [
+          "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+          "토크 센서와 감속기 배치를 단계별로 보여준다.",
+          "마지막에 시험 결과를 요약한다."
+        ],
+        "tags": []
+      },
+      {
+        "id": "c3000000-0000-4000-8000-000000000002",
+        "title": "Gripper test bench",
+        "titleKo": "Gripper test bench (한글)",
+        "channel": "Hand Tech",
+        "publishedAt": "2026-10-21T03:00:00.000Z",
+        "views": 3000,
+        "url": "https://www.youtube.com/watch?v=V0000000002",
+        "thumbnail": "https://i.ytimg.com/vi/V0000000002/mqdefault.jpg",
+        "analyzed": false,
+        "domain": null,
+        "durationSec": null,
+        "isTop": false,
+        "summaryLines": [],
+        "tags": []
+      },
+      {
+        "id": "c3000000-0000-4000-8000-000000000003",
+        "title": "Teleoperation setup",
+        "titleKo": "Teleoperation setup (한글)",
+        "channel": "Embodied AI",
+        "publishedAt": "2026-10-21T03:00:00.000Z",
+        "views": 900,
+        "url": "https://www.youtube.com/watch?v=V0000000003",
+        "thumbnail": "https://i.ytimg.com/vi/V0000000003/mqdefault.jpg",
+        "analyzed": false,
+        "domain": null,
+        "durationSec": null,
+        "isTop": false,
+        "summaryLines": [],
+        "tags": []
+      }
+    ],
+    "papers": [
+      {
+        "id": "c3000000-0000-4000-8000-000000000004",
+        "title": "Tactile Sensing Skin for Hands",
+        "titleKo": "Tactile Sensing Skin for Hands (한글)",
+        "authors": "A. Kim, B. Lee, C. Park 외 1명",
+        "publishedAt": "2026-10-21T02:00:00.000Z",
+        "url": "https://arxiv.org/abs/2610.00004",
+        "arxivId": "2610.00004",
+        "domain": "hand",
+        "summaryLines": [
+          "촉각 피부로 조작 성공률을 높였다."
+        ],
+        "whyItMatters": "이번 주 자료에서 해당 주제를 다룬 논문으로 분류됩니다."
+      }
+    ],
+    "articles": [
+      {
+        "id": "c3000000-0000-4000-8000-000000000005",
+        "title": "Startup raises round",
+        "titleKo": "Startup raises round (한글)",
+        "source": "Venture Post",
+        "publishedAt": "2026-10-20T05:00:00.000Z",
+        "url": "https://news.example.com/Venture Post/00000005",
+        "domain": null,
+        "summaryLines": [
+          "RAWSUMMARYMARKER article first sentence."
+        ]
+      },
+      {
+        "id": "c3000000-0000-4000-8000-000000000006",
+        "title": "Safety standard draft",
+        "titleKo": "Safety standard draft (한글)",
+        "source": "Industry Wire",
+        "publishedAt": "2026-10-20T05:00:00.000Z",
+        "url": "https://news.example.com/Industry Wire/00000006",
+        "domain": null,
+        "summaryLines": [
+          "서비스 로봇 안전 표준 초안이 공개되었다"
+        ]
+      }
+    ],
+    "ciSummary": {
+      "updates": 0,
+      "companies": 0
+    },
+    "trends": {
+      "volume": {
+        "weeks": [
+          {
+            "weekStart": "2026-10-12",
+            "videos": 0,
+            "articles": 0,
+            "papers": 0
+          },
+          {
+            "weekStart": "2026-10-19",
+            "videos": 3,
+            "articles": 2,
+            "papers": 1
+          }
+        ]
+      },
+      "keywords": [],
+      "keywordNote": null
+    },
+    "watchPoints": [],
+    "meta": {
+      "aiUsed": true,
+      "ruleBasedSections": 0,
+      "sectionSources": {
+        "highlights": "ai",
+        "domains": "none",
+        "companies": "none",
+        "papers": "ai",
+        "trends": "none",
+        "watch": "none"
+      },
+      "warnings": [],
+      "truncated": false
+    }
+  }
+}

@@ -1,8 +1,10 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import type { WeeklyBriefResponse } from '@/types/weekly-brief';
+import type { WeeklyBriefV1Response } from '@/types/weekly-brief';
 import { POSTER_COLORS } from './weekly-brief-theme';
 import { buildWeeklyBriefHtml, weeklyBriefFileName } from './weekly-brief-html';
-import { makeArticle, makeEmptyBrief, makeFullBrief, makePaper, makePartialBrief, makeVideo } from './weekly-brief-test-fixtures';
+import { makeArticle, makeEmptyBrief, makeFullBrief, makeFullReport, makePaper, makePartialBrief, makeVideo } from './weekly-brief-test-fixtures';
 
 const META = { pageUrl: 'https://argos.example.com/share/weekly/2026-10-19' };
 
@@ -189,7 +191,7 @@ describe('buildWeeklyBriefHtml', () => {
 describe('악성 입력', () => {
   const XSS = '<img src=x onerror=alert(1)>"';
 
-  function evil(): WeeklyBriefResponse {
+  function evil(): WeeklyBriefV1Response {
     const b = makeFullBrief();
     const p = b.payload;
     p.keyMessages[0].headline = XSS;
@@ -272,5 +274,61 @@ describe('악성 입력', () => {
     const html = buildWeeklyBriefHtml(b, META);
     expectClean(html);
     expect(html.replace(/​/g, '')).toContain('Robot data: new http://x.example onload javascript:foo');
+  });
+});
+
+// ───────────────────────── v1 바이트 동일 회귀 (v2 도입 전 출력을 golden 으로 고정) ─────────────────────────
+
+describe('v1 download HTML is byte-identical to the output before v2 existed', () => {
+  const golden = (name: string) => fs.readFileSync(path.resolve(__dirname, '__golden__', `v1-${name}.html`), 'utf-8');
+  const XSS = '<img src=x onerror=alert(1)>"';
+
+  function evilBrief(): WeeklyBriefV1Response {
+    const evil = makeFullBrief();
+    const p = evil.payload;
+    p.keyMessages[0].headline = XSS;
+    p.topVideo!.title = XSS;
+    p.videos[0] = makeVideo(1, { title: XSS, url: 'https://evil.example.com/watch?v=1', thumbnail: 'https://evil.example.com/a.jpg' });
+    p.articles[0] = makeArticle(0, { title: 'Robot data: new http://x.example onload javascript:foo', summaryLine: XSS });
+    p.papers[0] = makePaper(0, { title: XSS, authors: XSS });
+    return evil;
+  }
+
+  function noPapersBrief(): WeeklyBriefV1Response {
+    const b = makeFullBrief() as unknown as { payload: { papers?: unknown; header: { counts: { papers?: number }; deltas: { papers?: number | null } } } };
+    delete b.payload.papers;
+    delete b.payload.header.counts.papers;
+    delete b.payload.header.deltas.papers;
+    return b as never;
+  }
+
+  it.each([
+    ['full', makeFullBrief],
+    ['empty', makeEmptyBrief],
+    ['partial', makePartialBrief],
+    ['evil', evilBrief],
+    ['nopapers', noPapersBrief],
+  ] as const)('%s', (name, make) => {
+    const html = buildWeeklyBriefHtml(make(), META);
+    expect(html.length).toBe(golden(name).length);
+    expect(html === golden(name)).toBe(true);
+  });
+
+  it('a payload without schemaVersion is treated as v1 and renders the poster', () => {
+    const b = makeFullBrief() as unknown as { payload: { schemaVersion?: number } };
+    delete b.payload.schemaVersion;
+    expect(buildWeeklyBriefHtml(b as never, META)).toBe(golden('full'));
+  });
+
+  it('schemaVersion 2 is routed to the report builder, and the poster markup does not appear in it', () => {
+    const html = buildWeeklyBriefHtml(makeFullReport(), META);
+    expect(html).toContain('id="sec-glance"');
+    expect(html).not.toContain('class="band"');
+    expect(html).not.toContain('Weekly Brief · Week 43</div><hr class="dash"><h1><b>주간 브리프</b><br><span class="thin">2026-10-19 ~ 10-25 · Week 43</span></h1><hr class="dash"><div class="stats">');
+  });
+
+  it('weeklyBriefFileName works for both versions', () => {
+    expect(weeklyBriefFileName(makeFullBrief())).toBe('ARGOS_WeeklyBrief_2026-10-19_W43.html');
+    expect(weeklyBriefFileName(makeFullReport())).toBe('ARGOS_WeeklyBrief_2026-10-19_W43.html');
   });
 });

@@ -1,0 +1,1734 @@
+{
+  "weekStart": "2026-10-19",
+  "status": "ok",
+  "generatedAt": "2026-10-25T23:00:00.000Z",
+  "model": "sample-model",
+  "prevWeekStart": "2026-10-12",
+  "nextWeekStart": null,
+  "payload": {
+    "schemaVersion": 2,
+    "header": {
+      "weekStart": "2026-10-19",
+      "weekEnd": "2026-10-25",
+      "isoYear": 2026,
+      "weekNumber": 43,
+      "periodStartAt": "2026-10-18T15:00:00.000Z",
+      "periodEndAt": "2026-10-25T14:59:59.999Z",
+      "generatedAt": "2026-10-25T23:00:00.000Z",
+      "counts": {
+        "articles": 57,
+        "videosNew": 42,
+        "videosAnalyzed": 29,
+        "papers": 17,
+        "ciUpdates": 6,
+        "alerts": 3,
+        "newRobots": 2
+      },
+      "deltas": {
+        "articles": 128,
+        "videosNew": 61.5,
+        "videosAnalyzed": 20.8,
+        "papers": 112.5,
+        "ciUpdates": 50,
+        "alerts": 50
+      }
+    },
+    "highlights": [
+      {
+        "id": "domain_share:hand",
+        "candidateType": "domain_share",
+        "headline": "핸드 관련 이번 주 동향",
+        "body": "핸드 항목은 이번 주 집계에서 13% 수준으로 확인되었습니다. 연결된 근거 자료는 3건이며, 대표 항목은 'Five-finger hand grasp benchmark 1'입니다. 이번 주 전체 수집 건수는 영상 42건, 기사 57건, 논문 17건입니다. 집계 기간은 2026-10-19 ~ 2026-10-25이며 수치는 모두 서버 집계값입니다. 증감과 근거는 아래 수치 카드와 링크에서 확인할 수 있습니다.",
+        "figure": {
+          "value": "13",
+          "unit": "%",
+          "caption": "핸드 관련 15건 / 전체 116건",
+          "delta": {
+            "value": "+12.9",
+            "unit": "%p",
+            "label": "지난주 대비"
+          }
+        },
+        "basis": "근거: 도메인 태그 집계 (영상 9 · 논문 6 / 전체 영상 42 · 기사 57 · 논문 17)",
+        "evidence": [
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000013",
+            "title": "Five-finger hand grasp benchmark 1",
+            "url": "https://www.youtube.com/watch?v=V0000000013",
+            "label": "Hand Tech 0"
+          },
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000016",
+            "title": "Five-finger hand grasp benchmark 4",
+            "url": "https://www.youtube.com/watch?v=V0000000016",
+            "label": "Hand Tech 3"
+          },
+          {
+            "type": "paper",
+            "id": "a1000000-0000-4000-8000-000000000049",
+            "title": "Tactile Sensing Skin for Dexterous Hands 1",
+            "url": "https://arxiv.org/abs/2610.00049",
+            "label": "arXiv"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "domain_share:actuator",
+        "candidateType": "domain_share",
+        "headline": "액추에이터 관련 이번 주 동향",
+        "body": "액추에이터 항목은 이번 주 집계에서 16% 수준으로 확인되었습니다. 연결된 근거 자료는 3건이며, 대표 항목은 'Quasi-direct drive joint teardown 1'입니다. 이번 주 전체 수집 건수는 영상 42건, 기사 57건, 논문 17건입니다. 집계 기간은 2026-10-19 ~ 2026-10-25이며 수치는 모두 서버 집계값입니다. 증감과 근거는 아래 수치 카드와 링크에서 확인할 수 있습니다.",
+        "figure": {
+          "value": "16",
+          "unit": "%",
+          "caption": "액추에이터 관련 18건 / 전체 116건",
+          "delta": {
+            "value": "-8.2",
+            "unit": "%p",
+            "label": "지난주 대비"
+          }
+        },
+        "basis": "근거: 도메인 태그 집계 (영상 12 · 논문 6 / 전체 영상 42 · 기사 57 · 논문 17)",
+        "evidence": [
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000001",
+            "title": "Quasi-direct drive joint teardown 1",
+            "url": "https://www.youtube.com/watch?v=V0000000001",
+            "label": "Robot Lab"
+          },
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000003",
+            "title": "Quasi-direct drive joint teardown 3",
+            "url": "https://www.youtube.com/watch?v=V0000000003",
+            "label": "Robot Lab"
+          },
+          {
+            "type": "paper",
+            "id": "a1000000-0000-4000-8000-000000000043",
+            "title": "Compact Quasi-Direct-Drive Actuator with Torque Sensing 1",
+            "url": "https://arxiv.org/abs/2610.00043",
+            "label": "arXiv"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "ci_change:ci-1",
+        "candidateType": "ci_change",
+        "headline": "Atlas Robotics 손 자유도 관련 이번 주 동향",
+        "body": "Atlas Robotics 손 자유도 항목은 이번 주 집계에서 22 DoF 수준으로 확인되었습니다. 연결된 근거 자료는 1건이며, 대표 항목은 'Atlas Robotics · 손 자유도'입니다. 이번 주 전체 수집 건수는 영상 42건, 기사 57건, 논문 17건입니다. 집계 기간은 2026-10-19 ~ 2026-10-25이며 수치는 모두 서버 집계값입니다. 증감과 근거는 아래 수치 카드와 링크에서 확인할 수 있습니다.",
+        "figure": {
+          "value": "22 DoF",
+          "unit": null,
+          "caption": "16 DoF → 22 DoF · 신뢰도 A",
+          "delta": null
+        },
+        "basis": "근거: CI 값 변경 이력 (신뢰도 A · 출처 공식 사양서)",
+        "evidence": [
+          {
+            "type": "ci",
+            "id": "ci-1",
+            "title": "Atlas Robotics · 손 자유도",
+            "url": "https://example.com/spec",
+            "label": "Atlas Robotics"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "ci_change:ci-3",
+        "candidateType": "ci_change",
+        "headline": "Nova Dynamics 제어 방식 관련 이번 주 동향",
+        "body": "Nova Dynamics 제어 방식 항목은 이번 주 집계에서 RL + MPC 혼합 수준으로 확인되었습니다. 연결된 근거 자료는 1건이며, 대표 항목은 'Nova Dynamics · 제어 방식'입니다. 이번 주 전체 수집 건수는 영상 42건, 기사 57건, 논문 17건입니다. 집계 기간은 2026-10-19 ~ 2026-10-25이며 수치는 모두 서버 집계값입니다. 증감과 근거는 아래 수치 카드와 링크에서 확인할 수 있습니다.",
+        "figure": {
+          "value": "RL + MPC 혼합",
+          "unit": null,
+          "caption": "MPC → RL + MPC 혼합 · 신뢰도 B",
+          "delta": null
+        },
+        "basis": "근거: CI 값 변경 이력 (신뢰도 B · 출처 공식 사양서)",
+        "evidence": [
+          {
+            "type": "ci",
+            "id": "ci-3",
+            "title": "Nova Dynamics · 제어 방식",
+            "url": "https://example.com/spec",
+            "label": "Nova Dynamics"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "top_company:co-atlas",
+        "candidateType": "top_company",
+        "headline": "Atlas Robotics 관련 이번 주 동향",
+        "body": "Atlas Robotics 항목은 이번 주 집계에서 18건 수준으로 확인되었습니다. 연결된 근거 자료는 3건이며, 대표 항목은 'Quasi-direct drive joint teardown 1'입니다. 이번 주 전체 수집 건수는 영상 42건, 기사 57건, 논문 17건입니다. 집계 기간은 2026-10-19 ~ 2026-10-25이며 수치는 모두 서버 집계값입니다. 증감과 근거는 아래 수치 카드와 링크에서 확인할 수 있습니다.",
+        "figure": {
+          "value": "18",
+          "unit": "건",
+          "caption": "지난주 8건",
+          "delta": {
+            "value": "+125.0",
+            "unit": "%",
+            "label": "지난주 대비"
+          }
+        },
+        "basis": "근거: 회사 태그 집계 (영상 6 · 기사 14)",
+        "evidence": [
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000001",
+            "title": "Quasi-direct drive joint teardown 1",
+            "url": "https://www.youtube.com/watch?v=V0000000001",
+            "label": "Robot Lab"
+          },
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000003",
+            "title": "Quasi-direct drive joint teardown 3",
+            "url": "https://www.youtube.com/watch?v=V0000000003",
+            "label": "Robot Lab"
+          },
+          {
+            "type": "article",
+            "id": "a1000000-0000-4000-8000-000000000072",
+            "title": "Supplier signs multi-year deal 1",
+            "url": "https://news.example.com/The Robot Report/00000072",
+            "label": "The Robot Report"
+          }
+        ],
+        "generatedBy": "ai"
+      }
+    ],
+    "domains": [
+      {
+        "key": "hand",
+        "label": "핸드",
+        "status": "active",
+        "figures": {
+          "videos": 9,
+          "second": 6,
+          "secondKind": "paper",
+          "total": 15,
+          "sharePct": 12.9,
+          "prevSharePct": 0,
+          "deltaPp": 12.9
+        },
+        "topTags": [
+          {
+            "tag": "손가락",
+            "count": 9
+          },
+          {
+            "tag": "촉각",
+            "count": 9
+          },
+          {
+            "tag": "파지/조작",
+            "count": 9
+          }
+        ],
+        "narrative": "핸드 축에서 이번 주 영상 9건과 논문 6건이 수집되어 전체의 12.9%를 차지했습니다. 지난주 점유율은 0%였습니다. 대표 항목으로는 'Five-finger hand grasp benchmark 1'와 'Five-finger hand grasp benchmark 4'이(가) 있습니다. 영상에서 자주 나타난 태그는 손가락, 촉각, 파지/조작입니다. 근거 카드 5건이 연결되어 있으며, 대표 항목의 출처는 Hand Tech 0입니다. 각 항목은 수집된 메타데이터와 파생 요약만을 근거로 정리했으며 세부 내용은 근거 카드의 링크에서 확인할 수 있습니다.",
+        "evidence": [
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000013",
+            "title": "Five-finger hand grasp benchmark 1",
+            "titleKo": "Five-finger hand grasp benchmark 1 (한글)",
+            "source": "Hand Tech 0",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "url": "https://www.youtube.com/watch?v=V0000000013"
+          },
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000016",
+            "title": "Five-finger hand grasp benchmark 4",
+            "titleKo": "Five-finger hand grasp benchmark 4 (한글)",
+            "source": "Hand Tech 3",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "url": "https://www.youtube.com/watch?v=V0000000016"
+          },
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000014",
+            "title": "Five-finger hand grasp benchmark 2",
+            "titleKo": "Five-finger hand grasp benchmark 2 (한글)",
+            "source": "Hand Tech 1",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": null,
+            "url": "https://www.youtube.com/watch?v=V0000000014"
+          },
+          {
+            "type": "paper",
+            "id": "a1000000-0000-4000-8000-000000000049",
+            "title": "Tactile Sensing Skin for Dexterous Hands 1",
+            "titleKo": "Tactile Sensing Skin for Dexterous Hands 1 (한글)",
+            "source": "arXiv",
+            "publishedAt": "2026-10-21T02:00:00.000Z",
+            "line": "촉각 피부를 적용해 손 안 조작 성공률을 높였다.",
+            "url": "https://arxiv.org/abs/2610.00049"
+          },
+          {
+            "type": "paper",
+            "id": "a1000000-0000-4000-8000-000000000050",
+            "title": "Tactile Sensing Skin for Dexterous Hands 2",
+            "titleKo": "Tactile Sensing Skin for Dexterous Hands 2 (한글)",
+            "source": "arXiv",
+            "publishedAt": "2026-10-21T02:00:00.000Z",
+            "line": "촉각 피부를 적용해 손 안 조작 성공률을 높였다.",
+            "url": "https://arxiv.org/abs/2610.00050"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "key": "actuator",
+        "label": "액추에이터",
+        "status": "active",
+        "figures": {
+          "videos": 12,
+          "second": 6,
+          "secondKind": "paper",
+          "total": 18,
+          "sharePct": 15.5,
+          "prevSharePct": 23.7,
+          "deltaPp": -8.2
+        },
+        "topTags": [
+          {
+            "tag": "QDD",
+            "count": 12
+          },
+          {
+            "tag": "관절 구동",
+            "count": 12
+          },
+          {
+            "tag": "감속기",
+            "count": 6
+          },
+          {
+            "tag": "토크센서",
+            "count": 6
+          }
+        ],
+        "narrative": "액추에이터 축에서 이번 주 영상 12건과 논문 6건이 수집되어 전체의 15.5%를 차지했습니다. 지난주 점유율은 23.7%였습니다. 대표 항목으로는 'Quasi-direct drive joint teardown 1'와 'Quasi-direct drive joint teardown 3'이(가) 있습니다. 영상에서 자주 나타난 태그는 QDD, 관절 구동, 감속기입니다. 근거 카드 5건이 연결되어 있으며, 대표 항목의 출처는 Robot Lab입니다. 각 항목은 수집된 메타데이터와 파생 요약만을 근거로 정리했으며 세부 내용은 근거 카드의 링크에서 확인할 수 있습니다.",
+        "evidence": [
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000001",
+            "title": "Quasi-direct drive joint teardown 1",
+            "titleKo": "Quasi-direct drive joint teardown 1 (한글)",
+            "source": "Robot Lab",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "url": "https://www.youtube.com/watch?v=V0000000001"
+          },
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000003",
+            "title": "Quasi-direct drive joint teardown 3",
+            "titleKo": "Quasi-direct drive joint teardown 3 (한글)",
+            "source": "Robot Lab",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "url": "https://www.youtube.com/watch?v=V0000000003"
+          },
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000005",
+            "title": "Quasi-direct drive joint teardown 5",
+            "titleKo": "Quasi-direct drive joint teardown 5 (한글)",
+            "source": "Motion Channel 4",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "url": "https://www.youtube.com/watch?v=V0000000005"
+          },
+          {
+            "type": "paper",
+            "id": "a1000000-0000-4000-8000-000000000043",
+            "title": "Compact Quasi-Direct-Drive Actuator with Torque Sensing 1",
+            "titleKo": "Compact Quasi-Direct-Drive Actuator with Torque Sensing (한글)",
+            "source": "arXiv",
+            "publishedAt": "2026-10-21T02:00:00.000Z",
+            "line": "소형 액추에이터에 토크 센서를 통합한 설계를 평가했다.",
+            "url": "https://arxiv.org/abs/2610.00043"
+          },
+          {
+            "type": "paper",
+            "id": "a1000000-0000-4000-8000-000000000044",
+            "title": "Compact Quasi-Direct-Drive Actuator with Torque Sensing 2",
+            "titleKo": "Compact Quasi-Direct-Drive Actuator with Torque Sensing (한글)",
+            "source": "arXiv",
+            "publishedAt": "2026-10-21T02:00:00.000Z",
+            "line": "소형 액추에이터에 토크 센서를 통합한 설계를 평가했다.",
+            "url": "https://arxiv.org/abs/2610.00044"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "key": "rfm",
+        "label": "파운데이션 모델·RFM",
+        "status": "active",
+        "figures": {
+          "videos": 5,
+          "second": 5,
+          "secondKind": "paper",
+          "total": 10,
+          "sharePct": 8.6,
+          "prevSharePct": 0,
+          "deltaPp": 8.6
+        },
+        "topTags": [
+          {
+            "tag": "VLA",
+            "count": 5
+          },
+          {
+            "tag": "조작",
+            "count": 5
+          }
+        ],
+        "narrative": "파운데이션 모델·RFM 축에서 이번 주 영상 5건과 논문 5건이 수집되어 전체의 8.6%를 차지했습니다. 지난주 점유율은 0%였습니다. 대표 항목으로는 'VLA policy rollout on a tabletop 1'와 'VLA policy rollout on a tabletop 3'이(가) 있습니다. 영상에서 자주 나타난 태그는 VLA, 조작입니다. 근거 카드 5건이 연결되어 있으며, 대표 항목의 출처는 Embodied AI 0입니다. 각 항목은 수집된 메타데이터와 파생 요약만을 근거로 정리했으며 세부 내용은 근거 카드의 링크에서 확인할 수 있습니다.",
+        "evidence": [
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000022",
+            "title": "VLA policy rollout on a tabletop 1",
+            "titleKo": "VLA policy rollout on a tabletop 1 (한글)",
+            "source": "Embodied AI 0",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "url": "https://www.youtube.com/watch?v=V0000000022"
+          },
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000024",
+            "title": "VLA policy rollout on a tabletop 3",
+            "titleKo": "VLA policy rollout on a tabletop 3 (한글)",
+            "source": "Embodied AI 2",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "url": "https://www.youtube.com/watch?v=V0000000024"
+          },
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000026",
+            "title": "VLA policy rollout on a tabletop 5",
+            "titleKo": null,
+            "source": "Embodied AI 4",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "url": "https://www.youtube.com/watch?v=V0000000026"
+          },
+          {
+            "type": "paper",
+            "id": "a1000000-0000-4000-8000-000000000055",
+            "title": "Vision-Language-Action Foundation Model for Humanoid Tasks 1",
+            "titleKo": "Vision-Language-Action Foundation Model for Humanoid Tas (한글)",
+            "source": "arXiv",
+            "publishedAt": "2026-10-21T02:00:00.000Z",
+            "line": "긴 호흡의 휴머노이드 과제에서 정책 성능을 보고한다.",
+            "url": "https://arxiv.org/abs/2610.00055"
+          },
+          {
+            "type": "paper",
+            "id": "a1000000-0000-4000-8000-000000000056",
+            "title": "Vision-Language-Action Foundation Model for Humanoid Tasks 2",
+            "titleKo": "Vision-Language-Action Foundation Model for Humanoid Tas (한글)",
+            "source": "arXiv",
+            "publishedAt": "2026-10-21T02:00:00.000Z",
+            "line": "긴 호흡의 휴머노이드 과제에서 정책 성능을 보고한다.",
+            "url": "https://arxiv.org/abs/2610.00056"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "key": "expo",
+        "label": "전시·데모",
+        "status": "active",
+        "figures": {
+          "videos": 4,
+          "second": 6,
+          "secondKind": "article",
+          "total": 10,
+          "sharePct": 8.6,
+          "prevSharePct": 0,
+          "deltaPp": 8.6
+        },
+        "topTags": [
+          {
+            "tag": "부스 시연",
+            "count": 4
+          },
+          {
+            "tag": "전시",
+            "count": 4
+          }
+        ],
+        "narrative": "전시·데모 축에서 이번 주 영상 4건과 기사 6건이 수집되어 전체의 8.6%를 차지했습니다. 지난주 점유율은 0%였습니다. 대표 항목으로는 'Expo floor tour day 1'와 'Expo floor tour day 2'이(가) 있습니다. 영상에서 자주 나타난 태그는 부스 시연, 전시입니다. 근거 카드 5건이 연결되어 있으며, 대표 항목의 출처는 Expo Daily 0입니다. 각 항목은 수집된 메타데이터와 파생 요약만을 근거로 정리했으며 세부 내용은 근거 카드의 링크에서 확인할 수 있습니다.",
+        "evidence": [
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000027",
+            "title": "Expo floor tour day 1",
+            "titleKo": "Expo floor tour day 1 (한글)",
+            "source": "Expo Daily 0",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "url": "https://www.youtube.com/watch?v=V0000000027"
+          },
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000028",
+            "title": "Expo floor tour day 2",
+            "titleKo": null,
+            "source": "Expo Daily 1",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "url": "https://www.youtube.com/watch?v=V0000000028"
+          },
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000029",
+            "title": "Expo floor tour day 3",
+            "titleKo": null,
+            "source": "Expo Daily 2",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": null,
+            "url": "https://www.youtube.com/watch?v=V0000000029"
+          },
+          {
+            "type": "article",
+            "id": "a1000000-0000-4000-8000-000000000060",
+            "title": "Robot expo opens with record attendance 1 at CES",
+            "titleKo": "Robot expo opens with record attendance 1 at CES (한글)",
+            "source": "The Robot Report",
+            "publishedAt": "2026-10-20T05:00:00.000Z",
+            "line": "전시회 참관객이 늘었다",
+            "url": "https://news.example.com/The Robot Report/00000060"
+          },
+          {
+            "type": "article",
+            "id": "a1000000-0000-4000-8000-000000000062",
+            "title": "Robot expo opens with record attendance 3 at CES",
+            "titleKo": "Robot expo opens with record attendance 3 at CES (한글)",
+            "source": "TechCrunch",
+            "publishedAt": "2026-10-20T05:00:00.000Z",
+            "line": "전시회 참관객이 늘었다",
+            "url": "https://news.example.com/TechCrunch/00000062"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "key": "production",
+        "label": "양산·사업화",
+        "status": "active",
+        "figures": {
+          "videos": 4,
+          "second": 6,
+          "secondKind": "article",
+          "total": 10,
+          "sharePct": 8.6,
+          "prevSharePct": 0,
+          "deltaPp": 8.6
+        },
+        "topTags": [
+          {
+            "tag": "양산 라인",
+            "count": 4
+          },
+          {
+            "tag": "조립",
+            "count": 4
+          }
+        ],
+        "narrative": "양산·사업화 축에서 이번 주 영상 4건과 기사 6건이 수집되어 전체의 8.6%를 차지했습니다. 지난주 점유율은 0%였습니다. 대표 항목으로는 'Humanoid assembly line walkthrough 1'와 'Humanoid assembly line walkthrough 2'이(가) 있습니다. 영상에서 자주 나타난 태그는 양산 라인, 조립입니다. 근거 카드 5건이 연결되어 있으며, 대표 항목의 출처는 Factory Watch 0입니다. 각 항목은 수집된 메타데이터와 파생 요약만을 근거로 정리했으며 세부 내용은 근거 카드의 링크에서 확인할 수 있습니다.",
+        "evidence": [
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000031",
+            "title": "Humanoid assembly line walkthrough 1",
+            "titleKo": "Humanoid assembly line walkthrough 1 (한글)",
+            "source": "Factory Watch 0",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "url": "https://www.youtube.com/watch?v=V0000000031"
+          },
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000032",
+            "title": "Humanoid assembly line walkthrough 2",
+            "titleKo": "Humanoid assembly line walkthrough 2 (한글)",
+            "source": "Factory Watch 1",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": null,
+            "url": "https://www.youtube.com/watch?v=V0000000032"
+          },
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000033",
+            "title": "Humanoid assembly line walkthrough 3",
+            "titleKo": "Humanoid assembly line walkthrough 3 (한글)",
+            "source": "Factory Watch 2",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": null,
+            "url": "https://www.youtube.com/watch?v=V0000000033"
+          },
+          {
+            "type": "article",
+            "id": "a1000000-0000-4000-8000-000000000066",
+            "title": "Humanoid mass production ramp announced 1",
+            "titleKo": "Humanoid mass production ramp announced 1 (한글)",
+            "source": "TechCrunch",
+            "publishedAt": "2026-10-20T05:00:00.000Z",
+            "line": "양산 라인 가동 계획이 공개되었다",
+            "url": "https://news.example.com/TechCrunch/00000066"
+          },
+          {
+            "type": "article",
+            "id": "a1000000-0000-4000-8000-000000000068",
+            "title": "Humanoid mass production ramp announced 3",
+            "titleKo": "Humanoid mass production ramp announced 3 (한글)",
+            "source": "Nikkei",
+            "publishedAt": "2026-10-20T05:00:00.000Z",
+            "line": "양산 라인 가동 계획이 공개되었다",
+            "url": "https://news.example.com/Nikkei/00000068"
+          }
+        ],
+        "generatedBy": "ai"
+      }
+    ],
+    "companies": [
+      {
+        "id": "co-atlas",
+        "name": "Atlas Robotics",
+        "counts": {
+          "total": 20,
+          "videos": 6,
+          "articles": 14,
+          "prevTotal": 8,
+          "deltaPct": 150
+        },
+        "blurb": "Atlas Robotics은(는) 이번 주 영상과 기사를 합쳐 20건이 수집되었습니다(지난주 8건). 대표 항목은 'Quasi-direct drive joint teardown 1'입니다. 연결된 CI 항목은 2건이며 관련 자료는 아래 카드에서 확인할 수 있습니다.",
+        "items": [
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000001",
+            "title": "Quasi-direct drive joint teardown 1",
+            "titleKo": "Quasi-direct drive joint teardown 1 (한글)",
+            "source": "Robot Lab",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "url": "https://www.youtube.com/watch?v=V0000000001"
+          },
+          {
+            "type": "article",
+            "id": "a1000000-0000-4000-8000-000000000072",
+            "title": "Supplier signs multi-year deal 1",
+            "titleKo": null,
+            "source": "The Robot Report",
+            "publishedAt": "2026-10-20T05:00:00.000Z",
+            "line": "공급 계약이 체결되었다",
+            "url": "https://news.example.com/The Robot Report/00000072"
+          },
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000003",
+            "title": "Quasi-direct drive joint teardown 3",
+            "titleKo": "Quasi-direct drive joint teardown 3 (한글)",
+            "source": "Robot Lab",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "url": "https://www.youtube.com/watch?v=V0000000003"
+          }
+        ],
+        "ciChanges": [
+          {
+            "id": "ci-1",
+            "item": "손 자유도",
+            "layer": "HW",
+            "before": "16 DoF",
+            "after": "22 DoF",
+            "confidence": "A",
+            "sourceName": "공식 사양서",
+            "sourceUrl": "https://example.com/spec",
+            "changedAt": "2026-10-22T05:00:00.000Z",
+            "meaning": "손 자유도 값이 갱신된 내용을 정리한 항목입니다."
+          },
+          {
+            "id": "ci-2",
+            "item": "목표 양산 규모",
+            "layer": "HW",
+            "before": null,
+            "after": "연 1,000대",
+            "confidence": "B",
+            "sourceName": "공식 사양서",
+            "sourceUrl": "https://example.com/pr",
+            "changedAt": "2026-10-22T05:00:00.000Z",
+            "meaning": "목표 양산 규모 값이 갱신된 내용을 정리한 항목입니다."
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "co-nova",
+        "name": "Nova Dynamics",
+        "counts": {
+          "total": 9,
+          "videos": 3,
+          "articles": 6,
+          "prevTotal": 0,
+          "deltaPct": null
+        },
+        "blurb": "Nova Dynamics은(는) 이번 주 영상과 기사를 합쳐 9건이 수집되었습니다(지난주 0건). 대표 항목은 'Five-finger hand grasp benchmark 1'입니다. 연결된 CI 항목은 1건이며 관련 자료는 아래 카드에서 확인할 수 있습니다.",
+        "items": [
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000013",
+            "title": "Five-finger hand grasp benchmark 1",
+            "titleKo": "Five-finger hand grasp benchmark 1 (한글)",
+            "source": "Hand Tech 0",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "url": "https://www.youtube.com/watch?v=V0000000013"
+          },
+          {
+            "type": "article",
+            "id": "a1000000-0000-4000-8000-000000000087",
+            "title": "Supplier signs multi-year deal 16",
+            "titleKo": null,
+            "source": "Venture Post",
+            "publishedAt": "2026-10-20T05:00:00.000Z",
+            "line": "공급 계약이 체결되었다",
+            "url": "https://news.example.com/Venture Post/00000087"
+          },
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000014",
+            "title": "Five-finger hand grasp benchmark 2",
+            "titleKo": "Five-finger hand grasp benchmark 2 (한글)",
+            "source": "Hand Tech 1",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": null,
+            "url": "https://www.youtube.com/watch?v=V0000000014"
+          }
+        ],
+        "ciChanges": [
+          {
+            "id": "ci-3",
+            "item": "제어 방식",
+            "layer": "HW",
+            "before": "MPC",
+            "after": "RL + MPC 혼합",
+            "confidence": "B",
+            "sourceName": "공식 사양서",
+            "sourceUrl": "https://example.com/spec",
+            "changedAt": "2026-10-22T05:00:00.000Z",
+            "meaning": "제어 방식 값이 갱신된 내용을 정리한 항목입니다."
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "co-orion",
+        "name": "Orion Systems, Inc.",
+        "counts": {
+          "total": 7,
+          "videos": 4,
+          "articles": 3,
+          "prevTotal": 0,
+          "deltaPct": null
+        },
+        "blurb": "Orion Systems, Inc.은(는) 이번 주 영상과 기사를 합쳐 7건이 수집되었습니다(지난주 0건). 대표 항목은 'Humanoid assembly line walkthrough 1'입니다. 연결된 CI 항목은 1건이며 관련 자료는 아래 카드에서 확인할 수 있습니다.",
+        "items": [
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000031",
+            "title": "Humanoid assembly line walkthrough 1",
+            "titleKo": "Humanoid assembly line walkthrough 1 (한글)",
+            "source": "Factory Watch 0",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "url": "https://www.youtube.com/watch?v=V0000000031"
+          },
+          {
+            "type": "article",
+            "id": "a1000000-0000-4000-8000-000000000066",
+            "title": "Humanoid mass production ramp announced 1",
+            "titleKo": "Humanoid mass production ramp announced 1 (한글)",
+            "source": "TechCrunch",
+            "publishedAt": "2026-10-20T05:00:00.000Z",
+            "line": "양산 라인 가동 계획이 공개되었다",
+            "url": "https://news.example.com/TechCrunch/00000066"
+          },
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000032",
+            "title": "Humanoid assembly line walkthrough 2",
+            "titleKo": "Humanoid assembly line walkthrough 2 (한글)",
+            "source": "Factory Watch 1",
+            "publishedAt": "2026-10-21T03:00:00.000Z",
+            "line": null,
+            "url": "https://www.youtube.com/watch?v=V0000000032"
+          }
+        ],
+        "ciChanges": [
+          {
+            "id": "ci-4",
+            "item": "인증 현황",
+            "layer": "HW",
+            "before": "진행 중",
+            "after": "ISO 13482 취득",
+            "confidence": "C",
+            "sourceName": null,
+            "sourceUrl": null,
+            "changedAt": "2026-10-22T05:00:00.000Z",
+            "meaning": "인증 현황 값이 갱신된 내용을 정리한 항목입니다."
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "co-beta",
+        "name": "Beta Motion",
+        "counts": {
+          "total": 5,
+          "videos": 0,
+          "articles": 5,
+          "prevTotal": 0,
+          "deltaPct": null
+        },
+        "blurb": "Beta Motion은(는) 이번 주 영상과 기사를 합쳐 5건이 수집되었습니다(지난주 0건). 대표 항목은 'Beta Motion unveils joint module 1'입니다. 연결된 CI 항목은 0건이며 관련 자료는 아래 카드에서 확인할 수 있습니다.",
+        "items": [
+          {
+            "type": "article",
+            "id": "a1000000-0000-4000-8000-000000000105",
+            "title": "Beta Motion unveils joint module 1",
+            "titleKo": null,
+            "source": "The Robot Report",
+            "publishedAt": "2026-10-20T05:00:00.000Z",
+            "line": "관절 모듈 신제품이 공개되었다",
+            "url": "https://news.example.com/The Robot Report/00000105"
+          },
+          {
+            "type": "article",
+            "id": "a1000000-0000-4000-8000-000000000106",
+            "title": "Beta Motion unveils joint module 2",
+            "titleKo": null,
+            "source": "IEEE Spectrum",
+            "publishedAt": "2026-10-20T05:00:00.000Z",
+            "line": "관절 모듈 신제품이 공개되었다",
+            "url": "https://news.example.com/IEEE Spectrum/00000106"
+          },
+          {
+            "type": "article",
+            "id": "a1000000-0000-4000-8000-000000000107",
+            "title": "Beta Motion unveils joint module 3",
+            "titleKo": null,
+            "source": "TechCrunch",
+            "publishedAt": "2026-10-20T05:00:00.000Z",
+            "line": "RAWSUMMARYMARKER article first sentence.",
+            "url": "https://news.example.com/TechCrunch/00000107"
+          }
+        ],
+        "ciChanges": [],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "co-gamma",
+        "name": "Gamma Hands",
+        "counts": {
+          "total": 4,
+          "videos": 0,
+          "articles": 4,
+          "prevTotal": 0,
+          "deltaPct": null
+        },
+        "blurb": "Gamma Hands은(는) 이번 주 영상과 기사를 합쳐 4건이 수집되었습니다(지난주 0건). 대표 항목은 'Gamma Hands tactile fingertip update 1'입니다. 연결된 CI 항목은 0건이며 관련 자료는 아래 카드에서 확인할 수 있습니다.",
+        "items": [
+          {
+            "type": "article",
+            "id": "a1000000-0000-4000-8000-000000000110",
+            "title": "Gamma Hands tactile fingertip update 1",
+            "titleKo": "Gamma Hands tactile fingertip update 1 (한글)",
+            "source": "SCMP",
+            "publishedAt": "2026-10-20T05:00:00.000Z",
+            "line": "RAWSUMMARYMARKER article first sentence.",
+            "url": "https://news.example.com/SCMP/00000110"
+          },
+          {
+            "type": "article",
+            "id": "a1000000-0000-4000-8000-000000000111",
+            "title": "Gamma Hands tactile fingertip update 2",
+            "titleKo": "Gamma Hands tactile fingertip update 2 (한글)",
+            "source": "Nikkei",
+            "publishedAt": "2026-10-20T05:00:00.000Z",
+            "line": "RAWSUMMARYMARKER article first sentence.",
+            "url": "https://news.example.com/Nikkei/00000111"
+          },
+          {
+            "type": "article",
+            "id": "a1000000-0000-4000-8000-000000000112",
+            "title": "Gamma Hands tactile fingertip update 3",
+            "titleKo": "Gamma Hands tactile fingertip update 3 (한글)",
+            "source": "Reuters",
+            "publishedAt": "2026-10-20T05:00:00.000Z",
+            "line": "RAWSUMMARYMARKER article first sentence.",
+            "url": "https://news.example.com/Reuters/00000112"
+          }
+        ],
+        "ciChanges": [],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "co-delta",
+        "name": "Delta Gear",
+        "counts": {
+          "total": 3,
+          "videos": 0,
+          "articles": 3,
+          "prevTotal": 0,
+          "deltaPct": null
+        },
+        "blurb": "Delta Gear은(는) 이번 주 영상과 기사를 합쳐 3건이 수집되었습니다(지난주 0건). 대표 항목은 'Delta Gear reducer supply news 1'입니다. 연결된 CI 항목은 0건이며 관련 자료는 아래 카드에서 확인할 수 있습니다.",
+        "items": [
+          {
+            "type": "article",
+            "id": "a1000000-0000-4000-8000-000000000114",
+            "title": "Delta Gear reducer supply news 1",
+            "titleKo": null,
+            "source": "Reuters",
+            "publishedAt": "2026-10-20T05:00:00.000Z",
+            "line": "RAWSUMMARYMARKER article first sentence.",
+            "url": "https://news.example.com/Reuters/00000114"
+          },
+          {
+            "type": "article",
+            "id": "a1000000-0000-4000-8000-000000000115",
+            "title": "Delta Gear reducer supply news 2",
+            "titleKo": null,
+            "source": "Wired",
+            "publishedAt": "2026-10-20T05:00:00.000Z",
+            "line": "RAWSUMMARYMARKER article first sentence.",
+            "url": "https://news.example.com/Wired/00000115"
+          },
+          {
+            "type": "article",
+            "id": "a1000000-0000-4000-8000-000000000116",
+            "title": "Delta Gear reducer supply news 3",
+            "titleKo": null,
+            "source": "Venture Post",
+            "publishedAt": "2026-10-20T05:00:00.000Z",
+            "line": "RAWSUMMARYMARKER article first sentence.",
+            "url": "https://news.example.com/Venture Post/00000116"
+          }
+        ],
+        "ciChanges": [],
+        "generatedBy": "ai"
+      }
+    ],
+    "videos": [
+      {
+        "id": "a1000000-0000-4000-8000-000000000001",
+        "title": "Quasi-direct drive joint teardown 1",
+        "titleKo": "Quasi-direct drive joint teardown 1 (한글)",
+        "channel": "Robot Lab",
+        "publishedAt": "2026-10-21T03:00:00.000Z",
+        "views": 480000,
+        "url": "https://www.youtube.com/watch?v=V0000000001",
+        "thumbnail": "https://i.ytimg.com/vi/V0000000001/mqdefault.jpg",
+        "analyzed": true,
+        "domain": "actuator",
+        "durationSec": 480,
+        "isTop": true,
+        "summaryLines": [
+          "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+          "토크 센서와 감속기 배치를 단계별로 보여준다.",
+          "마지막에 시험 결과를 요약한다."
+        ],
+        "tags": [
+          "관절 구동",
+          "QDD",
+          "토크센서"
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000003",
+        "title": "Quasi-direct drive joint teardown 3",
+        "titleKo": "Quasi-direct drive joint teardown 3 (한글)",
+        "channel": "Robot Lab",
+        "publishedAt": "2026-10-21T03:00:00.000Z",
+        "views": 160000,
+        "url": "https://www.youtube.com/watch?v=V0000000003",
+        "thumbnail": "https://i.ytimg.com/vi/V0000000003/mqdefault.jpg",
+        "analyzed": true,
+        "domain": "actuator",
+        "durationSec": 480,
+        "isTop": false,
+        "summaryLines": [
+          "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+          "토크 센서와 감속기 배치를 단계별로 보여준다.",
+          "마지막에 시험 결과를 요약한다."
+        ],
+        "tags": [
+          "관절 구동",
+          "QDD",
+          "토크센서"
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000031",
+        "title": "Humanoid assembly line walkthrough 1",
+        "titleKo": "Humanoid assembly line walkthrough 1 (한글)",
+        "channel": "Factory Watch 0",
+        "publishedAt": "2026-10-21T03:00:00.000Z",
+        "views": 150000,
+        "url": "https://www.youtube.com/watch?v=V0000000031",
+        "thumbnail": "https://i.ytimg.com/vi/V0000000031/mqdefault.jpg",
+        "analyzed": true,
+        "domain": "production",
+        "durationSec": 480,
+        "isTop": false,
+        "summaryLines": [
+          "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+          "토크 센서와 감속기 배치를 단계별로 보여준다.",
+          "마지막에 시험 결과를 요약한다."
+        ],
+        "tags": [
+          "조립",
+          "양산 라인"
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000005",
+        "title": "Quasi-direct drive joint teardown 5",
+        "titleKo": "Quasi-direct drive joint teardown 5 (한글)",
+        "channel": "Motion Channel 4",
+        "publishedAt": "2026-10-21T03:00:00.000Z",
+        "views": 96000,
+        "url": "https://www.youtube.com/watch?v=V0000000005",
+        "thumbnail": "https://i.ytimg.com/vi/V0000000005/mqdefault.jpg",
+        "analyzed": true,
+        "domain": "actuator",
+        "durationSec": 480,
+        "isTop": false,
+        "summaryLines": [
+          "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+          "토크 센서와 감속기 배치를 단계별로 보여준다.",
+          "마지막에 시험 결과를 요약한다."
+        ],
+        "tags": [
+          "관절 구동",
+          "QDD",
+          "토크센서"
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000013",
+        "title": "Five-finger hand grasp benchmark 1",
+        "titleKo": "Five-finger hand grasp benchmark 1 (한글)",
+        "channel": "Hand Tech 0",
+        "publishedAt": "2026-10-21T03:00:00.000Z",
+        "views": 90000,
+        "url": "https://www.youtube.com/watch?v=V0000000013",
+        "thumbnail": "https://i.ytimg.com/vi/V0000000013/mqdefault.jpg",
+        "analyzed": true,
+        "domain": "hand",
+        "durationSec": 480,
+        "isTop": false,
+        "summaryLines": [
+          "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+          "토크 센서와 감속기 배치를 단계별로 보여준다.",
+          "마지막에 시험 결과를 요약한다."
+        ],
+        "tags": [
+          "파지/조작",
+          "촉각",
+          "손가락"
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000022",
+        "title": "VLA policy rollout on a tabletop 1",
+        "titleKo": "VLA policy rollout on a tabletop 1 (한글)",
+        "channel": "Embodied AI 0",
+        "publishedAt": "2026-10-21T03:00:00.000Z",
+        "views": 40000,
+        "url": "https://www.youtube.com/watch?v=V0000000022",
+        "thumbnail": "https://i.ytimg.com/vi/V0000000022/mqdefault.jpg",
+        "analyzed": true,
+        "domain": "rfm",
+        "durationSec": 480,
+        "isTop": false,
+        "summaryLines": [
+          "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+          "토크 센서와 감속기 배치를 단계별로 보여준다.",
+          "마지막에 시험 결과를 요약한다."
+        ],
+        "tags": [
+          "조작",
+          "VLA"
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000032",
+        "title": "Humanoid assembly line walkthrough 2",
+        "titleKo": "Humanoid assembly line walkthrough 2 (한글)",
+        "channel": "Factory Watch 1",
+        "publishedAt": "2026-10-21T03:00:00.000Z",
+        "views": 75000,
+        "url": "https://www.youtube.com/watch?v=V0000000032",
+        "thumbnail": "https://i.ytimg.com/vi/V0000000032/mqdefault.jpg",
+        "analyzed": false,
+        "domain": "production",
+        "durationSec": null,
+        "isTop": false,
+        "summaryLines": [],
+        "tags": [
+          "조립",
+          "양산 라인"
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000016",
+        "title": "Five-finger hand grasp benchmark 4",
+        "titleKo": "Five-finger hand grasp benchmark 4 (한글)",
+        "channel": "Hand Tech 3",
+        "publishedAt": "2026-10-21T03:00:00.000Z",
+        "views": 22500,
+        "url": "https://www.youtube.com/watch?v=V0000000016",
+        "thumbnail": "https://i.ytimg.com/vi/V0000000016/mqdefault.jpg",
+        "analyzed": true,
+        "domain": "hand",
+        "durationSec": 480,
+        "isTop": false,
+        "summaryLines": [
+          "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+          "토크 센서와 감속기 배치를 단계별로 보여준다.",
+          "마지막에 시험 결과를 요약한다."
+        ],
+        "tags": [
+          "파지/조작",
+          "촉각",
+          "손가락"
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000027",
+        "title": "Expo floor tour day 1",
+        "titleKo": "Expo floor tour day 1 (한글)",
+        "channel": "Expo Daily 0",
+        "publishedAt": "2026-10-21T03:00:00.000Z",
+        "views": 20000,
+        "url": "https://www.youtube.com/watch?v=V0000000027",
+        "thumbnail": "https://i.ytimg.com/vi/V0000000027/mqdefault.jpg",
+        "analyzed": true,
+        "domain": "expo",
+        "durationSec": 480,
+        "isTop": false,
+        "summaryLines": [
+          "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+          "토크 센서와 감속기 배치를 단계별로 보여준다.",
+          "마지막에 시험 결과를 요약한다."
+        ],
+        "tags": [
+          "전시",
+          "부스 시연"
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000033",
+        "title": "Humanoid assembly line walkthrough 3",
+        "titleKo": "Humanoid assembly line walkthrough 3 (한글)",
+        "channel": "Factory Watch 2",
+        "publishedAt": "2026-10-21T03:00:00.000Z",
+        "views": 50000,
+        "url": "https://www.youtube.com/watch?v=V0000000033",
+        "thumbnail": "https://i.ytimg.com/vi/V0000000033/mqdefault.jpg",
+        "analyzed": false,
+        "domain": "production",
+        "durationSec": null,
+        "isTop": false,
+        "summaryLines": [],
+        "tags": [
+          "조립",
+          "양산 라인"
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000014",
+        "title": "Five-finger hand grasp benchmark 2",
+        "titleKo": "Five-finger hand grasp benchmark 2 (한글)",
+        "channel": "Hand Tech 1",
+        "publishedAt": "2026-10-21T03:00:00.000Z",
+        "views": 45000,
+        "url": "https://www.youtube.com/watch?v=V0000000014",
+        "thumbnail": "https://i.ytimg.com/vi/V0000000014/mqdefault.jpg",
+        "analyzed": false,
+        "domain": "hand",
+        "durationSec": null,
+        "isTop": false,
+        "summaryLines": [],
+        "tags": [
+          "파지/조작",
+          "촉각",
+          "손가락"
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000024",
+        "title": "VLA policy rollout on a tabletop 3",
+        "titleKo": "VLA policy rollout on a tabletop 3 (한글)",
+        "channel": "Embodied AI 2",
+        "publishedAt": "2026-10-21T03:00:00.000Z",
+        "views": 13333.333333333334,
+        "url": "https://www.youtube.com/watch?v=V0000000024",
+        "thumbnail": "https://i.ytimg.com/vi/V0000000024/mqdefault.jpg",
+        "analyzed": true,
+        "domain": "rfm",
+        "durationSec": 480,
+        "isTop": false,
+        "summaryLines": [
+          "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+          "토크 센서와 감속기 배치를 단계별로 보여준다.",
+          "마지막에 시험 결과를 요약한다."
+        ],
+        "tags": [
+          "조작",
+          "VLA"
+        ]
+      }
+    ],
+    "papers": [
+      {
+        "id": "a1000000-0000-4000-8000-000000000043",
+        "title": "Compact Quasi-Direct-Drive Actuator with Torque Sensing 1",
+        "titleKo": "Compact Quasi-Direct-Drive Actuator with Torque Sensing (한글)",
+        "authors": "A. Kim, B. Lee, C. Park 외 1명",
+        "publishedAt": "2026-10-21T02:00:00.000Z",
+        "url": "https://arxiv.org/abs/2610.00043",
+        "arxivId": "2610.00043",
+        "domain": "actuator",
+        "summaryLines": [
+          "소형 액추에이터에 토크 센서를 통합한 설계를 평가했다.",
+          "다리 관절 시험에서 효율을 비교했다."
+        ],
+        "whyItMatters": "이번 주 자료에서 해당 주제를 다룬 논문으로 분류됩니다."
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000044",
+        "title": "Compact Quasi-Direct-Drive Actuator with Torque Sensing 2",
+        "titleKo": "Compact Quasi-Direct-Drive Actuator with Torque Sensing (한글)",
+        "authors": "A. Kim, B. Lee, C. Park 외 1명",
+        "publishedAt": "2026-10-21T02:00:00.000Z",
+        "url": "https://arxiv.org/abs/2610.00044",
+        "arxivId": "2610.00044",
+        "domain": "actuator",
+        "summaryLines": [
+          "소형 액추에이터에 토크 센서를 통합한 설계를 평가했다.",
+          "다리 관절 시험에서 효율을 비교했다."
+        ],
+        "whyItMatters": "이번 주 자료에서 해당 주제를 다룬 논문으로 분류됩니다."
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000045",
+        "title": "Compact Quasi-Direct-Drive Actuator with Torque Sensing 3",
+        "titleKo": "Compact Quasi-Direct-Drive Actuator with Torque Sensing (한글)",
+        "authors": "A. Kim, B. Lee, C. Park 외 1명",
+        "publishedAt": "2026-10-21T02:00:00.000Z",
+        "url": "https://arxiv.org/abs/2610.00045",
+        "arxivId": "2610.00045",
+        "domain": "actuator",
+        "summaryLines": [
+          "소형 액추에이터에 토크 센서를 통합한 설계를 평가했다.",
+          "다리 관절 시험에서 효율을 비교했다."
+        ],
+        "whyItMatters": "이번 주 자료에서 해당 주제를 다룬 논문으로 분류됩니다."
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000049",
+        "title": "Tactile Sensing Skin for Dexterous Hands 1",
+        "titleKo": "Tactile Sensing Skin for Dexterous Hands 1 (한글)",
+        "authors": "A. Kim, B. Lee, C. Park 외 1명",
+        "publishedAt": "2026-10-21T02:00:00.000Z",
+        "url": "https://arxiv.org/abs/2610.00049",
+        "arxivId": "2610.00049",
+        "domain": "hand",
+        "summaryLines": [
+          "촉각 피부를 적용해 손 안 조작 성공률을 높였다."
+        ],
+        "whyItMatters": "이번 주 자료에서 해당 주제를 다룬 논문으로 분류됩니다."
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000050",
+        "title": "Tactile Sensing Skin for Dexterous Hands 2",
+        "titleKo": "Tactile Sensing Skin for Dexterous Hands 2 (한글)",
+        "authors": "A. Kim, B. Lee, C. Park 외 1명",
+        "publishedAt": "2026-10-21T02:00:00.000Z",
+        "url": "https://arxiv.org/abs/2610.00050",
+        "arxivId": "2610.00050",
+        "domain": "hand",
+        "summaryLines": [
+          "촉각 피부를 적용해 손 안 조작 성공률을 높였다."
+        ],
+        "whyItMatters": "이번 주 자료에서 해당 주제를 다룬 논문으로 분류됩니다."
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000051",
+        "title": "Tactile Sensing Skin for Dexterous Hands 3",
+        "titleKo": "Tactile Sensing Skin for Dexterous Hands 3 (한글)",
+        "authors": "A. Kim, B. Lee, C. Park 외 1명",
+        "publishedAt": "2026-10-21T02:00:00.000Z",
+        "url": "https://arxiv.org/abs/2610.00051",
+        "arxivId": "2610.00051",
+        "domain": "hand",
+        "summaryLines": [
+          "촉각 피부를 적용해 손 안 조작 성공률을 높였다."
+        ],
+        "whyItMatters": "이번 주 자료에서 해당 주제를 다룬 논문으로 분류됩니다."
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000055",
+        "title": "Vision-Language-Action Foundation Model for Humanoid Tasks 1",
+        "titleKo": "Vision-Language-Action Foundation Model for Humanoid Tas (한글)",
+        "authors": "A. Kim, B. Lee, C. Park 외 1명",
+        "publishedAt": "2026-10-21T02:00:00.000Z",
+        "url": "https://arxiv.org/abs/2610.00055",
+        "arxivId": "2610.00055",
+        "domain": "rfm",
+        "summaryLines": [
+          "긴 호흡의 휴머노이드 과제에서 정책 성능을 보고한다."
+        ],
+        "whyItMatters": "이번 주 자료에서 해당 주제를 다룬 논문으로 분류됩니다."
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000056",
+        "title": "Vision-Language-Action Foundation Model for Humanoid Tasks 2",
+        "titleKo": "Vision-Language-Action Foundation Model for Humanoid Tas (한글)",
+        "authors": "A. Kim, B. Lee, C. Park 외 1명",
+        "publishedAt": "2026-10-21T02:00:00.000Z",
+        "url": "https://arxiv.org/abs/2610.00056",
+        "arxivId": "2610.00056",
+        "domain": "rfm",
+        "summaryLines": [
+          "긴 호흡의 휴머노이드 과제에서 정책 성능을 보고한다."
+        ],
+        "whyItMatters": "이번 주 자료에서 해당 주제를 다룬 논문으로 분류됩니다."
+      }
+    ],
+    "articles": [
+      {
+        "id": "a1000000-0000-4000-8000-000000000066",
+        "title": "Humanoid mass production ramp announced 1",
+        "titleKo": "Humanoid mass production ramp announced 1 (한글)",
+        "source": "TechCrunch",
+        "publishedAt": "2026-10-20T05:00:00.000Z",
+        "url": "https://news.example.com/TechCrunch/00000066",
+        "domain": "production",
+        "summaryLines": [
+          "양산 라인 가동 계획이 공개되었다"
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000067",
+        "title": "Humanoid mass production ramp announced 2",
+        "titleKo": "Humanoid mass production ramp announced 2 (한글)",
+        "source": "SCMP",
+        "publishedAt": "2026-10-20T05:00:00.000Z",
+        "url": "https://news.example.com/SCMP/00000067",
+        "domain": "production",
+        "summaryLines": [
+          "RAWSUMMARYMARKER article first sentence."
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000068",
+        "title": "Humanoid mass production ramp announced 3",
+        "titleKo": "Humanoid mass production ramp announced 3 (한글)",
+        "source": "Nikkei",
+        "publishedAt": "2026-10-20T05:00:00.000Z",
+        "url": "https://news.example.com/Nikkei/00000068",
+        "domain": "production",
+        "summaryLines": [
+          "양산 라인 가동 계획이 공개되었다"
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000110",
+        "title": "Gamma Hands tactile fingertip update 1",
+        "titleKo": "Gamma Hands tactile fingertip update 1 (한글)",
+        "source": "SCMP",
+        "publishedAt": "2026-10-20T05:00:00.000Z",
+        "url": "https://news.example.com/SCMP/00000110",
+        "domain": "hand",
+        "summaryLines": [
+          "RAWSUMMARYMARKER article first sentence."
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000111",
+        "title": "Gamma Hands tactile fingertip update 2",
+        "titleKo": "Gamma Hands tactile fingertip update 2 (한글)",
+        "source": "Nikkei",
+        "publishedAt": "2026-10-20T05:00:00.000Z",
+        "url": "https://news.example.com/Nikkei/00000111",
+        "domain": "hand",
+        "summaryLines": [
+          "RAWSUMMARYMARKER article first sentence."
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000112",
+        "title": "Gamma Hands tactile fingertip update 3",
+        "titleKo": "Gamma Hands tactile fingertip update 3 (한글)",
+        "source": "Reuters",
+        "publishedAt": "2026-10-20T05:00:00.000Z",
+        "url": "https://news.example.com/Reuters/00000112",
+        "domain": "hand",
+        "summaryLines": [
+          "RAWSUMMARYMARKER article first sentence."
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000113",
+        "title": "Gamma Hands tactile fingertip update 4",
+        "titleKo": "Gamma Hands tactile fingertip update 4 (한글)",
+        "source": "Wired",
+        "publishedAt": "2026-10-20T05:00:00.000Z",
+        "url": "https://news.example.com/Wired/00000113",
+        "domain": "hand",
+        "summaryLines": [
+          "RAWSUMMARYMARKER article first sentence."
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000060",
+        "title": "Robot expo opens with record attendance 1 at CES",
+        "titleKo": "Robot expo opens with record attendance 1 at CES (한글)",
+        "source": "The Robot Report",
+        "publishedAt": "2026-10-20T05:00:00.000Z",
+        "url": "https://news.example.com/The Robot Report/00000060",
+        "domain": "expo",
+        "summaryLines": [
+          "전시회 참관객이 늘었다",
+          "휴머노이드 부스가 가장 붐볐다"
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000061",
+        "title": "Robot expo opens with record attendance 2 at CES",
+        "titleKo": "Robot expo opens with record attendance 2 at CES (한글)",
+        "source": "IEEE Spectrum",
+        "publishedAt": "2026-10-20T05:00:00.000Z",
+        "url": "https://news.example.com/IEEE Spectrum/00000061",
+        "domain": "expo",
+        "summaryLines": [
+          "RAWSUMMARYMARKER article first sentence."
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000062",
+        "title": "Robot expo opens with record attendance 3 at CES",
+        "titleKo": "Robot expo opens with record attendance 3 at CES (한글)",
+        "source": "TechCrunch",
+        "publishedAt": "2026-10-20T05:00:00.000Z",
+        "url": "https://news.example.com/TechCrunch/00000062",
+        "domain": "expo",
+        "summaryLines": [
+          "전시회 참관객이 늘었다",
+          "휴머노이드 부스가 가장 붐볐다"
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000063",
+        "title": "Robot expo opens with record attendance 4 at CES",
+        "titleKo": "Robot expo opens with record attendance 4 at CES (한글)",
+        "source": "SCMP",
+        "publishedAt": "2026-10-20T05:00:00.000Z",
+        "url": "https://news.example.com/SCMP/00000063",
+        "domain": "expo",
+        "summaryLines": [
+          "RAWSUMMARYMARKER article first sentence."
+        ]
+      },
+      {
+        "id": "a1000000-0000-4000-8000-000000000064",
+        "title": "Robot expo opens with record attendance 5 at CES",
+        "titleKo": "Robot expo opens with record attendance 5 at CES (한글)",
+        "source": "Nikkei",
+        "publishedAt": "2026-10-20T05:00:00.000Z",
+        "url": "https://news.example.com/Nikkei/00000064",
+        "domain": "expo",
+        "summaryLines": [
+          "전시회 참관객이 늘었다",
+          "휴머노이드 부스가 가장 붐볐다"
+        ]
+      }
+    ],
+    "ciSummary": {
+      "updates": 6,
+      "companies": 5
+    },
+    "trends": {
+      "volume": {
+        "weeks": [
+          {
+            "weekStart": "2026-08-31",
+            "videos": 30,
+            "articles": 130,
+            "papers": 40
+          },
+          {
+            "weekStart": "2026-09-07",
+            "videos": 33,
+            "articles": 150,
+            "papers": 38
+          },
+          {
+            "weekStart": "2026-09-14",
+            "videos": 28,
+            "articles": 140,
+            "papers": 45
+          },
+          {
+            "weekStart": "2026-09-21",
+            "videos": 36,
+            "articles": 160,
+            "papers": 44
+          },
+          {
+            "weekStart": "2026-09-28",
+            "videos": 35,
+            "articles": 155,
+            "papers": 47
+          },
+          {
+            "weekStart": "2026-10-05",
+            "videos": 37,
+            "articles": 170,
+            "papers": 50
+          },
+          {
+            "weekStart": "2026-10-12",
+            "videos": 26,
+            "articles": 25,
+            "papers": 8
+          },
+          {
+            "weekStart": "2026-10-19",
+            "videos": 42,
+            "articles": 57,
+            "papers": 17
+          }
+        ]
+      },
+      "keywords": [
+        {
+          "keywordId": "kw-sim",
+          "term": "sim2real",
+          "count": 9,
+          "prevCount": 6,
+          "deltaPct": 50,
+          "direction": "up"
+        },
+        {
+          "keywordId": "kw-humanoid",
+          "term": "humanoid",
+          "count": 212,
+          "prevCount": 190,
+          "deltaPct": 11.6,
+          "direction": "up"
+        },
+        {
+          "keywordId": "kw-actuator",
+          "term": "actuator",
+          "count": 96,
+          "prevCount": 92,
+          "deltaPct": 4.3,
+          "direction": "flat"
+        },
+        {
+          "keywordId": "kw-vla",
+          "term": "VLA",
+          "count": 71,
+          "prevCount": 80,
+          "deltaPct": -11.2,
+          "direction": "down"
+        },
+        {
+          "keywordId": "kw-tactile",
+          "term": "tactile",
+          "count": 41,
+          "prevCount": 29,
+          "deltaPct": 41.4,
+          "direction": "up"
+        },
+        {
+          "keywordId": "kw-dexterous",
+          "term": "dexterous",
+          "count": 38,
+          "prevCount": 0,
+          "deltaPct": null,
+          "direction": "new"
+        },
+        {
+          "keywordId": "kw-gripper",
+          "term": "gripper",
+          "count": 30,
+          "prevCount": 28,
+          "deltaPct": 7.1,
+          "direction": "up"
+        },
+        {
+          "keywordId": "kw-reducer",
+          "term": "reducer",
+          "count": 18,
+          "prevCount": 21,
+          "deltaPct": -14.3,
+          "direction": "down"
+        },
+        {
+          "keywordId": "kw-battery",
+          "term": "battery",
+          "count": 12,
+          "prevCount": 12,
+          "deltaPct": 0,
+          "direction": "flat"
+        },
+        {
+          "keywordId": "kw-torque",
+          "term": "torque",
+          "count": 11,
+          "prevCount": 9,
+          "deltaPct": 22.2,
+          "direction": "up"
+        },
+        {
+          "keywordId": "kw-safety",
+          "term": "safety",
+          "count": 8,
+          "prevCount": 10,
+          "deltaPct": -20,
+          "direction": "down"
+        },
+        {
+          "keywordId": "kw-leg",
+          "term": "legged",
+          "count": 7,
+          "prevCount": 5,
+          "deltaPct": 40,
+          "direction": "up"
+        }
+      ],
+      "keywordNote": "'sim2real' 언급은 이번 주 9회(지난주 6회), 'humanoid' 언급은 212회(지난주 190회)로 집계되었습니다. 언급 횟수 상위 키워드는 sim2real, humanoid, actuator 순이며, 방향별 증감은 아래 표에서 확인할 수 있습니다."
+    },
+    "watchPoints": [
+      {
+        "id": "watch:kw:kw-dexterous",
+        "title": "추적 항목 w1",
+        "body": "키워드 dexterous · 이번 주 38회 · 지난주 0회 · 신규 내용은 이번 주 데이터에서 근거가 확인된 항목입니다. 다음 주 집계에서도 같은 흐름이 이어지는지 확인할 필요가 있습니다. 집계 기간은 2026-10-19 ~ 2026-10-25입니다.",
+        "evidence": [
+          {
+            "type": "keyword",
+            "id": "kw-dexterous",
+            "title": "dexterous",
+            "url": null,
+            "label": "38회"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "watch:kw:kw-sim",
+        "title": "추적 항목 w2",
+        "body": "키워드 sim2real · 이번 주 9회 · 지난주 6회 · 증감 50% 내용은 이번 주 데이터에서 근거가 확인된 항목입니다. 다음 주 집계에서도 같은 흐름이 이어지는지 확인할 필요가 있습니다. 집계 기간은 2026-10-19 ~ 2026-10-25입니다.",
+        "evidence": [
+          {
+            "type": "keyword",
+            "id": "kw-sim",
+            "title": "sim2real",
+            "url": null,
+            "label": "9회"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "watch:ci:ci-6",
+        "title": "추적 항목 w3",
+        "body": "CI Quiet Labs 보행 속도 · 현재 1.5 m/s · 신뢰도 F 내용은 이번 주 데이터에서 근거가 확인된 항목입니다. 다음 주 집계에서도 같은 흐름이 이어지는지 확인할 필요가 있습니다. 집계 기간은 2026-10-19 ~ 2026-10-25입니다.",
+        "evidence": [
+          {
+            "type": "ci",
+            "id": "ci-6",
+            "title": "Quiet Labs · 보행 속도",
+            "url": "https://example.com/spec",
+            "label": "Quiet Labs"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "watch:ci:ci-4",
+        "title": "추적 항목 w4",
+        "body": "CI Orion Systems 인증 현황 · 현재 ISO 13482 취득 · 신뢰도 C 내용은 이번 주 데이터에서 근거가 확인된 항목입니다. 다음 주 집계에서도 같은 흐름이 이어지는지 확인할 필요가 있습니다. 집계 기간은 2026-10-19 ~ 2026-10-25입니다.",
+        "evidence": [
+          {
+            "type": "ci",
+            "id": "ci-4",
+            "title": "Orion Systems · 인증 현황",
+            "url": null,
+            "label": "Orion Systems"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "watch:co:co-atlas",
+        "title": "추적 항목 w5",
+        "body": "회사 Atlas Robotics · 이번 주 20건 · 지난주 8건 내용은 이번 주 데이터에서 근거가 확인된 항목입니다. 다음 주 집계에서도 같은 흐름이 이어지는지 확인할 필요가 있습니다. 집계 기간은 2026-10-19 ~ 2026-10-25입니다.",
+        "evidence": [
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000001",
+            "title": "Quasi-direct drive joint teardown 1",
+            "url": "https://www.youtube.com/watch?v=V0000000001",
+            "label": "Robot Lab"
+          },
+          {
+            "type": "article",
+            "id": "a1000000-0000-4000-8000-000000000072",
+            "title": "Supplier signs multi-year deal 1",
+            "url": "https://news.example.com/The Robot Report/00000072",
+            "label": "The Robot Report"
+          }
+        ],
+        "generatedBy": "ai"
+      }
+    ],
+    "meta": {
+      "aiUsed": true,
+      "ruleBasedSections": 0,
+      "sectionSources": {
+        "highlights": "ai",
+        "domains": "ai",
+        "companies": "ai",
+        "papers": "ai",
+        "trends": "ai",
+        "watch": "ai"
+      },
+      "warnings": [],
+      "truncated": false
+    }
+  }
+}

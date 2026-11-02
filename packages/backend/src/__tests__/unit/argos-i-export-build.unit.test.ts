@@ -17,6 +17,7 @@ import {
   truncateChars,
 } from '../../services/argos-i-export-util.js';
 import { CTX, EMAIL, HOSTILE_TEXT, SENTINEL, emptyByArea, rawByArea, reverseTopLevel } from '../fixtures/argos-i-export.fixture.js';
+import reportFull from '../fixtures/weekly-report-samples/full.json';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -335,10 +336,10 @@ describe('JSON envelope', () => {
     }
   });
 
-  it('the actuator-map area exposes ACTUATOR_MAP_SCHEMA_VERSION and weekly-briefs the payload schema version', () => {
+  it('the actuator-map area exposes ACTUATOR_MAP_SCHEMA_VERSION and weekly-briefs the report (v2) payload schema version', () => {
     const v = (id: string) => JSON.parse(text(rendered.find((r) => r.def.id === id)!.json)).areaSchemaVersion;
     expect(v('actuator-map')).toBe(2);
-    expect(v('weekly-briefs')).toBe(1);
+    expect(v('weekly-briefs')).toBe(2);
   });
 
   it('actuator-map drops generatedAt/cached from the source map and uses the bundle times', () => {
@@ -388,10 +389,37 @@ describe('area semantics', () => {
   });
   it('weekly-briefs skips failed rows and excludes tokens/cost/stats/error', () => {
     const items = data('weekly-briefs').items;
-    expect(items.map((i: any) => i.weekStart)).toEqual(['2026-10-19']);
-    expect(items[0]).toMatchObject({ weekEnd: '2026-10-25', isoYear: 2026, weekNumber: 43, status: 'ok' });
+    expect(items.map((i: any) => i.weekStart)).toEqual(['2026-10-26', '2026-10-19']);
+    expect(items[1]).toMatchObject({ weekEnd: '2026-10-25', isoYear: 2026, weekNumber: 43, status: 'ok' });
     const raw = text(rendered.find((r) => r.def.id === 'weekly-briefs')!.json);
     for (const k of ['input_tokens', 'inputTokens', 'cost_usd', 'costUsd', '"stats"', '"error"']) expect(raw).not.toContain(k);
+  });
+  it('weekly-briefs mixes v1 and v2 payloads (told apart by schemaVersion) and carries the v2 strings losslessly within 400 chars', () => {
+    const items = data('weekly-briefs').items;
+    const v2 = items.find((i: any) => i.payload.schemaVersion === 2);
+    const v1 = items.find((i: any) => i.payload.schemaVersion === 1);
+    expect(v2.weekStart).toBe('2026-10-26');
+    expect(v1.weekStart).toBe('2026-10-19');
+    const original: any = JSON.parse(JSON.stringify(reportFull.payload));
+    // sanitizeDeep 는 키를 알파벳순으로 정렬하므로 정렬 후 비교 — 값은 그대로여야 한다
+    const sorted = (v: any): any => (Array.isArray(v) ? v.map(sorted) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sorted(v[k])])) : v);
+    expect(v2.payload).toEqual(sorted(original));
+    const walk = (v: any, fn: (s: string) => void): void => (typeof v === 'string' ? fn(v) : Array.isArray(v) ? v.forEach((x) => walk(x, fn)) : v && typeof v === 'object' ? Object.values(v).forEach((x) => walk(x, fn)) : undefined);
+    walk(v2.payload, (s) => expect(Array.from(s).length).toBeLessThanOrEqual(400));
+    const keys: string[] = [];
+    const collect = (v: any): void => (Array.isArray(v) ? v.forEach(collect) : v && typeof v === 'object' ? Object.entries(v).forEach(([k, x]) => (keys.push(k), collect(x))) : undefined);
+    collect(v2.payload);
+    for (const k of ['content', 'description', 'abstract', 'originalText']) expect(keys).not.toContain(k);
+  });
+  it('the key-message table lists v1 keyMessages and v2 highlights with their generation method', () => {
+    const md = text(rendered.find((r) => r.def.id === 'weekly-briefs')!.md);
+    expect(md).toContain('## 핵심 메시지');
+    expect(md).toContain('이번 주 수집된 영상·기사 중 24%가 액추에이터 주제였습니다'); // v1
+    const first = (reportFull.payload as any).highlights[0];
+    expect(md).toContain(first.headline.replace(/\|/g, '\\|')); // v2
+    const rows = (data('weekly-briefs').items.find((i: any) => i.payload.schemaVersion === 2).payload.highlights as any[]).length;
+    expect(md).toContain(`핵심 메시지 합계 ${3 + rows}건`);
+    expect(md).toContain('payload.schemaVersion');
   });
   it('ci-matrix excludes inactive competitors and renders the matrix with confidence tags', () => {
     const md = text(rendered.find((r) => r.def.id === 'ci-matrix')!.md);

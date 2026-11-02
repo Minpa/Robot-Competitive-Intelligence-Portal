@@ -10,6 +10,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { seedWeeklyBriefFixture, WEEKLY_BRIEF_SEED_EXPECTED as EXP } from '../fixtures/weekly-brief-seed.js';
+import { expectReportShape } from '../fixtures/expect-report-shape.js';
+import { makeFakeReportClient, type FakeAiOptions } from '../fixtures/weekly-report-fake-ai.js';
 
 const TEST_URL = process.env.TEST_DATABASE_URL;
 
@@ -20,6 +22,9 @@ type Mods = {
   collect: typeof import('../../services/weekly-brief-collect.js');
   compose: typeof import('../../services/weekly-brief-compose.js');
   summarize: typeof import('../../services/weekly-brief-summarize.js');
+  summarizeReport: typeof import('../../services/weekly-brief-summarize-report.js');
+  composeReport: typeof import('../../services/weekly-brief-compose-report.js');
+  usage: typeof import('../../services/ai-usage.service.js');
   period: typeof import('../../services/weekly-brief-period.js');
   ddl: typeof import('../../db/weekly-brief.ddl.js');
 };
@@ -50,8 +55,10 @@ describe.skipIf(!TEST_URL)('weekly brief (temp PostgreSQL)', () => {
     };
   }
 
+  /** v1(포스터, WEEKLY_BRIEF_FORMAT=poster) 생성 경로 — 롤백 스위치 회귀 + 기존 v1 검증용 */
   const aiDeps = (calls: { n: number }, env: Record<string, string | undefined> = {}) => ({
     now: () => NOW,
+    env: { ...process.env, ...env, WEEKLY_BRIEF_FORMAT: 'poster' } as Record<string, string | undefined>,
     summarize: (input: any) =>
       m.summarize.summarizeCandidates(input, {
         client: fakeAi(calls) as any,
@@ -60,6 +67,26 @@ describe.skipIf(!TEST_URL)('weekly brief (temp PostgreSQL)', () => {
         logUsage: async () => undefined,
       }),
   });
+
+  /** v2(리포트, 기본) 생성 경로 — 가짜 AI 클라이언트(호출 로그 포함)와 실제 DB 사용량 기록 */
+  const reportDeps = (opts: FakeAiOptions = {}, env: Record<string, string | undefined> = {}, now: () => Date = () => NOW) => {
+    const fake = makeFakeReportClient({ rich: true, ...opts });
+    return {
+      fake,
+      deps: {
+        now,
+        env: { ...process.env, ...env } as Record<string, string | undefined>,
+        summarizeReport: (weekStart: string, plan: any) =>
+          m.summarizeReport.summarizeReport(weekStart, plan, {
+            client: fake.client as any,
+            env: { ...env, WEEKLY_BRIEF_MODEL: 'it-test-model' },
+            getCreditInfo: async () => ({ monthlyLimitUsd: 50, currentMonthUsageUsd: 0 }),
+            logUsage: (e) => m.usage.aiUsageService.logUsage(e),
+            log: () => undefined,
+          }),
+      },
+    };
+  };
 
   beforeAll(async () => {
     for (const k of ['DATABASE_URL', 'WEEKLY_BRIEF_AI_ENABLED', 'ANTHROPIC_API_KEY']) prevEnv[k] = process.env[k];
@@ -73,6 +100,9 @@ describe.skipIf(!TEST_URL)('weekly brief (temp PostgreSQL)', () => {
       collect: await import('../../services/weekly-brief-collect.js'),
       compose: await import('../../services/weekly-brief-compose.js'),
       summarize: await import('../../services/weekly-brief-summarize.js'),
+      summarizeReport: await import('../../services/weekly-brief-summarize-report.js'),
+      composeReport: await import('../../services/weekly-brief-compose-report.js'),
+      usage: await import('../../services/ai-usage.service.js'),
       period: await import('../../services/weekly-brief-period.js'),
       ddl: await import('../../db/weekly-brief.ddl.js'),
     };
@@ -544,6 +574,19 @@ describe.skipIf(!TEST_URL)('weekly brief (temp PostgreSQL)', () => {
       expect(latest.payload.meta.warnings).toContain('ai_disabled');
     });
 
+    it('GET /latest now serves the v2 report (rule-only here) without tokens, cost, errors or stats', async () => {
+      const res = await get('/api/weekly-brief/latest');
+      const body = res.json();
+      expect(body.payload.schemaVersion).toBe(2);
+      expectReportShape(body.payload);
+      expect(body.payload.meta.warnings).toContain('ai_disabled');
+      expect(Object.keys(body).sort()).toEqual(['generatedAt', 'model', 'nextWeekStart', 'payload', 'prevWeekStart', 'status', 'weekStart']);
+      for (const forbidden of ['inputTokens', 'outputTokens', 'costUsd', 'cost_usd', '"stats"', 'input_tokens', '"error"']) expect(res.body).not.toContain(forbidden);
+      // 목록 API 는 header.counts 만 쓰므로 v2 에서도 그대로 동작한다
+      const list = (await get('/api/weekly-brief?limit=26')).json().items;
+      expect(list[0].counts).toMatchObject({ articles: EXP.current.news, videosNew: EXP.current.videos, papers: EXP.current.papers });
+    });
+
     it('the manual path works when the scheduler is disabled (DISABLE_SCHEDULER=true) (AC-18)', async () => {
       const prev = process.env.DISABLE_SCHEDULER;
       process.env.DISABLE_SCHEDULER = 'true';
@@ -559,6 +602,198 @@ describe.skipIf(!TEST_URL)('weekly brief (temp PostgreSQL)', () => {
         else process.env.DISABLE_SCHEDULER = prev;
       }
     });
+  });
+});
+
+describe.skipIf(!TEST_URL)('weekly brief v2 report (temp PostgreSQL)', () => {
+  let m2: Mods;
+  const q2 = async <T = Record<string, any>>(text: string): Promise<T[]> => ((await m2.db.execute(m2.sql.raw(text))) as unknown as { rows: T[] }).rows;
+  const prev2: Record<string, string | undefined> = {};
+
+  beforeAll(async () => {
+    for (const k of ['DATABASE_URL', 'WEEKLY_BRIEF_AI_ENABLED', 'ANTHROPIC_API_KEY']) prev2[k] = process.env[k];
+    process.env.DATABASE_URL = TEST_URL;
+    const drizzle = await import('drizzle-orm');
+    const dbMod = await import('../../db/index.js');
+    m2 = {
+      sql: drizzle.sql,
+      db: dbMod.db,
+      svc: await import('../../services/weekly-brief.service.js'),
+      collect: await import('../../services/weekly-brief-collect.js'),
+      compose: await import('../../services/weekly-brief-compose.js'),
+      summarize: await import('../../services/weekly-brief-summarize.js'),
+      summarizeReport: await import('../../services/weekly-brief-summarize-report.js'),
+      composeReport: await import('../../services/weekly-brief-compose-report.js'),
+      usage: await import('../../services/ai-usage.service.js'),
+      period: await import('../../services/weekly-brief-period.js'),
+      ddl: await import('../../db/weekly-brief.ddl.js'),
+    };
+    await seedWeeklyBriefFixture((t) => m2.db.execute(m2.sql.raw(t)));
+  });
+
+  afterAll(() => {
+    for (const [k, v] of Object.entries(prev2)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  });
+
+  const fakeDeps = (opts: FakeAiOptions = {}, env: Record<string, string | undefined> = {}) => {
+    const fake = makeFakeReportClient({ rich: true, ...opts });
+    return {
+      fake,
+      deps: {
+        now: () => NOW,
+        env: { ...process.env, ...env } as Record<string, string | undefined>,
+        summarizeReport: (weekStart: string, plan: any) =>
+          m2.summarizeReport.summarizeReport(weekStart, plan, {
+            client: fake.client as any,
+            env: { ...env, WEEKLY_BRIEF_MODEL: 'it-test-model' },
+            getCreditInfo: async () => ({ monthlyLimitUsd: 50, currentMonthUsageUsd: 0 }),
+            logUsage: (e) => m2.usage.aiUsageService.logUsage(e),
+            log: () => undefined,
+          }),
+      },
+    };
+  };
+
+  it('collect (report mode): extended projection is length-limited, the 8-week volume follows KST Monday weeks and matches the counts, the company directory is loaded', async () => {
+    // 파생 요약을 일부 행에 넣는다 (논문 aiSummaryKo 500자, 기사 keyPoints 5개 x 300자)
+    await q2(`UPDATE articles SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb) || jsonb_build_object('aiSummaryKo', repeat('가', 500)) WHERE content_hash LIKE 'wb-fixture-cur-paper-%'`);
+    await q2(`UPDATE articles SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb) || jsonb_build_object('keyPoints', jsonb_build_array(repeat('나', 300), 'b', 'c', 'd', 'e')) WHERE content_hash LIKE 'wb-fixture-cur-news-%'`);
+    const range = m2.period.getWeekRange(WEEK);
+    const w = await m2.collect.collectWeek(range, m2.period.getWeekRange(PREV), undefined, { report: true });
+    const papers = w.rows.filter((r) => r.source === 'arxiv');
+    expect(papers.length).toBeGreaterThan(0);
+    for (const r of papers) expect(Array.from(String(r.extractedMetadata.aiSummaryKo ?? '')).length).toBeLessThanOrEqual(200);
+    expect(papers.some((r) => String(r.extractedMetadata.aiSummaryKo ?? '').length === 200)).toBe(true);
+    const withKp = w.rows.filter((r) => Array.isArray(r.extractedMetadata.keyPoints));
+    expect(withKp.length).toBeGreaterThan(0);
+    for (const r of withKp) {
+      expect(r.extractedMetadata.keyPoints.length).toBeLessThanOrEqual(3);
+      for (const k of r.extractedMetadata.keyPoints) expect(Array.from(k as string).length).toBeLessThanOrEqual(120);
+    }
+    // 8주 추이 — KST 월요일 경계, 이번 주·직전 주 값이 행 기반 집계와 같다
+    expect(w.volume).toHaveLength(8);
+    expect(w.volume!.map((v) => v.weekStart)).toEqual(['2026-08-31', '2026-09-07', '2026-09-14', '2026-09-21', '2026-09-28', '2026-10-05', '2026-10-12', '2026-10-19']);
+    expect(w.volume![7]).toEqual({ weekStart: WEEK, videos: EXP.current.videos, articles: EXP.current.news, papers: EXP.current.papers });
+    expect(w.volume![6]).toEqual({ weekStart: PREV, videos: EXP.prev.videos, articles: EXP.prev.news, papers: EXP.prev.papers });
+    expect(w.volume!.slice(0, 6).every((v) => v.videos === 0 && v.articles === 0 && v.papers === 0)).toBe(true);
+    expect(w.companyDirectory!.length).toBeGreaterThan(10);
+    expect(w.warnings).toEqual([]);
+    // 포스터 경로는 추가 수집을 하지 않는다
+    const v1 = await m2.collect.collectWeek(range, m2.period.getWeekRange(PREV));
+    expect(v1.volume).toBeUndefined();
+    expect(v1.companyDirectory).toBeUndefined();
+  });
+
+  it('a fake AI run stores a v2 payload: contract shape, 4 AI calls, one usage row per call, tokens/cost summed, derived summaries only', async () => {
+    await q2(`DELETE FROM ai_usage_logs WHERE query LIKE '[weekly-brief]%'`).catch(() => undefined);
+    const { deps, fake } = fakeDeps();
+    const r = await m2.svc.runWeeklyBrief({ weekStart: WEEK, force: true, reason: 'manual' }, deps);
+    expect(r).toMatchObject({ outcome: 'created', weekStart: WEEK });
+    expect(fake.calls.length).toBeLessThanOrEqual(4);
+    expect(fake.calls.map((c) => c.call).sort()).toEqual(['A', 'B', 'C', 'D']);
+
+    const [row] = await q2<any>(`SELECT status, payload, stats, model, input_tokens, output_tokens, cost_usd::float AS cost, error FROM weekly_briefs WHERE week_start = '${WEEK}'`);
+    expect(row.error).toBeNull();
+    expect(['ok', 'partial']).toContain(row.status);
+    const p = row.payload;
+    expectReportShape(p);
+    expect(p.header.counts).toMatchObject({ articles: EXP.current.news, videosNew: EXP.current.videos, papers: EXP.current.papers });
+    expect(p.trends.volume.weeks).toHaveLength(8);
+    expect(p.trends.volume.weeks[7]).toMatchObject({ weekStart: WEEK, videos: EXP.current.videos, articles: EXP.current.news, papers: EXP.current.papers });
+    expect(p.domains.map((d: any) => d.key)).toEqual(['hand', 'actuator', 'rfm', 'expo', 'production']);
+    expect(p.meta.aiUsed).toBe(true);
+    // 원문 전재 금지: 논문 요약은 aiSummaryKo(200자 컷)만, 초록 발췌('We present an actuator design.')는 없다
+    expect(JSON.stringify(p)).not.toContain('We present an actuator design');
+    for (const pp of p.papers) for (const line of pp.summaryLines) expect(Array.from(line as string).length).toBeLessThanOrEqual(120);
+
+    // 사용량: 호출당 1행, 합계가 weekly_briefs 와 일치
+    const logs = await q2<any>(`SELECT query, input_tokens, output_tokens, estimated_cost_usd::float AS cost FROM ai_usage_logs WHERE query LIKE '[weekly-brief] ${WEEK} %' ORDER BY query`);
+    expect(logs.map((l) => l.query)).toEqual(['A', 'B', 'C', 'D'].map((x) => `[weekly-brief] ${WEEK} ${x}`));
+    expect(row.input_tokens).toBe(logs.reduce((n, l) => n + Number(l.input_tokens), 0));
+    expect(row.output_tokens).toBe(logs.reduce((n, l) => n + Number(l.output_tokens), 0));
+    expect(row.cost).toBeCloseTo(logs.reduce((n, l) => n + l.cost, 0), 5);
+    expect(row.model).toBe('it-test-model');
+    // stats: 호출별 토큰·비용, 문장 탈락, 파생 요약 보유율
+    expect(row.stats.ai.calls).toHaveLength(4);
+    expect(row.stats.coverage.news.total).toBe(EXP.current.news);
+    expect(row.stats.coverage.news.withKeyPoints).toBeGreaterThan(0);
+    expect(row.stats.guard.sentences).toBeGreaterThan(0);
+  });
+
+  it('rule-only mode (AI disabled) is partial with non-empty rule sentences and no AI call; a hostile fake AI cannot inject ids, urls or numbers', async () => {
+    const off = fakeDeps({}, { WEEKLY_BRIEF_AI_ENABLED: 'false' });
+    const r = await m2.svc.runWeeklyBrief({ weekStart: WEEK, force: true, reason: 'manual' }, off.deps);
+    expect(r).toMatchObject({ outcome: 'created', status: 'partial' });
+    expect(off.fake.calls).toHaveLength(0);
+    const [row] = await q2<any>(`SELECT payload, cost_usd::float AS cost FROM weekly_briefs WHERE week_start = '${WEEK}'`);
+    expect(row.cost).toBe(0);
+    expect(row.payload.meta.warnings).toContain('ai_disabled');
+    expect(row.payload.meta.aiUsed).toBe(false);
+    expectReportShape(row.payload);
+    expect(row.payload.highlights.length).toBeGreaterThanOrEqual(3);
+    expect(row.payload.highlights.every((h: any) => h.generatedBy === 'rule' && h.body.length > 0)).toBe(true);
+    expect(m2.composeReport.narrativeCharCount(row.payload)).toBeGreaterThanOrEqual(1200);
+
+    const hostile = fakeDeps({ hostile: true });
+    await m2.svc.runWeeklyBrief({ weekStart: WEEK, force: true, reason: 'manual' }, hostile.deps);
+    const [row2] = await q2<any>(`SELECT payload FROM weekly_briefs WHERE week_start = '${WEEK}'`);
+    const text = JSON.stringify(row2.payload);
+    expect(text).not.toContain('evil.example');
+    expect(text).not.toContain('99%');
+    expect(text).not.toContain('h999');
+    expectReportShape(row2.payload);
+  });
+
+  it('a same-week regeneration replaces a v1 row with v2; a failed regeneration keeps the stored row', async () => {
+    const calls = { n: 0 };
+    const v1 = await m2.svc.runWeeklyBrief({ weekStart: PREV, force: true, reason: 'manual' }, {
+      now: () => NOW,
+      env: { ...process.env, WEEKLY_BRIEF_FORMAT: 'poster', WEEKLY_BRIEF_AI_ENABLED: 'false' } as Record<string, string | undefined>,
+      summarize: (input: any) => m2.summarize.summarizeCandidates(input, { client: null, env: { WEEKLY_BRIEF_AI_ENABLED: 'false' }, log: () => undefined }).then((x) => (calls.n++, x)),
+    });
+    expect(v1.outcome).toBe('created');
+    expect((await q2<any>(`SELECT payload->>'schemaVersion' AS v FROM weekly_briefs WHERE week_start = '${PREV}'`))[0]!.v).toBe('1');
+
+    const boom = { ...fakeDeps().deps, collect: async () => { throw new Error('collect exploded'); } };
+    const kept = await m2.svc.runWeeklyBrief({ weekStart: PREV, force: true, reason: 'manual' }, boom);
+    expect(kept.outcome).toBe('failed');
+    expect((await q2<any>(`SELECT payload->>'schemaVersion' AS v FROM weekly_briefs WHERE week_start = '${PREV}'`))[0]!.v).toBe('1'); // v1 보존
+
+    const v2 = await m2.svc.runWeeklyBrief({ weekStart: PREV, force: true, reason: 'manual' }, fakeDeps().deps);
+    expect(v2.outcome).toBe('created');
+    expect((await q2<any>(`SELECT payload->>'schemaVersion' AS v FROM weekly_briefs WHERE week_start = '${PREV}'`))[0]!.v).toBe('2');
+  });
+
+  it('a sparse week (3 videos) and an empty week do not break', async () => {
+    const sparseWeek = '2026-09-14';
+    await q2(`DELETE FROM articles WHERE content_hash LIKE 'wb-sparse-%'`);
+    await q2(`INSERT INTO articles (title, source, url, published_at, summary, content_hash, collected_at, product_type, extracted_metadata)
+      SELECT 'WB sparse video ' || i, 'youtube', 'https://www.youtube.com/watch?v=SPARSE0000' || i, '2026-09-15 03:00:00', NULL, 'wb-sparse-' || i, '2026-09-15 03:00:00', 'video',
+             jsonb_build_object('views', 1000 * i, 'channel', 'Sparse Ch', 'videoId', 'SPARSE0000' || i)
+      FROM generate_series(1, 3) i`);
+    const { deps, fake } = fakeDeps();
+    const r = await m2.svc.runWeeklyBrief({ weekStart: sparseWeek, force: true, reason: 'manual' }, deps);
+    expect(r.outcome).toBe('created');
+    const [row] = await q2<any>(`SELECT payload FROM weekly_briefs WHERE week_start = '${sparseWeek}'`);
+    expectReportShape(row.payload);
+    expect(row.payload.videos).toHaveLength(3);
+    expect(row.payload.domains.every((d: any) => d.status === 'quiet')).toBe(true);
+    expect(row.payload.highlights.length).toBeGreaterThanOrEqual(1);
+    expect(fake.calls.map((c) => c.call)).not.toContain('B'); // 도메인이 전부 quiet 이면 B 호출 생략
+    await q2(`DELETE FROM weekly_briefs WHERE week_start = '${sparseWeek}'`);
+    await q2(`DELETE FROM articles WHERE content_hash LIKE 'wb-sparse-%'`);
+
+    const emptyWeek = '2026-01-05';
+    const e = await m2.svc.runWeeklyBrief({ weekStart: emptyWeek, reason: 'manual' }, fakeDeps().deps);
+    expect(e).toMatchObject({ outcome: 'created', status: 'partial' });
+    const [er] = await q2<any>(`SELECT payload FROM weekly_briefs WHERE week_start = '${emptyWeek}'`);
+    expectReportShape(er.payload);
+    expect(er.payload.meta.warnings).toContain('no_data');
+    expect(er.payload.highlights).toEqual([]);
+    await q2(`DELETE FROM weekly_briefs WHERE week_start = '${emptyWeek}'`);
   });
 });
 

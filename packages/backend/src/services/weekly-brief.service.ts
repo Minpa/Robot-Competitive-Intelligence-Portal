@@ -19,8 +19,10 @@ import { resolveWeeklyBriefModel } from './anthropic-models.js';
 import { dataMigrationService } from './data-migration.service.js';
 import { formatLogLine } from './ops-log.util.js';
 import { isStartupChainRunning } from './tech-trend-pipeline.service.js';
-import { collectWeek } from './weekly-brief-collect.js';
+import { collectWeek, type CollectOptions } from './weekly-brief-collect.js';
 import { buildCandidates, composePayload, computeCounts, isArticleSummaryEnabled, normalizeStoredPayload, type CollectedWeek } from './weekly-brief-compose.js';
+import { buildReportPlan, computeSummaryCoverage, finalizeReport, type ReportPlan } from './weekly-brief-compose-report.js';
+import { resolveEntityGuardMode } from './weekly-brief-text-guard.js';
 import {
   addDaysYmd,
   getWeekRange,
@@ -38,6 +40,7 @@ import {
   type SummarizeInput,
   type SummarizeResult,
 } from './weekly-brief-summarize.js';
+import { estimateGenerationCostUsd, summarizeReport, type ReportSummarizeResult } from './weekly-brief-summarize-report.js';
 import type {
   WeeklyBriefCounts,
   WeeklyBriefListItem,
@@ -46,6 +49,7 @@ import type {
   WeeklyBriefRunReason,
   WeeklyBriefRunStatus,
   WeeklyBriefStatusCode,
+  WeeklyReportPayload,
 } from '../types/weekly-brief.js';
 
 const TAG = 'WeeklyBrief';
@@ -55,8 +59,8 @@ export const WEEKLY_BRIEF_LOCK_KEY = 724302;
 export const WEEKLY_BRIEF_TASK_NAME = 'weekly-brief';
 export const WEEKLY_BRIEF_MARKER_KEY = 'weekly-brief:last';
 export const DEFAULT_WEEKLY_BRIEF_CRON = '0 8 * * 1';
-/** 한 번 실행의 전체 상한 */
-export const RUN_TIMEOUT_MS = 5 * 60_000;
+/** 한 번 실행의 전체 상한 (v2 는 AI 호출이 최대 4회 병렬이라 5분 → 8분) */
+export const RUN_TIMEOUT_MS = 8 * 60_000;
 export const CHAIN_WAIT_POLL_MS = 60_000;
 export const CHAIN_WAIT_MAX_MS = 30 * 60_000;
 
@@ -106,6 +110,13 @@ export function resolveWeeklyBriefMinGapHours(env: Env = process.env): number {
   return intEnv(env.WEEKLY_BRIEF_MIN_GAP_HOURS, 12, 0, 24 * 30);
 }
 
+export type WeeklyBriefFormat = WeeklyBriefRunStatus['config']['format'];
+
+/** WEEKLY_BRIEF_FORMAT — report(장문 리포트, 기본) 또는 poster(롤백용 포스터). 그 외 값은 report */
+export function resolveWeeklyBriefFormat(env: Env = process.env): WeeklyBriefFormat {
+  return env.WEEKLY_BRIEF_FORMAT?.trim().toLowerCase() === 'poster' ? 'poster' : 'report';
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 입력 검증
 // ─────────────────────────────────────────────────────────────────────────────
@@ -149,8 +160,11 @@ export interface WeeklyBriefDeps {
   /** 실행 도중 phase 를 바꾸지 않는 읽기 — 기존 행의 status (없으면 null) */
   getExistingStatus(weekStart: string, executor?: unknown): Promise<WeeklyBriefStatusCode | null>;
   withLock<T>(fn: (executor: unknown) => Promise<T>): Promise<LockResult<T>>;
-  collect(range: ReturnType<typeof getWeekRange>, prevRange: ReturnType<typeof getWeekRange>): Promise<CollectedWeek>;
+  collect(range: ReturnType<typeof getWeekRange>, prevRange: ReturnType<typeof getWeekRange>, options?: CollectOptions): Promise<CollectedWeek>;
+  /** v1(포스터) 요약 — WEEKLY_BRIEF_FORMAT=poster 일 때만 쓴다 */
   summarize(input: SummarizeInput): Promise<SummarizeResult>;
+  /** v2(리포트) 요약 — 섹션 단위 최대 4회 병렬 호출 */
+  summarizeReport(weekStart: string, plan: ReportPlan): Promise<ReportSummarizeResult>;
   writeRow(executor: unknown, row: StoredBriefRow): Promise<void>;
   saveLast(summary: Record<string, unknown>): Promise<void>;
   log(level: 'log' | 'warn' | 'error', line: string): void;
@@ -217,8 +231,9 @@ export const defaultDeps: WeeklyBriefDeps = {
   timeoutMs: RUN_TIMEOUT_MS,
   getExistingStatus: dbGetExistingStatus,
   withLock: dbWithLock,
-  collect: (range, prevRange) => collectWeek(range, prevRange),
+  collect: (range, prevRange, options) => collectWeek(range, prevRange, undefined, options),
   summarize: (input) => summarizeCandidates(input),
+  summarizeReport: (weekStart, plan) => summarizeReport(weekStart, plan),
   writeRow: dbWriteRow,
   saveLast: (summary) => dataMigrationService.upsert(WEEKLY_BRIEF_MARKER_KEY, summary),
   log: (level, line) => console[level](line),
@@ -258,7 +273,7 @@ function claim(weekStart: string, reason: WeeklyBriefRunReason, force: boolean, 
 
 interface BuiltBrief {
   status: WeeklyBriefStatusCode;
-  payload: WeeklyBriefPayload | Record<string, never>;
+  payload: WeeklyBriefPayload | WeeklyReportPayload | Record<string, never>;
   stats: Record<string, unknown>;
   model: string | null;
   inputTokens: number;
@@ -283,7 +298,7 @@ function shortError(err: unknown): string {
   return msg.replace(/\s+/g, ' ').slice(0, 500);
 }
 
-async function buildBrief(
+async function buildPosterBrief(
   state: RunningState,
   deps: WeeklyBriefDeps,
   progress: { usage: { model: string | null; inputTokens: number; outputTokens: number; costUsd: number } },
@@ -294,7 +309,7 @@ async function buildBrief(
   const prevRange = getWeekRange(addDaysYmd(weekStart, -7));
 
   setPhase(state, 'collecting');
-  const collected = await deps.collect(range, prevRange);
+  const collected = await deps.collect(range, prevRange, { report: false });
   const t1 = Date.now();
 
   setPhase(state, 'summarizing');
@@ -344,6 +359,70 @@ async function buildBrief(
     error: null,
     warnings: composed.payload.meta.warnings,
   };
+}
+
+async function buildReportBrief(
+  state: RunningState,
+  deps: WeeklyBriefDeps,
+  progress: { usage: { model: string | null; inputTokens: number; outputTokens: number; costUsd: number } },
+): Promise<BuiltBrief> {
+  const { weekStart } = state;
+  const t0 = Date.now();
+  const range = getWeekRange(weekStart);
+  const prevRange = getWeekRange(addDaysYmd(weekStart, -7));
+
+  setPhase(state, 'collecting');
+  const collected = await deps.collect(range, prevRange, { report: true });
+  const t1 = Date.now();
+
+  setPhase(state, 'summarizing');
+  const showArticleSummary = isArticleSummaryEnabled(deps.env);
+  const entityMode = resolveEntityGuardMode(deps.env);
+  const plan = buildReportPlan(collected, { showArticleSummary, entityMode });
+  const ai = await deps.summarizeReport(weekStart, plan);
+  const t2 = Date.now();
+  if (ai.model) progress.usage.model = ai.model;
+  progress.usage.inputTokens = ai.inputTokens;
+  progress.usage.outputTokens = ai.outputTokens;
+  progress.usage.costUsd = ai.costUsd;
+
+  const composed = finalizeReport(plan, ai.ai, deps.now(), { showArticleSummary, entityMode });
+  const t3 = Date.now();
+
+  const stats = {
+    ...composed.stats,
+    rows: { current: collected.rows.length, previous: collected.prevRows.length },
+    coverage: computeSummaryCoverage(collected.rows),
+    payloadBytes: Buffer.byteLength(JSON.stringify(composed.payload), 'utf8'),
+    ai: {
+      used: composed.payload.meta.aiUsed,
+      skipped: ai.skipped,
+      // 호출별 토큰·비용·잘림·소요 시간 (프롬프트·제목 원문은 남기지 않는다)
+      calls: ai.calls.map((c) => ({ section: c.section, ok: c.ok, reason: c.reason, inputTokens: c.inputTokens, outputTokens: c.outputTokens, costUsd: Math.round(c.costUsd * 1e6) / 1e6, rawTruncated: c.rawTruncated, durationMs: c.durationMs, promptChars: c.promptChars, ladderLevel: c.ladderLevel, droppedPackets: c.droppedPackets })),
+      titles: (composed.stats.ai as Record<string, unknown> | undefined)?.titles ?? null,
+    },
+    timingMs: { collect: t1 - t0, summarize: t2 - t1, compose: t3 - t2, total: t3 - t0 },
+  };
+  return {
+    status: composed.status,
+    payload: composed.payload,
+    stats,
+    model: ai.model,
+    inputTokens: ai.inputTokens,
+    outputTokens: ai.outputTokens,
+    costUsd: ai.costUsd,
+    error: null,
+    warnings: composed.payload.meta.warnings,
+  };
+}
+
+/** WEEKLY_BRIEF_FORMAT 에 따라 리포트(v2, 기본) 또는 포스터(v1) 경로로 생성한다 */
+async function buildBrief(
+  state: RunningState,
+  deps: WeeklyBriefDeps,
+  progress: { usage: { model: string | null; inputTokens: number; outputTokens: number; costUsd: number } },
+): Promise<BuiltBrief> {
+  return resolveWeeklyBriefFormat(deps.env) === 'poster' ? buildPosterBrief(state, deps, progress) : buildReportBrief(state, deps, progress);
 }
 
 /** 타임아웃으로 버려진 이전 실행이 새 실행의 phase 를 건드리지 못하도록 state 동일성을 확인한다 */
@@ -717,8 +796,8 @@ async function toResponse(row: typeof weeklyBriefs.$inferSelect): Promise<Weekly
     model: row.model ?? null,
     prevWeekStart: prev,
     nextWeekStart: next,
-    payload: normalizeStoredPayload(row.payload as unknown as WeeklyBriefPayload),
-  };
+    payload: normalizeStoredPayload(row.payload as unknown as WeeklyBriefPayload | WeeklyReportPayload),
+  } as WeeklyBriefResponse;
 }
 
 /** status ∈ ok,partial 중 week_start 가 가장 큰 브리프 */
@@ -884,6 +963,8 @@ export async function getWeeklyBriefRunStatus(env: Env = process.env): Promise<W
       aiEnabled: isWeeklyBriefAiEnabled(env),
       model: resolveWeeklyBriefModel(env),
       budget: { limitUsd: resolveClaudeMonthlyLimitUsd(env), usedUsd },
+      format: resolveWeeklyBriefFormat(env),
+      estimatedCostUsd: estimateGenerationCostUsd(resolveWeeklyBriefFormat(env), env),
     },
   };
 }

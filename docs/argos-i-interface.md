@@ -1130,11 +1130,13 @@ argos-i/2026-10-29/
 ### 8.15 `weekly-briefs` — 주간 브리프 (P0)
 
 - 파일: `weekly-briefs.md`, `weekly-briefs.json`
-- `areaSchemaVersion`: 1
+- `areaSchemaVersion`: 2
 - 출처 테이블: `weekly_briefs`
 - 정렬: weekStart 내림차순
 - `recordCount` 기준: **주간 브리프 목록 (최신 주 먼저)** (MD 의 첫 번째 표) 의 행 수
-- 모든 완료 주(ok/partial)를 최신 주 먼저 담는다. 토큰·비용·오류·통계는 포함하지 않는다. `areaSchemaVersion` 은 payload `schemaVersion` 이다.
+- 모든 완료 주(ok/partial)를 최신 주 먼저 담는다. 토큰·비용·오류·통계는 포함하지 않는다. `areaSchemaVersion` 은 최신 payload 형식의 `schemaVersion`(현재 2) 이다.
+- **`items` 에는 v1(포스터) 과 v2(장문 리포트) payload 가 섞여 있다.** 각 `items[].payload.schemaVersion`(없으면 1)으로 구분한다. v1 항목은 아래 `keyMessages`·`topVideo`·`ciChanges`·`keywords` 등을, v2 항목은 `highlights`·`domains`·`companies`·`trends`·`watchPoints` 등을 갖는다. v2 의 모든 문자열은 400자 이하이고, 숫자·링크·근거는 서버 집계값이며 AI 서술(headline·body·narrative·blurb·meaning·whyItMatters·keywordNote)과 제목 번역(`titleKo`)만 AI 가 쓴다. 영상 `summaryLines`·논문 `summaryLines`·기사 `summaryLines` 는 파생 요약(분석 요약, `aiSummaryKo`, `keyPoints` 또는 요약 첫 문장)이며 원문 전재가 아니다.
+- `핵심 메시지` 표(MD)는 v1 은 `keyMessages`, v2 는 `highlights` 의 headline·생성 방식을 싣는다.
 
 `data` 의 필드 (경로는 `data` 기준, `[]` 는 배열 원소):
 
@@ -1155,11 +1157,18 @@ argos-i/2026-10-29/
 | `items[].payload.header` | object | - | 아니오 | 주차·기간·집계 {weekStart, weekEnd, isoYear, weekNumber, periodStartAt, periodEndAt, generatedAt, counts{articles, videosNew, videosAnalyzed, papers, ciUpdates, alerts, newRobots?}, deltas{…전주 대비 %, 소수 1자리, 전주 0이면 null}} |
 | `items[].payload.keyMessages` | object[] | - | 아니오 | 핵심 메시지 0~3건 [{id, candidateType, kind, headline, bigNumber{value, unit, caption}, delta?, basis, evidence[], note?, generatedBy: ai\|rule}] |
 | `items[].payload.keywords` | object[] | - | 아니오 | 키워드 0~8건 [{keywordId, term, count, prevCount, deltaPct, direction: up\|down\|new\|flat}] |
-| `items[].payload.meta` | object | - | 아니오 | {aiUsed, ruleBasedMessages, warnings[], truncated} |
+| `items[].payload.meta` | object | - | 아니오 | v1: {aiUsed, ruleBasedMessages, warnings[], truncated} / v2: {aiUsed, ruleBasedSections, sectionSources{highlights, domains, companies, papers, trends, watch: ai\|mixed\|rule\|none}, warnings[], truncated} |
 | `items[].payload.papers` | object[] | - | 아니오 | 논문 0~8건 [{id, title, authors, publishedAt, url, arxivId, domain, summaryLine}] |
-| `items[].payload.schemaVersion` | number | - | 아니오 | 주간 브리프 payload 스키마 버전 (현재 1) — areaSchemaVersion 과 같다 |
+| `items[].payload.schemaVersion` | number | - | 아니오 | 주간 브리프 payload 스키마 버전 (1=포스터, 2=장문 리포트) |
 | `items[].payload.topVideo` | object | - | 아니오 | 대표 영상 (없으면 null) {id, title, channel, publishedAt, views, url, thumbnail, analyzed, domain, durationSec, analysisLine} |
 | `items[].payload.videos` | object[] | - | 아니오 | 영상 0~8건 [{id, title, channel, publishedAt, views, url, thumbnail, analyzed, domain}] |
+| `items[].payload.highlights` | object[] | - | v2 만 | 하이라이트 3~5건 [{id, candidateType, headline(≤40자), body(≤260자), figure{value, unit, caption, delta?}, basis, evidence[{type, id, title, url, label}], generatedBy: ai\|rule}] |
+| `items[].payload.domains` | object[] | - | v2 만 | 도메인 5개(hand, actuator, rfm, expo, production 순) [{key, label, status: active\|quiet, figures{videos, second, secondKind, total, sharePct, prevSharePct, deltaPp}, topTags[], narrative(≤400자), evidence[카드], generatedBy}] |
+| `items[].payload.companies` | object[] | - | v2 만 | 회사 0~8건 [{id, name, counts{total, videos, articles, prevTotal, deltaPct}, blurb, items[카드], ciChanges[{…, meaning}], generatedBy}] |
+| `items[].payload.trends` | object | - | v2 만 | {volume{weeks[{weekStart, videos, articles, papers}] 최근 8주}, keywords[0~12], keywordNote} |
+| `items[].payload.watchPoints` | object[] | - | v2 만 | 다음 주 관찰 포인트 0~5건 [{id, title, body, evidence[], generatedBy}] |
+
+v2 의 `videos`(0~12건) 항목은 v1 필드에 `titleKo, durationSec, isTop, summaryLines[], tags[]` 가, `papers`(0~8건)는 `titleKo, summaryLines[], whyItMatters` 가, `articles`(0~12건)는 `titleKo, summaryLines[]` 가 더해진다.
 
 ### 8.16 `keywords` — 키워드 (P1)
 

@@ -29,9 +29,11 @@ import type {
   WeeklyKeyMessage,
   WeeklyKeyword,
   WeeklyPaperItem,
+  WeeklyReportPayload,
   WeeklyTopVideo,
   WeeklyVideoItem,
 } from '../types/weekly-brief.js';
+import { WEEKLY_BRIEF_REPORT_SCHEMA_VERSION, weeklyBriefSchemaVersionOf } from '../types/weekly-brief.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 상수
@@ -94,6 +96,20 @@ export interface CompanyCount {
   prevCount: number;
 }
 
+/** 회사 목록(id·이름) — CI 변경과 이름으로 연결할 때만 쓴다 */
+export interface CompanyDirectoryEntry {
+  companyId: string;
+  name: string;
+}
+
+/** 주별 수집량 (KST 월요일 기준) */
+export interface VolumeWeekCount {
+  weekStart: string;
+  videos: number;
+  articles: number;
+  papers: number;
+}
+
 export interface CiChangeRow {
   valueId: string;
   company: string;
@@ -134,6 +150,10 @@ export interface CollectedWeek {
   keywords: KeywordCount[];
   keywordEvidence: Record<string, KeywordEvidenceRow[]>;
   companies: CompanyCount[];
+  /** (v2 전용) 최근 8주 수집량 — 오래된 주부터. 수집하지 않았거나 실패하면 비어 있음/undefined */
+  volume?: VolumeWeekCount[];
+  /** (v2 전용) 회사 id·이름 목록 */
+  companyDirectory?: CompanyDirectoryEntry[];
   /** 선택 수집기 오류 코드(`*_failed`)와 `rows_truncated` 등 */
   warnings: string[];
 }
@@ -164,12 +184,12 @@ export function pctChange(cur: number, prev: number): number | null {
   return round1(((cur - prev) / prev) * 100);
 }
 
-function truncateText(s: string, max: number): string {
+export function truncateText(s: string, max: number): string {
   const chars = Array.from(s);
   return chars.length <= max ? s : chars.slice(0, Math.max(0, max - 1)).join('') + '…';
 }
 
-function normalizeSpaces(s: string): string {
+export function normalizeSpaces(s: string): string {
   return s.replace(/\s+/g, ' ').trim();
 }
 
@@ -182,18 +202,18 @@ export function firstSentence(text: string | null | undefined, max: number = WEE
   return truncateText(m?.[1] ?? t, max);
 }
 
-function toIso(v: Date | string | null | undefined): string | null {
+export function toIso(v: Date | string | null | undefined): string | null {
   if (!v) return null;
   const d = v instanceof Date ? v : new Date(v);
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
-function tsMs(row: BriefRow): number {
+export function tsMs(row: BriefRow): number {
   const t = new Date(row.ts).getTime();
   return Number.isNaN(t) ? 0 : t;
 }
 
-function meta(row: ArticleRow): Record<string, any> {
+export function meta(row: ArticleRow): Record<string, any> {
   return (row.extractedMetadata ?? {}) as Record<string, any>;
 }
 
@@ -306,17 +326,17 @@ export function resolveVideoUrl(url: string | null | undefined, videoId: string 
 // 영상 / 기사 / CI / 키워드 선별
 // ─────────────────────────────────────────────────────────────────────────────
 
-function viewsOf(row: ArticleRow): number | null {
+export function viewsOf(row: ArticleRow): number | null {
   const v = meta(row).views;
   return typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null;
 }
 
-function channelOf(row: ArticleRow): string | null {
+export function channelOf(row: ArticleRow): string | null {
   const c = meta(row).channel;
   return typeof c === 'string' && c.trim() ? c.trim() : null;
 }
 
-function isAnalyzed(row: ArticleRow): boolean {
+export function isAnalyzed(row: ArticleRow): boolean {
   const a = meta(row).geminiAnalyzedAt;
   return typeof a === 'string' && a.length > 0;
 }
@@ -336,7 +356,7 @@ function toVideoItem(row: BriefRow): WeeklyVideoItem {
   };
 }
 
-function byViewsThenRecent(a: BriefRow, b: BriefRow): number {
+export function byViewsThenRecent(a: BriefRow, b: BriefRow): number {
   return (viewsOf(b) ?? -1) - (viewsOf(a) ?? -1) || tsMs(b) - tsMs(a) || a.id.localeCompare(b.id);
 }
 
@@ -529,9 +549,9 @@ export function selectPapers(rows: readonly BriefRow[], showSummary: boolean = t
   });
 }
 
-const CONFIDENCE_RANK: Record<string, number> = { A: 0, B: 1, C: 2, D: 3, F: 4 };
+export const CONFIDENCE_RANK: Record<string, number> = { A: 0, B: 1, C: 2, D: 3, F: 4 };
 
-function normalizeConfidence(c: string | null | undefined): WeeklyCiChange['confidence'] {
+export function normalizeConfidence(c: string | null | undefined): WeeklyCiChange['confidence'] {
   return c === 'A' || c === 'B' || c === 'C' || c === 'D' || c === 'F' ? c : 'D';
 }
 
@@ -596,7 +616,7 @@ export function keywordDirection(count: number, prevCount: number): WeeklyKeywor
   return pct > 0 ? 'up' : 'down';
 }
 
-function toKeyword(k: KeywordCount): WeeklyKeyword {
+export function toKeyword(k: KeywordCount): WeeklyKeyword {
   return {
     keywordId: k.keywordId,
     term: k.term,
@@ -656,7 +676,7 @@ export interface Candidate {
   extra: Record<string, string | number | null>;
 }
 
-function signed(n: number, digits: number): string {
+export function signed(n: number, digits: number): string {
   const v = n.toFixed(digits);
   return n > 0 ? `+${v}` : v;
 }
@@ -678,25 +698,25 @@ export function extractNumberTokens(text: string): string[] {
   return (text.match(/\d[\d,.]*/g) ?? []).map((t) => t.replace(/[.,]+$/, '')).filter((t) => t.length > 0);
 }
 
-function allowedFrom(numbers: number[], texts: string[]): string[] {
+export function allowedFrom(numbers: number[], texts: string[]): string[] {
   const set = new Set<string>();
   for (const n of numbers) for (const f of numberForms(n)) set.add(f);
   for (const t of texts) for (const tok of extractNumberTokens(t)) set.add(tok);
   return [...set];
 }
 
-function clampHeadline(s: string): string {
+export function clampHeadline(s: string): string {
   return truncateText(s, WEEKLY_BRIEF_SCORING.text.headline);
 }
-function clampCaption(s: string): string {
+export function clampCaption(s: string): string {
   return truncateText(s, WEEKLY_BRIEF_SCORING.text.caption);
 }
 
-function evTitle(s: string): string {
+export function evTitle(s: string): string {
   return truncateText(normalizeSpaces(s), WEEKLY_BRIEF_SCORING.text.evidenceTitle);
 }
 
-function videoEvidence(row: BriefRow): WeeklyEvidence {
+export function videoEvidence(row: BriefRow): WeeklyEvidence {
   const m = meta(row);
   return {
     type: 'video',
@@ -707,19 +727,19 @@ function videoEvidence(row: BriefRow): WeeklyEvidence {
   };
 }
 
-function articleEvidence(row: BriefRow): WeeklyEvidence {
+export function articleEvidence(row: BriefRow): WeeklyEvidence {
   return { type: 'article', id: row.id, title: evTitle(row.title), url: safeHttpsUrl(row.url), label: row.source ?? null };
 }
 
-function newestFirst(a: BriefRow, b: BriefRow): number {
+export function newestFirst(a: BriefRow, b: BriefRow): number {
   return tsMs(b) - tsMs(a) || a.id.localeCompare(b.id);
 }
 
-function topVideosByViews(rows: readonly BriefRow[], n: number): BriefRow[] {
+export function topVideosByViews(rows: readonly BriefRow[], n: number): BriefRow[] {
   return rows.filter((r) => !isAllNoneJudged(r)).sort(byViewsThenRecent).slice(0, n);
 }
 
-interface DomainShareStat {
+export interface DomainShareStat {
   domain: BriefDomainKey;
   num: number;
   den: number;
@@ -737,7 +757,7 @@ interface DomainShareStat {
   secondRows: BriefRow[];
 }
 
-function domainStat(domain: TechTrendDomain, rows: readonly BriefRow[]): Omit<DomainShareStat, 'prevShare' | 'deltaPp' | 'domain'> {
+export function domainStat(domain: TechTrendDomain, rows: readonly BriefRow[]): Omit<DomainShareStat, 'prevShare' | 'deltaPp' | 'domain'> {
   const { videos, papers, news } = splitRows(rows);
   const videoRows = videos.filter((r) => matchesDomainVideo(domain, r) && getDomainFocus(domain, r) !== 'none');
   const secondPool = domain === 'hand' || domain === 'rfm' || domain === 'actuator' ? papers : news;
@@ -1225,16 +1245,69 @@ export function composePayload(input: CollectedWeek, ai: AiSelection | null, now
   return { payload, status, stats, candidates };
 }
 
+/** v2 payload 의 누락된 배열·객체를 기본값으로 채운다(마이너 필드 추가에도 화면이 깨지지 않게). 원본은 바꾸지 않고, 채울 것이 없으면 그대로 돌려준다 */
+export function normalizeReportPayload(raw: WeeklyReportPayload): WeeklyReportPayload {
+  const arrays = ['highlights', 'domains', 'companies', 'videos', 'papers', 'articles', 'watchPoints'] as const;
+  const r = raw as unknown as Record<string, unknown>;
+  const trends = (r.trends ?? null) as Partial<WeeklyReportPayload['trends']> | null;
+  const volume = (trends?.volume ?? null) as Partial<WeeklyReportPayload['trends']['volume']> | null;
+  const metaIn = (r.meta ?? null) as Partial<WeeklyReportPayload['meta']> | null;
+  const needsFix =
+    arrays.some((k) => !Array.isArray(r[k])) ||
+    !trends ||
+    !Array.isArray(trends.keywords) ||
+    trends.keywordNote === undefined ||
+    !volume ||
+    !Array.isArray(volume.weeks) ||
+    !r.ciSummary ||
+    !metaIn ||
+    !Array.isArray(metaIn.warnings) ||
+    !metaIn.sectionSources ||
+    typeof metaIn.aiUsed !== 'boolean' ||
+    typeof metaIn.ruleBasedSections !== 'number' ||
+    typeof metaIn.truncated !== 'boolean';
+  if (!needsFix) return raw;
+  const none = { highlights: 'none', domains: 'none', companies: 'none', papers: 'none', trends: 'none', watch: 'none' } as const;
+  const out: Record<string, unknown> = { ...r };
+  for (const k of arrays) out[k] = Array.isArray(r[k]) ? r[k] : [];
+  out.ciSummary = r.ciSummary ?? { updates: 0, companies: 0 };
+  out.trends = {
+    ...(trends ?? {}),
+    volume: { ...(volume ?? {}), weeks: Array.isArray(volume?.weeks) ? volume.weeks : [] },
+    keywords: Array.isArray(trends?.keywords) ? trends.keywords : [],
+    keywordNote: trends?.keywordNote ?? null,
+  };
+  out.meta = {
+    ...(metaIn ?? {}),
+    aiUsed: metaIn?.aiUsed === true,
+    ruleBasedSections: typeof metaIn?.ruleBasedSections === 'number' ? metaIn.ruleBasedSections : 0,
+    sectionSources: { ...none, ...(metaIn?.sectionSources ?? {}) },
+    warnings: Array.isArray(metaIn?.warnings) ? metaIn.warnings : [],
+    truncated: metaIn?.truncated === true,
+  };
+  return out as unknown as WeeklyReportPayload;
+}
+
 /**
- * 저장된 payload 를 읽을 때의 호환 처리 — 논문 섹션이 생기기 전 payload 에는 papers / counts.papers / deltas.papers 가 없다.
- * 원본을 바꾸지 않고 누락된 필드만 채운 복사본을 돌려준다.
+ * 저장된 payload 를 읽을 때의 호환 처리.
+ *  - v1(schemaVersion 1 또는 없음): 논문 섹션이 생기기 전 payload 에는 papers / counts.papers / deltas.papers 가 없다 — 누락된 필드만 채운다.
+ *  - v2: 누락된 배열·객체를 기본값으로 채운다.
+ *  - 2 보다 큰 알 수 없는 버전: 그대로 통과.
+ * 원본을 바꾸지 않고, 채울 것이 있을 때만 복사본을 돌려준다.
  */
-export function normalizeStoredPayload(raw: WeeklyBriefPayload): WeeklyBriefPayload {
-  const header = raw.header;
+export function normalizeStoredPayload(raw: WeeklyBriefPayload): WeeklyBriefPayload;
+export function normalizeStoredPayload(raw: WeeklyReportPayload): WeeklyReportPayload;
+export function normalizeStoredPayload(raw: WeeklyBriefPayload | WeeklyReportPayload): WeeklyBriefPayload | WeeklyReportPayload;
+export function normalizeStoredPayload(raw: WeeklyBriefPayload | WeeklyReportPayload): WeeklyBriefPayload | WeeklyReportPayload {
+  const version = weeklyBriefSchemaVersionOf(raw);
+  if (version === WEEKLY_BRIEF_REPORT_SCHEMA_VERSION) return normalizeReportPayload(raw as WeeklyReportPayload);
+  if (version > WEEKLY_BRIEF_REPORT_SCHEMA_VERSION) return raw;
+  const v1 = raw as WeeklyBriefPayload;
+  const header = v1.header;
   const needsHeader = !header || typeof header.counts?.papers !== 'number' || header.deltas?.papers === undefined;
-  if (Array.isArray(raw.papers) && !needsHeader) return raw;
+  if (Array.isArray(v1.papers) && !needsHeader) return v1;
   return {
-    ...raw,
+    ...v1,
     header: needsHeader && header
       ? {
           ...header,
@@ -1242,6 +1315,6 @@ export function normalizeStoredPayload(raw: WeeklyBriefPayload): WeeklyBriefPayl
           deltas: { ...header.deltas, papers: header.deltas?.papers ?? null },
         }
       : header,
-    papers: Array.isArray(raw.papers) ? raw.papers : [],
+    papers: Array.isArray(v1.papers) ? v1.papers : [],
   };
 }

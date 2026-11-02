@@ -20,10 +20,12 @@ import {
   type CiChangeRow,
   type CollectedWeek,
   type CompanyCount,
+  type CompanyDirectoryEntry,
   type KeywordCount,
+  type VolumeWeekCount,
   type KeywordEvidenceRow,
 } from './weekly-brief-compose.js';
-import type { WeekRange } from './weekly-brief-period.js';
+import { addDaysYmd, getWeekRange, type WeekRange } from './weekly-brief-period.js';
 import { formatLogLine } from './ops-log.util.js';
 
 const TAG = 'WeeklyBrief';
@@ -32,6 +34,9 @@ export const ROW_LIMIT = 4000;
 const KEYWORD_LIMIT = 300;
 const COMPANY_LIMIT = 50;
 const CI_LIMIT = 1000;
+const DIRECTORY_LIMIT = 5000;
+/** 수집량 추이 주 수 (이번 주 포함) */
+export const VOLUME_WEEKS = 8;
 
 /** 쿼리 실행기 — 기본은 drizzle db.execute, 테스트에서는 가짜를 주입한다. */
 export interface CollectDeps {
@@ -116,10 +121,18 @@ export async function fetchRows(deps: CollectDeps, range: WeekRange): Promise<{ 
                ELSE NULL END,
              'arxivId', left(x.m->>'arxivId', 40),
              'description', left(x.m->>'description', 400),
+             'aiSummaryKo', left(x.m->>'aiSummaryKo', 200),
+             'keyPoints', CASE jsonb_typeof(x.m->'keyPoints')
+               WHEN 'array' THEN (SELECT jsonb_agg(left(e.v, 120) ORDER BY e.o) FROM (SELECT t.v, t.o FROM jsonb_array_elements_text(x.m->'keyPoints') WITH ORDINALITY AS t(v, o) ORDER BY t.o LIMIT 3) e)
+               ELSE NULL END,
              'geminiAnalyzedAt', x.m->>'geminiAnalyzedAt',
              'geminiAnalysis', jsonb_build_object(
                'summaryKo', left(x.m#>>'{geminiAnalysis,summaryKo}', 400),
-               'durationSec', x.m#>'{geminiAnalysis,durationSec}'
+               'durationSec', x.m#>'{geminiAnalysis,durationSec}',
+               'task', left(x.m#>>'{geminiAnalysis,task}', 120),
+               'capabilities', CASE jsonb_typeof(x.m#>'{geminiAnalysis,capabilities}')
+                 WHEN 'array' THEN (SELECT jsonb_agg(left(e.v, 60) ORDER BY e.o) FROM (SELECT t.v, t.o FROM jsonb_array_elements_text(x.m#>'{geminiAnalysis,capabilities}') WITH ORDINALITY AS t(v, o) ORDER BY t.o LIMIT 4) e)
+                 ELSE NULL END
              )
            )) AS meta
     FROM articles a
@@ -332,6 +345,46 @@ export async function fetchCompanyCounts(deps: CollectDeps, range: WeekRange, pr
   }));
 }
 
+/**
+ * 최근 VOLUME_WEEKS 주(이번 주 포함)의 주별 영상·뉴스·논문 건수 — 집계 쿼리(행 상한과 무관).
+ * 주 경계는 KST 월요일 00:00 (timestamp(UTC) → timestamptz → Asia/Seoul 로컬 시각 → date_trunc('week')).
+ * 분류는 compose 의 classifyRow 와 같다: 영상 → product_type='video', 논문 → source='arxiv', 뉴스 → github·sec_edgar·patent 제외.
+ * 데이터가 없는 주는 0 으로 채워 오래된 주부터 돌려준다.
+ */
+export async function fetchVolumeWeeks(deps: CollectDeps, weekStart: string): Promise<VolumeWeekCount[]> {
+  const firstWeek = addDaysYmd(weekStart, -7 * (VOLUME_WEEKS - 1));
+  const from = getWeekRange(firstWeek).startUtc;
+  const to = getWeekRange(weekStart).endUtcExclusive;
+  const result = await deps.query(sql`
+    SELECT to_char(date_trunc('week', (${TS} AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Seoul'), 'YYYY-MM-DD') AS week_start,
+           count(*) FILTER (WHERE a.product_type = 'video') AS videos,
+           count(*) FILTER (WHERE a.product_type IS DISTINCT FROM 'video' AND a.source = 'arxiv') AS papers,
+           count(*) FILTER (WHERE a.product_type IS DISTINCT FROM 'video' AND COALESCE(a.source, '') NOT IN ('arxiv', 'github', 'sec_edgar', 'patent')) AS articles
+    FROM articles a
+    WHERE ${TS} >= ${boundSql(from)} AND ${TS} < ${boundSql(to)}
+    GROUP BY 1
+    ORDER BY 1
+  `);
+  const byWeek = new Map(rowsOf<{ week_start: string; videos: unknown; papers: unknown; articles: unknown }>(result).map((r) => [String(r.week_start), r]));
+  return Array.from({ length: VOLUME_WEEKS }, (_, i) => {
+    const ws = addDaysYmd(firstWeek, 7 * i);
+    const r = byWeek.get(ws);
+    return { weekStart: ws, videos: numberOf(r?.videos), articles: numberOf(r?.articles), papers: numberOf(r?.papers) };
+  });
+}
+
+/** 회사 id·이름 목록 — CI 변경과 회사를 이름(정규화 완전 일치)으로 연결할 때만 쓴다 */
+export async function fetchCompanyDirectory(deps: CollectDeps): Promise<CompanyDirectoryEntry[]> {
+  const result = await deps.query(sql`
+    SELECT c.id::text AS company_id, c.name
+    FROM companies c
+    WHERE c.name IS NOT NULL AND c.name <> ''
+    ORDER BY c.name ASC, c.id ASC
+    LIMIT ${DIRECTORY_LIMIT}
+  `);
+  return rowsOf<{ company_id: string; name: string }>(result).map((r) => ({ companyId: String(r.company_id), name: r.name }));
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 전체
 // ─────────────────────────────────────────────────────────────────────────────
@@ -340,7 +393,17 @@ export async function fetchCompanyCounts(deps: CollectDeps, range: WeekRange, pr
  * 한 주 + 직전 주를 같은 규칙으로 수집한다.
  * 핵심(행 조회)이 실패하면 예외를 던진다. 선택 수집기 실패는 기본값과 `<이름>_failed` 경고로 남긴다.
  */
-export async function collectWeek(range: WeekRange, prevRange: WeekRange, deps: CollectDeps = defaultDeps): Promise<CollectedWeek> {
+export interface CollectOptions {
+  /** 장문 리포트(v2)용 추가 수집(8주 추이, 회사 목록)을 함께 한다. 포스터(v1)는 false */
+  report?: boolean;
+}
+
+export async function collectWeek(
+  range: WeekRange,
+  prevRange: WeekRange,
+  deps: CollectDeps = defaultDeps,
+  options: CollectOptions = {},
+): Promise<CollectedWeek> {
   const log = deps.log ?? ((l: string) => console.warn(l));
   const [cur, prev] = await Promise.all([fetchRows(deps, range), fetchRows(deps, prevRange)]);
 
@@ -367,6 +430,15 @@ export async function collectWeek(range: WeekRange, prevRange: WeekRange, deps: 
     optional('keywords', () => fetchKeywordCounts(deps, range, prevRange), [] as KeywordCount[]),
     optional('companies', () => fetchCompanyCounts(deps, range, prevRange), [] as CompanyCount[]),
   ]);
+
+  let volume: VolumeWeekCount[] | undefined;
+  let companyDirectory: CompanyDirectoryEntry[] | undefined;
+  if (options.report) {
+    [volume, companyDirectory] = await Promise.all([
+      optional('volume', () => fetchVolumeWeeks(deps, range.weekStart), [] as VolumeWeekCount[]),
+      optional('company_directory', () => fetchCompanyDirectory(deps), [] as CompanyDirectoryEntry[]),
+    ]);
+  }
 
   const keywordEvidence: Record<string, KeywordEvidenceRow[]> = {};
   const rep = pickRepresentativeKeyword(keywords);
@@ -395,5 +467,6 @@ export async function collectWeek(range: WeekRange, prevRange: WeekRange, deps: 
     keywordEvidence,
     companies,
     warnings,
+    ...(options.report ? { volume, companyDirectory } : {}),
   };
 }

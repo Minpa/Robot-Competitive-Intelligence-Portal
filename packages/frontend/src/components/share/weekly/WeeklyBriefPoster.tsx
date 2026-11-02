@@ -1,4 +1,4 @@
-import type { WeeklyBriefResponse } from '@/types/weekly-brief';
+import type { WeeklyBriefV1Response } from '@/types/weekly-brief';
 import { POSTER_EMPTY_NOTICE, isPosterEmpty, planKeyMessages } from '@/lib/weekly-brief-format';
 import { ArticleList } from './ArticleList';
 import { CiChangesBand } from './CiChangesBand';
@@ -13,7 +13,7 @@ import { VideoThumbGrid } from './VideoThumbGrid';
  * 주간 브리프 포스터 — 순수 표현 컴포넌트. payload 를 받아 섹션을 순서대로 렌더하고 빈 섹션은 통째로 숨긴다.
  * 배경 3단(poster / poster-2 / poster-3·card)은 tailwind.config.js 의 `poster` 팔레트(= lib/weekly-brief-theme.ts).
  */
-export function WeeklyBriefPoster({ brief }: { brief: WeeklyBriefResponse }) {
+export function WeeklyBriefPoster({ brief }: { brief: WeeklyBriefV1Response }) {
   const p = brief.payload;
   const plan = planKeyMessages(p.keyMessages);
   const empty = isPosterEmpty(p);

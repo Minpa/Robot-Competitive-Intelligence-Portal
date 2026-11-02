@@ -15,9 +15,12 @@ vi.mock('../../services/ai-usage.service.js', () => ({
 }));
 
 import {
+  RUN_TIMEOUT_MS,
   __resetWeeklyBriefStateForTests,
   checkGenerableWeek,
   getRunningSnapshot,
+  getWeeklyBriefRunStatus,
+  resolveWeeklyBriefFormat,
   lastAttemptFromSummary,
   runStartupWeeklyBriefIfDue,
   runWeeklyBrief,
@@ -30,6 +33,9 @@ import {
 import type { BriefRow, CollectedWeek } from '../../services/weekly-brief-compose.js';
 import type { SummarizeInput, SummarizeResult } from '../../services/weekly-brief-summarize.js';
 import { getWeekRange } from '../../services/weekly-brief-period.js';
+import { summarizeReport, type ReportSummarizeResult } from '../../services/weekly-brief-summarize-report.js';
+import { makeCollectedFull } from '../fixtures/weekly-report-collected.fixture.js';
+import { makeFakeReportClient } from '../fixtures/weekly-report-fake-ai.js';
 
 // 2026-10-26 08:00 KST — 직전 완료 주는 2026-10-19
 const NOW = new Date('2026-10-25T23:00:00Z');
@@ -58,10 +64,11 @@ type Store = Map<string, StoredBriefRow>;
 
 function makeDeps(over: Partial<WeeklyBriefDeps> = {}, store: Store = new Map()) {
   const saved: Record<string, unknown>[] = [];
-  const calls = { collect: 0, summarize: 0, lock: 0, write: 0 };
+  const calls = { collect: 0, summarize: 0, summarizeReport: 0, lock: 0, write: 0 };
   const deps: WeeklyBriefDeps = {
     now: () => NOW,
-    env: {},
+    // 기존 케이스는 오케스트레이션(락·skip·덮어쓰기·상태)을 검사한다 — v1(포스터) 경로로 고정한다. v2 는 아래 'report format' 블록에서 검사한다
+    env: { WEEKLY_BRIEF_FORMAT: 'poster' },
     timeoutMs: 5_000,
     getExistingStatus: async (w) => store.get(w)?.status ?? null,
     withLock: async (fn) => {
@@ -80,6 +87,10 @@ function makeDeps(over: Partial<WeeklyBriefDeps> = {}, store: Store = new Map())
         selections: [{ candidateId: first.id, headline: '액추에이터 비중이 33%였습니다', caption: '10건 / 30건', note: null }],
         model: 'test-model', inputTokens: 1000, outputTokens: 200, costUsd: 0.04, rawTruncated: false,
       };
+    },
+    summarizeReport: async (): Promise<ReportSummarizeResult> => {
+      calls.summarizeReport++;
+      return { ai: { A: null, B: null, C: null, D: null, failed: {}, batchWarnings: ['ai_disabled'], truncated: [] }, model: null, inputTokens: 0, outputTokens: 0, costUsd: 0, calls: [], skipped: 'disabled' };
     },
     writeRow: async (_ex, row) => {
       calls.write++;
@@ -191,7 +202,7 @@ describe('generation', () => {
     expect(r.outcome).toBe('created');
     expect(calls.summarize).toBe(1);
     expect((store.get(WEEK)!.payload as any).old).toBeUndefined();
-    expect((store.get(WEEK)!.payload as any).schemaVersion).toBe(1);
+    expect((store.get(WEEK)!.payload as any).schemaVersion).toBe(1); // poster 형식
   });
 
   it('a failed forced run keeps the existing ok/partial row and only records the error in the status', async () => {
@@ -330,7 +341,7 @@ describe('startWeeklyBriefGeneration (manual, background)', () => {
   });
 
   it('does not depend on the scheduler: it works with DISABLE_SCHEDULER=true', async () => {
-    const { deps } = makeDeps({ env: { DISABLE_SCHEDULER: 'true' } });
+    const { deps } = makeDeps({ env: { DISABLE_SCHEDULER: 'true', WEEKLY_BRIEF_FORMAT: 'poster' } });
     const r = await startWeeklyBriefGeneration({}, deps);
     expect(r.started).toBe(true);
     await vi.waitFor(() => expect(getRunningSnapshot().running).toBe(false));
@@ -479,3 +490,159 @@ describe('success hook (ARGOS_I 일일 스냅샷 재생성 연결)', () => {
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// v2 (장문 리포트) 형식
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('report format (v2, default)', () => {
+  const aiOk = { getCreditInfo: async () => ({ monthlyLimitUsd: 50, currentMonthUsageUsd: 0 }), log: () => {} };
+
+  function reportDeps(over: Partial<WeeklyBriefDeps> = {}, store: Store = new Map(), fake = makeFakeReportClient()) {
+    const usage: any[] = [];
+    const captured: { collectArgs?: unknown[] } = {};
+    const base = makeDeps(
+      {
+        env: {},
+        collect: async (...args) => {
+          base.calls.collect++;
+          captured.collectArgs = args;
+          return makeCollectedFull();
+        },
+        summarizeReport: async (weekStart, plan) => {
+          base.calls.summarizeReport++;
+          return summarizeReport(weekStart, plan, { client: fake.client as any, env: { WEEKLY_BRIEF_MODEL: 'test-model-x' }, logUsage: async (e) => void usage.push(e), ...aiOk });
+        },
+        ...over,
+      },
+      store,
+    );
+    return { ...base, usage, fake, captured };
+  }
+
+  it('the default format is report: collects with report extras, runs the 4 AI calls once, stores a v2 payload with ok status and summed tokens/cost', async () => {
+    const r = reportDeps();
+    const out = await runWeeklyBrief({ reason: 'cron' }, r.deps);
+    expect(out).toMatchObject({ outcome: 'created', weekStart: WEEK, status: 'ok' });
+    expect(r.captured.collectArgs?.[2]).toEqual({ report: true });
+    expect(r.fake.calls.map((c) => c.call).sort()).toEqual(['A', 'B', 'C', 'D']);
+    const row = r.store.get(WEEK)!;
+    const p = row.payload as any;
+    expect(p.schemaVersion).toBe(2);
+    expect(Object.keys(p).sort()).toEqual(['articles', 'ciSummary', 'companies', 'domains', 'header', 'highlights', 'meta', 'papers', 'trends', 'videos', 'watchPoints', 'schemaVersion'].sort());
+    expect(p.header.generatedAt).toBe(NOW.toISOString());
+    expect(row.model).toBe('test-model-x');
+    expect(row.inputTokens).toBe(r.usage.reduce((n, u) => n + u.inputTokens, 0));
+    expect(row.outputTokens).toBe(r.usage.reduce((n, u) => n + u.outputTokens, 0));
+    expect(r.usage).toHaveLength(4);
+    // 비용 합 = 호출별 비용 합 (이 파일은 단가 계산을 모킹하므로 값 자체는 summarize-report 테스트가 고정한다)
+    expect(row.costUsd).toBeCloseTo((row.stats as any).ai.calls.reduce((n: number, c: any) => n + c.costUsd, 0), 8);
+    // stats: 호출별 토큰·비용·잘림, 문장 탈락, 파생 요약 보유율, 크기
+    const st = row.stats as any;
+    expect(st.ai.calls.map((c: any) => c.section).sort()).toEqual(['A', 'B', 'C', 'D']);
+    for (const c of st.ai.calls) expect(c).toEqual(expect.objectContaining({ ok: true, inputTokens: expect.any(Number), outputTokens: expect.any(Number), costUsd: expect.any(Number), rawTruncated: false, durationMs: expect.any(Number) }));
+    expect(st.guard).toEqual(expect.objectContaining({ sentences: expect.any(Number), dropped: expect.any(Object) }));
+    expect(st.coverage.news).toEqual({ total: 57, withKeyPoints: expect.any(Number) });
+    expect(st.payloadBytes).toBeGreaterThan(10_000);
+    expect(st.timingMs).toHaveProperty('summarize');
+    expect(r.saved[0]).toMatchObject({ outcome: 'created', status: 'ok', model: 'test-model-x' });
+    expect(JSON.stringify(st)).not.toContain('Quasi-direct'); // 제목 원문은 stats 에 없다
+  });
+
+  it('an existing ok/partial row without force: no collect, no AI call at all', async () => {
+    const store: Store = new Map([[WEEK, { status: 'ok' } as StoredBriefRow]]);
+    const r = reportDeps({}, store);
+    expect((await runWeeklyBrief({ reason: 'cron' }, r.deps)).outcome).toBe('skipped_exists');
+    expect(r.calls).toMatchObject({ collect: 0, summarize: 0, summarizeReport: 0, lock: 0 });
+    expect(r.fake.calls).toHaveLength(0);
+  });
+
+  it('force replaces a v1 row with a v2 row; a failed forced run keeps the v1 row', async () => {
+    const v1 = { weekStart: WEEK, status: 'ok', payload: { schemaVersion: 1, keyMessages: [] } } as unknown as StoredBriefRow;
+    const store: Store = new Map([[WEEK, v1]]);
+    const failing = reportDeps({ collect: async () => { throw new Error('db exploded'); } }, store);
+    const failed = await runWeeklyBrief({ weekStart: WEEK, force: true, reason: 'manual' }, failing.deps);
+    expect(failed).toMatchObject({ outcome: 'failed', error: 'db exploded' });
+    expect(store.get(WEEK)).toBe(v1);
+
+    const ok = reportDeps({}, store);
+    const out = await runWeeklyBrief({ weekStart: WEEK, force: true, reason: 'manual' }, ok.deps);
+    expect(out.outcome).toBe('created');
+    expect((store.get(WEEK)!.payload as any).schemaVersion).toBe(2);
+    expect(ok.fake.calls.length).toBeLessThanOrEqual(4);
+  });
+
+  it('AI disabled / failing calls still produce a v2 brief (partial) with the batch or section warnings', async () => {
+    const off = reportDeps({}, new Map(), makeFakeReportClient());
+    off.deps.summarizeReport = async (ws, plan) => summarizeReport(ws, plan, { client: null, env: {}, ...aiOk });
+    const a = await runWeeklyBrief({ reason: 'manual' }, off.deps);
+    expect(a.status).toBe('partial');
+    const pa = off.store.get(WEEK)!.payload as any;
+    expect(pa.meta.warnings).toContain('ai_not_configured');
+    expect(pa.highlights.length).toBeGreaterThan(0);
+    expect(pa.highlights.every((h: any) => h.generatedBy === 'rule')).toBe(true);
+
+    const one = reportDeps({}, new Map(), makeFakeReportClient({ fail: { B: 'throw' } }));
+    const b = await runWeeklyBrief({ reason: 'manual' }, one.deps);
+    expect(b.status).toBe('partial');
+    const pb = one.store.get(WEEK)!.payload as any;
+    expect(pb.meta.warnings).toContain('ai_domains_failed');
+    expect(pb.highlights.every((h: any) => h.generatedBy === 'ai')).toBe(true);
+  });
+
+  it('WEEKLY_BRIEF_FORMAT=poster rolls back to the v1 generation path (v1 collect/summarize, no report calls)', async () => {
+    const r = makeDeps({ env: { WEEKLY_BRIEF_FORMAT: 'poster' } });
+    const out = await runWeeklyBrief({ reason: 'manual' }, r.deps);
+    expect(out.status).toBe('ok');
+    expect(r.calls).toMatchObject({ collect: 1, summarize: 1, summarizeReport: 0 });
+    expect((r.store.get(WEEK)!.payload as any).schemaVersion).toBe(1);
+    expect(resolveWeeklyBriefFormat({})).toBe('report');
+    expect(resolveWeeklyBriefFormat({ WEEKLY_BRIEF_FORMAT: 'poster' })).toBe('poster');
+    expect(resolveWeeklyBriefFormat({ WEEKLY_BRIEF_FORMAT: ' POSTER ' })).toBe('poster');
+    expect(resolveWeeklyBriefFormat({ WEEKLY_BRIEF_FORMAT: 'report' })).toBe('report');
+    expect(resolveWeeklyBriefFormat({ WEEKLY_BRIEF_FORMAT: 'weird' })).toBe('report');
+  });
+
+  it('the run timeout is 8 minutes', () => {
+    expect(RUN_TIMEOUT_MS).toBe(8 * 60_000);
+  });
+
+  it('a timeout while summarizing stores a failed row', async () => {
+    const r = reportDeps({ timeoutMs: 20, summarizeReport: () => new Promise<ReportSummarizeResult>(() => {}) });
+    const out = await runWeeklyBrief({ reason: 'manual' }, r.deps);
+    expect(out).toMatchObject({ outcome: 'failed', error: 'timeout' });
+    expect(r.store.get(WEEK)).toMatchObject({ status: 'failed' });
+  });
+
+  it('phases: collecting -> summarizing -> persisting -> idle', async () => {
+    const phases: string[] = [];
+    const base = reportDeps();
+    const deps: WeeklyBriefDeps = {
+      ...base.deps,
+      collect: async () => { phases.push(getRunningSnapshot().phase); return makeCollectedFull(); },
+      summarizeReport: async (ws, plan) => { phases.push(getRunningSnapshot().phase); return base.deps.summarizeReport(ws, plan); },
+      writeRow: async (ex, row) => { phases.push(getRunningSnapshot().phase); await base.deps.writeRow(ex, row); },
+    };
+    await runWeeklyBrief({ reason: 'manual' }, deps);
+    phases.push(getRunningSnapshot().phase);
+    expect(phases).toEqual(['collecting', 'summarizing', 'persisting', 'idle']);
+  });
+
+  it('the success hook fires for a created v2 brief', async () => {
+    const hook = vi.fn();
+    setWeeklyBriefSuccessHook(hook);
+    try {
+      expect((await runWeeklyBrief({ reason: 'cron' }, reportDeps().deps)).outcome).toBe('created');
+      expect(hook).toHaveBeenCalledWith({ weekStart: WEEK, status: 'ok' });
+    } finally {
+      setWeeklyBriefSuccessHook(null);
+    }
+  });
+
+  it('run status config exposes the format and the estimated cost (no model-less hardcoded text)', async () => {
+    const s = await getWeeklyBriefRunStatus({});
+    expect(s.config.format).toBe('report');
+    expect(Number.isFinite(s.config.estimatedCostUsd)).toBe(true); // 값은 단가표가 정한다(이 파일은 ai-usage 를 모킹) — 금액은 summarize-report 테스트가 고정한다
+    const poster = await getWeeklyBriefRunStatus({ WEEKLY_BRIEF_FORMAT: 'poster' });
+    expect(poster.config.format).toBe('poster');
+  });
+});

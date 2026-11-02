@@ -1,0 +1,161 @@
+{
+  "weekStart": "2026-10-19",
+  "status": "partial",
+  "generatedAt": "2026-10-25T23:00:00.000Z",
+  "model": null,
+  "prevWeekStart": null,
+  "nextWeekStart": null,
+  "payload": {
+    "schemaVersion": 2,
+    "header": {
+      "weekStart": "2026-10-19",
+      "weekEnd": "2026-10-25",
+      "isoYear": 2026,
+      "weekNumber": 43,
+      "periodStartAt": "2026-10-18T15:00:00.000Z",
+      "periodEndAt": "2026-10-25T14:59:59.999Z",
+      "generatedAt": "2026-10-25T23:00:00.000Z",
+      "counts": {
+        "articles": 0,
+        "videosNew": 0,
+        "videosAnalyzed": 0,
+        "papers": 0,
+        "ciUpdates": 0,
+        "alerts": 0
+      },
+      "deltas": {
+        "articles": null,
+        "videosNew": null,
+        "videosAnalyzed": null,
+        "papers": null,
+        "ciUpdates": null,
+        "alerts": null
+      }
+    },
+    "highlights": [],
+    "domains": [
+      {
+        "key": "hand",
+        "label": "핸드",
+        "status": "quiet",
+        "figures": {
+          "videos": 0,
+          "second": 0,
+          "secondKind": "paper",
+          "total": 0,
+          "sharePct": 0,
+          "prevSharePct": null,
+          "deltaPp": null
+        },
+        "topTags": [],
+        "narrative": null,
+        "evidence": [],
+        "generatedBy": "rule"
+      },
+      {
+        "key": "actuator",
+        "label": "액추에이터",
+        "status": "quiet",
+        "figures": {
+          "videos": 0,
+          "second": 0,
+          "secondKind": "paper",
+          "total": 0,
+          "sharePct": 0,
+          "prevSharePct": null,
+          "deltaPp": null
+        },
+        "topTags": [],
+        "narrative": null,
+        "evidence": [],
+        "generatedBy": "rule"
+      },
+      {
+        "key": "rfm",
+        "label": "파운데이션 모델·RFM",
+        "status": "quiet",
+        "figures": {
+          "videos": 0,
+          "second": 0,
+          "secondKind": "paper",
+          "total": 0,
+          "sharePct": 0,
+          "prevSharePct": null,
+          "deltaPp": null
+        },
+        "topTags": [],
+        "narrative": null,
+        "evidence": [],
+        "generatedBy": "rule"
+      },
+      {
+        "key": "expo",
+        "label": "전시·데모",
+        "status": "quiet",
+        "figures": {
+          "videos": 0,
+          "second": 0,
+          "secondKind": "article",
+          "total": 0,
+          "sharePct": 0,
+          "prevSharePct": null,
+          "deltaPp": null
+        },
+        "topTags": [],
+        "narrative": null,
+        "evidence": [],
+        "generatedBy": "rule"
+      },
+      {
+        "key": "production",
+        "label": "양산·사업화",
+        "status": "quiet",
+        "figures": {
+          "videos": 0,
+          "second": 0,
+          "secondKind": "article",
+          "total": 0,
+          "sharePct": 0,
+          "prevSharePct": null,
+          "deltaPp": null
+        },
+        "topTags": [],
+        "narrative": null,
+        "evidence": [],
+        "generatedBy": "rule"
+      }
+    ],
+    "companies": [],
+    "videos": [],
+    "papers": [],
+    "articles": [],
+    "ciSummary": {
+      "updates": 0,
+      "companies": 0
+    },
+    "trends": {
+      "volume": {
+        "weeks": []
+      },
+      "keywords": [],
+      "keywordNote": null
+    },
+    "watchPoints": [],
+    "meta": {
+      "aiUsed": false,
+      "ruleBasedSections": 0,
+      "sectionSources": {
+        "highlights": "none",
+        "domains": "none",
+        "companies": "none",
+        "papers": "none",
+        "trends": "none",
+        "watch": "none"
+      },
+      "warnings": [
+        "no_data"
+      ],
+      "truncated": false
+    }
+  }
+}

@@ -7,8 +7,14 @@
  */
 
 import { weeklyBriefSample } from './weekly-brief.fixture.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import type { BuildCtx } from '../../services/argos-i-export-areas-types.js';
 import type { RawArticle } from '../../services/argos-i-export-areas-content.js';
+
+/** v2(장문 리포트) 샘플 payload — weekly-brief-contract 가 생성기와의 일치를 검사한다 */
+const reportFull = JSON.parse(fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), 'weekly-report-samples/full.json'), 'utf-8')) as { payload: unknown };
 
 export const SENTINEL = 'SENTINEL_FULLTEXT_DO_NOT_EXPORT';
 export const HOSTILE_TEXT = '<img src=x onerror=alert(1)>"bad | cell\nnext line\ttab';
@@ -221,6 +227,8 @@ export function rawByArea(): Record<string, any> {
     'weekly-briefs': {
       rows: [
         { week_start: '2026-10-19', generated_at: '2026-10-26T00:01:00+00:00', status: 'ok', model: 'brief-model-x', payload: weeklyBriefSample.payload, input_tokens: 1, cost_usd: 1, error: null, stats: { a: 1 } },
+        // v2(장문 리포트) payload 가 v1 항목과 섞여 있다
+        { week_start: '2026-10-26', generated_at: '2026-11-02T00:01:00+00:00', status: 'partial', model: 'brief-model-x', payload: reportFull.payload, input_tokens: 9, cost_usd: 2, error: null, stats: { calls: [{ section: 'A' }] } },
         { week_start: '2026-10-12', generated_at: '2026-10-19T00:01:00+00:00', status: 'failed', model: null, payload: {}, error: 'boom' },
       ],
     },

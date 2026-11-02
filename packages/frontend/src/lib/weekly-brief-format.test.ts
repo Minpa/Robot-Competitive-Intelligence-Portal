@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  buildGenerateConfirmMessage,
   buildStatItems,
   clipText,
   formatCostUsd,
@@ -31,7 +32,7 @@ import {
   weeklyBriefFileNameOf,
   weeklyBriefPermalink,
 } from './weekly-brief-format';
-import { makeEmptyBrief, makeFullBrief, makeKeyword } from './weekly-brief-test-fixtures';
+import { makeEmptyBrief, makeFullBrief, makeFullReport, makeKeyword } from './weekly-brief-test-fixtures';
 
 describe('formatPeriod / formatWeekTitle', () => {
   it('같은 달', () => {
@@ -210,6 +211,48 @@ describe('논문 (§14)', () => {
   });
 });
 
+describe('normalizeWeeklyBrief: v2 / 미지원 버전', () => {
+  it('완전한 v2 는 값을 보존하고 입력을 변경하지 않는다', () => {
+    const b = makeFullReport();
+    const before = JSON.stringify(b);
+    const n = normalizeWeeklyBrief(b);
+    expect(n.payload.schemaVersion).toBe(2);
+    expect(JSON.stringify(n.payload)).toBe(JSON.stringify(b.payload));
+    expect(JSON.stringify(b)).toBe(before);
+  });
+
+  it('v2 의 누락된 배열·객체는 기본값으로 채운다 (마이너 필드 추가에도 안 깨진다)', () => {
+    const b = makeFullReport() as unknown as { payload: Record<string, any> };
+    delete b.payload.highlights;
+    delete b.payload.watchPoints;
+    delete b.payload.companies;
+    delete b.payload.ciSummary;
+    delete b.payload.trends.volume;
+    delete b.payload.trends.keywordNote;
+    delete b.payload.meta.sectionSources;
+    delete b.payload.meta.warnings;
+    const n = normalizeWeeklyBrief(b as never).payload as any;
+    expect(n.highlights).toEqual([]);
+    expect(n.watchPoints).toEqual([]);
+    expect(n.companies).toEqual([]);
+    expect(n.ciSummary).toEqual({ updates: 0, companies: 0 });
+    expect(n.trends.volume.weeks).toEqual([]);
+    expect(n.trends.keywordNote).toBeNull();
+    expect(n.meta.warnings).toEqual([]);
+    expect(n.meta.sectionSources).toEqual({ highlights: 'none', domains: 'none', companies: 'none', papers: 'none', trends: 'none', watch: 'none' });
+    expect(n.videos).toHaveLength(12);
+    expect(b.payload.highlights).toBeUndefined();
+  });
+
+  it('2 보다 큰 알 수 없는 버전은 그대로 통과시키고, 버전이 없으면 v1 로 본다', () => {
+    const future = { weekStart: '2026-10-19', status: 'ok', payload: { schemaVersion: 3, whatever: [1] } } as never;
+    expect(normalizeWeeklyBrief(future)).toBe(future);
+    const old = makeFullBrief() as unknown as { payload: { schemaVersion?: number } };
+    delete old.payload.schemaVersion;
+    expect((normalizeWeeklyBrief(old as never).payload as any).papers).toHaveLength(6);
+  });
+});
+
 describe('안전 링크 헬퍼', () => {
   it('safeVideoHref: 유튜브 호스트 https 만', () => {
     expect(safeVideoHref('https://www.youtube.com/watch?v=abc')).toBe('https://www.youtube.com/watch?v=abc');
@@ -272,5 +315,27 @@ describe('기타', () => {
   it('isPosterEmpty', () => {
     expect(isPosterEmpty(makeEmptyBrief().payload)).toBe(true);
     expect(isPosterEmpty(makeFullBrief().payload)).toBe(false);
+  });
+});
+
+describe('buildGenerateConfirmMessage (확인 다이얼로그 비용 문구)', () => {
+  it('서버가 내려준 estimatedCostUsd 로 비용을 표기하고 하드코딩된 "$0.1 이하" 문구가 없다', () => {
+    const create = buildGenerateConfirmMessage({ weekStart: '2026-10-19', exists: false, estimatedCostUsd: 0.32 });
+    expect(create).toBe('2026-10-19 주 브리프를 생성할까요?\nAI 문장 생성 비용(회당 약 $0.32)이 발생합니다.');
+    const overwrite = buildGenerateConfirmMessage({ weekStart: '2026-10-19', exists: true, estimatedCostUsd: 0.32 });
+    expect(overwrite).toContain('이미 있습니다. 덮어쓰기로 다시 생성할까요?');
+    expect(overwrite).toContain('복구되지 않습니다');
+    expect(overwrite).toContain('$0.32');
+    for (const m of [create, overwrite]) {
+      expect(m).not.toContain('$0.1 이하');
+      expect(m).not.toContain('0.1');
+    }
+  });
+  it('값이 없거나 비정상이면 금액 없이 안내만 한다', () => {
+    for (const v of [undefined, null, Number.NaN, -1]) {
+      const m = buildGenerateConfirmMessage({ weekStart: '2026-10-19', exists: false, estimatedCostUsd: v as number | null | undefined });
+      expect(m).toBe('2026-10-19 주 브리프를 생성할까요?\nAI 문장 생성 비용이 발생합니다.');
+    }
+    expect(buildGenerateConfirmMessage({ weekStart: '2026-10-19', exists: false, estimatedCostUsd: 0.004 })).toContain('<$0.01');
   });
 });

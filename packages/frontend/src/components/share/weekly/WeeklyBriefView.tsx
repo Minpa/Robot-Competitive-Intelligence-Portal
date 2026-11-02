@@ -4,8 +4,11 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { isValidWeekStart } from '@/lib/weekly-brief-format';
+import { REPORT_UNKNOWN_VERSION_NOTICE, versionKindOf } from '@/lib/weekly-brief-report';
 import { POSTER_WHITE } from '@/lib/weekly-brief-theme';
+import type { WeeklyBriefV1Response, WeeklyReportResponse } from '@/types/weekly-brief';
 import { WeeklyBriefPoster } from './WeeklyBriefPoster';
+import { WeeklyReport } from './report/WeeklyReport';
 import { GenerateButton, GenerateStatus, WeeklyBriefToolbar } from './WeeklyBriefToolbar';
 import { isNotFoundError, useWeeklyBrief } from './useWeeklyBrief';
 import { useWeeklyBriefGenerate } from './useWeeklyBriefGenerate';
@@ -36,6 +39,19 @@ export function WeeklyBriefView({ weekStart }: Props) {
         size: A4 portrait;
         margin: 10mm;
       }
+      /* 앱 셸(고정 264px 사이드바 + p-8 여백)은 모바일 미대응이라 좁은 화면에서 브리프가 47px 폭으로 찌그러진다.
+         이 화면이 열려 있는 동안에만 768px 미만에서 사이드바를 숨기고 여백을 줄이며, 셸 헤더가 폭을 밀어내지 않게 자른다. */
+      @media (max-width: 767px) {
+        aside {
+          display: none !important;
+        }
+        div:has(> main) {
+          overflow-x: clip;
+        }
+        main {
+          padding: 12px 0 !important;
+        }
+      }
       @media print {
         .no-print {
           display: none !important;
@@ -50,9 +66,37 @@ export function WeeklyBriefView({ weekStart }: Props) {
         }
         .poster-block,
         .poster-card,
-        .poster-row {
+        .poster-row,
+        .report-card,
+        .report-sh {
           break-inside: avoid;
           page-break-inside: avoid;
+        }
+        .weekly-report h2,
+        .weekly-report h3 {
+          break-after: avoid;
+          page-break-after: avoid;
+        }
+        /* 종이에서는 화면보다 촘촘하게 — full-data 리포트가 20쪽 안에 들어오도록 */
+        .weekly-report .report-para {
+          font-size: 13px !important;
+          line-height: 1.6 !important;
+          margin: 6px 0 !important;
+        }
+        .weekly-report .report-block {
+          margin: 8px 0 !important;
+          padding: 10px 12px !important;
+        }
+        .weekly-report .report-vc {
+          grid-template-columns: 150px 1fr !important;
+          gap: 10px !important;
+        }
+        .weekly-report .report-sh {
+          padding-top: 10px !important;
+          padding-bottom: 10px !important;
+        }
+        .weekly-report .report-body {
+          padding-top: 12px !important;
         }
       }
     `}</style>
@@ -157,7 +201,24 @@ export function WeeklyBriefView({ weekStart }: Props) {
         targetExists={targetExists}
         targetReady={targetReady}
       />
-      <WeeklyBriefPoster brief={brief} />
+      {renderBrief(brief)}
     </div>
   );
+}
+
+/** payload.schemaVersion 으로 분기: v1 은 기존 포스터, v2 는 장문 리포트, 그보다 새로운 형식은 안내 패널 */
+function renderBrief(brief: NonNullable<ReturnType<typeof useWeeklyBrief>['data']>) {
+  const kind = versionKindOf(brief.payload);
+  if (kind === 'v2') return <WeeklyReport brief={brief as WeeklyReportResponse} />;
+  if (kind === 'unknown') {
+    return (
+      <div className={PANEL} data-testid="weekly-unknown-version">
+        <p className="m-0 text-[15px] font-semibold text-ink-900">{REPORT_UNKNOWN_VERSION_NOTICE}</p>
+        <Link href="/share/weekly/archive" className="mt-4 inline-block text-[13px] text-info hover:underline">
+          아카이브 보기
+        </Link>
+      </div>
+    );
+  }
+  return <WeeklyBriefPoster brief={brief as WeeklyBriefV1Response} />;
 }

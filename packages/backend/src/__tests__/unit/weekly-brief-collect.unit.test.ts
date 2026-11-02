@@ -8,7 +8,7 @@ import type { SQL } from 'drizzle-orm';
 
 vi.mock('../../db/index.js', () => ({ db: { execute: vi.fn() } }));
 
-import { ROW_LIMIT, collectWeek, type CollectDeps } from '../../services/weekly-brief-collect.js';
+import { ROW_LIMIT, VOLUME_WEEKS, collectWeek, fetchVolumeWeeks, type CollectDeps } from '../../services/weekly-brief-collect.js';
 import { composePayload } from '../../services/weekly-brief-compose.js';
 import { getWeekRange } from '../../services/weekly-brief-period.js';
 
@@ -29,7 +29,7 @@ function articleRow(i: number) {
 }
 
 /** 쿼리 텍스트로 종류를 구분하는 가짜 실행기 */
-function fakeDeps(opts: { rows?: number; fail?: (text: string) => boolean } = {}) {
+function fakeDeps(opts: { rows?: number; fail?: (text: string) => boolean; volumeRows?: Record<string, unknown>[]; directory?: Record<string, unknown>[] } = {}) {
   const seen: { text: string; params: unknown[] }[] = [];
   const deps: CollectDeps = {
     log: () => {},
@@ -40,6 +40,8 @@ function fakeDeps(opts: { rows?: number; fail?: (text: string) => boolean } = {}
       if (r.text.includes('FROM articles a') && r.text.includes('LIMIT') && r.text.includes('jsonb_strip_nulls')) {
         return { rows: Array.from({ length: opts.rows ?? 3 }, (_, i) => articleRow(i)) };
       }
+      if (r.text.includes('date_trunc(')) return { rows: opts.volumeRows ?? [] };
+      if (r.text.includes('FROM companies c') && !r.text.includes('JOIN companies')) return { rows: opts.directory ?? [] };
       if (r.text.includes('count(*)::int AS n')) return { rows: [{ n: 4 }] };
       return { rows: [] };
     },
@@ -139,5 +141,64 @@ describe('collectWeek', () => {
     expect(q).toHaveLength(2);
     expect(q[0]!.text).toContain("a.product_type = 'video'");
     expect(q[0]!.params).toEqual(['2026-10-18T15:00:00.000Z', '2026-10-25T15:00:00.000Z']);
+  });
+
+  it('the extended projection also carries the derived summaries (aiSummaryKo, keyPoints, task, capabilities) but never a whole metadata object', async () => {
+    const { deps, seen } = fakeDeps();
+    await collectWeek(range, prevRange, deps);
+    const t = seen.find((s) => s.text.includes('jsonb_strip_nulls'))!.text;
+    expect(t).toContain("'aiSummaryKo', left(x.m->>'aiSummaryKo', 200)");
+    expect(t).toContain("'keyPoints'");
+    expect(t).toContain("left(e.v, 120)");
+    expect(t).toContain("'task', left(x.m#>>'{geminiAnalysis,task}', 120)");
+    expect(t).toContain("'capabilities'");
+    expect(t).not.toMatch(/'(content|originalText|abstract)'/);
+    expect(t).not.toContain('a.content');
+  });
+
+  it('without the report option no volume / directory query is issued (poster path unchanged)', async () => {
+    const { deps, seen } = fakeDeps();
+    const w = await collectWeek(range, prevRange, deps);
+    expect(seen.some((s) => s.text.includes('date_trunc('))).toBe(false);
+    expect(seen.some((s) => s.text.includes('FROM companies c') && !s.text.includes('JOIN companies'))).toBe(false);
+    expect(w.volume).toBeUndefined();
+    expect(w.companyDirectory).toBeUndefined();
+  });
+
+  it('report mode: the 8-week volume query groups by KST Monday, spans [week - 49d, week end) and zero-fills missing weeks', async () => {
+    const { deps, seen } = fakeDeps({ volumeRows: [{ week_start: '2026-10-19', videos: '5', papers: '2', articles: '7' }, { week_start: '2026-09-07', videos: 1, papers: 0, articles: 3 }] });
+    const w = await collectWeek(range, prevRange, deps, { report: true });
+    const q = seen.find((s) => s.text.includes('date_trunc('))!;
+    expect(q.text).toContain("AT TIME ZONE 'Asia/Seoul'");
+    expect(q.text).toContain("date_trunc('week'");
+    expect(q.text).toContain('COALESCE(a.published_at, a.collected_at)');
+    // 시작 = 이번 주 − 49일 = 2026-08-31(월) 00:00 KST = 08-30T15:00Z, 끝 = 다음 월요일 00:00 KST (배타적)
+    expect(q.params.filter((p) => typeof p === 'string' && String(p).endsWith('Z'))).toEqual(['2026-08-30T15:00:00.000Z', '2026-10-25T15:00:00.000Z']);
+    expect(q.params.every((p) => !(p instanceof Date))).toBe(true);
+    expect(w.volume).toHaveLength(VOLUME_WEEKS);
+    expect(w.volume!.map((v) => v.weekStart)).toEqual(['2026-08-31', '2026-09-07', '2026-09-14', '2026-09-21', '2026-09-28', '2026-10-05', '2026-10-12', '2026-10-19']);
+    expect(w.volume![0]).toEqual({ weekStart: '2026-08-31', videos: 0, articles: 0, papers: 0 });
+    expect(w.volume![1]).toEqual({ weekStart: '2026-09-07', videos: 1, articles: 3, papers: 0 });
+    expect(w.volume![7]).toEqual({ weekStart: '2026-10-19', videos: 5, articles: 7, papers: 2 });
+    expect(w.volume![2]).toEqual({ weekStart: '2026-09-14', videos: 0, articles: 0, papers: 0 });
+  });
+
+  it('fetchVolumeWeeks returns the 8 consecutive Mondays ending with the target week', async () => {
+    const { deps } = fakeDeps();
+    const weeks = await fetchVolumeWeeks(deps, '2026-10-19');
+    expect(weeks.map((v) => v.weekStart)).toEqual(['2026-08-31', '2026-09-07', '2026-09-14', '2026-09-21', '2026-09-28', '2026-10-05', '2026-10-12', '2026-10-19']);
+  });
+
+  it('report mode: the company directory is loaded; volume / directory failures degrade to defaults with *_failed warnings', async () => {
+    const ok = await collectWeek(range, prevRange, fakeDeps({ directory: [{ company_id: 'c1', name: 'Atlas Robotics' }] }).deps, { report: true });
+    expect(ok.companyDirectory).toEqual([{ companyId: 'c1', name: 'Atlas Robotics' }]);
+    expect(ok.warnings).toEqual([]);
+
+    const { deps } = fakeDeps({ fail: (t) => t.includes('date_trunc(') || (t.includes('FROM companies c') && !t.includes('JOIN companies')) });
+    const bad = await collectWeek(range, prevRange, deps, { report: true });
+    expect(bad.volume).toEqual([]);
+    expect(bad.companyDirectory).toEqual([]);
+    expect([...bad.warnings].sort()).toEqual(['company_directory_failed', 'volume_failed']);
+    expect(bad.rows).toHaveLength(3);
   });
 });

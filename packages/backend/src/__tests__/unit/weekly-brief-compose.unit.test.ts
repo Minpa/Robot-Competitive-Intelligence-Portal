@@ -1,6 +1,9 @@
 /**
  * weekly-brief-compose — 후보/점수/선별/규칙 문장/AI 응답 검증/상태 판정 (순수 함수)
  */
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { describe, it, expect } from 'vitest';
 import {
   WEEKLY_BRIEF_SCORING,
@@ -670,6 +673,62 @@ describe('normalizeStoredPayload (payloads stored before the papers section)', (
   it('leaves a current payload untouched (same reference)', () => {
     const p = composePayload(emptyWeek({ rows: [paper({})] }), null, NOW).payload;
     expect(normalizeStoredPayload(p)).toBe(p);
+  });
+});
+
+describe('normalizeStoredPayload (v1 / v2 / unknown versions)', () => {
+  const v2 = () => JSON.parse(fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../fixtures/weekly-report-samples/full.json'), 'utf-8')).payload;
+
+  it('a complete v2 payload passes through unchanged (same reference)', () => {
+    const p = v2();
+    expect(normalizeStoredPayload(p)).toBe(p);
+  });
+
+  it('a v2 payload with missing arrays/objects is filled with defaults, without touching the original', () => {
+    const p = v2();
+    const damaged: any = JSON.parse(JSON.stringify(p));
+    delete damaged.highlights;
+    delete damaged.watchPoints;
+    delete damaged.companies;
+    delete damaged.trends.volume;
+    delete damaged.trends.keywordNote;
+    delete damaged.meta.sectionSources;
+    delete damaged.meta.warnings;
+    delete damaged.ciSummary;
+    const before = JSON.stringify(damaged);
+    const n: any = normalizeStoredPayload(damaged);
+    expect(JSON.stringify(damaged)).toBe(before);
+    expect(n.schemaVersion).toBe(2);
+    expect(n.highlights).toEqual([]);
+    expect(n.watchPoints).toEqual([]);
+    expect(n.companies).toEqual([]);
+    expect(n.trends.volume.weeks).toEqual([]);
+    expect(n.trends.keywordNote).toBeNull();
+    expect(n.trends.keywords).toHaveLength(p.trends.keywords.length);
+    expect(n.meta.warnings).toEqual([]);
+    expect(n.meta.sectionSources).toEqual({ highlights: 'none', domains: 'none', companies: 'none', papers: 'none', trends: 'none', watch: 'none' });
+    expect(n.ciSummary).toEqual({ updates: 0, companies: 0 });
+    expect(n.videos).toHaveLength(p.videos.length);
+    expect(n.domains).toHaveLength(5);
+    expect(n.header).toEqual(p.header);
+  });
+
+  it('a payload without schemaVersion is v1; a newer version passes through untouched', () => {
+    const fresh = composePayload(emptyWeek({ rows: [paper({})] }), null, NOW).payload;
+    const { schemaVersion: _v, ...noVersion } = fresh as any;
+    expect(normalizeStoredPayload(noVersion)).toBe(noVersion);
+    const { papers: _p, ...old } = noVersion;
+    expect((normalizeStoredPayload(old) as any).papers).toEqual([]);
+    const future: any = { schemaVersion: 3, anything: [1, 2] };
+    expect(normalizeStoredPayload(future)).toBe(future);
+  });
+
+  it('the v1 normalization result is exactly what it was before v2 existed (regression)', () => {
+    const fresh = composePayload(emptyWeek(), null, NOW).payload;
+    const { papers: _p, ...rest } = fresh;
+    const old = JSON.parse(JSON.stringify({ ...rest, header: { ...fresh.header, counts: { ...fresh.header.counts, papers: undefined }, deltas: { ...fresh.header.deltas, papers: undefined } } }));
+    const n: any = normalizeStoredPayload(old);
+    expect(n).toEqual({ ...old, header: { ...old.header, counts: { ...old.header.counts, papers: 0 }, deltas: { ...old.header.deltas, papers: null } }, papers: [] });
   });
 });
 
