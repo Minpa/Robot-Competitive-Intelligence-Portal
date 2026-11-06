@@ -3,6 +3,9 @@ import { ciUpdateService } from '../services/ci-update.service.js';
 import { benchmarkService } from '../services/benchmark.service.js';
 import { handBenchmarkService } from '../services/hand-benchmark.service.js';
 import { forceReseedCiData } from '../db/seed-ci.js';
+import { authMiddleware, requireRole } from './auth.js';
+
+const adminOnly = [authMiddleware, requireRole('admin')];
 
 export async function ciUpdateRoutes(fastify: FastifyInstance) {
   // === Matrix Data ===
@@ -76,16 +79,16 @@ export async function ciUpdateRoutes(fastify: FastifyInstance) {
     return { success: true };
   });
 
-  // POST /staging/:stagingId/approve — approve staged update
-  fastify.post('/staging/:stagingId/approve', async (request) => {
+  // POST /staging/:stagingId/approve — approve staged update (AI 후보를 DB에 반영하므로 관리자만)
+  fastify.post('/staging/:stagingId/approve', { preHandler: adminOnly }, async (request) => {
     const { stagingId } = request.params as { stagingId: string };
     const { reviewedBy = 'admin' } = request.body as { reviewedBy?: string };
     await ciUpdateService.approveStagedUpdate(stagingId, reviewedBy);
     return { success: true };
   });
 
-  // POST /staging/:stagingId/dismiss — dismiss staged update
-  fastify.post('/staging/:stagingId/dismiss', async (request) => {
+  // POST /staging/:stagingId/dismiss — dismiss staged update (관리자만)
+  fastify.post('/staging/:stagingId/dismiss', { preHandler: adminOnly }, async (request) => {
     const { stagingId } = request.params as { stagingId: string };
     const { reviewedBy = 'admin' } = request.body as { reviewedBy?: string };
     await ciUpdateService.dismissStagedUpdate(stagingId, reviewedBy);

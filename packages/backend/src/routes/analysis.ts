@@ -21,6 +21,12 @@ import type { ArticleSaveRequest } from '../services/article-db-writer.service.j
 import type { LinkConfirmation } from '../services/entity-linker.service.js';
 import type { AISearchRequest } from '../services/external-ai-agent.service.js';
 import { scoringPipelineService } from '../services/scoring-pipeline.service.js';
+import { authMiddleware, requireRole } from './auth.js';
+
+/** 로그인 사용자 (파싱·검색·검증 등 저장하지 않는 분석) */
+const loggedIn = [authMiddleware];
+/** 관리자 (DB 저장·엔티티 연결 생성) */
+const adminOnly = [authMiddleware, requireRole('admin')];
 
 export async function analysisRoutes(fastify: FastifyInstance) {
   /**
@@ -30,6 +36,7 @@ export async function analysisRoutes(fastify: FastifyInstance) {
     Body: { text?: string; imageBase64?: string; lang?: string; options?: Record<string, boolean> };
   }>(
     '/parse',
+    { preHandler: loggedIn },
     async (request, reply) => {
       const runId = await pipelineLogger.startRun();
       try {
@@ -59,6 +66,7 @@ export async function analysisRoutes(fastify: FastifyInstance) {
    */
   fastify.post<{ Body: { entities: ParsedEntity[] } }>(
     '/link',
+    { preHandler: loggedIn },
     async (request, reply) => {
       try {
         const { entities } = request.body;
@@ -79,6 +87,7 @@ export async function analysisRoutes(fastify: FastifyInstance) {
    */
   fastify.post<{ Body: LinkConfirmation }>(
     '/link/confirm',
+    { preHandler: adminOnly },
     async (request, reply) => {
       try {
         const result = await entityLinkerService.confirmLinks(request.body);
@@ -94,6 +103,7 @@ export async function analysisRoutes(fastify: FastifyInstance) {
    */
   fastify.post<{ Body: { entityType: string; data: Record<string, unknown> } }>(
     '/validate',
+    { preHandler: loggedIn },
     async (request, reply) => {
       try {
         const { entityType, data } = request.body;
@@ -110,6 +120,7 @@ export async function analysisRoutes(fastify: FastifyInstance) {
    */
   fastify.post<{ Body: ArticleSaveRequest & { entities?: { type: string; data: Record<string, unknown> }[] } }>(
     '/save',
+    { preHandler: adminOnly },
     async (request, reply) => {
       try {
         const { entities, ...saveRequest } = request.body;
@@ -153,6 +164,8 @@ export async function analysisRoutes(fastify: FastifyInstance) {
    */
   fastify.post<{ Body: AISearchRequest }>(
     '/ai-search',
+    // 웹 검색 등 고비용 LLM 호출 — 관리자만 (PM 결정)
+    { preHandler: adminOnly },
     async (request, reply) => {
       try {
         const { query, targetTypes, timeRange, region, provider } = request.body;

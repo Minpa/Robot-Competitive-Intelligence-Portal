@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Search, Sparkles, Brain, Globe, Database, CheckCircle2, Sparkle } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { AnalysisResult } from '@/types/insight-pipeline';
@@ -55,7 +56,11 @@ export function AIAgentMode({
   } | null>(null);
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number; step: string | null } | null>(null);
 
-  const canSearch = selectedTypes.size > 0 && !isAnalyzing;
+  // AI 검색은 웹 검색 등 고비용 호출이라 서버가 관리자만 허용한다 — 비관리자에게는 안내를 보여 준다
+  const { data: me, isLoading: meLoading } = useQuery({ queryKey: ['me'], queryFn: () => api.getMe() });
+  const isAdmin = me?.role === 'admin';
+
+  const canSearch = isAdmin && selectedTypes.size > 0 && !isAnalyzing;
 
   const toggleType = (key: string) => {
     setSelectedTypes((prev) => {
@@ -106,7 +111,8 @@ export function AIAgentMode({
 
       onAnalysisComplete(analysisResult);
     } catch (err: any) {
-      setError(err?.message ?? 'AI 검색 중 오류가 발생했습니다.');
+      const msg: string = err?.message ?? '';
+      setError(/forbidden|403/i.test(msg) ? 'AI 검색은 관리자만 사용할 수 있습니다.' : msg || 'AI 검색 중 오류가 발생했습니다.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -119,6 +125,12 @@ export function AIAgentMode({
         <Search className="w-5 h-5 text-violet-500" />
         <h2 className="text-lg font-medium">AI 기반 데이터 수집</h2>
       </div>
+
+      {!meLoading && !isAdmin && (
+        <div role="alert" className="px-4 py-3 rounded-lg border border-amber-300 bg-amber-50 text-sm text-amber-800">
+          AI 기반 데이터 수집(AI 검색)은 관리자만 사용할 수 있습니다. 필요하면 관리자에게 요청하세요.
+        </div>
+      )}
 
       {/* Search input */}
       <div>

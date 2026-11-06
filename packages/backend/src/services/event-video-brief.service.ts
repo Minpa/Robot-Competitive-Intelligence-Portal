@@ -17,6 +17,38 @@ import { sql, and, eq, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { articles, viewCache } from '../db/schema.js';
 import { aiUsageService } from './ai-usage.service.js';
+import {
+  LLM_INPUT_LIMITS,
+  buildUserMessage,
+  decodeHtmlEntities,
+  fitItemsToBudget,
+  sanitizeExternalText,
+  stripCiteTags,
+  type SanitizeResult,
+} from './llm-input-guard.js';
+import { sanitizeOutputText, isStrictYoutubeWatchUrl } from './llm-output-guard.js';
+import { composeSystemPrompt, JSON_ONLY_NOTICE, NO_URL_NOTICE } from './llm-guard-prompts.js';
+import { recordInputGuard, recordOutputReject } from './llm-guard-metrics.js';
+import { guardTitleTranslation } from './weekly-brief-text-guard.js';
+
+const BRIEF_POINT = 'event_brief';
+const TITLE_POINT = 'event_title_translate';
+const TREND_POINT = 'event_trend';
+const INSIGHT_POINT = 'event_tech_insight';
+/** 트렌드 요청 데이터 블록 직렬화 길이 상한 */
+const TREND_PROMPT_BUDGET = 40_000;
+
+/** 출력 문자열 한 개를 저장 전 정제한다 (URL 제거, 유출 폐기, 길이 상한). 폐기되면 null 이고 지표에 남긴다 */
+function cleanOut(raw: string, maxChars: number, point?: string): string | null {
+  const r = sanitizeOutputText(raw, { maxChars });
+  if (point) {
+    // point 가 있을 때만 지표에 남긴다 (저장 경로). 읽기 경로는 조회마다 집계가 부풀지 않도록 조용히 정제만 한다
+    if (r.text === null) {
+      if (r.reason !== 'empty') recordOutputReject(point, r.reason ?? 'schema');
+    } else if (r.flags.includes('url_removed') || r.flags.includes('link_removed')) recordOutputReject(point, 'url');
+  }
+  return r.text;
+}
 
 const MODEL = process.env.GEMINI_VIDEO_MODEL || 'gemini-flash-latest';
 const BATCH_LIMIT = Math.max(1, parseInt(process.env.GEMINI_EVENT_BRIEF_BATCH_LIMIT || '10', 10));
@@ -25,15 +57,6 @@ const TREND_MODEL = process.env.EVENT_TREND_MODEL || 'claude-haiku-4-5-20251001'
 const TREND_TTL_MS = 12 * 3_600_000; // 12시간
 
 const YOUTUBE_WATCH_URL_RE = /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[\w-]+/i;
-
-/** event-company-report.service.ts와 동일 로직, 순환 의존 방지 복제 */
-function stripCiteTags(s: string): string {
-  return s
-    .replace(/<\/?cite\b[^>]*>?/g, '') // 완전한 태그 + 끝에서 '>' 없이 잘린 태그
-    .replace(/<\/?c(?:i(?:t(?:e)?)?)?$/, '') // 캡 절단으로 남은 짧은 조각 (예: "</ci")
-    .replace(/[ \t]{2,}/g, ' ')
-    .trim();
-}
 
 export interface EventConfig {
   key: string;        // 저장 키 (extracted_metadata.eventBrief_<key>)
@@ -67,27 +90,19 @@ export interface EventVideoBrief {
   briefVersion?: 1 | 2;    // 없으면(레거시) 1로 취급
 }
 
-/** 유튜브 검색 API 등이 제목에 남기는 HTML 엔티티(&#39; &amp; 등)를 일반 문자로 복원 */
-export function decodeHtmlEntities(s: string): string {
-  return s
-    .replace(/&#(\d+);/g, (_, n) => {
-      const code = Number(n);
-      return Number.isFinite(code) ? String.fromCodePoint(code) : _;
-    })
-    .replace(/&quot;/g, '"')
-    .replace(/&#x27;|&apos;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&');
-}
+// decodeHtmlEntities 는 llm-input-guard 로 단일화했다 (기존 import 경로 호환을 위해 재노출)
+export { decodeHtmlEntities };
 
-function capList(raw: unknown, maxItems: number, maxLen: number): string[] {
+function capList(raw: unknown, maxItems: number, maxLen: number, point?: string): string[] {
   if (!Array.isArray(raw)) return [];
-  return (raw as unknown[])
-    .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
-    .map((s) => s.slice(0, maxLen))
-    .slice(0, maxItems);
+  const out: string[] = [];
+  for (const it of raw as unknown[]) {
+    if (typeof it !== 'string' || it.trim().length === 0) continue;
+    const t = cleanOut(it, maxLen, point);
+    if (t) out.push(t);
+    if (out.length >= maxItems) break;
+  }
+  return out;
 }
 
 export function parseEventBrief(text: string, model: string): EventVideoBrief | null {
@@ -105,14 +120,14 @@ export function parseEventBrief(text: string, model: string): EventVideoBrief | 
   }
   if (!parsed) return null;
 
-  const highlight = typeof parsed.highlight === 'string' ? parsed.highlight.trim().slice(0, 80) : '';
-  const companies = capList(parsed.companies, 6, 30);
-  const techKeywords = capList(parsed.techKeywords, 8, 24);
+  const highlight = typeof parsed.highlight === 'string' ? (cleanOut(parsed.highlight, 80, BRIEF_POINT) ?? '') : '';
+  const companies = capList(parsed.companies, 6, 30, BRIEF_POINT);
+  const techKeywords = capList(parsed.techKeywords, 8, 24, BRIEF_POINT);
 
   const brief: EventVideoBrief = {
-    mainProducts: capList(parsed.mainProducts, 3, 160),
-    demoContents: capList(parsed.demoContents, 3, 160),
-    insights: capList(parsed.insights, 3, 160),
+    mainProducts: capList(parsed.mainProducts, 3, 160, BRIEF_POINT),
+    demoContents: capList(parsed.demoContents, 3, 160, BRIEF_POINT),
+    insights: capList(parsed.insights, 3, 160, BRIEF_POINT),
     briefedAt: new Date().toISOString(),
     model,
     briefVersion: 2,
@@ -163,12 +178,14 @@ function normalizeTrendPoints(raw: unknown, validVideoIds?: Set<string>): EventT
   return rawPoints
     .map((p): EventTrendPoint | null => {
       if (typeof p === 'string') {
-        const t = p.trim();
+        if (!p.trim()) return null;
+        const t = cleanOut(p, 160, TREND_POINT);
         if (!t) return null;
-        return { text: t.slice(0, 160), videoIds: [] };
+        return { text: t, videoIds: [] };
       }
       if (p && typeof p === 'object' && typeof (p as any).text === 'string') {
-        const t = (p as any).text.trim();
+        if (!(p as any).text.trim()) return null;
+        const t = cleanOut((p as any).text, 160, TREND_POINT);
         if (!t) return null;
         const rawIds = Array.isArray((p as any).videoIds) ? (p as any).videoIds : [];
         let videoIds = (rawIds as unknown[]).filter((id): id is string => typeof id === 'string');
@@ -176,7 +193,7 @@ function normalizeTrendPoints(raw: unknown, validVideoIds?: Set<string>): EventT
           videoIds = videoIds.filter((id) => validVideoIds.has(id));
         }
         const rawTitle = (p as any).title;
-        const title = typeof rawTitle === 'string' && rawTitle.trim() ? rawTitle.trim().slice(0, 30) : undefined;
+        const title = typeof rawTitle === 'string' && rawTitle.trim() ? (cleanOut(rawTitle, 30, TREND_POINT) ?? undefined) : undefined;
         const rawTheme = (p as any).theme;
         const themeCandidate = typeof rawTheme === 'string' ? rawTheme.trim() : '';
         const theme = (TREND_POINT_THEMES as readonly string[]).includes(themeCandidate)
@@ -185,7 +202,7 @@ function normalizeTrendPoints(raw: unknown, validVideoIds?: Set<string>): EventT
         const impact = normalizeScore((p as any).impact);
         const maturity = normalizeScore((p as any).maturity);
         return {
-          text: t.slice(0, 160),
+          text: t,
           videoIds: videoIds.slice(0, 4),
           ...(title && { title }),
           ...(theme && { theme }),
@@ -223,7 +240,7 @@ export function parseEventTrendSummary(
   }
   if (!parsed) return null;
 
-  const headline = typeof parsed.headline === 'string' ? parsed.headline.trim().slice(0, 120) : '';
+  const headline = typeof parsed.headline === 'string' ? (cleanOut(parsed.headline, 120, TREND_POINT) ?? '') : '';
   const points = normalizeTrendPoints(parsed.points, validVideoIds);
   const techPoints = normalizeTrendPoints(parsed.techPoints, validVideoIds);
 
@@ -272,6 +289,14 @@ export interface TechAxisInsight {
   model: string;
 }
 
+/** 출처 문자열 → 도메인 또는 정제된 짧은 라벨. 링크(http, www)는 호스트만 남긴다 */
+export function sourceLabel(raw: string): string | null {
+  const stripped = stripCiteTags(raw).trim();
+  const m = /^(?:https?:\/\/)?(?:www\.)?([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?){1,6})(?::\d{1,5})?(?:[/?#]\S{0,500})?$/i.exec(stripped);
+  if (m) return m[1]!.toLowerCase().slice(0, 120);
+  return cleanOut(stripped, 120, INSIGHT_POINT);
+}
+
 /** Anthropic 응답에서 {points[], sources[]} 기술 축 인사이트 JSON 파싱 (주변 텍스트 포함 응답도 복원) */
 export function parseTechInsight(text: string): { points: string[]; sources: string[] } | null {
   const tryParse = (raw: string): Record<string, unknown> | null => {
@@ -288,31 +313,30 @@ export function parseTechInsight(text: string): { points: string[]; sources: str
   }
   if (!parsed) return null;
 
-  const points = (Array.isArray(parsed.points) ? (parsed.points as unknown[]) : [])
-    .filter((s): s is string => typeof s === 'string')
-    .map((s) => stripCiteTags(s).slice(0, 220))
-    .slice(0, 3);
-  const sources = (Array.isArray(parsed.sources) ? (parsed.sources as unknown[]) : [])
-    .filter((s): s is string => typeof s === 'string')
-    .map((s) => stripCiteTags(s).slice(0, 120))
-    .slice(0, 3);
+  const points: string[] = [];
+  for (const it of Array.isArray(parsed.points) ? (parsed.points as unknown[]) : []) {
+    if (typeof it !== 'string') continue;
+    const t = cleanOut(it, 220, INSIGHT_POINT);
+    if (t) points.push(t);
+    if (points.length >= 3) break;
+  }
+  // 웹 검색 출처: 링크는 도메인(호스트)만 남기고, 나머지는 같은 정제를 거친 짧은 라벨만 허용한다
+  const sources: string[] = [];
+  for (const it of Array.isArray(parsed.sources) ? (parsed.sources as unknown[]) : []) {
+    if (typeof it !== 'string') continue;
+    const t = sourceLabel(it);
+    if (t) sources.push(t);
+    if (sources.length >= 3) break;
+  }
 
   if (points.length === 0) return null;
   return { points, sources };
 }
 
-function buildTechInsightPrompt(input: {
-  eventLabel: string;
-  techAxes: { axis: string; count: number; keywords: { name: string; count: number }[] }[];
-  topCompanies: { name: string; count: number }[];
-}): string {
-  return `아래는 '${input.eventLabel}' 전시 영상 분석에서 집계한 기술 요소 분포다(축별 건수, 대표 키워드, 주요 참여 기업). 다음 세 가지를 종합해 인사이트를 작성하라.
+const TECH_INSIGHT_INSTRUCTIONS = `사용자 메시지의 데이터 블록은 로봇 전시회 영상 분석에서 집계한 기술 요소 분포다(event: 전시 이름, techAxes: 축별 건수·대표 키워드, topCompanies: 주요 참여 기업 상위 8과 건수). 다음 세 가지를 종합해 인사이트를 작성하라.
 ① 이번 대회 시연의 기술 무게중심을 해석하라(어떤 축에 시연이 쏠려 있고 그것이 의미하는 바는 무엇인지).
 ② 웹 검색으로 직전 대회(WRC 2025) 또는 최근 로봇 업계 흐름의 기술 초점을 확인하고, 이번 분포와 비교해 무엇이 달라졌는지 제시하라. 웹 검색으로 신뢰할 만한 근거를 확인하지 못하면 이 비교 항목은 생략하라. 추측·과장 금지.
 ③ 가전·로봇 사업 관점에서 이 분포가 갖는 산업적·경쟁적 시사점을 제시하라.
-
-기술 요소 분포(축별 건수·대표 키워드): ${JSON.stringify(input.techAxes)}
-주요 참여 기업(상위 8, 건수): ${JSON.stringify(input.topCompanies)}
 
 작성 규칙:
 - 공개 정보의 파생 요약만 작성한다. 원문 장문 복사 금지.
@@ -322,8 +346,34 @@ function buildTechInsightPrompt(input: {
 - JSON 객체만 응답하고 다른 텍스트는 포함하지 않는다.
 
 응답 JSON 스키마:
-{"points": ["인사이트 문장, 최대 3개, 각 220자 이내, 한국어"], "sources": ["참고 웹 출처 도메인 또는 제목, 최대 3개"]}`;
+{"points": ["인사이트 문장, 최대 3개, 각 220자 이내, 한국어"], "sources": ["참고 웹 출처 도메인 (예: example.com), 최대 3개"]}`;
+
+function buildTechInsightPrompt(input: {
+  eventLabel: string;
+  techAxes: { axis: string; count: number; keywords: { name: string; count: number }[] }[];
+  topCompanies: { name: string; count: number }[];
+}): { system: string; user: string } {
+  // 키워드·회사명은 영상 분석(LLM 산출물)에서 온 2차 입력이므로 다시 정제한다
+  const guard: SanitizeResult[] = [];
+  const clean = (v: string, max: number) => {
+    const r = sanitizeExternalText(v, { maxChars: max });
+    guard.push(r);
+    return r.text;
+  };
+  const techAxes = input.techAxes.map((ax) => ({
+    axis: clean(ax.axis, LLM_INPUT_LIMITS.label),
+    count: ax.count,
+    keywords: ax.keywords.map((k) => ({ name: clean(k.name, LLM_INPUT_LIMITS.tag), count: k.count })),
+  }));
+  const topCompanies = input.topCompanies.map((c) => ({ name: clean(c.name, LLM_INPUT_LIMITS.tag), count: c.count }));
+  recordInputGuard(INSIGHT_POINT, guard);
+  return {
+    system: composeSystemPrompt(TECH_INSIGHT_INSTRUCTIONS, { webSearch: true }),
+    user: buildUserMessage('event_tech_insight', { event: input.eventLabel, techAxes, topCompanies }),
+  };
 }
+
+const TREND_INSTRUCTIONS = `사용자 메시지의 데이터 블록(briefs)은 WRC 2026(세계 로봇 대회) 관련 영상들의 분석 브리프다. 전시회 전체를 관통하는 트렌드를 두 축으로 요약하라 — (1) 종합 트렌드: 제품·시장·서비스 관점, (2) 기술 트렌드: 하드웨어(액추에이터·로봇 핸드·센서·구동계), 제어/알고리즘(전신 제어, 밸런싱, 모션 플래닝), AI 모델/학습 방법(VLA, 모방학습, 강화학습, 파운데이션 모델) 등 구체적 기술 요소 중심으로, 연구소 엔지니어가 참고할 수 있는 수준으로 작성하라. JSON만: {"headline": "한 문장 핵심 트렌드 (120자 이내)", "points": [{"title": "2~6단어 명사구 한국어 30자 이내", "text": "종합 트렌드 포인트 설명(160자 이내, 한국어 1~2문장)", "theme": "제품|기술|시장|서비스|생산|파트너십 중 정확히 하나", "impact": "가전·로봇 사업 영향도, 1~5 정수(5=매우 큼)", "maturity": "기술/시연 성숙도, 1~5 정수(1=연구/컨셉, 2=랩 데모, 3=전시 시연, 4=실증/파일럿, 5=양산/상용)", "videoIds": ["근거 영상 id, 최대 4개, 반드시 목록에 있는 id만"]}], "techPoints": [{"title": "2~6단어 명사구 한국어 30자 이내", "text": "기술 관점 트렌드 포인트 설명(160자 이내, 한국어 1~2문장)", "theme": "제품|기술|시장|서비스|생산|파트너십 중 정확히 하나", "impact": "가전·로봇 사업 영향도, 1~5 정수(5=매우 큼)", "maturity": "기술/시연 성숙도, 1~5 정수(1=연구/컨셉, 2=랩 데모, 3=전시 시연, 4=실증/파일럿, 5=양산/상용)", "videoIds": ["근거 영상 id, 최대 4개, 반드시 목록에 있는 id만"]}]} points·techPoints 각각 최대 6개, 브리프에 근거한 내용만 작성하고 추측은 금지한다. theme은 지정 6개 값 중 하나만 사용하고 목록 외 값·복수값은 금지한다. title/text는 브리프에 있는 내용에만 근거해 작성하고 추측하지 않는다. videoIds는 실제 그 포인트를 뒷받침하는 영상만 넣는다. impact는 브리프에서 확인되는 사업적 파급력에만, maturity는 브리프의 시연 형태에만 근거해 산정하고, 추측을 금지하며, 산정 근거는 별도로 설명하지 않는다.`;
 
 function buildTrendPrompt(
   briefs: {
@@ -336,14 +386,32 @@ function buildTrendPrompt(
     insights: string[];
     techKeywords: string[];
   }[]
-): string {
-  return `다음은 WRC 2026(세계 로봇 대회) 관련 영상들의 분석 브리프다. 전시회 전체를 관통하는 트렌드를 두 축으로 요약하라 — (1) 종합 트렌드: 제품·시장·서비스 관점, (2) 기술 트렌드: 하드웨어(액추에이터·로봇 핸드·센서·구동계), 제어/알고리즘(전신 제어, 밸런싱, 모션 플래닝), AI 모델/학습 방법(VLA, 모방학습, 강화학습, 파운데이션 모델) 등 구체적 기술 요소 중심으로, 연구소 엔지니어가 참고할 수 있는 수준으로 작성하라. JSON만: {"headline": "한 문장 핵심 트렌드 (120자 이내)", "points": [{"title": "2~6단어 명사구 한국어 30자 이내", "text": "종합 트렌드 포인트 설명(160자 이내, 한국어 1~2문장)", "theme": "제품|기술|시장|서비스|생산|파트너십 중 정확히 하나", "impact": "가전·로봇 사업 영향도, 1~5 정수(5=매우 큼)", "maturity": "기술/시연 성숙도, 1~5 정수(1=연구/컨셉, 2=랩 데모, 3=전시 시연, 4=실증/파일럿, 5=양산/상용)", "videoIds": ["근거 영상 id, 최대 4개, 반드시 목록에 있는 id만"]}], "techPoints": [{"title": "2~6단어 명사구 한국어 30자 이내", "text": "기술 관점 트렌드 포인트 설명(160자 이내, 한국어 1~2문장)", "theme": "제품|기술|시장|서비스|생산|파트너십 중 정확히 하나", "impact": "가전·로봇 사업 영향도, 1~5 정수(5=매우 큼)", "maturity": "기술/시연 성숙도, 1~5 정수(1=연구/컨셉, 2=랩 데모, 3=전시 시연, 4=실증/파일럿, 5=양산/상용)", "videoIds": ["근거 영상 id, 최대 4개, 반드시 목록에 있는 id만"]}]} points·techPoints 각각 최대 6개, 브리프에 근거한 내용만 작성하고 추측은 금지한다. theme은 지정 6개 값 중 하나만 사용하고 목록 외 값·복수값은 금지한다. title/text는 브리프에 있는 내용에만 근거해 작성하고 추측하지 않는다. videoIds는 실제 그 포인트를 뒷받침하는 영상만 넣는다. impact는 브리프에서 확인되는 사업적 파급력에만, maturity는 브리프의 시연 형태에만 근거해 산정하고, 추측을 금지하며, 산정 근거는 별도로 설명하지 않는다.
-
-${JSON.stringify(briefs)}`;
+): { system: string; user: string } {
+  // 제목·채널은 외부 텍스트, 브리프 필드는 영상 분석(LLM 산출물)이므로 모두 정제한 사본을 보낸다
+  const guard: SanitizeResult[] = [];
+  const clean = (v: string | null | undefined, max: number) => {
+    const r = sanitizeExternalText(v ?? '', { maxChars: max });
+    guard.push(r);
+    return r.text;
+  };
+  const items = briefs.map((b) => ({
+    id: b.id,
+    title: clean(decodeHtmlEntities(b.title ?? ''), LLM_INPUT_LIMITS.title),
+    channel: clean(b.channel, LLM_INPUT_LIMITS.channel),
+    highlight: clean(b.highlight, 120),
+    mainProducts: (b.mainProducts ?? []).map((x) => clean(x, 200)),
+    demoContents: (b.demoContents ?? []).map((x) => clean(x, 200)),
+    insights: (b.insights ?? []).map((x) => clean(x, 200)),
+    techKeywords: (b.techKeywords ?? []).map((x) => clean(x, LLM_INPUT_LIMITS.tag)),
+  }));
+  recordInputGuard(TREND_POINT, guard);
+  return {
+    system: composeSystemPrompt(TREND_INSTRUCTIONS),
+    user: buildUserMessage('event_trend', { briefs: fitItemsToBudget(items, TREND_PROMPT_BUDGET).items }),
+  };
 }
 
-function buildPrompt(event: EventConfig): string {
-  return `이 영상은 로봇 전시회 '${event.label}' 관련 영상이다. 영상 내용을 분석해 아래 JSON 스키마로만 응답하라.
+const BRIEF_INSTRUCTIONS = `이 영상은 로봇 전시회 관련 영상이다(전시 이름은 사용자 메시지의 데이터 블록 event 필드). 영상 내용을 분석해 아래 JSON 스키마로만 응답하라.
 경쟁사 분석 보고서에 들어갈 요약이므로, 영상에서 실제로 보이거나 들리는 것에만 근거하고 추측·과장은 금지한다.
 
 스키마:
@@ -356,6 +424,10 @@ function buildPrompt(event: EventConfig): string {
   "techKeywords": ["영상에서 확인되는 기술 키워드(예: 휴머노이드, 양팔 협조, VLA, 모방학습 등), 최대 8개, 각 24자 이내 한국어"]
 }
 확인할 수 없는 항목은 빈 배열/빈 문자열로 응답하라. 추측·과장은 금지한다. 자막 전문이나 장문 전사를 포함하지 말라. JSON 객체만 응답하고 다른 텍스트는 포함하지 말라.`;
+
+/** Gemini 시스템 지시 (영상 속 음성·자막·화면 텍스트는 데이터라는 공통 문구 포함) */
+function buildBriefSystem(): string {
+  return composeSystemPrompt(BRIEF_INSTRUCTIONS, { video: true });
 }
 
 interface PendingVideo {
@@ -540,7 +612,7 @@ export function computeEventStats(
   };
 }
 
-class EventVideoBriefService {
+export class EventVideoBriefService {
   private client: GoogleGenAI | null = null;
   private anthropicClient: Anthropic | null = null;
   /** 이벤트별 제목 번역 in-flight 가드 (목록 조회 시 lazy 번역 중복 실행 방지) */
@@ -548,11 +620,16 @@ class EventVideoBriefService {
   /** 이벤트별 브리프 배치 in-flight 가드 (버튼 연타·자동 실행 겹침 시 동일 영상 중복 분석 방지) */
   private runningBriefBatches = new Set<string>();
 
-  constructor() {
-    if (process.env.GEMINI_API_KEY) {
+  /** deps: 테스트용 선택 주입. 생략하면 현재 동작(환경 설정 기반 생성) */
+  constructor(deps: { client?: GoogleGenAI | null; anthropicClient?: Anthropic | null } = {}) {
+    if (deps.client !== undefined) {
+      this.client = deps.client;
+    } else if (process.env.GEMINI_API_KEY) {
       this.client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     }
-    if (process.env.ANTHROPIC_API_KEY) {
+    if (deps.anthropicClient !== undefined) {
+      this.anthropicClient = deps.anthropicClient;
+    } else if (process.env.ANTHROPIC_API_KEY) {
       this.anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     }
   }
@@ -606,7 +683,7 @@ class EventVideoBriefService {
               insights: capList((rawBrief as any).insights, 3, 160),
               briefedAt: typeof (rawBrief as any).briefedAt === 'string' ? (rawBrief as any).briefedAt : null,
               highlight:
-                typeof (rawBrief as any).highlight === 'string' ? (rawBrief as any).highlight.slice(0, 80) : null,
+                typeof (rawBrief as any).highlight === 'string' ? (cleanOut((rawBrief as any).highlight, 80) ?? '') || null : null,
               companies: capList((rawBrief as any).companies, 6, 30),
               techKeywords: capList((rawBrief as any).techKeywords, 8, 24),
               briefVersion: (rawBrief as any).briefVersion === 2 ? (2 as const) : (1 as const),
@@ -675,7 +752,7 @@ class EventVideoBriefService {
       )
       .orderBy(sql`published_at DESC NULLS LAST`)
       .limit(limit);
-    const stage1: PendingVideo[] = rows1.filter((r) => YOUTUBE_WATCH_URL_RE.test(r.url));
+    const stage1: PendingVideo[] = rows1.filter((r) => YOUTUBE_WATCH_URL_RE.test(r.url) && isStrictYoutubeWatchUrl(r.url));
 
     if (stage1.length >= limit) return stage1;
 
@@ -692,7 +769,7 @@ class EventVideoBriefService {
       .orderBy(sql`published_at DESC NULLS LAST`)
       .limit(limit - stage1.length);
     const stage2: PendingVideo[] = rows2
-      .filter((r) => YOUTUBE_WATCH_URL_RE.test(r.url))
+      .filter((r) => YOUTUBE_WATCH_URL_RE.test(r.url) && isStrictYoutubeWatchUrl(r.url))
       .map((r) => ({ ...r, isUpgrade: true }));
 
     return [...stage1, ...stage2];
@@ -709,11 +786,11 @@ class EventVideoBriefService {
             role: 'user',
             parts: [
               { fileData: { fileUri: video.url, mimeType: 'video/*' } },
-              { text: buildPrompt(event) },
+              { text: buildUserMessage('event_brief', { event: event.label }) },
             ],
           },
         ],
-        config: { responseMimeType: 'application/json' },
+        config: { responseMimeType: 'application/json', systemInstruction: buildBriefSystem() },
       });
       const usage = response.usageMetadata;
       aiUsageService.logUsage({
@@ -773,14 +850,25 @@ class EventVideoBriefService {
 
       if (rows.length === 0) return res;
 
-      const prompt =
-        '다음 로봇 전시회 영상 제목들을 자연스러운 한국어로 번역하라. 회사명·로봇 모델명·고유명사는 원문 표기를 유지한다. JSON 배열만 응답: [{"id":"...","titleKo":"..."}] 각 titleKo는 150자 이내.' +
-        JSON.stringify(rows.map((r) => ({ id: r.id, title: decodeHtmlEntities(r.title) })));
+      // 제목은 외부 텍스트: 디코딩 후 정제한 사본만 데이터 블록에 넣는다. 번역 원본(검증 기준)은 디코딩한 원제
+      const originals = new Map(rows.map((r) => [r.id, decodeHtmlEntities(r.title)]));
+      const guard: SanitizeResult[] = [];
+      const items = rows.map((r) => {
+        const t = sanitizeExternalText(originals.get(r.id) ?? '', { maxChars: LLM_INPUT_LIMITS.title });
+        guard.push(t);
+        return { id: r.id, title: t.text };
+      });
+      recordInputGuard(TITLE_POINT, guard);
 
       const response = await this.anthropicClient.messages.create({
         model: TREND_MODEL,
         max_tokens: 8000,
-        messages: [{ role: 'user', content: prompt }],
+        system: composeSystemPrompt(
+          `로봇 전시회 영상 제목들(데이터 블록)을 자연스러운 한국어로 번역하라. 회사명·로봇 모델명·고유명사는 원문 표기를 유지한다. 숫자는 원제의 숫자를 그대로 쓰고, 번역문에 URL·줄바꿈·꺾쇠를 넣지 않는다. 각 titleKo는 80자 이내.
+${JSON_ONLY_NOTICE} ${NO_URL_NOTICE}
+JSON 배열만 응답: [{"id":"...","titleKo":"..."}]`
+        ),
+        messages: [{ role: 'user', content: buildUserMessage('event_title_translate', items) }],
       });
       aiUsageService.logUsage({
         provider: 'claude',
@@ -801,10 +889,23 @@ class EventVideoBriefService {
       let saved = 0;
       for (const t of translations) {
         if (!validIds.has(t.id)) continue;
+        // 주간 브리프와 같은 제목 번역 가드: `<`·http·줄바꿈, 원제에 없는 숫자, 한글 없음, 원제와 동일, 80자 초과는 폐기.
+        // 폐기되면 원제를 titleKo 로 저장한다 (화면에는 원제가 표시되고, 같은 제목이 매번 재번역되지 않는다)
+        const original = originals.get(t.id) ?? '';
+        const guarded = guardTitleTranslation(t.titleKo, original);
+        let value: string;
+        if (guarded.ok) {
+          value = guarded.text;
+        } else {
+          recordOutputReject(TITLE_POINT, guarded.reason === 'policy' ? 'url' : 'schema');
+          const fallback = sanitizeOutputText(original, { maxChars: 200, rejectOnLeak: false }).text;
+          if (!fallback) continue;
+          value = fallback;
+        }
         await db.execute(sql`
           UPDATE articles
           SET extracted_metadata = COALESCE(extracted_metadata, '{}'::jsonb)
-            || jsonb_build_object('titleKo', ${t.titleKo}::text)
+            || jsonb_build_object('titleKo', ${value}::text)
           WHERE id = ${t.id}
         `);
         saved++;
@@ -967,13 +1068,15 @@ class EventVideoBriefService {
     const validVideoIds = new Set(briefed.map((v) => v.id));
 
     let parsed: { headline: string; points: EventTrendPoint[]; techPoints: EventTrendPoint[] } | null = null;
+    const trendPrompt = buildTrendPrompt(briefs);
     try {
       const response = await this.anthropicClient.messages.create({
         model: TREND_MODEL,
         // points + techPoints 2축 + 포인트별 title/theme/impact/maturity/videoIds(UUID)로 출력량이 커서 넉넉히 확보
         // (2500이면 12개 포인트 응답이 중간에 잘려 파싱 실패 → 트렌드 섹션 미표시. impact/maturity 추가로 6000→7000)
         max_tokens: 7000,
-        messages: [{ role: 'user', content: buildTrendPrompt(briefs) }],
+        system: trendPrompt.system,
+        messages: [{ role: 'user', content: trendPrompt.user }],
       });
       aiUsageService.logUsage({
         provider: 'claude',
@@ -991,9 +1094,7 @@ class EventVideoBriefService {
       parsed = parseEventTrendSummary(text, validVideoIds);
       if (!parsed) {
         // 파싱 실패 시 원인 진단용: 응답이 max_tokens에 잘렸는지(stop_reason)와 응답 끝부분을 남긴다
-        console.error(
-          `[EventBrief] trend summary parse failed (stop_reason=${response.stop_reason}, len=${text.length}): ...${text.slice(-200)}`
-        );
+        console.error(`[EventBrief] trend summary parse failed (stop_reason=${response.stop_reason}, len=${text.length})`);
       }
     } catch (err) {
       console.error('[EventBrief] getTrendSummary failed:', (err as Error).message);
@@ -1046,6 +1147,11 @@ class EventVideoBriefService {
     const stats = await this.getStats(eventKey);
     if (!stats || stats.techAxes.length === 0 || stats.briefedVideos < 3) return null;
 
+    const insightPrompt = buildTechInsightPrompt({
+      eventLabel: event.label,
+      techAxes: stats.techAxes,
+      topCompanies: stats.topCompanies.slice(0, 8),
+    });
     try {
       const response = await this.anthropicClient.messages.create({
         model: TREND_MODEL,
@@ -1057,16 +1163,8 @@ class EventVideoBriefService {
             max_uses: 3,
           } as any,
         ],
-        messages: [
-          {
-            role: 'user',
-            content: buildTechInsightPrompt({
-              eventLabel: event.label,
-              techAxes: stats.techAxes,
-              topCompanies: stats.topCompanies.slice(0, 8),
-            }),
-          },
-        ],
+        system: insightPrompt.system,
+        messages: [{ role: 'user', content: insightPrompt.user }],
       });
 
       let combined = '';
@@ -1128,7 +1226,7 @@ class EventVideoBriefService {
       .where(sql`id = ${articleId}`)
       .limit(1);
     if (!row) return { ok: false, error: 'Article not found' };
-    if (row.productType !== 'video' || !YOUTUBE_WATCH_URL_RE.test(row.url)) {
+    if (row.productType !== 'video' || !YOUTUBE_WATCH_URL_RE.test(row.url) || !isStrictYoutubeWatchUrl(row.url)) {
       return { ok: false, error: 'not a public YouTube video' };
     }
 

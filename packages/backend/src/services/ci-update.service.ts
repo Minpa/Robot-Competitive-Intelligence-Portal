@@ -479,6 +479,12 @@ class CiUpdateService {
       }
     }
 
+    if (staging.updateType === 'spec_enrichment') {
+      // AI 스펙 보강 후보: 승인 시에만 body/hand/computing/power 스펙 테이블에 반영한다 (빈 레코드만 생성, 기존 값 미변경)
+      const { specEnrichmentService } = await import('./spec-enrichment.service.js');
+      await specEnrichmentService.applyStagedSpecs(payload);
+    }
+
     // Update staging status
     await db
       .update(ciStaging)

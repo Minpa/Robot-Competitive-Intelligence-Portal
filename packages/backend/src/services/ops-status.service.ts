@@ -19,6 +19,7 @@ import { getTopicClassificationService } from './hand-topic-classification.servi
 import { schedulerService } from './scheduler.service.js';
 import { getWeeklyBriefOpsSummary } from './weekly-brief.service.js';
 import { getArgosIExportOpsSummary } from './argos-i-export.service.js';
+import { getLlmGuardSnapshot } from './llm-guard-metrics.js';
 
 export const CRAWLER_BACKFILL_KEY = 'arxiv-backfill:actuator:12m';
 export const CRAWLER_STATUS_HINT = '크롤러 서비스 GET /legal/arxiv-topic-backfill/status?domain=actuator';
@@ -84,5 +85,8 @@ export async function getOpsStatus() {
   // ARGOS_I 일일 스냅샷: 크론·캐치업 설정, 실행 중 여부, 마지막 실행 요약, 최신 번들 날짜 (비밀값 없음)
   const argosIExport = await guard(() => getArgosIExportOpsSummary());
 
-  return { generatedAt: new Date().toISOString(), config, dataMigrations, handBenchmarkMigrations, currentDataKey, pipeline, crawler, weeklyBrief, argosIExport };
+  // LLM 프롬프트 인젝션 방어 지표: 지점별 입력 정제·지시문 탐지·잘림·출력 폐기 건수 (프로세스 메모리, 재시작하면 초기화). 건수와 종류만 — 텍스트·프롬프트·키 없음
+  const llmGuard = await guard(() => getLlmGuardSnapshot());
+
+  return { generatedAt: new Date().toISOString(), config, dataMigrations, handBenchmarkMigrations, currentDataKey, pipeline, crawler, weeklyBrief, argosIExport, llmGuard };
 }

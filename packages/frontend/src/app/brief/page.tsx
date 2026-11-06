@@ -1,14 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { parseBriefMarkdown } from '@/lib/brief-markdown';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { FileText, Download, Sparkles } from 'lucide-react';
 
 export default function BriefPage() {
   const [briefData, setBriefData] = useState<any>(null);
+
+  const blocks = useMemo(() => parseBriefMarkdown(briefData?.markdown), [briefData]);
 
   const generateMutation = useMutation({
     mutationFn: () => api.generateMonthlyBrief(),
@@ -81,15 +84,22 @@ export default function BriefPage() {
         {briefData && (
           <div className="bg-white border border-ink-200 rounded-xl p-8">
             <div className="prose prose-sm max-w-none">
-              <div className="whitespace-pre-wrap text-ink-700 leading-relaxed" dangerouslySetInnerHTML={{
-                __html: briefData.markdown
-                  ?.replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-ink-900 mt-6 mb-3">$1</h1>')
-                  .replace(/^## (.+)$/gm, '<h2 class="text-lg font-semibold text-ink-900 mt-5 mb-2">$1</h2>')
-                  .replace(/^- (.+)$/gm, '<li class="ml-4 text-ink-700">$1</li>')
-                  .replace(/\*\*(.+?)\*\*/g, '<strong class="text-ink-900">$1</strong>')
-                  .replace(/\n\n/g, '<br/><br/>')
-                  || '',
-              }} />
+              <div className="text-ink-700 leading-relaxed">
+                {blocks.map((b, idx) => {
+                  if (b.type === 'gap') return <div key={idx} className="h-3" />;
+                  const content = b.inlines.map((il, k) =>
+                    il.bold ? (
+                      <strong key={k} className="text-ink-900">{il.text}</strong>
+                    ) : (
+                      <span key={k}>{il.text}</span>
+                    ),
+                  );
+                  if (b.type === 'h1') return <h1 key={idx} className="text-2xl font-bold text-ink-900 mt-6 mb-3">{content}</h1>;
+                  if (b.type === 'h2') return <h2 key={idx} className="text-lg font-semibold text-ink-900 mt-5 mb-2">{content}</h2>;
+                  if (b.type === 'li') return <li key={idx} className="ml-4 text-ink-700 list-none">{content}</li>;
+                  return <p key={idx}>{content}</p>;
+                })}
+              </div>
             </div>
             <div className="mt-6 pt-4 border-t border-ink-200 text-xs text-ink-400">
               생성: {briefData.generatedAt ? new Date(briefData.generatedAt).toLocaleString('ko-KR') : ''}

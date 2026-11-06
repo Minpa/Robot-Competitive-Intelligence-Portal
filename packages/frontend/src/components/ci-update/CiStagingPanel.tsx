@@ -5,18 +5,29 @@ import { api } from '@/lib/api';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
+/** 서버가 403(Forbidden)을 돌려주면 관리자 전용임을 안내한다 */
+function describeActionError(err: unknown, action: string): string {
+  const msg = err instanceof Error ? err.message : '';
+  if (/forbidden|403/i.test(msg)) return `${action}은(는) 관리자만 할 수 있습니다.`;
+  if (/unauthorized|401/i.test(msg)) return `로그인이 필요합니다. 다시 로그인한 뒤 ${action}해 주세요.`;
+  return `${action} 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.`;
+}
+
 export function CiStagingPanel() {
   const { data, isLoading, error } = useCiStaging();
   const [processing, setProcessing] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const handleApprove = async (id: string) => {
     setProcessing(id);
+    setActionError(null);
     try {
       await api.approveCiStaging(id, 'admin');
       queryClient.invalidateQueries({ queryKey: ['ci-update'] });
     } catch (err) {
       console.error('Failed to approve:', err);
+      setActionError(describeActionError(err, '승인'));
     } finally {
       setProcessing(null);
     }
@@ -24,11 +35,13 @@ export function CiStagingPanel() {
 
   const handleDismiss = async (id: string) => {
     setProcessing(id);
+    setActionError(null);
     try {
       await api.dismissCiStaging(id, 'admin');
       queryClient.invalidateQueries({ queryKey: ['ci-update', 'staging'] });
     } catch (err) {
       console.error('Failed to dismiss:', err);
+      setActionError(describeActionError(err, '무시'));
     } finally {
       setProcessing(null);
     }
@@ -55,6 +68,7 @@ export function CiStagingPanel() {
     value_update: '값 업데이트',
     new_competitor: '새 경쟁사',
     score_adjust: '스코어 조정',
+    spec_enrichment: '스펙 보강',
   };
 
   return (
@@ -65,6 +79,11 @@ export function CiStagingPanel() {
           {data.length}건 대기
         </span>
       </div>
+      {actionError && (
+        <div role="alert" className="mb-3 px-3 py-2 rounded border border-amber-300 bg-amber-50 text-xs text-amber-800">
+          {actionError}
+        </div>
+      )}
 
       <div className="space-y-2 max-h-[400px] overflow-auto">
         {data.map(entry => (

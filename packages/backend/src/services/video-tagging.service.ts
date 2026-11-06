@@ -13,10 +13,27 @@ import Anthropic from '@anthropic-ai/sdk';
 import { sql, eq, and, desc, isNotNull } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { articles, viewCache } from '../db/schema.js';
+import {
+  LLM_INPUT_LIMITS,
+  buildUserMessage,
+  fitItemsToBudget,
+  sanitizeExternalText,
+  type SanitizeResult,
+} from './llm-input-guard.js';
+import { applyRule, parseJsonStrict, sanitizeTagList } from './llm-output-guard.js';
+import { composeSystemPrompt, JSON_ONLY_NOTICE, NO_URL_NOTICE } from './llm-guard-prompts.js';
+import { createRejectCollector, recordInputGuard, recordOutputReject } from './llm-guard-metrics.js';
 
 // 저비용 반복 태깅 작업이므로 소형 모델을 기본값으로 사용
 const TAGGING_MODEL = process.env.VIDEO_TAGGING_MODEL || 'claude-haiku-4-5-20251001';
 const BATCH_SIZE = 20;
+const TAG_POINT = 'video_tagging';
+const SUMMARY_POINT = 'video_trend_summary';
+/** 한 요청에 들어가는 데이터 블록 직렬화 길이 상한 (초과하면 뒤쪽 항목부터 줄인다) */
+const TAG_PROMPT_BUDGET = 30_000;
+const SUMMARY_PROMPT_BUDGET = 30_000;
+/** 트렌드 요약(전체) 캐시 키 — v5 → v6: 정제 도입 전 캐시(모델 원문 폴백 포함 가능)를 폐기한다 */
+const TREND_SUMMARY_CACHE_KEY = 'video-trend-summary:v6';
 
 // 트렌드 요약 갱신 주기 — 기본 72시간(3일). 매 방문·매일 생성할 필요가 없는 저변동 콘텐츠.
 const SUMMARY_TTL_MS =
@@ -82,20 +99,27 @@ interface CachedSummary {
   generatedAt: number;
 }
 
-class VideoTaggingService {
+export class VideoTaggingService {
   private client: Anthropic | null = null;
   private summaryCache: CachedSummary | null = null;
 
-  /** LLM으로 구조화 요약 생성 — {headline, points[]} JSON 강제, 잘린 응답도 복원 */
+  /**
+   * LLM으로 구조화 요약 생성 — {headline, points[]} JSON 강제, 잘린 응답도 복원.
+   * 지시문은 system, 외부 텍스트는 user 의 데이터 블록에만 둔다. 모든 필드는 저장 전 정제하며,
+   * 파싱 실패 시 모델 원문을 돌려주지 않고 null(템플릿 폴백)을 돌려준다.
+   */
   private async generateStructured(
-    prompt: string
+    system: string,
+    task: string,
+    payload: unknown
   ): Promise<{ text: string; headline?: string; points?: SummaryPoint[] } | null> {
     if (!this.client) return null;
     try {
       const response = await this.client.messages.create({
         model: TAGGING_MODEL,
         max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }],
+        system,
+        messages: [{ role: 'user', content: buildUserMessage(task, payload) }],
       });
       const raw = response.content
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')
@@ -105,31 +129,34 @@ class VideoTaggingService {
       // 코드펜스 제거
       const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
 
-      const build = (headline: string | undefined, points: SummaryPoint[]) => {
-        const capped = points
-          .map((p) => ({ title: p.title.slice(0, 60), body: p.body.slice(0, 300) }))
-          .slice(0, 6);
-        const text = [headline, ...capped.map((p) => `${p.title}: ${p.body}`)].filter(Boolean).join(' ');
-        return { text, headline: headline?.slice(0, 200), points: capped };
+      const collector = createRejectCollector(SUMMARY_POINT);
+      const ctx = { systemText: system, onReject: collector.onReject };
+      const cleanPoint = (title: unknown, body: unknown): SummaryPoint | null => {
+        const t = applyRule(title, { type: 'text', max: 60 }, ctx, 'point.title');
+        const b = applyRule(body, { type: 'text', max: 300 }, ctx, 'point.body');
+        return t.ok && b.ok ? { title: t.value as string, body: b.value as string } : null;
+      };
+      const build = (headline: unknown, points: SummaryPoint[]) => {
+        const capped = points.slice(0, 6);
+        const h = headline === undefined ? null : applyRule(headline, { type: 'text', max: 200 }, ctx, 'headline');
+        const headlineText = h && h.ok ? (h.value as string) : undefined;
+        const text = [headlineText, ...capped.map((p) => `${p.title}: ${p.body}`)].filter(Boolean).join(' ');
+        collector.flush();
+        return { text, headline: headlineText, points: capped };
       };
 
       // 1차: 정상 JSON 파싱
-      const m = cleaned.match(/\{[\s\S]*\}/);
-      if (m) {
-        try {
-          const parsed = JSON.parse(m[0]) as { headline?: string; points?: { title?: string; body?: string }[] };
-          const points = (parsed.points ?? [])
-            .filter((p) => p?.title && p?.body)
-            .map((p) => ({ title: String(p.title), body: String(p.body) }));
-          if (points.length > 0) {
-            return build(typeof parsed.headline === 'string' ? parsed.headline : undefined, points);
-          }
-        } catch {
-          // 2차 복원으로 진행
+      const parsed = parseJsonStrict(cleaned, 'object') as { headline?: unknown; points?: unknown } | null;
+      if (parsed && Array.isArray(parsed.points)) {
+        const points: SummaryPoint[] = [];
+        for (const p of parsed.points as Array<{ title?: unknown; body?: unknown } | null>) {
+          const cp = p && typeof p === 'object' ? cleanPoint(p.title, p.body) : null;
+          if (cp) points.push(cp);
         }
+        if (points.length > 0) return build(parsed.headline, points);
       }
 
-      // 2차: 응답이 잘렸더라도 완성된 title/body 쌍만 정규식으로 복원
+      // 2차: 응답이 잘렸더라도 완성된 title/body 쌍만 정규식으로 복원 (복원된 항목도 같은 정제를 거친다)
       const unesc = (s: string) => {
         try { return JSON.parse(`"${s}"`) as string; } catch { return s; }
       };
@@ -138,17 +165,17 @@ class VideoTaggingService {
       const pointRe = /"title"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,\s*"body"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
       let pm;
       while ((pm = pointRe.exec(cleaned)) !== null) {
-        points.push({ title: unesc(pm[1] ?? ''), body: unesc(pm[2] ?? '') });
+        const cp = cleanPoint(unesc(pm[1] ?? ''), unesc(pm[2] ?? ''));
+        if (cp) points.push(cp);
       }
       if (points.length >= 2) {
         return build(headlineMatch ? unesc(headlineMatch[1] ?? '') : undefined, points);
       }
 
-      // 3차: JSON 형태 원문은 절대 노출하지 않음 → 템플릿 폴백 유도
-      if (cleaned.startsWith('{') || cleaned.includes('"points"') || raw.startsWith('```')) {
-        return null;
-      }
-      return cleaned ? { text: cleaned } : null;
+      // 3차: 모델 원문은 어떤 경우에도 요약으로 쓰지 않는다 → 템플릿 폴백 유도
+      collector.flush();
+      recordOutputReject(SUMMARY_POINT, 'schema');
+      return null;
     } catch {
       return null;
     }
@@ -186,8 +213,11 @@ class VideoTaggingService {
     }
   }
 
-  constructor() {
-    if (process.env.ANTHROPIC_API_KEY) {
+  /** deps.client: 테스트용 선택 주입. 생략하면 현재 동작(환경 설정 기반 생성) */
+  constructor(deps: { client?: Anthropic | null } = {}) {
+    if (deps.client !== undefined) {
+      this.client = deps.client;
+    } else if (process.env.ANTHROPIC_API_KEY) {
       this.client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     }
   }
@@ -232,57 +262,71 @@ class VideoTaggingService {
     const result = new Map<string, VideoAiTags>();
     if (!this.client) return result;
 
-    const prompt = `다음은 휴머노이드 로봇 기업들의 유튜브 데모 영상 목록이다. 각 영상의 제목/설명을 보고 태깅하라.
+    // 외부 텍스트(제목·채널·설명)는 정제한 사본만 데이터 블록에 넣는다. DB 원본은 바꾸지 않는다
+    const guardResults: SanitizeResult[] = [];
+    const items = videos.map((v) => {
+      const title = sanitizeExternalText(v.title, { maxChars: LLM_INPUT_LIMITS.title });
+      const channel = sanitizeExternalText(v.channel, { maxChars: LLM_INPUT_LIMITS.channel });
+      const description = sanitizeExternalText(v.description, { maxChars: LLM_INPUT_LIMITS.description });
+      guardResults.push(title, channel, description);
+      return { id: v.id, channel: channel.text, title: title.text, description: description.text };
+    });
+    recordInputGuard(TAG_POINT, guardResults);
+    const fitted = fitItemsToBudget(items, TAG_PROMPT_BUDGET);
+    const sentIds = new Set(fitted.items.map((v) => v.id));
+
+    const system = composeSystemPrompt(
+      `휴머노이드 로봇 기업들의 유튜브 데모 영상을 태깅한다. 사용자 메시지의 데이터 블록에 영상 목록(id, channel, title, description)이 있다. 각 영상의 제목/설명을 보고 태깅하라.
 
 작업 유형(taskTypes)은 반드시 다음 중에서만 선택 (1~3개): ${VIDEO_TASK_TYPES.join(', ')}
 기술 태그(techTags): 영상에서 드러나는 기술 키워드 0~4개 (예: 강화학습, 원격조작, End-to-End, 촉각센서, 자율주행, VLA, 파운데이션모델)
 로봇 모델(robots): 언급된 로봇 모델명 0~3개 (예: Atlas, Optimus, Figure 03)
+techTags 와 robots 는 짧은 이름(40자 이내)만 쓴다.
 
-영상 목록:
-${JSON.stringify(
-  videos.map((v) => ({
-    id: v.id,
-    channel: v.channel,
-    title: v.title,
-    description: v.description,
-  }))
-)}
-
+${JSON_ONLY_NOTICE} ${NO_URL_NOTICE}
 JSON 배열로만 응답하라. 다른 텍스트 없이:
-[{"id":"...","taskTypes":["..."],"techTags":["..."],"robots":["..."]}]`;
+[{"id":"...","taskTypes":["..."],"techTags":["..."],"robots":["..."]}]`
+    );
 
     try {
       const response = await this.client.messages.create({
         model: TAGGING_MODEL,
         max_tokens: 4000,
-        messages: [{ role: 'user', content: prompt }],
+        system,
+        messages: [{ role: 'user', content: buildUserMessage('video_tagging', fitted.items) }],
       });
       const text = response.content
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')
         .map((b) => b.text)
         .join('');
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) return result;
-      const parsed = JSON.parse(jsonMatch[0]) as {
-        id: string;
-        taskTypes?: string[];
-        techTags?: string[];
-        robots?: string[];
-      }[];
+      const parsed = parseJsonStrict(text, 'array') as Array<Record<string, unknown> | null> | null;
+      if (!parsed) {
+        recordOutputReject(TAG_POINT, 'schema');
+        return result;
+      }
+      const collector = createRejectCollector(TAG_POINT);
       const now = new Date().toISOString();
       for (const item of parsed) {
-        if (!item.id) continue;
-        const taskTypes = (item.taskTypes ?? []).filter((t) =>
-          (VIDEO_TASK_TYPES as readonly string[]).includes(t)
-        );
+        if (!item || typeof item !== 'object' || typeof item.id !== 'string' || !sentIds.has(item.id)) {
+          collector.onReject('schema', 'id');
+          continue;
+        }
+        const rawTypes = Array.isArray(item.taskTypes) ? item.taskTypes : [];
+        const taskTypes = rawTypes.filter((t): t is string => typeof t === 'string' && (VIDEO_TASK_TYPES as readonly string[]).includes(t));
+        if (rawTypes.length > taskTypes.length) collector.onReject('enum', 'taskTypes');
+        const techTags = sanitizeTagList(item.techTags, 4, LLM_INPUT_LIMITS.tag);
+        const robots = sanitizeTagList(item.robots, 3, LLM_INPUT_LIMITS.tag);
+        const rawTagCount = (Array.isArray(item.techTags) ? Math.min(item.techTags.length, 4) : 0) + (Array.isArray(item.robots) ? Math.min(item.robots.length, 3) : 0);
+        if (rawTagCount > techTags.length + robots.length) collector.onReject('schema', 'tags');
         result.set(item.id, {
           taskTypes: taskTypes.length > 0 ? taskTypes.slice(0, 3) : ['기타'],
-          techTags: (item.techTags ?? []).slice(0, 4),
-          robots: (item.robots ?? []).slice(0, 3),
+          techTags,
+          robots,
           taggedAt: now,
           method: 'llm',
         });
       }
+      collector.flush();
     } catch (err) {
       console.error('[VideoTagging] LLM batch failed:', (err as Error).message);
     }
@@ -316,6 +360,19 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
     return { tagged, method };
   }
 
+  /** 요약 입력용: 영상 제목·채널을 정제한 사본으로 바꾸고 직렬화 예산 안으로 줄인다 */
+  private sanitizeSummaryVideos<T extends { title: string; channel: unknown }>(videos: T[]): Array<Omit<T, 'title' | 'channel'> & { title: string; channel: string }> {
+    const guardResults: SanitizeResult[] = [];
+    const cleaned = videos.map((v) => {
+      const title = sanitizeExternalText(v.title, { maxChars: LLM_INPUT_LIMITS.title });
+      const channel = sanitizeExternalText(v.channel, { maxChars: LLM_INPUT_LIMITS.channel });
+      guardResults.push(title, channel);
+      return { ...v, title: title.text, channel: channel.text };
+    });
+    recordInputGuard(SUMMARY_POINT, guardResults);
+    return fitItemsToBudget(cleaned, SUMMARY_PROMPT_BUDGET).items;
+  }
+
   /** 최근 60일 영상 트렌드 한국어 요약 (기본 3일 캐시, 재시작에도 유지) */
   async getTrendSummary(): Promise<{
     summary: string;
@@ -324,7 +381,7 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
     generatedAt: string;
     source: 'llm' | 'template' | 'cache';
   }> {
-    const CACHE_KEY = 'video-trend-summary:v5';
+    const CACHE_KEY = TREND_SUMMARY_CACHE_KEY;
     if (!this.summaryCache) {
       this.summaryCache = await this.loadPersistedSummary(CACHE_KEY);
     }
@@ -359,7 +416,10 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
       return {
         title: r.title,
         channel: meta.channel ?? '',
-        taskTypes: meta.aiTags?.taskTypes ?? [],
+        // 2차 입력: 저장된 태그도 enum 으로 다시 걸러서 쓴다
+        taskTypes: (Array.isArray(meta.aiTags?.taskTypes) ? meta.aiTags.taskTypes : []).filter(
+          (t: unknown): t is string => typeof t === 'string' && (VIDEO_TASK_TYPES as readonly string[]).includes(t)
+        ),
         publishedAt: r.publishedAt?.toISOString().slice(0, 10) ?? '',
       };
     });
@@ -368,14 +428,18 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
       return { summary: '최근 60일 내 수집된 데모 영상이 없습니다.', generatedAt: new Date().toISOString(), source: 'template' };
     }
 
+    const summaryInput = this.sanitizeSummaryVideos(videos);
     const generated = await this.generateStructured(
-      `다음은 최근 60일간 휴머노이드 로봇 경쟁사들이 유튜브에 공개한 데모 영상 데이터다. LG 로봇 전략팀 엔지니어를 위해 시연 트렌드를 한국어로 요약하라. 포인트는 오직 (1) 기술 역량의 변화(새로 가능해진 작업, 자율성·조작 수준의 진전)와 (2) 산업 적용(현장 투입, 실증, 상용 배치) 트렌드만 다뤄라. 조회수·인기·마케팅·엔터테인먼트 관련 내용은 절대 포함하지 말라. 과장 없이 데이터에 근거해서만.
+      composeSystemPrompt(
+        `최근 60일간 휴머노이드 로봇 경쟁사들이 유튜브에 공개한 데모 영상 데이터(데이터 블록의 videos 배열)를 받는다. LG 로봇 전략팀 엔지니어를 위해 시연 트렌드를 한국어로 요약하라. 포인트는 오직 (1) 기술 역량의 변화(새로 가능해진 작업, 자율성·조작 수준의 진전)와 (2) 산업 적용(현장 투입, 실증, 상용 배치) 트렌드만 다뤄라. 조회수·인기·마케팅·엔터테인먼트 관련 내용은 절대 포함하지 말라. 과장 없이 데이터에 근거해서만.
 
-${JSON.stringify(videos)}
-
+${JSON_ONLY_NOTICE} ${NO_URL_NOTICE}
 JSON으로만 응답하라. 다른 텍스트 없이:
 {"headline":"한 문장 총평","points":[{"title":"2~6단어 소제목","body":"1~2문장 설명"}]}
 points는 4~6개. 마크다운 기호(#, **) 사용 금지.`
+      ),
+      'video_trend_summary',
+      { videos: summaryInput }
     );
 
     const entry = generated ?? { text: this.templateSummary(videos) };
@@ -569,21 +633,31 @@ points는 4~6개. 마크다운 기호(#, **) 사용 금지.`
       };
     }
 
+    const techVideos = this.sanitizeSummaryVideos(videos);
+    const paperGuard: SanitizeResult[] = papers.slice(0, 40).map((p) => sanitizeExternalText(p, { maxChars: LLM_INPUT_LIMITS.title }));
+    recordInputGuard(SUMMARY_POINT, paperGuard);
     const generated = await this.generateStructured(
-      `다음은 최근 60일간 수집된 ${DOMAIN_LABEL[domain]} 분야의 영상과 ${secondLabel} 데이터다. LG 로봇 전략팀을 위해 현재 트렌드를 한국어로 요약하라. ${
-        domain === 'production'
-          ? '경쟁사 로봇 제품의 양산 현황 중심으로: 어느 회사가 생산라인을 구축/가동 중인지, 생산능력·램프업 목표, 출하/납품량, 가격 동향. 로봇이 남의 공장에 투입되는 것(도입 사례)은 양산이 아니므로 제외하라.'
-          : domain === 'expo'
-            ? '어떤 전시회/학회에서 어느 회사가 무엇을 시연했는지 중심으로.'
-            : '어떤 업체/랩이 활발한지, 기술적으로 어떤 방향이 부상하는지 중심으로.'
-      } 포인트는 기술 역량 변화와 산업 적용 트렌드만 다루고, 조회수·인기·마케팅 관련 내용은 절대 포함하지 말라. 과장 없이 데이터에 근거해서만.
+      composeSystemPrompt(
+        `최근 60일간 수집된 ${DOMAIN_LABEL[domain]} 분야의 영상(데이터 블록의 videos)과 ${secondLabel} 제목(데이터 블록의 titles) 데이터를 받는다. LG 로봇 전략팀을 위해 현재 트렌드를 한국어로 요약하라. ${
+          domain === 'production'
+            ? '경쟁사 로봇 제품의 양산 현황 중심으로: 어느 회사가 생산라인을 구축/가동 중인지, 생산능력·램프업 목표, 출하/납품량, 가격 동향. 로봇이 남의 공장에 투입되는 것(도입 사례)은 양산이 아니므로 제외하라.'
+            : domain === 'expo'
+              ? '어떤 전시회/학회에서 어느 회사가 무엇을 시연했는지 중심으로.'
+              : '어떤 업체/랩이 활발한지, 기술적으로 어떤 방향이 부상하는지 중심으로.'
+        } 포인트는 기술 역량 변화와 산업 적용 트렌드만 다루고, 조회수·인기·마케팅 관련 내용은 절대 포함하지 말라. 과장 없이 데이터에 근거해서만.
 
-영상 (${videos.length}건): ${JSON.stringify(videos)}
-${secondLabel} 제목 (${papers.length}건): ${JSON.stringify(papers.slice(0, 40))}
-
+${JSON_ONLY_NOTICE} ${NO_URL_NOTICE}
 JSON으로만 응답하라. 다른 텍스트 없이:
 {"headline":"한 문장 총평","points":[{"title":"2~6단어 소제목","body":"1~2문장 설명"}]}
 points는 4~6개. 마크다운 기호(#, **) 사용 금지.`
+      ),
+      'tech_trend_summary',
+      {
+        videoCount: videos.length,
+        videos: techVideos,
+        titleCount: papers.length,
+        titles: paperGuard.map((r) => r.text),
+      }
     );
 
     const entry = generated ?? { text: this.techTemplateSummary(DOMAIN_LABEL[domain]!, videos, papers.length) };

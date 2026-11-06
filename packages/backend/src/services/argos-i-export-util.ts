@@ -7,6 +7,7 @@
 
 import { createHash } from 'node:crypto';
 import { safeHttpsUrl } from './weekly-brief-compose.js';
+import { decodeHtmlEntities, stripCiteTags } from './llm-input-guard.js';
 
 export const EXPORT_TIMEZONE = 'Asia/Seoul';
 export const KST_OFFSET_MS = 9 * 3_600_000;
@@ -116,31 +117,8 @@ export function kstDateTimeOfIso(iso: string | null | undefined): string | null 
 // 텍스트 정제
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function decodeHtmlEntities(s: string): string {
-  return s
-    .replace(/&#(\d+);/g, (m, n) => {
-      const code = Number(n);
-      return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : m;
-    })
-    .replace(/&#x([0-9a-f]+);/gi, (m, n) => {
-      const code = parseInt(n, 16);
-      return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : m;
-    })
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&');
-}
-
-export function stripCiteTags(s: string): string {
-  return s
-    .replace(/<\/?cite\b[^>]*>?/g, '')
-    .replace(/<\/?c(?:i(?:t(?:e)?)?)?$/, '')
-    .replace(/[ \t]{2,}/g, ' ')
-    .trim();
-}
+// decodeHtmlEntities / stripCiteTags 는 llm-input-guard 로 단일화했다 (기존 import 경로 호환을 위해 재노출)
+export { decodeHtmlEntities, stripCiteTags };
 
 /** 문자(코드포인트) 단위로 자르고, 넘으면 말줄임 `…` 을 붙여 총 max 자로 맞춘다. */
 export function truncateChars(s: string, max: number): string {

@@ -15,9 +15,16 @@ import Anthropic from '@anthropic-ai/sdk';
 import { sql, eq, and, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { articles } from '../db/schema.js';
+import { LLM_INPUT_LIMITS, buildUserMessage, fitItemsToBudget, sanitizeExternalText, type SanitizeResult } from './llm-input-guard.js';
+import { applyRule, parseJsonStrict } from './llm-output-guard.js';
+import { composeSystemPrompt, JSON_ONLY_NOTICE, NO_URL_NOTICE } from './llm-guard-prompts.js';
+import { createRejectCollector, recordInputGuard, recordOutputReject } from './llm-guard-metrics.js';
 
 const PAPER_SUMMARY_MODEL = process.env.PAPER_SUMMARY_MODEL || 'claude-haiku-4-5-20251001';
 const BATCH_SIZE = 20;
+const POINT = 'paper_summary';
+/** 한 요청에 들어가는 데이터 블록 직렬화 길이 상한 */
+const PROMPT_BUDGET = 24_000;
 
 interface PendingPaper {
   id: string;
@@ -25,10 +32,13 @@ interface PendingPaper {
   abstract: string;
 }
 
-class PaperSummaryService {
+export class PaperSummaryService {
   private client: Anthropic | null = null;
-  constructor() {
-    if (process.env.ANTHROPIC_API_KEY) {
+  /** deps.client: 테스트용 선택 주입. 생략하면 현재 동작(환경 설정 기반 생성) */
+  constructor(deps: { client?: Anthropic | null } = {}) {
+    if (deps.client !== undefined) {
+      this.client = deps.client;
+    } else if (process.env.ANTHROPIC_API_KEY) {
       this.client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     }
   }
@@ -49,37 +59,58 @@ class PaperSummaryService {
     const result = new Map<string, string>();
     if (!this.client) return result;
 
-    const prompt = `다음은 로봇 분야 arXiv 논문 목록이다. 각 논문의 제목과 초록을 보고, 한국 로봇 엔지니어가 영어 초록을 읽지 않고도 내용을 빠르게 파악할 수 있도록 한국어 요약을 작성하라.
+    // 외부 텍스트(제목·초록)는 정제한 사본만 데이터 블록에 넣는다. DB 원본은 바꾸지 않는다
+    const guardResults: SanitizeResult[] = [];
+    const items = papers.map((p) => {
+      const title = sanitizeExternalText(p.title, { maxChars: LLM_INPUT_LIMITS.title });
+      const abstract = sanitizeExternalText(p.abstract, { maxChars: LLM_INPUT_LIMITS.abstract });
+      guardResults.push(title, abstract);
+      return { id: p.id, title: title.text, abstract: abstract.text };
+    });
+    recordInputGuard(POINT, guardResults);
+    const fitted = fitItemsToBudget(items, PROMPT_BUDGET);
+    const sentIds = new Set(fitted.items.map((p) => p.id));
+
+    const system = composeSystemPrompt(
+      `로봇 분야 arXiv 논문 목록(데이터 블록)을 받는다. 각 논문의 제목과 초록을 보고, 한국 로봇 엔지니어가 영어 초록을 읽지 않고도 내용을 빠르게 파악할 수 있도록 한국어 요약을 작성하라.
 
 규칙:
 - 오직 주어진 제목과 초록에 담긴 내용만 근거로 요약하라. 초록에 없는 내용(구체적 수치, 실험 결과, 저자 소속 등)을 추측하거나 지어내지 말라.
 - 서술형 1~2문장, 평서형으로 통일 (예: "~하는 방법을 제안한다", "~특징이 있다"). 150자 이내.
 - 어떤 기술 분야에 대한 것인지 + 핵심 접근/특징을 담아라. 마크다운 기호 사용 금지.
 
-논문 목록:
-${JSON.stringify(papers.map((p) => ({ id: p.id, title: p.title, abstract: p.abstract })))}
-
+${JSON_ONLY_NOTICE} ${NO_URL_NOTICE}
 JSON 배열로만 응답하라. 다른 텍스트 없이:
-[{"id":"...","ko":"..."}]`;
+[{"id":"...","ko":"..."}]`
+    );
 
     try {
       const response = await this.client.messages.create({
         model: PAPER_SUMMARY_MODEL,
         max_tokens: 3000,
-        messages: [{ role: 'user', content: prompt }],
+        system,
+        messages: [{ role: 'user', content: buildUserMessage('paper_summary', fitted.items) }],
       });
       const text = response.content
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')
         .map((b) => b.text)
         .join('');
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) return result;
-      const parsed = JSON.parse(jsonMatch[0]) as { id: string; ko?: string }[];
-      for (const item of parsed) {
-        if (item.id && typeof item.ko === 'string' && item.ko.trim()) {
-          result.set(item.id, item.ko.trim().slice(0, 200));
-        }
+      const parsed = parseJsonStrict(text, 'array') as Array<{ id?: unknown; ko?: unknown } | null> | null;
+      if (!parsed) {
+        recordOutputReject(POINT, 'schema');
+        return result;
       }
+      const collector = createRejectCollector(POINT);
+      for (const item of parsed) {
+        if (!item || typeof item !== 'object' || typeof item.id !== 'string' || !sentIds.has(item.id)) {
+          collector.onReject('schema', 'id');
+          continue;
+        }
+        // URL 제거, 지시문 에코/유출 폐기, 200자 상한. 폐기되면 저장하지 않아 다음 실행 때 재시도된다
+        const ko = applyRule(item.ko, { type: 'text', max: 200 }, { systemText: system, onReject: collector.onReject }, 'ko');
+        if (ko.ok) result.set(item.id, ko.value as string);
+      }
+      collector.flush();
     } catch (err) {
       console.error('[PaperSummary] LLM batch failed:', (err as Error).message);
     }

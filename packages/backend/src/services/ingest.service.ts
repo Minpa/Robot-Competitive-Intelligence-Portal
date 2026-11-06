@@ -4,6 +4,15 @@ import { z } from 'zod';
 import { db, articles, companies, humanoidRobots, competitiveAlerts } from '../db/index.js';
 import type { ExtractedMetadata } from '../db/schema.js';
 import { computeIngestContentHash, pickRobotIdByName, truncateToLimit, type RobotNameRef } from './ingest-hash.util.js';
+import {
+  INGEST_CONTENT_MAX,
+  INGEST_METADATA_MAX_BYTES,
+  INGEST_SUMMARY_MAX,
+  metadataByteSize,
+  stripReservedMetadataKeys,
+} from './ingest-guard.util.js';
+import { detectInjection } from './llm-input-guard.js';
+import { recordInputGuard } from './llm-guard-metrics.js';
 
 const MAX_TITLE_LENGTH = 500;
 const MAX_SOURCE_LENGTH = 255;
@@ -71,12 +80,22 @@ export interface IngestArticleError {
   error: string;
 }
 
-export interface IngestWarning {
+export interface IngestTruncationWarning {
   index: number;
   field: string;
   truncatedFrom: number;
   truncatedTo: number;
 }
+
+/** AI 산출물 예약 키를 제거했다는 경고 (저장은 진행) */
+export interface IngestReservedKeyWarning {
+  index: number;
+  field: string;
+  removed: true;
+  reason: 'reserved_key';
+}
+
+export type IngestWarning = IngestTruncationWarning | IngestReservedKeyWarning;
 
 export interface IngestResult {
   requestId: string;
@@ -153,6 +172,8 @@ export async function ingestArticles(payload: IngestPayload): Promise<IngestResu
   let skipped = 0;
   let companiesCreated = 0;
   let alertsInserted = 0;
+  // 지시문 패턴 탐지는 표식+지표만 한다 (저장은 거부하지 않는다). 배치 끝에 한 번 기록
+  const guardResults: Array<{ truncated: boolean; hits: Array<{ category: string }> }> = [];
 
   let robotsCache: RobotNameRef[] | null = null;
   const getRobots = async (): Promise<RobotNameRef[]> => {
@@ -175,8 +196,32 @@ export async function ingestArticles(payload: IngestPayload): Promise<IngestResu
 
       const item = parsed.data;
 
+      guardResults.push({
+        truncated: false,
+        hits: detectInjection(
+          [item.title, item.summary, item.content?.slice(0, INGEST_CONTENT_MAX), ...(item.alerts ?? []).flatMap((a) => [a.title, a.summary])]
+            .filter((v): v is string => typeof v === 'string')
+            .join('\n'),
+        ).hits,
+      });
+
       if (item.url.length > MAX_URL_LENGTH) {
         errors.push({ index, title: item.title, url: item.url, error: `url exceeds ${MAX_URL_LENGTH} characters` });
+        continue;
+      }
+
+      // AI 산출물 예약 키는 제거하고 warnings 에 남긴다 (나머지 메타데이터와 기사 저장은 진행)
+      const stripped = stripReservedMetadataKeys(item.extractedMetadata);
+      for (const key of stripped.removedKeys) {
+        warnings.push({ index, field: `extractedMetadata.${key}`, removed: true, reason: 'reserved_key' });
+      }
+      if (metadataByteSize(stripped.metadata) > INGEST_METADATA_MAX_BYTES) {
+        errors.push({
+          index,
+          title: item.title,
+          url: item.url,
+          error: `extractedMetadata exceeds ${INGEST_METADATA_MAX_BYTES} bytes when serialized`,
+        });
         continue;
       }
 
@@ -195,6 +240,16 @@ export async function ingestArticles(payload: IngestPayload): Promise<IngestResu
         warnings.push({ index, field: 'source', truncatedFrom: sourceResult.from, truncatedTo: MAX_SOURCE_LENGTH });
       }
 
+      const summaryResult = truncateToLimit(item.summary, INGEST_SUMMARY_MAX);
+      if (summaryResult.truncated) {
+        warnings.push({ index, field: 'summary', truncatedFrom: summaryResult.from, truncatedTo: INGEST_SUMMARY_MAX });
+      }
+
+      const contentResult = item.content === undefined ? undefined : truncateToLimit(item.content, INGEST_CONTENT_MAX);
+      if (contentResult?.truncated) {
+        warnings.push({ index, field: 'content', truncatedFrom: contentResult.from, truncatedTo: INGEST_CONTENT_MAX });
+      }
+
       const contentHash = computeIngestContentHash(item.url, item.publishedAt);
 
       const [insertedRow] = await db
@@ -205,13 +260,13 @@ export async function ingestArticles(payload: IngestPayload): Promise<IngestResu
           source: sourceResult.value,
           url: item.url,
           publishedAt: new Date(item.publishedAt),
-          summary: item.summary,
-          content: item.content,
+          summary: summaryResult.value,
+          content: contentResult?.value,
           language: item.language,
           category: item.category,
           productType: item.productType,
           contentHash,
-          extractedMetadata: item.extractedMetadata as ExtractedMetadata | undefined,
+          extractedMetadata: stripped.metadata as ExtractedMetadata | undefined,
         })
         .onConflictDoNothing({ target: articles.contentHash })
         .returning({ id: articles.id });
@@ -263,6 +318,8 @@ export async function ingestArticles(payload: IngestPayload): Promise<IngestResu
       errors.push({ index, title, url, error: (error as Error).message });
     }
   }
+
+  recordInputGuard('ingest', guardResults);
 
   return { requestId, inserted, skipped, companiesCreated, alertsInserted, errors, warnings };
 }

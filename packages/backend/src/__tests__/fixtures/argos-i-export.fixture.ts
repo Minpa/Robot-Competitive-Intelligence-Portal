@@ -220,7 +220,7 @@ export function rawByArea(): Record<string, any> {
         { viewName: 'tech-trend-report:v2:hand:7', cachedAt: '2026-10-28T20:40:00.000Z', data: { headline: 'Hand 7d', points: ['p1'], keywords: [], model: 'insight-model-x', generatedAt: '2026-10-28T20:40:00.000Z' } },
         { viewName: 'tech-trend-timeline:v1:hand', cachedAt: '2026-10-28T20:00:00.000Z', data: { domain: 'hand', generatedAt: '2026-10-28T20:00:00.000Z', period: { start: '2026-01', end: '2026-10' }, topics: [{ id: 't', label: 'Tactile' }], buckets: [{ month: '2026-10', partial: true }], heatmap: { rows: [] }, classification: { classified: 3 }, scope: { videos: 3, papers: 2 } } },
         { viewName: 'video-trend-summary:v6:hand', cachedAt: '2026-10-28T20:00:00.000Z', data: { text: 'summary text', headline: 'Headline', points: [{ title: 'T', body: 'B' }] } },
-        { viewName: 'video-trend-summary:v5', cachedAt: '2026-10-28T20:00:00.000Z', data: { text: 'rule summary' } },
+        { viewName: 'video-trend-summary:v6', cachedAt: '2026-10-28T20:00:00.000Z', data: { text: 'rule summary' } },
       ],
       videos: rawVideos(), papers: rawPapers(), news: rawNews(),
     },

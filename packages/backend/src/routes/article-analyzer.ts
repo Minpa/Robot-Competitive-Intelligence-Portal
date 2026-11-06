@@ -1,10 +1,15 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { articleAnalyzerService, type AIModel } from '../services/index.js';
-import { authService } from '../services/auth.service.js';
+import { authMiddleware, requireRole } from './auth.js';
+
+/** 로그인 사용자 (조회, LLM 미리보기) */
+const loggedIn = [authMiddleware];
+/** 관리자 (저장·수정·삭제) */
+const adminOnly = [authMiddleware, requireRole('admin')];
 
 export async function articleAnalyzerRoutes(fastify: FastifyInstance) {
   // Analyze article (preview before saving)
-  fastify.post('/analyze', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post('/analyze', { preHandler: loggedIn }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { content, language, model } = request.body as { 
         content: string; 
@@ -44,17 +49,10 @@ export async function articleAnalyzerRoutes(fastify: FastifyInstance) {
   });
 
   // Submit article (save to database)
-  fastify.post('/submit', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post('/submit', { preHandler: adminOnly }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      // Get user from token
-      const authHeader = request.headers.authorization;
-      let submittedBy: string | undefined;
-      
-      if (authHeader?.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
-        const payload = authService.verifyToken(token);
-        submittedBy = payload?.userId;
-      }
+      // authMiddleware 가 검증한 사용자
+      const submittedBy: string | undefined = request.user?.userId;
 
       const result = await articleAnalyzerService.submitArticle(request.body as any, submittedBy);
       
@@ -70,7 +68,7 @@ export async function articleAnalyzerRoutes(fastify: FastifyInstance) {
   });
 
   // List articles
-  fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/', { preHandler: loggedIn }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const query = request.query as Record<string, string>;
       const filters = {
@@ -95,7 +93,7 @@ export async function articleAnalyzerRoutes(fastify: FastifyInstance) {
   });
 
   // Get articles by robot
-  fastify.get('/robot/:robotId', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/robot/:robotId', { preHandler: loggedIn }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { robotId } = request.params as { robotId: string };
       const query = request.query as Record<string, string>;
@@ -109,7 +107,7 @@ export async function articleAnalyzerRoutes(fastify: FastifyInstance) {
   });
 
   // Get articles by company
-  fastify.get('/company/:companyId', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/company/:companyId', { preHandler: loggedIn }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { companyId } = request.params as { companyId: string };
       const query = request.query as Record<string, string>;
@@ -123,7 +121,7 @@ export async function articleAnalyzerRoutes(fastify: FastifyInstance) {
   });
 
   // Get article by ID
-  fastify.get('/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/:id', { preHandler: loggedIn }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
       const article = await articleAnalyzerService.getArticle(id);
@@ -138,7 +136,7 @@ export async function articleAnalyzerRoutes(fastify: FastifyInstance) {
   });
 
   // Update article
-  fastify.put('/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.put('/:id', { preHandler: adminOnly }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
       const article = await articleAnalyzerService.updateArticle(id, request.body as any);
@@ -153,7 +151,7 @@ export async function articleAnalyzerRoutes(fastify: FastifyInstance) {
   });
 
   // Delete article
-  fastify.delete('/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.delete('/:id', { preHandler: adminOnly }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
       await articleAnalyzerService.deleteArticle(id);

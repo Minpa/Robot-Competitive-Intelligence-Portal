@@ -529,7 +529,7 @@ function buildTechTrends(raw: TechTrendsRaw, ctx: { asOf: string }): AreaContent
       trendSummary: summaryOf(cacheBy.get(`video-trend-summary:v6:${d}`), ctx.asOf),
     };
   });
-  const overall = summaryOf(cacheBy.get('video-trend-summary:v5'), ctx.asOf);
+  const overall = summaryOf(cacheBy.get('video-trend-summary:v6'), ctx.asOf);
 
   const section: MdSection = {
     heading: '기술 축별 현황',
@@ -574,7 +574,7 @@ export const TECH_TRENDS_AREA: AreaDef<TechTrendsRaw> = {
   priority: 'P0',
   areaSchemaVersion: 1,
   sourceTables: ['view_cache', 'articles'],
-  derivedFrom: ['tech-trend-report:*', 'tech-trend-timeline:v1:*', 'tech-trend-timeline-insight:v2:*', 'video-trend-summary:v5', 'video-trend-summary:v6:*'],
+  derivedFrom: ['tech-trend-report:*', 'tech-trend-timeline:v1:*', 'tech-trend-timeline-insight:v2:*', 'video-trend-summary:v6', 'video-trend-summary:v6:*'],
   units: { days: '일', videoCount: '건', secondCount: '건', channelCount: '곳', generatedAt: 'ISO 8601 UTC', cachedAt: 'ISO 8601 UTC' },
   build: buildTechTrends,
 };

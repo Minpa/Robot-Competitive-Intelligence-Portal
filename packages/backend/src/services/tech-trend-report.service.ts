@@ -21,6 +21,7 @@ import { sql, and, eq, like } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { articles, viewCache } from '../db/schema.js';
 import { aiUsageService } from './ai-usage.service.js';
+import { stripCiteTags } from './llm-input-guard.js';
 import { decodeHtmlEntities } from './event-video-brief.service.js';
 import {
   OPUS_REQUEST_OPTIONS,
@@ -317,14 +318,8 @@ export interface InsightPromptBuild {
 // 순수 함수
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** event-company-report.service.ts와 동일 로직, 순환 의존 방지 복제 */
-export function stripCiteTags(s: string): string {
-  return s
-    .replace(/<\/?cite\b[^>]*>?/g, '') // 완전한 태그 + 끝에서 '>' 없이 잘린 태그
-    .replace(/<\/?c(?:i(?:t(?:e)?)?)?$/, '') // 캡 절단으로 남은 짧은 조각 (예: "</ci")
-    .replace(/[ \t]{2,}/g, ' ')
-    .trim();
-}
+// stripCiteTags 는 llm-input-guard 로 단일화했다 (기존 import 경로 호환을 위해 재노출)
+export { stripCiteTags };
 
 function toIso(v: Date | string | null | undefined): string | null {
   if (!v) return null;

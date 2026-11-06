@@ -19,6 +19,13 @@ import { db } from '../db/index.js';
 import { articles, viewCache } from '../db/schema.js';
 import { aiUsageService } from './ai-usage.service.js';
 import { getEventConfig, decodeHtmlEntities, parseTechInsight, type EventConfig } from './event-video-brief.service.js';
+import { LLM_INPUT_LIMITS, buildUserMessage, sanitizeExternalText, type SanitizeResult } from './llm-input-guard.js';
+import { sanitizeOutputText, isStrictYoutubeWatchUrl } from './llm-output-guard.js';
+import { composeSystemPrompt } from './llm-guard-prompts.js';
+import { recordInputGuard, recordOutputReject } from './llm-guard-metrics.js';
+
+const DEMO_POINT = 'ces_demo';
+const CES_INSIGHT_POINT = 'ces_insight';
 
 const MODEL = process.env.GEMINI_VIDEO_MODEL || 'gemini-flash-latest';
 const MAX_ATTEMPTS = Math.max(1, parseInt(process.env.GEMINI_VIDEO_MAX_ATTEMPTS || '2', 10));
@@ -114,7 +121,16 @@ export function parseCesDemo(text: string, model: string): CesDemoAnalysis | nul
   const funFactor = clampScore(parsed.funFactor);
   if (difficulty === null || publicFriendly === null || funFactor === null) return null;
 
-  const demoIdea = typeof parsed.demoIdea === 'string' ? parsed.demoIdea.trim().slice(0, 160) : '';
+  // 영상 해석 결과(자유 문자열)도 저장 전에 정제한다: URL 제거, 지시문 에코/유출 폐기, 160자 상한
+  let demoIdea = '';
+  if (typeof parsed.demoIdea === 'string' && parsed.demoIdea.trim()) {
+    const r = sanitizeOutputText(parsed.demoIdea, { maxChars: 160 });
+    if (r.text === null) recordOutputReject(DEMO_POINT, r.reason ?? 'schema');
+    else {
+      demoIdea = r.text;
+      if (r.flags.includes('url_removed') || r.flags.includes('link_removed')) recordOutputReject(DEMO_POINT, 'url');
+    }
+  }
 
   return {
     teleop: coerceBool(parsed.teleop),
@@ -146,8 +162,7 @@ function capStrings(raw: unknown, maxItems: number, maxLen: number): string[] {
     .slice(0, maxItems);
 }
 
-function buildCesDemoPrompt(): string {
-  return `이 영상은 로봇 전시회 시연 영상이다. 이 영상 속 시연을 우리 회사의 CES 전시 부스에서 재현한다고 가정하고, 부스 시연 적합성 관점에서 아래 JSON 스키마로만 응답하라.
+const CES_DEMO_INSTRUCTIONS = `이 영상은 로봇 전시회 시연 영상이다. 이 영상 속 시연을 우리 회사의 CES 전시 부스에서 재현한다고 가정하고, 부스 시연 적합성 관점에서 아래 JSON 스키마로만 응답하라.
 영상에서 실제로 보이거나 들리는 것에만 근거하고 추측·과장은 금지한다.
 
 스키마:
@@ -160,24 +175,16 @@ function buildCesDemoPrompt(): string {
   "demoIdea": "이 영상을 CES 부스 시연으로 각색한다면 어떤 형태가 좋을지 한 문장 제안 (160자 이내 한국어)"
 }
 teleop·audience·difficulty·publicFriendly·funFactor 다섯 값은 영상 내용에 근거해 최선의 판단으로 반드시 채운다. demoIdea에 적절한 제안이 없으면 빈 문자열로 응답하라. JSON 객체만 응답하고 다른 텍스트는 포함하지 말라.`;
+
+/** Gemini 시스템 지시 (영상 속 음성·자막·화면 텍스트는 데이터라는 공통 문구 포함) */
+function buildCesDemoSystem(): string {
+  return composeSystemPrompt(CES_DEMO_INSTRUCTIONS, { video: true });
 }
 
-function buildCesInsightPrompt(event: EventConfig, videos: CesDemoVideo[]): string {
-  const summary = videos.slice(0, 30).map((v) => ({
-    title: v.title,
-    teleop: v.cesDemo.teleop,
-    audience: v.cesDemo.audience,
-    difficulty: v.cesDemo.difficulty,
-    publicFriendly: v.cesDemo.publicFriendly,
-    funFactor: v.cesDemo.funFactor,
-    demoIdea: v.cesDemo.demoIdea,
-  }));
-  return `다음은 '${event.label}' 전시 영상 중 CES 부스 시연 관점으로 분석한 ${videos.length}건의 결과다. 다음 세 가지를 종합해 인사이트를 작성하라.
+const CES_INSIGHT_INSTRUCTIONS = `사용자 메시지의 데이터 블록은 전시 영상(event 필드) 중 CES 부스 시연 관점으로 분석한 결과(analyses 배열)다. 다음 세 가지를 종합해 인사이트를 작성하라.
 ① 텔레오퍼레이션(원격 조종) 방식 시연이 어떻게 구성되어 있는지.
 ② 관람객이 참여할 수 있는 체험형 시연 포맷은 어떤 형태인지.
 ③ 이 시연들을 CES 부스에서 재현할 때 난이도·운영 리스크 측면에서 유의할 점.
-
-분석 데이터: ${JSON.stringify(summary)}
 
 작성 규칙:
 - 공개 정보의 파생 요약만 작성한다. 원문 장문 복사 금지.
@@ -187,6 +194,29 @@ function buildCesInsightPrompt(event: EventConfig, videos: CesDemoVideo[]): stri
 
 응답 JSON 스키마:
 {"points": ["인사이트 문장, 최대 3개, 각 220자 이내, 한국어"], "sources": []}`;
+
+function buildCesInsightPrompt(event: EventConfig, videos: CesDemoVideo[]): { system: string; user: string } {
+  // 제목은 외부 텍스트, demoIdea 는 영상 해석(LLM 산출물)이므로 둘 다 정제한 사본을 보낸다
+  const guard: SanitizeResult[] = [];
+  const clean = (v: string, max: number) => {
+    const r = sanitizeExternalText(v, { maxChars: max });
+    guard.push(r);
+    return r.text;
+  };
+  const summary = videos.slice(0, 30).map((v) => ({
+    title: clean(v.title, LLM_INPUT_LIMITS.title),
+    teleop: v.cesDemo.teleop,
+    audience: v.cesDemo.audience,
+    difficulty: v.cesDemo.difficulty,
+    publicFriendly: v.cesDemo.publicFriendly,
+    funFactor: v.cesDemo.funFactor,
+    demoIdea: clean(v.cesDemo.demoIdea, 200),
+  }));
+  recordInputGuard(CES_INSIGHT_POINT, guard);
+  return {
+    system: composeSystemPrompt(CES_INSIGHT_INSTRUCTIONS),
+    user: buildUserMessage('ces_insight', { event: event.label, analysisCount: videos.length, analyses: summary }),
+  };
 }
 
 interface PendingCesDemoVideo {
@@ -195,17 +225,22 @@ interface PendingCesDemoVideo {
   url: string;
 }
 
-class EventCesDemoService {
+export class EventCesDemoService {
   private client: GoogleGenAI | null = null;
   private anthropicClient: Anthropic | null = null;
   /** 이벤트별 CES 데모 배치 in-flight 가드 (버튼 연타 시 동일 영상 중복 분석 방지) */
   private runningCesDemoBatches = new Set<string>();
 
-  constructor() {
-    if (process.env.GEMINI_API_KEY) {
+  /** deps: 테스트용 선택 주입. 생략하면 현재 동작(환경 설정 기반 생성) */
+  constructor(deps: { client?: GoogleGenAI | null; anthropicClient?: Anthropic | null } = {}) {
+    if (deps.client !== undefined) {
+      this.client = deps.client;
+    } else if (process.env.GEMINI_API_KEY) {
       this.client = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     }
-    if (process.env.ANTHROPIC_API_KEY) {
+    if (deps.anthropicClient !== undefined) {
+      this.anthropicClient = deps.anthropicClient;
+    } else if (process.env.ANTHROPIC_API_KEY) {
       this.anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     }
   }
@@ -241,7 +276,7 @@ class EventCesDemoService {
 
     const candidates: PendingCesDemoVideo[] = [];
     for (const r of rows) {
-      if (!YOUTUBE_WATCH_URL_RE.test(r.url)) continue;
+      if (!YOUTUBE_WATCH_URL_RE.test(r.url) || !isStrictYoutubeWatchUrl(r.url)) continue;
       // listEventVideos와 동일한 방식으로 extracted_metadata에서 taskTypes/brief 필드를 매핑해 후보 판정에 사용
       const meta = (r.meta ?? {}) as Record<string, any>;
       const rawBrief = meta[briefKey];
@@ -272,10 +307,10 @@ class EventCesDemoService {
         contents: [
           {
             role: 'user',
-            parts: [{ fileData: { fileUri: video.url, mimeType: 'video/*' } }, { text: buildCesDemoPrompt() }],
+            parts: [{ fileData: { fileUri: video.url, mimeType: 'video/*' } }, { text: buildUserMessage('ces_demo', {}) }],
           },
         ],
-        config: { responseMimeType: 'application/json' },
+        config: { responseMimeType: 'application/json', systemInstruction: buildCesDemoSystem() },
       });
       const usage = response.usageMetadata;
       aiUsageService
@@ -447,10 +482,12 @@ class EventCesDemoService {
       const videos = await this.listAnalyzedCesDemo(event);
       if (videos.length === 0) return null;
 
+      const insightPrompt = buildCesInsightPrompt(event, videos);
       const response = await this.anthropicClient.messages.create({
         model: HAIKU_MODEL,
         max_tokens: 1200,
-        messages: [{ role: 'user', content: buildCesInsightPrompt(event, videos) }],
+        system: insightPrompt.system,
+        messages: [{ role: 'user', content: insightPrompt.user }],
       });
       const text = response.content
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')

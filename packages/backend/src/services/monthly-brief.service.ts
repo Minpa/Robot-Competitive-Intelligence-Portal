@@ -6,8 +6,48 @@
  */
 
 import OpenAI from 'openai';
+import { sanitizeDeepStrings, buildUserMessage, LLM_INPUT_LIMITS, type SanitizeResult } from './llm-input-guard.js';
+import { sanitizeOutputText } from './llm-output-guard.js';
+import { composeSystemPrompt, NO_URL_NOTICE } from './llm-guard-prompts.js';
+import { recordInputGuard, recordOutputReject } from './llm-guard-metrics.js';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const POINT = 'monthly_brief';
+/** 집계 JSON 직렬화 길이 상한 (기존과 동일 3000자) */
+const DATA_BUDGET = 3000;
+const BRIEF_MAX_CHARS = 8000;
+
+const BRIEF_SYSTEM = `You are a robotics industry analyst. Generate a monthly brief in Korean Markdown format.
+Include sections: 요약, 주요 동향, 세그먼트 분석, 부품 트렌드, 키워드 동향, 시사점.
+Be concise and data-driven.
+Allowed Markdown: "# ", "## ", "- " lists and **bold** only. ${NO_URL_NOTICE}`;
+
+/** 집계 JSON 의 문자열을 정제하고, 직렬화 길이가 예산을 넘으면 가장 긴 배열부터 줄인다 */
+function buildBriefInput(data: Record<string, unknown>): Record<string, unknown> {
+  const results: SanitizeResult[] = [];
+  const clean = sanitizeDeepStrings(data, LLM_INPUT_LIMITS.name, results) as Record<string, unknown>;
+  recordInputGuard(POINT, results);
+  for (let guard = 0; guard < 500 && JSON.stringify(clean).length > DATA_BUDGET; guard++) {
+    let longestKey: string | null = null;
+    let longest = 0;
+    for (const [k, v] of Object.entries(clean)) {
+      if (Array.isArray(v) && v.length > longest) {
+        longest = v.length;
+        longestKey = k;
+      }
+    }
+    if (!longestKey || longest === 0) break;
+    (clean[longestKey] as unknown[]).pop();
+  }
+  return clean;
+}
+
+/** 저장·표시 전 정제: HTML/URL/마크다운 링크 제거, 허용 서식만 유지. 폐기되면 null */
+function guardBriefMarkdown(markdown: string, systemText?: string): string | null {
+  const r = sanitizeOutputText(markdown, { maxChars: BRIEF_MAX_CHARS, keepNewlines: true, allowMarkdown: true, systemText });
+  if (r.text === null) recordOutputReject(POINT, r.reason ?? 'schema');
+  else if (r.flags.includes('url_removed') || r.flags.includes('link_removed') || r.flags.includes('html')) recordOutputReject(POINT, r.flags.includes('html') ? 'schema' : 'url');
+  return r.text;
+}
 
 export interface MonthlyBriefResult {
   markdown: string;
@@ -17,6 +57,17 @@ export interface MonthlyBriefResult {
 }
 
 export class MonthlyBriefGenerator {
+  private client: OpenAI | null;
+  /** 테스트용 client 선택 주입. 기본값은 모듈 최상위가 아닌 첫 사용 시 환경 설정으로 생성 (현재 동작과 동일) */
+  constructor(client?: OpenAI) {
+    this.client = client ?? null;
+  }
+
+  private getClient(): OpenAI {
+    if (!this.client) this.client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    return this.client;
+  }
+
   async generate(aggregationJson: Record<string, unknown>): Promise<MonthlyBriefResult> {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -24,7 +75,7 @@ export class MonthlyBriefGenerator {
 
     let markdown: string;
 
-    if (process.env.OPENAI_API_KEY) {
+    if (process.env.OPENAI_API_KEY || this.client) {
       try {
         markdown = await this.generateMarkdown(aggregationJson);
       } catch (error) {
@@ -47,22 +98,21 @@ export class MonthlyBriefGenerator {
   }
 
   private async generateMarkdown(data: Record<string, unknown>): Promise<string> {
-    const response = await openai.chat.completions.create({
+    const system = composeSystemPrompt(BRIEF_SYSTEM, { lang: 'en' });
+    const response = await this.getClient().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        {
-          role: 'system',
-          content: `You are a robotics industry analyst. Generate a monthly brief in Korean Markdown format.
-Include sections: 요약, 주요 동향, 세그먼트 분석, 부품 트렌드, 키워드 동향, 시사점.
-Be concise and data-driven.`,
-        },
-        { role: 'user', content: `Generate monthly brief from:\n${JSON.stringify(data).substring(0, 3000)}` },
+        { role: 'system', content: system },
+        { role: 'user', content: buildUserMessage('monthly_brief', buildBriefInput(data)) },
       ],
       max_tokens: 2000,
       temperature: 0.4,
     });
 
-    return response.choices[0]?.message?.content || this.generateFallbackMarkdown(data);
+    const raw = response.choices[0]?.message?.content;
+    const guarded = raw ? guardBriefMarkdown(raw, system) : null;
+    // 불량이면 규칙 기반 템플릿으로 대체 (모델 원문을 그대로 쓰지 않는다)
+    return guarded ?? this.generateFallbackMarkdown(data);
   }
 
   private async generatePptx(markdown: string, _data: Record<string, unknown>): Promise<Buffer> {
@@ -112,6 +162,12 @@ Be concise and data-driven.`,
   }
 
   generateFallbackMarkdown(data: Record<string, unknown>): string {
+    // 키워드/부품명 등 DB 문자열이 들어가므로 템플릿 결과도 같은 출력 정제를 거친다
+    const md = this.buildFallbackMarkdown(data);
+    return sanitizeOutputText(md, { maxChars: BRIEF_MAX_CHARS, keepNewlines: true, allowMarkdown: true, rejectOnLeak: false }).text ?? '';
+  }
+
+  private buildFallbackMarkdown(data: Record<string, unknown>): string {
     const now = new Date();
     const segments = (data.segments || []) as any[];
     const yearly = (data.yearly || []) as any[];

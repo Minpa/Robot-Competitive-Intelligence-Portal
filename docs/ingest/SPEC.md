@@ -58,7 +58,7 @@ X-Ingest-Key: <INGEST_API_KEY>
       "companyName": "Figure AI",              // 필수. 대소문자 무시하고 기존 회사와 매칭
       "companyCountry": "USA",                 // 신규 회사 생성 시 사용, 생략 시 'Unknown'
       "companyCategory": "robotics",           // 신규 회사 생성 시 사용, 생략 시 'robotics'
-      "extractedMetadata": {                   // 임의 JSON (jsonb 그대로 저장)
+      "extractedMetadata": {                   // 임의 JSON (jsonb로 저장, 직렬화 16KB 이하, AI 산출물 예약 키는 제거됨)
         "confidence": "A",
         "mentionedRobots": ["Figure 03"],
         "keyPoints": ["5-finger hand", "..."],
@@ -89,6 +89,23 @@ X-Ingest-Key: <INGEST_API_KEY>
   실패한 기사는 `errors[]`에 `{ index, title?, url?, error }` 형태로 기록된다.
 - `title`(500자)/`source`(255자)가 넘으면 **자동으로 잘라서 저장**하고 `warnings[]`에
   `{ index, field, truncatedFrom, truncatedTo }`를 남긴다.
+- `summary`(2000자)/`content`(20000자)가 넘으면 같은 방식으로 **자동으로 잘라서 저장**하고
+  `warnings[]`에 `{ index, field, truncatedFrom, truncatedTo }`를 남긴다.
+- `extractedMetadata`는 JSON 직렬화 크기가 **16KB(16384바이트)** 를 넘으면 **해당 기사는 저장하지
+  않고** `errors[]`에만 기록한다(잘라서 저장하면 구조가 깨지므로 truncate하지 않음).
+- `extractedMetadata`의 **AI 산출물 예약 키**는 최상위에서 **제거하고 저장은 진행**한다. 제거할
+  때마다 `warnings[]`에 `{ index, field: "extractedMetadata.<키>", removed: true, reason: "reserved_key" }`
+  를 남긴다. 예약 키는 서버의 AI 배치(태깅·요약·영상 분석·토픽 분류·이벤트 브리프 등)만 쓰며,
+  외부에서 심으면 배치를 우회하고 하류(주간 브리프, ARGOS_I 번들)에서 그대로 신뢰되기 때문이다.
+  - 정확히 일치: `aiTags`, `aiSummaryKo`, `aiSummaryKoGeneratedAt`, `geminiAnalysis`,
+    `geminiAnalyzedAt`, `geminiAnalysisAttempts`, `handTopics`, `handTopicsAttempts`,
+    `domainTopics`, `domainTopicsAttempts`, `appCaseChecked`, `titleKo`, `eventBrief`, `cesDemo`,
+    `domainFocus`
+  - 접두사: `eventBrief_*`, `eventBriefAttempts_*`, `cesDemo_*`, `cesDemoAttempts_*`
+  - 한국어 요약 등은 `summaryKo` 같은 다른 키로 넣으면 그대로 저장된다.
+- 제목·요약·본문·알림 제목에 "이전 지시를 무시하라" 류의 문구가 있어도 **저장은 거부하지 않는다**.
+  서버가 탐지 건수만 지표(`ops/status`의 `llmGuard`)로 기록하며, 저장된 텍스트는 이후 AI 배치에 보낼
+  때마다 정제된 사본이 외부 자료(데이터)로만 전달된다.
 - `url`이 1000자를 초과하면 **해당 기사는 저장하지 않고** `errors[]`에만 기록한다(깨진 링크
   방지 목적, truncate하지 않음).
 - `companyName`으로 기존 회사를 대소문자 무시하고 찾는다(`lower(name) = lower(companyName)`).
@@ -132,7 +149,8 @@ content_hash = sha256( normalizeUrl(url) + '|' + dateOnlyUtc(publishedAt) )   //
     { "index": 4, "title": "...", "url": "...", "error": "url exceeds 1000 characters" }
   ],
   "warnings": [
-    { "index": 0, "field": "title", "truncatedFrom": 512, "truncatedTo": 500 }
+    { "index": 0, "field": "title", "truncatedFrom": 512, "truncatedTo": 500 },
+    { "index": 0, "field": "extractedMetadata.aiTags", "removed": true, "reason": "reserved_key" }
   ]
 }
 ```

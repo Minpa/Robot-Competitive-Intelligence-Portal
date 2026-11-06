@@ -1071,7 +1071,7 @@ argos-i/2026-10-29/
 
 - 파일: `tech-trends.md`, `tech-trends.json`
 - `areaSchemaVersion`: 1
-- 출처 테이블: `view_cache`, `articles` / 파생: tech-trend-report:*, tech-trend-timeline:v1:*, tech-trend-timeline-insight:v2:*, video-trend-summary:v5, video-trend-summary:v6:*
+- 출처 테이블: `view_cache`, `articles` / 파생: tech-trend-report:*, tech-trend-timeline:v1:*, tech-trend-timeline-insight:v2:*, video-trend-summary:v6, video-trend-summary:v6:*
 - 정렬: 고정 순서 hand, rfm, actuator, expo, production
 - `recordCount` 기준: **기술 축별 현황** (MD 의 첫 번째 표) 의 행 수
 - `status` 가 `unavailable` 인 객체(`insights`·`timeline`·`timelineInsight`·`trendSummary`·`overallVideoTrendSummary`)에는 `status` 외의 필드가 없다.

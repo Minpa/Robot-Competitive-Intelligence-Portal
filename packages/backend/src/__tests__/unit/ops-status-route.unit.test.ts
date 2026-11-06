@@ -82,7 +82,7 @@ describe('GET /api/admin/ops/status', () => {
     const res = await get('admin');
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(Object.keys(body)).toEqual(['generatedAt', 'config', 'dataMigrations', 'handBenchmarkMigrations', 'currentDataKey', 'pipeline', 'crawler', 'weeklyBrief', 'argosIExport']);
+    expect(Object.keys(body)).toEqual(['generatedAt', 'config', 'dataMigrations', 'handBenchmarkMigrations', 'currentDataKey', 'pipeline', 'crawler', 'weeklyBrief', 'argosIExport', 'llmGuard']);
     expect(body.config).toEqual({
       actuatorAutoApply: 'true', techTrendAutoDomains: ['actuator', 'hand'], pipelineOnStartup: true, pipelineCron: '30 5 * * *', schedulerEnabled: true,
     });
@@ -106,6 +106,18 @@ describe('GET /api/admin/ops/status', () => {
     expect(Object.keys(body.argosIExport)).toEqual(['cron', 'schedulerEnabled', 'startupCatchup', 'running', 'last', 'latestBundleDate']);
     expect(body.argosIExport).toMatchObject({ cron: '0 7 * * *', schedulerEnabled: true, startupCatchup: true, running: false, latestBundleDate: null });
     expect(body.argosIExport.last).toMatchObject({ date: '2026-10-29', outcome: 'created', status: 'ok', reason: 'cron', fileCount: 60 });
+    // LLM 프롬프트 인젝션 방어 지표 (메모리 카운터 스냅샷)
+    expect(Object.keys(body.llmGuard)).toEqual(['since', 'totals', 'points', 'recent']);
+    expect(Object.keys(body.llmGuard.totals)).toEqual(['inputsSanitized', 'injectionFlagged', 'truncated', 'outputRejected', 'fieldsDropped']);
+  });
+  it('llmGuard reflects recorded counters without any text', async () => {
+    const m = await import('../../services/llm-guard-metrics.js');
+    m.resetLlmGuardMetrics();
+    m.recordOutputReject('paper_summary', 'url', 2);
+    const body = (await get('admin')).json();
+    expect(body.llmGuard.points.paper_summary.outputRejected).toEqual({ url: 2 });
+    expect(JSON.stringify(body.llmGuard)).not.toMatch(/https?:/);
+    m.resetLlmGuardMetrics();
   });
   it('a failing source only breaks its own section; the response stays 200', async () => {
     h.listRecent.mockRejectedValue(new Error('table missing'));

@@ -18,7 +18,27 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { viewCache } from '../db/schema.js';
 import { aiUsageService } from './ai-usage.service.js';
-import { eventVideoBriefService, getEventConfig, type EventTrendPoint } from './event-video-brief.service.js';
+import { LLM_INPUT_LIMITS, buildUserMessage, sanitizeExternalText, stripCiteTags, type SanitizeResult } from './llm-input-guard.js';
+import { sanitizeOutputText } from './llm-output-guard.js';
+import { composeSystemPrompt } from './llm-guard-prompts.js';
+import { recordInputGuard, recordOutputReject } from './llm-guard-metrics.js';
+import { eventVideoBriefService, getEventConfig, sourceLabel, type EventTrendPoint } from './event-video-brief.service.js';
+
+const ENRICH_POINT = 'company_enrich';
+
+/** 출력 문자열 하나를 저장 전 정제한다 (URL 제거, 유출 폐기, 길이 상한). 폐기되면 null */
+function cleanEnrichText(raw: string, maxChars: number, record = true): string | null {
+  const r = sanitizeOutputText(stripCiteTags(raw), { maxChars });
+  // 저장 경로(parse)만 지표에 남긴다. 읽기 경로(sanitizeEnrichment)는 조회마다 집계가 부풀지 않도록 조용히 정제만 한다
+  if (record) {
+    if (r.text === null) {
+      if (r.reason !== 'empty') recordOutputReject(ENRICH_POINT, r.reason ?? 'schema');
+    } else if (r.flags.includes('url_removed') || r.flags.includes('link_removed')) {
+      recordOutputReject(ENRICH_POINT, 'url');
+    }
+  }
+  return r.text;
+}
 
 // ── PPT 상수 (event-video-ppt.service.ts에서 복제 — 원본 파일은 수정하지 않는다) ──
 const TASK_TYPE_ORDER = [
@@ -101,20 +121,31 @@ function trendPointText(p: string | EventTrendPoint): string {
 
 function capList(raw: unknown, maxItems: number, maxLen: number): string[] {
   if (!Array.isArray(raw)) return [];
-  return (raw as unknown[])
-    .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
-    .map((s) => s.trim().slice(0, maxLen))
-    .slice(0, maxItems);
+  const out: string[] = [];
+  for (const it of raw as unknown[]) {
+    if (typeof it !== 'string' || it.trim().length === 0) continue;
+    const t = cleanEnrichText(it, maxLen);
+    if (t) out.push(t);
+    if (out.length >= maxItems) break;
+  }
+  return out;
 }
 
-/** 웹 검색 응답 텍스트에 섞여 나오는 인용 마크업(<cite index="...">...</cite>)과 길이 캡으로 잘린 태그 조각 제거 */
-export function stripCiteTags(s: string): string {
-  return s
-    .replace(/<\/?cite\b[^>]*>?/g, '') // 완전한 태그 + 끝에서 '>' 없이 잘린 태그
-    .replace(/<\/?c(?:i(?:t(?:e)?)?)?$/, '') // 캡 절단으로 남은 짧은 조각 (예: "</ci")
-    .replace(/[ \t]{2,}/g, ' ')
-    .trim();
+/** 출처 목록: 링크는 도메인만 남기고 나머지는 같은 정제를 거친 짧은 라벨만 허용 */
+function capSources(raw: unknown, maxItems: number): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const it of raw as unknown[]) {
+    if (typeof it !== 'string' || it.trim().length === 0) continue;
+    const t = sourceLabel(it);
+    if (t) out.push(t);
+    if (out.length >= maxItems) break;
+  }
+  return out;
 }
+
+// stripCiteTags 는 llm-input-guard 로 단일화했다 (기존 import 경로 호환을 위해 재노출)
+export { stripCiteTags };
 
 function stripCiteList(raw: unknown): unknown {
   return Array.isArray(raw) ? raw.map((v) => (typeof v === 'string' ? stripCiteTags(v) : v)) : raw;
@@ -124,11 +155,11 @@ function stripCiteList(raw: unknown): unknown {
 export function sanitizeEnrichment(e: CompanyEnrichment): CompanyEnrichment {
   return {
     ...e,
-    topline: stripCiteTags(e.topline ?? '').slice(0, 120),
-    products: (e.products ?? []).map((s) => stripCiteTags(s).slice(0, 180)),
-    techInsights: (e.techInsights ?? []).map((s) => stripCiteTags(s).slice(0, 180)),
-    demoNotes: (e.demoNotes ?? []).map((s) => stripCiteTags(s).slice(0, 160)),
-    sources: (e.sources ?? []).map((s) => stripCiteTags(s).slice(0, 200)),
+    topline: cleanEnrichText(e.topline ?? '', 120, false) ?? '',
+    products: (e.products ?? []).map((s) => cleanEnrichText(s, 180, false) ?? ''),
+    techInsights: (e.techInsights ?? []).map((s) => cleanEnrichText(s, 180, false) ?? ''),
+    demoNotes: (e.demoNotes ?? []).map((s) => cleanEnrichText(s, 160, false) ?? ''),
+    sources: (e.sources ?? []).map((s) => sourceLabel(s) ?? ''),
   };
 }
 
@@ -369,7 +400,7 @@ export function parseCompanyEnrichment(text: string): CompanyEnrichment | null {
   }
   if (!parsed) return null;
 
-  const topline = typeof parsed.topline === 'string' ? stripCiteTags(parsed.topline).slice(0, 120) : '';
+  const topline = typeof parsed.topline === 'string' ? (cleanEnrichText(parsed.topline, 120) ?? '') : '';
   if (!topline) return null;
 
   return {
@@ -377,7 +408,7 @@ export function parseCompanyEnrichment(text: string): CompanyEnrichment | null {
     products: capList(stripCiteList(parsed.products), 2, 180),
     techInsights: capList(stripCiteList(parsed.techInsights), 2, 180),
     demoNotes: capList(stripCiteList(parsed.demoNotes), 2, 160),
-    sources: capList(stripCiteList(parsed.sources), 3, 200),
+    sources: capSources(stripCiteList(parsed.sources), 3),
     enrichedVia: 'web-search',
   };
 }
@@ -401,11 +432,7 @@ function buildLocalOnlyEnrichment(company: CompanyAggregate): CompanyEnrichment 
   };
 }
 
-function buildCompanyEnrichPrompt(company: CompanyAggregate, eventLabel: string): string {
-  return `당신은 로봇 산업 리서치 분석가입니다. 아래는 '${eventLabel}' 전시회에서 수집한 영상들을 AI로 분석해 얻은 '${company.name}' 관련 원자료입니다. 이 원자료와 웹 검색으로 확인 가능한 공개 정보를 종합해, 임원 보고서에 실을 업체 요약을 작성하세요.
-
-**영상 원자료(JSON):**
-${JSON.stringify(company.raw)}
+const COMPANY_ENRICH_INSTRUCTIONS = `당신은 로봇 산업 리서치 분석가입니다. 사용자 메시지의 데이터 블록에는 전시회(event)와 업체(company)의 이름, 그리고 그 전시회에서 수집한 영상들을 AI로 분석해 얻은 해당 업체 관련 원자료(raw)가 있습니다. 이 원자료와 웹 검색으로 확인 가능한 공개 정보를 종합해, 임원 보고서에 실을 업체 요약을 작성하세요.
 
 **작성 규칙:**
 - 공개 정보의 파생 요약만 작성한다. 원문 장문 복사 금지.
@@ -419,8 +446,31 @@ ${JSON.stringify(company.raw)}
   "products": ["주요 제품/부스 요약, 최대 2개, 각 180자 이내"],
   "techInsights": ["기술 관점 시사점, 최대 2개, 각 180자 이내"],
   "demoNotes": ["시연 내용 요약, 최대 2개, 각 160자 이내"],
-  "sources": ["웹 검색으로 확인한 출처 도메인, 최대 3개"]
+  "sources": ["웹 검색으로 확인한 출처 도메인(예: example.com), 최대 3개"]
 }`;
+
+function buildCompanyEnrichPrompt(company: CompanyAggregate, eventLabel: string): { system: string; user: string } {
+  // 회사명·영상 원자료는 외부 텍스트(영상 제목·Gemini 해석)에서 온 값이므로 정제한 사본을 데이터 블록에만 넣는다
+  const guard: SanitizeResult[] = [];
+  const clean = (v: string, max: number) => {
+    const r = sanitizeExternalText(v, { maxChars: max });
+    guard.push(r);
+    return r.text;
+  };
+  const list = (arr: string[], max: number) => arr.map((x) => clean(x, max));
+  const raw = {
+    highlights: list(company.raw.highlights, 160),
+    mainProducts: list(company.raw.mainProducts, 200),
+    demoContents: list(company.raw.demoContents, 200),
+    insights: list(company.raw.insights, 200),
+    techKeywords: list(company.raw.techKeywords, LLM_INPUT_LIMITS.tag),
+  };
+  const name = clean(company.name, LLM_INPUT_LIMITS.name);
+  recordInputGuard(ENRICH_POINT, guard);
+  return {
+    system: composeSystemPrompt(COMPANY_ENRICH_INSTRUCTIONS, { webSearch: true }),
+    user: buildUserMessage('company_enrich', { event: eventLabel, company: name, raw }),
+  };
 }
 
 /** 선정된 업체를 카테고리(TASK_TYPE_ORDER 순)별로 묶고, 슬라이드 단위(2개씩)로 chunk한다 */
@@ -470,13 +520,16 @@ async function mapWithConcurrency<T, R>(
 
 // ── 서비스 ──
 
-class EventCompanyReportService {
+export class EventCompanyReportService {
   private anthropicClient: Anthropic | null = null;
   /** 이벤트별 리포트 생성 in-flight 가드 — 라우트에서 이미 진행 중이면 409 처리 */
   private generatingReports = new Set<string>();
 
-  constructor() {
-    if (process.env.ANTHROPIC_API_KEY) {
+  /** deps.anthropicClient: 테스트용 선택 주입. 생략하면 현재 동작(환경 설정 기반 생성) */
+  constructor(deps: { anthropicClient?: Anthropic | null } = {}) {
+    if (deps.anthropicClient !== undefined) {
+      this.anthropicClient = deps.anthropicClient;
+    } else if (process.env.ANTHROPIC_API_KEY) {
       this.anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     }
   }
@@ -558,10 +611,12 @@ class EventCompanyReportService {
     const fallback = buildLocalOnlyEnrichment(company);
     if (!this.anthropicClient) return fallback;
 
+    const enrichPrompt = buildCompanyEnrichPrompt(company, eventLabel);
     try {
       const response = await this.anthropicClient.messages.create({
         model: MODEL,
         max_tokens: 1200,
+        system: enrichPrompt.system,
         tools: [
           {
             type: 'web_search_20250305' as any,
@@ -569,7 +624,7 @@ class EventCompanyReportService {
             max_uses: 3,
           } as any,
         ],
-        messages: [{ role: 'user', content: buildCompanyEnrichPrompt(company, eventLabel) }],
+        messages: [{ role: 'user', content: enrichPrompt.user }],
       });
 
       let combined = '';

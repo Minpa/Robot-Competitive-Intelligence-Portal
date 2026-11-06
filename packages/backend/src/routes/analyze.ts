@@ -3,6 +3,10 @@ import { textAnalyzerService, AnalyzedData, autoQueryAI } from '../services/text
 import { scoringPipelineService } from '../services/scoring-pipeline.service.js';
 import { db, humanoidRobots, companies } from '../db/index.js';
 import { eq, inArray } from 'drizzle-orm';
+import { authMiddleware, requireRole } from './auth.js';
+
+// 텍스트 분석 라우트는 LLM 비용을 쓰고 결과를 DB에 저장하므로 관리자만 쓴다 (UI 호출처 없음 — lib/api.ts 의 래퍼만 존재)
+const adminOnly = [authMiddleware, requireRole('admin')];
 
 /**
  * 분석된 데이터에서 회사명을 추출하고, 해당 회사에 연결된 humanoid robot ID 목록을 조회한다.
@@ -26,7 +30,7 @@ async function findRobotIdsByAnalyzedData(data: AnalyzedData): Promise<string[]>
 
 export async function analyzeRoutes(fastify: FastifyInstance) {
   // 텍스트 분석 (저장하지 않고 미리보기)
-  fastify.post<{ Body: { text: string } }>('/preview', async (request, reply) => {
+  fastify.post<{ Body: { text: string } }>('/preview', { preHandler: adminOnly }, async (request, reply) => {
     try {
       const { text } = request.body;
       
@@ -42,7 +46,7 @@ export async function analyzeRoutes(fastify: FastifyInstance) {
   });
 
   // 텍스트 분석 후 DB 저장
-  fastify.post<{ Body: { text: string } }>('/save', async (request, reply) => {
+  fastify.post<{ Body: { text: string } }>('/save', { preHandler: adminOnly }, async (request, reply) => {
     try {
       const { text } = request.body;
       
@@ -73,7 +77,7 @@ export async function analyzeRoutes(fastify: FastifyInstance) {
   });
 
   // 분석된 데이터만 저장 (이미 분석된 결과를 받아서 저장)
-  fastify.post<{ Body: AnalyzedData }>('/save-analyzed', async (request, reply) => {
+  fastify.post<{ Body: AnalyzedData }>('/save-analyzed', { preHandler: adminOnly }, async (request, reply) => {
     try {
       const data = request.body;
       const saveResult = await textAnalyzerService.saveAnalyzedData(data);
@@ -92,7 +96,7 @@ export async function analyzeRoutes(fastify: FastifyInstance) {
   });
 
   // 자동 AI 질의 (GPT-4o에 직접 질의하여 JSON 생성)
-  fastify.post<{ Body: { topic: string; customPrompt?: string } }>('/auto-query', async (request, reply) => {
+  fastify.post<{ Body: { topic: string; customPrompt?: string } }>('/auto-query', { preHandler: adminOnly }, async (request, reply) => {
     try {
       const { topic, customPrompt } = request.body;
       

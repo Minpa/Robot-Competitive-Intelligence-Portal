@@ -100,3 +100,33 @@ describe('alert severity resolution', () => {
     expect(resolveAlertSeverity('urgent')).toBe('info');
   });
 });
+
+describe('ingest guard limits and reserved metadata keys', () => {
+  it('strips exact and prefixed AI-output keys and keeps the rest', async () => {
+    const { stripReservedMetadataKeys, isReservedMetadataKey } = await import('../../services/ingest-guard.util.js');
+    const r = stripReservedMetadataKeys({
+      confidence: 'A',
+      summaryKo: 'ok',
+      aiTags: { taskTypes: ['x'] },
+      aiSummaryKo: 'forged',
+      titleKo: 'forged',
+      geminiAnalysis: { summaryKo: 'forged' },
+      eventBrief_wrc2026: {},
+      cesDemo_ces2026: {},
+    });
+    expect(r.metadata).toEqual({ confidence: 'A', summaryKo: 'ok' });
+    expect(r.removedKeys.sort()).toEqual(['aiSummaryKo', 'aiTags', 'cesDemo_ces2026', 'eventBrief_wrc2026', 'geminiAnalysis', 'titleKo']);
+    expect(isReservedMetadataKey('summaryKo')).toBe(false);
+    expect(isReservedMetadataKey('handTopics')).toBe(true);
+    expect(stripReservedMetadataKeys(undefined)).toEqual({ metadata: undefined, removedKeys: [] });
+  });
+
+  it('measures serialized metadata size in bytes', async () => {
+    const { metadataByteSize, INGEST_METADATA_MAX_BYTES } = await import('../../services/ingest-guard.util.js');
+    expect(metadataByteSize({ a: 'x'.repeat(100) })).toBeLessThan(INGEST_METADATA_MAX_BYTES);
+    expect(metadataByteSize({ a: '가'.repeat(6000) })).toBeGreaterThan(INGEST_METADATA_MAX_BYTES);
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    expect(metadataByteSize(circular)).toBe(Number.POSITIVE_INFINITY);
+  });
+});
