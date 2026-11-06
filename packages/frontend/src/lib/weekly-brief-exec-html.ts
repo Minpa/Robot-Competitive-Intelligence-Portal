@@ -45,6 +45,7 @@ import {
   EXEC_NO_PAPERS,
   EXEC_NO_SIGNALS,
   EXEC_OURS_MISSING_BADGE,
+  EXEC_OURS_MISSING_NOTE,
   EXEC_PARTIAL_NOTICE,
   EXEC_QUESTION_KIND_LABELS,
   EXEC_ROLE_LABELS,
@@ -284,7 +285,7 @@ function gapRowHtml(r: ExecGapRow, i: number): string {
   const cv = r.competitorValue;
   const cvSub = [cv.grade ? `신뢰도 ${cv.grade}` : '', cv.asOf ?? ''].filter(Boolean).join(' · ');
   const ours = missing
-    ? `<div><div class="l">우리</div><div class="v miss">${t(EXEC_OURS_MISSING_BADGE)}</div><div class="s">비교 수치를 만들지 않았습니다</div></div>`
+    ? `<div><div class="l">우리</div><div class="v miss">${t(EXEC_OURS_MISSING_BADGE)}</div><div class="s">${t(EXEC_OURS_MISSING_NOTE)}</div></div>`
     : `<div><div class="l">우리${r.ourRef ? ` (${t(r.ourRef)})` : ''}</div><div class="v">${t(r.ourValue!.display)}</div>${r.ourValue!.asOf ? `<div class="s">${t(r.ourValue!.asOf)}</div>` : ''}</div>`;
   const diff = `<div><div class="l">차이</div><div class="v">${t(missing ? '–' : formatGapDiff(r) || '–')}</div>${r.prevCompetitorValue !== null ? `<div class="s">직전 경쟁사값 ${t(String(r.prevCompetitorValue))}</div>` : ''}</div>`;
   const lines = r.lines.map((l) => `<p class="para">${t(l)}</p>`).join('');

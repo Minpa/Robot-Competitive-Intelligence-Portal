@@ -12,6 +12,8 @@
  * 숫자는 정규화(쉼표 제거, 후행 0 제거)해서 비교한다. "48만", "1.2K", "480,000" 같은 표기 변형은 numberForms 가 허용 집합에 넣는다.
  */
 
+import { WEEKLY_WORDING } from '../types/weekly-brief-wording.js';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 상수
 // ─────────────────────────────────────────────────────────────────────────────
@@ -39,6 +41,9 @@ export const WEEKLY_BRIEF_BANNED_PHRASES: readonly string[] = [
 
 /** v3 에서 추가한 과잉 단정 금칙어 (PM-8) — findBannedPhraseV3 가 v2 목록과 함께 검사한다 */
 export const WEEKLY_BRIEF_OVERCLAIM_PHRASES: readonly string[] = ['반드시', '확실히', '틀림없이'];
+
+/** v3 에서 추가한 분석 도구 말투 금칙어 — 용어집(WEEKLY_WORDING)과 같은 목록. v1·v2 가드는 쓰지 않는다 */
+export const WEEKLY_BRIEF_JARGON_PHRASES: readonly string[] = WEEKLY_WORDING.jargonBanned;
 
 export const TEXT_GUARD = {
   /** 개수·서수 표현용 작은 정수 상한 */
@@ -216,11 +221,11 @@ export function findBannedPhrase(sentence: string, inputText: string = ''): stri
   return null;
 }
 
-/** v3 용 금칙어 검사 — v2 목록 + 과잉 단정 3개 */
+/** v3 용 금칙어 검사 — v2 목록 + 과잉 단정 3개 + 분석 도구 말투(관측·격차·신호·판정, 입력 텍스트에 있으면 예외) */
 export function findBannedPhraseV3(sentence: string, inputText: string = ''): string | null {
   const v2 = findBannedPhrase(sentence, inputText);
   if (v2) return v2;
-  for (const phrase of WEEKLY_BRIEF_OVERCLAIM_PHRASES) {
+  for (const phrase of [...WEEKLY_BRIEF_OVERCLAIM_PHRASES, ...WEEKLY_BRIEF_JARGON_PHRASES]) {
     if (sentence.includes(phrase) && !inputText.includes(phrase)) return phrase;
   }
   return null;
@@ -423,6 +428,28 @@ export const DIRECTION_CONTRADICTION_PATTERNS: Readonly<Record<ExecGapPosition, 
   parity: [],
 };
 
+export type ExecGapMovement = 'competitor_closing' | 'competitor_receding' | 'steady' | 'first_seen';
+
+/**
+ * 변화 모순 문구 — (position, movement) 별로 movementLabelKo 라벨과 반대로 말하는 표현.
+ * competitor_ahead·closing 은 "차이가 더 벌어지는 중", receding 은 "줄어드는 중";
+ * we_ahead·closing 은 "경쟁사가 따라오는 중", receding 은 "우리가 더 앞서는 중";
+ * parity·closing 은 "경쟁사 쪽으로 기우는 중", receding 은 "우리 쪽으로 기우는 중".
+ */
+const NARROWING = /줄어들|줄어드|줄었|좁혀|좁아|따라잡|따라오/u;
+const WIDENING = /벌어지|벌어졌|벌어진|확대|커지|커졌/u;
+export const MOVEMENT_CONTRADICTION_PATTERNS: Readonly<Record<'competitor_ahead' | 'we_ahead' | 'parity', Readonly<Record<'competitor_closing' | 'competitor_receding' | 'steady', readonly RegExp[]>>>> = {
+  competitor_ahead: { competitor_closing: [NARROWING], competitor_receding: [WIDENING], steady: [NARROWING, WIDENING] },
+  we_ahead: { competitor_closing: [WIDENING, /우리가\s*더\s*앞서/u], competitor_receding: [NARROWING, /경쟁사가\s*(?:더\s*)?앞서/u], steady: [NARROWING, WIDENING] },
+  parity: { competitor_closing: [/우리\s*쪽으로\s*기우/u], competitor_receding: [/경쟁사\s*쪽으로\s*기우/u], steady: [/기우/u] },
+};
+
+/** 문장이 서버 movement(position 과 함께 해석)와 모순되는가. first_seen 이나 값이 없으면 검사하지 않는다 */
+export function contradictsMovement(sentence: string, position: ExecGapPosition | null | undefined, movement: ExecGapMovement | null | undefined): boolean {
+  if (!position || !movement || movement === 'first_seen') return false;
+  return MOVEMENT_CONTRADICTION_PATTERNS[position][movement].some((re) => re.test(sentence));
+}
+
 /** 문장이 position 과 모순되는가 */
 export function contradictsPosition(sentence: string, position: ExecGapPosition | null | undefined): boolean {
   if (!position) return false;
@@ -439,6 +466,8 @@ export interface ExecGuardSpec {
   entityMode?: EntityGuardMode;
   /** 격차 행 서술이면 서버 position */
   position?: ExecGapPosition | null;
+  /** 격차 행 서술이면 서버 movement (position 과 함께 해석) */
+  movement?: ExecGapMovement | null;
 }
 
 export interface ExecGuardStats {
@@ -463,7 +492,7 @@ export function execSentenceProblem(sentence: string, spec: ExecGuardSpec, input
   if (!endsWithPolite(sentence)) return 'ending';
   if (findBannedPhraseV3(sentence, spec.inputText ?? '')) return 'banned';
   if (mentionsCollectionCount(sentence)) return 'collection';
-  if (contradictsPosition(sentence, spec.position)) return 'direction';
+  if (contradictsPosition(sentence, spec.position) || contradictsMovement(sentence, spec.position, spec.movement)) return 'direction';
   if (disallowedNumbers(sentence, spec.allowed).length > 0) return 'number';
   if (inputTokens && spec.entityMode === 'enforce' && englishTokens(sentence).some((t) => !inputTokens.has(t))) return 'entity';
   return null;
@@ -502,14 +531,14 @@ export function guardExecSentences(raw: unknown, spec: ExecGuardSpec): { sentenc
 export type EditWarningCode = 'ending' | 'banned' | 'number' | 'direction' | 'collection';
 
 /** 관리자 편집 문장의 경고(저장은 허용) — 합니다체 위반, 금칙어, 서버 숫자 집합에 없는 숫자, 방향 모순, 수집 건수 문구 */
-export function editWarnings(text: string, allowed: ReadonlySet<string>, position?: ExecGapPosition | null): EditWarningCode[] {
+export function editWarnings(text: string, allowed: ReadonlySet<string>, position?: ExecGapPosition | null, movement?: ExecGapMovement | null): EditWarningCode[] {
   const out: EditWarningCode[] = [];
   const sentences = splitSentences(text);
   const list = sentences.length > 0 ? sentences : [text];
   if (list.some((s) => !endsWithPolite(s))) out.push('ending');
   if (findBannedPhraseV3(text)) out.push('banned');
   if (disallowedNumbers(text, allowed).length > 0) out.push('number');
-  if (list.some((s) => contradictsPosition(s, position))) out.push('direction');
+  if (list.some((s) => contradictsPosition(s, position) || contradictsMovement(s, position, movement))) out.push('direction');
   if (mentionsCollectionCount(text)) out.push('collection');
   return out;
 }

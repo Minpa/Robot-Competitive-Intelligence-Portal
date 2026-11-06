@@ -31,7 +31,7 @@ export function BusinessSection({ business }: { business: ExecBusiness }) {
           {business.moves.map((m, i) => (
             <li key={m.id} className={`${CARD_CLASS} exec-move`} data-testid="business-move">
               <div className="flex items-start gap-3">
-                <span className="text-[22px] font-black leading-none" aria-label={`움직임 ${i + 1}`}>
+                <span className="text-[22px] font-black leading-none" aria-label={`동향 ${i + 1}`}>
                   {i + 1}
                 </span>
                 <div className="min-w-0 flex-1">

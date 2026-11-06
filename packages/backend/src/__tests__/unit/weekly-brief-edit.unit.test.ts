@@ -112,7 +112,7 @@ describe('validateEdits', () => {
 
   it('a headline (noun phrase) never gets the honorific-ending warning, but the other warnings still apply', () => {
     const id = ai.conclusions[0]!.id;
-    expect(validateEdits(ai, { [`conclusions.${id}.headline`]: '손 자유도 격차 확대' })).toEqual({ ok: true, edits: { [`conclusions.${id}.headline`]: '손 자유도 격차 확대' }, warnings: [] });
+    expect(validateEdits(ai, { [`conclusions.${id}.headline`]: '손 자유도 차이 확대' })).toEqual({ ok: true, edits: { [`conclusions.${id}.headline`]: '손 자유도 차이 확대' }, warnings: [] });
     const r = validateEdits(ai, { [`conclusions.${id}.headline`]: '전망 99999' });
     expect(r.ok && r.warnings[0]!.codes).toEqual(expect.arrayContaining(['banned', 'number']));
     expect(r.ok && r.warnings[0]!.codes).not.toContain('ending');
@@ -152,14 +152,14 @@ describe('applyEdits', () => {
       [`conclusions.${c.id}.headline`]: '새 헤드라인',
       [`questions.${ai.questions[0]!.id}.text`]: '새 질문을 해 볼까요?',
       [`questions.${ai.questions[0]!.id}.rationale.0`]: '새 근거 문장입니다.',
-      [`gaps.rows.${ai.gaps.rows[0]!.id}.lines.0`]: '새 격차 문장입니다.',
+      [`gaps.rows.${ai.gaps.rows[0]!.id}.lines.0`]: '새 차이 문장입니다.',
       [`tech.signals.${ai.tech.signals[0]!.id}.lines.0`]: '새 기술 문장입니다.',
       'gaps.summary.0': '새 요약입니다.',
     };
     const out = applyEdits(ai, edits);
     expect(out.conclusions[0]!.headline).toBe('새 헤드라인');
     expect(out.questions[0]!.text).toBe('새 질문을 해 볼까요?');
-    expect(out.gaps.rows[0]!.lines[0]).toBe('새 격차 문장입니다.');
+    expect(out.gaps.rows[0]!.lines[0]).toBe('새 차이 문장입니다.');
     expect(out.tech.signals[0]!.lines[0]).toBe('새 기술 문장입니다.');
     expect(out.gaps.summary[0]).toBe('새 요약입니다.');
     expect(out.gaps.rows.map((g) => g.competitorValue)).toEqual(ai.gaps.rows.map((g) => g.competitorValue));

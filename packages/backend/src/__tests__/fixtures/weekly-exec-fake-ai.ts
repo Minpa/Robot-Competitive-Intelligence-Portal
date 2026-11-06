@@ -34,18 +34,18 @@ function a(user: any, o: FakeExecOptions) {
     const subject = f.company ?? f.label ?? '해당 항목';
     const detail =
       c.kind === 'gap_shift'
-        ? `${f.axis}에서 ${f.company}는 ${f.competitorValue}, 우리는 ${f.ourValue}이며 판정은 ${f.position}입니다.`
+        ? `${f.axis}에서 ${f.company}는 ${f.competitorValue}, 우리는 ${f.ourValue}이며 ${f.position}입니다.`
         : c.kind === 'tech_signal'
           ? `${f.label}은 ${f.direction} 방향이며 최근 4주 ${f.recent}%, 이전 4주 ${f.prior}%입니다.`
-          : `${subject}의 움직임이 근거 자료에서 확인됩니다.`;
+          : `${subject}의 움직임이 참고 자료에서 확인됩니다.`;
     const lines: { role: string; text: string }[] = [
       { role: 'change', text: `${subject} 쪽에서 이번 주 눈에 띄는 변화가 확인되었습니다.` },
       { role: 'detail', text: detail },
       { role: 'why', text: '우리 제품 전략과 직접 맞닿아 있어서 연구소 차원의 검토가 필요한 변화입니다.' },
-      { role: 'action', text: '관련 사양과 근거 자료를 함께 비교해 볼 만합니다.' },
+      { role: 'action', text: '관련 사양과 참고 자료를 함께 비교해 볼 만합니다.' },
     ];
     if (o.rich) {
-      lines.push({ role: 'detail', text: '이번 변화는 한 번의 발표가 아니라 근거 자료 여러 곳에서 함께 확인된다는 점이 중요합니다.' });
+      lines.push({ role: 'detail', text: '이번 변화는 한 번의 발표가 아니라 참고 자료 여러 곳에서 함께 확인된다는 점이 중요합니다.' });
       lines.push({ role: 'action', text: '다음 주에도 같은 방향으로 이어지는지 지켜보겠습니다.' });
     }
     if (o.hostile && i === 0) lines.push({ role: 'detail', text: '가격이 내려감.' }, { role: 'detail', text: '영상 30건이 수집되었습니다.' }, { role: 'detail', text: '반드시 따라가야 합니다.' });
@@ -55,7 +55,7 @@ function a(user: any, o: FakeExecOptions) {
   const questions = cands.slice(0, 3).map((c, i) => ({
     text: ['이 변화를 직접 평가해 볼까요?', '해당 업체와 접촉해 볼까요?', '다음 회의에서 방향을 정해 볼까요?'][i],
     kind: (['evaluate', 'contact', 'decide'] as const)[i],
-    rationale: ['근거 자료에서 같은 방향의 변화가 확인됩니다.', ...(o.rich ? ['판단을 미루면 비교 기준이 뒤처질 수 있습니다.'] : [])],
+    rationale: ['참고 자료에서 같은 방향의 변화가 확인됩니다.', ...(o.rich ? ['판단을 미루면 비교 기준이 뒤처질 수 있습니다.'] : [])],
     conclusionId: c.id,
     refs: c.evidence?.[0] ? [c.evidence[0].ref] : [],
   }));
@@ -66,17 +66,17 @@ function a(user: any, o: FakeExecOptions) {
 function b(user: any, o: FakeExecOptions) {
   const rows = (user.gaps ?? []).map((g: any) => {
     if (g.status !== 'compared') {
-      return { id: g.id, lines: [`${g.competitor}의 ${g.axis}은 ${g.competitorValue}로 확인됩니다.`, '비교 기준이 되는 우리 수치는 아직 미등록입니다.'] };
+      return { id: g.id, lines: [`${g.competitor}의 ${g.axis}은 ${g.competitorValue}로 확인됩니다.`, '우리 쪽 수치는 아직 등록되지 않았습니다.'] };
     }
     const lines = [
-      `${g.axis}에서 ${g.competitor}는 ${g.competitorValue}, 우리는 ${g.ourValue}으로 판정은 ${g.position}입니다.`,
+      `${g.axis}에서 ${g.competitor}는 ${g.competitorValue}, 우리는 ${g.ourValue}으로 ${g.position}입니다.`,
       `직전 대비 변화는 ${g.movement}입니다.`,
     ];
     if (o.rich) lines.push('같은 기준끼리 비교한 값이며 수치는 모두 서버 계산입니다.', '우리 쪽 보완 여부를 점검해 볼 만합니다.');
-    if (o.hostile) lines.push(g.position === '경쟁사 우위' ? '이 축에서는 우리가 앞섭니다.' : '이 축에서는 경쟁사가 앞섭니다.');
+    if (o.hostile) lines.push(g.position === '경쟁사가 앞서 있음' ? '이 축에서는 우리가 앞섭니다.' : '이 축에서는 경쟁사가 앞섭니다.');
     return { id: g.id, lines };
   });
-  return { summary: rows.length > 0 ? ['경쟁사와의 격차는 일부 축에서 새로 확인되었습니다.', ...(o.rich ? ['우리 위치가 등록되지 않은 축은 비교 대상에서 제외했습니다.'] : [])] : [], rows };
+  return { summary: rows.length > 0 ? ['경쟁사와의 차이는 일부 항목에서 새로 확인되었습니다.', ...(o.rich ? ['우리 쪽 수치가 아직 없는 항목은 비교 대상에서 제외했습니다.'] : [])] : [], rows };
 }
 
 function c(user: any, o: FakeExecOptions) {
@@ -85,14 +85,14 @@ function c(user: any, o: FakeExecOptions) {
     lines: [
       `${t.label}의 최근 4주 점유율은 ${t.recent4w}%로 이전 4주 ${t.prior4w}%와 비교해 ${t.direction} 방향입니다.`,
       '한 주의 변동이 아니라 여러 주에 걸쳐 이어진 흐름입니다.',
-      ...(o.rich ? ['연구 방향을 정할 때 참고할 만한 신호입니다.'] : []),
+      ...(o.rich ? ['연구 방향을 정할 때 참고할 만한 흐름입니다.'] : []),
     ],
   }));
   const moves = (user.moves ?? []).map((m: any) => ({
     id: m.id,
-    lines: [`${m.company}의 ${m.category} 관련 움직임이 근거 자료에서 확인됩니다.`, '공급망 관점에서 지켜볼 만합니다.', ...(o.rich ? ['등록된 사실 칩은 현재 등록 현황 기준입니다.'] : [])],
+    lines: [`${m.company}의 ${m.category} 관련 움직임이 참고 자료에서 확인됩니다.`, '공급망 관점에서 지켜볼 만합니다.', ...(o.rich ? ['등록된 사실 칩은 현재 등록 현황 기준입니다.'] : [])],
   }));
-  if (o.hostile) signals.push({ id: 't999', lines: ['가짜 신호입니다.', '존재하지 않습니다.'] });
+  if (o.hostile) signals.push({ id: 't999', lines: ['가짜 흐름입니다.', '존재하지 않습니다.'] });
   return { signals, moves };
 }
 

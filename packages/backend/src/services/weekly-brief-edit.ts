@@ -9,7 +9,7 @@
  *  - 항목 id 에는 '.' 이 없다(경로 구분자).
  */
 
-import { buildAllowed, charLength, editWarnings, smallIntegers, violatesTextPolicy, type EditWarningCode, type ExecGapPosition } from './weekly-brief-text-guard.js';
+import { buildAllowed, charLength, editWarnings, smallIntegers, violatesTextPolicy, type EditWarningCode, type ExecGapMovement, type ExecGapPosition } from './weekly-brief-text-guard.js';
 import type { WeeklyBriefEditHistoryEntry, WeeklyBriefEditLimits, WeeklyExecutivePayload } from '../types/weekly-brief.js';
 
 export const EDIT_LIMITS: WeeklyBriefEditLimits = { sentence: 200, headline: 50, question: 200, implication: 100 };
@@ -73,6 +73,13 @@ export function baseTextAt(ai: WeeklyExecutivePayload, path: string): string | u
     case 'paper_implication':
       return ai.evidence.papers.find((x) => x.id === p.id)?.implication;
   }
+}
+
+/** 경로가 가리키는 격차 행의 서버 movement (변화 모순 경고용) */
+function movementAt(ai: WeeklyExecutivePayload, path: string): ExecGapMovement | null {
+  const p = parseEditPath(path);
+  if (!p || p.kind !== 'gap_row_line') return null;
+  return ai.gaps.rows.find((g) => g.id === p.id)?.movement ?? null;
 }
 
 /** 경로가 가리키는 격차 행의 서버 position (방향 모순 경고용) */
@@ -148,7 +155,7 @@ export function validateEdits(ai: WeeklyExecutivePayload, incoming: Record<strin
     }
     out[path] = value;
     // 헤드라인은 명사구라 합니다체 종결을 요구하지 않는다
-    const codes = editWarnings(value, allowed, positionAt(ai, path)).filter((c) => !(c === 'ending' && parsed.kind === 'conclusion_headline'));
+    const codes = editWarnings(value, allowed, positionAt(ai, path), movementAt(ai, path)).filter((c) => !(c === 'ending' && parsed.kind === 'conclusion_headline'));
     if (codes.length > 0) warnings.push({ path, codes });
   }
   return { ok: true, edits: out, warnings };

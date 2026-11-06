@@ -2,6 +2,7 @@ import type { ExecGaps, ExecGapRow } from '@/types/weekly-brief';
 import {
   EXEC_NO_GAPS,
   EXEC_OURS_MISSING_BADGE,
+  EXEC_OURS_MISSING_NOTE,
   coverageLine,
   editPath,
   formatGapDiff,
@@ -32,7 +33,7 @@ function ValueCell({ label, value, sub, missing }: { label: string; value: strin
   );
 }
 
-/** 격차 행 카드 — 경쟁사값 · 우리값(미등록이면 안내) · 차이 · 방향·변화 배지 · 서술 · 근거. 좁은 화면에서는 세로 배치 */
+/** 차이 행 카드 — 경쟁사값 · 우리값(미등록이면 안내) · 차이 · 방향·변화 배지 · 서술 · 근거. 좁은 화면에서는 세로 배치 */
 export function GapRowCard({ row, index }: { row: ExecGapRow; index: number }) {
   const tone = gapTone(row);
   const move = gapMovementBadge(row);
@@ -41,7 +42,7 @@ export function GapRowCard({ row, index }: { row: ExecGapRow; index: number }) {
   return (
     <li className={`${CARD_CLASS} exec-gap`} data-testid="gap-row" data-tone={tone}>
       <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
-        <span className="text-[22px] font-black leading-none" aria-label={`격차 ${index + 1}`}>
+        <span className="text-[22px] font-black leading-none" aria-label={`차이 ${index + 1}`}>
           {index + 1}
         </span>
         <div className="min-w-0 flex-1">
@@ -64,7 +65,7 @@ export function GapRowCard({ row, index }: { row: ExecGapRow; index: number }) {
       <div className="exec-gap-values mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
         <ValueCell label="경쟁사" value={cv.display} sub={[cv.grade ? `신뢰도 ${cv.grade}` : '', cv.asOf ?? ''].filter(Boolean).join(' · ') || null} />
         {missing ? (
-          <ValueCell label="우리" value={EXEC_OURS_MISSING_BADGE} sub="비교 수치를 만들지 않았습니다" missing />
+          <ValueCell label="우리" value={EXEC_OURS_MISSING_BADGE} sub={EXEC_OURS_MISSING_NOTE} missing />
         ) : (
           <ValueCell label={`우리${row.ourRef ? ` (${row.ourRef})` : ''}`} value={row.ourValue!.display} sub={row.ourValue!.asOf} />
         )}

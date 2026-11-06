@@ -103,21 +103,29 @@ describe('v3 HTML content', () => {
   it('has the executive structure: cover with reading time and no stat cards, six numbered sections', () => {
     expect(out).toContain('읽는 시간 약');
     expect(out).not.toContain('class="stats"');
-    for (const title of ['이번 주 결론', '경쟁사 역량 변화와 우리와의 격차', '기술 방향 신호', '사업·공급망 움직임', '리더 판단이 필요한 질문', '근거 자료 (부록)']) expect(out).toContain(title);
+    for (const title of ['이번 주 주요 내용', '경쟁사 동향과 우리 위치', '기술 흐름', '사업·공급망 동향', '함께 검토해 주실 사항', '참고 자료']) expect(out).toContain(title);
     for (const id of ['sec-conclusions', 'sec-gap', 'sec-tech', 'sec-business', 'sec-questions', 'sec-evidence']) expect(out).toContain(`id="${id}"`);
   });
 
-  it('role labels, direction badges, "우리 위치 미등록", sparklines and the collection line are present', () => {
-    expect(out).toContain('무엇이 바뀌었나');
-    expect(out).toContain('왜 중요한가');
-    expect(out).toContain('그래서 무엇을');
-    expect(out).toContain('경쟁사 우위');
-    expect(out).toContain('우리 위치 미등록');
+  it('role labels, direction badges, "우리 수치 미등록", sparklines and the collection line are present', () => {
+    expect(out).toContain('변화');
+    expect(out).toContain('의미');
+    expect(out).toContain('제안');
+    expect(out).toContain('경쟁사가 앞서 있음');
+    expect(out).toContain('우리 수치 미등록');
     expect(out).toMatch(/<svg class="spark"/);
     expect(out.match(/이번 주 수집: 영상 \d+건/g)).toHaveLength(1);
     // 수집 건수 문구는 부록 맨 끝에만 있고 그 뒤에는 섹션 닫힘과 푸터뿐
     const idx = out.indexOf('이번 주 수집:');
     expect(out.slice(idx)).toMatch(/^[^<]*<\/p><\/div><p class="totop">/);
+  });
+
+  it('uses the report wording and none of the old analyst-tool wording', () => {
+    for (const label of ['검토 제안', '접촉 제안', '차이']) expect(out).toContain(label);
+    for (const name of ['full', 'partial', 'sparse', 'empty']) {
+      const o = html(name);
+      for (const old of ['이번 주 결론', '격차', '리더 판단이 필요한 질문', '근거 자료', '무엇이 바뀌었나', '우리 위치 미등록', '신호', '관측', '판정', '경쟁사 우위', '경쟁사 추격']) expect(o, `${name}:${old}`).not.toContain(old);
+    }
   });
 
   it('breaks section pages in print and keeps cards whole', () => {
@@ -128,8 +136,8 @@ describe('v3 HTML content', () => {
   it('the partial sample says some sentences are rule based; sparse/empty show their notices', () => {
     expect(html('partial')).toContain('일부 문장은 규칙 기반으로 생성되었습니다.');
     expect(html('empty')).toContain('이번 주 수집된 데이터가 부족합니다');
-    expect(html('sparse')).toContain('비교 기준이 되는 우리 위치 데이터를 불러오지 못했습니다');
-    expect(html('sparse')).toContain('이번 주 새로 판단이 필요한 변화는 확인되지 않았습니다');
+    expect(html('sparse')).toContain('비교 기준이 되는 우리 쪽 수치를 불러오지 못했습니다');
+    expect(html('sparse')).toContain('이번 주에는 특별히 말씀드릴 변화가 없었습니다');
   });
 
   it('escapes hostile text and breaks forbidden tokens that merely appear inside text', () => {

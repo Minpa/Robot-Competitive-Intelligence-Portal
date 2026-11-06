@@ -6,7 +6,7 @@ import { VideoThumb } from '../VideoThumbGrid';
 import { Badge, CARD_CLASS, TitleBlock } from '../report/shared';
 import { EditableLine } from './EditableLine';
 
-/** 근거 자료(부록) — 영상 6~8, 논문(프론티어만, 한 줄 시사점), 뉴스 6~8, 맨 끝에 수집 한 줄 */
+/** 참고 자료 — 영상 6~8, 논문(프론티어만, 한 줄 시사점), 뉴스 6~8, 맨 끝에 수집 한 줄 */
 export function EvidenceSection({ evidence }: { evidence: ExecEvidence }) {
   const { videos, papers, articles } = evidence;
   return (

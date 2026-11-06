@@ -19,6 +19,7 @@ import {
   type ActuatorMapRobot,
   type ActuatorSupplierProduct,
 } from './actuator-position-map.service.js';
+import { WEEKLY_WORDING, movementLabelKo } from '../types/weekly-brief-wording.js';
 import type { ExecGapRow, ExecGapValue, ExecPositionSnapshot, GapMovement, GapPosition, WeeklyReportEvidence } from '../types/weekly-brief.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -165,18 +166,8 @@ export function movementOf(pct: number, prevCompetitor: number | null, ours: num
   return 'steady';
 }
 
-export const POSITION_LABEL_KO: Readonly<Record<GapPosition, string>> = {
-  competitor_ahead: '경쟁사 우위',
-  parity: '비슷',
-  we_ahead: '우리 우위',
-};
+export const POSITION_LABEL_KO: Readonly<Record<GapPosition, string>> = WEEKLY_WORDING.positions;
 
-export const MOVEMENT_LABEL_KO: Readonly<Record<GapMovement, string>> = {
-  competitor_closing: '경쟁사에 유리하게 변화',
-  competitor_receding: '경쟁사에 불리하게 변화',
-  steady: '변화 미미',
-  first_seen: '첫 관측',
-};
 
 export interface GapCalc {
   position: GapPosition;
@@ -474,7 +465,7 @@ export function buildGapDraft(fact: CompetitorFact, our: OurPosition | null, pre
     diff: compared ? calc.diff : null,
     movement: compared ? calc.movement : null,
     prevCompetitorValue: prev !== null ? round1(prev) : null,
-    labelKo: { position: compared ? POSITION_LABEL_KO[calc.position] : null, movement: compared ? MOVEMENT_LABEL_KO[calc.movement] : null },
+    labelKo: { position: compared ? POSITION_LABEL_KO[calc.position] : null, movement: compared ? movementLabelKo(calc.position, calc.movement) : null },
     reason,
     priority: compared ? gapPriority(calc.position, calc.movement) : 5,
   };
@@ -512,13 +503,16 @@ export function formatDiff(axisKey: string, abs: number): string {
 }
 
 /** 규칙 폴백 문장(합니다체, 서버 값만) */
-export function gapRuleLines(d: Pick<GapDraft, 'competitor' | 'axisKey' | 'axisLabel' | 'competitorValue' | 'ourValue' | 'status' | 'position' | 'diff'>): string[] {
+export function gapRuleLines(d: Pick<GapDraft, 'competitor' | 'axisKey' | 'axisLabel' | 'competitorValue' | 'ourValue' | 'status' | 'position' | 'diff'> & { movement?: GapMovement | null }): string[] {
   const who = d.competitor.robotName && d.competitor.robotName !== d.competitor.name ? `${d.competitor.name} ${d.competitor.robotName}` : d.competitor.name;
   if (d.status !== 'compared' || !d.ourValue || !d.position || !d.diff) {
     return [`${who}의 ${d.axisLabel}은 ${d.competitorValue.display}입니다.`, '비교 기준이 되는 우리 수치가 아직 등록되어 있지 않습니다.'];
   }
-  const side = d.position === 'competitor_ahead' ? '경쟁사 우위' : d.position === 'we_ahead' ? '우리 우위' : '비슷한 수준';
-  return [`${d.axisLabel}에서 ${who}는 ${d.competitorValue.display}, 우리는 ${d.ourValue.display}으로 격차는 ${formatDiff(d.axisKey, d.diff.abs)}입니다(${side}).`];
+  const side = POSITION_LABEL_KO[d.position];
+  const lines = [`${d.axisLabel}에서 ${who}는 ${d.competitorValue.display}, 우리는 ${d.ourValue.display}으로 차이는 ${formatDiff(d.axisKey, d.diff.abs)}입니다(${side}).`];
+  const move = d.movement && d.movement !== 'first_seen' ? movementLabelKo(d.position, d.movement) : null;
+  if (move) lines.push(`직전 대비 변화는 ${move}입니다.`);
+  return lines;
 }
 
 export function gapEvidence(d: Pick<GapDraft, 'competitor' | 'axisLabel' | 'competitorValue' | 'id'>): WeeklyReportEvidence[] {

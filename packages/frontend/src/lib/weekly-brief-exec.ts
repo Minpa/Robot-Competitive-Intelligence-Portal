@@ -7,6 +7,7 @@
  */
 
 import { REPORT_TOP_ID } from '@/lib/weekly-brief-report';
+import { WEEKLY_WORDING as W, movementLabelKo } from '@/types/weekly-brief-wording';
 import type {
   ExecGapRow,
   ExecLineRole,
@@ -48,38 +49,25 @@ export const EXEC_LABELS = {
 export const EXEC_CHARS_PER_MINUTE = 600;
 
 export const EXEC_EMPTY_NOTICE = '이번 주 수집된 데이터가 부족합니다';
-export const EXEC_NO_CONCLUSIONS = '이번 주 새로 판단이 필요한 변화는 확인되지 않았습니다';
-export const EXEC_NO_GAPS = '이번 주 새로 확인된 격차 변화가 없습니다';
-export const EXEC_NO_SIGNALS = '뚜렷한 방향 변화는 확인되지 않았습니다';
-export const EXEC_NO_PAPERS = '이번 주 프론티어를 바꾼 논문은 없었습니다';
-export const EXEC_OURS_MISSING_BADGE = '우리 위치 미등록';
+export const EXEC_NO_CONCLUSIONS = W.empty.conclusions;
+export const EXEC_NO_GAPS = W.empty.gaps;
+export const EXEC_NO_SIGNALS = W.empty.tech;
+export const EXEC_NO_PAPERS = W.empty.papers;
+/** 짧은 배지 문구 */
+export const EXEC_OURS_MISSING_BADGE = W.oursMissing.badge;
+/** 카드 안 설명 문구 */
+export const EXEC_OURS_MISSING_NOTE = W.oursMissing.long;
 export const EXEC_PARTIAL_NOTICE = '일부 문장은 규칙 기반으로 생성되었습니다.';
-export const EXEC_FOOTER_NOTICE = 'AI 초안을 관리자가 검토·수정해 발행한 브리프입니다. 본 브리프는 공개 메타데이터(제목·썸네일 URL·링크)와 ARGOS 집계값, 문장만 포함하며 원문을 복제하지 않습니다. 숫자·격차 방향·링크는 모두 서버가 계산한 값입니다.';
+export const EXEC_FOOTER_NOTICE = 'AI 초안을 관리자가 검토·수정해 발행한 브리프입니다. 본 브리프는 공개 메타데이터(제목·썸네일 URL·링크)와 ARGOS 집계값, 문장만 포함하며 원문을 복제하지 않습니다. 숫자·차이의 방향·링크는 모두 서버가 계산한 값입니다.';
 export const EXEC_DRAFT_HTML_NOTICE = '미발행 초안입니다. 발행 전 내용입니다';
-export const EXEC_WEEK_TREND_NOTE = '최근 4주 대 이전 4주 비교 · 8주 추이';
+export const EXEC_WEEK_TREND_NOTE = W.sections.tech.subtitle;
 export const EXEC_ACCUMULATING_NOTE = '조달 태세 변화: 누적 중';
 
-export const EXEC_ROLE_LABELS: Record<ExecLineRole, string> = {
-  change: '무엇이 바뀌었나',
-  why: '왜 중요한가',
-  action: '그래서 무엇을',
-  detail: '',
-};
+export const EXEC_ROLE_LABELS: Record<ExecLineRole, string> = { ...W.roles };
 
-export const EXEC_ACTION_LABELS: Record<string, string> = {
-  evaluate: '평가',
-  contact: '접촉',
-  watch: '관찰',
-  decide: '결정',
-  none: '',
-};
+export const EXEC_ACTION_LABELS: Record<string, string> = { ...W.actions };
 
-export const EXEC_QUESTION_KIND_LABELS: Record<string, string> = {
-  evaluate: '직접 평가',
-  contact: '접촉',
-  decide: '결정',
-  watch: '관찰',
-};
+export const EXEC_QUESTION_KIND_LABELS: Record<string, string> = { ...W.questionKinds };
 
 export const EXEC_EVIDENCE_TYPE_LABELS: Record<string, string> = {
   video: '영상',
@@ -97,11 +85,7 @@ export const EXEC_BUSINESS_CATEGORY_LABELS: Record<string, string> = {
   market: '시장',
 };
 
-export const EXEC_GAP_POSITION_LABELS: Record<GapPosition, string> = {
-  competitor_ahead: '경쟁사 우위',
-  parity: '비슷',
-  we_ahead: '우리 우위',
-};
+export const EXEC_GAP_POSITION_LABELS: Record<GapPosition, string> = { ...W.positions };
 
 export type GapTone = 'ahead' | 'parity' | 'we' | 'missing';
 
@@ -116,9 +100,9 @@ export function gapPositionBadge(row: ExecGapRow): string {
   return row.labelKo?.position ?? (row.position ? EXEC_GAP_POSITION_LABELS[row.position] : '');
 }
 
-/** 변화 배지 문구 — 비교가 불가능하면 빈 문자열 */
+/** 변화 배지 문구 — position 과 movement 를 함께 보고 정한다. 비교가 불가능하면 빈 문자열 */
 export function gapMovementBadge(row: ExecGapRow): string {
-  return row.status === 'compared' ? (row.labelKo?.movement ?? '') : '';
+  return row.status === 'compared' ? (movementLabelKo(row.position, row.movement) ?? '') : '';
 }
 
 export function directionLabel(d: TechDirection): string {
@@ -174,15 +158,16 @@ export function planExecSections(p: WeeklyExecutivePayload): ExecPlannedSection[
   const e = p.evidence;
   const out: Omit<ExecPlannedSection, 'number'>[] = [];
   const add = (key: ExecSectionUiKey, title: string, subtitle: string, countLabel: string | null) => out.push({ key, id: EXEC_SECTION_IDS[key], title, subtitle, countLabel });
-  add('conclusions', '이번 주 결론', '무엇이 바뀌었고, 왜 중요하며, 그래서 무엇을 할지', p.conclusions.length > 0 ? `${p.conclusions.length}개` : null);
-  add('gap', '경쟁사 역량 변화와 우리와의 격차', '이번 주 새 데이터가 있는 축만 · 수치는 모두 서버 계산', p.gaps.rows.length > 0 ? `${p.gaps.rows.length}개 축` : null);
-  add('tech', '기술 방향 신호', EXEC_WEEK_TREND_NOTE, p.tech.signals.length > 0 ? `${p.tech.signals.length}개` : null);
+  const S = W.sections;
+  add('conclusions', S.conclusions.title, S.conclusions.subtitle, p.conclusions.length > 0 ? `${p.conclusions.length}개` : null);
+  add('gap', S.gap.title, S.gap.subtitle, p.gaps.rows.length > 0 ? `${p.gaps.rows.length}개 항목` : null);
+  add('tech', S.tech.title, EXEC_WEEK_TREND_NOTE, p.tech.signals.length > 0 ? `${p.tech.signals.length}개` : null);
   if (p.business.moves.length > 0 || p.business.picture.length > 0) {
-    add('business', '사업·공급망 움직임', '현재 등록 현황과 이번 주 움직임', p.business.moves.length > 0 ? `${p.business.moves.length}개` : null);
+    add('business', S.business.title, S.business.subtitle, p.business.moves.length > 0 ? `${p.business.moves.length}개` : null);
   }
-  if (p.questions.length > 0) add('questions', '리더 판단이 필요한 질문', '근거 자료와 함께 제시합니다', `${p.questions.length}개`);
+  if (p.questions.length > 0) add('questions', S.questions.title, S.questions.subtitle, `${p.questions.length}개`);
   if (e.videos.length + e.papers.length + e.articles.length > 0 || e.collectionLine) {
-    add('evidence', '근거 자료 (부록)', '영상 · 논문 · 뉴스', null);
+    add('evidence', S.evidence.title, S.evidence.subtitle, null);
   }
   return out.map((s, i) => ({ ...s, number: String(i + 1).padStart(2, '0') }));
 }
@@ -310,7 +295,7 @@ export const EDIT_WARNING_LABELS: Record<string, string> = {
   ending: '합니다체가 아닌 문장이 있습니다',
   banned: '금칙어(전망·예상 등)가 있습니다',
   number: '서버가 계산하지 않은 숫자가 있습니다',
-  direction: '격차 방향과 어긋나는 표현이 있습니다',
+  direction: '차이의 방향과 어긋나는 표현이 있습니다',
   collection: '수집 건수 문구가 있습니다',
 };
 
@@ -356,8 +341,8 @@ export function gapWho(row: Pick<ExecGapRow, 'competitor'>): string {
 
 /** 등록·미등록 축 안내 한 줄 (coverage) */
 export function coverageLine(c: { registered: readonly string[]; missing: readonly string[]; asOf: string | null }): string {
-  const reg = c.registered.length > 0 ? `우리 위치 등록 ${c.registered.length}개 축(${c.registered.join(', ')})` : '우리 위치가 등록된 축 없음';
-  const miss = c.missing.length > 0 ? `미등록 ${c.missing.length}개 축(${c.missing.join(', ')})` : '미등록 축 없음';
+  const reg = c.registered.length > 0 ? `우리 수치 등록 ${c.registered.length}개 항목(${c.registered.join(', ')})` : '우리 수치가 등록된 항목 없음';
+  const miss = c.missing.length > 0 ? `미등록 ${c.missing.length}개 항목(${c.missing.join(', ')})` : '미등록 항목 없음';
   return `${reg} · ${miss}${c.asOf ? ` · 기준일 ${c.asOf}` : ''}`;
 }
 
@@ -399,7 +384,7 @@ export function pickAdminWeek(weekStart: string | undefined, drafts: readonly Pi
 /** 발행 확인 다이얼로그 문구 */
 export function publishConfirmModel(a: { changedCount: number; warnings: readonly { path: string; codes: readonly string[] }[]; missingAxes: number }): { title: string; lines: string[]; warnings: string[] } {
   const lines = [`변경한 문장 ${a.changedCount}개를 포함해 지금 발행합니다. 발행하면 일반 사용자와 ARGOS_I 에 공개됩니다.`];
-  if (a.missingAxes > 0) lines.push(`우리 위치가 등록되지 않은 축이 ${a.missingAxes}개 있습니다. 해당 축은 비교하지 않고 "우리 위치 미등록"으로 표시됩니다.`);
+  if (a.missingAxes > 0) lines.push(`우리 쪽 수치가 아직 없는 항목이 ${a.missingAxes}개 있습니다. 해당 항목은 비교하지 않고 "${EXEC_OURS_MISSING_BADGE}"으로 표시됩니다.`);
   const warnings = a.warnings.flatMap((w) => w.codes.map((c) => `${EDIT_WARNING_LABELS[c] ?? c} (${w.path})`));
   return { title: '이 브리프를 발행할까요?', lines, warnings };
 }

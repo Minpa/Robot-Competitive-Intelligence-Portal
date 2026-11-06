@@ -72,6 +72,7 @@ import {
   violatesTextPolicy,
   endsWithPolite,
   type EntityGuardMode,
+  type ExecGapMovement,
   type ExecGapPosition,
   type ExecGuardStats,
 } from './weekly-brief-text-guard.js';
@@ -237,6 +238,7 @@ export interface CandidatePlan {
   /** AI 입력용 사실 (숫자·방향 라벨 포함) */
   facts: Record<string, string | number | null>;
   position: ExecGapPosition | null;
+  movement?: ExecGapMovement | null;
   guard: ExecGuard;
 }
 
@@ -620,7 +622,7 @@ export function buildExecPlan(input: ExecCollected, options: ExecPlanOptions = {
       ruleHeadline: clip(`${d.axisLabel}: ${clean(d.competitor.name, 30)}`, 50),
       ruleLines: [
         { role: 'change', text: `${clean(who, 60)}의 ${d.axisLabel}은 ${d.competitorValue.display}입니다.` },
-        { role: 'why', text: g.ruleLines[g.ruleLines.length - 1] ?? '' },
+        { role: 'why', text: g.ruleLines[0] ?? '' },
       ].filter((l) => l.text) as ExecLine[],
       gapRefs: [d.id],
       evidence: g.evidence.slice(0, 3).map((e) => reg.add(e)),
@@ -636,6 +638,7 @@ export function buildExecPlan(input: ExecCollected, options: ExecPlanOptions = {
         prev: d.prevCompetitorValue,
       },
       position: d.position,
+      movement: d.movement,
       guard: g.guard,
     });
   }
@@ -647,7 +650,7 @@ export function buildExecPlan(input: ExecCollected, options: ExecPlanOptions = {
       kind: 'tech_signal',
       domain: d.domain,
       score: core ? CONCLUSION_BASE_SCORE.tech.core : CONCLUSION_BASE_SCORE.tech.other,
-      ruleHeadline: clip(`${d.label} ${d.direction === 'rising' ? '상승' : '하락'} 신호`, 50),
+      ruleHeadline: clip(`${d.label} ${d.direction === 'rising' ? '증가세' : '감소세'}`, 50),
       ruleLines: t.ruleLines.map((text) => ({ role: 'change' as const, text })),
       gapRefs: [],
       evidence: t.evidence,
@@ -663,7 +666,7 @@ export function buildExecPlan(input: ExecCollected, options: ExecPlanOptions = {
       domain: b.category === 'sourcing' ? 'actuator' : 'production',
       score: b.category === 'pricing' || b.category === 'contract' ? CONCLUSION_BASE_SCORE.business.priced : CONCLUSION_BASE_SCORE.business.other,
       ruleHeadline: clip(`${b.company} ${BUSINESS_CATEGORY_LABEL[b.category]}`, 50),
-      ruleLines: [{ role: 'change', text: `${b.company}의 ${BUSINESS_CATEGORY_LABEL[b.category]} 관련 움직임이 확인되었습니다.` }],
+      ruleLines: [{ role: 'change', text: `${b.company}의 ${BUSINESS_CATEGORY_LABEL[b.category]} 관련 동향이 확인되었습니다.` }],
       gapRefs: [],
       evidence: b.evidence,
       facts: { company: b.company, category: BUSINESS_CATEGORY_LABEL[b.category], facts: b.facts.map((f) => `${f.label} ${f.value}`).join(' / ') || null },
@@ -880,8 +883,8 @@ export function finalizeExec(plan: ExecPlan, aiIn: ExecAiInput | null, now: Date
   const C = asRecord(ai.C);
   const D = asRecord(ai.D) ?? (Array.isArray(ai.D) ? { titles: ai.D } : null);
 
-  const guardLines = (raw: unknown, g: ExecGuard, position: ExecGapPosition | null = null): string[] => {
-    const r = guardExecSentences(raw, { allowed: g.allowed, inputText: g.inputText, entityMode, position });
+  const guardLines = (raw: unknown, g: ExecGuard, position: ExecGapPosition | null = null, movement: ExecGapMovement | null = null): string[] => {
+    const r = guardExecSentences(raw, { allowed: g.allowed, inputText: g.inputText, entityMode, position, movement });
     addStats(tally, r.stats);
     return r.sentences;
   };
@@ -918,7 +921,7 @@ export function finalizeExec(plan: ExecPlan, aiIn: ExecAiInput | null, now: Date
       const lo = asRecord(l);
       const role = typeof lo?.role === 'string' && LINE_ROLES.includes(lo.role as ExecLineRole) ? (lo.role as ExecLineRole) : null;
       if (!lo || !role) continue;
-      for (const s of guardLines(lo.text, cand.guard, cand.position)) lines.push({ role, text: s });
+      for (const s of guardLines(lo.text, cand.guard, cand.position, cand.movement ?? null)) lines.push({ role, text: s });
     }
     const roles = new Set(lines.map((l) => l.role));
     if (lines.length < EXEC_LIMITS.conclusions.minLines || !roles.has('change') || !roles.has('why') || !roles.has('action')) {
@@ -961,10 +964,10 @@ export function finalizeExec(plan: ExecPlan, aiIn: ExecAiInput | null, now: Date
     let lines: string[] = [];
     let by: WeeklyGeneratedBy = 'rule';
     if (gapAi.has(g.ref)) {
-      const picked = guardLines(gapAi.get(g.ref), g.guard, d.position);
+      const picked = guardLines(gapAi.get(g.ref), g.guard, d.position, d.movement);
       const max = d.status === 'compared' ? EXEC_LIMITS.gaps.maxLines : EXEC_LIMITS.gaps.missingMaxLines;
       const min = d.status === 'compared' ? EXEC_LIMITS.gaps.minLines : 1;
-      const mentionsMissing = d.status === 'compared' || picked.some((s) => /미등록|등록되어 있지 않/.test(s));
+      const mentionsMissing = d.status === 'compared' || picked.some((s) => /미등록|등록되어 있지 않|등록되지 않|등록된 수치가 없/.test(s));
       if (picked.length >= min && mentionsMissing) {
         lines = picked.slice(0, max);
         by = 'ai';
@@ -987,7 +990,7 @@ export function finalizeExec(plan: ExecPlan, aiIn: ExecAiInput | null, now: Date
       gapSummaryBy = 'ai';
     }
   } else if (!plan.gaps.positionOk && !plan.noData) {
-    gapSummary = ['비교 기준이 되는 우리 위치 데이터를 불러오지 못했습니다.'];
+    gapSummary = ['비교 기준이 되는 우리 쪽 수치를 불러오지 못했습니다.'];
     gapSummaryBy = 'rule';
   }
 

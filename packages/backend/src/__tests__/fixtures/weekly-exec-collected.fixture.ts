@@ -150,7 +150,7 @@ export function fakeExecAi(plan: ExecPlan, opts: { skip?: Array<'A' | 'B' | 'C' 
         { role: 'change', text: '이번 주 경쟁사 쪽에서 눈에 띄는 변화가 확인되었습니다.' },
         { role: 'why', text: '우리 제품 전략과 직접 맞닿아 있어서 의미가 있습니다.' },
         { role: 'action', text: '관련 사양을 한 번 더 비교해 볼 만합니다.' },
-        { role: 'detail', text: '세부 수치는 아래 격차 표에서 확인할 수 있습니다.' },
+        { role: 'detail', text: '세부 수치는 아래 차이 표에서 확인할 수 있습니다.' },
       ],
       actionKind: 'evaluate',
       refs: c.evidence.slice(0, 1).map((e) => e.ref),
@@ -158,13 +158,13 @@ export function fakeExecAi(plan: ExecPlan, opts: { skip?: Array<'A' | 'B' | 'C' 
     questions: plan.candidates.slice(0, 3).map((c, i) => ({
       text: `${['직접 평가를 시작해 볼까요?', '담당 부서와 접촉해 볼까요?', '다음 회의에서 결정해 볼까요?'][i]}`,
       kind: (['evaluate', 'contact', 'decide'] as const)[i],
-      rationale: ['근거 자료에서 확인되는 변화가 있습니다.'],
+      rationale: ['참고 자료에서 확인되는 변화가 있습니다.'],
       conclusionId: c.ref,
       refs: c.evidence.slice(0, 1).map((e) => e.ref),
     })),
   };
   const B = {
-    summary: plan.gaps.rows.length > 0 ? ['경쟁사와의 격차는 일부 축에서만 새로 확인되었습니다.'] : [],
+    summary: plan.gaps.rows.length > 0 ? ['경쟁사와의 차이는 일부 항목에서만 새로 확인되었습니다.'] : [],
     rows: plan.gaps.rows.map((g) => ({
       id: g.ref,
       lines:
@@ -177,7 +177,7 @@ export function fakeExecAi(plan: ExecPlan, opts: { skip?: Array<'A' | 'B' | 'C' 
   };
   const C = {
     signals: plan.tech.signals.map((t) => ({ id: t.ref, lines: ['최근 4주와 이전 4주를 비교하면 방향이 보입니다.', '한 주의 변동이 아니라 여러 주에 걸친 흐름입니다.'] })),
-    moves: plan.business.moves.map((b) => ({ id: b.ref, lines: ['사업 쪽 움직임이 근거 자료에서 확인됩니다.', '공급망 관점에서 지켜볼 만합니다.'] })),
+    moves: plan.business.moves.map((b) => ({ id: b.ref, lines: ['사업 쪽 움직임이 참고 자료에서 확인됩니다.', '공급망 관점에서 지켜볼 만합니다.'] })),
   };
   const D = {
     papers: plan.papers.map((p, i) => ({ ref: p.ref, frontierScore: i < 4 ? 3 : 1, implication: '핵심 기법이 우리 설계 검토에 참고가 됩니다.' })),

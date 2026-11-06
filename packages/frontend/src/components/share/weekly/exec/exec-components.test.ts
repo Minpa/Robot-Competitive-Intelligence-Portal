@@ -2,7 +2,7 @@
  * v3 화면 컴포넌트 — 서버 렌더(renderToStaticMarkup)로 확인한다.
  *  - 비관리자 DOM 에는 편집 요소가 전혀 없다
  *  - 편집 모드: 글자 수 카운터, 되돌리기, 편집 점 표시, 입력 점검 메시지
- *  - 발행 바(배지 3종, 저장·발행·내리기), 확인 다이얼로그(변경 수·경고·미등록 축), 배너(강조 색)
+ *  - 발행 바(배지 3종, 저장·발행·내리기), 확인 다이얼로그(변경 수·경고·미등록 항목), 배너(강조 색)
  *  - 목차 앵커 유효, 스파크라인에 xmlns/url( 없음, 인쇄 시 편집 UI 숨김 클래스
  */
 import { createElement as h } from 'react';
@@ -57,7 +57,7 @@ describe('non-admin DOM (no edit context)', () => {
   });
 
   it('renders the sections, numbering and the cover without stat cards', () => {
-    for (const t of ['이번 주 결론', '경쟁사 역량 변화와 우리와의 격차', '기술 방향 신호', '사업·공급망 움직임', '리더 판단이 필요한 질문', '근거 자료 (부록)']) expect(out).toContain(t);
+    for (const t of ['이번 주 주요 내용', '경쟁사 동향과 우리 위치', '기술 흐름', '사업·공급망 동향', '함께 검토해 주실 사항', '참고 자료']) expect(out).toContain(t);
     expect(out).toContain('data-testid="reading-time"');
     expect(out).not.toContain('data-testid="weekly-stats"');
     expect(out).toContain('data-testid="exec-oneliner"');
@@ -72,17 +72,22 @@ describe('non-admin DOM (no edit context)', () => {
   });
 
   it('numbers conclusions and questions per item and labels the sentence roles', () => {
-    expect(out).toMatch(/aria-label="결론 1"/);
+    expect(out).toMatch(/aria-label="주요 내용 1"/);
     expect(out).toMatch(/aria-label="질문 1"/);
-    expect(out).toContain('무엇이 바뀌었나');
-    expect(out).toContain('왜 중요한가');
-    expect(out).toContain('그래서 무엇을');
+    expect(out).toContain('변화');
+    expect(out).toContain('의미');
+    expect(out).toContain('제안');
+  });
+
+  it('shows the report wording on screen and none of the old analyst-tool wording', () => {
+    expect(out).toContain('우리 쪽 수치는 아직 등록되지 않았습니다');
+    for (const old of ['이번 주 결론', '격차', '리더 판단이 필요한 질문', '근거 자료', '무엇이 바뀌었나', '우리 위치 미등록', '신호', '관측', '판정']) expect(out, old).not.toContain(old);
   });
 
   it('gap cards show server labels, the unregistered notice, and the coverage line', () => {
-    expect(out).toContain('경쟁사 우위');
+    expect(out).toContain('경쟁사가 앞서 있음');
     expect(out).toContain('data-testid="gap-ours-missing"');
-    expect(out).toContain('우리 위치 미등록');
+    expect(out).toContain('우리 수치 미등록');
     expect(out).toContain('data-testid="gap-coverage"');
   });
 
@@ -112,9 +117,9 @@ describe('non-admin DOM (no edit context)', () => {
 describe('sparse and empty weeks', () => {
   it('sparse: conclusions/gap/tech show their empty-state lines; sections without data are hidden', () => {
     const out = render(h(ExecReport, { brief: SPARSE }));
-    expect(out).toContain('이번 주 새로 판단이 필요한 변화는 확인되지 않았습니다');
-    expect(out).toContain('비교 기준이 되는 우리 위치 데이터를 불러오지 못했습니다');
-    expect(out).toContain('뚜렷한 방향 변화는 확인되지 않았습니다');
+    expect(out).toContain('이번 주에는 특별히 말씀드릴 변화가 없었습니다');
+    expect(out).toContain('비교 기준이 되는 우리 쪽 수치를 불러오지 못했습니다');
+    expect(out).toContain('이번 주에는 뚜렷한 기술 흐름의 변화가 없었습니다');
     expect(out).not.toContain('id="sec-questions"');
     expect(out).not.toContain('id="sec-business"');
   });
@@ -251,10 +256,10 @@ describe('PublishDialog', () => {
     expect(out).toContain('role="dialog"');
     expect(out).toContain('aria-modal="true"');
     expect(out).toContain('변경한 문장 4개');
-    expect(out).toContain('우리 위치가 등록되지 않은 축이 12개');
+    expect(out).toContain('우리 쪽 수치가 아직 없는 항목이 12개');
     expect(out).toContain('가드 경고 2건');
     expect(out).toContain('합니다체가 아닌 문장이 있습니다');
-    expect(out).toContain('격차 방향과 어긋나는 표현이 있습니다');
+    expect(out).toContain('차이의 방향과 어긋나는 표현이 있습니다');
     expect(out).toContain('취소');
   });
 });

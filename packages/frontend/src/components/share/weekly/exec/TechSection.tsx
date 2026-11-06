@@ -17,7 +17,7 @@ export function TechSignalCard({ s, index }: { s: ExecTechSignal; index: number 
   return (
     <li className={`${CARD_CLASS} exec-signal`} data-testid="tech-signal" data-direction={s.direction}>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <span className="text-[22px] font-black leading-none" aria-label={`신호 ${index + 1}`}>
+        <span className="text-[22px] font-black leading-none" aria-label={`흐름 ${index + 1}`}>
           {index + 1}
         </span>
         <div className="min-w-0 flex-1">

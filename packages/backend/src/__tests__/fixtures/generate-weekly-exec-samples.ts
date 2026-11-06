@@ -48,7 +48,7 @@ export async function generateExecSamples(): Promise<Record<ExecSampleName, Week
   return {
     // 모든 섹션이 가득 찬 주
     full: await build(makeExecCollectedFull(), { rich: true }, { prev: '2026-10-12', next: null }),
-    // 격차 호출(B)이 실패해 격차 서술만 규칙 문장인 partial
+    // 경쟁사 동향 호출(B)이 실패해 차이 서술만 규칙 문장인 partial
     partial: await build(makeExecCollectedFull(), { rich: true, fail: { B: 'throw' } }, { prev: '2026-10-12', next: '2026-10-26' }),
     // 영상 3건뿐이고 우리 위치 조회가 실패한 희소한 주
     sparse: await build(makeExecCollectedSparse(), { rich: true }, { prev: null, next: null }),

@@ -148,7 +148,7 @@ describe('gap drafts', () => {
     expect(d.status).toBe('compared');
     expect(d.position).toBe('competitor_ahead');
     expect(d.movement).toBe('first_seen');
-    expect(d.labelKo).toEqual({ position: '경쟁사 우위', movement: '첫 관측' });
+    expect(d.labelKo).toEqual({ position: '경쟁사가 앞서 있음', movement: '이번 주 처음 확인' });
     expect(d.diff).toEqual({ abs: 6, pct: 60 });
     expect(d.ourRef).toBe('CLOiD');
     expect(d.id).toBe('gap:fig:hand_dof');

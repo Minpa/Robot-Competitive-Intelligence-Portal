@@ -8,7 +8,7 @@ import type { WeeklyBriefEditor } from '../useWeeklyBriefEdit';
 const BTN =
   'inline-flex items-center gap-1.5 px-3 py-2 text-[12.5px] font-semibold border transition-colors disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-white/80';
 
-/** 발행 확인 다이얼로그 — 변경 문장 수, 가드 경고 목록, 우리 위치 미등록 축 안내 */
+/** 발행 확인 다이얼로그 — 변경 문장 수, 가드 경고 목록, 우리 수치 미등록 항목 안내 */
 export function PublishDialog({
   open,
   onCancel,

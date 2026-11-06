@@ -1,5 +1,5 @@
 /**
- * v3 순수 로직 — 섹션 계획·목차·앵커(죽은 앵커 없음), 읽기 시간, 번호, 빈 상태, 격차 라벨, 스파크라인, 편집 경로·점검, 배너·배지
+ * v3 순수 로직 — 섹션 계획·목차·앵커(죽은 앵커 없음), 읽기 시간, 번호, 빈 상태, 차이 라벨, 스파크라인, 편집 경로·점검, 배너·배지
  */
 import { describe, expect, it } from 'vitest';
 import {
@@ -83,7 +83,7 @@ describe('planExecSections / buildExecToc', () => {
   });
 
   it('section titles match the executive structure', () => {
-    expect(planExecSections(F).map((x) => x.title)).toEqual(['이번 주 결론', '경쟁사 역량 변화와 우리와의 격차', '기술 방향 신호', '사업·공급망 움직임', '리더 판단이 필요한 질문', '근거 자료 (부록)']);
+    expect(planExecSections(F).map((x) => x.title)).toEqual(['이번 주 주요 내용', '경쟁사 동향과 우리 위치', '기술 흐름', '사업·공급망 동향', '함께 검토해 주실 사항', '참고 자료']);
   });
 });
 
@@ -108,14 +108,14 @@ describe('gap labels', () => {
   const rows = F.gaps.rows;
   it('uses the server-fixed labels and never reverses them', () => {
     const compared = rows.find((r) => r.status === 'compared' && r.position === 'competitor_ahead')!;
-    expect(gapPositionBadge(compared)).toBe('경쟁사 우위');
+    expect(gapPositionBadge(compared)).toBe('경쟁사가 앞서 있음');
     expect(gapTone(compared)).toBe('ahead');
     expect(gapMovementBadge(compared)).toBe(compared.labelKo.movement);
   });
 
-  it('shows "우리 위치 미등록" and no movement badge for ours_missing rows', () => {
+  it('shows "우리 수치 미등록" and no movement badge for ours_missing rows', () => {
     const missing = rows.find((r) => r.status === 'ours_missing')!;
-    expect(gapPositionBadge(missing)).toBe('우리 위치 미등록');
+    expect(gapPositionBadge(missing)).toBe('우리 수치 미등록');
     expect(gapTone(missing)).toBe('missing');
     expect(gapMovementBadge(missing)).toBe('');
     expect(formatGapDiff(missing)).toBe('');
@@ -133,7 +133,7 @@ describe('gap labels', () => {
     const line = coverageLine(F.gaps.coverage);
     expect(line).toContain('미등록');
     expect(line).toContain('핸드 그립력');
-    expect(coverageLine({ registered: [], missing: [], asOf: null })).toBe('우리 위치가 등록된 축 없음 · 미등록 축 없음');
+    expect(coverageLine({ registered: [], missing: [], asOf: null })).toBe('우리 수치가 등록된 항목 없음 · 미등록 항목 없음');
   });
 });
 

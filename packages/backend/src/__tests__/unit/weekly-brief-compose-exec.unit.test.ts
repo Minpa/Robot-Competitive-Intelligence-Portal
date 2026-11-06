@@ -276,7 +276,7 @@ describe('minimum-data rules', () => {
     expect(r.payload.meta.warnings).toEqual(expect.arrayContaining(['position_failed']));
     expect(r.status).toBe('partial');
     expect(r.payload.gaps.rows).toEqual([]);
-    expect(r.payload.gaps.summary).toEqual(['비교 기준이 되는 우리 위치 데이터를 불러오지 못했습니다.']);
+    expect(r.payload.gaps.summary).toEqual(['비교 기준이 되는 우리 쪽 수치를 불러오지 못했습니다.']);
     expect(r.payload.gaps.coverage.registered).toEqual([]);
     expect(r.payload.gaps.coverage.missing.length).toBeGreaterThan(5);
     expect(r.payload.meta.positionSnapshot).toBeNull();

@@ -12,6 +12,8 @@ import {
   endsWithNounForm,
   endsWithPolite,
   findBannedPhraseV3,
+  contradictsMovement,
+  execSentenceProblem,
   guardExecSentences,
   mentionsCollectionCount,
   smallIntegers,
@@ -93,6 +95,40 @@ describe('banned phrases', () => {
     expect(findBannedPhraseV3('확실히 앞서 있습니다.')).toBe('확실히');
     expect(findBannedPhraseV3('전망이 밝습니다.')).toBe('전망');
     expect(findBannedPhraseV3('반드시 확인합니다.', '반드시')).toBeNull();
+  });
+  it('rejects analyst-tool wording (관측·격차·신호·판정) unless the input text has it', () => {
+    expect(findBannedPhraseV3('격차가 커졌습니다.')).toBe('격차');
+    expect(findBannedPhraseV3('새 신호가 보입니다.')).toBe('신호');
+    expect(findBannedPhraseV3('관측되었습니다.')).toBe('관측');
+    expect(findBannedPhraseV3('판정이 났습니다.')).toBe('판정');
+    expect(findBannedPhraseV3('격차 보고서가 공개되었습니다.', '격차 보고서')).toBeNull();
+    expect(findBannedPhraseV3('차이가 줄어드는 중입니다.')).toBeNull();
+  });
+});
+
+describe('contradictsMovement (position x movement)', () => {
+  it.each([
+    ['competitor_ahead', 'competitor_closing', '차이가 줄어드는 중입니다.', true],
+    ['competitor_ahead', 'competitor_closing', '차이가 더 벌어지는 중입니다.', false],
+    ['competitor_ahead', 'competitor_receding', '차이가 더 벌어지고 있습니다.', true],
+    ['competitor_ahead', 'competitor_receding', '차이가 줄어드는 중입니다.', false],
+    ['we_ahead', 'competitor_closing', '우리가 더 앞서는 중입니다.', true],
+    ['we_ahead', 'competitor_closing', '경쟁사가 따라오는 중입니다.', false],
+    ['we_ahead', 'competitor_receding', '경쟁사가 따라오는 중입니다.', true],
+    ['we_ahead', 'competitor_receding', '우리가 더 앞서는 중입니다.', false],
+    ['parity', 'competitor_closing', '우리 쪽으로 기우는 중입니다.', true],
+    ['parity', 'competitor_closing', '경쟁사 쪽으로 기우는 중입니다.', false],
+    ['parity', 'competitor_receding', '경쟁사 쪽으로 기우는 중입니다.', true],
+    ['parity', 'competitor_receding', '우리 쪽으로 기우는 중입니다.', false],
+    ['competitor_ahead', 'steady', '차이가 줄어드는 중입니다.', true],
+    ['competitor_ahead', 'first_seen', '차이가 줄어드는 중입니다.', false],
+  ] as const)('%s / %s: "%s" -> %s', (position, movement, sentence, bad) => {
+    expect(contradictsMovement(sentence, position, movement)).toBe(bad);
+    expect(execSentenceProblem(sentence, { allowed: new Set(), position, movement }, null) === 'direction').toBe(bad);
+  });
+  it('does nothing without a position or movement', () => {
+    expect(contradictsMovement('차이가 줄어드는 중입니다.', null, 'competitor_closing')).toBe(false);
+    expect(contradictsMovement('차이가 줄어드는 중입니다.', 'competitor_ahead', null)).toBe(false);
   });
 });
 

@@ -4,7 +4,7 @@ import { domainLabel } from '@/lib/weekly-brief-format';
 import { Badge, CARD_CLASS, EvidenceChips } from '../report/shared';
 import { EditableLine } from './EditableLine';
 
-/** 줄 목록 — change/why/action 의 첫 줄에만 역할 라벨(무엇이 바뀌었나, 왜 중요한가, 그래서 무엇을)을 붙인다 */
+/** 줄 목록 — change/why/action 의 첫 줄에만 역할 라벨(변화, 의미, 제안)을 붙인다 */
 function ConclusionLines({ c }: { c: ExecConclusion }) {
   const seen = new Set<ExecLine['role']>();
   return (
@@ -42,7 +42,7 @@ export function ConclusionsSection({ conclusions }: { conclusions: readonly Exec
         return (
           <li key={c.id} className={`${CARD_CLASS} exec-conclusion`} data-testid="conclusion">
             <div className="flex items-start gap-3">
-              <span className="text-[26px] font-black leading-none text-poster-fg" aria-label={`결론 ${i + 1}`}>
+              <span className="text-[26px] font-black leading-none text-poster-fg" aria-label={`주요 내용 ${i + 1}`}>
                 {i + 1}
               </span>
               <div className="min-w-0 flex-1">

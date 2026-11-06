@@ -135,13 +135,25 @@ describe('prompt content and limits', () => {
     expect(EXEC_SYSTEM_PROMPTS.B).toContain('미등록');
   });
 
-  it('gap packets pass the server labels and say "우리 위치 미등록" instead of a number', () => {
+  it('prompts carry the headline rule, the jargon ban with alternatives, and the new wording', () => {
+    expect(EXEC_SYSTEM_PROMPTS.A).toContain('BrainCo가 21자유도 핸드 Revo 3를 공개했습니다');
+    expect(EXEC_SYSTEM_PROMPTS.A).toContain('50자 이하');
+    for (const call of ['A', 'B', 'C'] as const) {
+      expect(EXEC_SYSTEM_PROMPTS[call]).toContain('"관측" "격차" "신호" "판정"');
+      expect(EXEC_SYSTEM_PROMPTS[call]).toContain('"확인됐습니다" "차이" "흐름" "보입니다"');
+    }
+    expect(EXEC_SYSTEM_PROMPTS.A).toContain('change(변화), why(우리에게 주는 의미), action(제안');
+    const all = Object.values(EXEC_SYSTEM_PROMPTS).join('\n');
+    for (const old of ['이번 주 결론', '리더 판단이 필요한 질문', '근거 자료', '무엇이 바뀌었나', '우리 위치 미등록']) expect(all).not.toContain(old);
+  });
+
+  it('gap packets pass the server labels and say "우리 수치 미등록" instead of a number', () => {
     const p = JSON.parse(buildExecPrompt('B', fullPlan()).user);
     const compared = p.gaps.find((g: any) => g.status === 'compared');
     const missing = p.gaps.find((g: any) => g.status === 'ours_missing');
-    expect(compared.position).toMatch(/경쟁사 우위|비슷|우리 우위/);
+    expect(compared.position).toMatch(/경쟁사가 앞서 있음|비슷한 수준|우리가 앞서 있음/);
     expect(compared.movement).toBeTruthy();
-    expect(missing.ourValue).toBe('우리 위치 미등록');
+    expect(missing.ourValue).toBe('우리 수치 미등록');
     expect(missing.position).toBeNull();
   });
 

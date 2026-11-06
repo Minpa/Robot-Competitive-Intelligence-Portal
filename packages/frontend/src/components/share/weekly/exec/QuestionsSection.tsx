@@ -3,7 +3,7 @@ import { EXEC_QUESTION_KIND_LABELS, editPath } from '@/lib/weekly-brief-exec';
 import { Badge, CARD_CLASS, EvidenceChips } from '../report/shared';
 import { EditableLine } from './EditableLine';
 
-/** 리더 판단이 필요한 질문 — 번호, 질문(~까요?), 근거 문장, 근거 링크 */
+/** 함께 검토해 주실 사항 — 번호, 질문(~까요?), 근거 문장, 근거 링크 */
 export function QuestionsSection({ questions }: { questions: readonly ExecQuestion[] }) {
   return (
     <ol className="m-0 list-none p-0" data-testid="questions">
