@@ -23,6 +23,8 @@ import { runTechTrendPipeline, DEFAULT_PIPELINE_CRON, PIPELINE_TASK_NAME, isStar
 import { runWeeklyBrief, DEFAULT_WEEKLY_BRIEF_CRON, WEEKLY_BRIEF_TASK_NAME } from './weekly-brief.service.js';
 import { runArgosIExport, setUpstreamBusyProvider } from './argos-i-export.service.js';
 import { ARGOS_I_EXPORT_TASK_NAME, DEFAULT_ARGOS_I_EXPORT_CRON } from './argos-i-export-config.js';
+import { getDataCoverageService } from './data-coverage.service.js';
+import { DATA_COVERAGE_SNAPSHOT_TASK_NAME, DEFAULT_DATA_COVERAGE_SNAPSHOT_CRON } from './data-coverage-snapshot.js';
 
 // ── Types ──
 
@@ -72,6 +74,7 @@ const SCHEDULE_VIDEO_TAGGING = process.env.CRON_VIDEO_TAGGING || '0 4 * * *'; //
 const SCHEDULE_TECH_TREND_PIPELINE = process.env.CRON_TECH_TREND_PIPELINE || DEFAULT_PIPELINE_CRON; // 매일 05:30 KST (태깅 체인 이후)
 const SCHEDULE_WEEKLY_BRIEF = process.env.CRON_WEEKLY_BRIEF || DEFAULT_WEEKLY_BRIEF_CRON; // 매주 월 08:00 KST (직전 월~일 주간 브리프)
 const SCHEDULE_ARGOS_I_EXPORT = process.env.CRON_ARGOS_I_EXPORT || DEFAULT_ARGOS_I_EXPORT_CRON; // 매일 07:00 KST (ARGOS_I 일일 스냅샷 번들)
+const SCHEDULE_DATA_COVERAGE_SNAPSHOT = process.env.CRON_DATA_COVERAGE_SNAPSHOT || DEFAULT_DATA_COVERAGE_SNAPSHOT_CRON; // 매일 06:30 KST (데이터 커버리지 일일 스냅샷)
 
 class SchedulerService {
   private tasks: Map<string, ScheduledTask> = new Map();
@@ -104,7 +107,10 @@ class SchedulerService {
       await runArgosIExport({ reason: 'cron' });
     });
 
-    console.log('[Scheduler] Initialized with 7 tasks');
+    // 데이터 커버리지 일일 스냅샷(읽기 전용 집계 → data_migrations 한 행). DISABLE_DATA_COVERAGE_SNAPSHOT=true 면 태스크는 등록되나 실행 시 아무것도 하지 않는다
+    this.registerTask(DATA_COVERAGE_SNAPSHOT_TASK_NAME, '데이터 커버리지 일일 스냅샷', SCHEDULE_DATA_COVERAGE_SNAPSHOT, () => this.runDataCoverageSnapshot());
+
+    console.log('[Scheduler] Initialized with 8 tasks');
   }
 
   private registerTask(name: string, label: string, cronExpr: string, handler: () => Promise<void>) {
@@ -160,6 +166,7 @@ class SchedulerService {
           case PIPELINE_TASK_NAME: await runTechTrendPipeline({ reason }); break;
           case WEEKLY_BRIEF_TASK_NAME: await runWeeklyBrief({ reason }); break;
           case ARGOS_I_EXPORT_TASK_NAME: await runArgosIExport({ reason }); break;
+          case DATA_COVERAGE_SNAPSHOT_TASK_NAME: await this.runDataCoverageSnapshot(); break;
         }
         task.lastRun = new Date();
       } catch (err) {
@@ -244,6 +251,11 @@ class SchedulerService {
 
   private async runScoring() {
     await scoringPipelineService.runFullPipeline('scheduler');
+  }
+
+  private async runDataCoverageSnapshot() {
+    const r = await getDataCoverageService().runSnapshotTask();
+    console.log(`[DataCoverage] snapshot task: ${r.outcome}`);
   }
 
   private async runAudit() {

@@ -2,6 +2,7 @@ import Parser from 'rss-parser';
 import { createHash } from 'crypto';
 import { sql, inArray } from 'drizzle-orm';
 import { getDb, articles } from '../db/index.js';
+import { isQuotaExhausted } from './topic-video-search.service.js';
 
 /**
  * 유튜브 공식 채널 데모 영상 수집기
@@ -84,6 +85,20 @@ interface CollectResult {
   videosUpdated: number;
   videosCleaned: number;
   errors: string[];
+  /** 채널별 처리 상태(수집 실행 요약용). skipped = channelId 미해석 또는 피드 처리 실패 */
+  channels: ChannelRun[];
+  /** 채널 해석 폴백 등으로 호출한 search.list 횟수 */
+  searchCalls: number;
+  /** API 쿼터 소진 감지 여부 */
+  quotaExhausted: boolean;
+}
+
+export interface ChannelRun {
+  name: string;
+  official: boolean;
+  status: 'ok' | 'skipped';
+  fetched: number;
+  inserted: number;
 }
 
 type YtFeedItem = {
@@ -125,6 +140,8 @@ class YoutubeCollectorService {
   });
 
   private resolvedIds = new Map<string, string>(); // handle → channelId 캐시
+  /** collect() 실행 단위 카운터 (수집 로직과 무관한 관측용) */
+  private runStats = { searchCalls: 0, quotaExhausted: false };
 
   /**
    * @handle → channelId 해석 (YouTube Data API v3, 공식 API)
@@ -157,8 +174,12 @@ class YoutubeCollectorService {
     // 폴백: 채널명 검색 (핸들 오기 대응) — 정확히 일치하는 제목 우선
     try {
       const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&maxResults=3&q=${encodeURIComponent(channel.channelName)}&key=${apiKey}`;
+      this.runStats.searchCalls++;
       const res = await fetch(url);
-      if (!res.ok) return null;
+      if (!res.ok) {
+        if (await isQuotaExhausted(res)) this.runStats.quotaExhausted = true;
+        return null;
+      }
       const data = (await res.json()) as {
         items?: { id?: { channelId?: string }; snippet?: { channelTitle?: string } }[];
       };
@@ -208,7 +229,10 @@ class YoutubeCollectorService {
         `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${uploadsPlaylist}&key=${apiKey}` +
         (pageToken ? `&pageToken=${pageToken}` : '');
       const res = await fetch(url);
-      if (!res.ok) break;
+      if (!res.ok) {
+        if (await isQuotaExhausted(res)) this.runStats.quotaExhausted = true;
+        break;
+      }
       const data = (await res.json()) as {
         nextPageToken?: string;
         items?: { snippet?: { title?: string; description?: string; publishedAt?: string; resourceId?: { videoId?: string } } }[];
@@ -282,9 +306,17 @@ class YoutubeCollectorService {
       videosUpdated: 0,
       videosCleaned: 0,
       errors: [],
+      channels: [],
+      searchCalls: 0,
+      quotaExhausted: false,
     };
+    this.runStats = { searchCalls: 0, quotaExhausted: false };
 
     for (const channel of YOUTUBE_CHANNELS) {
+      const foundBefore = result.videosFound;
+      const insertedBefore = result.videosInserted;
+      const channelRun: ChannelRun = { name: channel.channelName, official: true, status: 'skipped', fetched: 0, inserted: 0 };
+      result.channels.push(channelRun);
       const channelId = channel.channelId ?? (await this.resolveChannelId(channel));
       if (!channelId) {
         result.channelsSkipped++;
@@ -329,6 +361,7 @@ class YoutubeCollectorService {
           `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`
         );
         result.channelsProcessed++;
+        channelRun.status = 'ok';
 
         for (const item of feed.items ?? []) {
           const videoId = this.extractVideoId(item as YtFeedItem & { ytVideoId?: string });
@@ -391,7 +424,11 @@ class YoutubeCollectorService {
       } catch (err) {
         result.errors.push(`${channel.channelName}: ${(err as Error).message}`);
       }
+      channelRun.fetched = result.videosFound - foundBefore;
+      channelRun.inserted = result.videosInserted - insertedBefore;
     }
+    result.searchCalls = this.runStats.searchCalls;
+    result.quotaExhausted = this.runStats.quotaExhausted;
 
     console.log(
       `[YouTube] channels ${result.channelsProcessed} ok / ${result.channelsSkipped} skipped, ` +

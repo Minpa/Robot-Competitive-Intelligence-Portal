@@ -19,9 +19,12 @@ import { LLM_INPUT_LIMITS, buildUserMessage, fitItemsToBudget, sanitizeExternalT
 import { applyRule, parseJsonStrict } from './llm-output-guard.js';
 import { composeSystemPrompt, JSON_ONLY_NOTICE, NO_URL_NOTICE } from './llm-guard-prompts.js';
 import { createRejectCollector, recordInputGuard, recordOutputReject } from './llm-guard-metrics.js';
+import { aiUsageService } from './ai-usage.service.js';
 
 const PAPER_SUMMARY_MODEL = process.env.PAPER_SUMMARY_MODEL || 'claude-haiku-4-5-20251001';
 const BATCH_SIZE = 20;
+/** 일일 요약 처리 상한 (스케줄러 기본 호출 한도). 데이터 커버리지 백로그 소진 예상이 같은 값을 쓴다. */
+export const PAPER_SUMMARY_DAILY_LIMIT = 300;
 const POINT = 'paper_summary';
 /** 한 요청에 들어가는 데이터 블록 직렬화 길이 상한 */
 const PROMPT_BUDGET = 24_000;
@@ -91,6 +94,9 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
         system,
         messages: [{ role: 'user', content: buildUserMessage('paper_summary', fitted.items) }],
       });
+      aiUsageService
+        .logUsage({ provider: 'claude', model: PAPER_SUMMARY_MODEL, webSearch: false, inputTokens: response.usage?.input_tokens ?? 0, outputTokens: response.usage?.output_tokens ?? 0, query: '[paper-summary] batch' })
+        .catch(() => {});
       const text = response.content
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')
         .map((b) => b.text)
@@ -118,7 +124,7 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
   }
 
   /** 미요약 논문 요약 실행 */
-  async run(limit = 300): Promise<{ summarized: number; method: 'llm' | 'none' }> {
+  async run(limit = PAPER_SUMMARY_DAILY_LIMIT): Promise<{ summarized: number; method: 'llm' | 'none' }> {
     if (!this.client) return { summarized: 0, method: 'none' };
 
     const pending = await this.getPending(limit);

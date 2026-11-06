@@ -12,6 +12,7 @@ import { youtubeCollectorService } from './services/youtube-collector.service.js
 import { eventVideoSearchService } from './services/event-video-search.service.js';
 import { topicVideoSearchService, MAX_PAGES } from './services/topic-video-search.service.js';
 import type { TopicDomain } from './services/topic-video-relevance.js';
+import { trackCollector } from './services/collect-run-summary.service.js';
 import type { CrawlJobConfig, TargetUrl } from './types.js';
 
 const fastify = Fastify({ 
@@ -289,37 +290,37 @@ const start = async () => {
       cron.schedule(schedule, async () => {
         console.log('[LegalCollector] Daily collection starting...');
         try {
-          const result = await legalDataCollector.collectAll();
+          const result = await trackCollector('legal', 'cron', () => legalDataCollector.collectAll());
           console.log('[LegalCollector] Daily collection done:', JSON.stringify(result));
         } catch (err) {
           console.error('[LegalCollector] Daily collection failed:', err);
         }
         if (process.env.DISABLE_ARXIV_HAND !== 'true') {
           try {
-            await arxivHandCollector.collectDaily(); // 핸드 전용 arXiv 검색 증분 (Q1~Q4, 최신 100건씩)
+            await trackCollector('arxivHand', 'cron', () => arxivHandCollector.collectDaily()); // 핸드 전용 arXiv 검색 증분 (Q1~Q4, 최신 100건씩)
           } catch (err) {
             console.error('[ArxivHand] Daily collection failed:', err);
           }
         }
         if (process.env.DISABLE_ARXIV_ACTUATOR !== 'true') {
           try {
-            await arxivActuatorCollector.collectDaily(); // 액추에이터 arXiv 검색 증분 (Q1~Q4, 최신 100건씩, 레이트리미터 공유)
+            await trackCollector('arxivActuator', 'cron', () => arxivActuatorCollector.collectDaily()); // 액추에이터 arXiv 검색 증분 (Q1~Q4, 최신 100건씩, 레이트리미터 공유)
           } catch (err) {
             console.error('[ArxivActuator] Daily collection failed:', err);
           }
         }
         try {
-          await youtubeCollectorService.collect(); // 공식 채널 데모 영상 (채널 RSS)
+          await trackCollector('youtube', 'cron', () => youtubeCollectorService.collect()); // 공식 채널 데모 영상 (채널 RSS)
         } catch (err) {
           console.error('[YouTube] Daily collection failed:', err);
         }
         try {
-          await eventVideoSearchService.collectAll(); // 이벤트 특집(WRC 2026 등) 검색 수집
+          await trackCollector('eventSearch', 'cron', () => eventVideoSearchService.collectAll()); // 이벤트 특집(WRC 2026 등) 검색 수집
         } catch (err) {
           console.error('[EventSearch] Daily collection failed:', err);
         }
         try {
-          await topicVideoSearchService.collectAll(); // 단위기술 축(hand/rfm/actuator/expo/production) 검색 수집
+          await trackCollector('topicSearch', 'cron', () => topicVideoSearchService.collectAll()); // 단위기술 축(hand/rfm/actuator/expo/production) 검색 수집
         } catch (err) {
           console.error('[TopicSearch] Daily collection failed:', err);
         }
@@ -334,12 +335,11 @@ const start = async () => {
         startupChain = new Promise<void>((resolveChain) => {
           setTimeout(() => {
             console.log('[YouTube] Startup collection starting...');
-            youtubeCollectorService
-              .collect()
+            trackCollector('youtube', 'startup', () => youtubeCollectorService.collect())
               .then((r) => console.log('[YouTube] Startup collection done:', JSON.stringify(r)))
-              .then(() => eventVideoSearchService.collectAll())
+              .then(() => trackCollector('eventSearch', 'startup', () => eventVideoSearchService.collectAll()))
               .then((r) => console.log('[EventSearch] Startup collection done:', JSON.stringify(r)))
-              .then(() => topicVideoSearchService.collectAll())
+              .then(() => trackCollector('topicSearch', 'startup', () => topicVideoSearchService.collectAll()))
               .then((r) => console.log('[TopicSearch] Startup collection done:', JSON.stringify(r)))
               .catch((err) => console.error('[YouTube] Startup collection failed:', err))
               .finally(() => resolveChain());

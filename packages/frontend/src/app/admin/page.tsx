@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { PageHeader, ArgosCard, SectionTitle, PrimaryButton } from '@/components/layout/PageHeader';
 import ArgosIExportCard from '@/components/admin/ArgosIExportCard';
+import DataCoverageCard from '@/components/admin/DataCoverageCard';
 
 interface CollectionResult {
   source: string;
@@ -362,6 +363,9 @@ export default function AdminPage() {
 
         {/* ARGOS_I 연동: 일일 스냅샷 번들 상태 · 지금 생성 (관리자) */}
         <ArgosIExportCard />
+
+        {/* 데이터 커버리지: 수집량·분석률·AI 비용·스펙·품질 현황 (읽기 전용, 관리자) */}
+        <DataCoverageCard />
 
         {/* Public Data Collection */}
         <ArgosCard>

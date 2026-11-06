@@ -1,5 +1,6 @@
 import { createHash } from 'crypto';
 import { getDb, articles } from '../db/index.js';
+import { isQuotaExhausted } from './topic-video-search.service.js';
 
 /**
  * 이벤트 특집(WRC 2026 등) 유튜브 검색 수집기
@@ -35,6 +36,12 @@ interface CollectResult {
   videosSeen: number;
   videosInserted: number;
   errors: string[];
+  /** search.list 호출 수(요청 시도 기준) */
+  searchCalls: number;
+  /** 쿼터 소진 감지 여부 */
+  quotaExhausted: boolean;
+  /** 추정 사용 단위(search.list 호출당 100 units) */
+  estimatedQuotaUnits: number;
 }
 
 interface YoutubeSearchItem {
@@ -67,8 +74,10 @@ class EventVideoSearchService {
       `&order=date&maxResults=${event.maxResultsPerQuery}&q=${encodeURIComponent(query)}` +
       `&publishedAfter=${encodeURIComponent(event.publishedAfter)}&key=${apiKey}`;
 
+    result.searchCalls++;
     const res = await fetch(url);
     if (!res.ok) {
+      if (await isQuotaExhausted(res)) result.quotaExhausted = true;
       throw new Error(`YouTube search API error ${res.status} for query "${query}"`);
     }
     const data = (await res.json()) as { items?: YoutubeSearchItem[] };
@@ -116,7 +125,7 @@ class EventVideoSearchService {
   }
 
   async collectAll(): Promise<CollectResult> {
-    const result: CollectResult = { queriesRun: 0, videosSeen: 0, videosInserted: 0, errors: [] };
+    const result: CollectResult = { queriesRun: 0, videosSeen: 0, videosInserted: 0, errors: [], searchCalls: 0, quotaExhausted: false, estimatedQuotaUnits: 0 };
 
     const apiKey = process.env.YOUTUBE_API_KEY;
     if (!apiKey) return result;
@@ -144,6 +153,7 @@ class EventVideoSearchService {
       );
     }
 
+    result.estimatedQuotaUnits = result.searchCalls * 100;
     return result;
   }
 }

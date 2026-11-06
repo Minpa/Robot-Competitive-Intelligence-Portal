@@ -40,6 +40,7 @@ import { ingestRoutes } from './ingest.js';
 import { actuatorMapRoutes } from './actuator-map.js';
 import { weeklyBriefRoutes, weeklyBriefAdminRoutes } from './weekly-brief.js';
 import { argosIRoutes, argosIAdminRoutes } from './argos-i.js';
+import { dataCoverageAdminRoutes } from './data-coverage.js';
 
 export async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(companyRoutes, { prefix: '/api/companies' });
@@ -127,4 +128,6 @@ export async function registerRoutes(fastify: FastifyInstance) {
   // ARGOS_I 일일 스냅샷 — 토큰(Bearer) 인증 pull API / 관리자 수동 생성·상태(adminOnly). 기존 /api/export(엑셀·PPT)와 별개
   fastify.register(argosIRoutes, { prefix: '/api/argos-i' });
   fastify.register(argosIAdminRoutes, { prefix: '/api/admin/argos-i' });
+  // 데이터 커버리지 현황 — 읽기 전용 집계(adminOnly). ops/status 와 별개
+  fastify.register(dataCoverageAdminRoutes, { prefix: '/api/admin/data-coverage' });
 }

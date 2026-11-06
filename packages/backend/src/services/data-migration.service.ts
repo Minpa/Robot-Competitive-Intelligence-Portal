@@ -5,6 +5,8 @@
  *  - `actuator-update:<sha12>`        : 액추에이터 데이터 적용 이력 (영구 보존, 한 번 쓰면 수정하지 않음)
  *  - `pipeline:last`                  : 일일 분석/분류 파이프라인 마지막 실행 결과 (upsert 덮어쓰기)
  *  - `arxiv-backfill:actuator:12m`    : 크롤러가 쓰는 actuator arXiv 12개월 백필 완료 마커
+ *  - `coverage:YYYY-MM-DD`            : 데이터 커버리지 일일 스냅샷 (KST 날짜, 하루 한 값)
+ *  - `collect:last`                   : 크롤러가 쓰는 수집기별 마지막 실행 요약 (수집기 항목 단위 병합)
  * 정식 생성 경로는 런타임 ensureTable() (CREATE TABLE IF NOT EXISTS) — drizzle/0027 과 동일 DDL.
  */
 

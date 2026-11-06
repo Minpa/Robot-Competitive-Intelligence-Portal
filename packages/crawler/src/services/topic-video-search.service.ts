@@ -96,6 +96,12 @@ export interface CollectResult {
   videosMerged: number;
   perDomain: Record<TopicDomain, DomainStats>;
   errors: string[];
+  /** search.list 호출 수(요청 시도 기준) */
+  searchCalls: number;
+  /** 쿼터 소진 감지 여부 */
+  quotaExhausted: boolean;
+  /** 추정 사용 단위(search.list 호출당 100 units) */
+  estimatedQuotaUnits: number;
 }
 
 export interface CollectOptions {
@@ -156,7 +162,7 @@ export class QuotaExhaustedError extends Error {
 }
 
 /** 403 은 quotaExceeded/dailyLimitExceeded/rateLimitExceeded 사유일 때만, 429 는 무조건 쿼터 소진으로 본다 */
-async function isQuotaExhausted(res: Response): Promise<boolean> {
+export async function isQuotaExhausted(res: Response): Promise<boolean> {
   if (res.status === 429) return true;
   if (res.status !== 403) return false;
   try {
@@ -198,6 +204,7 @@ class TopicVideoSearchService {
         `&publishedAfter=${encodeURIComponent(publishedAfter)}&key=${apiKey}` +
         (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '');
 
+      result.searchCalls++;
       const res = await fetch(url);
       if (!res.ok) {
         if (await isQuotaExhausted(res)) throw new QuotaExhaustedError(res.status, query);
@@ -315,6 +322,9 @@ class TopicVideoSearchService {
         production: emptyStats(),
       },
       errors: [],
+      searchCalls: 0,
+      quotaExhausted: false,
+      estimatedQuotaUnits: 0,
     };
 
     const apiKey = process.env.YOUTUBE_API_KEY;
@@ -347,6 +357,7 @@ class TopicVideoSearchService {
           if (err instanceof QuotaExhaustedError) {
             // 쿼터 소진 — 남은 쿼리는 전부 실패하므로 조기 중단 (사유 1줄만 기록)
             quotaExhausted = true;
+            result.quotaExhausted = true;
             result.errors.push(`${topic.domain} "${query}": ${err.message} — aborting remaining queries`);
             console.warn('[TopicSearch] quota exhausted — aborting remaining queries');
             break;
@@ -361,6 +372,7 @@ class TopicVideoSearchService {
       );
     }
 
+    result.estimatedQuotaUnits = result.searchCalls * SEARCH_LIST_COST_UNITS;
     console.log(
       `[TopicSearch] queries ${result.queriesRun}, videos seen ${result.videosSeen}, inserted ${result.videosInserted}, merged ${result.videosMerged}, errors ${result.errors.length}`
     );

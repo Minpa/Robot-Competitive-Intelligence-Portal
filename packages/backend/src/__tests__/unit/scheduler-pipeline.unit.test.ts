@@ -8,6 +8,7 @@ const h = vi.hoisted(() => ({
   runPipeline: vi.fn(),
   runWeeklyBrief: vi.fn(),
   runArgosIExport: vi.fn(),
+  runCoverageSnapshot: vi.fn(),
   setUpstreamBusyProvider: vi.fn(),
   chainRunning: vi.fn(),
 }));
@@ -40,6 +41,9 @@ vi.mock('../../services/argos-i-export.service.js', () => ({
   runArgosIExport: h.runArgosIExport,
   setUpstreamBusyProvider: h.setUpstreamBusyProvider,
 }));
+vi.mock('../../services/data-coverage.service.js', () => ({
+  getDataCoverageService: () => ({ runSnapshotTask: h.runCoverageSnapshot }),
+}));
 
 async function load() {
   vi.resetModules();
@@ -54,27 +58,29 @@ beforeEach(() => {
   h.runPipeline.mockReset().mockResolvedValue(null);
   h.runWeeklyBrief.mockReset().mockResolvedValue({ outcome: 'created' });
   h.runArgosIExport.mockReset().mockResolvedValue({ outcome: 'created' });
+  h.runCoverageSnapshot.mockReset().mockResolvedValue({ outcome: 'saved' });
   h.setUpstreamBusyProvider.mockReset();
   h.chainRunning.mockReset().mockReturnValue(false);
   delete process.env.CRON_TECH_TREND_PIPELINE;
   delete process.env.CRON_WEEKLY_BRIEF;
   delete process.env.CRON_ARGOS_I_EXPORT;
+  delete process.env.CRON_DATA_COVERAGE_SNAPSHOT;
   vi.spyOn(console, 'log').mockImplementation(() => {});
 });
 afterEach(() => vi.restoreAllMocks());
 
 describe('scheduler: tech-trend-pipeline', () => {
-  it('registers 7 tasks; pipeline defaults to 30 5 * * * in KST; weekly brief 0 8 * * 1; argos-i-export 0 7 * * *; existing 4 unchanged', async () => {
+  it('registers 8 tasks; pipeline defaults to 30 5 * * * in KST; weekly brief 0 8 * * 1; argos-i-export 0 7 * * *; data-coverage-snapshot 30 6 * * *; existing 4 unchanged', async () => {
     const log = vi.spyOn(console, 'log');
     const s = await load();
     s.init();
     const status = s.getStatus().tasks;
-    expect(status.map((t) => t.name)).toEqual(['scoring', 'audit', 'briefing', 'video-tagging', 'tech-trend-pipeline', 'weekly-brief', 'argos-i-export']);
+    expect(status.map((t) => t.name)).toEqual(['scoring', 'audit', 'briefing', 'video-tagging', 'tech-trend-pipeline', 'weekly-brief', 'argos-i-export', 'data-coverage-snapshot']);
     expect(Object.fromEntries(status.map((t) => [t.name, t.cron]))).toEqual({
       scoring: '0 2 * * 1', audit: '0 3 * * 1', briefing: '0 4 * * 1', 'video-tagging': '0 4 * * *', 'tech-trend-pipeline': '30 5 * * *',
-      'weekly-brief': '0 8 * * 1', 'argos-i-export': '0 7 * * *',
+      'weekly-brief': '0 8 * * 1', 'argos-i-export': '0 7 * * *', 'data-coverage-snapshot': '30 6 * * *',
     });
-    expect(log).toHaveBeenCalledWith('[Scheduler] Initialized with 7 tasks');
+    expect(log).toHaveBeenCalledWith('[Scheduler] Initialized with 8 tasks');
     for (const c of cronCalls()) expect(c.opts).toMatchObject({ timezone: 'Asia/Seoul' });
   });
 
@@ -190,5 +196,23 @@ describe('scheduler: tech-trend-pipeline', () => {
     await vi.waitFor(() => expect(busy()).toBe(true));
     release();
     await vi.waitFor(() => expect(busy()).toBe(false));
+  });
+  it('data-coverage-snapshot: CRON_DATA_COVERAGE_SNAPSHOT overrides the schedule', async () => {
+    process.env.CRON_DATA_COVERAGE_SNAPSHOT = '45 6 * * *';
+    const s = await load();
+    s.init();
+    expect(s.getStatus().tasks.find((t) => t.name === 'data-coverage-snapshot')?.cron).toBe('45 6 * * *');
+  });
+
+  it('data-coverage-snapshot: the cron handler runs the snapshot task in Asia/Seoul; trigger() reaches it', async () => {
+    const s = await load();
+    s.init();
+    const call = cronCalls().find((c) => c.expr === '30 6 * * *')!;
+    expect(call.opts).toMatchObject({ timezone: 'Asia/Seoul' });
+    await call.fn();
+    expect(h.runCoverageSnapshot).toHaveBeenCalledTimes(1);
+    expect(s.isTaskRunning('data-coverage-snapshot')).toBe(false);
+    expect(await s.trigger('data-coverage-snapshot')).toMatchObject({ success: true });
+    await vi.waitFor(() => expect(h.runCoverageSnapshot).toHaveBeenCalledTimes(2));
   });
 });

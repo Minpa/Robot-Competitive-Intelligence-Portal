@@ -23,10 +23,13 @@ import {
 import { applyRule, parseJsonStrict, sanitizeTagList } from './llm-output-guard.js';
 import { composeSystemPrompt, JSON_ONLY_NOTICE, NO_URL_NOTICE } from './llm-guard-prompts.js';
 import { createRejectCollector, recordInputGuard, recordOutputReject } from './llm-guard-metrics.js';
+import { aiUsageService } from './ai-usage.service.js';
 
 // 저비용 반복 태깅 작업이므로 소형 모델을 기본값으로 사용
 const TAGGING_MODEL = process.env.VIDEO_TAGGING_MODEL || 'claude-haiku-4-5-20251001';
 const BATCH_SIZE = 20;
+/** 일일 태깅 처리 상한 (스케줄러 기본 호출 한도). 데이터 커버리지 백로그 소진 예상이 같은 값을 쓴다. */
+export const VIDEO_TAGGING_DAILY_LIMIT = 300;
 const TAG_POINT = 'video_tagging';
 const SUMMARY_POINT = 'video_trend_summary';
 /** 한 요청에 들어가는 데이터 블록 직렬화 길이 상한 (초과하면 뒤쪽 항목부터 줄인다) */
@@ -103,6 +106,20 @@ export class VideoTaggingService {
   private client: Anthropic | null = null;
   private summaryCache: CachedSummary | null = null;
 
+  /** 응답을 받은 호출마다 사용량 1행을 기록한다 (실패해도 본 흐름에 영향 없음) */
+  private logLlmUsage(response: { usage?: { input_tokens?: number; output_tokens?: number } }, query: string): void {
+    aiUsageService
+      .logUsage({
+        provider: 'claude',
+        model: TAGGING_MODEL,
+        webSearch: false,
+        inputTokens: response.usage?.input_tokens ?? 0,
+        outputTokens: response.usage?.output_tokens ?? 0,
+        query,
+      })
+      .catch(() => {});
+  }
+
   /**
    * LLM으로 구조화 요약 생성 — {headline, points[]} JSON 강제, 잘린 응답도 복원.
    * 지시문은 system, 외부 텍스트는 user 의 데이터 블록에만 둔다. 모든 필드는 저장 전 정제하며,
@@ -121,6 +138,7 @@ export class VideoTaggingService {
         system,
         messages: [{ role: 'user', content: buildUserMessage(task, payload) }],
       });
+      this.logLlmUsage(response, '[video-tagging] trend-summary');
       const raw = response.content
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')
         .map((b) => b.text)
@@ -295,6 +313,7 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
         system,
         messages: [{ role: 'user', content: buildUserMessage('video_tagging', fitted.items) }],
       });
+      this.logLlmUsage(response, '[video-tagging] tag-batch');
       const text = response.content
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')
         .map((b) => b.text)
@@ -334,7 +353,7 @@ JSON 배열로만 응답하라. 다른 텍스트 없이:
   }
 
   /** 미태깅 영상 태깅 실행 */
-  async run(limit = 300): Promise<{ tagged: number; method: string }> {
+  async run(limit = VIDEO_TAGGING_DAILY_LIMIT): Promise<{ tagged: number; method: string }> {
     const pending = await this.getPending(limit);
     if (pending.length === 0) return { tagged: 0, method: 'none' };
 

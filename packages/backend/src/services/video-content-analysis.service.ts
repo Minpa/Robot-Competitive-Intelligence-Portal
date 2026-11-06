@@ -28,6 +28,26 @@ const CONCURRENCY = Math.max(1, parseInt(process.env.GEMINI_VIDEO_CONCURRENCY ||
 // 동향 브리핑 목적이므로 최근 게시 영상만 분석/노출 (과거 아카이브 소급 분석 방지)
 const SINCE_DAYS = Math.max(1, parseInt(process.env.GEMINI_VIDEO_SINCE_DAYS || '180', 10));
 
+/**
+ * Gemini 분석 대기(getPending) 범위 설정을 읽기 전용으로 노출한다.
+ * 데이터 커버리지 화면이 같은 값으로 범위 내 건수를 세어 getPending 과 드리프트하지 않게 한다.
+ */
+export function getGeminiScopeConfig(): {
+  domainFilter: readonly string[];
+  sinceDays: number;
+  requireDemoSignal: boolean;
+  maxAttempts: number;
+  batchLimit: number;
+} {
+  return {
+    domainFilter: [...DOMAIN_FILTER],
+    sinceDays: SINCE_DAYS,
+    requireDemoSignal: REQUIRE_DEMO_SIGNAL,
+    maxAttempts: MAX_ATTEMPTS,
+    batchLimit: BATCH_LIMIT,
+  };
+}
+
 // 공개 YouTube watch URL만 허용 (다운로드 없이 fileUri로 그대로 전달)
 export const YOUTUBE_WATCH_URL_RE = /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[\w-]+/i;
 

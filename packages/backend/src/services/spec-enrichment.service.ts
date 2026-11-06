@@ -33,6 +33,7 @@ import { LLM_INPUT_LIMITS, buildUserMessage, fitItemsToBudget, sanitizeExternalT
 import { parseJsonStrict, sanitizeObject, type FieldRule, SPEC_RANGES } from './llm-output-guard.js';
 import { composeSystemPrompt, JSON_ONLY_NOTICE, NO_URL_NOTICE } from './llm-guard-prompts.js';
 import { createRejectCollector, recordInputGuard, recordOutputReject } from './llm-guard-metrics.js';
+import { aiUsageService } from './ai-usage.service.js';
 
 const MODEL = process.env.SPEC_ENRICH_MODEL || 'claude-haiku-4-5-20251001';
 const POINT = 'spec_enrichment';
@@ -222,6 +223,9 @@ JSON 객체 하나만 응답하라. 확인된 필드만 포함. 없으면 {}:
         system,
         messages: [{ role: 'user', content: buildUserMessage('spec_enrichment', { robot: robot.text, evidence }) }],
       });
+      aiUsageService
+        .logUsage({ provider: 'claude', model: MODEL, webSearch: false, inputTokens: response.usage?.input_tokens ?? 0, outputTokens: response.usage?.output_tokens ?? 0, query: '[spec-enrichment] extract' })
+        .catch(() => {});
       const raw = response.content
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')
         .map((b) => b.text)

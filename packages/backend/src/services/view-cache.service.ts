@@ -43,6 +43,7 @@ export const VIEW_CACHE_CONFIGS: Record<string, ViewCacheConfig> = {
   'investment-flow':         { ttlMs: 86_400_000,  staleBadge: true,  fallbackType: 'cache' },
   'insight-hub':             { ttlMs: 21_600_000,  staleBadge: true,  fallbackType: 'cache' },
   'top-events':              { ttlMs: 3_600_000,   staleBadge: true,  fallbackType: 'cache' },
+  'data-coverage':           { ttlMs: 600_000,     staleBadge: true,  fallbackType: 'cache' },
 };
 
 export class ViewCacheService {

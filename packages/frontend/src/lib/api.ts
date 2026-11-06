@@ -16,6 +16,7 @@ import type {
   WeeklyBriefRunStatus,
 } from '@/types/weekly-brief';
 import type { ArgosIExportGenerateResponse, ArgosIExportRunStatus } from '@/types/argos-i-export';
+import type { DataCoverageResponse } from '@/types/data-coverage';
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const API_BASE = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
 
@@ -70,7 +71,8 @@ class ApiClient {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Request failed' }));
-      throw new Error(error.error || `HTTP ${response.status}`);
+      // 메시지는 종전과 같다. 상태 코드와 본문(예: retryAfterSec)은 필요한 호출부만 읽는다
+      throw Object.assign(new Error(error.error || `HTTP ${response.status}`), { status: response.status, payload: error });
     }
 
     return response.json();
@@ -390,6 +392,17 @@ class ApiClient {
   }
 
   // ───────── ARGOS_I 일일 스냅샷 (관리자) ─────────
+
+  // 데이터 커버리지 (관리자 전용, 읽기 전용 집계)
+  async getDataCoverage(compareTo?: string) {
+    const qs = compareTo ? `?compareTo=${encodeURIComponent(compareTo)}` : '';
+    return this.request<DataCoverageResponse>(`/admin/data-coverage${qs}`);
+  }
+
+  // TTL 을 무시하고 재계산 — 마지막 계산 후 30초 이내면 429 refresh_throttled
+  async refreshDataCoverage() {
+    return this.request<DataCoverageResponse>('/admin/data-coverage/refresh', { method: 'POST', body: JSON.stringify({}) });
+  }
 
   /** ARGOS_I 내보내기 상태 (관리자). 토큰 값·길이는 응답에 없고 설정 여부(tokenConfigured)만 있다 */
   async getArgosIExportStatus() {
