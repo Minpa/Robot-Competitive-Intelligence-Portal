@@ -29,6 +29,7 @@ import type {
   WeeklyKeyMessage,
   WeeklyKeyword,
   WeeklyPaperItem,
+  WeeklyExecutivePayload,
   WeeklyReportPayload,
   WeeklyTopVideo,
   WeeklyVideoItem,
@@ -1297,8 +1298,9 @@ export function normalizeReportPayload(raw: WeeklyReportPayload): WeeklyReportPa
  */
 export function normalizeStoredPayload(raw: WeeklyBriefPayload): WeeklyBriefPayload;
 export function normalizeStoredPayload(raw: WeeklyReportPayload): WeeklyReportPayload;
-export function normalizeStoredPayload(raw: WeeklyBriefPayload | WeeklyReportPayload): WeeklyBriefPayload | WeeklyReportPayload;
-export function normalizeStoredPayload(raw: WeeklyBriefPayload | WeeklyReportPayload): WeeklyBriefPayload | WeeklyReportPayload {
+export function normalizeStoredPayload(raw: WeeklyExecutivePayload): WeeklyExecutivePayload;
+export function normalizeStoredPayload(raw: WeeklyBriefPayload | WeeklyReportPayload | WeeklyExecutivePayload): WeeklyBriefPayload | WeeklyReportPayload | WeeklyExecutivePayload;
+export function normalizeStoredPayload(raw: WeeklyBriefPayload | WeeklyReportPayload | WeeklyExecutivePayload): WeeklyBriefPayload | WeeklyReportPayload | WeeklyExecutivePayload {
   const version = weeklyBriefSchemaVersionOf(raw);
   if (version === WEEKLY_BRIEF_REPORT_SCHEMA_VERSION) return normalizeReportPayload(raw as WeeklyReportPayload);
   if (version > WEEKLY_BRIEF_REPORT_SCHEMA_VERSION) return raw;

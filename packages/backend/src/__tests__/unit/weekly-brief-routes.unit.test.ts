@@ -148,13 +148,13 @@ describe('POST /generate', () => {
     const res = await post({ weekStart: '2026-10-19', force: true }, 'admin');
     expect(res.statusCode).toBe(202);
     expect(res.json()).toEqual({ started: true, weekStart: '2026-10-19', force: false, startedAt: '2026-10-26T00:00:00.000Z' });
-    expect(h.startWeeklyBriefGeneration).toHaveBeenCalledWith({ weekStart: '2026-10-19', force: true });
+    expect(h.startWeeklyBriefGeneration).toHaveBeenCalledWith({ weekStart: '2026-10-19', force: true, discardEdits: undefined, actor: 'u1' });
   });
 
   it('an empty body means the default week without force', async () => {
     const res = await post(undefined, 'admin');
     expect(res.statusCode).toBe(202);
-    expect(h.startWeeklyBriefGeneration).toHaveBeenCalledWith({ weekStart: undefined, force: undefined });
+    expect(h.startWeeklyBriefGeneration).toHaveBeenCalledWith({ weekStart: undefined, force: undefined, discardEdits: undefined, actor: 'u1' });
   });
 
   it('200 skipped exists', async () => {

@@ -37,6 +37,9 @@ export const WEEKLY_BRIEF_BANNED_PHRASES: readonly string[] = [
   '게임 체인저',
 ];
 
+/** v3 에서 추가한 과잉 단정 금칙어 (PM-8) — findBannedPhraseV3 가 v2 목록과 함께 검사한다 */
+export const WEEKLY_BRIEF_OVERCLAIM_PHRASES: readonly string[] = ['반드시', '확실히', '틀림없이'];
+
 export const TEXT_GUARD = {
   /** 개수·서수 표현용 작은 정수 상한 */
   smallIntMax: 10,
@@ -213,6 +216,16 @@ export function findBannedPhrase(sentence: string, inputText: string = ''): stri
   return null;
 }
 
+/** v3 용 금칙어 검사 — v2 목록 + 과잉 단정 3개 */
+export function findBannedPhraseV3(sentence: string, inputText: string = ''): string | null {
+  const v2 = findBannedPhrase(sentence, inputText);
+  if (v2) return v2;
+  for (const phrase of WEEKLY_BRIEF_OVERCLAIM_PHRASES) {
+    if (sentence.includes(phrase) && !inputText.includes(phrase)) return phrase;
+  }
+  return null;
+}
+
 /** 허용 집합에 없는 숫자 토큰 */
 export function disallowedNumbers(sentence: string, allowed: ReadonlySet<string>): string[] {
   return extractNumbers(sentence).filter((n) => !allowed.has(n));
@@ -346,4 +359,157 @@ export function guardTitleTranslation(raw: unknown, original: string, max: numbe
   if (!/[가-힣]/.test(text)) return { ok: false, reason: 'no_hangul' };
   if (text === original.trim()) return { ok: false, reason: 'same_as_original' };
   return { ok: true, text };
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// v3(임원판) 문장 가드 — 합니다체, 수집 건수 문구, 방향 모순
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * 합니다체 허용 어미(allowlist). 마지막 어절이 다음 중 하나로 끝나야 한다.
+ * 격식체(~니다, ~니까), 해요체(~세요, ~어요, ~아요, ~해요, ~예요, ~에요, ~죠, ~네요), 의문형(~까요), 그 밖의 ~요.
+ * ~됨/~함/~임/~음 같은 명사형 종결과 평어체 ~다. 는 허용 목록에 없으므로 자동으로 폐기된다.
+ */
+export const POLITE_ENDING_RE = /(?:니다|니까|세요|어요|아요|해요|예요|에요|죠|네요|까요|요)$/;
+
+/** 문장 끝의 문장부호·닫는 따옴표와 마지막 괄호 보조 설명을 걷어낸 본문 */
+export function stripSentenceTail(sentence: string): string {
+  let t = sentence.trim();
+  for (let i = 0; i < 4; i++) {
+    const before = t;
+    t = t.replace(/[.!?。！？\s]+$/u, '').replace(/["'”’」』]+$/u, '');
+    t = t.replace(/\s*\([^()]*\)$/u, '').replace(/\s*（[^（）]*）$/u, '');
+    if (t === before) break;
+  }
+  return t.trim();
+}
+
+/** 합니다체(허용 어미)로 끝나는 문장인가 */
+export function endsWithPolite(sentence: string): boolean {
+  return POLITE_ENDING_RE.test(stripSentenceTail(sentence));
+}
+
+/** ~됨/~함/~임/~음 으로 끝나는 보고서체 */
+export function endsWithNounForm(sentence: string): boolean {
+  return /(?:됨|함|임|음)$/u.test(stripSentenceTail(sentence));
+}
+
+/**
+ * 수집 건수 문구 — "영상 12건 수집", "수집된 기사 30건", "수집량 증가" 같은 문장.
+ * 결론·격차·사업·질문 서술에서 금지하고, 수집 건수는 부록 맨 끝 collectionLine 한 줄에만 둔다.
+ */
+export const COLLECTION_COUNT_PATTERN =
+  /(?:(?:영상|기사|뉴스|논문)[^.?!。]{0,24}\d[\d,]*\s*(?:건|편|개)[^.?!。]{0,20}(?:수집|집계|확보))|(?:(?:수집|집계)[^.?!。]{0,24}(?:영상|기사|뉴스|논문)[^.?!。]{0,24}\d[\d,]*\s*(?:건|편|개))|(?:\d[\d,]*\s*(?:건|편)[^.?!。]{0,10}(?:수집|집계))|수집량|수집 건수/u;
+
+export function mentionsCollectionCount(sentence: string): boolean {
+  return COLLECTION_COUNT_PATTERN.test(sentence);
+}
+
+export type ExecGapPosition = 'competitor_ahead' | 'parity' | 'we_ahead';
+
+/** 방향 모순 문구 — position 별로 "그 방향이 아니라고 말하는" 표현 */
+export const DIRECTION_CONTRADICTION_PATTERNS: Readonly<Record<ExecGapPosition, readonly RegExp[]>> = {
+  competitor_ahead: [
+    /우리(?:가|는|도|쪽이?)?[^.?!。]{0,8}(?:앞서|앞섭|앞선|앞섰|리드|우위)/u,
+    /(?:우리|자사)[^.?!。]{0,10}우위를\s*점/u,
+    /경쟁사(?:가|는|도)?[^.?!。]{0,8}(?:뒤처|뒤쳐|열세|밀리|밀립)/u,
+  ],
+  we_ahead: [
+    /경쟁사(?:가|는|도)?[^.?!。]{0,8}(?:앞서|앞섭|앞선|앞섰|리드|우위)/u,
+    /경쟁사[^.?!。]{0,10}우위를\s*점/u,
+    /(?:우리|자사)(?:가|는|도|쪽이?)?[^.?!。]{0,8}(?:뒤처|뒤쳐|열세|밀리|밀립)/u,
+  ],
+  parity: [],
+};
+
+/** 문장이 position 과 모순되는가 */
+export function contradictsPosition(sentence: string, position: ExecGapPosition | null | undefined): boolean {
+  if (!position) return false;
+  return DIRECTION_CONTRADICTION_PATTERNS[position].some((re) => re.test(sentence));
+}
+
+export type ExecSentenceProblem = 'policy' | 'ending' | 'banned' | 'collection' | 'direction' | 'number' | 'entity' | 'too_long' | 'empty';
+
+export interface ExecGuardSpec {
+  /** 문장당 글자 수 상한 (기본 200) */
+  maxChars?: number;
+  allowed: ReadonlySet<string>;
+  inputText?: string;
+  entityMode?: EntityGuardMode;
+  /** 격차 행 서술이면 서버 position */
+  position?: ExecGapPosition | null;
+}
+
+export interface ExecGuardStats {
+  sentences: number;
+  dropped: Record<ExecSentenceProblem, number>;
+  entityWarnings: number;
+}
+
+export const EXEC_SENTENCE_MAX = 200;
+
+function emptyExecStats(): ExecGuardStats {
+  return { sentences: 0, dropped: { policy: 0, ending: 0, banned: 0, collection: 0, direction: 0, number: 0, entity: 0, too_long: 0, empty: 0 }, entityWarnings: 0 };
+}
+
+export function execDroppedTotal(s: ExecGuardStats): number {
+  return Object.values(s.dropped).reduce((a, b) => a + b, 0);
+}
+
+/** 문장 하나에 대한 v3 검사 — 첫 번째로 걸린 사유(없으면 null). 길이는 별도 */
+export function execSentenceProblem(sentence: string, spec: ExecGuardSpec, inputTokens: Set<string> | null): ExecSentenceProblem | null {
+  if (violatesTextPolicy(sentence)) return 'policy';
+  if (!endsWithPolite(sentence)) return 'ending';
+  if (findBannedPhraseV3(sentence, spec.inputText ?? '')) return 'banned';
+  if (mentionsCollectionCount(sentence)) return 'collection';
+  if (contradictsPosition(sentence, spec.position)) return 'direction';
+  if (disallowedNumbers(sentence, spec.allowed).length > 0) return 'number';
+  if (inputTokens && spec.entityMode === 'enforce' && englishTokens(sentence).some((t) => !inputTokens.has(t))) return 'entity';
+  return null;
+}
+
+/**
+ * AI 가 돌려준 서술(문자열 또는 문자열 배열)을 문장 단위로 검증한다. 문제가 있는 문장만 폐기하고 남은 문장을 돌려준다.
+ * 최소 문장 수 판단과 폴백은 호출자가 한다.
+ */
+export function guardExecSentences(raw: unknown, spec: ExecGuardSpec): { sentences: string[]; stats: ExecGuardStats } {
+  const stats = emptyExecStats();
+  const items: string[] = Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string') : typeof raw === 'string' ? [raw] : [];
+  const mode = spec.entityMode ?? 'warn';
+  const inputTokens = mode === 'off' ? null : new Set(englishTokens(spec.inputText ?? ''));
+  const max = spec.maxChars ?? EXEC_SENTENCE_MAX;
+  const out: string[] = [];
+  for (const item of items) {
+    for (const s of splitSentences(item.trim())) {
+      stats.sentences++;
+      const problem = execSentenceProblem(s, { ...spec, entityMode: mode }, inputTokens);
+      if (problem) {
+        stats.dropped[problem]++;
+        continue;
+      }
+      if (charLength(s) > max) {
+        stats.dropped.too_long++;
+        continue;
+      }
+      if (inputTokens && mode === 'warn' && englishTokens(s).some((t) => !inputTokens.has(t))) stats.entityWarnings++;
+      out.push(s);
+    }
+  }
+  return { sentences: out, stats };
+}
+
+export type EditWarningCode = 'ending' | 'banned' | 'number' | 'direction' | 'collection';
+
+/** 관리자 편집 문장의 경고(저장은 허용) — 합니다체 위반, 금칙어, 서버 숫자 집합에 없는 숫자, 방향 모순, 수집 건수 문구 */
+export function editWarnings(text: string, allowed: ReadonlySet<string>, position?: ExecGapPosition | null): EditWarningCode[] {
+  const out: EditWarningCode[] = [];
+  const sentences = splitSentences(text);
+  const list = sentences.length > 0 ? sentences : [text];
+  if (list.some((s) => !endsWithPolite(s))) out.push('ending');
+  if (findBannedPhraseV3(text)) out.push('banned');
+  if (disallowedNumbers(text, allowed).length > 0) out.push('number');
+  if (list.some((s) => contradictsPosition(s, position))) out.push('direction');
+  if (mentionsCollectionCount(text)) out.push('collection');
+  return out;
 }

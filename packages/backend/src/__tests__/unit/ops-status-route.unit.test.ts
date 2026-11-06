@@ -99,7 +99,7 @@ describe('GET /api/admin/ops/status', () => {
     expect(body.pipeline.live.actuator).toHaveProperty('classify');
     expect(body.crawler.actuatorBackfill.summary).toMatchObject({ status: 'ok', inserted: 10 });
     expect(body.crawler.statusHint).toContain('/legal/arxiv-topic-backfill/status?domain=actuator');
-    expect(Object.keys(body.weeklyBrief)).toEqual(['cron', 'schedulerEnabled', 'startupCatchup', 'running', 'last']);
+    expect(Object.keys(body.weeklyBrief)).toEqual(['cron', 'schedulerEnabled', 'startupCatchup', 'running', 'last', 'pendingDrafts']);
     expect(body.weeklyBrief).toMatchObject({ cron: '0 8 * * 1', schedulerEnabled: true, startupCatchup: true, running: false });
     expect(body.weeklyBrief.last).toMatchObject({ weekStart: '2026-10-19', outcome: 'created', status: 'ok', reason: 'cron' });
     // ARGOS_I 일일 스냅샷: 크론·캐치업 설정, 실행 중 여부, 마지막 실행 요약, 최신 번들 날짜 (DB 가 없으면 최신 번들 날짜는 null)

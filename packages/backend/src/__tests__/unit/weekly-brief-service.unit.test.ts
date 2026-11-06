@@ -96,6 +96,8 @@ function makeDeps(over: Partial<WeeklyBriefDeps> = {}, store: Store = new Map())
       calls.write++;
       store.set(row.weekStart, row);
     },
+    getDraft: async () => null,
+    writeDraft: async () => undefined,
     saveLast: async (s) => {
       saved.push(s);
     },
@@ -494,7 +496,7 @@ describe('success hook (ARGOS_I 일일 스냅샷 재생성 연결)', () => {
 // v2 (장문 리포트) 형식
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('report format (v2, default)', () => {
+describe('report format (v2, WEEKLY_BRIEF_FORMAT=report)', () => {
   const aiOk = { getCreditInfo: async () => ({ monthlyLimitUsd: 50, currentMonthUsageUsd: 0 }), log: () => {} };
 
   function reportDeps(over: Partial<WeeklyBriefDeps> = {}, store: Store = new Map(), fake = makeFakeReportClient()) {
@@ -502,7 +504,7 @@ describe('report format (v2, default)', () => {
     const captured: { collectArgs?: unknown[] } = {};
     const base = makeDeps(
       {
-        env: {},
+        env: { WEEKLY_BRIEF_FORMAT: 'report' },
         collect: async (...args) => {
           base.calls.collect++;
           captured.collectArgs = args;
@@ -519,7 +521,7 @@ describe('report format (v2, default)', () => {
     return { ...base, usage, fake, captured };
   }
 
-  it('the default format is report: collects with report extras, runs the 4 AI calls once, stores a v2 payload with ok status and summed tokens/cost', async () => {
+  it('format=report: collects with report extras, runs the 4 AI calls once, stores a v2 payload with ok status and summed tokens/cost', async () => {
     const r = reportDeps();
     const out = await runWeeklyBrief({ reason: 'cron' }, r.deps);
     expect(out).toMatchObject({ outcome: 'created', weekStart: WEEK, status: 'ok' });
@@ -595,11 +597,12 @@ describe('report format (v2, default)', () => {
     expect(out.status).toBe('ok');
     expect(r.calls).toMatchObject({ collect: 1, summarize: 1, summarizeReport: 0 });
     expect((r.store.get(WEEK)!.payload as any).schemaVersion).toBe(1);
-    expect(resolveWeeklyBriefFormat({})).toBe('report');
+    expect(resolveWeeklyBriefFormat({})).toBe('executive');
     expect(resolveWeeklyBriefFormat({ WEEKLY_BRIEF_FORMAT: 'poster' })).toBe('poster');
     expect(resolveWeeklyBriefFormat({ WEEKLY_BRIEF_FORMAT: ' POSTER ' })).toBe('poster');
     expect(resolveWeeklyBriefFormat({ WEEKLY_BRIEF_FORMAT: 'report' })).toBe('report');
-    expect(resolveWeeklyBriefFormat({ WEEKLY_BRIEF_FORMAT: 'weird' })).toBe('report');
+    expect(resolveWeeklyBriefFormat({ WEEKLY_BRIEF_FORMAT: 'weird' })).toBe('executive');
+    expect(resolveWeeklyBriefFormat({ WEEKLY_BRIEF_FORMAT: ' Executive ' })).toBe('executive');
   });
 
   it('the run timeout is 8 minutes', () => {
@@ -640,7 +643,11 @@ describe('report format (v2, default)', () => {
 
   it('run status config exposes the format and the estimated cost (no model-less hardcoded text)', async () => {
     const s = await getWeeklyBriefRunStatus({});
-    expect(s.config.format).toBe('report');
+    expect(s.config.format).toBe('executive');
+    expect(s.config.requireReview).toBe(true);
+    const rep = await getWeeklyBriefRunStatus({ WEEKLY_BRIEF_FORMAT: 'report', WEEKLY_BRIEF_REQUIRE_REVIEW: 'false' });
+    expect(rep.config.format).toBe('report');
+    expect(rep.config.requireReview).toBe(false);
     expect(Number.isFinite(s.config.estimatedCostUsd)).toBe(true); // 값은 단가표가 정한다(이 파일은 ai-usage 를 모킹) — 금액은 summarize-report 테스트가 고정한다
     const poster = await getWeeklyBriefRunStatus({ WEEKLY_BRIEF_FORMAT: 'poster' });
     expect(poster.config.format).toBe('poster');

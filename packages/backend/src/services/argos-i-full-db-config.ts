@@ -65,6 +65,7 @@ export const EXCLUDED_TABLES: readonly ExcludedTableRule[] = [
   { name: 'ai_usage_logs', reason: 'ai_usage_and_cost_log' },
   { name: 'argos_i_exports', reason: 'daily_bundle_store' },
   { name: 'argos_i_export_files', reason: 'daily_bundle_store_bytea' },
+  { name: 'weekly_brief_drafts', reason: 'unpublished_drafts_and_editor_identity' },
 ];
 
 /** 이름 패턴으로 제외하는 테이블 (마이그레이션 메타 방어용 — 현재 없음) */

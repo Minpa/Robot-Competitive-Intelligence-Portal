@@ -1,17 +1,28 @@
 'use client';
 
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { isoWeekNumberOf, publishBadge, weekEndOf } from '@/lib/weekly-brief-exec';
 import {
   formatCountsSummary,
   formatKstDateTime,
   formatWeekTitle,
 } from '@/lib/weekly-brief-format';
 import { useWeeklyBriefList } from './useWeeklyBrief';
+import { useWeeklyBriefDrafts } from './useWeeklyBriefEdit';
 
 /** 최근 26주 목록 — 한 줄: 기간 · Week N, 건수 요약, 생성 시각, partial 태그 */
 export function WeeklyArchiveList() {
   const query = useWeeklyBriefList(26);
-  const items = query.data;
+  // 관리자에게만: 발행 전 초안과 "발행됨 · 수정 사항 미반영" 상태를 함께 보여준다 (일반 사용자는 초안 목록을 호출하지 않는다)
+  const meQuery = useQuery({ queryKey: ['me'], queryFn: () => api.getMe() });
+  const isAdmin = (meQuery.data as { role?: string } | undefined)?.role === 'admin';
+  const draftsQuery = useWeeklyBriefDrafts(isAdmin);
+  const draftByWeek = new Map((isAdmin ? (draftsQuery.data ?? []) : []).map((d) => [d.weekStart, d]));
+  const published = query.data;
+  const draftOnly = isAdmin ? [...draftByWeek.values()].filter((d) => !published?.some((p) => p.weekStart === d.weekStart)) : [];
+  const items = published;
 
   if (query.isLoading) {
     return <div className="border border-ink-200 bg-white px-6 py-10 text-center text-[13px] text-ink-500">목록을 불러오는 중…</div>;
@@ -31,7 +42,7 @@ export function WeeklyArchiveList() {
       </div>
     );
   }
-  if (!items || items.length === 0) {
+  if ((!items || items.length === 0) && draftOnly.length === 0) {
     return (
       <div className="border border-ink-200 bg-white px-6 py-10 text-center text-[13px] text-ink-600" data-testid="archive-empty">
         아직 발행된 브리프가 없습니다. 브리프는 매주 월요일 오전에 자동 발행됩니다.
@@ -40,7 +51,26 @@ export function WeeklyArchiveList() {
   }
   return (
     <ul className="m-0 list-none border border-ink-200 bg-white p-0" data-testid="archive-list">
-      {items.map((it) => (
+      {draftOnly.map((d) => {
+        const badge = publishBadge({ publishState: d.publishState, hasUnpublishedChanges: d.hasUnpublishedChanges });
+        return (
+          <li key={`draft-${d.weekStart}`} className="border-t border-ink-200 first:border-t-0" data-testid="archive-draft-item">
+            <Link href={`/share/weekly/${d.weekStart}`} className="grid grid-cols-1 gap-x-4 gap-y-1 px-4 py-3 transition-colors hover:bg-ink-50 sm:grid-cols-[1fr_auto]">
+              <div className="min-w-0">
+                <div className="text-[14px] font-semibold text-ink-900">
+                  {formatWeekTitle(d.weekStart, weekEndOf(d.weekStart), isoWeekNumberOf(d.weekStart))}
+                  <span className="ml-2 border border-warn bg-warn-soft px-1.5 py-px align-middle text-[11px] font-medium text-ink-700" data-testid="archive-badge">
+                    {badge.label}
+                  </span>
+                </div>
+                <div className="mt-0.5 text-[12px] text-ink-600">관리자에게만 보입니다 (검토 후 발행)</div>
+              </div>
+              <div className="text-[12px] text-ink-500 sm:whitespace-nowrap sm:text-right">생성 {formatKstDateTime(d.generatedAt)} KST</div>
+            </Link>
+          </li>
+        );
+      })}
+      {(items ?? []).map((it) => (
         <li key={it.weekStart} className="border-t border-ink-200 first:border-t-0">
           <Link
             href={`/share/weekly/${it.weekStart}`}
@@ -49,6 +79,11 @@ export function WeeklyArchiveList() {
             <div className="min-w-0">
               <div className="text-[14px] font-semibold text-ink-900">
                 {formatWeekTitle(it.weekStart, it.weekEnd, it.weekNumber)}
+                {isAdmin && draftByWeek.get(it.weekStart)?.hasUnpublishedChanges && (
+                  <span className="ml-2 border border-warn bg-warn-soft px-1.5 py-px align-middle text-[11px] font-medium text-ink-700" data-testid="archive-badge">
+                    {publishBadge({ publishState: draftByWeek.get(it.weekStart)!.publishState, hasUnpublishedChanges: true }).label}
+                  </span>
+                )}
                 {it.status === 'partial' && (
                   <span className="ml-2 border border-warn bg-warn-soft px-1.5 py-px align-middle text-[11px] font-medium text-ink-700">
                     일부 규칙 기반

@@ -2754,6 +2754,35 @@ export const weeklyBriefs = pgTable('weekly_briefs', {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 주간 브리프 v3 발행 전 초안·편집본 (주당 1행). 정식 생성 경로는 런타임 ensureWeeklyBriefTables(),
+// drizzle/0031 은 수동 migrate 호환용 (동일 DDL). ARGOS_I 전체 DB 덤프에서 제외된다.
+// ─────────────────────────────────────────────────────────────────────────────
+export const weeklyBriefDrafts = pgTable('weekly_brief_drafts', {
+  weekStart:    date('week_start', { mode: 'string' }).primaryKey(),
+  periodStart:  timestamp('period_start', { withTimezone: true }).notNull(),
+  periodEnd:    timestamp('period_end', { withTimezone: true }).notNull(),
+  generatedAt:  timestamp('generated_at', { withTimezone: true }).notNull(),
+  status:       varchar('status', { length: 10 }).notNull(), // ok | partial
+  aiPayload:    jsonb('ai_payload').$type<Record<string, unknown>>().notNull(),
+  edits:        jsonb('edits').$type<Record<string, string>>().notNull().default(sql`'{}'::jsonb`),
+  editRev:      integer('edit_rev').notNull().default(0),
+  editedBy:     varchar('edited_by', { length: 100 }),
+  editedAt:     timestamp('edited_at', { withTimezone: true }),
+  history:      jsonb('history').$type<unknown[]>().notNull().default(sql`'[]'::jsonb`),
+  publishState: varchar('publish_state', { length: 10 }).notNull().default('draft'), // draft | published
+  publishedAt:  timestamp('published_at', { withTimezone: true }),
+  publishedBy:  varchar('published_by', { length: 100 }),
+  publishedRev: integer('published_rev'),
+  stats:        jsonb('stats').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  model:        varchar('model', { length: 100 }),
+  inputTokens:  integer('input_tokens').notNull().default(0),
+  outputTokens: integer('output_tokens').notNull().default(0),
+  costUsd:      decimal('cost_usd', { precision: 10, scale: 6 }).notNull().default('0'),
+  error:        text('error'),
+  createdAt:    timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ARGOS_I 일일 스냅샷 내보내기 (번들 메타 날짜당 1행 + 파일 본문 BYTEA)
 // 정식 생성 경로는 런타임 ensureArgosIExportTables() (src/db/argos-i-export.ddl.ts, CREATE TABLE IF NOT EXISTS).
 // drizzle/0030 은 수동 migrate 호환용 (동일 DDL). export_date 는 끝까지 문자열(string 모드)로 다룬다.

@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Archive, Check, ChevronLeft, ChevronRight, FileDown, Link2, Loader2, RefreshCw } from 'lucide-react';
+import { Archive, Check, ChevronLeft, ChevronRight, FileDown, Link2, Loader2, Pencil, RefreshCw } from 'lucide-react';
 import type { WeeklyBriefResponse, WeeklyBriefRunStatus } from '@/types/weekly-brief';
 import { buildWeeklyBriefHtml, weeklyBriefFileName } from '@/lib/weekly-brief-html';
 import { buildGenerateConfirmMessage, formatCostUsd, formatDurationMs, weeklyBriefPermalink } from '@/lib/weekly-brief-format';
 import { versionKindOf } from '@/lib/weekly-brief-report';
+import type { WeeklyBriefEditor } from './useWeeklyBriefEdit';
 import type { useWeeklyBriefGenerate } from './useWeeklyBriefGenerate';
 
 export type WeeklyGenerateState = ReturnType<typeof useWeeklyBriefGenerate>;
@@ -25,6 +26,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   already_running: '이미 생성 중입니다. 완료될 때까지 기다려 주세요.',
   week_not_complete: '아직 끝나지 않은 주차는 생성할 수 없습니다.',
   invalid_week_start: '올바르지 않은 주차입니다.',
+  has_edits: '편집이 있는 초안입니다. 편집을 버리고 다시 생성하려면 확인 창에서 동의하세요.',
 };
 
 export function generateErrorText(message: string): string {
@@ -40,16 +42,18 @@ interface GenerateButtonProps {
   /** 대상 주 존재 여부가 확정됐는지 (로딩 중이면 false) */
   ready: boolean;
   large?: boolean;
+  /** 대상 주 초안에 편집이 있거나 발행된 상태 — 재생성은 편집을 버리는 확인(discardEdits)을 거친다 */
+  discardsEdits?: boolean;
 }
 
 /** "지금 생성" — 기존 주차는 덮어쓰기 확인(force:true), 없으면 일반 확인(force:false). 비용 안내 포함 */
-export function GenerateButton({ generate, targetWeekStart, targetExists, ready, large }: GenerateButtonProps) {
+export function GenerateButton({ generate, targetWeekStart, targetExists, ready, large, discardsEdits = false }: GenerateButtonProps) {
   const busy = generate.running || generate.starting || generate.waitingForStart;
   const handle = () => {
     if (!targetWeekStart) return;
-    const ok = window.confirm(buildGenerateConfirmMessage({ weekStart: targetWeekStart, exists: targetExists, estimatedCostUsd: generate.status?.config?.estimatedCostUsd }));
+    const ok = window.confirm(buildGenerateConfirmMessage({ weekStart: targetWeekStart, exists: targetExists, estimatedCostUsd: generate.status?.config?.estimatedCostUsd, discardsEdits }));
     if (!ok) return;
-    generate.start({ weekStart: targetWeekStart, force: targetExists });
+    generate.start({ weekStart: targetWeekStart, force: targetExists, ...(discardsEdits ? { discardEdits: true } : {}) });
   };
   return (
     <button
@@ -134,10 +138,14 @@ interface ToolbarProps {
   targetWeekStart?: string;
   targetExists: boolean;
   targetReady: boolean;
+  /** v3 초안 편집 상태 (관리자, 초안이 있는 주). 없으면 null */
+  editor?: WeeklyBriefEditor | null;
+  /** 초안(또는 발행 후 수정 사항 미반영)을 보고 있으면 다운로드 HTML 첫 줄에 초안 문구를 넣는다 */
+  draftNotice?: boolean;
 }
 
 /** 이전/다음 주 · 아카이브 · 링크 복사 · HTML 다운로드(admin) · 지금 생성(admin) · 진행 상태 */
-export function WeeklyBriefToolbar({ brief, isAdmin, generate, targetWeekStart, targetExists, targetReady }: ToolbarProps) {
+export function WeeklyBriefToolbar({ brief, isAdmin, generate, targetWeekStart, targetExists, targetReady, editor = null, draftNotice = false }: ToolbarProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -158,7 +166,7 @@ export function WeeklyBriefToolbar({ brief, isAdmin, generate, targetWeekStart, 
 
   const handleDownload = () => {
     if (!brief || !downloadable) return;
-    const html = buildWeeklyBriefHtml(brief, { pageUrl: weeklyBriefPermalink(window.location.origin, brief.weekStart) });
+    const html = buildWeeklyBriefHtml(brief, { pageUrl: weeklyBriefPermalink(window.location.origin, brief.weekStart), draft: draftNotice });
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -213,6 +221,19 @@ export function WeeklyBriefToolbar({ brief, isAdmin, generate, targetWeekStart, 
             {copied ? <Check className="h-3.5 w-3.5 text-pos" /> : <Link2 className="h-3.5 w-3.5" />}
             {copied ? '복사됨' : '링크 복사'}
           </button>
+          {isAdmin && editor && (
+            <button
+              type="button"
+              onClick={() => editor.setEditMode(!editor.editMode)}
+              aria-pressed={editor.editMode}
+              className={`${BTN} ${editor.editMode ? 'border-ink-900 bg-ink-900 text-poster-fg hover:border-ink-900' : ''}`}
+              title="AI 초안의 문장을 직접 고칩니다 (관리자)"
+              data-testid="edit-toggle"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              편집 모드
+            </button>
+          )}
           {isAdmin && (
             <button
               type="button"
@@ -231,6 +252,7 @@ export function WeeklyBriefToolbar({ brief, isAdmin, generate, targetWeekStart, 
               targetWeekStart={targetWeekStart}
               targetExists={targetExists}
               ready={targetReady}
+              discardsEdits={!!editor && (editor.data.rev > 0 || editor.data.publishState === 'published')}
             />
           )}
         </div>

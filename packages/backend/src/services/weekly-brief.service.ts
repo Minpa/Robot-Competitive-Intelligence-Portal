@@ -13,15 +13,17 @@
  */
 
 import { and, desc, eq, gt, inArray, lt, sql } from 'drizzle-orm';
-import { db, weeklyBriefs } from '../db/index.js';
+import { db, weeklyBriefDrafts, weeklyBriefs } from '../db/index.js';
 import { aiUsageService, resolveClaudeMonthlyLimitUsd } from './ai-usage.service.js';
 import { resolveWeeklyBriefModel } from './anthropic-models.js';
 import { dataMigrationService } from './data-migration.service.js';
 import { formatLogLine } from './ops-log.util.js';
 import { isStartupChainRunning } from './tech-trend-pipeline.service.js';
-import { collectWeek, type CollectOptions } from './weekly-brief-collect.js';
+import { collectExecutive, collectWeek, type CollectOptions, type ExecCollected } from './weekly-brief-collect.js';
 import { buildCandidates, composePayload, computeCounts, isArticleSummaryEnabled, normalizeStoredPayload, type CollectedWeek } from './weekly-brief-compose.js';
 import { buildReportPlan, computeSummaryCoverage, finalizeReport, type ReportPlan } from './weekly-brief-compose-report.js';
+import { buildExecPlan, finalizeExec, type ExecPlan } from './weekly-brief-compose-exec.js';
+import { appendHistory, applyEdits, effectiveTextBefore, makeHistoryEntry, mergeEdits, publishViolations, validateEdits, EDIT_LIMITS, type EditWarning, type EditViolation } from './weekly-brief-edit.js';
 import { resolveEntityGuardMode } from './weekly-brief-text-guard.js';
 import {
   addDaysYmd,
@@ -41,14 +43,20 @@ import {
   type SummarizeResult,
 } from './weekly-brief-summarize.js';
 import { estimateGenerationCostUsd, summarizeReport, type ReportSummarizeResult } from './weekly-brief-summarize-report.js';
+import { estimateExecGenerationCostUsd, summarizeExec, type ExecSummarizeResult } from './weekly-brief-summarize-exec.js';
 import type {
   WeeklyBriefCounts,
+  WeeklyBriefAdminEdits,
+  WeeklyBriefDraftListItem,
+  WeeklyBriefDraftSummary,
+  WeeklyBriefEditHistoryEntry,
   WeeklyBriefListItem,
   WeeklyBriefPayload,
   WeeklyBriefResponse,
   WeeklyBriefRunReason,
   WeeklyBriefRunStatus,
   WeeklyBriefStatusCode,
+  WeeklyExecutivePayload,
   WeeklyReportPayload,
 } from '../types/weekly-brief.js';
 
@@ -71,6 +79,10 @@ export type LastRun = NonNullable<WeeklyBriefRunStatus['lastRun']>;
 export interface RunOptions {
   weekStart?: string;
   force?: boolean;
+  /** 이력에 남길 실행자 식별자 */
+  actor?: string | null;
+  /** 편집이 있는 초안(또는 발행된 주)을 재생성할 때 기존 편집을 버린다 (없으면 has_edits) */
+  discardEdits?: boolean;
   reason: WeeklyBriefRunReason;
 }
 
@@ -112,10 +124,19 @@ export function resolveWeeklyBriefMinGapHours(env: Env = process.env): number {
 
 export type WeeklyBriefFormat = WeeklyBriefRunStatus['config']['format'];
 
-/** WEEKLY_BRIEF_FORMAT — report(장문 리포트, 기본) 또는 poster(롤백용 포스터). 그 외 값은 report */
+/** WEEKLY_BRIEF_FORMAT — executive(임원판 v3, 기본) · report(장문 리포트 v2) · poster(롤백용 포스터 v1). 그 외 값은 executive */
 export function resolveWeeklyBriefFormat(env: Env = process.env): WeeklyBriefFormat {
-  return env.WEEKLY_BRIEF_FORMAT?.trim().toLowerCase() === 'poster' ? 'poster' : 'report';
+  const v = env.WEEKLY_BRIEF_FORMAT?.trim().toLowerCase();
+  return v === 'poster' || v === 'report' ? v : 'executive';
 }
+
+/** WEEKLY_BRIEF_REQUIRE_REVIEW — 기본 true: v3 생성 결과는 초안으로 저장되고 관리자가 발행해야 공개된다. 'false' 이면 v2 처럼 즉시 발행 */
+export function resolveRequireReview(env: Env = process.env): boolean {
+  return env.WEEKLY_BRIEF_REQUIRE_REVIEW?.trim().toLowerCase() !== 'false';
+}
+
+/** 7일 이상 미발행이면 관리자 배너를 강조한다 */
+export const DRAFT_STALE_DAYS = 7;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 입력 검증
@@ -165,7 +186,15 @@ export interface WeeklyBriefDeps {
   summarize(input: SummarizeInput): Promise<SummarizeResult>;
   /** v2(리포트) 요약 — 섹션 단위 최대 4회 병렬 호출 */
   summarizeReport(weekStart: string, plan: ReportPlan): Promise<ReportSummarizeResult>;
+  /** v3(임원판) 수집 — 우리 위치·8주 추세 포함 */
+  collectExec(range: ReturnType<typeof getWeekRange>, prevRange: ReturnType<typeof getWeekRange>): Promise<ExecCollected>;
+  /** v3 요약 — 최대 4회 병렬 호출 (A 결론·질문, B 격차, C 기술·사업, D 논문·번역) */
+  summarizeExec(weekStart: string, plan: ExecPlan): Promise<ExecSummarizeResult>;
   writeRow(executor: unknown, row: StoredBriefRow): Promise<void>;
+  /** 발행 전 초안 (없으면 null) */
+  getDraft(weekStart: string, executor?: unknown): Promise<DraftRow | null>;
+  /** 초안 저장 — 같은 주의 기존 초안을 교체한다 */
+  writeDraft(executor: unknown, row: DraftRow): Promise<void>;
   saveLast(summary: Record<string, unknown>): Promise<void>;
   log(level: 'log' | 'warn' | 'error', line: string): void;
 }
@@ -223,6 +252,143 @@ async function dbWriteRow(executor: unknown, row: StoredBriefRow): Promise<void>
   await ex.insert(weeklyBriefs).values(values).onConflictDoUpdate({ target: weeklyBriefs.weekStart, set });
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 발행 전 초안 저장소 (weekly_brief_drafts)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface DraftRow {
+  weekStart: string;
+  periodStart: Date;
+  periodEnd: Date;
+  generatedAt: Date;
+  status: 'ok' | 'partial';
+  aiPayload: WeeklyExecutivePayload;
+  edits: Record<string, string>;
+  editRev: number;
+  editedBy: string | null;
+  editedAt: Date | null;
+  history: WeeklyBriefEditHistoryEntry[];
+  publishState: 'draft' | 'published';
+  publishedAt: Date | null;
+  publishedBy: string | null;
+  publishedRev: number | null;
+  stats: Record<string, unknown>;
+  model: string | null;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+  error: string | null;
+}
+
+/** 초안 저장소 — 기본은 DB, 테스트는 메모리 구현을 주입한다 */
+export interface DraftRepo {
+  get(weekStart: string, executor?: unknown): Promise<DraftRow | null>;
+  getForUpdate(executor: unknown, weekStart: string): Promise<DraftRow | null>;
+  list(): Promise<DraftRow[]>;
+  upsert(executor: unknown, row: DraftRow): Promise<void>;
+  update(executor: unknown, weekStart: string, patch: Partial<DraftRow>): Promise<void>;
+  writePublished(executor: unknown, row: StoredBriefRow): Promise<void>;
+  deletePublished(executor: unknown, weekStart: string): Promise<void>;
+  transaction<T>(fn: (executor: unknown) => Promise<T>): Promise<T>;
+}
+
+const tstzSql = (d: Date) => sql`${d.toISOString()}::timestamptz`;
+
+function draftFromDb(r: typeof weeklyBriefDrafts.$inferSelect): DraftRow {
+  const asDate = (v: Date | string | null): Date | null => (v ? (v instanceof Date ? v : new Date(v)) : null);
+  return {
+    weekStart: r.weekStart,
+    periodStart: asDate(r.periodStart)!,
+    periodEnd: asDate(r.periodEnd)!,
+    generatedAt: asDate(r.generatedAt)!,
+    status: r.status === 'ok' ? 'ok' : 'partial',
+    aiPayload: r.aiPayload as unknown as WeeklyExecutivePayload,
+    edits: (r.edits ?? {}) as Record<string, string>,
+    editRev: r.editRev,
+    editedBy: r.editedBy ?? null,
+    editedAt: asDate(r.editedAt),
+    history: (Array.isArray(r.history) ? r.history : []) as WeeklyBriefEditHistoryEntry[],
+    publishState: r.publishState === 'published' ? 'published' : 'draft',
+    publishedAt: asDate(r.publishedAt),
+    publishedBy: r.publishedBy ?? null,
+    publishedRev: r.publishedRev ?? null,
+    stats: (r.stats ?? {}) as Record<string, unknown>,
+    model: r.model ?? null,
+    inputTokens: r.inputTokens,
+    outputTokens: r.outputTokens,
+    costUsd: Number(r.costUsd),
+    error: r.error ?? null,
+  };
+}
+
+function draftToDbValues(row: DraftRow) {
+  return {
+    weekStart: row.weekStart,
+    periodStart: tstzSql(row.periodStart),
+    periodEnd: tstzSql(row.periodEnd),
+    generatedAt: tstzSql(row.generatedAt),
+    status: row.status,
+    aiPayload: row.aiPayload as unknown as Record<string, unknown>,
+    edits: row.edits,
+    editRev: row.editRev,
+    editedBy: row.editedBy,
+    editedAt: row.editedAt ? tstzSql(row.editedAt) : null,
+    history: row.history as unknown[],
+    publishState: row.publishState,
+    publishedAt: row.publishedAt ? tstzSql(row.publishedAt) : null,
+    publishedBy: row.publishedBy,
+    publishedRev: row.publishedRev,
+    stats: row.stats,
+    model: row.model,
+    inputTokens: row.inputTokens,
+    outputTokens: row.outputTokens,
+    costUsd: row.costUsd.toFixed(6),
+    error: row.error,
+  };
+}
+
+export const dbDraftRepo: DraftRepo = {
+  async get(weekStart, executor) {
+    const ex = (executor as DbLike | undefined) ?? db;
+    const [r] = await ex.select().from(weeklyBriefDrafts).where(eq(weeklyBriefDrafts.weekStart, weekStart)).limit(1);
+    return r ? draftFromDb(r) : null;
+  },
+  async getForUpdate(executor, weekStart) {
+    const ex = executor as DbLike;
+    const [r] = await ex.select().from(weeklyBriefDrafts).where(eq(weeklyBriefDrafts.weekStart, weekStart)).limit(1).for('update');
+    return r ? draftFromDb(r) : null;
+  },
+  async list() {
+    const rows = await db.select().from(weeklyBriefDrafts).orderBy(desc(weeklyBriefDrafts.weekStart)).limit(60);
+    return rows.map(draftFromDb);
+  },
+  async upsert(executor, row) {
+    const ex = executor as DbLike;
+    const values = draftToDbValues(row);
+    const { weekStart: _ws, ...set } = values;
+    await ex.insert(weeklyBriefDrafts).values(values).onConflictDoUpdate({ target: weeklyBriefDrafts.weekStart, set });
+  },
+  async update(executor, weekStart, patch) {
+    const ex = executor as DbLike;
+    const full = draftToDbValues({ ...(await dbDraftRepo.get(weekStart, ex))!, ...patch });
+    const { weekStart: _ws, ...set } = full;
+    await ex.update(weeklyBriefDrafts).set(set).where(eq(weeklyBriefDrafts.weekStart, weekStart));
+  },
+  writePublished: (executor, row) => dbWriteRow(executor, row),
+  async deletePublished(executor, weekStart) {
+    await (executor as DbLike).delete(weeklyBriefs).where(eq(weeklyBriefs.weekStart, weekStart));
+  },
+  transaction: (fn) => db.transaction(async (tx) => fn(tx)),
+};
+
+async function dbGetDraft(weekStart: string, executor?: unknown): Promise<DraftRow | null> {
+  return dbDraftRepo.get(weekStart, executor);
+}
+
+async function dbWriteDraft(executor: unknown, row: DraftRow): Promise<void> {
+  await dbDraftRepo.upsert(executor, row);
+}
+
 export const defaultDeps: WeeklyBriefDeps = {
   now: () => new Date(),
   get env() {
@@ -234,7 +400,11 @@ export const defaultDeps: WeeklyBriefDeps = {
   collect: (range, prevRange, options) => collectWeek(range, prevRange, undefined, options),
   summarize: (input) => summarizeCandidates(input),
   summarizeReport: (weekStart, plan) => summarizeReport(weekStart, plan),
+  collectExec: (range, prevRange) => collectExecutive(range, prevRange),
+  summarizeExec: (weekStart, plan) => summarizeExec(weekStart, plan),
   writeRow: dbWriteRow,
+  getDraft: dbGetDraft,
+  writeDraft: dbWriteDraft,
   saveLast: (summary) => dataMigrationService.upsert(WEEKLY_BRIEF_MARKER_KEY, summary),
   log: (level, line) => console[level](line),
 };
@@ -247,6 +417,8 @@ interface RunningState {
   weekStart: string;
   reason: WeeklyBriefRunReason;
   force: boolean;
+  discardEdits: boolean;
+  actor: string | null;
   startedAt: string;
   phase: Exclude<RunPhase, 'idle'>;
 }
@@ -261,9 +433,9 @@ export function __resetWeeklyBriefStateForTests(): void {
   usedUsdCache = null;
 }
 
-function claim(weekStart: string, reason: WeeklyBriefRunReason, force: boolean, now: Date): RunningState | null {
+function claim(weekStart: string, reason: WeeklyBriefRunReason, force: boolean, now: Date, discardEdits = false, actor: string | null = null): RunningState | null {
   if (running) return null;
-  running = { weekStart, reason, force, startedAt: now.toISOString(), phase: 'collecting' };
+  running = { weekStart, reason, force, discardEdits, actor, startedAt: now.toISOString(), phase: 'collecting' };
   return running;
 }
 
@@ -273,7 +445,8 @@ function claim(weekStart: string, reason: WeeklyBriefRunReason, force: boolean, 
 
 interface BuiltBrief {
   status: WeeklyBriefStatusCode;
-  payload: WeeklyBriefPayload | WeeklyReportPayload | Record<string, never>;
+  format: WeeklyBriefFormat;
+  payload: WeeklyBriefPayload | WeeklyReportPayload | WeeklyExecutivePayload | Record<string, never>;
   stats: Record<string, unknown>;
   model: string | null;
   inputTokens: number;
@@ -350,6 +523,7 @@ async function buildPosterBrief(
   };
   return {
     status: composed.status,
+    format: 'poster',
     payload: composed.payload,
     stats,
     model: ai.model ?? null,
@@ -405,6 +579,7 @@ async function buildReportBrief(
   };
   return {
     status: composed.status,
+    format: 'report',
     payload: composed.payload,
     stats,
     model: ai.model,
@@ -416,13 +591,75 @@ async function buildReportBrief(
   };
 }
 
-/** WEEKLY_BRIEF_FORMAT 에 따라 리포트(v2, 기본) 또는 포스터(v1) 경로로 생성한다 */
+async function buildExecBrief(
+  state: RunningState,
+  deps: WeeklyBriefDeps,
+  progress: { usage: { model: string | null; inputTokens: number; outputTokens: number; costUsd: number } },
+): Promise<BuiltBrief> {
+  const { weekStart } = state;
+  const t0 = Date.now();
+  const range = getWeekRange(weekStart);
+  const prevRange = getWeekRange(addDaysYmd(weekStart, -7));
+
+  setPhase(state, 'collecting');
+  const collected = await deps.collectExec(range, prevRange);
+  const t1 = Date.now();
+
+  setPhase(state, 'summarizing');
+  const showArticleSummary = isArticleSummaryEnabled(deps.env);
+  const entityMode = resolveEntityGuardMode(deps.env);
+  const plan = buildExecPlan(collected, { showArticleSummary, entityMode });
+  const ai = await deps.summarizeExec(weekStart, plan);
+  const t2 = Date.now();
+  if (ai.model) progress.usage.model = ai.model;
+  progress.usage.inputTokens = ai.inputTokens;
+  progress.usage.outputTokens = ai.outputTokens;
+  progress.usage.costUsd = ai.costUsd;
+
+  const composed = finalizeExec(plan, ai.ai, deps.now(), { showArticleSummary, entityMode });
+  const t3 = Date.now();
+
+  const stats = {
+    ...composed.stats,
+    rows: { current: collected.base.rows.length, previous: collected.base.prevRows.length },
+    coverage: computeSummaryCoverage(collected.base.rows),
+    payloadBytes: Buffer.byteLength(JSON.stringify(composed.payload), 'utf8'),
+    ai: {
+      used: composed.payload.meta.aiUsed,
+      skipped: ai.skipped,
+      calls: ai.calls.map((c) => ({ section: c.section, ok: c.ok, reason: c.reason, inputTokens: c.inputTokens, outputTokens: c.outputTokens, costUsd: Math.round(c.costUsd * 1e6) / 1e6, rawTruncated: c.rawTruncated, durationMs: c.durationMs, promptChars: c.promptChars, ladderLevel: c.ladderLevel, droppedPackets: c.droppedPackets })),
+    },
+    timingMs: { collect: t1 - t0, summarize: t2 - t1, compose: t3 - t2, total: t3 - t0 },
+  };
+  return {
+    status: composed.status,
+    format: 'executive',
+    payload: composed.payload,
+    stats,
+    model: ai.model,
+    inputTokens: ai.inputTokens,
+    outputTokens: ai.outputTokens,
+    costUsd: ai.costUsd,
+    error: null,
+    warnings: composed.payload.meta.warnings,
+  };
+}
+
+/** WEEKLY_BRIEF_FORMAT 에 따라 임원판(v3, 기본) · 리포트(v2) · 포스터(v1) 경로로 생성한다 */
 async function buildBrief(
   state: RunningState,
   deps: WeeklyBriefDeps,
   progress: { usage: { model: string | null; inputTokens: number; outputTokens: number; costUsd: number } },
 ): Promise<BuiltBrief> {
-  return resolveWeeklyBriefFormat(deps.env) === 'poster' ? buildPosterBrief(state, deps, progress) : buildReportBrief(state, deps, progress);
+  const format = resolveWeeklyBriefFormat(deps.env);
+  if (format === 'poster') return buildPosterBrief(state, deps, progress);
+  if (format === 'report') return buildReportBrief(state, deps, progress);
+  return buildExecBrief(state, deps, progress);
+}
+
+/** 편집이 있거나 이미 발행된 초안인가 — 재생성에 discardEdits 가 필요하다 */
+export function draftHasEdits(d: Pick<DraftRow, 'editRev' | 'publishState'>): boolean {
+  return d.editRev > 0 || d.publishState === 'published';
 }
 
 /** 타임아웃으로 버려진 이전 실행이 새 실행의 phase 를 건드리지 못하도록 state 동일성을 확인한다 */
@@ -433,6 +670,7 @@ function setPhase(state: RunningState, phase: Exclude<RunPhase, 'idle'>): void {
 function failedBrief(err: unknown, usage: { model: string | null; inputTokens: number; outputTokens: number; costUsd: number }): BuiltBrief {
   return {
     status: 'failed',
+    format: 'report',
     payload: {},
     stats: { error: shortError(err) },
     model: usage.model,
@@ -522,9 +760,11 @@ async function executeClaimed(state: RunningState, deps: WeeklyBriefDeps): Promi
     const progress = { usage: { model: null as string | null, inputTokens: 0, outputTokens: 0, costUsd: 0 } };
 
     const locked = await deps.withLock(async (executor) => {
-      // 락 획득 후 재확인 — 다른 인스턴스가 먼저 만들었을 수 있다
+      // 락 획득 후 재확인 — 다른 인스턴스가 먼저 만들었을 수 있다 (발행본 또는 초안)
       const existing = await deps.getExistingStatus(weekStart, executor);
-      if (!state.force && (existing === 'ok' || existing === 'partial')) return { kind: 'exists' as const };
+      const draft = await deps.getDraft(weekStart, executor);
+      if (!state.force && (existing === 'ok' || existing === 'partial' || draft)) return { kind: 'exists' as const };
+      if (state.force && draft && draftHasEdits(draft) && !state.discardEdits) return { kind: 'has_edits' as const };
 
       let built: BuiltBrief;
       try {
@@ -534,9 +774,43 @@ async function executeClaimed(state: RunningState, deps: WeeklyBriefDeps): Promi
       }
 
       setPhase(state, 'persisting');
+      if (built.format === 'executive' && (built.status === 'ok' || built.status === 'partial') && resolveRequireReview(deps.env)) {
+        // 임원판은 검토 후 발행한다 — weekly_brief_drafts 에만 저장하고 weekly_briefs·ARGOS_I 훅은 건드리지 않는다
+        const range = getWeekRange(weekStart);
+        const now = deps.now();
+        const history =
+          draft && state.discardEdits
+            ? appendHistory(draft.history, makeHistoryEntry({ at: now, by: state.actor, action: 'regenerate', paths: Object.keys(draft.edits), before: draft.edits }))
+            : (draft?.history ?? []);
+        await deps.writeDraft(executor, {
+          weekStart,
+          periodStart: range.startUtc,
+          periodEnd: range.periodEndInclusive,
+          generatedAt: now,
+          status: built.status,
+          aiPayload: built.payload as WeeklyExecutivePayload,
+          edits: {},
+          editRev: 0,
+          editedBy: null,
+          editedAt: null,
+          history,
+          // 발행된 주를 재생성하면 발행 상태는 그대로 두고(발행본은 weekly_briefs 에 남아 사용자에게 계속 보인다) 새 초안은 "수정 사항 미반영" 상태가 된다
+          publishState: draft?.publishState === 'published' ? 'published' : 'draft',
+          publishedAt: draft?.publishedAt ?? null,
+          publishedBy: draft?.publishedBy ?? null,
+          publishedRev: null,
+          stats: built.stats,
+          model: built.model,
+          inputTokens: built.inputTokens,
+          outputTokens: built.outputTokens,
+          costUsd: built.costUsd,
+          error: built.error,
+        });
+        return { kind: 'built' as const, built, wrote: true, draft: true };
+      }
       if (built.status === 'failed' && (existing === 'ok' || existing === 'partial')) {
         // 새 결과가 failed 이면 기존 ok/partial 행은 보존한다 — 오류는 상태에만 기록
-        return { kind: 'built' as const, built, wrote: false };
+        return { kind: 'built' as const, built, wrote: false, draft: false };
       }
       const range = getWeekRange(weekStart);
       await deps.writeRow(executor, {
@@ -553,14 +827,14 @@ async function executeClaimed(state: RunningState, deps: WeeklyBriefDeps): Promi
         costUsd: built.costUsd,
         error: built.error,
       });
-      return { kind: 'built' as const, built, wrote: true };
+      return { kind: 'built' as const, built, wrote: true, draft: false };
     });
 
     if (!locked.locked) {
       const lastRun = await finish(deps, state, startedMs, 'skipped_locked', EMPTY_INFO);
       return { outcome: 'skipped_locked', weekStart, status: null, lastRun };
     }
-    if (locked.value.kind === 'exists') {
+    if (locked.value.kind === 'exists' || locked.value.kind === 'has_edits') {
       const lastRun = await finish(deps, state, startedMs, 'skipped_exists', EMPTY_INFO);
       return { outcome: 'skipped_exists', weekStart, status: null, lastRun };
     }
@@ -575,7 +849,7 @@ async function executeClaimed(state: RunningState, deps: WeeklyBriefDeps): Promi
       warnings: built.warnings,
       error: built.error,
     });
-    if (outcome === 'created' && (built.status === 'ok' || built.status === 'partial') && successHook) {
+    if (outcome === 'created' && !locked.value.draft && (built.status === 'ok' || built.status === 'partial') && successHook) {
       try {
         successHook({ weekStart, status: built.status });
       } catch {
@@ -607,10 +881,11 @@ export async function runWeeklyBrief(opts: RunOptions, depsOverride: Partial<Wee
   try {
     if (!force) {
       const existing = await deps.getExistingStatus(check.weekStart);
-      if (existing === 'ok' || existing === 'partial') {
-        const state: RunningState = { weekStart: check.weekStart, reason: opts.reason, force, startedAt: now.toISOString(), phase: 'collecting' };
+      const hasDraft = existing === 'ok' || existing === 'partial' ? true : (await deps.getDraft(check.weekStart)) !== null;
+      if (existing === 'ok' || existing === 'partial' || hasDraft) {
+        const state: RunningState = { weekStart: check.weekStart, reason: opts.reason, force, discardEdits: false, actor: null, startedAt: now.toISOString(), phase: 'collecting' };
         const lastRun = await finish(deps, state, Date.now(), 'skipped_exists', EMPTY_INFO);
-        return { outcome: 'skipped_exists', weekStart: check.weekStart, status: existing, lastRun };
+        return { outcome: 'skipped_exists', weekStart: check.weekStart, status: existing === 'ok' || existing === 'partial' ? existing : null, lastRun };
       }
     }
   } catch (err) {
@@ -618,7 +893,7 @@ export async function runWeeklyBrief(opts: RunOptions, depsOverride: Partial<Wee
     deps.log('warn', formatLogLine(TAG, { reason: opts.reason, weekStart: check.weekStart, warn: 'exists_check_failed', error: shortError(err) }));
   }
 
-  const state = claim(check.weekStart, opts.reason, force, now);
+  const state = claim(check.weekStart, opts.reason, force, now, opts.discardEdits === true, opts.actor ?? null);
   if (!state) {
     deps.log('log', formatLogLine(TAG, { reason: opts.reason, weekStart: check.weekStart, outcome: 'already_running' }));
     return { outcome: 'already_running', weekStart: check.weekStart, status: null };
@@ -628,7 +903,7 @@ export async function runWeeklyBrief(opts: RunOptions, depsOverride: Partial<Wee
 
 export type StartResult =
   | { started: true; weekStart: string; force: boolean; startedAt: string }
-  | { started: false; skipped: 'exists' | 'already_running'; weekStart: string }
+  | { started: false; skipped: 'exists' | 'already_running' | 'has_edits'; weekStart: string }
   | { started: false; skipped: 'invalid'; error: 'invalid_week_start' | 'week_not_complete'; weekStart: string | null };
 
 /**
@@ -636,7 +911,7 @@ export type StartResult =
  * 스케줄러(DISABLE_SCHEDULER)와 무관하게 동작한다.
  */
 export async function startWeeklyBriefGeneration(
-  opts: { weekStart?: string; force?: boolean },
+  opts: { weekStart?: string; force?: boolean; discardEdits?: boolean; actor?: string | null },
   depsOverride: Partial<WeeklyBriefDeps> = {},
 ): Promise<StartResult> {
   const deps: WeeklyBriefDeps = { ...defaultDeps, ...depsOverride };
@@ -647,11 +922,17 @@ export async function startWeeklyBriefGeneration(
   const force = opts.force === true;
 
   if (running) return { started: false, skipped: 'already_running', weekStart: check.weekStart };
+  const discardEdits = opts.discardEdits === true;
   if (!force) {
     const existing = await deps.getExistingStatus(check.weekStart);
     if (existing === 'ok' || existing === 'partial') return { started: false, skipped: 'exists', weekStart: check.weekStart };
+    if (await deps.getDraft(check.weekStart)) return { started: false, skipped: 'exists', weekStart: check.weekStart };
+  } else if (!discardEdits) {
+    // 편집이 있는 초안이나 발행된 주를 재생성하려면 discardEdits 가 필요하다 (PM-14)
+    const draft = await deps.getDraft(check.weekStart);
+    if (draft && draftHasEdits(draft)) return { started: false, skipped: 'has_edits', weekStart: check.weekStart };
   }
-  const state = claim(check.weekStart, 'manual', force, now);
+  const state = claim(check.weekStart, 'manual', force, now, discardEdits, opts.actor ?? null);
   if (!state) return { started: false, skipped: 'already_running', weekStart: check.weekStart };
 
   void executeClaimed(state, deps).catch(() => undefined);
@@ -716,7 +997,8 @@ export async function runStartupWeeklyBriefIfDue(
     deps.lastWeekExists ??
     (async (ws: string) => {
       const s = await dbGetExistingStatus(ws);
-      return s === 'ok' || s === 'partial';
+      if (s === 'ok' || s === 'partial') return true;
+      return (await dbGetDraft(ws)) !== null;
     });
   const getLastSummary = deps.getLastSummary ?? (async () => (await dataMigrationService.get(WEEKLY_BRIEF_MARKER_KEY))?.summary ?? null);
   const minGap = resolveWeeklyBriefMinGapHours(env);
@@ -942,10 +1224,11 @@ export async function getWeeklyBriefRunStatus(env: Env = process.env): Promise<W
   let targetExists = false;
   try {
     const s = await dbGetExistingStatus(targetWeekStart);
-    targetExists = s === 'ok' || s === 'partial';
+    targetExists = s === 'ok' || s === 'partial' || (await dbGetDraft(targetWeekStart)) !== null;
   } catch {
     targetExists = false;
   }
+  const drafts = await getDraftSummary();
 
   const usedUsd = await getMonthlyUsedUsd();
 
@@ -955,6 +1238,7 @@ export async function getWeeklyBriefRunStatus(env: Env = process.env): Promise<W
     stored,
     targetWeekStart,
     targetExists,
+    drafts,
     config: {
       cron: resolveWeeklyBriefCron(env),
       schedulerEnabled: env.DISABLE_SCHEDULER !== 'true',
@@ -964,18 +1248,207 @@ export async function getWeeklyBriefRunStatus(env: Env = process.env): Promise<W
       model: resolveWeeklyBriefModel(env),
       budget: { limitUsd: resolveClaudeMonthlyLimitUsd(env), usedUsd },
       format: resolveWeeklyBriefFormat(env),
-      estimatedCostUsd: estimateGenerationCostUsd(resolveWeeklyBriefFormat(env), env),
+      requireReview: resolveRequireReview(env),
+      estimatedCostUsd: estimateCostForFormat(resolveWeeklyBriefFormat(env), env),
     },
   };
 }
 
-/** GET /api/admin/ops/status 용 요약 — 비밀값 없음 */
+function estimateCostForFormat(format: WeeklyBriefFormat, env: Env): number {
+  return format === 'executive' ? estimateExecGenerationCostUsd(env) : estimateGenerationCostUsd(format, env);
+}
+
+/** GET /api/admin/ops/status 용 요약 — 비밀값 없음. pendingDrafts: 발행 대기 중인 초안 건수와 가장 오래된 주 */
 export async function getWeeklyBriefOpsSummary(env: Env = process.env) {
+  const drafts = await getDraftSummary();
   return {
     cron: resolveWeeklyBriefCron(env),
     schedulerEnabled: env.DISABLE_SCHEDULER !== 'true',
     startupCatchup: isStartupWeeklyBriefEnabled(env),
     running: running !== null,
     last: await loadLastRun(),
+    pendingDrafts: { count: drafts.pending, oldestWeekStart: drafts.oldestWeekStart },
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 관리자: 초안 조회·편집·발행·내리기 (v3)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MS_DAY = 86_400_000;
+
+/** 발행 대기(미발행 또는 발행 후 수정 미반영) 여부 */
+export function hasUnpublishedChanges(d: Pick<DraftRow, 'publishState' | 'editRev' | 'publishedRev'>): boolean {
+  return d.publishState === 'draft' || d.editRev > (d.publishedRev ?? -1);
+}
+
+/** 발행 대기 초안 요약 — 조회 실패는 빈 요약 */
+export async function getDraftSummary(repo: DraftRepo = dbDraftRepo, now: Date = new Date()): Promise<WeeklyBriefDraftSummary> {
+  try {
+    const pending = (await repo.list()).filter((d) => hasUnpublishedChanges(d)).sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+    const oldest = pending[0];
+    return {
+      pending: pending.length,
+      oldestWeekStart: oldest?.weekStart ?? null,
+      oldestAgeDays: oldest ? Math.max(0, Math.floor((now.getTime() - oldest.generatedAt.getTime()) / MS_DAY)) : null,
+    };
+  } catch {
+    return { pending: 0, oldestWeekStart: null, oldestAgeDays: null };
+  }
+}
+
+export async function listDrafts(repo: DraftRepo = dbDraftRepo, now: Date = new Date()): Promise<WeeklyBriefDraftListItem[]> {
+  const rows = await repo.list();
+  return rows.map((d) => ({
+    weekStart: d.weekStart,
+    status: d.status,
+    publishState: d.publishState,
+    hasUnpublishedChanges: hasUnpublishedChanges(d),
+    generatedAt: d.generatedAt.toISOString(),
+    publishedAt: d.publishedAt ? d.publishedAt.toISOString() : null,
+    ageHours: Math.max(0, Math.floor((now.getTime() - d.generatedAt.getTime()) / 3_600_000)),
+  }));
+}
+
+function effectiveResponse(d: DraftRow, prev: string | null, next: string | null): WeeklyBriefResponse {
+  return {
+    weekStart: d.weekStart,
+    status: d.status,
+    generatedAt: d.generatedAt.toISOString(),
+    model: d.model ?? null,
+    prevWeekStart: prev,
+    nextWeekStart: next,
+    payload: applyEdits(d.aiPayload, d.edits),
+  } as WeeklyBriefResponse;
+}
+
+export type AdminEditsResult = { ok: true; value: WeeklyBriefAdminEdits } | { ok: false; error: 'not_found' };
+
+/** GET /api/admin/weekly-brief/:weekStart/edits — 효과 payload 는 applyEdits(ai_payload, edits) */
+export async function getAdminEdits(weekStart: string, repo: DraftRepo = dbDraftRepo): Promise<AdminEditsResult> {
+  const d = await repo.get(weekStart);
+  if (!d) return { ok: false, error: 'not_found' };
+  const { prev, next } = await neighborWeeks(weekStart).catch(() => ({ prev: null, next: null }));
+  return {
+    ok: true,
+    value: {
+      weekStart: d.weekStart,
+      publishState: d.publishState,
+      rev: d.editRev,
+      hasUnpublishedChanges: hasUnpublishedChanges(d),
+      aiPayload: d.aiPayload,
+      edits: d.edits,
+      effective: effectiveResponse(d, prev, next) as WeeklyBriefAdminEdits['effective'],
+      history: d.history,
+      limits: EDIT_LIMITS,
+    },
+  };
+}
+
+export type SaveEditsResult =
+  | { ok: true; rev: number; editedAt: string; warnings: EditWarning[] }
+  | { ok: false; error: 'not_found' | 'rev_conflict' | 'invalid_edit'; code?: string; path?: string };
+
+/** PATCH — rev 가 다르면 rev_conflict. 거부 사유가 하나라도 있으면 아무것도 저장하지 않는다. 경고는 저장을 막지 않는다 */
+export async function saveEdits(
+  weekStart: string,
+  args: { rev: number; edits: Record<string, string | null>; by: string | null },
+  repo: DraftRepo = dbDraftRepo,
+  now: Date = new Date(),
+): Promise<SaveEditsResult> {
+  return repo.transaction(async (ex) => {
+    const d = await repo.getForUpdate(ex, weekStart);
+    if (!d) return { ok: false as const, error: 'not_found' as const };
+    if (args.rev !== d.editRev) return { ok: false as const, error: 'rev_conflict' as const };
+    const v = validateEdits(d.aiPayload, args.edits);
+    if (!v.ok) return { ok: false as const, error: 'invalid_edit' as const, code: v.code, path: v.path };
+    const merged = mergeEdits(d.edits, v.edits);
+    const changed = Object.keys(v.edits).filter((path) => (merged[path] ?? null) !== (d.edits[path] ?? null));
+    if (changed.length === 0) return { ok: true as const, rev: d.editRev, editedAt: (d.editedAt ?? now).toISOString(), warnings: v.warnings };
+    const before: Record<string, string> = {};
+    for (const path of changed) {
+      const t = effectiveTextBefore(d.aiPayload, d.edits, path);
+      if (t !== undefined) before[path] = t;
+    }
+    const history = appendHistory(d.history, makeHistoryEntry({ at: now, by: args.by, action: 'edit', paths: changed, before }));
+    const rev = d.editRev + 1;
+    await repo.update(ex, weekStart, { edits: merged, editRev: rev, editedBy: args.by, editedAt: now, history });
+    return { ok: true as const, rev, editedAt: now.toISOString(), warnings: v.warnings };
+  });
+}
+
+export type PublishResult =
+  | { ok: true; publishState: 'published'; publishedAt: string; changed: boolean }
+  | { ok: false; error: 'not_found' | 'rev_conflict' | 'guard_failed'; violations?: EditViolation[] };
+
+/**
+ * POST publish — 한 트랜잭션에서 (1) 효과 payload 를 거부 규칙으로 다시 검증하고 (2) weekly_briefs 에 기록하고 (3) 초안을 published 로 바꾼다.
+ * 커밋 후에 성공 훅을 호출한다(실패해도 발행은 유지). 이미 같은 rev 가 발행되어 있으면 멱등으로 성공한다.
+ */
+export async function publishDraft(
+  weekStart: string,
+  args: { rev: number; by: string | null },
+  repo: DraftRepo = dbDraftRepo,
+  now: Date = new Date(),
+): Promise<PublishResult> {
+  const result = await repo.transaction(async (ex): Promise<PublishResult> => {
+    const d = await repo.getForUpdate(ex, weekStart);
+    if (!d) return { ok: false, error: 'not_found' };
+    if (args.rev !== d.editRev) return { ok: false, error: 'rev_conflict' };
+    if (d.publishState === 'published' && d.publishedRev === d.editRev) {
+      return { ok: true, publishState: 'published', publishedAt: (d.publishedAt ?? now).toISOString(), changed: false };
+    }
+    const violations = publishViolations(d.aiPayload, d.edits);
+    if (violations.length > 0) return { ok: false, error: 'guard_failed', violations };
+    const effective = applyEdits(d.aiPayload, d.edits);
+    await repo.writePublished(ex, {
+      weekStart,
+      periodStart: d.periodStart,
+      periodEnd: d.periodEnd,
+      generatedAt: d.generatedAt,
+      status: d.status,
+      payload: effective as unknown as Record<string, unknown>,
+      stats: d.stats,
+      model: d.model,
+      inputTokens: d.inputTokens,
+      outputTokens: d.outputTokens,
+      costUsd: d.costUsd,
+      error: d.error,
+    });
+    const history = appendHistory(d.history, makeHistoryEntry({ at: now, by: args.by, action: 'publish', paths: [] }));
+    await repo.update(ex, weekStart, { publishState: 'published', publishedAt: now, publishedBy: args.by, publishedRev: d.editRev, history });
+    return { ok: true, publishState: 'published', publishedAt: now.toISOString(), changed: true };
+  });
+  if (result.ok && result.changed && successHook) {
+    const d = await repo.get(weekStart).catch(() => null);
+    try {
+      successHook({ weekStart, status: d?.status ?? 'ok' });
+    } catch {
+      // 훅 실패는 발행 결과에 영향을 주지 않는다
+    }
+  }
+  return result;
+}
+
+export type UnpublishResult = { ok: true; publishState: 'draft'; changed: boolean } | { ok: false; error: 'not_found' };
+
+/** POST unpublish — weekly_briefs 행을 삭제하고 초안을 draft 로 되돌린다. 이력에 남긴다 */
+export async function unpublishDraft(weekStart: string, args: { by: string | null }, repo: DraftRepo = dbDraftRepo, now: Date = new Date()): Promise<UnpublishResult> {
+  const result = await repo.transaction(async (ex): Promise<UnpublishResult & { status?: 'ok' | 'partial' }> => {
+    const d = await repo.getForUpdate(ex, weekStart);
+    if (!d) return { ok: false, error: 'not_found' };
+    if (d.publishState !== 'published') return { ok: true, publishState: 'draft', changed: false };
+    await repo.deletePublished(ex, weekStart);
+    const history = appendHistory(d.history, makeHistoryEntry({ at: now, by: args.by, action: 'unpublish', paths: [] }));
+    await repo.update(ex, weekStart, { publishState: 'draft', publishedAt: null, publishedBy: null, publishedRev: null, history });
+    return { ok: true, publishState: 'draft', changed: true, status: d.status };
+  });
+  if (result.ok && result.changed && successHook) {
+    try {
+      successHook({ weekStart, status: (result as { status?: 'ok' | 'partial' }).status ?? 'ok' });
+    } catch {
+      // 훅 실패는 내리기 결과에 영향을 주지 않는다
+    }
+  }
+  return result.ok ? { ok: true, publishState: 'draft', changed: result.changed } : result;
 }

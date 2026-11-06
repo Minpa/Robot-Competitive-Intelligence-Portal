@@ -11,7 +11,7 @@ vi.mock('../../db/index.js', () => ({
   db: { execute: vi.fn(async (q: unknown) => { h.executed.push(q); }) },
 }));
 
-import { WEEKLY_BRIEF_DDL_STATEMENTS, ensureWeeklyBriefTables, runWeeklyBriefDdl } from '../../db/weekly-brief.ddl.js';
+import { WEEKLY_BRIEF_DDL_STATEMENTS, WEEKLY_BRIEF_DRAFTS_DDL_STATEMENTS, ensureWeeklyBriefTables, runWeeklyBriefDdl } from '../../db/weekly-brief.ddl.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const sqlFile = path.resolve(here, '../../../drizzle/0029_add_weekly_briefs.sql');
@@ -58,9 +58,35 @@ describe('weekly brief DDL', () => {
   it('ensureWeeklyBriefTables runs each statement; runWeeklyBriefDdl works on any executor', async () => {
     h.executed.length = 0;
     await ensureWeeklyBriefTables();
-    expect(h.executed).toHaveLength(1);
+    expect(h.executed).toHaveLength(2); // weekly_briefs + weekly_brief_drafts
     const tx = { execute: vi.fn(async () => undefined) };
     await runWeeklyBriefDdl(tx);
-    expect(tx.execute).toHaveBeenCalledTimes(1);
+    expect(tx.execute).toHaveBeenCalledTimes(2);
+  });
+
+  it('declares weekly_brief_drafts (0031) idempotently and the SQL file matches the runtime statement', () => {
+    expect(WEEKLY_BRIEF_DRAFTS_DDL_STATEMENTS).toHaveLength(1);
+    const ddl = squash(WEEKLY_BRIEF_DRAFTS_DDL_STATEMENTS[0]!);
+    expect(ddl).toMatch(/^CREATE TABLE IF NOT EXISTS weekly_brief_drafts/);
+    for (const col of [
+      'week_start DATE PRIMARY KEY',
+      "status VARCHAR(10) NOT NULL CHECK (status IN ('ok','partial'))",
+      'ai_payload JSONB NOT NULL',
+      "edits JSONB NOT NULL DEFAULT '{}'::jsonb",
+      'edit_rev INTEGER NOT NULL DEFAULT 0',
+      "history JSONB NOT NULL DEFAULT '[]'::jsonb",
+      "publish_state VARCHAR(10) NOT NULL DEFAULT 'draft' CHECK (publish_state IN ('draft','published'))",
+      'published_rev INTEGER',
+    ]) {
+      expect(ddl).toContain(col);
+    }
+    const sqlText = fs.readFileSync(path.resolve(here, '../../../drizzle/0031_add_weekly_brief_drafts.sql'), 'utf-8');
+    const statements = sqlText
+      .split('--> statement-breakpoint')
+      .map((s) => s.replace(/^--.*$/gm, '').replace(/;\s*$/, '').trim())
+      .filter(Boolean);
+    expect(statements.map(squash)).toEqual(WEEKLY_BRIEF_DRAFTS_DDL_STATEMENTS.map(squash));
+    const journal = fs.readFileSync(path.resolve(here, '../../../drizzle/meta/_journal.json'), 'utf-8');
+    expect(journal).not.toContain('0031_add_weekly_brief_drafts');
   });
 });

@@ -182,7 +182,7 @@ describe('논문 (§14)', () => {
     delete old.payload.header.counts.papers;
     delete old.payload.header.deltas.papers;
     const n = normalizeWeeklyBrief(old as never);
-    expect(n.payload.papers).toEqual([]);
+    expect((n.payload as { papers?: unknown }).papers).toEqual([]);
     expect(n.payload.header.counts.papers).toBe(0);
     expect(n.payload.header.deltas.papers).toBeNull();
     expect(buildStatItems(n.payload.header.counts, n.payload.header.deltas).map((i) => i.label)).toContain('논문');
@@ -190,7 +190,7 @@ describe('논문 (§14)', () => {
   it('신 payload 는 값을 보존하고 입력을 변경하지 않는다', () => {
     const b = makeFullBrief();
     const n = normalizeWeeklyBrief(b);
-    expect(n.payload.papers).toHaveLength(6);
+    expect((n.payload as { papers?: unknown[] }).papers).toHaveLength(6);
     expect(n.payload.header.counts.papers).toBe(23);
     expect(n.payload.header.deltas.papers).toBe(15.5);
     expect(n).not.toBe(b);
@@ -244,8 +244,8 @@ describe('normalizeWeeklyBrief: v2 / 미지원 버전', () => {
     expect(b.payload.highlights).toBeUndefined();
   });
 
-  it('2 보다 큰 알 수 없는 버전은 그대로 통과시키고, 버전이 없으면 v1 로 본다', () => {
-    const future = { weekStart: '2026-10-19', status: 'ok', payload: { schemaVersion: 3, whatever: [1] } } as never;
+  it('3 보다 큰 알 수 없는 버전은 그대로 통과시키고, 버전이 없으면 v1 로 본다', () => {
+    const future = { weekStart: '2026-10-19', status: 'ok', payload: { schemaVersion: 4, whatever: [1] } } as never;
     expect(normalizeWeeklyBrief(future)).toBe(future);
     const old = makeFullBrief() as unknown as { payload: { schemaVersion?: number } };
     delete old.payload.schemaVersion;

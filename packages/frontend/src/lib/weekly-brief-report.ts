@@ -111,13 +111,13 @@ export function titlePair(title: string, titleKo: string | null | undefined): { 
 
 // ───────────────────────── 버전 판별 ─────────────────────────
 
-export type ReportVersionKind = 'v1' | 'v2' | 'unknown';
+export type ReportVersionKind = 'v1' | 'v2' | 'v3' | 'unknown';
 
-/** payload.schemaVersion → 렌더 방식 (없거나 1 → v1, 2 → v2, 그보다 크면 알 수 없는 형식) */
+/** payload.schemaVersion → 렌더 방식 (없거나 1 → v1, 2 → v2, 3 → v3 임원판, 그보다 크면 알 수 없는 형식) */
 export function versionKindOf(payload: unknown): ReportVersionKind {
   const v = (payload as { schemaVersion?: unknown } | null | undefined)?.schemaVersion;
   const n = typeof v === 'number' && Number.isFinite(v) ? v : 1;
-  return n <= 1 ? 'v1' : n === 2 ? 'v2' : 'unknown';
+  return n <= 1 ? 'v1' : n === 2 ? 'v2' : n === 3 ? 'v3' : 'unknown';
 }
 
 // ───────────────────────── 빈 판정·섹션 계획 ─────────────────────────

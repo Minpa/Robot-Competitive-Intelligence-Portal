@@ -14,11 +14,12 @@ import type {
   WeeklyBriefPayload,
   WeeklyBriefResponse,
   WeeklyBriefV1Response,
+  WeeklyExecutivePayload,
   WeeklyKeyMessage,
   WeeklyKeyword,
   WeeklyReportPayload,
 } from '@/types/weekly-brief';
-import { WEEKLY_BRIEF_REPORT_SCHEMA_VERSION, weeklyBriefSchemaVersionOf } from '@/types/weekly-brief';
+import { WEEKLY_BRIEF_EXECUTIVE_SCHEMA_VERSION, WEEKLY_BRIEF_REPORT_SCHEMA_VERSION, weeklyBriefSchemaVersionOf } from '@/types/weekly-brief';
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
@@ -177,13 +178,60 @@ export function formatCostUsd(v: number | null | undefined): string {
   return `$${v.toFixed(2)}`;
 }
 
+/** v3 payload 의 누락된 배열·객체를 기본값으로 채운다(마이너 필드 추가에도 화면이 깨지지 않게). 입력은 변경하지 않는다 */
+export function normalizeExecPayload(raw: WeeklyExecutivePayload): WeeklyExecutivePayload {
+  const r = raw as unknown as Record<string, unknown>;
+  const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+  const gaps = (r.gaps ?? {}) as Partial<WeeklyExecutivePayload['gaps']>;
+  const tech = (r.tech ?? {}) as Partial<WeeklyExecutivePayload['tech']>;
+  const business = (r.business ?? {}) as Partial<WeeklyExecutivePayload['business']>;
+  const evidence = (r.evidence ?? {}) as Partial<WeeklyExecutivePayload['evidence']>;
+  const metaIn = (r.meta ?? {}) as Partial<WeeklyExecutivePayload['meta']>;
+  const cov = (gaps.coverage ?? {}) as Partial<WeeklyExecutivePayload['gaps']['coverage']>;
+  return {
+    ...raw,
+    header: raw.header ? { ...raw.header, counts: normalizeCounts(raw.header.counts ?? ({} as WeeklyExecutivePayload['header']['counts'])) } : raw.header,
+    conclusions: arr(r.conclusions) as WeeklyExecutivePayload['conclusions'],
+    gaps: {
+      summary: arr(gaps.summary) as string[],
+      rows: arr(gaps.rows) as WeeklyExecutivePayload['gaps']['rows'],
+      coverage: { registered: arr(cov.registered) as string[], missing: arr(cov.missing) as string[], asOf: cov.asOf ?? null },
+    },
+    tech: {
+      window: tech.window ?? { weeks: 8, recentWeeks: 4, asOfWeekStart: raw.header.weekStart },
+      signals: arr(tech.signals) as WeeklyExecutivePayload['tech']['signals'],
+      procurement: tech.procurement ?? { state: 'accumulating', snapshots: 0 },
+    },
+    business: { picture: arr(business.picture) as WeeklyExecutivePayload['business']['picture'], moves: arr(business.moves) as WeeklyExecutivePayload['business']['moves'], asOf: business.asOf ?? null },
+    questions: arr(r.questions) as WeeklyExecutivePayload['questions'],
+    evidence: {
+      videos: arr(evidence.videos) as WeeklyExecutivePayload['evidence']['videos'],
+      papers: arr(evidence.papers) as WeeklyExecutivePayload['evidence']['papers'],
+      articles: arr(evidence.articles) as WeeklyExecutivePayload['evidence']['articles'],
+      collectionLine: typeof evidence.collectionLine === 'string' ? evidence.collectionLine : '',
+    },
+    meta: {
+      aiUsed: metaIn.aiUsed === true,
+      ruleBasedSections: typeof metaIn.ruleBasedSections === 'number' ? metaIn.ruleBasedSections : 0,
+      sectionSources: { conclusions: 'none', gaps: 'none', tech: 'none', business: 'none', questions: 'none', evidence: 'none', ...(metaIn.sectionSources ?? {}) },
+      warnings: arr(metaIn.warnings) as string[],
+      truncated: metaIn.truncated === true,
+      positionSnapshot: metaIn.positionSnapshot ?? null,
+      positionCoverage: metaIn.positionCoverage ?? { registered: 0, missing: 0 },
+    },
+  };
+}
+
 /**
  * "지금 생성" 확인 다이얼로그 문구 — 비용은 서버가 내려준 estimatedCostUsd 로 표기한다(하드코딩 금지).
  * 값이 없으면 금액 없이 "AI 문장 생성 비용이 발생합니다" 로만 안내한다. 기존 브리프가 있으면 덮어쓰기(복구 불가)를 알린다.
  */
-export function buildGenerateConfirmMessage(opts: { weekStart: string; exists: boolean; estimatedCostUsd?: number | null }): string {
+export function buildGenerateConfirmMessage(opts: { weekStart: string; exists: boolean; estimatedCostUsd?: number | null; discardsEdits?: boolean }): string {
   const cost = formatCostUsd(opts.estimatedCostUsd);
   const costLine = cost ? `AI 문장 생성 비용(회당 약 ${cost})이 발생합니다.` : 'AI 문장 생성 비용이 발생합니다.';
+  if (opts.discardsEdits) {
+    return `${opts.weekStart} 주 초안에는 관리자 편집이 있습니다. 편집 내용을 버리고 다시 생성할까요?\n편집 내용은 이력에 남지만 새 초안에는 반영되지 않습니다. 이미 발행된 브리프는 새 초안을 발행하기 전까지 그대로 공개됩니다.\n${costLine}`;
+  }
   return opts.exists
     ? `${opts.weekStart} 주 브리프가 이미 있습니다. 덮어쓰기로 다시 생성할까요?\n기존 브리프는 덮어써지며 복구되지 않습니다.\n${costLine}`
     : `${opts.weekStart} 주 브리프를 생성할까요?\n${costLine}`;
@@ -427,7 +475,10 @@ export function normalizeWeeklyBrief(brief: WeeklyBriefResponse): WeeklyBriefRes
   if (version === WEEKLY_BRIEF_REPORT_SCHEMA_VERSION) {
     return { ...brief, payload: normalizeReportPayload(brief.payload as WeeklyReportPayload) } as WeeklyBriefResponse;
   }
-  if (version > WEEKLY_BRIEF_REPORT_SCHEMA_VERSION) return brief;
+  if (version === WEEKLY_BRIEF_EXECUTIVE_SCHEMA_VERSION) {
+    return { ...brief, payload: normalizeExecPayload(brief.payload as WeeklyExecutivePayload) } as WeeklyBriefResponse;
+  }
+  if (version > WEEKLY_BRIEF_EXECUTIVE_SCHEMA_VERSION) return brief;
   return normalizeV1Brief(brief as WeeklyBriefV1Response);
 }
 

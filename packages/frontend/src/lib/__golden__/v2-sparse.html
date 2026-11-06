@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>ARGOS · 주간 브리프 2026-10-19 ~ 10-25 (Week 43)</title>
+<style>
+  :root{--bg:#4A4F57;--bg2:#565B64;--bg3:#616670;--line:rgba(255,255,255,.28);--fg:#F4F5F6;--fg2:#D9DCE0;--fg3:#C0C5CC;--card:#5B606A;--ink900:#1F2328;--track:#3A3F47;--prev:#9AA1AC}
+  *{box-sizing:border-box}
+  [id]{scroll-margin-top:112px}
+  html{scroll-behavior:smooth}
+  body{margin:0;padding:18px 12px 40px;background:#F2F3F4;color:var(--fg);font-family:-apple-system,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",Segoe UI,Roboto,sans-serif;line-height:1.6;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  a{color:var(--fg);text-decoration:underline;text-underline-offset:2px}
+  h1,h2,h3,p,ul,ol{margin:0}
+  ul{padding:0;list-style:none}
+  .page{max-width:760px;margin:0 auto;background:var(--bg);color:var(--fg);overflow-wrap:anywhere}
+  .top{background:var(--ink900);padding:14px 28px;display:flex;justify-content:space-between;align-items:center;gap:12px;letter-spacing:.14em;font-weight:800;font-size:14px}
+  .top>div:first-child{white-space:nowrap}
+  .top span{font-weight:400;color:var(--fg3);letter-spacing:.08em;font-size:12px}
+  .cover{padding:34px 20px 22px;text-align:center;break-inside:avoid;page-break-inside:avoid}
+  .eyebrow{font-size:11px;letter-spacing:.2em;color:var(--fg3);text-transform:uppercase}
+  .dash{border:0;border-top:1px dashed var(--line);margin:10px auto;width:60%}
+  h1{font-size:40px;line-height:1.1;margin:10px 0 0;letter-spacing:-.01em;font-weight:900}
+  h1 .thin{font-weight:300}
+  .reading{font-size:13px;color:var(--fg2);margin-top:12px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px;text-align:center}
+  .sc{background:var(--card);padding:10px 8px}
+  .sc .l{font-size:12px;color:var(--fg2)}
+  .sc .v{font-size:24px;font-weight:900;line-height:1.2;margin-top:2px}
+  .sc .d{font-size:12px;color:var(--fg2);margin-top:2px}
+  .toc{position:sticky;top:0;z-index:5;background:var(--bg2);padding:10px 20px;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line)}
+  .toc-d{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .toc-m{display:none}
+  .toc-t{font-size:12px;font-weight:800;letter-spacing:.1em;margin-right:4px}
+  .toc a{display:inline-block;background:var(--bg3);color:var(--fg);padding:4px 12px;border-radius:999px;font-size:13px;text-decoration:none}
+  .toc-m summary{cursor:pointer;font-size:14px;font-weight:700;padding:4px 0}
+  .toc-m ul{display:grid;gap:6px;margin-top:8px}
+  .toc-m a{display:block;border-radius:0}
+  .sec{border-top:1px dashed var(--line)}
+  .sh{background:var(--bg2);padding:16px 20px;display:grid;grid-template-columns:auto 1fr auto;gap:4px 14px;align-items:center;break-inside:avoid;page-break-inside:avoid;break-after:avoid;page-break-after:avoid}
+  .sh .no{grid-row:1 / span 2;font-size:28px;font-weight:900;letter-spacing:-.02em;line-height:1}
+  .sh h2{font-size:22px;font-weight:900;letter-spacing:.02em;line-height:1.25}
+  .sh .cnt{font-size:13px;color:var(--fg2);white-space:nowrap;grid-row:1;grid-column:3}
+  .sh .subt{font-size:12.5px;color:var(--fg2);grid-column:2 / span 2}
+  .sh .nt{font-size:12px;color:var(--fg2);grid-column:2 / span 2}
+  .sbody{padding:22px 20px 8px}
+  .totop{padding:8px 20px 18px;text-align:right;font-size:12.5px}
+  .totop a{color:var(--fg2)}
+  .para{font-size:16px;line-height:1.78;margin:12px 0;color:var(--fg)}
+  .meta{font-size:12.5px;color:var(--fg2);overflow-wrap:anywhere}
+  .orig{font-size:12.5px;color:var(--fg2);margin-top:2px;overflow-wrap:anywhere}
+  h3{font-size:18px;line-height:1.4;font-weight:800;break-after:avoid;page-break-after:avoid}
+  .card{background:var(--card);padding:16px;margin:14px 0;break-inside:avoid;page-break-inside:avoid}
+  .hl-h{display:flex;gap:10px;align-items:flex-start}
+  .hl-no{flex:none;width:28px;height:28px;border-radius:999px;background:var(--bg3);text-align:center;line-height:28px;font-weight:800;font-size:14px}
+  .fig{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-top:10px}
+  .fig .fvu{display:inline-flex;align-items:baseline;gap:2px}
+  .fig .fv{font-size:34px;font-weight:900;line-height:1.1;letter-spacing:-.02em}
+  .fig .fu{font-size:16px;font-weight:700}
+  .fig .fc{font-size:13px;color:var(--fg2)}
+  .fig .fd{font-size:13px;font-weight:700;background:var(--bg3);padding:1px 8px}
+  .basis{font-size:12.5px;color:var(--fg2);margin-top:6px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .chips li{font-size:12.5px;background:var(--bg3);padding:3px 10px;border-radius:14px;color:var(--fg)}
+  .bd{display:inline-block;font-style:normal;background:var(--bg3);color:var(--fg);font-size:11.5px;font-weight:700;padding:0 7px;margin-right:6px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .tags li{font-size:12.5px;border:1px solid var(--line);padding:2px 10px;border-radius:999px}
+  .tags li b{margin-left:4px}
+  .figs{font-size:13.5px;color:var(--fg2);margin-top:6px}
+  .quiet{font-size:15px;margin-top:6px}
+  .dom{padding:6px 0 10px;border-top:1px dashed var(--line)}
+  .dom:first-child{border-top:0}
+  .domnav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+  .domnav a{font-size:13px;background:var(--bg3);padding:3px 11px;border-radius:999px;text-decoration:none}
+  .evl{margin-top:8px}
+  .evl>li{padding:8px 0;border-top:1px dashed var(--line);break-inside:avoid;page-break-inside:avoid}
+  .evl>li:first-child{border-top:0}
+  .evl .et{font-size:15px;font-weight:700}
+  .line{font-size:14px;color:var(--fg2);margin-top:3px}
+  .ci{margin-top:10px;padding:10px 12px;background:var(--bg2);break-inside:avoid;page-break-inside:avoid}
+  .ci .ch{font-size:14px;font-weight:700}
+  .ci .cv{font-size:15px;margin-top:4px}
+  .ci .cv .arr{padding:0 6px}
+  .other{font-size:13.5px;color:var(--fg2);margin-top:6px}
+  .vc{display:grid;grid-template-columns:240px 1fr;gap:16px;align-items:start}
+  .thw{display:block;position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,#6a707a,#4f545d);border:1px solid var(--line);overflow:hidden}
+  .thw img{display:block;width:100%;height:100%;object-fit:cover}
+  .thw.ph{display:flex;align-items:center;justify-content:center;color:var(--fg2);font-size:22px}
+  .dur{position:absolute;right:4px;bottom:4px;background:rgba(0,0,0,.72);color:#FFFFFF;font-size:11px;padding:1px 5px}
+  .vlines{margin-top:8px;display:grid;gap:4px}
+  .vlines li{font-size:14.5px;line-height:1.6;padding-left:12px;position:relative}
+  .vlines li::before{content:"·";position:absolute;left:2px}
+  .why{font-size:14px;margin-top:8px;padding:8px 10px;background:var(--bg2)}
+  .why b{font-size:12px;letter-spacing:.04em;display:block;color:var(--fg2);margin-bottom:2px}
+  .row{display:grid;grid-template-columns:1fr auto;gap:4px 14px;padding:12px 0;border-top:1px dashed var(--line);break-inside:avoid;page-break-inside:avoid}
+  .row:first-child{border-top:0}
+  .row h3{font-size:16px}
+  .sub3{font-size:16px;margin:22px 0 8px}
+  .spark{display:block;width:100%;max-width:100%;height:auto}
+  .bars{display:grid;gap:6px;margin-top:8px}
+  .br{display:grid;grid-template-columns:48px 1fr 54px;gap:8px;align-items:center;font-size:13px}
+  .br.cur .bl{font-weight:800}
+  .track{height:10px;background:var(--track);position:relative}
+  .fill{height:10px;background:#F4F5F6}
+  .fill.prev{background:var(--prev)}
+  .brn{grid-column:2 / span 2;font-size:12px;color:var(--fg2);margin-top:-3px}
+  .cmp{display:grid;gap:10px;margin-top:8px}
+  .cmp .ct{display:grid;grid-template-columns:48px 1fr 70px;gap:8px;align-items:center;font-size:13px}
+  .cmp .pair{display:grid;gap:3px}
+  table.kw{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
+  table.kw th,table.kw td{padding:7px 8px;text-align:left;border-top:1px dashed var(--line)}
+  table.kw th{font-size:12px;color:var(--fg2);font-weight:700;border-top:0}
+  table.kw td.n{text-align:right;white-space:nowrap}
+  table.kw td.bar{min-width:80px}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .foot{padding:16px 20px 26px;text-align:center;font-size:11px;color:var(--fg3);border-top:1px dashed var(--line)}
+  .foot p{margin:0 0 4px}
+  .empty{padding:36px 20px;text-align:center;color:var(--fg2);font-size:15px}
+  @media (max-width:640px){
+    body{padding:10px 0 30px}
+    .top{padding:12px 20px}
+    .cover{padding:28px 20px 18px}
+    h1{font-size:30px}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .toc{padding:10px 20px;position:static}
+    .toc-d{display:none}
+    .toc-m{display:block}
+    .sh{padding:14px 20px}
+    .sh h2{font-size:20px}
+    h1 .thin{display:block;font-size:22px}
+    .sbody{padding:18px 20px 6px}
+    .totop{padding:6px 20px 16px}
+    .para{font-size:15px}
+    .vc{grid-template-columns:1fr}
+    .row{grid-template-columns:1fr}
+    .foot{padding:16px 20px 26px}
+    .br{grid-template-columns:44px 1fr 48px}
+  }
+  @page{size:A4 portrait;margin:10mm}
+  @media print{
+    body{background:#FFFFFF;padding:0}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    html{scroll-behavior:auto}
+    .page{max-width:none;width:100%}
+    .toc,.totop{display:none}
+    .card,.row,.ci,.sh,.cover,.evl>li,.vlines li,.br,table.kw tr{break-inside:avoid;page-break-inside:avoid}
+    h2,h3{break-after:avoid;page-break-after:avoid}
+    .para{font-size:13px;line-height:1.6;margin:6px 0}
+    .card{margin:8px 0;padding:10px 12px}
+    .vc{grid-template-columns:150px 1fr;gap:10px}
+    .sh{padding-top:10px;padding-bottom:10px}
+    .sbody{padding-top:12px}
+  }
+</style>
+</head>
+<body>
+<div class="page" id="report-top"><div class="top"><div>ARGOS <span>|| WEEKLY BRIEF</span></div><span>생성 2026-10-26 08:00 KST</span></div><header class="cover"><div class="eyebrow">Weekly Brief · Week 43</div><hr class="dash"><h1><b>주간 브리프</b><br><span class="thin">2026-10-19 ~ 10-25 · Week 43</span></h1><hr class="dash"><p class="reading">읽는 시간 약 2분</p><div class="stats"><div class="sc"><div class="l">영상</div><div class="v">3</div><div class="d">전주 대비 없음</div></div><div class="sc"><div class="l">기사</div><div class="v">2</div><div class="d">전주 대비 없음</div></div><div class="sc"><div class="l">논문</div><div class="v">1</div><div class="d">전주 대비 없음</div></div><div class="sc"><div class="l">분석 영상</div><div class="v">0</div><div class="d">전주 대비 없음</div></div><div class="sc"><div class="l">CI 변경</div><div class="v">0</div><div class="d">전주 대비 없음</div></div><div class="sc"><div class="l">알림</div><div class="v">0</div><div class="d">전주 대비 없음</div></div></div></header><nav class="toc" id="report-toc" aria-label="목차"><div class="toc-d"><span class="toc-t">목차</span><a href="#sec-glance">01 이번 주 한눈에</a><a href="#sec-domains">02 도메인별 동향</a><a href="#sec-videos">03 영상</a><a href="#sec-papers">04 논문</a><a href="#sec-news">05 뉴스·기사</a><a href="#sec-trends">06 수치와 키워드 추이</a></div><details class="toc-m"><summary>목차 (6)</summary><ul><li><a href="#sec-glance">01 이번 주 한눈에</a></li><li><a href="#sec-domains">02 도메인별 동향</a></li><li><a href="#sec-videos">03 영상</a></li><li><a href="#sec-papers">04 논문</a></li><li><a href="#sec-news">05 뉴스·기사</a></li><li><a href="#sec-trends">06 수치와 키워드 추이</a></li></ul></details></nav><main><section class="sec" id="sec-glance"><div class="sh"><span class="no" aria-hidden="true">01</span><h2>이번 주 한눈에</h2><span class="cnt">2개</span><p class="subt">이번 주 가장 중요한 변화를 근거와 함께 요약합니다</p></div><div class="sbody"><article class="card"><div class="hl-h"><span class="hl-no" aria-hidden="true">1</span><h3>Humanoid walks a factory 관련 이번 주 동향</h3></div><div class="fig"><span class="fvu"><span class="fv">80,000</span><span class="fu">회</span></span><span class="fc">수집 시점 조회수</span></div><p class="para">Humanoid walks a factory shift 항목은 이번 주 집계에서 80,000회 수준으로 확인되었습니다. 연결된 근거 자료는 1건이며, 대표 항목은 &#39;Humanoid walks a factory shift&#39;입니다. 이번 주 전체 수집 건수는 영상 3건, 기사 2건, 논문 1건입니다. 집계 기간은 2026-10-19 ~ 2026-10-25이며 수치는 모두 서버 집계값입니다. 증감과 근거는 아래 수치 카드와 링크에서 확인할 수 있습니다.</p><p class="basis">근거: 영상 조회수 집계 (수집 시점 값)</p><ul class="chips"><li><a href="https://www.youtube.com/watch?v=V0000000001" target="_blank" rel="noopener noreferrer">영상 · Humanoid walks a factory shift (Humanoid Daily) ↗</a></li></ul></article><article class="card"><div class="hl-h"><span class="hl-no" aria-hidden="true">2</span><h3>수집 현황 관련 이번 주 동향</h3></div><div class="fig"><span class="fvu"><span class="fv">6</span><span class="fu">건</span></span><span class="fc">영상 3 · 기사 2 · 논문 1</span></div><p class="para">수집 현황 항목은 이번 주 집계에서 6건 수준으로 확인되었습니다. 연결된 근거 자료는 3건이며, 대표 항목은 &#39;Humanoid walks a factory shift&#39;입니다. 이번 주 전체 수집 건수는 영상 3건, 기사 2건, 논문 1건입니다. 집계 기간은 2026-10-19 ~ 2026-10-25이며 수치는 모두 서버 집계값입니다. 증감과 근거는 아래 수치 카드와 링크에서 확인할 수 있습니다.</p><p class="basis">근거: 수집 건수 집계 (영상 3 · 기사 2 · 논문 1)</p><ul class="chips"><li><a href="https://www.youtube.com/watch?v=V0000000001" target="_blank" rel="noopener noreferrer">영상 · Humanoid walks a factory shift (Humanoid Daily) ↗</a></li><li><a href="https://www.youtube.com/watch?v=V0000000002" target="_blank" rel="noopener noreferrer">영상 · Gripper test bench (Hand Tech) ↗</a></li><li><a href="https://news.example.com/Venture%20Post/00000005" target="_blank" rel="noopener noreferrer">기사 · Startup raises round (Venture Post) ↗</a></li></ul></article></div><p class="totop"><a href="#report-top">↑ 맨 위로</a></p></section><section class="sec" id="sec-domains"><div class="sh"><span class="no" aria-hidden="true">02</span><h2>도메인별 동향</h2><span class="cnt">활성 0/5</span><p class="subt">핸드 · 액추에이터 · RFM · 전시 · 양산 5개 축의 수집 동향</p></div><div class="sbody"><nav class="domnav" aria-label="도메인 바로가기"><a href="#dom-hand">핸드</a><a href="#dom-actuator">액추에이터</a><a href="#dom-rfm">파운데이션 모델·RFM</a><a href="#dom-expo">전시·데모</a><a href="#dom-production">양산·사업화</a></nav><article class="dom" id="dom-hand"><h3>핸드</h3><p class="quiet">이번 주 특이사항 없음</p><p class="figs">수집 1건 (영상 0 · 논문 1)</p></article><article class="dom" id="dom-actuator"><h3>액추에이터</h3><p class="quiet">이번 주 특이사항 없음</p><p class="figs">수집 0건 (영상 0 · 논문 0)</p></article><article class="dom" id="dom-rfm"><h3>파운데이션 모델·RFM</h3><p class="quiet">이번 주 특이사항 없음</p><p class="figs">수집 0건 (영상 0 · 논문 0)</p></article><article class="dom" id="dom-expo"><h3>전시·데모</h3><p class="quiet">이번 주 특이사항 없음</p><p class="figs">수집 0건 (영상 0 · 기사 0)</p></article><article class="dom" id="dom-production"><h3>양산·사업화</h3><p class="quiet">이번 주 특이사항 없음</p><p class="figs">수집 0건 (영상 0 · 기사 0)</p></article></div><p class="totop"><a href="#report-top">↑ 맨 위로</a></p></section><section class="sec" id="sec-videos"><div class="sh"><span class="no" aria-hidden="true">03</span><h2>영상</h2><span class="cnt">3건</span><p class="subt">이번 주 수집 영상이 적어 3건만 표시합니다 · 수집 시점 조회수</p></div><div class="sbody"><p class="meta">조회수는 수집 시점 값입니다</p><article class="card vc"><a class="thw" href="https://www.youtube.com/watch?v=V0000000001" target="_blank" rel="noopener noreferrer"><img src="https://i.ytimg.com/vi/V0000000001/mqdefault.jpg" alt="Humanoid walks a factory shift" width="320" height="180" loading="eager" referrerpolicy="no-referrer"><span class="dur">8:00</span></a><div><i class="bd">가장 많이 본 영상</i><h3><a href="https://www.youtube.com/watch?v=V0000000001" target="_blank" rel="noopener noreferrer">Humanoid walks a factory shift (한글)</a><div class="orig">원제: Humanoid walks a factory shift</div></h3><p class="meta">Humanoid Daily · 10-21 · 조회 80K (수집 시점) · <a href="https://www.youtube.com/watch?v=V0000000001" target="_blank" rel="noopener noreferrer">유튜브 원본 ↗</a></p><ul class="vlines"><li>로봇 관절 모듈의 구조를 설명하는 영상이다.</li><li>토크 센서와 감속기 배치를 단계별로 보여준다.</li><li>마지막에 시험 결과를 요약한다.</li></ul></div></article><article class="card vc"><a class="thw" href="https://www.youtube.com/watch?v=V0000000002" target="_blank" rel="noopener noreferrer"><img src="https://i.ytimg.com/vi/V0000000002/mqdefault.jpg" alt="Gripper test bench" width="320" height="180" loading="eager" referrerpolicy="no-referrer"></a><div><h3><a href="https://www.youtube.com/watch?v=V0000000002" target="_blank" rel="noopener noreferrer">Gripper test bench (한글)</a><div class="orig">원제: Gripper test bench</div></h3><p class="meta">Hand Tech · 10-21 · 조회 3K (수집 시점) · <a href="https://www.youtube.com/watch?v=V0000000002" target="_blank" rel="noopener noreferrer">유튜브 원본 ↗</a></p></div></article><article class="card vc"><a class="thw" href="https://www.youtube.com/watch?v=V0000000003" target="_blank" rel="noopener noreferrer"><img src="https://i.ytimg.com/vi/V0000000003/mqdefault.jpg" alt="Teleoperation setup" width="320" height="180" loading="eager" referrerpolicy="no-referrer"></a><div><h3><a href="https://www.youtube.com/watch?v=V0000000003" target="_blank" rel="noopener noreferrer">Teleoperation setup (한글)</a><div class="orig">원제: Teleoperation setup</div></h3><p class="meta">Embodied AI · 10-21 · 조회 900 (수집 시점) · <a href="https://www.youtube.com/watch?v=V0000000003" target="_blank" rel="noopener noreferrer">유튜브 원본 ↗</a></p></div></article></div><p class="totop"><a href="#report-top">↑ 맨 위로</a></p></section><section class="sec" id="sec-papers"><div class="sh"><span class="no" aria-hidden="true">04</span><h2>논문</h2><span class="cnt">1편</span><p class="subt">arXiv 논문 · 도메인 다양성 반영 · 제목 클릭 시 arXiv 원문</p></div><div class="sbody"><article class="card"><i class="bd">핸드</i><h3><a href="https://arxiv.org/abs/2610.00004" target="_blank" rel="noopener noreferrer">Tactile Sensing Skin for Hands (한글)</a><div class="orig">원제: Tactile Sensing Skin for Hands</div></h3><p class="meta">A. Kim, B. Lee, C. Park 외 1명 · arXiv · 10-21</p><ul class="vlines"><li>촉각 피부로 조작 성공률을 높였다.</li></ul><p class="why"><b>왜 중요한가 (AI 생성)</b>이번 주 자료에서 해당 주제를 다룬 논문으로 분류됩니다.</p></article></div><p class="totop"><a href="#report-top">↑ 맨 위로</a></p></section><section class="sec" id="sec-news"><div class="sh"><span class="no" aria-hidden="true">05</span><h2>뉴스·기사</h2><span class="cnt">2건</span><p class="subt">출처 다양성을 반영한 기사 · 제목 클릭 시 원문</p></div><div class="sbody"><ul><li class="row"><div><h3><a href="https://news.example.com/Venture%20Post/00000005" target="_blank" rel="noopener noreferrer">Startup raises round (한글)</a><div class="orig">원제: Startup raises round</div></h3><ul class="vlines"><li>RAWSUMMARYMARKER article first sentence.</li></ul></div><div class="meta">Venture Post · 10-20</div></li><li class="row"><div><h3><a href="https://news.example.com/Industry%20Wire/00000006" target="_blank" rel="noopener noreferrer">Safety standard draft (한글)</a><div class="orig">원제: Safety standard draft</div></h3><ul class="vlines"><li>서비스 로봇 안전 표준 초안이 공개되었다</li></ul></div><div class="meta">Industry Wire · 10-20</div></li></ul></div><p class="totop"><a href="#report-top">↑ 맨 위로</a></p></section><section class="sec" id="sec-trends"><div class="sh"><span class="no" aria-hidden="true">06</span><h2>수치와 키워드 추이</h2><p class="subt">최근 8주 수집량과 이번 주 키워드 증감</p></div><div class="sbody"><h3 class="sub3">이번 주 수집량</h3><p class="para">영상 3건 · 기사 2건 · 논문 1건이 수집되었습니다. 추이를 비교할 만큼의 주별 데이터가 아직 없습니다.</p><h3 class="sub3">이번 주 vs 지난주</h3><div class="cmp"><div class="ct"><span>영상</span><div class="pair"><div class="track"><div class="fill" style="width:100%"></div></div><div class="track"><div class="fill prev" style="width:0%"></div></div></div><span class="meta">이번 주 3 / 지난주 0 NEW</span></div><div class="ct"><span>기사</span><div class="pair"><div class="track"><div class="fill" style="width:100%"></div></div><div class="track"><div class="fill prev" style="width:0%"></div></div></div><span class="meta">이번 주 2 / 지난주 0 NEW</span></div><div class="ct"><span>논문</span><div class="pair"><div class="track"><div class="fill" style="width:100%"></div></div><div class="track"><div class="fill prev" style="width:0%"></div></div></div><span class="meta">이번 주 1 / 지난주 0 NEW</span></div></div></div><p class="totop"><a href="#report-top">↑ 맨 위로</a></p></section></main><footer class="foot"><p>본 브리프는 공개 메타데이터(제목·썸네일 URL·링크)와 ARGOS 집계값, AI 생성 문장만 포함하며 원문을 복제하지 않습니다. 큰 숫자는 모두 DB 집계에서 산출됩니다. 조회수는 수집 시점 값입니다. · ARGOS · 2026-10-26</p></footer></div>
+</body>
+</html>

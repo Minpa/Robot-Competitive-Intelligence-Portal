@@ -1,0 +1,193 @@
+{
+  "weekStart": "2026-10-19",
+  "status": "partial",
+  "generatedAt": "2026-10-25T23:00:00.000Z",
+  "model": "sample-model",
+  "prevWeekStart": null,
+  "nextWeekStart": null,
+  "payload": {
+    "schemaVersion": 3,
+    "header": {
+      "weekStart": "2026-10-19",
+      "weekEnd": "2026-10-25",
+      "isoYear": 2026,
+      "weekNumber": 43,
+      "periodStartAt": "2026-10-18T15:00:00.000Z",
+      "periodEndAt": "2026-10-25T14:59:59.999Z",
+      "generatedAt": "2026-10-25T23:00:00.000Z",
+      "counts": {
+        "articles": 2,
+        "videosNew": 3,
+        "videosAnalyzed": 0,
+        "papers": 1,
+        "ciUpdates": 0,
+        "alerts": 0
+      },
+      "deltas": {
+        "articles": null,
+        "videosNew": null,
+        "videosAnalyzed": null,
+        "papers": null,
+        "ciUpdates": null,
+        "alerts": null
+      }
+    },
+    "conclusions": [],
+    "gaps": {
+      "summary": [
+        "비교 기준이 되는 우리 위치 데이터를 불러오지 못했습니다."
+      ],
+      "rows": [],
+      "coverage": {
+        "registered": [],
+        "missing": [
+          "토크밀도",
+          "핸드 자유도",
+          "핸드 그립력",
+          "촉각 채널 수",
+          "전신 자유도",
+          "가용 하중",
+          "가격",
+          "신체 성능",
+          "인지",
+          "자율성",
+          "손재주",
+          "상호작용",
+          "생태계",
+          "안전",
+          "사업성",
+          "지식재산",
+          "확장성"
+        ],
+        "asOf": null
+      }
+    },
+    "tech": {
+      "window": {
+        "weeks": 8,
+        "recentWeeks": 4,
+        "asOfWeekStart": "2026-10-19"
+      },
+      "signals": [],
+      "procurement": {
+        "state": "accumulating",
+        "snapshots": 0
+      }
+    },
+    "business": {
+      "picture": [],
+      "moves": [],
+      "asOf": null
+    },
+    "questions": [],
+    "evidence": {
+      "videos": [
+        {
+          "id": "c3000000-0000-4000-8000-000000000001",
+          "title": "Humanoid walks a factory shift",
+          "titleKo": "Humanoid walks a factory shift (한글)",
+          "channel": "Humanoid Daily",
+          "publishedAt": "2026-10-21T03:00:00.000Z",
+          "url": "https://www.youtube.com/watch?v=V0000000001",
+          "thumbnail": "https://i.ytimg.com/vi/V0000000001/mqdefault.jpg",
+          "views": 80000,
+          "durationSec": 480,
+          "domain": null,
+          "summaryLines": [
+            "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "토크 센서와 감속기 배치를 단계별로 보여준다."
+          ],
+          "tags": []
+        },
+        {
+          "id": "c3000000-0000-4000-8000-000000000002",
+          "title": "Gripper test bench",
+          "titleKo": "Gripper test bench (한글)",
+          "channel": "Hand Tech",
+          "publishedAt": "2026-10-21T03:00:00.000Z",
+          "url": "https://www.youtube.com/watch?v=V0000000002",
+          "thumbnail": "https://i.ytimg.com/vi/V0000000002/mqdefault.jpg",
+          "views": 3000,
+          "durationSec": null,
+          "domain": null,
+          "summaryLines": [],
+          "tags": []
+        },
+        {
+          "id": "c3000000-0000-4000-8000-000000000003",
+          "title": "Teleoperation setup",
+          "titleKo": "Teleoperation setup (한글)",
+          "channel": "Embodied AI",
+          "publishedAt": "2026-10-21T03:00:00.000Z",
+          "url": "https://www.youtube.com/watch?v=V0000000003",
+          "thumbnail": "https://i.ytimg.com/vi/V0000000003/mqdefault.jpg",
+          "views": 900,
+          "durationSec": null,
+          "domain": null,
+          "summaryLines": [],
+          "tags": []
+        }
+      ],
+      "papers": [
+        {
+          "id": "c3000000-0000-4000-8000-000000000004",
+          "title": "Tactile Sensing Skin for Hands",
+          "titleKo": "Tactile Sensing Skin for Hands (한글)",
+          "authors": "A. Kim, B. Lee, C. Park 외 1명",
+          "publishedAt": "2026-10-21T02:00:00.000Z",
+          "url": "https://arxiv.org/abs/2610.00004",
+          "arxivId": "2610.00004",
+          "domain": "hand",
+          "implication": "핵심 기법이 우리 설계 검토에 참고가 됩니다.",
+          "frontierScore": 3
+        }
+      ],
+      "articles": [
+        {
+          "id": "c3000000-0000-4000-8000-000000000005",
+          "title": "Startup raises round",
+          "titleKo": "Startup raises round (한글)",
+          "source": "Venture Post",
+          "publishedAt": "2026-10-20T05:00:00.000Z",
+          "url": "https://news.example.com/Venture Post/00000005",
+          "domain": null,
+          "summaryLine": "RAWSUMMARYMARKER article first sentence."
+        },
+        {
+          "id": "c3000000-0000-4000-8000-000000000006",
+          "title": "Safety standard draft",
+          "titleKo": "Safety standard draft (한글)",
+          "source": "Industry Wire",
+          "publishedAt": "2026-10-20T05:00:00.000Z",
+          "url": "https://news.example.com/Industry Wire/00000006",
+          "domain": null,
+          "summaryLine": "서비스 로봇 안전 표준 초안이 공개되었다"
+        }
+      ],
+      "collectionLine": "이번 주 수집: 영상 3건 · 뉴스 2건 · 논문 1건"
+    },
+    "meta": {
+      "aiUsed": true,
+      "ruleBasedSections": 1,
+      "sectionSources": {
+        "conclusions": "none",
+        "gaps": "rule",
+        "tech": "none",
+        "business": "none",
+        "questions": "none",
+        "evidence": "ai"
+      },
+      "warnings": [
+        "position_failed",
+        "bench_failed",
+        "hand_bench_failed"
+      ],
+      "truncated": false,
+      "positionSnapshot": null,
+      "positionCoverage": {
+        "registered": 0,
+        "missing": 17
+      }
+    }
+  }
+}

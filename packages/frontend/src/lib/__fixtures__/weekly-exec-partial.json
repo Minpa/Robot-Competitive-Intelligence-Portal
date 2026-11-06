@@ -1,0 +1,1222 @@
+{
+  "weekStart": "2026-10-19",
+  "status": "partial",
+  "generatedAt": "2026-10-25T23:00:00.000Z",
+  "model": "sample-model",
+  "prevWeekStart": "2026-10-12",
+  "nextWeekStart": "2026-10-26",
+  "payload": {
+    "schemaVersion": 3,
+    "header": {
+      "weekStart": "2026-10-19",
+      "weekEnd": "2026-10-25",
+      "isoYear": 2026,
+      "weekNumber": 43,
+      "periodStartAt": "2026-10-18T15:00:00.000Z",
+      "periodEndAt": "2026-10-25T14:59:59.999Z",
+      "generatedAt": "2026-10-25T23:00:00.000Z",
+      "counts": {
+        "articles": 57,
+        "videosNew": 42,
+        "videosAnalyzed": 29,
+        "papers": 17,
+        "ciUpdates": 8,
+        "alerts": 3,
+        "newRobots": 2
+      },
+      "deltas": {
+        "articles": 128,
+        "videosNew": 61.5,
+        "videosAnalyzed": 20.8,
+        "papers": 112.5,
+        "ciUpdates": 100,
+        "alerts": 50
+      }
+    },
+    "conclusions": [
+      {
+        "id": "c:atlas-robotics-hand_dof",
+        "rank": 1,
+        "kind": "gap_shift",
+        "domain": "hand",
+        "headline": "핸드 자유도",
+        "lines": [
+          {
+            "role": "change",
+            "text": "Atlas Robotics Atlas A1 쪽에서 이번 주 눈에 띄는 변화가 확인되었습니다."
+          },
+          {
+            "role": "detail",
+            "text": "핸드 자유도에서 Atlas Robotics Atlas A1는 22 DoF, 우리는 12 DoF이며 판정은 경쟁사 우위입니다."
+          },
+          {
+            "role": "why",
+            "text": "우리 제품 전략과 직접 맞닿아 있어서 연구소 차원의 검토가 필요한 변화입니다."
+          },
+          {
+            "role": "action",
+            "text": "관련 사양과 근거 자료를 함께 비교해 볼 만합니다."
+          },
+          {
+            "role": "detail",
+            "text": "이번 변화는 한 번의 발표가 아니라 근거 자료 여러 곳에서 함께 확인된다는 점이 중요합니다."
+          },
+          {
+            "role": "action",
+            "text": "다음 주에도 같은 방향으로 이어지는지 지켜보겠습니다."
+          }
+        ],
+        "actionKind": "evaluate",
+        "gapRefs": [
+          "gap:atlas-robotics:hand_dof"
+        ],
+        "evidence": [
+          {
+            "type": "ci",
+            "id": "ci-1",
+            "title": "Atlas Robotics 손 자유도",
+            "url": "https://example.com/spec",
+            "label": "신뢰도 A"
+          },
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000001",
+            "title": "Quasi-direct drive joint teardown 1",
+            "url": "https://www.youtube.com/watch?v=V0000000001",
+            "label": "Robot Lab"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "c:nova-dynamics-price",
+        "rank": 2,
+        "kind": "gap_shift",
+        "domain": "production",
+        "headline": "가격",
+        "lines": [
+          {
+            "role": "change",
+            "text": "Nova Dynamics Nova N2 쪽에서 이번 주 눈에 띄는 변화가 확인되었습니다."
+          },
+          {
+            "role": "why",
+            "text": "우리 제품 전략과 직접 맞닿아 있어서 연구소 차원의 검토가 필요한 변화입니다."
+          },
+          {
+            "role": "action",
+            "text": "관련 사양과 근거 자료를 함께 비교해 볼 만합니다."
+          },
+          {
+            "role": "detail",
+            "text": "이번 변화는 한 번의 발표가 아니라 근거 자료 여러 곳에서 함께 확인된다는 점이 중요합니다."
+          },
+          {
+            "role": "action",
+            "text": "다음 주에도 같은 방향으로 이어지는지 지켜보겠습니다."
+          }
+        ],
+        "actionKind": "evaluate",
+        "gapRefs": [
+          "gap:nova-dynamics:price"
+        ],
+        "evidence": [
+          {
+            "type": "ci",
+            "id": "ci-7",
+            "title": "Nova Dynamics 가격대",
+            "url": "https://example.com/nova-price",
+            "label": "신뢰도 B"
+          },
+          {
+            "type": "video",
+            "id": "a1000000-0000-4000-8000-000000000013",
+            "title": "Five-finger hand grasp benchmark 1",
+            "url": "https://www.youtube.com/watch?v=V0000000013",
+            "label": "Hand Tech 0"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "c:tech-procurement-ci-history",
+        "rank": 3,
+        "kind": "tech_signal",
+        "domain": "actuator",
+        "headline": "관절 모듈 외부 조달 이동",
+        "lines": [
+          {
+            "role": "change",
+            "text": "관절 모듈 외부 조달 이동 쪽에서 이번 주 눈에 띄는 변화가 확인되었습니다."
+          },
+          {
+            "role": "detail",
+            "text": "관절 모듈 외부 조달 이동은 상승 방향이며 최근 4주 7%, 이전 4주 1%입니다."
+          },
+          {
+            "role": "why",
+            "text": "우리 제품 전략과 직접 맞닿아 있어서 연구소 차원의 검토가 필요한 변화입니다."
+          },
+          {
+            "role": "action",
+            "text": "관련 사양과 근거 자료를 함께 비교해 볼 만합니다."
+          },
+          {
+            "role": "detail",
+            "text": "이번 변화는 한 번의 발표가 아니라 근거 자료 여러 곳에서 함께 확인된다는 점이 중요합니다."
+          },
+          {
+            "role": "action",
+            "text": "다음 주에도 같은 방향으로 이어지는지 지켜보겠습니다."
+          }
+        ],
+        "actionKind": "evaluate",
+        "gapRefs": [],
+        "evidence": [
+          {
+            "type": "ci",
+            "id": "ci-8",
+            "title": "Delta Gear 자체 생산 여부",
+            "url": "https://example.com/delta",
+            "label": "신뢰도 B"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "c:tech-subtopic-hand-tactile-force",
+        "rank": 4,
+        "kind": "tech_signal",
+        "domain": "hand",
+        "headline": "촉각·힘 센싱",
+        "lines": [
+          {
+            "role": "change",
+            "text": "촉각·힘 센싱 쪽에서 이번 주 눈에 띄는 변화가 확인되었습니다."
+          },
+          {
+            "role": "detail",
+            "text": "촉각·힘 센싱은 상승 방향이며 최근 4주 18%, 이전 4주 10%입니다."
+          },
+          {
+            "role": "why",
+            "text": "우리 제품 전략과 직접 맞닿아 있어서 연구소 차원의 검토가 필요한 변화입니다."
+          },
+          {
+            "role": "action",
+            "text": "관련 사양과 근거 자료를 함께 비교해 볼 만합니다."
+          },
+          {
+            "role": "detail",
+            "text": "이번 변화는 한 번의 발표가 아니라 근거 자료 여러 곳에서 함께 확인된다는 점이 중요합니다."
+          },
+          {
+            "role": "action",
+            "text": "다음 주에도 같은 방향으로 이어지는지 지켜보겠습니다."
+          }
+        ],
+        "actionKind": "evaluate",
+        "gapRefs": [],
+        "evidence": [
+          {
+            "type": "article",
+            "id": "ev-s1",
+            "title": "Tactile skin for dexterous hands",
+            "url": "https://news.example.com/tactile",
+            "label": "IEEE Spectrum"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "c:biz-nova-dynamics-pricing",
+        "rank": 5,
+        "kind": "business_move",
+        "domain": "production",
+        "headline": "business_move",
+        "lines": [
+          {
+            "role": "change",
+            "text": "Nova Dynamics 쪽에서 이번 주 눈에 띄는 변화가 확인되었습니다."
+          },
+          {
+            "role": "detail",
+            "text": "Nova Dynamics의 움직임이 근거 자료에서 확인됩니다."
+          },
+          {
+            "role": "why",
+            "text": "우리 제품 전략과 직접 맞닿아 있어서 연구소 차원의 검토가 필요한 변화입니다."
+          },
+          {
+            "role": "action",
+            "text": "관련 사양과 근거 자료를 함께 비교해 볼 만합니다."
+          },
+          {
+            "role": "detail",
+            "text": "이번 변화는 한 번의 발표가 아니라 근거 자료 여러 곳에서 함께 확인된다는 점이 중요합니다."
+          },
+          {
+            "role": "action",
+            "text": "다음 주에도 같은 방향으로 이어지는지 지켜보겠습니다."
+          }
+        ],
+        "actionKind": "evaluate",
+        "gapRefs": [],
+        "evidence": [
+          {
+            "type": "ci",
+            "id": "ci-7",
+            "title": "Nova Dynamics 가격대",
+            "url": "https://example.com/nova-price",
+            "label": "신뢰도 B"
+          }
+        ],
+        "generatedBy": "ai"
+      }
+    ],
+    "gaps": {
+      "summary": [],
+      "rows": [
+        {
+          "id": "gap:atlas-robotics:hand_dof",
+          "competitor": {
+            "companyId": "co-atlas",
+            "name": "Atlas Robotics",
+            "robotName": "Atlas A1"
+          },
+          "axisKey": "hand_dof",
+          "axisLabel": "핸드 자유도",
+          "unit": "DoF",
+          "higherIsBetter": true,
+          "competitorValue": {
+            "value": 22,
+            "display": "22 DoF",
+            "grade": "A",
+            "asOf": "2026-10-25",
+            "sourceUrl": "https://example.com/spec"
+          },
+          "ourValue": {
+            "value": 12,
+            "display": "12 DoF",
+            "grade": null,
+            "asOf": "2026-10-25",
+            "sourceUrl": null
+          },
+          "ourRef": "CLOiD",
+          "status": "compared",
+          "position": "competitor_ahead",
+          "diff": {
+            "abs": 10,
+            "pct": 83.3
+          },
+          "movement": "competitor_closing",
+          "prevCompetitorValue": 18,
+          "labelKo": {
+            "position": "경쟁사 우위",
+            "movement": "경쟁사에 유리하게 변화"
+          },
+          "lines": [
+            "핸드 자유도에서 Atlas Robotics Atlas A1는 22 DoF, 우리는 12 DoF으로 격차는 10 DoF입니다(경쟁사 우위)."
+          ],
+          "evidence": [
+            {
+              "type": "ci",
+              "id": "ci-1",
+              "title": "Atlas Robotics 손 자유도",
+              "url": "https://example.com/spec",
+              "label": "신뢰도 A"
+            },
+            {
+              "type": "video",
+              "id": "a1000000-0000-4000-8000-000000000001",
+              "title": "Quasi-direct drive joint teardown 1",
+              "url": "https://www.youtube.com/watch?v=V0000000001",
+              "label": "Robot Lab"
+            }
+          ],
+          "generatedBy": "rule"
+        },
+        {
+          "id": "gap:nova-dynamics:price",
+          "competitor": {
+            "companyId": "co-nova",
+            "name": "Nova Dynamics",
+            "robotName": "Nova N2"
+          },
+          "axisKey": "price",
+          "axisLabel": "가격",
+          "unit": "USD",
+          "higherIsBetter": false,
+          "competitorValue": {
+            "value": 60000,
+            "display": "$60,000",
+            "grade": "B",
+            "asOf": "2026-10-25",
+            "sourceUrl": "https://example.com/nova-price"
+          },
+          "ourValue": {
+            "value": 90000,
+            "display": "$90,000",
+            "grade": null,
+            "asOf": "2026-10-25",
+            "sourceUrl": null
+          },
+          "ourRef": "CLOiD",
+          "status": "compared",
+          "position": "competitor_ahead",
+          "diff": {
+            "abs": 30000,
+            "pct": 33.3
+          },
+          "movement": "competitor_closing",
+          "prevCompetitorValue": 80000,
+          "labelKo": {
+            "position": "경쟁사 우위",
+            "movement": "경쟁사에 유리하게 변화"
+          },
+          "lines": [
+            "가격에서 Nova Dynamics Nova N2는 $60,000, 우리는 $90,000으로 격차는 $30,000입니다(경쟁사 우위)."
+          ],
+          "evidence": [
+            {
+              "type": "ci",
+              "id": "ci-7",
+              "title": "Nova Dynamics 가격대",
+              "url": "https://example.com/nova-price",
+              "label": "신뢰도 B"
+            },
+            {
+              "type": "video",
+              "id": "a1000000-0000-4000-8000-000000000013",
+              "title": "Five-finger hand grasp benchmark 1",
+              "url": "https://www.youtube.com/watch?v=V0000000013",
+              "label": "Hand Tech 0"
+            }
+          ],
+          "generatedBy": "rule"
+        },
+        {
+          "id": "gap:atlas-robotics:body_dof",
+          "competitor": {
+            "companyId": "co-atlas",
+            "name": "Atlas Robotics",
+            "robotName": "Atlas A1"
+          },
+          "axisKey": "body_dof",
+          "axisLabel": "전신 자유도",
+          "unit": "DoF",
+          "higherIsBetter": true,
+          "competitorValue": {
+            "value": 40,
+            "display": "40 DoF",
+            "grade": null,
+            "asOf": "2026-10-25",
+            "sourceUrl": null
+          },
+          "ourValue": {
+            "value": 30,
+            "display": "30 DoF",
+            "grade": null,
+            "asOf": "2026-10-25",
+            "sourceUrl": null
+          },
+          "ourRef": "CLOiD",
+          "status": "compared",
+          "position": "competitor_ahead",
+          "diff": {
+            "abs": 10,
+            "pct": 33.3
+          },
+          "movement": "first_seen",
+          "prevCompetitorValue": null,
+          "labelKo": {
+            "position": "경쟁사 우위",
+            "movement": "첫 관측"
+          },
+          "lines": [
+            "전신 자유도에서 Atlas Robotics Atlas A1는 40 DoF, 우리는 30 DoF으로 격차는 10 DoF입니다(경쟁사 우위)."
+          ],
+          "evidence": [
+            {
+              "type": "video",
+              "id": "a1000000-0000-4000-8000-000000000001",
+              "title": "Quasi-direct drive joint teardown 1",
+              "url": "https://www.youtube.com/watch?v=V0000000001",
+              "label": "Robot Lab"
+            },
+            {
+              "type": "video",
+              "id": "a1000000-0000-4000-8000-000000000002",
+              "title": "Quasi-direct drive joint teardown 2",
+              "url": "https://www.youtube.com/watch?v=V0000000002",
+              "label": "Robot Lab"
+            }
+          ],
+          "generatedBy": "rule"
+        },
+        {
+          "id": "gap:tesla:bench_dexterity",
+          "competitor": {
+            "companyId": null,
+            "name": "Tesla",
+            "robotName": "Optimus"
+          },
+          "axisKey": "bench_dexterity",
+          "axisLabel": "손재주(내부 평가 점수)",
+          "unit": "점",
+          "higherIsBetter": true,
+          "competitorValue": {
+            "value": 8,
+            "display": "8점",
+            "grade": null,
+            "asOf": "2026-10-21",
+            "sourceUrl": null
+          },
+          "ourValue": {
+            "value": 6,
+            "display": "6점",
+            "grade": null,
+            "asOf": "2026-09-01",
+            "sourceUrl": null
+          },
+          "ourRef": "CLOiD",
+          "status": "compared",
+          "position": "competitor_ahead",
+          "diff": {
+            "abs": 2,
+            "pct": 33.3
+          },
+          "movement": "first_seen",
+          "prevCompetitorValue": null,
+          "labelKo": {
+            "position": "경쟁사 우위",
+            "movement": "첫 관측"
+          },
+          "lines": [
+            "손재주(내부 평가 점수)에서 Tesla Optimus는 8점, 우리는 6점으로 격차는 2점입니다(경쟁사 우위)."
+          ],
+          "evidence": [
+            {
+              "type": "ci",
+              "id": "gap:tesla:bench_dexterity",
+              "title": "Tesla 손재주(내부 평가 점수)",
+              "url": null,
+              "label": null
+            }
+          ],
+          "generatedBy": "rule"
+        },
+        {
+          "id": "gap:shadow-robot:grip_force",
+          "competitor": {
+            "companyId": null,
+            "name": "Shadow Robot",
+            "robotName": "Shadow Hand"
+          },
+          "axisKey": "grip_force",
+          "axisLabel": "핸드 그립력",
+          "unit": "N",
+          "higherIsBetter": true,
+          "competitorValue": {
+            "value": 100,
+            "display": "100 N",
+            "grade": null,
+            "asOf": "2026-10-21",
+            "sourceUrl": null
+          },
+          "ourValue": null,
+          "ourRef": null,
+          "status": "ours_missing",
+          "position": null,
+          "diff": null,
+          "movement": null,
+          "prevCompetitorValue": null,
+          "labelKo": {
+            "position": null,
+            "movement": null
+          },
+          "lines": [
+            "Shadow Robot Shadow Hand의 핸드 그립력은 100 N입니다.",
+            "비교 기준이 되는 우리 수치가 아직 등록되어 있지 않습니다."
+          ],
+          "evidence": [
+            {
+              "type": "ci",
+              "id": "gap:shadow-robot:grip_force",
+              "title": "Shadow Robot 핸드 그립력",
+              "url": null,
+              "label": null
+            }
+          ],
+          "generatedBy": "rule"
+        }
+      ],
+      "coverage": {
+        "registered": [
+          "핸드 자유도",
+          "전신 자유도",
+          "가용 하중",
+          "가격",
+          "손재주"
+        ],
+        "missing": [
+          "토크밀도",
+          "핸드 그립력",
+          "촉각 채널 수",
+          "신체 성능",
+          "인지",
+          "자율성",
+          "상호작용",
+          "생태계",
+          "안전",
+          "사업성",
+          "지식재산",
+          "확장성"
+        ],
+        "asOf": "2026-10-25"
+      }
+    },
+    "tech": {
+      "window": {
+        "weeks": 8,
+        "recentWeeks": 4,
+        "asOfWeekStart": "2026-10-19"
+      },
+      "signals": [
+        {
+          "id": "keyword:kw-vla",
+          "kind": "keyword",
+          "domain": null,
+          "label": "VLA",
+          "direction": "rising",
+          "series": [
+            8,
+            8,
+            8,
+            8,
+            16,
+            16,
+            18,
+            18
+          ],
+          "recent": 17,
+          "prior": 8,
+          "relChangePct": 112.5,
+          "lines": [
+            "VLA의 최근 4주 점유율은 17%로 이전 4주 8%와 비교해 상승 방향입니다.",
+            "한 주의 변동이 아니라 여러 주에 걸쳐 이어진 흐름입니다.",
+            "연구 방향을 정할 때 참고할 만한 신호입니다."
+          ],
+          "evidence": [
+            {
+              "type": "video",
+              "id": "ev-s3",
+              "title": "VLA policy rollout on a tabletop 1",
+              "url": "https://www.youtube.com/watch?v=VXXXXXXXXXX",
+              "label": "Embodied AI 0"
+            }
+          ],
+          "generatedBy": "ai"
+        },
+        {
+          "id": "subtopic:hand:tactile_force",
+          "kind": "subtopic",
+          "domain": "hand",
+          "label": "촉각·힘 센싱",
+          "direction": "rising",
+          "series": [
+            10,
+            10,
+            10,
+            10,
+            18,
+            18,
+            18,
+            18
+          ],
+          "recent": 18,
+          "prior": 10,
+          "relChangePct": 80,
+          "lines": [
+            "촉각·힘 센싱의 최근 4주 점유율은 18%로 이전 4주 10%와 비교해 상승 방향입니다.",
+            "한 주의 변동이 아니라 여러 주에 걸쳐 이어진 흐름입니다.",
+            "연구 방향을 정할 때 참고할 만한 신호입니다."
+          ],
+          "evidence": [
+            {
+              "type": "article",
+              "id": "ev-s1",
+              "title": "Tactile skin for dexterous hands",
+              "url": "https://news.example.com/tactile",
+              "label": "IEEE Spectrum"
+            }
+          ],
+          "generatedBy": "ai"
+        },
+        {
+          "id": "theme:mass_price",
+          "kind": "theme",
+          "domain": "production",
+          "label": "양산·가격 하락",
+          "direction": "falling",
+          "series": [
+            20,
+            20,
+            20,
+            20,
+            12,
+            12,
+            12,
+            12
+          ],
+          "recent": 12,
+          "prior": 20,
+          "relChangePct": -40,
+          "lines": [
+            "양산·가격 하락의 최근 4주 점유율은 12%로 이전 4주 20%와 비교해 하락 방향입니다.",
+            "한 주의 변동이 아니라 여러 주에 걸쳐 이어진 흐름입니다.",
+            "연구 방향을 정할 때 참고할 만한 신호입니다."
+          ],
+          "evidence": [
+            {
+              "type": "article",
+              "id": "ev-s2",
+              "title": "Humanoid mass production ramp announced 1",
+              "url": "https://news.example.com/mass",
+              "label": "Reuters"
+            }
+          ],
+          "generatedBy": "ai"
+        },
+        {
+          "id": "procurement:ci_history",
+          "kind": "procurement",
+          "domain": "actuator",
+          "label": "관절 모듈 외부 조달 이동",
+          "direction": "rising",
+          "series": [
+            0,
+            0,
+            0,
+            1,
+            1,
+            2,
+            2,
+            2
+          ],
+          "recent": 7,
+          "prior": 1,
+          "relChangePct": null,
+          "lines": [
+            "관절 모듈 외부 조달 이동의 최근 4주 점유율은 7%로 이전 4주 1%와 비교해 상승 방향입니다.",
+            "한 주의 변동이 아니라 여러 주에 걸쳐 이어진 흐름입니다.",
+            "연구 방향을 정할 때 참고할 만한 신호입니다."
+          ],
+          "evidence": [
+            {
+              "type": "ci",
+              "id": "ci-8",
+              "title": "Delta Gear 자체 생산 여부",
+              "url": "https://example.com/delta",
+              "label": "신뢰도 B"
+            }
+          ],
+          "generatedBy": "ai"
+        }
+      ],
+      "procurement": {
+        "state": "observed",
+        "snapshots": 2
+      }
+    },
+    "business": {
+      "picture": [
+        {
+          "label": "조달 태세 분포",
+          "value": "자체 6 · 외부 4 · 미확인 2",
+          "note": "판매 중 로봇 12개 기준"
+        },
+        {
+          "label": "외부 조달 로봇",
+          "value": "4개",
+          "note": "부분 외부 조달 1개 포함"
+        },
+        {
+          "label": "자체 생산·외부 판매",
+          "value": "1개",
+          "note": null
+        },
+        {
+          "label": "공개 가격 중앙값",
+          "value": "$80,000",
+          "note": "가격 공개 로봇 2개 기준"
+        },
+        {
+          "label": "외부 채택 사례",
+          "value": "2건",
+          "note": "현재 등록 현황 기준"
+        },
+        {
+          "label": "시장 세그먼트 등록 공급사",
+          "value": "1곳",
+          "note": "현재 등록 현황 기준"
+        }
+      ],
+      "moves": [
+        {
+          "id": "biz:nova-dynamics:pricing",
+          "category": "pricing",
+          "company": "Nova Dynamics",
+          "vendor": null,
+          "facts": [
+            {
+              "label": "공개 가격",
+              "value": "$60,000",
+              "note": "Nova N2 · 신뢰도 B"
+            }
+          ],
+          "lines": [
+            "Nova Dynamics의 pricing 관련 움직임이 근거 자료에서 확인됩니다.",
+            "공급망 관점에서 지켜볼 만합니다.",
+            "등록된 사실 칩은 현재 등록 현황 기준입니다."
+          ],
+          "evidence": [
+            {
+              "type": "ci",
+              "id": "ci-7",
+              "title": "Nova Dynamics 가격대",
+              "url": "https://example.com/nova-price",
+              "label": "신뢰도 B"
+            }
+          ],
+          "generatedBy": "ai"
+        },
+        {
+          "id": "biz:orion-systems:mass_production",
+          "category": "mass_production",
+          "company": "Orion Systems, Inc.",
+          "vendor": null,
+          "facts": [],
+          "lines": [
+            "Orion Systems, Inc.의 mass_production 관련 움직임이 근거 자료에서 확인됩니다.",
+            "공급망 관점에서 지켜볼 만합니다.",
+            "등록된 사실 칩은 현재 등록 현황 기준입니다."
+          ],
+          "evidence": [
+            {
+              "type": "article",
+              "id": "a1000000-0000-4000-8000-000000000066",
+              "title": "Humanoid mass production ramp announced 1",
+              "url": "https://news.example.com/TechCrunch/00000066",
+              "label": "TechCrunch"
+            },
+            {
+              "type": "article",
+              "id": "a1000000-0000-4000-8000-000000000067",
+              "title": "Humanoid mass production ramp announced 2",
+              "url": "https://news.example.com/SCMP/00000067",
+              "label": "SCMP"
+            },
+            {
+              "type": "article",
+              "id": "a1000000-0000-4000-8000-000000000068",
+              "title": "Humanoid mass production ramp announced 3",
+              "url": "https://news.example.com/Nikkei/00000068",
+              "label": "Nikkei"
+            }
+          ],
+          "generatedBy": "ai"
+        }
+      ],
+      "asOf": "2026-10-25"
+    },
+    "questions": [
+      {
+        "id": "q1",
+        "kind": "evaluate",
+        "text": "이 변화를 직접 평가해 볼까요?",
+        "rationale": [
+          "근거 자료에서 같은 방향의 변화가 확인됩니다.",
+          "판단을 미루면 비교 기준이 뒤처질 수 있습니다."
+        ],
+        "conclusionId": "c:atlas-robotics-hand_dof",
+        "evidence": [
+          {
+            "type": "ci",
+            "id": "ci-1",
+            "title": "Atlas Robotics 손 자유도",
+            "url": "https://example.com/spec",
+            "label": "신뢰도 A"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "q2",
+        "kind": "contact",
+        "text": "해당 업체와 접촉해 볼까요?",
+        "rationale": [
+          "근거 자료에서 같은 방향의 변화가 확인됩니다.",
+          "판단을 미루면 비교 기준이 뒤처질 수 있습니다."
+        ],
+        "conclusionId": "c:nova-dynamics-price",
+        "evidence": [
+          {
+            "type": "ci",
+            "id": "ci-7",
+            "title": "Nova Dynamics 가격대",
+            "url": "https://example.com/nova-price",
+            "label": "신뢰도 B"
+          }
+        ],
+        "generatedBy": "ai"
+      },
+      {
+        "id": "q3",
+        "kind": "decide",
+        "text": "다음 회의에서 방향을 정해 볼까요?",
+        "rationale": [
+          "근거 자료에서 같은 방향의 변화가 확인됩니다.",
+          "판단을 미루면 비교 기준이 뒤처질 수 있습니다."
+        ],
+        "conclusionId": "c:tech-procurement-ci-history",
+        "evidence": [
+          {
+            "type": "ci",
+            "id": "ci-8",
+            "title": "Delta Gear 자체 생산 여부",
+            "url": "https://example.com/delta",
+            "label": "신뢰도 B"
+          }
+        ],
+        "generatedBy": "ai"
+      }
+    ],
+    "evidence": {
+      "videos": [
+        {
+          "id": "a1000000-0000-4000-8000-000000000001",
+          "title": "Quasi-direct drive joint teardown 1",
+          "titleKo": "Quasi-direct drive joint teardown 1 (한글)",
+          "channel": "Robot Lab",
+          "publishedAt": "2026-10-21T03:00:00.000Z",
+          "url": "https://www.youtube.com/watch?v=V0000000001",
+          "thumbnail": "https://i.ytimg.com/vi/V0000000001/mqdefault.jpg",
+          "views": 480000,
+          "durationSec": 480,
+          "domain": "actuator",
+          "summaryLines": [
+            "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "토크 센서와 감속기 배치를 단계별로 보여준다."
+          ],
+          "tags": [
+            "관절 구동",
+            "QDD",
+            "토크센서"
+          ]
+        },
+        {
+          "id": "a1000000-0000-4000-8000-000000000003",
+          "title": "Quasi-direct drive joint teardown 3",
+          "titleKo": "Quasi-direct drive joint teardown 3 (한글)",
+          "channel": "Robot Lab",
+          "publishedAt": "2026-10-21T03:00:00.000Z",
+          "url": "https://www.youtube.com/watch?v=V0000000003",
+          "thumbnail": "https://i.ytimg.com/vi/V0000000003/mqdefault.jpg",
+          "views": 160000,
+          "durationSec": 480,
+          "domain": "actuator",
+          "summaryLines": [
+            "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "토크 센서와 감속기 배치를 단계별로 보여준다."
+          ],
+          "tags": [
+            "관절 구동",
+            "QDD",
+            "토크센서"
+          ]
+        },
+        {
+          "id": "a1000000-0000-4000-8000-000000000031",
+          "title": "Humanoid assembly line walkthrough 1",
+          "titleKo": "Humanoid assembly line walkthrough 1 (한글)",
+          "channel": "Factory Watch 0",
+          "publishedAt": "2026-10-21T03:00:00.000Z",
+          "url": "https://www.youtube.com/watch?v=V0000000031",
+          "thumbnail": "https://i.ytimg.com/vi/V0000000031/mqdefault.jpg",
+          "views": 150000,
+          "durationSec": 480,
+          "domain": "production",
+          "summaryLines": [
+            "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "토크 센서와 감속기 배치를 단계별로 보여준다."
+          ],
+          "tags": [
+            "조립",
+            "양산 라인"
+          ]
+        },
+        {
+          "id": "a1000000-0000-4000-8000-000000000013",
+          "title": "Five-finger hand grasp benchmark 1",
+          "titleKo": "Five-finger hand grasp benchmark 1 (한글)",
+          "channel": "Hand Tech 0",
+          "publishedAt": "2026-10-21T03:00:00.000Z",
+          "url": "https://www.youtube.com/watch?v=V0000000013",
+          "thumbnail": "https://i.ytimg.com/vi/V0000000013/mqdefault.jpg",
+          "views": 90000,
+          "durationSec": 480,
+          "domain": "hand",
+          "summaryLines": [
+            "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "토크 센서와 감속기 배치를 단계별로 보여준다."
+          ],
+          "tags": [
+            "파지/조작",
+            "촉각",
+            "손가락"
+          ]
+        },
+        {
+          "id": "a1000000-0000-4000-8000-000000000022",
+          "title": "VLA policy rollout on a tabletop 1",
+          "titleKo": "VLA policy rollout on a tabletop 1 (한글)",
+          "channel": "Embodied AI 0",
+          "publishedAt": "2026-10-21T03:00:00.000Z",
+          "url": "https://www.youtube.com/watch?v=V0000000022",
+          "thumbnail": "https://i.ytimg.com/vi/V0000000022/mqdefault.jpg",
+          "views": 40000,
+          "durationSec": 480,
+          "domain": "rfm",
+          "summaryLines": [
+            "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "토크 센서와 감속기 배치를 단계별로 보여준다."
+          ],
+          "tags": [
+            "조작",
+            "VLA"
+          ]
+        },
+        {
+          "id": "a1000000-0000-4000-8000-000000000032",
+          "title": "Humanoid assembly line walkthrough 2",
+          "titleKo": "Humanoid assembly line walkthrough 2 (한글)",
+          "channel": "Factory Watch 1",
+          "publishedAt": "2026-10-21T03:00:00.000Z",
+          "url": "https://www.youtube.com/watch?v=V0000000032",
+          "thumbnail": "https://i.ytimg.com/vi/V0000000032/mqdefault.jpg",
+          "views": 75000,
+          "durationSec": null,
+          "domain": "production",
+          "summaryLines": [],
+          "tags": [
+            "조립",
+            "양산 라인"
+          ]
+        },
+        {
+          "id": "a1000000-0000-4000-8000-000000000016",
+          "title": "Five-finger hand grasp benchmark 4",
+          "titleKo": "Five-finger hand grasp benchmark 4 (한글)",
+          "channel": "Hand Tech 3",
+          "publishedAt": "2026-10-21T03:00:00.000Z",
+          "url": "https://www.youtube.com/watch?v=V0000000016",
+          "thumbnail": "https://i.ytimg.com/vi/V0000000016/mqdefault.jpg",
+          "views": 22500,
+          "durationSec": 480,
+          "domain": "hand",
+          "summaryLines": [
+            "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "토크 센서와 감속기 배치를 단계별로 보여준다."
+          ],
+          "tags": [
+            "파지/조작",
+            "촉각",
+            "손가락"
+          ]
+        },
+        {
+          "id": "a1000000-0000-4000-8000-000000000027",
+          "title": "Expo floor tour day 1",
+          "titleKo": "Expo floor tour day 1 (한글)",
+          "channel": "Expo Daily 0",
+          "publishedAt": "2026-10-21T03:00:00.000Z",
+          "url": "https://www.youtube.com/watch?v=V0000000027",
+          "thumbnail": "https://i.ytimg.com/vi/V0000000027/mqdefault.jpg",
+          "views": 20000,
+          "durationSec": 480,
+          "domain": "expo",
+          "summaryLines": [
+            "로봇 관절 모듈의 구조를 설명하는 영상이다.",
+            "토크 센서와 감속기 배치를 단계별로 보여준다."
+          ],
+          "tags": [
+            "전시",
+            "부스 시연"
+          ]
+        }
+      ],
+      "papers": [
+        {
+          "id": "a1000000-0000-4000-8000-000000000043",
+          "title": "Compact Quasi-Direct-Drive Actuator with Torque Sensing 1",
+          "titleKo": "Compact Quasi-Direct-Drive Actuator with Torque Sensing (한글)",
+          "authors": "A. Kim, B. Lee, C. Park 외 1명",
+          "publishedAt": "2026-10-21T02:00:00.000Z",
+          "url": "https://arxiv.org/abs/2610.00043",
+          "arxivId": "2610.00043",
+          "domain": "actuator",
+          "implication": "핵심 기법이 우리 설계 검토에 참고가 됩니다.",
+          "frontierScore": 3
+        },
+        {
+          "id": "a1000000-0000-4000-8000-000000000044",
+          "title": "Compact Quasi-Direct-Drive Actuator with Torque Sensing 2",
+          "titleKo": "Compact Quasi-Direct-Drive Actuator with Torque Sensing (한글)",
+          "authors": "A. Kim, B. Lee, C. Park 외 1명",
+          "publishedAt": "2026-10-21T02:00:00.000Z",
+          "url": "https://arxiv.org/abs/2610.00044",
+          "arxivId": "2610.00044",
+          "domain": "actuator",
+          "implication": "핵심 기법이 우리 설계 검토에 참고가 됩니다.",
+          "frontierScore": 3
+        },
+        {
+          "id": "a1000000-0000-4000-8000-000000000045",
+          "title": "Compact Quasi-Direct-Drive Actuator with Torque Sensing 3",
+          "titleKo": "Compact Quasi-Direct-Drive Actuator with Torque Sensing (한글)",
+          "authors": "A. Kim, B. Lee, C. Park 외 1명",
+          "publishedAt": "2026-10-21T02:00:00.000Z",
+          "url": "https://arxiv.org/abs/2610.00045",
+          "arxivId": "2610.00045",
+          "domain": "actuator",
+          "implication": "핵심 기법이 우리 설계 검토에 참고가 됩니다.",
+          "frontierScore": 3
+        },
+        {
+          "id": "a1000000-0000-4000-8000-000000000049",
+          "title": "Tactile Sensing Skin for Dexterous Hands 1",
+          "titleKo": "Tactile Sensing Skin for Dexterous Hands 1 (한글)",
+          "authors": "A. Kim, B. Lee, C. Park 외 1명",
+          "publishedAt": "2026-10-21T02:00:00.000Z",
+          "url": "https://arxiv.org/abs/2610.00049",
+          "arxivId": "2610.00049",
+          "domain": "hand",
+          "implication": "핵심 기법이 우리 설계 검토에 참고가 됩니다.",
+          "frontierScore": 3
+        }
+      ],
+      "articles": [
+        {
+          "id": "a1000000-0000-4000-8000-000000000066",
+          "title": "Humanoid mass production ramp announced 1",
+          "titleKo": "Humanoid mass production ramp announced 1 (한글)",
+          "source": "TechCrunch",
+          "publishedAt": "2026-10-20T05:00:00.000Z",
+          "url": "https://news.example.com/TechCrunch/00000066",
+          "domain": "production",
+          "summaryLine": "양산 라인 가동 계획이 공개되었다"
+        },
+        {
+          "id": "a1000000-0000-4000-8000-000000000067",
+          "title": "Humanoid mass production ramp announced 2",
+          "titleKo": "Humanoid mass production ramp announced 2 (한글)",
+          "source": "SCMP",
+          "publishedAt": "2026-10-20T05:00:00.000Z",
+          "url": "https://news.example.com/SCMP/00000067",
+          "domain": "production",
+          "summaryLine": "RAWSUMMARYMARKER article first sentence."
+        },
+        {
+          "id": "a1000000-0000-4000-8000-000000000068",
+          "title": "Humanoid mass production ramp announced 3",
+          "titleKo": "Humanoid mass production ramp announced 3 (한글)",
+          "source": "Nikkei",
+          "publishedAt": "2026-10-20T05:00:00.000Z",
+          "url": "https://news.example.com/Nikkei/00000068",
+          "domain": "production",
+          "summaryLine": "양산 라인 가동 계획이 공개되었다"
+        },
+        {
+          "id": "a1000000-0000-4000-8000-000000000110",
+          "title": "Gamma Hands tactile fingertip update 1",
+          "titleKo": "Gamma Hands tactile fingertip update 1 (한글)",
+          "source": "SCMP",
+          "publishedAt": "2026-10-20T05:00:00.000Z",
+          "url": "https://news.example.com/SCMP/00000110",
+          "domain": "hand",
+          "summaryLine": "RAWSUMMARYMARKER article first sentence."
+        },
+        {
+          "id": "a1000000-0000-4000-8000-000000000111",
+          "title": "Gamma Hands tactile fingertip update 2",
+          "titleKo": "Gamma Hands tactile fingertip update 2 (한글)",
+          "source": "Nikkei",
+          "publishedAt": "2026-10-20T05:00:00.000Z",
+          "url": "https://news.example.com/Nikkei/00000111",
+          "domain": "hand",
+          "summaryLine": "RAWSUMMARYMARKER article first sentence."
+        },
+        {
+          "id": "a1000000-0000-4000-8000-000000000112",
+          "title": "Gamma Hands tactile fingertip update 3",
+          "titleKo": "Gamma Hands tactile fingertip update 3 (한글)",
+          "source": "Reuters",
+          "publishedAt": "2026-10-20T05:00:00.000Z",
+          "url": "https://news.example.com/Reuters/00000112",
+          "domain": "hand",
+          "summaryLine": "RAWSUMMARYMARKER article first sentence."
+        },
+        {
+          "id": "a1000000-0000-4000-8000-000000000113",
+          "title": "Gamma Hands tactile fingertip update 4",
+          "titleKo": "Gamma Hands tactile fingertip update 4 (한글)",
+          "source": "Wired",
+          "publishedAt": "2026-10-20T05:00:00.000Z",
+          "url": "https://news.example.com/Wired/00000113",
+          "domain": "hand",
+          "summaryLine": "RAWSUMMARYMARKER article first sentence."
+        },
+        {
+          "id": "a1000000-0000-4000-8000-000000000060",
+          "title": "Robot expo opens with record attendance 1 at CES",
+          "titleKo": "Robot expo opens with record attendance 1 at CES (한글)",
+          "source": "The Robot Report",
+          "publishedAt": "2026-10-20T05:00:00.000Z",
+          "url": "https://news.example.com/The Robot Report/00000060",
+          "domain": "expo",
+          "summaryLine": "전시회 참관객이 늘었다"
+        }
+      ],
+      "collectionLine": "이번 주 수집: 영상 42건 · 뉴스 57건 · 논문 17건 (지난주 대비 영상 +61.5%, 뉴스 +128%, 논문 +112.5%)"
+    },
+    "meta": {
+      "aiUsed": true,
+      "ruleBasedSections": 1,
+      "sectionSources": {
+        "conclusions": "ai",
+        "gaps": "rule",
+        "tech": "ai",
+        "business": "ai",
+        "questions": "ai",
+        "evidence": "ai"
+      },
+      "warnings": [
+        "ai_gaps_failed"
+      ],
+      "truncated": false,
+      "positionSnapshot": {
+        "asOf": "2026-10-25T20:00:00.000Z",
+        "robots": 12,
+        "inHouse": 6,
+        "inHouseSells": 1,
+        "external": 4,
+        "unknown": 2
+      },
+      "positionCoverage": {
+        "registered": 5,
+        "missing": 12
+      }
+    }
+  }
+}

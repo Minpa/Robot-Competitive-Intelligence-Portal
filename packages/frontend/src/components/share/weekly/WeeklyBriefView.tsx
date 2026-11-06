@@ -1,17 +1,23 @@
 'use client';
 
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { isValidWeekStart } from '@/lib/weekly-brief-format';
 import { REPORT_UNKNOWN_VERSION_NOTICE, versionKindOf } from '@/lib/weekly-brief-report';
+import { pickAdminWeek, publishBadge, summarizeDrafts } from '@/lib/weekly-brief-exec';
 import { POSTER_WHITE } from '@/lib/weekly-brief-theme';
-import type { WeeklyBriefV1Response, WeeklyReportResponse } from '@/types/weekly-brief';
+import type { WeeklyBriefResponse, WeeklyBriefV1Response, WeeklyExecutiveResponse, WeeklyReportResponse } from '@/types/weekly-brief';
 import { WeeklyBriefPoster } from './WeeklyBriefPoster';
 import { WeeklyReport } from './report/WeeklyReport';
+import { DraftBanner } from './exec/DraftBanner';
+import { ExecReport } from './exec/ExecReport';
+import { PublishBar } from './exec/PublishBar';
 import { GenerateButton, GenerateStatus, WeeklyBriefToolbar } from './WeeklyBriefToolbar';
 import { isNotFoundError, useWeeklyBrief } from './useWeeklyBrief';
 import { useWeeklyBriefGenerate } from './useWeeklyBriefGenerate';
+import { useWeeklyBriefAdminEdits, useWeeklyBriefDrafts, useWeeklyBriefEditor } from './useWeeklyBriefEdit';
 
 interface Props {
   /** 지정하면 해당 주(/share/weekly/[weekStart]), 없으면 최신(/share/weekly) */
@@ -31,6 +37,13 @@ export function WeeklyBriefView({ weekStart }: Props) {
   const isAdmin = (meQuery.data as { role?: string } | undefined)?.role === 'admin';
   const generate = useWeeklyBriefGenerate(isAdmin);
   const briefQuery = useWeeklyBrief(weekStart, !invalid);
+
+  // v3 관리자 작업본: 발행 전 초안(편집 반영)을 기본으로 본다. 일반 사용자는 이 쿼리들을 호출하지 않는다.
+  const draftsQuery = useWeeklyBriefDrafts(isAdmin && !invalid);
+  const drafts = useMemo(() => draftsQuery.data ?? [], [draftsQuery.data]);
+  const adminWeek = isAdmin && !draftsQuery.isLoading ? pickAdminWeek(weekStart, drafts, briefQuery.data?.weekStart) : null;
+  const editsQuery = useWeeklyBriefAdminEdits(adminWeek, isAdmin && !!adminWeek);
+  const editor = useWeeklyBriefEditor(editsQuery.data ?? null);
 
   // 인쇄: 툴바 숨김, 어두운 배경 유지, 블록 절단 금지 (TechTrendShareView 의 <style jsx global> 패턴)
   const printStyle = (
@@ -117,15 +130,18 @@ export function WeeklyBriefView({ weekStart }: Props) {
     );
   }
 
-  const brief = briefQuery.data;
-  const notFound = briefQuery.isError && isNotFoundError(briefQuery.error);
+  const adminBrief = editsQuery.data?.effective ?? null;
+  const brief: WeeklyBriefResponse | undefined = adminBrief ?? briefQuery.data;
+  const notFound = briefQuery.isError && isNotFoundError(briefQuery.error) && !adminBrief;
+  const loading = briefQuery.isLoading || (isAdmin && (draftsQuery.isLoading || (!!adminWeek && editsQuery.isLoading)));
 
   // "지금 생성" 대상: 특정 주를 보고 있으면 그 주, 아니면 서버 기본값(직전 완료 주)
   const targetWeekStart = weekStart ?? generate.status?.targetWeekStart;
   const targetExists = weekStart ? !!brief : generate.status?.targetExists ?? false;
-  const targetReady = weekStart ? !briefQuery.isLoading : !!generate.status;
+  const targetReady = weekStart ? !loading : !!generate.status;
+  const draftNotice = !!editor && (editor.data.publishState === 'draft' || editor.data.hasUnpublishedChanges);
 
-  if (briefQuery.isLoading) {
+  if (loading) {
     return (
       <div className="px-4 py-6">
         {printStyle}
@@ -171,7 +187,7 @@ export function WeeklyBriefView({ weekStart }: Props) {
     );
   }
 
-  if (briefQuery.isError || !brief) {
+  if ((briefQuery.isError && !adminBrief) || !brief) {
     return (
       <div className="px-4 py-6" data-testid="weekly-error">
         {printStyle}
@@ -193,6 +209,7 @@ export function WeeklyBriefView({ weekStart }: Props) {
   return (
     <div className="flex flex-col gap-3 px-0 py-2 sm:px-2" data-testid="weekly-view">
       {printStyle}
+      {isAdmin && <DraftBanner summary={summarizeDrafts(drafts)} />}
       <WeeklyBriefToolbar
         brief={brief}
         isAdmin={isAdmin}
@@ -200,15 +217,27 @@ export function WeeklyBriefView({ weekStart }: Props) {
         targetWeekStart={targetWeekStart}
         targetExists={targetExists}
         targetReady={targetReady}
+        editor={editor}
+        draftNotice={draftNotice}
       />
-      {renderBrief(brief)}
+      {renderBrief(brief, {
+        edit: isAdmin && editor ? editor.api : null,
+        badge: isAdmin && editor ? publishBadge({ publishState: editor.data.publishState, hasUnpublishedChanges: editor.data.hasUnpublishedChanges }) : null,
+      })}
+      {isAdmin && editor?.editMode && (
+        <>
+          <div className="no-print h-24" aria-hidden="true" />
+          <PublishBar editor={editor} missingAxes={editor.data.aiPayload.gaps.coverage.missing.length} />
+        </>
+      )}
     </div>
   );
 }
 
-/** payload.schemaVersion 으로 분기: v1 은 기존 포스터, v2 는 장문 리포트, 그보다 새로운 형식은 안내 패널 */
-function renderBrief(brief: NonNullable<ReturnType<typeof useWeeklyBrief>['data']>) {
+/** payload.schemaVersion 으로 분기: v1 은 기존 포스터, v2 는 장문 리포트, v3 는 임원판, 그보다 새로운 형식은 안내 패널 */
+function renderBrief(brief: WeeklyBriefResponse, ctx: { edit: import('./useWeeklyBriefEdit').ExecEditApi | null; badge: { label: string; tone: 'draft' | 'pending' | 'published' } | null }) {
   const kind = versionKindOf(brief.payload);
+  if (kind === 'v3') return <ExecReport brief={brief as WeeklyExecutiveResponse} edit={ctx.edit} badge={ctx.badge} />;
   if (kind === 'v2') return <WeeklyReport brief={brief as WeeklyReportResponse} />;
   if (kind === 'unknown') {
     return (

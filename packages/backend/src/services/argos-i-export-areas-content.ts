@@ -18,7 +18,7 @@ import {
 } from './tech-trend-report.service.js';
 import { articleDomainBadge, resolveArxivId, resolveThumbnail, resolveVideoUrl, safeArxivUrl, normalizeStoredPayload } from './weekly-brief-compose.js';
 import { addDaysYmd, isoWeekInfo } from './weekly-brief-period.js';
-import { WEEKLY_BRIEF_REPORT_SCHEMA_VERSION, type WeeklyBriefPayload, type WeeklyReportPayload } from '../types/weekly-brief.js';
+import { WEEKLY_BRIEF_EXECUTIVE_SCHEMA_VERSION, type WeeklyBriefPayload, type WeeklyExecutivePayload, type WeeklyReportPayload } from '../types/weekly-brief.js';
 import type { AreaContent, AreaDef } from './argos-i-export-areas-types.js';
 import {
   TEXT_LIMITS,
@@ -594,7 +594,7 @@ function buildWeeklyBriefs(raw: WeeklyBriefsRaw): AreaContent {
     .map((r) => {
       const weekStart = toYmd(r.week_start) ?? '';
       const iw = weekStart ? isoWeekInfo(weekStart) : { isoYear: null, weekNumber: null };
-      const payload = sanitizeDeep(normalizeStoredPayload((r.payload ?? {}) as WeeklyBriefPayload | WeeklyReportPayload), TEXT_LIMITS.summary) as Record<string, any> | null;
+      const payload = sanitizeDeep(normalizeStoredPayload((r.payload ?? {}) as WeeklyBriefPayload | WeeklyReportPayload | WeeklyExecutivePayload), TEXT_LIMITS.summary) as Record<string, any> | null;
       return {
         weekStart,
         weekEnd: weekStart ? addDaysYmd(weekStart, 6) : null,
@@ -628,9 +628,9 @@ function buildWeeklyBriefs(raw: WeeklyBriefsRaw): AreaContent {
   const messages: MdSection = {
     heading: '핵심 메시지',
     columns: ['주 시작일', '메시지', '생성 방식'],
-    // v1 은 keyMessages, v2(장문 리포트)는 highlights 의 headline 을 읽는다
+    // v1 은 keyMessages, v2(장문 리포트)는 highlights, v3(임원판)은 conclusions 의 headline 을 읽는다 (keyMessages ?? highlights ?? conclusions)
     rows: items.flatMap((i) =>
-      ((i.payload?.keyMessages ?? i.payload?.highlights ?? []) as { headline?: string; generatedBy?: string }[]).map((m) => [i.weekStart, m.headline ?? null, m.generatedBy ?? null]),
+      ((i.payload?.keyMessages ?? i.payload?.highlights ?? i.payload?.conclusions ?? []) as { headline?: string; generatedBy?: string }[]).map((m) => [i.weekStart, m.headline ?? null, m.generatedBy ?? null]),
     ),
   };
   return {
@@ -643,8 +643,9 @@ function buildWeeklyBriefs(raw: WeeklyBriefsRaw): AreaContent {
     sections: [section, messages],
     notes: [
       '`payload` 는 주간 브리프 화면이 쓰는 구조 그대로이며(키는 알파벳순), 토큰·비용·오류·통계는 포함하지 않는다.',
-      '`items` 에는 v1(포스터: keyMessages·topVideo 등)과 v2(장문 리포트: highlights·domains·companies 등) payload 가 섞여 있으며 각 `payload.schemaVersion`(없으면 1)으로 구분한다. 영역 스키마 버전 2 부터 v2 payload 가 포함될 수 있다.',
-      '핵심 메시지 표는 v1 은 keyMessages, v2 는 highlights 의 headline·생성 방식을 싣는다.',
+      '`items` 에는 v1(포스터: keyMessages·topVideo 등), v2(장문 리포트: highlights·domains·companies 등), v3(임원판: conclusions·gaps·tech·business·questions·evidence) payload 가 섞여 있으며 각 `payload.schemaVersion`(없으면 1)으로 구분한다. 영역 스키마 버전 2 부터 v2 payload, 3 부터 v3 payload 가 포함될 수 있다.',
+      '핵심 메시지 표는 v1 은 keyMessages, v2 는 highlights, v3 는 conclusions 의 headline·생성 방식을 싣는다.',
+      'v3 payload 는 관리자가 검토·발행한 효과 본문(편집 반영)만 담고, 미발행 초안·편집자 식별자·편집 이력은 포함하지 않는다. 서술은 `lines` 문장 배열이다.',
     ],
   };
 }
@@ -653,7 +654,7 @@ export const WEEKLY_BRIEFS_AREA: AreaDef<WeeklyBriefsRaw> = {
   id: 'weekly-briefs',
   titleKo: '주간 브리프',
   priority: 'P0',
-  areaSchemaVersion: WEEKLY_BRIEF_REPORT_SCHEMA_VERSION,
+  areaSchemaVersion: WEEKLY_BRIEF_EXECUTIVE_SCHEMA_VERSION,
   sourceTables: ['weekly_briefs'],
   derivedFrom: [],
   units: { generatedAt: 'ISO 8601 UTC', weekStart: 'YYYY-MM-DD(KST 월요일)', weekEnd: 'YYYY-MM-DD(KST 일요일)' },

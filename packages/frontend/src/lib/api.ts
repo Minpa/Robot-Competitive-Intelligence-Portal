@@ -10,6 +10,8 @@ import type {
 } from '@/types/tech-trend-timeline';
 import type { ActuatorMapResponse } from '@/types/actuator-map';
 import type {
+  WeeklyBriefAdminEdits,
+  WeeklyBriefDraftListItem,
   WeeklyBriefGenerateResponse,
   WeeklyBriefListItem,
   WeeklyBriefResponse,
@@ -378,8 +380,8 @@ class ApiClient {
     return this.request<{ items: WeeklyBriefListItem[] }>(`/weekly-brief?limit=${limit}`);
   }
 
-  /** 주간 브리프 즉시 생성 (관리자). 202 시작 / 200 skipped:exists, 400·409 는 throw */
-  async generateWeeklyBrief(body: { weekStart?: string; force?: boolean } = {}) {
+  /** 주간 브리프 즉시 생성 (관리자). 202 시작 / 200 skipped:exists, 400·409(already_running, has_edits)는 throw. discardEdits: 편집이 있는 초안을 버리고 다시 생성 */
+  async generateWeeklyBrief(body: { weekStart?: string; force?: boolean; discardEdits?: boolean } = {}) {
     return this.request<WeeklyBriefGenerateResponse>('/admin/weekly-brief/generate', {
       method: 'POST',
       body: JSON.stringify(body),
@@ -389,6 +391,37 @@ class ApiClient {
   /** 주간 브리프 생성 진행 상태 (관리자) */
   async getWeeklyBriefStatus() {
     return this.request<WeeklyBriefRunStatus>('/admin/weekly-brief/status');
+  }
+
+  /** v3 발행 전 초안 목록 (관리자) */
+  async listWeeklyBriefDrafts() {
+    return this.request<{ items: WeeklyBriefDraftListItem[] }>('/admin/weekly-brief/drafts');
+  }
+
+  /** v3 초안의 AI 원문·편집본·효과 payload·이력 (관리자). 초안이 없으면 404 'not_found' */
+  async getWeeklyBriefEdits(weekStart: string) {
+    return this.request<WeeklyBriefAdminEdits>(`/admin/weekly-brief/${encodeURIComponent(weekStart)}/edits`);
+  }
+
+  /** v3 편집 저장 (관리자). 값이 null 이면 AI 원문으로 되돌림. 409 'rev_conflict' · 400 'invalid_edit' 는 throw */
+  async saveWeeklyBriefEdits(weekStart: string, body: { rev: number; edits: Record<string, string | null> }) {
+    return this.request<{ rev: number; editedAt: string; warnings: { path: string; codes: string[] }[] }>(`/admin/weekly-brief/${encodeURIComponent(weekStart)}/edits`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+  }
+
+  /** v3 발행 (관리자). 409 'rev_conflict' · 422 'guard_failed' 는 throw */
+  async publishWeeklyBrief(weekStart: string, body: { rev: number }) {
+    return this.request<{ publishState: 'published'; publishedAt: string }>(`/admin/weekly-brief/${encodeURIComponent(weekStart)}/publish`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  /** v3 발행 내리기 (관리자) — 사용자 화면에서 사라지고 초안으로 돌아간다 */
+  async unpublishWeeklyBrief(weekStart: string) {
+    return this.request<{ publishState: 'draft' }>(`/admin/weekly-brief/${encodeURIComponent(weekStart)}/unpublish`, { method: 'POST' });
   }
 
   // ───────── ARGOS_I 일일 스냅샷 (관리자) ─────────

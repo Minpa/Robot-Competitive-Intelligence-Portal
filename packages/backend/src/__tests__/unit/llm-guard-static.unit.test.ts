@@ -67,6 +67,7 @@ export const GUARD_EXCEPTIONS: Readonly<Record<string, string>> = {
   // 기준선 (수정 금지)
   'backend/src/services/weekly-brief-summarize.ts': 'W1 주간 브리프 v2 — 자체 문장 가드(weekly-brief-text-guard) 사용, 1단계에서 수정 금지(PM 결정 Q2)',
   'backend/src/services/weekly-brief-summarize-report.ts': 'W1 주간 브리프 리포트 — 자체 문장 가드 사용, 수정 금지(PM 결정 Q2)',
+  'backend/src/services/weekly-brief-summarize-exec.ts': 'W1 주간 브리프 v3 임원판 — v2 와 같은 자체 문장 가드(weekly-brief-text-guard: 합니다체·수집 건수·방향 모순·숫자 가드) 사용',
   // SDK 타입/헬퍼만 있는 파일
   'backend/src/services/anthropic-models.ts': '호출 없음 — 응답 텍스트 추출·거부 판정 헬퍼(SDK 타입 import 만)',
 };

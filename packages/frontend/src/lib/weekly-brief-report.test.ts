@@ -44,7 +44,8 @@ describe('versionKindOf', () => {
     expect(versionKindOf({})).toBe('v1');
     expect(versionKindOf({ schemaVersion: 1 })).toBe('v1');
     expect(versionKindOf({ schemaVersion: 2 })).toBe('v2');
-    expect(versionKindOf({ schemaVersion: 3 })).toBe('unknown');
+    expect(versionKindOf({ schemaVersion: 3 })).toBe('v3');
+    expect(versionKindOf({ schemaVersion: 4 })).toBe('unknown');
     expect(versionKindOf(null)).toBe('v1');
     expect(versionKindOf({ schemaVersion: 'x' })).toBe('v1');
   });

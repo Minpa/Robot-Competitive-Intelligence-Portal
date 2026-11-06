@@ -8,6 +8,8 @@
 export const WEEKLY_BRIEF_SCHEMA_VERSION = 1;
 /** 장문 리포트 형식(v2) payload 의 schemaVersion — ARGOS_I weekly-briefs 영역의 areaSchemaVersion 도 이 값을 따른다 */
 export const WEEKLY_BRIEF_REPORT_SCHEMA_VERSION = 2;
+/** 임원판 형식(v3) payload 의 schemaVersion — ARGOS_I weekly-briefs 영역의 areaSchemaVersion 도 이 값을 따른다 */
+export const WEEKLY_BRIEF_EXECUTIVE_SCHEMA_VERSION = 3;
 export type WeeklyBriefStatusCode = 'ok' | 'partial' | 'failed';
 export type BriefDomainKey = 'hand' | 'actuator' | 'rfm' | 'expo' | 'production';
 
@@ -380,6 +382,257 @@ export interface WeeklyReportPayload {
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// v3: 임원판 (schemaVersion 3)
+//  - 모든 문자열은 400자 이하이고 빈 문자열을 쓰지 않는다. 키 이름에 content/description/abstract/originalText 를 쓰지 않는다.
+//  - 서술은 문장 배열(lines)로 둔다. 숫자·링크·근거·격차 방향은 서버가 만들고, AI 는 서술과 번역만 쓴다.
+//  - 항목 id 에는 '.' 을 쓰지 않는다(편집 경로 구분자).
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ExecLineRole = 'change' | 'why' | 'action' | 'detail';
+export type ExecActionKind = 'evaluate' | 'contact' | 'watch' | 'decide' | 'none';
+export type ExecConclusionKind = 'gap_shift' | 'tech_signal' | 'business_move' | 'ci_change';
+
+export interface ExecLine {
+  role: ExecLineRole;
+  /** 최대 200자, 합니다체 */
+  text: string;
+}
+
+export interface ExecConclusion {
+  id: string;
+  /** 1~5 */
+  rank: number;
+  kind: ExecConclusionKind;
+  domain: BriefDomainKey | null;
+  /** 최대 50자 */
+  headline: string;
+  /** 3~6개 (규칙 폴백은 1~2개 허용) */
+  lines: ExecLine[];
+  actionKind: ExecActionKind;
+  /** 0~3 */
+  gapRefs: string[];
+  /** 1~3 */
+  evidence: WeeklyReportEvidence[];
+  generatedBy: WeeklyGeneratedBy;
+}
+
+export type GapPosition = 'competitor_ahead' | 'parity' | 'we_ahead';
+export type GapMovement = 'competitor_closing' | 'competitor_receding' | 'steady' | 'first_seen';
+export type GapStatus = 'compared' | 'ours_missing' | 'competitor_missing';
+
+export interface ExecGapValue {
+  value: number;
+  /** 최대 24자 */
+  display: string;
+  grade: string | null;
+  asOf: string | null;
+  sourceUrl: string | null;
+}
+
+export interface ExecGapRow {
+  /** gap:{companyKey}:{axisKey} */
+  id: string;
+  competitor: { companyId: string | null; name: string; robotName: string | null };
+  axisKey: string;
+  axisLabel: string;
+  unit: string | null;
+  higherIsBetter: boolean;
+  competitorValue: ExecGapValue;
+  ourValue: ExecGapValue | null;
+  /** 우리 값의 출처 라벨 예: 'CLOiD' */
+  ourRef: string | null;
+  status: GapStatus;
+  position: GapPosition | null;
+  diff: { abs: number; pct: number | null } | null;
+  movement: GapMovement | null;
+  prevCompetitorValue: number | null;
+  /** 서버 고정 한국어 라벨 */
+  labelKo: { position: string | null; movement: string | null };
+  /** 2~4개 (ours_missing 이면 1~2개), 각 최대 200자 */
+  lines: string[];
+  /** 0~2 */
+  evidence: WeeklyReportEvidence[];
+  generatedBy: WeeklyGeneratedBy;
+}
+
+export interface ExecGaps {
+  /** 0~3문장, 각 최대 220자 */
+  summary: string[];
+  /** 0~6 */
+  rows: ExecGapRow[];
+  coverage: { registered: string[]; missing: string[]; asOf: string | null };
+}
+
+export type TechSignalKind = 'subtopic' | 'theme' | 'keyword' | 'procurement';
+export type TechDirection = 'rising' | 'falling' | 'steady';
+
+export interface ExecTechSignal {
+  id: string;
+  kind: TechSignalKind;
+  domain: BriefDomainKey | null;
+  /** 최대 40자 */
+  label: string;
+  direction: TechDirection;
+  /** 8개 (오래된 주부터). 점유율 % 소수 1자리, 조달 신호는 건수 */
+  series: number[];
+  /** 최근 4주 평균 */
+  recent: number | null;
+  /** 이전 4주 평균 */
+  prior: number | null;
+  relChangePct: number | null;
+  /** 2~4개, 각 최대 200자 */
+  lines: string[];
+  /** 1~3 */
+  evidence: WeeklyReportEvidence[];
+  generatedBy: WeeklyGeneratedBy;
+}
+
+export interface ExecTech {
+  window: { weeks: number; recentWeeks: number; asOfWeekStart: string };
+  /** 0~6 */
+  signals: ExecTechSignal[];
+  /** 조달 태세 변화 — 스냅샷이 2개 미만이면 accumulating */
+  procurement: { state: 'accumulating' | 'observed'; snapshots: number };
+}
+
+export interface ExecFactChip {
+  /** 최대 40자 */
+  label: string;
+  /** 최대 24자 */
+  value: string;
+  /** 최대 80자 */
+  note: string | null;
+}
+
+export type BusinessCategory = 'contract' | 'pricing' | 'mass_production' | 'sourcing' | 'market';
+
+export interface ExecBusinessMove {
+  id: string;
+  category: BusinessCategory;
+  company: string;
+  vendor: string | null;
+  /** 0~4 */
+  facts: ExecFactChip[];
+  /** 2~4개, 각 최대 200자 */
+  lines: string[];
+  /** 1~3 */
+  evidence: WeeklyReportEvidence[];
+  generatedBy: WeeklyGeneratedBy;
+}
+
+export interface ExecBusiness {
+  /** 0~6 */
+  picture: ExecFactChip[];
+  /** 0~6 */
+  moves: ExecBusinessMove[];
+  asOf: string | null;
+}
+
+export type ExecQuestionKind = 'evaluate' | 'contact' | 'decide' | 'watch';
+
+export interface ExecQuestion {
+  id: string;
+  kind: ExecQuestionKind;
+  /** 최대 200자, ~까요? 로 끝나는 1문장 */
+  text: string;
+  /** 1~2문장, 각 최대 200자 */
+  rationale: string[];
+  conclusionId: string | null;
+  /** 1~3 (필수) */
+  evidence: WeeklyReportEvidence[];
+  generatedBy: WeeklyGeneratedBy;
+}
+
+export interface ExecVideo {
+  id: string;
+  title: string;
+  titleKo: string | null;
+  channel: string | null;
+  publishedAt: string | null;
+  url: string | null;
+  thumbnail: string | null;
+  views: number | null;
+  durationSec: number | null;
+  domain: BriefDomainKey | null;
+  /** 0~2개, 각 110자 이하 */
+  summaryLines: string[];
+  /** 0~3개 */
+  tags: string[];
+}
+
+export interface ExecPaper {
+  id: string;
+  title: string;
+  titleKo: string | null;
+  authors: string | null;
+  publishedAt: string | null;
+  /** https + 호스트 arxiv.org 만 */
+  url: string;
+  arxivId: string | null;
+  domain: BriefDomainKey | null;
+  /** 최대 100자 한 줄 시사점 */
+  implication: string;
+  /** 2 또는 3 */
+  frontierScore: number;
+}
+
+export interface ExecArticle {
+  id: string;
+  title: string;
+  titleKo: string | null;
+  source: string;
+  publishedAt: string | null;
+  url: string;
+  domain: BriefDomainKey | null;
+  /** 최대 100자 */
+  summaryLine: string | null;
+}
+
+export interface ExecEvidence {
+  /** 0~8 */
+  videos: ExecVideo[];
+  /** 0~5 (프론티어를 바꾼 것만) */
+  papers: ExecPaper[];
+  /** 0~8 */
+  articles: ExecArticle[];
+  /** 서버 템플릿 한 줄 */
+  collectionLine: string;
+}
+
+export type ExecSectionKey = 'conclusions' | 'gaps' | 'tech' | 'business' | 'questions' | 'evidence';
+
+export interface ExecPositionSnapshot {
+  asOf: string;
+  robots: number;
+  inHouse: number;
+  inHouseSells: number;
+  external: number;
+  unknown: number;
+}
+
+export interface WeeklyExecutivePayload {
+  schemaVersion: 3;
+  header: WeeklyBriefHeader;
+  /** 0~5 */
+  conclusions: ExecConclusion[];
+  gaps: ExecGaps;
+  tech: ExecTech;
+  business: ExecBusiness;
+  /** 0~4 */
+  questions: ExecQuestion[];
+  evidence: ExecEvidence;
+  meta: {
+    aiUsed: boolean;
+    ruleBasedSections: number;
+    sectionSources: Record<ExecSectionKey, WeeklySectionSource>;
+    warnings: string[];
+    truncated: boolean;
+    positionSnapshot: ExecPositionSnapshot | null;
+    positionCoverage: { registered: number; missing: number };
+  };
+}
+
 interface WeeklyBriefResponseBase {
   weekStart: string;
   status: 'ok' | 'partial';
@@ -400,8 +653,13 @@ export interface WeeklyReportResponse extends WeeklyBriefResponseBase {
   payload: WeeklyReportPayload;
 }
 
+/** v3(임원판) 브리프 응답 */
+export interface WeeklyExecutiveResponse extends WeeklyBriefResponseBase {
+  payload: WeeklyExecutivePayload;
+}
+
 /** 서버 응답 — payload.schemaVersion 으로 판별한다 (없으면 1) */
-export type WeeklyBriefResponse = WeeklyBriefV1Response | WeeklyReportResponse;
+export type WeeklyBriefResponse = WeeklyBriefV1Response | WeeklyReportResponse | WeeklyExecutiveResponse;
 
 /** payload 의 schemaVersion 숫자 (없거나 잘못되면 1) */
 export function weeklyBriefSchemaVersionOf(payload: unknown): number {
@@ -415,6 +673,61 @@ export function isWeeklyReportPayload(payload: unknown): payload is WeeklyReport
 
 export function isWeeklyReportResponse(brief: { payload: unknown }): brief is WeeklyReportResponse {
   return isWeeklyReportPayload(brief.payload);
+}
+
+export function isWeeklyExecutivePayload(payload: unknown): payload is WeeklyExecutivePayload {
+  return weeklyBriefSchemaVersionOf(payload) === WEEKLY_BRIEF_EXECUTIVE_SCHEMA_VERSION;
+}
+
+export function isWeeklyExecutiveResponse(brief: { payload: unknown }): brief is WeeklyExecutiveResponse {
+  return isWeeklyExecutivePayload(brief.payload);
+}
+
+export type WeeklyBriefPublishState = 'draft' | 'published';
+
+/** 관리자 초안 목록 항목 (GET /api/admin/weekly-brief/drafts) */
+export interface WeeklyBriefDraftListItem {
+  weekStart: string;
+  status: 'ok' | 'partial';
+  publishState: WeeklyBriefPublishState;
+  hasUnpublishedChanges: boolean;
+  generatedAt: string;
+  publishedAt: string | null;
+  ageHours: number;
+}
+
+export interface WeeklyBriefEditHistoryEntry {
+  at: string;
+  by: string | null;
+  action: 'edit' | 'publish' | 'unpublish' | 'regenerate';
+  paths: string[];
+  before: Record<string, string>;
+}
+
+export interface WeeklyBriefEditLimits {
+  sentence: number;
+  headline: number;
+  question: number;
+  implication: number;
+}
+
+/** GET /api/admin/weekly-brief/:weekStart/edits */
+export interface WeeklyBriefAdminEdits {
+  weekStart: string;
+  publishState: WeeklyBriefPublishState;
+  rev: number;
+  hasUnpublishedChanges: boolean;
+  aiPayload: WeeklyExecutivePayload;
+  edits: Record<string, string>;
+  effective: WeeklyExecutiveResponse;
+  history: WeeklyBriefEditHistoryEntry[];
+  limits: WeeklyBriefEditLimits;
+}
+
+export interface WeeklyBriefDraftSummary {
+  pending: number;
+  oldestWeekStart: string | null;
+  oldestAgeDays: number | null;
 }
 
 export interface WeeklyBriefListItem {
@@ -460,8 +773,10 @@ export interface WeeklyBriefRunStatus {
   } | null;
   /** '지금 생성' 기본 대상(직전 완료 주) */
   targetWeekStart: string;
-  /** 대상 주에 ok/partial 행이 있는지 */
+  /** 대상 주에 ok/partial 행(발행본) 또는 초안이 있는지 */
   targetExists: boolean;
+  /** 미발행 초안 요약 */
+  drafts?: WeeklyBriefDraftSummary;
   config: {
     cron: string;
     schedulerEnabled: boolean;
@@ -470,8 +785,10 @@ export interface WeeklyBriefRunStatus {
     aiEnabled: boolean;
     model: string;
     budget: { limitUsd: number; usedUsd: number | null };
-    /** 생성 형식 — report(장문 리포트, 기본) 또는 poster(롤백용 포스터) */
-    format: 'report' | 'poster';
+    /** 생성 형식 — executive(임원판, 기본) · report(장문 리포트) · poster(롤백용 포스터) */
+    format: 'executive' | 'report' | 'poster';
+    /** 임원판 생성 결과를 관리자 검토(발행) 뒤에 공개하는지 */
+    requireReview?: boolean;
     /** 1회 생성의 AI 비용 추정(USD, 현재 모델 단가 기준) */
     estimatedCostUsd: number;
   };

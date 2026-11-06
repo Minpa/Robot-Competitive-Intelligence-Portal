@@ -14,6 +14,7 @@ import type {
   WeeklyArticleItem,
   WeeklyBriefResponse,
   WeeklyBriefV1Response,
+  WeeklyExecutiveResponse,
   WeeklyReportResponse,
   WeeklyCiChange,
   WeeklyEvidence,
@@ -26,6 +27,7 @@ import { escapeHtml } from '@/lib/tech-trend-report-html';
 import { ext, maybeLink, okHref, t } from '@/lib/weekly-brief-html-common';
 import { buildReportHtml } from '@/lib/weekly-brief-report-html';
 import { versionKindOf } from '@/lib/weekly-brief-report';
+import { buildExecutiveHtml } from '@/lib/weekly-brief-exec-html';
 import {
   POSTER_COLORS,
   POSTER_DURATION_BG,
@@ -69,6 +71,8 @@ import {
 export interface WeeklyBriefHtmlMeta {
   /** 원본 페이지 URL (현재는 푸터에 쓰지 않음 — 외부 링크 규칙상 필요 시 safeArticleHref 통과분만) */
   pageUrl: string;
+  /** (v3 전용) 초안 또는 발행 후 수정 사항 미반영 상태에서 받은 HTML — 첫 줄에 초안 문구. v1·v2 출력에는 영향이 없다 */
+  draft?: boolean;
 }
 
 export function weeklyBriefFileName(brief: Pick<WeeklyBriefResponse, 'weekStart' | 'payload'>): string {
@@ -263,6 +267,7 @@ function paperRowHtml(a: WeeklyPaperItem): string {
  * v1 출력은 변경 전과 바이트 단위로 같아야 한다(golden 회귀 테스트).
  */
 export function buildWeeklyBriefHtml(rawBrief: WeeklyBriefResponse, meta: WeeklyBriefHtmlMeta): string {
+  if (versionKindOf(rawBrief.payload) === 'v3') return buildExecutiveHtml(normalizeWeeklyBrief(rawBrief) as WeeklyExecutiveResponse, { draft: meta.draft === true });
   if (versionKindOf(rawBrief.payload) === 'v2') return buildReportHtml(normalizeWeeklyBrief(rawBrief) as WeeklyReportResponse);
   return buildPosterHtml(rawBrief as WeeklyBriefV1Response, meta);
 }

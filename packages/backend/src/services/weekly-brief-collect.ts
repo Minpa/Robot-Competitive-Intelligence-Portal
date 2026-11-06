@@ -27,6 +27,9 @@ import {
 } from './weekly-brief-compose.js';
 import { addDaysYmd, getWeekRange, type WeekRange } from './weekly-brief-period.js';
 import { formatLogLine } from './ops-log.util.js';
+import { fetchPositionSnapshot, type PositionDeps, type PositionSnapshot } from './weekly-brief-position.js';
+import { WATCH_THEMES, collectTrend, selectTrendSignals, themePattern, type TechSignalDraft, type TrendData } from './weekly-brief-trend.js';
+import type { ExecPositionSnapshot } from '../types/weekly-brief.js';
 
 const TAG = 'WeeklyBrief';
 
@@ -468,5 +471,173 @@ export async function collectWeek(
     companies,
     warnings,
     ...(options.report ? { volume, companyDirectory } : {}),
+  };
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// v3(임원판) 수집 확장 — 위 v2 함수는 변경하지 않는다
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** 추세 신호 근거 행 (이번 주 항목, 최대 3) */
+export interface SignalEvidenceRow {
+  id: string;
+  title: string;
+  url: string | null;
+  source: string | null;
+  kind: 'video' | 'paper' | 'article';
+}
+
+export interface PrevExecContext {
+  /** 직전 v3 브리프들의 격차 행 경쟁사값 — 가장 최근 값이 우선 (id → 값) */
+  gapValues: Record<string, number>;
+  /** 직전 v3 브리프들의 조달 통계 스냅샷 (오래된 순) */
+  snapshots: ExecPositionSnapshot[];
+}
+
+export interface ExecCollected {
+  base: CollectedWeek;
+  position: PositionSnapshot;
+  /** 이번 주 스펙(humanoid_robots/body_specs/hand_specs)이 갱신된 로봇 id */
+  specUpdatedRobotIds: string[];
+  trend: TrendData;
+  /** 선정된 추세 신호의 근거 (신호 id → 행) */
+  signalEvidence: Record<string, SignalEvidenceRow[]>;
+  prev: PrevExecContext;
+  warnings: string[];
+}
+
+export interface ExecCollectOptions {
+  position?: PositionDeps;
+}
+
+/** 이번 주 스펙이 갱신된 로봇 id (재시드 오탐은 compose 에서 회사 언급과의 이중 조건으로 거른다) */
+export async function fetchSpecUpdatedRobots(deps: CollectDeps, range: WeekRange): Promise<string[]> {
+  const s = boundSql(range.startUtc);
+  const e = boundSql(range.endUtcExclusive);
+  const result = await deps.query(sql`
+    SELECT id::text AS rid FROM humanoid_robots WHERE updated_at >= ${s} AND updated_at < ${e}
+    UNION SELECT robot_id::text FROM body_specs WHERE updated_at >= ${s} AND updated_at < ${e}
+    UNION SELECT robot_id::text FROM hand_specs WHERE updated_at >= ${s} AND updated_at < ${e}
+    LIMIT 2000
+  `);
+  return rowsOf<{ rid: string }>(result).map((r) => String(r.rid));
+}
+
+function evidenceKind(r: { product_type: string | null; source: string | null }): 'video' | 'paper' | 'article' {
+  if (r.product_type === 'video') return 'video';
+  return r.source === 'arxiv' ? 'paper' : 'article';
+}
+
+/** 추세 신호 하나의 이번 주 근거 항목 (최신순 3건) */
+export async function fetchSignalEvidence(deps: CollectDeps, range: WeekRange, signal: TechSignalDraft): Promise<SignalEvidenceRow[]> {
+  const inWeek = sql`${TS} >= ${boundSql(range.startUtc)} AND ${TS} < ${boundSql(range.endUtcExclusive)} AND (a.product_type = 'video' OR COALESCE(a.source, '') NOT IN ('github', 'sec_edgar', 'patent'))`;
+  let cond: SQL | null = null;
+  const ref = signal.ref;
+  if (ref.topicDomain && ref.topicId) {
+    const path = ref.topicDomain === 'hand' ? sql`a.extracted_metadata->'handTopics'` : sql`a.extracted_metadata#>'{domainTopics,actuator}'`;
+    cond = sql`jsonb_typeof(${path}->'topics') = 'array' AND (${path}->'topics') ? ${ref.topicId}`;
+  } else if (ref.themeId) {
+    const theme = WATCH_THEMES.find((t) => t.id === ref.themeId);
+    if (theme) cond = sql`lower(coalesce(a.title, '') || ' ' || coalesce((a.extracted_metadata->'aiTags')::text, '')) ~* ${themePattern(theme.terms)}`;
+  } else if (ref.term) {
+    cond = sql`EXISTS (SELECT 1 FROM article_keywords ak JOIN keywords k ON k.id = ak.keyword_id WHERE ak.article_id = a.id AND k.term = ${ref.term})`;
+  }
+  if (!cond) return [];
+  const result = await deps.query(sql`
+    SELECT a.id::text AS id, a.title, a.url, a.source, a.product_type
+    FROM articles a
+    WHERE ${inWeek} AND ${cond}
+    ORDER BY ${TS} DESC, a.id ASC
+    LIMIT 3
+  `);
+  return rowsOf<{ id: string; title: string | null; url: string | null; source: string | null; product_type: string | null }>(result).map((r) => ({
+    id: String(r.id),
+    title: decodeHtmlEntities(r.title ?? ''),
+    url: r.url ?? null,
+    source: r.source ?? null,
+    kind: evidenceKind(r),
+  }));
+}
+
+/** 직전 v3 브리프(발행본 또는 초안의 AI 원문)에서 격차 행 값과 조달 스냅샷을 읽는다 — 최근 8건 */
+export async function fetchPrevExecContext(deps: CollectDeps, weekStart: string): Promise<PrevExecContext> {
+  const result = await deps.query(sql`
+    SELECT week_start::text AS ws, p->'gaps'->'rows' AS rows, p->'meta'->'positionSnapshot' AS snap FROM (
+      SELECT week_start, payload AS p FROM weekly_briefs WHERE status IN ('ok', 'partial') AND (payload->>'schemaVersion') = '3' AND week_start < ${weekStart}::date
+      UNION ALL
+      SELECT week_start, ai_payload AS p FROM weekly_brief_drafts WHERE (ai_payload->>'schemaVersion') = '3' AND week_start < ${weekStart}::date
+    ) u
+    ORDER BY week_start DESC
+    LIMIT 16
+  `);
+  const seen = new Set<string>();
+  const gapValues: Record<string, number> = {};
+  const snaps: { ws: string; snap: ExecPositionSnapshot }[] = [];
+  for (const r of rowsOf<{ ws: string; rows: unknown; snap: unknown }>(result)) {
+    if (seen.has(r.ws)) continue;
+    seen.add(r.ws);
+    if (seen.size > 8) break;
+    if (Array.isArray(r.rows)) {
+      for (const g of r.rows as { id?: unknown; competitorValue?: { value?: unknown } }[]) {
+        const id = typeof g?.id === 'string' ? g.id : null;
+        const v = g?.competitorValue?.value;
+        if (id && typeof v === 'number' && Number.isFinite(v) && !(id in gapValues)) gapValues[id] = v;
+      }
+    }
+    const sn = r.snap as Partial<ExecPositionSnapshot> | null;
+    if (sn && typeof sn === 'object' && typeof sn.asOf === 'string') snaps.push({ ws: r.ws, snap: sn as ExecPositionSnapshot });
+  }
+  snaps.sort((a, b) => a.ws.localeCompare(b.ws));
+  return { gapValues, snapshots: snaps.map((s) => s.snap) };
+}
+
+/**
+ * v3 수집 — v2 수집(collectWeek, report) 위에 우리 위치, 8주 추세, 추세 근거, 직전 브리프 문맥을 더한다.
+ * 모든 추가 수집기는 선택이며 실패하면 기본값과 경고(`position_failed`, `trend_*_failed`, ...)를 남긴다.
+ */
+export async function collectExecutive(
+  range: WeekRange,
+  prevRange: WeekRange,
+  deps: CollectDeps = defaultDeps,
+  options: ExecCollectOptions = {},
+): Promise<ExecCollected> {
+  const log = deps.log ?? ((l: string) => console.warn(l));
+  const base = await collectWeek(range, prevRange, deps, { report: true });
+  const warnings: string[] = [];
+  const optional = async <T>(code: string, fn: () => Promise<T>, fallback: T): Promise<T> => {
+    try {
+      return await fn();
+    } catch (err) {
+      warnings.push(`${code}_failed`);
+      log(formatLogLine(TAG, { phase: 'collect', collector: code, status: 'failed', error: err instanceof Error ? err.message : String(err) }));
+      return fallback;
+    }
+  };
+
+  const [position, specUpdated, trend, prev] = await Promise.all([
+    fetchPositionSnapshot(options.position),
+    optional('spec_updates', () => fetchSpecUpdatedRobots(deps, range), [] as string[]),
+    collectTrend(deps, range.weekStart),
+    optional('prev_exec', () => fetchPrevExecContext(deps, range.weekStart), { gapValues: {}, snapshots: [] } as PrevExecContext),
+  ]);
+  if (position.failures.includes('position')) warnings.push('position_failed');
+  if (position.failures.includes('bench')) warnings.push('bench_failed');
+  if (position.failures.includes('hand_bench')) warnings.push('hand_bench_failed');
+  warnings.push(...trend.warnings);
+
+  // 선정될 추세 신호의 근거만 조회한다 (최대 6건)
+  const picked = selectTrendSignals(trend.series);
+  const evidenceEntries = await Promise.all(
+    picked.map(async (s) => [s.id, await optional('signal_evidence', () => fetchSignalEvidence(deps, range, s), [] as SignalEvidenceRow[])] as const),
+  );
+  return {
+    base,
+    position,
+    specUpdatedRobotIds: specUpdated,
+    trend,
+    signalEvidence: Object.fromEntries(evidenceEntries),
+    prev,
+    warnings: [...new Set(warnings)],
   };
 }

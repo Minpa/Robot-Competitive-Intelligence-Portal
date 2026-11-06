@@ -37,7 +37,7 @@ export function useWeeklyBriefGenerate(enabled: boolean) {
     },
   });
 
-  const startMutation = useMutation<WeeklyBriefGenerateResponse, Error, { weekStart?: string; force?: boolean }>({
+  const startMutation = useMutation<WeeklyBriefGenerateResponse, Error, { weekStart?: string; force?: boolean; discardEdits?: boolean }>({
     mutationFn: (body) => api.generateWeeklyBrief(body),
     onSuccess: (res) => {
       if (res.started) {
@@ -87,7 +87,7 @@ export function useWeeklyBriefGenerate(enabled: boolean) {
     phase: status?.phase ?? 'idle',
     /** 202 를 받았지만 아직 서버가 running 을 보고하기 전 */
     waitingForStart: startedAtMs !== null && !running,
-    start: (body: { weekStart?: string; force?: boolean }) => startMutation.mutate(body),
+    start: (body: { weekStart?: string; force?: boolean; discardEdits?: boolean }) => startMutation.mutate(body),
     starting: startMutation.isPending,
     error: startMutation.error,
     lastResponse,

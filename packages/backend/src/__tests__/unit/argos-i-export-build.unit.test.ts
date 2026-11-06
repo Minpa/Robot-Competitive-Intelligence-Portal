@@ -336,10 +336,10 @@ describe('JSON envelope', () => {
     }
   });
 
-  it('the actuator-map area exposes ACTUATOR_MAP_SCHEMA_VERSION and weekly-briefs the report (v2) payload schema version', () => {
+  it('the actuator-map area exposes ACTUATOR_MAP_SCHEMA_VERSION and weekly-briefs the executive (v3) payload schema version', () => {
     const v = (id: string) => JSON.parse(text(rendered.find((r) => r.def.id === id)!.json)).areaSchemaVersion;
     expect(v('actuator-map')).toBe(2);
-    expect(v('weekly-briefs')).toBe(2);
+    expect(v('weekly-briefs')).toBe(3);
   });
 
   it('actuator-map drops generatedAt/cached from the source map and uses the bundle times', () => {
