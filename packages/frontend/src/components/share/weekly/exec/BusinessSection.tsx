@@ -1,6 +1,7 @@
 import type { ExecBusiness, ExecFactChip } from '@/types/weekly-brief';
-import { EXEC_BUSINESS_CATEGORY_LABELS, editPath } from '@/lib/weekly-brief-exec';
-import { Badge, CARD_CLASS, EvidenceChips } from '../report/shared';
+import { EXEC_BUSINESS_CATEGORY_LABELS, businessCategoryExplain, editPath } from '@/lib/weekly-brief-exec';
+import { Badge, CARD_CLASS } from '../report/shared';
+import { ExecEvidence } from './ExecEvidence';
 import { EditableLine } from './EditableLine';
 
 function Chip({ c }: { c: ExecFactChip }) {
@@ -42,6 +43,11 @@ export function BusinessSection({ business }: { business: ExecBusiness }) {
                   <div className="mt-1">
                     <Badge>{EXEC_BUSINESS_CATEGORY_LABELS[m.category] ?? m.category}</Badge>
                   </div>
+                  {businessCategoryExplain(m.category) && (
+                    <p className="m-0 mt-1 text-[12.5px] leading-[1.6] text-poster-fg-2" data-testid="business-category-explain">
+                      {businessCategoryExplain(m.category)}
+                    </p>
+                  )}
                 </div>
               </div>
               {m.facts.length > 0 && (
@@ -58,7 +64,7 @@ export function BusinessSection({ business }: { business: ExecBusiness }) {
                   </p>
                 ))}
               </div>
-              <EvidenceChips list={m.evidence} />
+              <ExecEvidence list={m.evidence} />
             </li>
           ))}
         </ol>

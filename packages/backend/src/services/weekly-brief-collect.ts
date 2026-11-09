@@ -486,6 +486,11 @@ export interface SignalEvidenceRow {
   url: string | null;
   source: string | null;
   kind: 'video' | 'paper' | 'article';
+  /** 영상 근거용 — 메타데이터의 썸네일 URL(검증 전)과 videoId, 채널, 게시·수집 시각 ISO */
+  thumbnail?: string | null;
+  videoId?: string | null;
+  channel?: string | null;
+  publishedAt?: string | null;
 }
 
 export interface PrevExecContext {
@@ -545,18 +550,24 @@ export async function fetchSignalEvidence(deps: CollectDeps, range: WeekRange, s
   }
   if (!cond) return [];
   const result = await deps.query(sql`
-    SELECT a.id::text AS id, a.title, a.url, a.source, a.product_type
+    SELECT a.id::text AS id, a.title, a.url, a.source, a.product_type,
+           a.extracted_metadata->>'thumbnail' AS thumbnail, a.extracted_metadata->>'videoId' AS video_id, a.extracted_metadata->>'channel' AS channel,
+           ${isoSql(TS)} AS ts
     FROM articles a
     WHERE ${inWeek} AND ${cond}
     ORDER BY ${TS} DESC, a.id ASC
     LIMIT 3
   `);
-  return rowsOf<{ id: string; title: string | null; url: string | null; source: string | null; product_type: string | null }>(result).map((r) => ({
+  return rowsOf<{ id: string; title: string | null; url: string | null; source: string | null; product_type: string | null; thumbnail: string | null; video_id: string | null; channel: string | null; ts: string | null }>(result).map((r) => ({
     id: String(r.id),
     title: decodeHtmlEntities(r.title ?? ''),
     url: r.url ?? null,
     source: r.source ?? null,
     kind: evidenceKind(r),
+    thumbnail: r.thumbnail ?? null,
+    videoId: r.video_id ?? null,
+    channel: r.channel ?? null,
+    publishedAt: r.ts ?? null,
   }));
 }
 

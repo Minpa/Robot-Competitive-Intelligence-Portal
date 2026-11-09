@@ -1,9 +1,10 @@
 import type { ExecQuestion } from '@/types/weekly-brief';
 import { EXEC_QUESTION_KIND_LABELS, editPath } from '@/lib/weekly-brief-exec';
-import { Badge, CARD_CLASS, EvidenceChips } from '../report/shared';
+import { Badge, CARD_CLASS } from '../report/shared';
+import { ExecEvidence } from './ExecEvidence';
 import { EditableLine } from './EditableLine';
 
-/** 함께 검토해 주실 사항 — 번호, 질문(~까요?), 근거 문장, 근거 링크 */
+/** 확인이 필요해 보이는 사항 — 번호, 확인 제안 한 문장(~볼 필요가 있을 것 같습니다 등), 이유(알려진 것·아직 모르는 것), 근거 */
 export function QuestionsSection({ questions }: { questions: readonly ExecQuestion[] }) {
   return (
     <ol className="m-0 list-none p-0" data-testid="questions">
@@ -29,7 +30,7 @@ export function QuestionsSection({ questions }: { questions: readonly ExecQuesti
               </p>
             ))}
           </div>
-          <EvidenceChips list={q.evidence} />
+          <ExecEvidence list={q.evidence} />
         </li>
       ))}
     </ol>

@@ -105,6 +105,11 @@ export function SectionShell({ section, children }: { section: PlannedSection; c
         </h2>
         <span className="col-start-3 row-start-1 whitespace-nowrap text-[13px] text-poster-fg-2">{section.countLabel ?? ''}</span>
         <p className="col-span-2 col-start-2 m-0 text-[12.5px] text-poster-fg-2">{section.subtitle}</p>
+        {section.intro && section.intro !== section.subtitle && (
+          <p className="col-span-2 col-start-2 m-0 mt-0.5 text-[13.5px] leading-[1.6] text-poster-fg" data-testid="section-intro">
+            {section.intro}
+          </p>
+        )}
         {section.notice && (
           <p className="col-span-2 col-start-2 m-0 text-[12px] text-poster-fg-2" data-testid="section-notice">
             {section.notice}

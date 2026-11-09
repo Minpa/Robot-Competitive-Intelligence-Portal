@@ -131,7 +131,21 @@ describe('prompt content and limits', () => {
     expect(EXEC_SYSTEM_PROMPTS.A).toContain('수집 건수');
     expect(EXEC_SYSTEM_PROMPTS.A).toContain('미등록');
     expect(EXEC_SYSTEM_PROMPTS.A).toContain('position, movement 라벨');
-    expect(EXEC_SYSTEM_PROMPTS.A).toContain('~까요?');
+    // 어조 2차: 참모 역할, 제안형 어미 3종, few-shot 과 나쁜 예. "~까요?" 를 요구하는 문구는 없다
+    const A = EXEC_SYSTEM_PROMPTS.A;
+    expect(A).toContain('참모');
+    for (const e of ['해 볼 필요가 있을 것 같습니다', '살펴볼 필요가 있어 보입니다', '비교해 볼 필요가 있겠습니다']) expect(A).toContain(e);
+    expect(A).toContain('예시(형식만 참고한다');
+    expect(A).toContain('나쁜 예(쓰지 않는다)');
+    expect(A).toContain('decide 는 쓰지 않는다');
+    expect(A).not.toMatch(/~까요\?\s*(?:로 끝|\)로)/);
+    expect(A).not.toContain('"~까요?" 로 끝나는');
+    for (const call of ['A', 'B', 'C'] as const) {
+      expect(EXEC_SYSTEM_PROMPTS[call]).toContain('물음표로 끝나는 질문문');
+      expect(EXEC_SYSTEM_PROMPTS[call]).toContain('같은 문장에 쓴다');
+    }
+    expect(EXEC_SYSTEM_PROMPTS.B).toContain('독자는 ARGOS를 모른다');
+    expect(EXEC_SYSTEM_PROMPTS.B).toContain('반드시 2~3문장');
     expect(EXEC_SYSTEM_PROMPTS.B).toContain('미등록');
   });
 
@@ -144,7 +158,7 @@ describe('prompt content and limits', () => {
     }
     expect(EXEC_SYSTEM_PROMPTS.A).toContain('change(변화), why(우리에게 주는 의미), action(제안');
     const all = Object.values(EXEC_SYSTEM_PROMPTS).join('\n');
-    for (const old of ['이번 주 결론', '리더 판단이 필요한 질문', '근거 자료', '무엇이 바뀌었나', '우리 위치 미등록']) expect(all).not.toContain(old);
+    for (const old of ['이번 주 결론', '리더 판단이 필요한 질문', '근거 자료', '우리 위치 미등록']) expect(all).not.toContain(old);
   });
 
   it('gap packets pass the server labels and say "우리 수치 미등록" instead of a number', () => {

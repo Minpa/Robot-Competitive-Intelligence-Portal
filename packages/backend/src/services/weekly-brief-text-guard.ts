@@ -373,10 +373,10 @@ export function guardTitleTranslation(raw: unknown, original: string, max: numbe
 
 /**
  * 합니다체 허용 어미(allowlist). 마지막 어절이 다음 중 하나로 끝나야 한다.
- * 격식체(~니다, ~니까), 해요체(~세요, ~어요, ~아요, ~해요, ~예요, ~에요, ~죠, ~네요), 의문형(~까요), 그 밖의 ~요.
+ * 격식체(~니다), 해요체(~세요, ~어요, ~아요, ~해요, ~예요, ~에요, ~죠, ~네요), 그 밖의 ~요. 의문형(~까요, ~니까)은 허용하지 않는다(요구·질문형 가드 R1).
  * ~됨/~함/~임/~음 같은 명사형 종결과 평어체 ~다. 는 허용 목록에 없으므로 자동으로 폐기된다.
  */
-export const POLITE_ENDING_RE = /(?:니다|니까|세요|어요|아요|해요|예요|에요|죠|네요|까요|요)$/;
+export const POLITE_ENDING_RE = /(?:니다|세요|어요|아요|해요|예요|에요|죠|네요|요)$/;
 
 /** 문장 끝의 문장부호·닫는 따옴표와 마지막 괄호 보조 설명을 걷어낸 본문 */
 export function stripSentenceTail(sentence: string): string {
@@ -398,6 +398,86 @@ export function endsWithPolite(sentence: string): boolean {
 /** ~됨/~함/~임/~음 으로 끝나는 보고서체 */
 export function endsWithNounForm(sentence: string): boolean {
   return /(?:됨|함|임|음)$/u.test(stripSentenceTail(sentence));
+}
+
+// ── v3 어조 2차: 요구형·질문형(R1), 제안형 말끝(R2), 대상 없는 말끝 문장(R3)
+
+/** R1: 물음표와 질문 어미 */
+const QUESTION_FORM_RES: readonly RegExp[] = [/까요\s*$/u, /(?:할까|볼까|하실까)\S*\s*$/u];
+/** R1: 요구·의무 표현 */
+const REQUEST_PHRASES: readonly string[] = ['요청드립니다', '요청합니다', '부탁드립니다', '바랍니다', '바라겠습니다', '해 주세요', '해 주십시오', '해 주시기', '하세요', '하십시오', '하셔야', '해야 합니다', '요청드리겠습니다', '부탁드리겠습니다'];
+/** R1: 승인류 — 동사와 결합한 경우만 (뉴스 속 "FDA 승인 획득" 같은 일반 사용은 걸리지 않는다) */
+const APPROVAL_REQUEST_RE = /(?:승인|허가|재가|결재)(?:을|를)?\s*(?:요청|부탁|바라|받아|해\s*주)/u;
+
+/** 요구형·질문형(물음표, ~까요, 요청·부탁·바람, 해 주세요, 해야 합니다, 승인 요청)인가 */
+export function isRequestForm(sentence: string): boolean {
+  const t = sentence.trim();
+  if (/[?？]/u.test(t)) return true;
+  if (QUESTION_FORM_RES.some((re) => re.test(stripSentenceTail(t)))) return true;
+  if (REQUEST_PHRASES.some((p) => t.includes(p))) return true;
+  return APPROVAL_REQUEST_RE.test(t);
+}
+
+/** 대상 없는 권유 어미(~볼 만합니다, ~참고할 만, ~지켜볼 만) — plain 범위에서도 폐기한다(제안은 제안 줄과 확인 사항에서 제안형 어미로만 쓴다) */
+const SOFT_SUGGESTION_RE = /(?:볼\s*만(?:합니다|하다|한)|참고할\s*만|지켜볼\s*만)/u;
+
+/** 제안형 허용 어미 정규식 — 용어집 proposalEndings 에서 만든다. stripSentenceTail 을 거친 본문에 쓴다 */
+export const PROPOSAL_ENDING_RE = new RegExp(`(?:${WEEKLY_WORDING.proposalEndings.map((e) => e.replace(/\s+/g, '\\s*')).join('|')})$`, 'u');
+
+/** 제안형 어미(~볼 필요가 있을 것 같습니다 / 있어 보입니다 / 있겠습니다)로 끝나는가 */
+export function endsWithProposal(sentence: string): boolean {
+  return PROPOSAL_ENDING_RE.test(stripSentenceTail(sentence));
+}
+
+/** 대상 판정에서 제외하는 일반어 */
+const GENERIC_TERMS: ReadonlySet<string> = new Set(['자료', '사양', '내용', '관련', '부분', '사항', '여부', '정보', '수치', '결과', '동향']);
+const PARTICLE_TAIL = /(?:에서는|에서|으로|으로는|까지|부터|에게|와의|과의|이다|은|는|이|가|을|를|의|에|로|와|과|도|만)$/u;
+
+/**
+ * 입력 텍스트에서 뽑은 한글 용어(어절 끝 조사 제거, 3자 이상, 일반어 제외).
+ * "촉각 센서 통합"처럼 짧은 어절이 이어진 이름은 인접한 두 어절을 붙인 구("촉각 센서")도 용어로 본다.
+ */
+export function koreanTerms(inputText: string): string[] {
+  const out = new Set<string>();
+  const words: string[] = [];
+  for (const w of inputText.split(/[\s,()'"·/:;]+/u)) {
+    const m = /^([가-힣]+)/u.exec(w);
+    if (!m) {
+      words.push('');
+      continue;
+    }
+    const stripped = m[1]!.replace(PARTICLE_TAIL, '');
+    words.push(stripped.length >= 2 ? stripped : m[1]!);
+  }
+  words.forEach((term, i) => {
+    if (charLength(term) >= 3 && !GENERIC_TERMS.has(term)) out.add(term);
+    const next = words[i + 1];
+    if (term && next && !(GENERIC_TERMS.has(term) && GENERIC_TERMS.has(next)) && charLength(term + next) >= 3) out.add(`${term} ${next}`);
+  });
+  return [...out];
+}
+
+/**
+ * R3: 제안형 말끝 앞의 내용(remainder)에 확인 대상이 있는가.
+ * remainder 가 공백 제외 12자 이상이고, 숫자·영문 토큰(2자 이상)·입력 텍스트의 한글 용어 중 하나가 있어야 한다.
+ */
+export function hasProposalTarget(sentence: string, inputText: string): boolean {
+  const body = stripSentenceTail(sentence);
+  const remainder = body.replace(/[가-힣]*\s*볼\s*필요가\s*(?:있을\s*것\s*같습니다|있어\s*보입니다|있겠습니다)$/u, '');
+  if (charLength(remainder.replace(/\s+/g, '')) < 12) return false;
+  if (/\d/.test(remainder) || /[A-Za-z]{2,}/.test(remainder)) return true;
+  return koreanTerms(inputText).some((t) => remainder.includes(t));
+}
+
+/**
+ * 숫자-대상 가드: 숫자가 있으면 그 숫자가 무엇인지 말하는 대상(영문 이름·입력의 한글 용어·"로봇 N기" 류)이 같은 문장에 있어야 한다.
+ */
+export function numberHasTarget(sentence: string, inputText: string): boolean {
+  if (!/\d/.test(sentence)) return true;
+  if (/(?:로봇|제조사|공급사|사례|회사|항목)[^.]{0,6}\d|\d[\d,.]*\s*(?:기|곳|건|개|명)\s*(?:의\s*)?(?:로봇|제조사|공급사|사례|회사|항목)/u.test(sentence)) return true;
+  const letters = sentence.match(/[A-Za-z]{2,}[A-Za-z0-9-]*/g) ?? [];
+  if (letters.some((w) => inputText.toLowerCase().includes(w.toLowerCase()))) return true;
+  return koreanTerms(inputText).some((t) => sentence.includes(t));
 }
 
 /**
@@ -456,7 +536,10 @@ export function contradictsPosition(sentence: string, position: ExecGapPosition 
   return DIRECTION_CONTRADICTION_PATTERNS[position].some((re) => re.test(sentence));
 }
 
-export type ExecSentenceProblem = 'policy' | 'ending' | 'banned' | 'collection' | 'direction' | 'number' | 'entity' | 'too_long' | 'empty';
+export type ExecSentenceProblem = 'policy' | 'request' | 'ending' | 'proposal_ending' | 'proposal_misplaced' | 'no_target' | 'banned' | 'collection' | 'direction' | 'number' | 'entity' | 'too_long' | 'empty';
+
+/** plain: 사실 서술(제안형 어미 금지) · proposal: 제안 줄과 확인 사항 text(제안형 어미 필수, 대상 필수) */
+export type ExecGuardScope = 'plain' | 'proposal';
 
 export interface ExecGuardSpec {
   /** 문장당 글자 수 상한 (기본 200) */
@@ -468,6 +551,10 @@ export interface ExecGuardSpec {
   position?: ExecGapPosition | null;
   /** 격차 행 서술이면 서버 movement (position 과 함께 해석) */
   movement?: ExecGapMovement | null;
+  /** 기본 plain */
+  scope?: ExecGuardScope;
+  /** 숫자가 든 문장에 대상(제품명·축 이름·"로봇 N기" 류)이 없으면 폐기 — 사업 동향·차이 카드 서술 */
+  requireNumberTarget?: boolean;
 }
 
 export interface ExecGuardStats {
@@ -479,7 +566,7 @@ export interface ExecGuardStats {
 export const EXEC_SENTENCE_MAX = 200;
 
 function emptyExecStats(): ExecGuardStats {
-  return { sentences: 0, dropped: { policy: 0, ending: 0, banned: 0, collection: 0, direction: 0, number: 0, entity: 0, too_long: 0, empty: 0 }, entityWarnings: 0 };
+  return { sentences: 0, dropped: { policy: 0, request: 0, ending: 0, proposal_ending: 0, proposal_misplaced: 0, no_target: 0, banned: 0, collection: 0, direction: 0, number: 0, entity: 0, too_long: 0, empty: 0 }, entityWarnings: 0 };
 }
 
 export function execDroppedTotal(s: ExecGuardStats): number {
@@ -489,11 +576,18 @@ export function execDroppedTotal(s: ExecGuardStats): number {
 /** 문장 하나에 대한 v3 검사 — 첫 번째로 걸린 사유(없으면 null). 길이는 별도 */
 export function execSentenceProblem(sentence: string, spec: ExecGuardSpec, inputTokens: Set<string> | null): ExecSentenceProblem | null {
   if (violatesTextPolicy(sentence)) return 'policy';
+  if (isRequestForm(sentence)) return 'request';
   if (!endsWithPolite(sentence)) return 'ending';
+  const proposal = endsWithProposal(sentence);
+  if ((spec.scope ?? 'plain') === 'proposal') {
+    if (!proposal) return 'proposal_ending';
+    if (!hasProposalTarget(sentence, spec.inputText ?? '')) return 'no_target';
+  } else if (proposal || SOFT_SUGGESTION_RE.test(stripSentenceTail(sentence))) return 'proposal_misplaced';
   if (findBannedPhraseV3(sentence, spec.inputText ?? '')) return 'banned';
   if (mentionsCollectionCount(sentence)) return 'collection';
   if (contradictsPosition(sentence, spec.position) || contradictsMovement(sentence, spec.position, spec.movement)) return 'direction';
   if (disallowedNumbers(sentence, spec.allowed).length > 0) return 'number';
+  if (spec.requireNumberTarget && !numberHasTarget(sentence, spec.inputText ?? '')) return 'no_target';
   if (inputTokens && spec.entityMode === 'enforce' && englishTokens(sentence).some((t) => !inputTokens.has(t))) return 'entity';
   return null;
 }
@@ -528,14 +622,28 @@ export function guardExecSentences(raw: unknown, spec: ExecGuardSpec): { sentenc
   return { sentences: out, stats };
 }
 
-export type EditWarningCode = 'ending' | 'banned' | 'number' | 'direction' | 'collection';
+export type EditWarningCode = 'ending' | 'banned' | 'number' | 'direction' | 'collection' | 'request' | 'no_target';
 
-/** 관리자 편집 문장의 경고(저장은 허용) — 합니다체 위반, 금칙어, 서버 숫자 집합에 없는 숫자, 방향 모순, 수집 건수 문구 */
-export function editWarnings(text: string, allowed: ReadonlySet<string>, position?: ExecGapPosition | null, movement?: ExecGapMovement | null): EditWarningCode[] {
+/**
+ * 관리자 편집 문장의 경고(저장은 허용) — 요구·질문형, 합니다체·제안형 말끝 위반, 대상 없는 문장, 금칙어, 서버 숫자 집합에 없는 숫자, 방향 모순, 수집 건수 문구.
+ * scope: proposal(제안 줄·확인 사항 text)은 제안형 어미와 대상이 필요하고, plain 은 제안형 어미를 쓰면 안 된다. headline 은 제목용(요구·질문형 R1 과 금칙어·숫자·방향·수집 건수만 본다).
+ */
+export function editWarnings(
+  text: string,
+  allowed: ReadonlySet<string>,
+  position?: ExecGapPosition | null,
+  movement?: ExecGapMovement | null,
+  scope: ExecGuardScope | 'headline' = 'plain',
+  inputText: string = '',
+): EditWarningCode[] {
   const out: EditWarningCode[] = [];
   const sentences = splitSentences(text);
   const list = sentences.length > 0 ? sentences : [text];
-  if (list.some((s) => !endsWithPolite(s))) out.push('ending');
+  if (list.some((s) => isRequestForm(s))) out.push('request');
+  const plain = list.filter((s) => !isRequestForm(s));
+  // 제목(headline)은 명사구라 합니다체·제안형 말끝을 점검하지 않는다(요구·질문형 R1 과 기존 금칙어·숫자 경고는 그대로)
+  if (scope !== 'headline' && plain.some((s) => !endsWithPolite(s) || (scope === 'proposal' ? !endsWithProposal(s) : endsWithProposal(s)))) out.push('ending');
+  if (scope === 'proposal' && plain.some((s) => endsWithProposal(s) && !hasProposalTarget(s, inputText))) out.push('no_target');
   if (findBannedPhraseV3(text)) out.push('banned');
   if (disallowedNumbers(text, allowed).length > 0) out.push('number');
   if (list.some((s) => contradictsPosition(s, position) || contradictsMovement(s, position, movement))) out.push('direction');

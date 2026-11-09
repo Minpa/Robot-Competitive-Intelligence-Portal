@@ -1,7 +1,8 @@
 import type { ExecConclusion, ExecLine } from '@/types/weekly-brief';
 import { EXEC_ACTION_LABELS, EXEC_NO_CONCLUSIONS, EXEC_ROLE_LABELS, editPath } from '@/lib/weekly-brief-exec';
 import { domainLabel } from '@/lib/weekly-brief-format';
-import { Badge, CARD_CLASS, EvidenceChips } from '../report/shared';
+import { Badge, CARD_CLASS } from '../report/shared';
+import { ExecEvidence } from './ExecEvidence';
 import { EditableLine } from './EditableLine';
 
 /** 줄 목록 — change/why/action 의 첫 줄에만 역할 라벨(변화, 의미, 제안)을 붙인다 */
@@ -57,7 +58,7 @@ export function ConclusionsSection({ conclusions }: { conclusions: readonly Exec
               </div>
             </div>
             <ConclusionLines c={c} />
-            <EvidenceChips list={c.evidence} />
+            <ExecEvidence list={c.evidence} />
           </li>
         );
       })}

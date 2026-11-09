@@ -103,7 +103,7 @@ describe('v3 HTML content', () => {
   it('has the executive structure: cover with reading time and no stat cards, six numbered sections', () => {
     expect(out).toContain('읽는 시간 약');
     expect(out).not.toContain('class="stats"');
-    for (const title of ['이번 주 주요 내용', '경쟁사 동향과 우리 위치', '기술 흐름', '사업·공급망 동향', '함께 검토해 주실 사항', '참고 자료']) expect(out).toContain(title);
+    for (const title of ['이번 주 주요 내용', '경쟁사 동향과 우리 위치', '기술 흐름', '사업·공급망 동향', '확인이 필요해 보이는 사항', '참고 자료']) expect(out).toContain(title);
     for (const id of ['sec-conclusions', 'sec-gap', 'sec-tech', 'sec-business', 'sec-questions', 'sec-evidence']) expect(out).toContain(`id="${id}"`);
   });
 
@@ -114,14 +114,14 @@ describe('v3 HTML content', () => {
     expect(out).toContain('경쟁사가 앞서 있음');
     expect(out).toContain('우리 수치 미등록');
     expect(out).toMatch(/<svg class="spark"/);
-    expect(out.match(/이번 주 수집: 영상 \d+건/g)).toHaveLength(1);
+    expect(out.match(/이번 주 ARGOS가 새로 수집한 자료: 영상 \d+건, 뉴스 \d+건, 논문 \d+건/g)).toHaveLength(1);
     // 수집 건수 문구는 부록 맨 끝에만 있고 그 뒤에는 섹션 닫힘과 푸터뿐
-    const idx = out.indexOf('이번 주 수집:');
+    const idx = out.indexOf('이번 주 ARGOS가 새로 수집한 자료:');
     expect(out.slice(idx)).toMatch(/^[^<]*<\/p><\/div><p class="totop">/);
   });
 
   it('uses the report wording and none of the old analyst-tool wording', () => {
-    for (const label of ['검토 제안', '접촉 제안', '차이']) expect(out).toContain(label);
+    for (const label of ['비교·확인', '공식 문의', '차이']) expect(out).toContain(label);
     for (const name of ['full', 'partial', 'sparse', 'empty']) {
       const o = html(name);
       for (const old of ['이번 주 결론', '격차', '리더 판단이 필요한 질문', '근거 자료', '무엇이 바뀌었나', '우리 위치 미등록', '신호', '관측', '판정', '경쟁사 우위', '경쟁사 추격']) expect(o, `${name}:${old}`).not.toContain(old);
@@ -180,5 +180,50 @@ describe('v1 and v2 outputs are byte-identical to the pre-v3 builder (golden)', 
 
   it('the draft flag never changes v1 or v2 output', () => {
     expect(buildWeeklyBriefHtml(makeFullReport() as never, { ...META, draft: true })).toBe(golden('v2-full.html'));
+  });
+});
+
+describe('v3 HTML explanations and tone', () => {
+  const OLD = ['함께 검토해 주실 사항', '검토 제안', '접촉 제안', '결정 필요', '지켜볼 사항'];
+
+  it('has none of the old tone strings or question endings in any sample', () => {
+    for (const name of ['full', 'partial', 'sparse', 'empty']) {
+      const o = html(name);
+      for (const old of OLD) expect(o, `${name}:${old}`).not.toContain(old);
+      expect(o, name).not.toMatch(/까요\?/);
+      expect(o, name).not.toMatch(/hand_dof|torque_density|gap:[a-z]/);
+    }
+  });
+
+  it('full sample: section intros, chip notes, axis explain, compare line, sparkline caption and axis numbers, collection line', () => {
+    const o = html('full');
+    expect(o).toContain('class="intro"');
+    expect(o).toContain('같은 기준으로 나란히 놓은 것입니다');
+    expect(o).toContain('휴머노이드 로봇 제조사들이 관절 액추에이터를 어떻게 조달하고 있는지');
+    expect(o).toContain('조사 대상 휴머노이드 로봇');
+    expect(o).toContain('외부 조달이라는 뜻은 아닙니다');
+    expect(o).toContain('class="axp"');
+    expect(o).toContain('독립적으로 움직일 수 있는 관절 수');
+    expect(o).toContain('class="cmp');
+    expect(o).toMatch(/우리 [^:<]*: [^<]*→/);
+    expect(o).toContain('주간 자료 중 &#39;');
+    expect(o).toMatch(/최저 [\d.]+% · 최고 [\d.]+% · 최근 [\d.]+%/);
+    expect(o).toContain('이 주제는');
+    expect(o).toContain('이번 주 ARGOS가 새로 수집한 자료');
+    expect(o).toContain('확인이 필요해 보이는 사항');
+    expect(o).toMatch(/볼 필요가 있(을 것 같습니다|어 보입니다|겠습니다)/);
+    expect(o).toContain('비교·확인');
+  });
+
+  it('video evidence shows a thumbnail card with eager, no-referrer images; evidence has no grade codes', () => {
+    const o = html('full');
+    expect(o).toContain('class="evv"');
+    const imgs = o.match(/<img\b[^>]*>/gi) ?? [];
+    expect(imgs.length).toBeGreaterThan(0);
+    for (const img of imgs) {
+      expect(img).toContain('loading="eager"');
+      expect(img).toContain('referrerpolicy="no-referrer"');
+    }
+    expect(o).not.toMatch(/\(신뢰도 [A-F]\)/);
   });
 });

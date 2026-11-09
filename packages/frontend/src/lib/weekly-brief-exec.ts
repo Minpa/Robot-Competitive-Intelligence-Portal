@@ -7,11 +7,14 @@
  */
 
 import { REPORT_TOP_ID } from '@/lib/weekly-brief-report';
-import { WEEKLY_WORDING as W, movementLabelKo } from '@/types/weekly-brief-wording';
+import { WEEKLY_WORDING as W, axisExplainKo, movementLabelKo } from '@/types/weekly-brief-wording';
+import { formatKstMonthDay } from '@/lib/weekly-brief-format';
 import type {
   ExecGapRow,
   ExecLineRole,
+  ExecTechSignal,
   GapPosition,
+  WeeklyReportEvidence,
   TechDirection,
   WeeklyBriefDraftListItem,
   WeeklyBriefDraftSummary,
@@ -123,6 +126,8 @@ export interface ExecPlannedSection {
   number: string;
   title: string;
   subtitle: string;
+  /** 섹션 도입 문장 — 숫자·칩이 무엇을 센 것인지 독자가 알 수 있게 헤더 아래 한 줄로 보인다 */
+  intro: string;
   countLabel: string | null;
 }
 
@@ -157,7 +162,7 @@ export function planExecSections(p: WeeklyExecutivePayload): ExecPlannedSection[
   if (isExecEmpty(p)) return [];
   const e = p.evidence;
   const out: Omit<ExecPlannedSection, 'number'>[] = [];
-  const add = (key: ExecSectionUiKey, title: string, subtitle: string, countLabel: string | null) => out.push({ key, id: EXEC_SECTION_IDS[key], title, subtitle, countLabel });
+  const add = (key: ExecSectionUiKey, title: string, subtitle: string, countLabel: string | null) => out.push({ key, id: EXEC_SECTION_IDS[key], title, subtitle, intro: W.sections[key].intro, countLabel });
   const S = W.sections;
   add('conclusions', S.conclusions.title, S.conclusions.subtitle, p.conclusions.length > 0 ? `${p.conclusions.length}개` : null);
   add('gap', S.gap.title, S.gap.subtitle, p.gaps.rows.length > 0 ? `${p.gaps.rows.length}개 항목` : null);
@@ -237,6 +242,57 @@ export function sparklineAlt(label: string, series: readonly number[], isCount: 
   return `${label} 8주 추이: ${vals.map((v) => `${v}${unit}`).join(', ')}`;
 }
 
+/** 스파크라인 캡션 — 무엇의 8주 추이인지 */
+export function sparklineCaption(label: string, isCount: boolean): string {
+  return isCount ? `'${label}' 변경 건수 · 최근 8주` : `주간 자료 중 '${label}' 비율(%) · 최근 8주`;
+}
+
+/** 스파크라인 축 숫자 — 최솟값·최댓값·최근값 */
+export function sparklineAxisText(series: readonly number[], isCount: boolean): string {
+  const vals = series.filter((v) => Number.isFinite(v));
+  if (vals.length === 0) return '';
+  const unit = isCount ? '건' : '%';
+  const r = (n: number) => String(Math.round(n * 10) / 10);
+  return `최저 ${r(Math.min(...vals))}${unit} · 최고 ${r(Math.max(...vals))}${unit} · 최근 ${r(vals[vals.length - 1]!)}${unit}`;
+}
+
+/** 기술 흐름 카드의 "최근 4주 대 그 앞 4주" 한 줄 */
+export function techShareLine(s: Pick<ExecTechSignal, 'kind' | 'recent' | 'prior' | 'relChangePct' | 'label'>): string {
+  if (s.recent === null || s.prior === null) return '';
+  const unit = s.kind === 'procurement' ? '건' : '%';
+  const rel = s.relChangePct !== null ? ` (상대 ${s.relChangePct >= 0 ? '+' : ''}${s.relChangePct}%)` : '';
+  const what = s.kind === 'procurement' ? '변경 건수' : '자료 비율';
+  return `${what}: 최근 4주 ${s.recent}${unit} · 그 앞 4주 ${s.prior}${unit}${rel}`;
+}
+
+/** 기술 흐름 주제 설명 — 서버 explain 이 없는 이전 초안은 일반 문장 */
+export function techExplainText(s: Pick<ExecTechSignal, 'kind' | 'label'> & { explain?: string }): string {
+  if (s.explain) return s.explain;
+  return s.kind === 'procurement' ? '이 주제는 CI(경쟁사 정보) 변경 이력에서 관절 모듈 조달 방식이 외부 조달 쪽으로 바뀐 건수를 뜻합니다.' : `이 주제는 '${s.label}'와 관련된 영상·논문·기사를 뜻합니다.`;
+}
+
+/** 사업 동향 분류 설명 */
+export function businessCategoryExplain(category: string): string {
+  return (W.businessCategories as Record<string, string>)[category] ?? '';
+}
+
+// ───────────────────────── 근거 표시 ─────────────────────────
+
+/** 근거 칩의 출처 문구 — CI 신뢰도 등급 코드(A~F)는 쓰지 않고 D·F 만 "추정치"로 밝힌다 */
+export function evidenceSourceLabel(e: Pick<WeeklyReportEvidence, 'type' | 'label'>): string {
+  const label = e.label ?? '';
+  const m = /^신뢰도\s*([A-F])$/.exec(label.trim());
+  if (m) return m[1] === 'D' || m[1] === 'F' ? '추정치' : '';
+  return label;
+}
+
+/** 근거 보조 줄: 출처(채널) · 월-일 */
+export function evidenceMetaParts(e: Pick<WeeklyReportEvidence, 'type' | 'label' | 'channel' | 'publishedAt'>): string[] {
+  const src = e.type === 'video' && e.channel ? e.channel : evidenceSourceLabel(e);
+  const date = e.publishedAt ? formatKstMonthDay(e.publishedAt) : '';
+  return [src, date].filter(Boolean);
+}
+
 // ───────────────────────── 편집 경로·점검 ─────────────────────────
 
 export const editPath = {
@@ -292,11 +348,13 @@ export function clientEditProblem(text: string, limit: number): string | null {
 }
 
 export const EDIT_WARNING_LABELS: Record<string, string> = {
-  ending: '합니다체가 아닌 문장이 있습니다',
+  ending: '합니다체가 아닌 문장이 있습니다 (제안 줄·확인 사항은 제안형 말끝 ~볼 필요가 있을 것 같습니다 등이 아닌 문장, 그 밖의 줄은 제안형 말끝을 쓴 문장 포함)',
   banned: '금칙어(전망·예상 등)가 있습니다',
   number: '서버가 계산하지 않은 숫자가 있습니다',
   direction: '차이의 방향과 어긋나는 표현이 있습니다',
   collection: '수집 건수 문구가 있습니다',
+  request: '요구·질문 표현입니다. 확인 제안 형태로 바꿔 주세요',
+  no_target: '확인할 대상(이름·수치)이 문장에 없습니다',
 };
 
 // ───────────────────────── 상태 배지·배너 ─────────────────────────
@@ -323,11 +381,11 @@ export function draftBannerModel(summary: Pick<WeeklyBriefDraftSummary, 'pending
 // ───────────────────────── 격차 표시 ─────────────────────────
 
 /** 차이 값 표시 (단위 포함). 서버가 계산한 abs 를 형식만 바꾼다 */
-export function formatGapDiff(row: Pick<ExecGapRow, 'axisKey' | 'unit' | 'diff'>): string {
+export function formatGapDiff(row: Pick<ExecGapRow, 'axisKey' | 'unit' | 'diff'>, withPct = true): string {
   if (!row.diff) return '';
   const abs = row.diff.abs;
   const n = Number.isInteger(abs) ? String(abs) : String(Math.round(abs * 10) / 10);
-  const pct = row.diff.pct === null ? '' : ` (${row.diff.pct}%)`;
+  const pct = row.diff.pct === null || !withPct ? '' : ` (${row.diff.pct}%)`;
   if (row.axisKey === 'price') return `$${abs.toLocaleString('en-US')}${pct}`;
   if (row.axisKey.startsWith('bench_')) return `${n}점${pct}`;
   return `${n}${row.unit ? ` ${row.unit}` : ''}${pct}`;
@@ -339,11 +397,53 @@ export function gapWho(row: Pick<ExecGapRow, 'competitor'>): string {
   return robotName && robotName !== name ? `${name} ${robotName}` : name;
 }
 
-/** 등록·미등록 축 안내 한 줄 (coverage) */
+/** 한글 받침에 따른 주격 조사 (영문·숫자로 끝나면 "가") */
+export function subjectParticle(name: string): string {
+  const last = Array.from(name.trim()).pop() ?? '';
+  const code = last.charCodeAt(0);
+  if (code >= 0xac00 && code <= 0xd7a3) return (code - 0xac00) % 28 === 0 ? '가' : '이';
+  return '가';
+}
+
+/**
+ * 차이 카드의 비교 한 줄 — 제품명·단위·차이·방향 라벨을 한 줄에 쓴다. 축 키·등급 코드는 쓰지 않는다(D·F 값만 "추정치").
+ * 예: "BrainCo Revo 3: 21 DoF · 우리 CLOiD: 12 DoF → BrainCo가 9 DoF 앞서 있음(차이가 더 벌어지는 중)"
+ */
+export function gapCompareLine(row: ExecGapRow): { text: string; missing: boolean } {
+  const est = row.competitorValue.grade === 'D' || row.competitorValue.grade === 'F' ? '(추정치)' : '';
+  const left = `${gapWho(row)}: ${row.competitorValue.display}${est}`;
+  if (row.status !== 'compared' || !row.ourValue || !row.position) {
+    return { text: `${left} · 우리 ${row.axisLabel}: 수치 미등록 → 우리 수치가 등록되면 비교할 수 있습니다`, missing: true };
+  }
+  const right = `우리${row.ourRef ? ` ${row.ourRef}` : ''}: ${row.ourValue.display}`;
+  const diff = formatGapDiff(row, false);
+  const company = row.competitor.name;
+  const lower = row.higherIsBetter === false;
+  const amount = diff ? `${diff} ` : '';
+  let verdict: string;
+  if (row.position === 'parity') verdict = '비슷한 수준';
+  else if (row.position === 'competitor_ahead') verdict = `${company}${subjectParticle(company)} ${amount}${lower ? '더 낮아 ' : ''}앞서 있음`;
+  else verdict = `우리가 ${amount}${lower ? '더 낮아 ' : ''}앞서 있음`;
+  const move = gapMovementBadge(row);
+  return { text: `${left} · ${right} → ${verdict}${move ? `(${move})` : ''}`, missing: false };
+}
+
+/** 차이 카드 축 설명 한 줄 */
+export function gapAxisExplain(row: Pick<ExecGapRow, 'axisKey' | 'axisLabel' | 'unit'>): string | null {
+  return axisExplainKo(row.axisKey, row.axisLabel, row.unit);
+}
+
+/** 차이 카드 제목 줄 사실 문장 — 서버 headline, 이전 초안은 같은 형태로 만든다 */
+export function gapHeadline(row: ExecGapRow): string {
+  if (row.headline) return row.headline;
+  return `이번 주 새로 확인된 ${gapWho(row)}의 ${row.axisLabel} 수치는 ${row.competitorValue.display}입니다.`;
+}
+
+/** 우리 수치 등록·미등록 안내 한 줄 (coverage) */
 export function coverageLine(c: { registered: readonly string[]; missing: readonly string[]; asOf: string | null }): string {
-  const reg = c.registered.length > 0 ? `우리 수치 등록 ${c.registered.length}개 항목(${c.registered.join(', ')})` : '우리 수치가 등록된 항목 없음';
-  const miss = c.missing.length > 0 ? `미등록 ${c.missing.length}개 항목(${c.missing.join(', ')})` : '미등록 항목 없음';
-  return `${reg} · ${miss}${c.asOf ? ` · 기준일 ${c.asOf}` : ''}`;
+  const reg = c.registered.length > 0 ? `ARGOS에 등록된 우리 수치: ${c.registered.join(', ')}` : 'ARGOS에 등록된 우리 수치 없음';
+  const miss = c.missing.length > 0 ? `아직 없는 수치: ${c.missing.join(', ')} (등록하면 비교할 수 있습니다)` : '아직 없는 수치 없음';
+  return `${reg} / ${miss}${c.asOf ? ` · 기준일 ${c.asOf}` : ''}`;
 }
 
 /** 'YYYY-MM-DD' (월) → 일요일 'YYYY-MM-DD' (UTC 산술, 프로세스 TZ 무관) */

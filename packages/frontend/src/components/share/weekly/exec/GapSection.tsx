@@ -1,19 +1,19 @@
 import type { ExecGaps, ExecGapRow } from '@/types/weekly-brief';
 import {
   EXEC_NO_GAPS,
-  EXEC_OURS_MISSING_BADGE,
-  EXEC_OURS_MISSING_NOTE,
   coverageLine,
   editPath,
-  formatGapDiff,
+  gapAxisExplain,
+  gapCompareLine,
+  gapHeadline,
   gapMovementBadge,
   gapPositionBadge,
   gapTone,
-  gapWho,
   type GapTone,
 } from '@/lib/weekly-brief-exec';
-import { CARD_CLASS, EvidenceChips } from '../report/shared';
+import { CARD_CLASS } from '../report/shared';
 import { EditableLine } from './EditableLine';
+import { ExecEvidence } from './ExecEvidence';
 
 const TONE_GLYPH: Record<GapTone, string> = { ahead: '▲', we: '▼', parity: '＝', missing: '?' };
 const TONE_CLASS: Record<GapTone, string> = {
@@ -23,22 +23,16 @@ const TONE_CLASS: Record<GapTone, string> = {
   missing: 'border-dashed border-white/60 bg-poster-card text-poster-fg',
 };
 
-function ValueCell({ label, value, sub, missing }: { label: string; value: string; sub?: string | null; missing?: boolean }) {
-  return (
-    <div className="min-w-0 bg-poster-3 px-3 py-2" data-testid={missing ? 'gap-ours-missing' : undefined}>
-      <div className="text-[12px] text-poster-fg">{label}</div>
-      <div className={`mt-0.5 break-words text-[18px] font-black leading-tight ${missing ? 'text-[15px] font-bold' : ''}`}>{value}</div>
-      {sub && <div className="mt-0.5 break-words text-[12px] text-poster-fg">{sub}</div>}
-    </div>
-  );
-}
-
-/** 차이 행 카드 — 경쟁사값 · 우리값(미등록이면 안내) · 차이 · 방향·변화 배지 · 서술 · 근거. 좁은 화면에서는 세로 배치 */
+/**
+ * 차이 카드 — 한 편의 짧은 글처럼 읽힌다.
+ * (1) 제목 줄 사실 문장 (2) 비교 한 줄(제품명·단위·차이·방향) (3) 축 설명 한 줄 (4) 서술 (5) 근거(영상 썸네일 포함).
+ * 축 키·id·등급 코드는 화면에 쓰지 않는다.
+ */
 export function GapRowCard({ row, index }: { row: ExecGapRow; index: number }) {
   const tone = gapTone(row);
   const move = gapMovementBadge(row);
-  const cv = row.competitorValue;
-  const missing = row.status !== 'compared' || !row.ourValue;
+  const compare = gapCompareLine(row);
+  const explain = gapAxisExplain(row);
   return (
     <li className={`${CARD_CLASS} exec-gap`} data-testid="gap-row" data-tone={tone}>
       <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
@@ -46,8 +40,8 @@ export function GapRowCard({ row, index }: { row: ExecGapRow; index: number }) {
           {index + 1}
         </span>
         <div className="min-w-0 flex-1">
-          <h3 className="m-0 break-words text-[17px] font-extrabold leading-snug">
-            {gapWho(row)} · {row.axisLabel}
+          <h3 className="m-0 break-words text-[17px] font-extrabold leading-snug" data-testid="gap-headline">
+            {gapHeadline(row)}
           </h3>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             <span className={`inline-flex items-center gap-1 border px-2 py-0.5 text-[12.5px] font-bold ${TONE_CLASS[tone]}`} data-testid="gap-position">
@@ -62,15 +56,14 @@ export function GapRowCard({ row, index }: { row: ExecGapRow; index: number }) {
           </div>
         </div>
       </div>
-      <div className="exec-gap-values mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <ValueCell label="경쟁사" value={cv.display} sub={[cv.grade ? `신뢰도 ${cv.grade}` : '', cv.asOf ?? ''].filter(Boolean).join(' · ') || null} />
-        {missing ? (
-          <ValueCell label="우리" value={EXEC_OURS_MISSING_BADGE} sub={EXEC_OURS_MISSING_NOTE} missing />
-        ) : (
-          <ValueCell label={`우리${row.ourRef ? ` (${row.ourRef})` : ''}`} value={row.ourValue!.display} sub={row.ourValue!.asOf} />
-        )}
-        <ValueCell label="차이" value={missing ? '–' : formatGapDiff(row) || '–'} sub={row.prevCompetitorValue !== null ? `직전 경쟁사값 ${row.prevCompetitorValue}` : null} />
-      </div>
+      <p className="m-0 mt-3 break-words bg-poster-3 px-3 py-2 text-[14.5px] font-bold leading-[1.6] text-poster-fg" data-testid={compare.missing ? 'gap-ours-missing' : 'gap-compare'}>
+        {compare.text}
+      </p>
+      {explain && (
+        <p className="m-0 mt-1.5 break-words text-[12.5px] leading-[1.6] text-poster-fg-2" data-testid="gap-axis-explain">
+          {explain}
+        </p>
+      )}
       <div className="mt-3 grid gap-1.5">
         {row.lines.map((l, i) => (
           <p key={i} className="report-para m-0 text-[15px] leading-[1.75] sm:text-[16px]">
@@ -78,7 +71,7 @@ export function GapRowCard({ row, index }: { row: ExecGapRow; index: number }) {
           </p>
         ))}
       </div>
-      <EvidenceChips list={row.evidence} />
+      <ExecEvidence list={row.evidence} />
     </li>
   );
 }

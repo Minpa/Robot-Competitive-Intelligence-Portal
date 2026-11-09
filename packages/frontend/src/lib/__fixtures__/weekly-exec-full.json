@@ -39,7 +39,7 @@
         "rank": 1,
         "kind": "gap_shift",
         "domain": "hand",
-        "headline": "핸드 자유도",
+        "headline": "Atlas Robotics Atlas A1 이번 주 핸드 자유도 수치를 공개했습니다",
         "lines": [
           {
             "role": "change",
@@ -47,15 +47,15 @@
           },
           {
             "role": "detail",
-            "text": "핸드 자유도에서 Atlas Robotics Atlas A1는 22 DoF, 우리는 12 DoF이며 경쟁사가 앞서 있음입니다."
+            "text": "핸드 자유도에서 Atlas Robotics Atlas A1은 22 DoF, 우리는 12 DoF며 비교 결과는 '경쟁사가 앞서 있음'입니다."
           },
           {
             "role": "why",
-            "text": "우리 제품 전략과 직접 맞닿아 있어서 연구소 차원의 검토가 필요한 변화입니다."
+            "text": "우리 제품 전략과 직접 맞닿아 있어서 연구소 차원에서 짚어 둘 변화입니다."
           },
           {
             "role": "action",
-            "text": "관련 사양과 참고 자료를 함께 비교해 볼 만합니다."
+            "text": "Atlas Robotics Atlas A1과 관련해 공개된 사양과 참고 자료를 우리 사양과 함께 비교해 볼 필요가 있을 것 같습니다."
           },
           {
             "role": "detail",
@@ -63,7 +63,7 @@
           },
           {
             "role": "action",
-            "text": "다음 주에도 같은 방향으로 이어지는지 지켜보겠습니다."
+            "text": "Atlas Robotics Atlas A1 관련 자료가 다음 주에도 같은 방향으로 이어지는지 추이를 지켜볼 필요가 있어 보입니다."
           }
         ],
         "actionKind": "evaluate",
@@ -83,7 +83,10 @@
             "id": "a1000000-0000-4000-8000-000000000001",
             "title": "Quasi-direct drive joint teardown 1",
             "url": "https://www.youtube.com/watch?v=V0000000001",
-            "label": "Robot Lab"
+            "label": "Robot Lab",
+            "thumbnail": "https://i.ytimg.com/vi/V0000000001/mqdefault.jpg",
+            "channel": "Robot Lab",
+            "publishedAt": "2026-10-21T03:00:00.000Z"
           }
         ],
         "generatedBy": "ai"
@@ -93,7 +96,7 @@
         "rank": 2,
         "kind": "gap_shift",
         "domain": "production",
-        "headline": "가격",
+        "headline": "Nova Dynamics Nova N2 이번 주 가격 수치를 공개했습니다",
         "lines": [
           {
             "role": "change",
@@ -101,11 +104,11 @@
           },
           {
             "role": "why",
-            "text": "우리 제품 전략과 직접 맞닿아 있어서 연구소 차원의 검토가 필요한 변화입니다."
+            "text": "우리 제품 전략과 직접 맞닿아 있어서 연구소 차원에서 짚어 둘 변화입니다."
           },
           {
             "role": "action",
-            "text": "관련 사양과 참고 자료를 함께 비교해 볼 만합니다."
+            "text": "Nova Dynamics Nova N2와 관련해 공개된 사양과 참고 자료를 우리 사양과 함께 비교해 볼 필요가 있을 것 같습니다."
           },
           {
             "role": "detail",
@@ -113,7 +116,7 @@
           },
           {
             "role": "action",
-            "text": "다음 주에도 같은 방향으로 이어지는지 지켜보겠습니다."
+            "text": "Nova Dynamics Nova N2 관련 자료가 다음 주에도 같은 방향으로 이어지는지 추이를 지켜볼 필요가 있어 보입니다."
           }
         ],
         "actionKind": "evaluate",
@@ -133,7 +136,10 @@
             "id": "a1000000-0000-4000-8000-000000000013",
             "title": "Five-finger hand grasp benchmark 1",
             "url": "https://www.youtube.com/watch?v=V0000000013",
-            "label": "Hand Tech 0"
+            "label": "Hand Tech 0",
+            "thumbnail": "https://i.ytimg.com/vi/V0000000013/mqdefault.jpg",
+            "channel": "Hand Tech 0",
+            "publishedAt": "2026-10-21T03:00:00.000Z"
           }
         ],
         "generatedBy": "ai"
@@ -143,7 +149,7 @@
         "rank": 3,
         "kind": "tech_signal",
         "domain": "actuator",
-        "headline": "관절 모듈 외부 조달 이동",
+        "headline": "관절 모듈 외부 조달 이동 관련 자료 비율이 달라졌습니다",
         "lines": [
           {
             "role": "change",
@@ -155,11 +161,11 @@
           },
           {
             "role": "why",
-            "text": "우리 제품 전략과 직접 맞닿아 있어서 연구소 차원의 검토가 필요한 변화입니다."
+            "text": "우리 제품 전략과 직접 맞닿아 있어서 연구소 차원에서 짚어 둘 변화입니다."
           },
           {
             "role": "action",
-            "text": "관련 사양과 참고 자료를 함께 비교해 볼 만합니다."
+            "text": "관절 모듈 외부 조달 이동과 관련해 공개된 사양과 참고 자료를 우리 사양과 함께 비교해 볼 필요가 있을 것 같습니다."
           },
           {
             "role": "detail",
@@ -167,7 +173,7 @@
           },
           {
             "role": "action",
-            "text": "다음 주에도 같은 방향으로 이어지는지 지켜보겠습니다."
+            "text": "관절 모듈 외부 조달 이동 관련 자료가 다음 주에도 같은 방향으로 이어지는지 추이를 지켜볼 필요가 있어 보입니다."
           }
         ],
         "actionKind": "evaluate",
@@ -188,7 +194,7 @@
         "rank": 4,
         "kind": "tech_signal",
         "domain": "hand",
-        "headline": "촉각·힘 센싱",
+        "headline": "촉각·힘 센싱 관련 자료 비율이 달라졌습니다",
         "lines": [
           {
             "role": "change",
@@ -200,11 +206,11 @@
           },
           {
             "role": "why",
-            "text": "우리 제품 전략과 직접 맞닿아 있어서 연구소 차원의 검토가 필요한 변화입니다."
+            "text": "우리 제품 전략과 직접 맞닿아 있어서 연구소 차원에서 짚어 둘 변화입니다."
           },
           {
             "role": "action",
-            "text": "관련 사양과 참고 자료를 함께 비교해 볼 만합니다."
+            "text": "촉각·힘 센싱과 관련해 공개된 사양과 참고 자료를 우리 사양과 함께 비교해 볼 필요가 있을 것 같습니다."
           },
           {
             "role": "detail",
@@ -212,7 +218,7 @@
           },
           {
             "role": "action",
-            "text": "다음 주에도 같은 방향으로 이어지는지 지켜보겠습니다."
+            "text": "촉각·힘 센싱 관련 자료가 다음 주에도 같은 방향으로 이어지는지 추이를 지켜볼 필요가 있어 보입니다."
           }
         ],
         "actionKind": "evaluate",
@@ -223,7 +229,10 @@
             "id": "ev-s1",
             "title": "Tactile skin for dexterous hands",
             "url": "https://news.example.com/tactile",
-            "label": "IEEE Spectrum"
+            "label": "IEEE Spectrum",
+            "thumbnail": null,
+            "channel": null,
+            "publishedAt": "2026-10-21T03:00:00.000Z"
           }
         ],
         "generatedBy": "ai"
@@ -233,7 +242,7 @@
         "rank": 5,
         "kind": "business_move",
         "domain": "production",
-        "headline": "business_move",
+        "headline": "Nova Dynamics의 움직임이 확인되었습니다",
         "lines": [
           {
             "role": "change",
@@ -245,11 +254,11 @@
           },
           {
             "role": "why",
-            "text": "우리 제품 전략과 직접 맞닿아 있어서 연구소 차원의 검토가 필요한 변화입니다."
+            "text": "우리 제품 전략과 직접 맞닿아 있어서 연구소 차원에서 짚어 둘 변화입니다."
           },
           {
             "role": "action",
-            "text": "관련 사양과 참고 자료를 함께 비교해 볼 만합니다."
+            "text": "Nova Dynamics와 관련해 공개된 사양과 참고 자료를 우리 사양과 함께 비교해 볼 필요가 있을 것 같습니다."
           },
           {
             "role": "detail",
@@ -257,7 +266,7 @@
           },
           {
             "role": "action",
-            "text": "다음 주에도 같은 방향으로 이어지는지 지켜보겠습니다."
+            "text": "Nova Dynamics 관련 자료가 다음 주에도 같은 방향으로 이어지는지 추이를 지켜볼 필요가 있어 보입니다."
           }
         ],
         "actionKind": "evaluate",
@@ -276,8 +285,9 @@
     ],
     "gaps": {
       "summary": [
-        "경쟁사와의 차이는 일부 항목에서 새로 확인되었습니다.",
-        "우리 쪽 수치가 아직 없는 항목은 비교 대상에서 제외했습니다."
+        "이번 주 Atlas Robotics, Nova Dynamics에서 새 수치가 공개되었습니다.",
+        "우리 쪽 수치가 아직 없는 항목은 비교 대상에서 제외했습니다.",
+        "나머지 항목은 같은 기준으로 우리 수치와 나란히 놓았습니다."
       ],
       "rows": [
         {
@@ -318,11 +328,12 @@
             "position": "경쟁사가 앞서 있음",
             "movement": "차이가 더 벌어지는 중"
           },
+          "headline": "이번 주 Atlas Robotics가 핸드 자유도 수치 22 DoF를 새로 공개했습니다.",
           "lines": [
-            "핸드 자유도에서 Atlas Robotics는 22 DoF, 우리는 12 DoF으로 경쟁사가 앞서 있음입니다.",
-            "직전 대비 변화는 차이가 더 벌어지는 중입니다.",
-            "같은 기준끼리 비교한 값이며 수치는 모두 서버 계산입니다.",
-            "우리 쪽 보완 여부를 점검해 볼 만합니다."
+            "핸드 자유도 항목에서 비교하면 경쟁사가 앞서 있음입니다.",
+            "직전 수치와 비교한 변화는 차이가 더 벌어지는 중입니다.",
+            "같은 기준끼리 비교한 값이라 수치를 그대로 나란히 볼 수 있습니다.",
+            "Atlas Robotics의 핸드 자유도가 앞서면 해당 제품의 성능 평가에 직접 영향을 줍니다."
           ],
           "evidence": [
             {
@@ -337,7 +348,10 @@
               "id": "a1000000-0000-4000-8000-000000000001",
               "title": "Quasi-direct drive joint teardown 1",
               "url": "https://www.youtube.com/watch?v=V0000000001",
-              "label": "Robot Lab"
+              "label": "Robot Lab",
+              "thumbnail": "https://i.ytimg.com/vi/V0000000001/mqdefault.jpg",
+              "channel": "Robot Lab",
+              "publishedAt": "2026-10-21T03:00:00.000Z"
             }
           ],
           "generatedBy": "ai"
@@ -380,10 +394,12 @@
             "position": "경쟁사가 앞서 있음",
             "movement": "차이가 더 벌어지는 중"
           },
+          "headline": "이번 주 Nova Dynamics가 가격 수치 $60,000을 새로 공개했습니다.",
           "lines": [
-            "직전 대비 변화는 차이가 더 벌어지는 중입니다.",
-            "같은 기준끼리 비교한 값이며 수치는 모두 서버 계산입니다.",
-            "우리 쪽 보완 여부를 점검해 볼 만합니다."
+            "가격 항목에서 비교하면 경쟁사가 앞서 있음입니다.",
+            "직전 수치와 비교한 변화는 차이가 더 벌어지는 중입니다.",
+            "같은 기준끼리 비교한 값이라 수치를 그대로 나란히 볼 수 있습니다.",
+            "Nova Dynamics의 가격이 앞서면 해당 제품의 성능 평가에 직접 영향을 줍니다."
           ],
           "evidence": [
             {
@@ -398,7 +414,10 @@
               "id": "a1000000-0000-4000-8000-000000000013",
               "title": "Five-finger hand grasp benchmark 1",
               "url": "https://www.youtube.com/watch?v=V0000000013",
-              "label": "Hand Tech 0"
+              "label": "Hand Tech 0",
+              "thumbnail": "https://i.ytimg.com/vi/V0000000013/mqdefault.jpg",
+              "channel": "Hand Tech 0",
+              "publishedAt": "2026-10-21T03:00:00.000Z"
             }
           ],
           "generatedBy": "ai"
@@ -441,11 +460,12 @@
             "position": "경쟁사가 앞서 있음",
             "movement": "이번 주 처음 확인"
           },
+          "headline": "이번 주 Atlas Robotics가 전신 자유도 수치 40 DoF를 새로 공개했습니다.",
           "lines": [
-            "전신 자유도에서 Atlas Robotics는 40 DoF, 우리는 30 DoF으로 경쟁사가 앞서 있음입니다.",
-            "직전 대비 변화는 이번 주 처음 확인입니다.",
-            "같은 기준끼리 비교한 값이며 수치는 모두 서버 계산입니다.",
-            "우리 쪽 보완 여부를 점검해 볼 만합니다."
+            "전신 자유도 항목에서 비교하면 경쟁사가 앞서 있음입니다.",
+            "직전 수치와 비교한 변화는 이번 주 처음 확인입니다.",
+            "같은 기준끼리 비교한 값이라 수치를 그대로 나란히 볼 수 있습니다.",
+            "Atlas Robotics의 전신 자유도가 앞서면 해당 제품의 성능 평가에 직접 영향을 줍니다."
           ],
           "evidence": [
             {
@@ -453,14 +473,20 @@
               "id": "a1000000-0000-4000-8000-000000000001",
               "title": "Quasi-direct drive joint teardown 1",
               "url": "https://www.youtube.com/watch?v=V0000000001",
-              "label": "Robot Lab"
+              "label": "Robot Lab",
+              "thumbnail": "https://i.ytimg.com/vi/V0000000001/mqdefault.jpg",
+              "channel": "Robot Lab",
+              "publishedAt": "2026-10-21T03:00:00.000Z"
             },
             {
               "type": "video",
               "id": "a1000000-0000-4000-8000-000000000002",
               "title": "Quasi-direct drive joint teardown 2",
               "url": "https://www.youtube.com/watch?v=V0000000002",
-              "label": "Robot Lab"
+              "label": "Robot Lab",
+              "thumbnail": "https://i.ytimg.com/vi/V0000000002/mqdefault.jpg",
+              "channel": "Robot Lab",
+              "publishedAt": "2026-10-21T03:00:00.000Z"
             }
           ],
           "generatedBy": "ai"
@@ -503,11 +529,12 @@
             "position": "경쟁사가 앞서 있음",
             "movement": "이번 주 처음 확인"
           },
+          "headline": "이번 주 Tesla가 손재주(내부 평가 점수) 수치 8점을 새로 공개했습니다.",
           "lines": [
-            "손재주(내부 평가 점수)에서 Tesla는 8점, 우리는 6점으로 경쟁사가 앞서 있음입니다.",
-            "직전 대비 변화는 이번 주 처음 확인입니다.",
-            "같은 기준끼리 비교한 값이며 수치는 모두 서버 계산입니다.",
-            "우리 쪽 보완 여부를 점검해 볼 만합니다."
+            "손재주(내부 평가 점수) 항목에서 비교하면 경쟁사가 앞서 있음입니다.",
+            "직전 수치와 비교한 변화는 이번 주 처음 확인입니다.",
+            "같은 기준끼리 비교한 값이라 수치를 그대로 나란히 볼 수 있습니다.",
+            "Tesla의 손재주(내부 평가 점수)가 앞서면 해당 제품의 성능 평가에 직접 영향을 줍니다."
           ],
           "evidence": [
             {
@@ -549,6 +576,7 @@
             "position": null,
             "movement": null
           },
+          "headline": "이번 주 새로 확인된 Shadow Robot Shadow Hand의 핸드 그립력 수치는 100 N입니다.",
           "lines": [
             "Shadow Robot의 핸드 그립력은 100 N로 확인됩니다.",
             "우리 쪽 수치는 아직 등록되지 않았습니다."
@@ -617,9 +645,9 @@
           "prior": 8,
           "relChangePct": 112.5,
           "lines": [
-            "VLA의 최근 4주 점유율은 17%로 이전 4주 8%와 비교해 상승 방향입니다.",
+            "VLA의 최근 4주 점유율은 17%로 이전 4주 8%과 비교해 상승 방향입니다.",
             "한 주의 변동이 아니라 여러 주에 걸쳐 이어진 흐름입니다.",
-            "연구 방향을 정할 때 참고할 만한 흐름입니다."
+            "여러 주에 걸쳐 같은 방향이라 일시적 변동과는 구분됩니다."
           ],
           "evidence": [
             {
@@ -627,10 +655,14 @@
               "id": "ev-s3",
               "title": "VLA policy rollout on a tabletop 1",
               "url": "https://www.youtube.com/watch?v=VXXXXXXXXXX",
-              "label": "Embodied AI 0"
+              "label": "Embodied AI 0",
+              "thumbnail": "https://i.ytimg.com/vi/VXXXXXXXXXX/mqdefault.jpg",
+              "channel": "Embodied AI 0",
+              "publishedAt": "2026-10-21T03:00:00.000Z"
             }
           ],
-          "generatedBy": "ai"
+          "generatedBy": "ai",
+          "explain": "이 주제는 'VLA' 키워드가 붙은 영상·논문·기사를 뜻합니다."
         },
         {
           "id": "subtopic:hand:tactile_force",
@@ -652,9 +684,9 @@
           "prior": 10,
           "relChangePct": 80,
           "lines": [
-            "촉각·힘 센싱의 최근 4주 점유율은 18%로 이전 4주 10%와 비교해 상승 방향입니다.",
+            "촉각·힘 센싱의 최근 4주 점유율은 18%로 이전 4주 10%과 비교해 상승 방향입니다.",
             "한 주의 변동이 아니라 여러 주에 걸쳐 이어진 흐름입니다.",
-            "연구 방향을 정할 때 참고할 만한 흐름입니다."
+            "여러 주에 걸쳐 같은 방향이라 일시적 변동과는 구분됩니다."
           ],
           "evidence": [
             {
@@ -662,10 +694,14 @@
               "id": "ev-s1",
               "title": "Tactile skin for dexterous hands",
               "url": "https://news.example.com/tactile",
-              "label": "IEEE Spectrum"
+              "label": "IEEE Spectrum",
+              "thumbnail": null,
+              "channel": null,
+              "publishedAt": "2026-10-21T03:00:00.000Z"
             }
           ],
-          "generatedBy": "ai"
+          "generatedBy": "ai",
+          "explain": "이 주제는 촉각 센서, 전자피부, 비전 기반 촉각, 힘·토크·접촉·미끄러짐 감지에 관한 자료를 뜻합니다."
         },
         {
           "id": "theme:mass_price",
@@ -687,9 +723,9 @@
           "prior": 20,
           "relChangePct": -40,
           "lines": [
-            "양산·가격 하락의 최근 4주 점유율은 12%로 이전 4주 20%와 비교해 하락 방향입니다.",
+            "양산·가격 하락의 최근 4주 점유율은 12%로 이전 4주 20%과 비교해 하락 방향입니다.",
             "한 주의 변동이 아니라 여러 주에 걸쳐 이어진 흐름입니다.",
-            "연구 방향을 정할 때 참고할 만한 흐름입니다."
+            "여러 주에 걸쳐 같은 방향이라 일시적 변동과는 구분됩니다."
           ],
           "evidence": [
             {
@@ -697,10 +733,14 @@
               "id": "ev-s2",
               "title": "Humanoid mass production ramp announced 1",
               "url": "https://news.example.com/mass",
-              "label": "Reuters"
+              "label": "Reuters",
+              "thumbnail": null,
+              "channel": null,
+              "publishedAt": "2026-10-21T03:00:00.000Z"
             }
           ],
-          "generatedBy": "ai"
+          "generatedBy": "ai",
+          "explain": "이 주제는 로봇의 대량 생산과 가격 인하에 관한 자료를 뜻합니다."
         },
         {
           "id": "procurement:ci_history",
@@ -722,9 +762,9 @@
           "prior": 1,
           "relChangePct": null,
           "lines": [
-            "관절 모듈 외부 조달 이동의 최근 4주 점유율은 7%로 이전 4주 1%와 비교해 상승 방향입니다.",
+            "관절 모듈 외부 조달 이동의 변경 건수는 최근 4주 7건으로 이전 4주 1건과 비교해 상승 방향입니다.",
             "한 주의 변동이 아니라 여러 주에 걸쳐 이어진 흐름입니다.",
-            "연구 방향을 정할 때 참고할 만한 흐름입니다."
+            "여러 주에 걸쳐 같은 방향이라 일시적 변동과는 구분됩니다."
           ],
           "evidence": [
             {
@@ -735,7 +775,8 @@
               "label": "신뢰도 B"
             }
           ],
-          "generatedBy": "ai"
+          "generatedBy": "ai",
+          "explain": "이 주제는 CI(경쟁사 정보) 변경 이력에서 관절 모듈 조달 방식이 외부 조달 쪽으로 바뀐 건수를 뜻합니다."
         }
       ],
       "procurement": {
@@ -746,34 +787,34 @@
     "business": {
       "picture": [
         {
-          "label": "조달 태세 분포",
-          "value": "자체 6 · 외부 4 · 미확인 2",
-          "note": "판매 중 로봇 12개 기준"
+          "label": "자체 조달 로봇",
+          "value": "6기",
+          "note": "조사 대상 휴머노이드 로봇 12기 중 관절 액추에이터를 제조사가 직접 설계·생산하는 로봇 수입니다."
         },
         {
           "label": "외부 조달 로봇",
-          "value": "4개",
-          "note": "부분 외부 조달 1개 포함"
+          "value": "4기",
+          "note": "조사 대상 로봇 12기 중 완성된 관절 모듈을 외부 공급사에서 사서 쓰는 로봇 수입니다. 일부만 외부에서 사는 1기를 포함합니다."
         },
         {
-          "label": "자체 생산·외부 판매",
-          "value": "1개",
-          "note": null
+          "label": "조달 방식 미확인",
+          "value": "2기",
+          "note": "조사 대상 로봇 12기 중 공개 자료로는 자체인지 외부인지 확인되지 않은 로봇 수입니다. 외부 조달이라는 뜻은 아닙니다."
+        },
+        {
+          "label": "자체 생산·외판",
+          "value": "1기",
+          "note": "직접 만든 액추에이터를 다른 회사에도 파는 제조사의 로봇 수입니다."
         },
         {
           "label": "공개 가격 중앙값",
           "value": "$80,000",
-          "note": "가격 공개 로봇 2개 기준"
+          "note": "가격이 공개된 휴머노이드 2기의 공개 가격 중앙값(USD)입니다."
         },
         {
           "label": "외부 채택 사례",
           "value": "2건",
-          "note": "현재 등록 현황 기준"
-        },
-        {
-          "label": "시장 세그먼트 등록 공급사",
-          "value": "1곳",
-          "note": "현재 등록 현황 기준"
+          "note": "로봇 제조사가 외부 공급사의 액추에이터를 채택한 것으로 확인된 사례 수입니다."
         }
       ],
       "moves": [
@@ -786,12 +827,12 @@
             {
               "label": "공개 가격",
               "value": "$60,000",
-              "note": "Nova N2 · 신뢰도 B"
+              "note": "Nova N2의 공개 가격(가격 범위의 중간값, USD)입니다."
             }
           ],
           "lines": [
-            "Nova Dynamics의 pricing 관련 움직임이 참고 자료에서 확인됩니다.",
-            "공급망 관점에서 지켜볼 만합니다.",
+            "Nova Dynamics의 가격 관련 움직임이 참고 자료에서 확인됩니다.",
+            "공급망에서는 누가 부품을 공급하는지가 이 소식의 핵심입니다.",
             "등록된 사실 칩은 현재 등록 현황 기준입니다."
           ],
           "evidence": [
@@ -812,8 +853,8 @@
           "vendor": null,
           "facts": [],
           "lines": [
-            "Orion Systems, Inc.의 mass_production 관련 움직임이 참고 자료에서 확인됩니다.",
-            "공급망 관점에서 지켜볼 만합니다.",
+            "Orion Systems, Inc.의 양산 관련 움직임이 참고 자료에서 확인됩니다.",
+            "공급망에서는 누가 부품을 공급하는지가 이 소식의 핵심입니다.",
             "등록된 사실 칩은 현재 등록 현황 기준입니다."
           ],
           "evidence": [
@@ -822,21 +863,30 @@
               "id": "a1000000-0000-4000-8000-000000000066",
               "title": "Humanoid mass production ramp announced 1",
               "url": "https://news.example.com/TechCrunch/00000066",
-              "label": "TechCrunch"
+              "label": "TechCrunch",
+              "thumbnail": null,
+              "channel": null,
+              "publishedAt": "2026-10-20T05:00:00.000Z"
             },
             {
               "type": "article",
               "id": "a1000000-0000-4000-8000-000000000067",
               "title": "Humanoid mass production ramp announced 2",
               "url": "https://news.example.com/SCMP/00000067",
-              "label": "SCMP"
+              "label": "SCMP",
+              "thumbnail": null,
+              "channel": null,
+              "publishedAt": "2026-10-20T05:00:00.000Z"
             },
             {
               "type": "article",
               "id": "a1000000-0000-4000-8000-000000000068",
               "title": "Humanoid mass production ramp announced 3",
               "url": "https://news.example.com/Nikkei/00000068",
-              "label": "Nikkei"
+              "label": "Nikkei",
+              "thumbnail": null,
+              "channel": null,
+              "publishedAt": "2026-10-20T05:00:00.000Z"
             }
           ],
           "generatedBy": "ai"
@@ -848,10 +898,10 @@
       {
         "id": "q1",
         "kind": "evaluate",
-        "text": "이 변화를 직접 평가해 볼까요?",
+        "text": "Atlas Robotics Atlas A1의 공개 사양과 참고 자료를 우리 사양과 직접 비교해 볼 필요가 있을 것 같습니다.",
         "rationale": [
           "참고 자료에서 같은 방향의 변화가 확인됩니다.",
-          "판단을 미루면 비교 기준이 뒤처질 수 있습니다."
+          "공개된 사양은 확인되지만 측정 조건은 아직 알 수 없습니다."
         ],
         "conclusionId": "c:atlas-robotics-hand_dof",
         "evidence": [
@@ -868,10 +918,10 @@
       {
         "id": "q2",
         "kind": "contact",
-        "text": "해당 업체와 접촉해 볼까요?",
+        "text": "Nova Dynamics Nova N2 제조사의 공개 자료와 공식 채널에서 사양 근거를 확인해 볼 필요가 있겠습니다.",
         "rationale": [
           "참고 자료에서 같은 방향의 변화가 확인됩니다.",
-          "판단을 미루면 비교 기준이 뒤처질 수 있습니다."
+          "공개된 사양은 확인되지만 측정 조건은 아직 알 수 없습니다."
         ],
         "conclusionId": "c:nova-dynamics-price",
         "evidence": [
@@ -888,10 +938,10 @@
       {
         "id": "q3",
         "kind": "decide",
-        "text": "다음 회의에서 방향을 정해 볼까요?",
+        "text": "관절 모듈 외부 조달 이동 관련 자료가 다음 주에도 이어지는지 추이를 지켜볼 필요가 있어 보입니다.",
         "rationale": [
           "참고 자료에서 같은 방향의 변화가 확인됩니다.",
-          "판단을 미루면 비교 기준이 뒤처질 수 있습니다."
+          "공개된 사양은 확인되지만 측정 조건은 아직 알 수 없습니다."
         ],
         "conclusionId": "c:tech-procurement-ci-history",
         "evidence": [
@@ -1202,7 +1252,7 @@
           "summaryLine": "전시회 참관객이 늘었다"
         }
       ],
-      "collectionLine": "이번 주 수집: 영상 42건 · 뉴스 57건 · 논문 17건 (지난주 대비 영상 +61.5%, 뉴스 +128%, 논문 +112.5%)"
+      "collectionLine": "이번 주 ARGOS가 새로 수집한 자료: 영상 42건, 뉴스 57건, 논문 17건 (지난주 수집량 대비 영상 +61.5%, 뉴스 +128%, 논문 +112.5%)"
     },
     "meta": {
       "aiUsed": true,

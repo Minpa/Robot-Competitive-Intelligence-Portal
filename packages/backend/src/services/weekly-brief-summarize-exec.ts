@@ -23,7 +23,7 @@ import {
 } from './anthropic-models.js';
 import { aiUsageService, estimateCost, resolveClaudeMonthlyLimitUsd, type AIUsageLogEntry } from './ai-usage.service.js';
 import { formatLogLine } from './ops-log.util.js';
-import { WEEKLY_WORDING, allMovementLabels } from '../types/weekly-brief-wording.js';
+import { WEEKLY_WORDING, allMovementLabels, axisExplainKo } from '../types/weekly-brief-wording.js';
 import { isAnthropicConfigured, isWeeklyBriefAiEnabled } from './weekly-brief-summarize.js';
 import {
   PROMPT_LADDER,
@@ -38,6 +38,8 @@ import {
   resolveRunBudgetUsd,
 } from './weekly-brief-summarize-report.js';
 import type { ExecAiCall, ExecAiInput, ExecPlan } from './weekly-brief-compose-exec.js';
+import { techExplain } from './weekly-brief-metric-defs.js';
+import { BUSINESS_CATEGORY_LABEL } from './weekly-brief-compose-exec.js';
 
 export { isAnthropicConfigured, isWeeklyBriefAiEnabled };
 
@@ -118,7 +120,8 @@ const altList = W.jargonAlternatives.map((x) => `"${x}"`).join(' ');
 
 const COMMON_RULES = [
   '규칙:',
-  '- 말투는 합니다체(~입니다, ~합니다, ~까요?)로 쓴다. ~됨, ~함, ~임 식 보고서체와 평어체(~했다)를 쓰지 않는다.',
+  '- 말투는 합니다체(~입니다, ~합니다)로 쓴다. ~됨, ~함, ~임 식 보고서체와 평어체(~했다)를 쓰지 않는다. 물음표로 끝나는 질문문과 "~해 주시기 바랍니다", "~요청드립니다", "~결정해 주세요", "~해야 합니다" 같은 요구문을 쓰지 않는다.',
+  '- 독자는 ARGOS를 모른다. 제품명, 비교 항목(축) 이름, 단위를 문장에 풀어 쓰고, 숫자를 쓸 때는 그 숫자가 무엇을 센 것인지(대상·범위·단위)를 같은 문장에 쓴다. 숫자 두 개를 비교할 때는 누구의 어느 수치인지 밝힌다.',
   '- 입력에 있는 사실값만 서술한다. 추측, 전망, 평가, 과장 표현과 "반드시" "확실히" "틀림없이"를 쓰지 않는다.',
   '- 수집 건수, 영상이나 기사가 몇 건인지, 수집이 늘었는지 같은 내용을 근거로 쓰지 않는다.',
   '- 숫자는 입력에 있는 것만 쓴다. 새 숫자를 계산해서 만들지 않는다. 신뢰도 D·F 값은 추정치임을 밝힌다.',
@@ -134,26 +137,36 @@ const COMMON_RULES = [
 
 export const EXEC_SYSTEM_PROMPTS: Record<ExecAiCall, string> = {
   A: [
-    '너는 연구소장에게 브리핑하는 전략 분석가다. [호출 A: 결론·질문] 입력 JSON 의 candidates 각각에 대해 결론을 쓰고, 리더가 판단할 질문을 쓴다.',
+    '너는 연구소장을 보좌하는 참모다. 결정을 대신 내리거나 누군가에게 요구하지 않고, 이번 주 자료에서 무엇을 확인해 볼 필요가 있는지만 근거와 함께 알린다. [호출 A: 결론·확인 사항] 입력 JSON 의 candidates 각각에 대해 주요 내용을 쓰고, 확인이 필요해 보이는 사항을 쓴다.',
     ...COMMON_RULES,
     '- conclusions: candidateId 는 입력 candidates 의 id(c1 …). headline 은 50자 이하. lines 는 3~6문장이며 role 은 change(변화), why(우리에게 주는 의미), action(제안: 무엇을 해 볼지 또는 지켜볼지)을 각각 1개 이상 포함하고 필요하면 detail(참고)을 더한다.',
-    '- 제목(headline) 규칙: 분석 용어를 나열하지 말고 사실을 자연스럽게 전하는 한 문장 또는 명사구로 쓴다. 예: "BrainCo가 21자유도 핸드 Revo 3를 공개했습니다" 또는 "BrainCo, 21자유도 핸드 Revo 3 공개".',
-    '- action 문장은 "~해 볼 만합니다", "~을 확인하겠습니다" 수준의 권고이며 단정이나 일정 약속을 쓰지 않는다. actionKind 는 evaluate, contact, watch, decide, none 중 하나. refs 는 해당 후보 evidence 의 ref(e1 …) 1개 이상.',
-    '- questions: 2~4개. text 는 "~까요?" 로 끝나는 1문장, kind 는 evaluate, contact, decide, watch 중 하나. rationale 은 1~2문장. conclusionId 는 관련 후보 id 또는 null. refs 에 근거 ref(e1 …)를 1~3개 넣는다. 근거가 없으면 그 질문을 쓰지 않는다.',
+    '- 제목(headline)은 "누가 무엇을 했습니다" 형태의 사실 문장 하나로 쓴다. 질문, 제안, 분석 용어를 쓰지 않는다. 예: "BrainCo가 21자유도 핸드 Revo 3를 공개했습니다".',
+    '- action 줄은 "무엇을 어떻게 확인해 볼 필요가 있는지"를 한 문장으로 쓴다. 비교하거나 확인할 대상(제품·부품·사양 항목·수치 이름)을 입력에 있는 말로 반드시 넣는다. 문장은 "~해 볼 필요가 있을 것 같습니다", "~살펴볼 필요가 있어 보입니다", "~비교해 볼 필요가 있겠습니다" 중 하나로 끝낸다. 대상 없이 "비교해 볼 필요가 있을 것 같습니다"만 쓰지 않는다. 구매·도입·승인 같은 결정을 요구하지 않는다. 주체를 쓸 때는 "핸드 개발팀"처럼 일반 명칭만 쓴다. actionKind 는 evaluate(사양·성능을 비교·확인), contact(제조사 공개 자료나 공식 채널로 확인), watch(다음 주 이후 추이 확인), none 중 하나로 쓰고 decide 는 쓰지 않는다. change·why·detail 줄에는 제안 어미를 쓰지 않고 사실만 쓴다. refs 는 해당 후보 evidence 의 ref(e1 …) 1개 이상.',
+    '- questions: 2~4개. 질문이 아니라 서술이다. text 는 "무엇을 어떻게 확인해 볼 필요가 있는지"를 담은 1문장이며 위 세 가지 제안형 어미 중 하나로 끝낸다. 확인할 대상(제품·사양 항목·수치)을 구체적으로 넣고, 방법(공개 사양 비교, 샘플 확보, 공식 자료 확인, 다음 주 추이 확인 등)을 함께 쓴다. rationale 은 1~2문장이며 왜 확인이 필요한지, 즉 현재 알려진 것과 아직 알 수 없는 것을 합니다체 사실 문장으로 쓴다. rationale 에는 제안 어미를 쓰지 않는다. kind 는 evaluate, contact, watch 중 하나. conclusionId 는 관련 후보 id 또는 null. refs 에 근거 ref(e1 …)를 1~3개 넣는다. 근거가 없으면 그 항목을 쓰지 않는다.',
+    '- 입력 facts 의 meaning(주제 설명)과 axisNote(비교 항목 설명)가 있으면 그 뜻에 맞게 쓰고, 숫자를 쓸 때는 무엇의 수치인지 같은 문장에 쓴다.',
+    '예시(형식만 참고한다. 예시의 이름·숫자는 입력에 없으면 쓰지 않는다):',
+    '- headline: "BrainCo가 21자유도 핸드 Revo 3를 공개했습니다"',
+    '- action 줄: "Revo 3의 21자유도 손가락 구성과 구동 방식을 핸드 개발팀이 보유한 공개 사양과 비교해 볼 필요가 있겠습니다."',
+    '- 확인 사항 text: "Revo 3의 파지력과 반복 내구성 수치가 제조사 공개 자료에 있는지 확인해 볼 필요가 있을 것 같습니다."',
+    '- 확인 사항 rationale: ["21자유도라는 사양은 공개되었지만 파지력과 내구성 같은 성능 수치는 확인되지 않았습니다.", "시연 영상만으로는 실제 성능을 비교하기 어렵습니다."]',
+    '- 나쁜 예(쓰지 않는다): "Revo 3 제조사에 문의해 볼까요?", "Revo 3 도입을 결정해 주시기 바랍니다.", "비교해 볼 필요가 있을 것 같습니다."(대상 없음)',
     '출력 형식: {"conclusions":[{"candidateId":"c1","headline":"","lines":[{"role":"change","text":""}],"actionKind":"evaluate","refs":["e1"]}],"questions":[{"text":"","kind":"evaluate","rationale":[""],"conclusionId":"c1","refs":["e1"]}]}',
   ].join('\n'),
   B: [
     '너는 경쟁사 동향 서술 작성기다. [호출 B: 경쟁사 동향] 입력 JSON 의 gaps 각각에 대해 경쟁사와 우리의 차이를 설명하고 전체 요약을 쓴다.',
     ...COMMON_RULES,
-    '- rows: id 는 입력 gaps 의 id(g1 …). status 가 compared 이면 lines 2~4문장(경쟁사값, 우리값, 차이, position, movement 를 입력 그대로). status 가 ours_missing 이면 lines 1~2문장이며 "우리 쪽 수치는 아직 등록되지 않았습니다"라는 사실을 밝히고 비교하지 않는다.',
-    '- summary: 0~3문장, 각 220자 이하. 차이 전체의 요점을 쓴다.',
-    '출력 형식: {"summary":[""],"rows":[{"id":"g1","lines":[""]}]}',
+    '- rows: id 는 입력 gaps 의 id(g1 …). headline 은 "누가 무엇을 새로 공개했습니다/확인되었습니다" 형태의 사실 문장 1개(회사·제품·비교 항목 이름 포함, 100자 이하). status 가 compared 이면 lines 2~4문장: 이 비교 항목(axisNote)이 왜 중요한지와 이 차이가 실제로 무엇을 뜻하는지를 제품명을 밝혀 쓴다(경쟁사값, 우리값, 차이, position, movement 는 입력 그대로). status 가 ours_missing 이면 lines 1~2문장이며 "우리 쪽 수치는 아직 등록되지 않았습니다"라는 사실을 밝히고 비교하지 않는다.',
+    '- 카드에는 비교 줄(제품별 수치·차이·방향)이 이미 보이므로 lines 에서 그 숫자를 다시 나열하지 않는다. 그 차이가 실제로 무엇을 뜻하는지(성능·비용·설계 선택)를 쓴다.',
+    '- 독자는 ARGOS를 모른다. 제품명·비교 항목 이름·단위를 문장에 쓰고, 숫자 두 개를 비교할 때 누가 어느 쪽인지 밝힌다. 영문 id, 등급 코드(A~F), 내부 키는 쓰지 않는다.',
+    '- summary: 반드시 2~3문장, 각 220자 이하. 이번 주 어떤 회사가 무엇을 새로 공개·갱신했는지, 그리고 우리와 비교해 전체적으로 어떤 상황인지(경쟁사가 앞선 항목, 비슷한 항목, 우리 수치가 없어 비교하지 못한 항목)를 쓴다.',
+    '예시: "BrainCo와 Unitree가 이번 주 핸드 자유도와 토크밀도 수치를 새로 공개했습니다. ARGOS에 등록된 우리 수치와 비교한 2개 항목 중 핸드 자유도는 BrainCo가 9 DoF 앞서 있고, 토크밀도는 비슷한 수준입니다."',
+    '출력 형식: {"summary":[""],"rows":[{"id":"g1","headline":"","lines":[""]}]}',
   ].join('\n'),
   C: [
     '너는 기술 흐름·사업 동향 서술 작성기다. [호출 C: 기술·사업] 입력 JSON 의 signals 와 moves 각각에 대해 서술한다.',
     ...COMMON_RULES,
-    '- signals: id 는 t1 …, lines 2~4문장. 최근 4주와 이전 4주의 점유율(또는 건수) 변화를 입력 값으로 설명하고 우리에게 의미하는 바를 한 문장 덧붙인다.',
-    '- moves: id 는 b1 …, lines 2~4문장. facts 의 사실만 인용한다.',
+    '- signals: id 는 t1 …, lines 2~4문장. meaning 이 뜻하는 주제임을 밝히며 최근 4주와 이전 4주의 점유율(또는 건수) 변화를 입력 값으로 설명하고 우리에게 의미하는 바를 한 문장 덧붙인다. 점유율은 "같은 기간 수집한 자료 중 이 주제의 비율"이라는 뜻이다.',
+    '- moves: id 는 b1 …, lines 2~4문장. facts 의 사실만 인용하고, 숫자는 그 facts 의 note 가 설명하는 대상(예: 조사 대상 로봇 N기 중 자체 조달 N기)과 함께 쓴다. picture 는 현재 등록 현황의 정의 모음이므로 숫자를 인용할 때 note 의 뜻을 따른다.',
     '출력 형식: {"signals":[{"id":"t1","lines":[""]}],"moves":[{"id":"b1","lines":[""]}]}',
   ].join('\n'),
   D: [
@@ -202,6 +215,8 @@ function gapPacket(g: ExecPlan['gaps']['rows'][number]): Record<string, unknown>
     ...(d.competitor.robotName ? { robot: promptText(d.competitor.robotName, 60) } : {}),
     axis: d.axisLabel,
     competitorValue: d.competitorValue.display,
+    ...(d.ourRef && d.ourValue ? { ourProduct: d.ourRef } : {}),
+    axisNote: axisExplainKo(d.axisKey, d.axisLabel, d.unit),
     ourValue: d.ourValue ? d.ourValue.display : W.oursMissing.badge,
     ...(d.diff ? { diff: `${d.diff.abs} (${d.diff.pct}%)` } : {}),
     position: d.labelKo.position,
@@ -249,6 +264,7 @@ function renderC(plan: ExecPlan, lad: Ladder, drop: number): Rendered {
       id: t.ref,
       kind: t.draft.kind,
       label: promptText(t.draft.label, 40),
+      meaning: promptText(techExplain(t.draft), lad.line),
       direction: t.draft.direction === 'rising' ? '상승' : '하락',
       series: t.draft.series,
       recent4w: t.draft.recent,
@@ -258,13 +274,14 @@ function renderC(plan: ExecPlan, lad: Ladder, drop: number): Rendered {
     })),
     moves: plan.business.moves.slice(0, movesKeep).map((b) => ({
       id: b.ref,
-      category: b.category,
+      category: BUSINESS_CATEGORY_LABEL[b.category],
       company: promptText(b.company, 60),
       ...(b.vendor ? { vendor: promptText(b.vendor, 40) } : {}),
       facts: b.facts.map((f) => ({ label: f.label, value: f.value, ...(f.note ? { note: promptText(f.note, lad.line) } : {}) })),
       fact: promptText(b.fact, lad.line * 2),
       evidence: evPackets(plan, b.evidence, lad.items),
     })),
+    picture: plan.business.picture.map((c) => ({ label: c.label, value: c.value, ...(c.note ? { note: promptText(c.note, lad.line) } : {}) })),
     asOf: plan.business.asOf,
   });
   return { user, packets: signalsKeep + movesKeep };

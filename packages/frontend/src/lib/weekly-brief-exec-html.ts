@@ -44,28 +44,33 @@ import {
   EXEC_NO_GAPS,
   EXEC_NO_PAPERS,
   EXEC_NO_SIGNALS,
-  EXEC_OURS_MISSING_BADGE,
-  EXEC_OURS_MISSING_NOTE,
   EXEC_PARTIAL_NOTICE,
   EXEC_QUESTION_KIND_LABELS,
   EXEC_ROLE_LABELS,
   EXEC_TOC_ID,
   EXEC_TOP_ID,
   buildExecToc,
+  businessCategoryExplain,
   coverageLine,
   directionGlyph,
   directionLabel,
   estimateExecReadingMinutes,
   formatExecReadingTime,
-  formatGapDiff,
+  evidenceMetaParts,
+  gapAxisExplain,
+  gapCompareLine,
+  gapHeadline,
   gapMovementBadge,
   gapPositionBadge,
   gapTone,
-  gapWho,
   isExecEmpty,
   planExecSections,
   sparklineAlt,
+  sparklineAxisText,
+  sparklineCaption,
   sparklineModel,
+  techExplainText,
+  techShareLine,
   type ExecPlannedSection,
 } from '@/lib/weekly-brief-exec';
 
@@ -133,12 +138,18 @@ function buildCss(): string {
   .pos{display:inline-block;border:1px solid var(--fg);background:var(--bg3);font-size:12.5px;font-weight:700;padding:1px 8px;margin-right:6px}
   .pos.missing{border-style:dashed}
   .mv{display:inline-block;border:1px solid var(--line);font-size:12.5px;padding:1px 8px}
-  .vals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-  .vals>div{background:var(--bg3);padding:8px 12px;min-width:0}
-  .vals .l{font-size:12px}
-  .vals .v{font-size:18px;font-weight:900;line-height:1.25;margin-top:2px}
-  .vals .v.miss{font-size:15px}
-  .vals .s{font-size:12px;margin-top:2px}
+  .cmp{background:var(--bg3);padding:8px 12px;margin-top:12px;font-size:14.5px;font-weight:700;line-height:1.6}
+  .cmp.miss{border:1px dashed var(--line)}
+  .axp{font-size:12.5px;color:var(--fg2);margin-top:6px;line-height:1.6}
+  .exp{font-size:12.5px;color:var(--fg2);margin-top:2px;line-height:1.6}
+  .intro{font-size:13.5px;line-height:1.6;grid-column:2 / span 2;margin-top:2px}
+  .evv{display:flex;gap:10px;align-items:flex-start;width:100%;border-radius:0!important;padding:6px 8px!important}
+  .evv .evth{flex:none;width:120px}
+  .evv .evt{font-size:13px;line-height:1.45;min-width:0}
+  .evv .evm{font-size:12px;color:var(--fg2);margin-top:2px}
+  .spf{margin:0;max-width:200px;flex:none}
+  .spf figcaption{font-size:11.5px;color:var(--fg2);line-height:1.4;margin-top:2px}
+  .spf figcaption span{display:block}
   .cov{font-size:12.5px;color:var(--fg2);margin-top:12px}
   .sig{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
   .sig .tt{flex:1;min-width:0}
@@ -183,7 +194,6 @@ function buildCss(): string {
     .totop{padding:6px 20px 16px}
     .para{font-size:15px}
     .ln{grid-template-columns:1fr}
-    .vals{grid-template-columns:1fr}
     .facts{grid-template-columns:1fr}
     .vc{grid-template-columns:1fr}
   }
@@ -196,7 +206,7 @@ function buildCss(): string {
     .toc,.totop{display:none}
     .sec{break-before:page;page-break-before:always}
     .sec:first-of-type{break-before:auto;page-break-before:auto}
-    .card,.sh,.cover,.evl>li,.vlines li,.vals,.facts li{break-inside:avoid;page-break-inside:avoid}
+    .card,.sh,.cover,.evl>li,.vlines li,.facts li{break-inside:avoid;page-break-inside:avoid}
     h2,h3{break-after:avoid;page-break-after:avoid}
     .para{font-size:13px;line-height:1.6;margin:4px 0}
     .card{margin:8px 0;padding:10px 12px}
@@ -221,12 +231,19 @@ function p(text: string | null | undefined): string {
   return text ? `<p class="para">${t(text)}</p>` : '';
 }
 
+/** 근거 목록 — 영상 근거에 썸네일이 있으면 썸네일(eager, no-referrer) + 제목 + 채널·날짜, 아니면 칩 링크. CI 등급 코드는 쓰지 않는다 */
 function evidenceChips(list: readonly WeeklyReportEvidence[]): string {
   const items = list
     .slice(0, 3)
     .map((e) => {
       const href = e.type === 'keyword' ? '' : okHref(e.type === 'video' ? safeVideoHref(e.url) : e.type === 'paper' ? safePaperHref(e.url) : safeArticleHref(e.url));
-      const inner = `${t(EXEC_EVIDENCE_TYPE_LABELS[e.type] ?? '')} · ${t(e.title)}${e.label ? ` (${t(e.label)})` : ''}`;
+      const meta = evidenceMetaParts(e).join(' · ');
+      const src = e.type === 'video' ? okHref(safeThumbSrc(e.thumbnail)) : '';
+      if (src) {
+        const title = href ? ext(href, `${t(e.title)} ↗`) : t(e.title);
+        return `<li class="evv"><div class="evth">${thumbHtml({ thumbnail: e.thumbnail ?? null, title: e.title, url: e.url, durationSec: null })}</div><div class="evt"><div>${title}</div><div class="evm">${t([EXEC_EVIDENCE_TYPE_LABELS.video, meta].filter(Boolean).join(' · '))}</div></div></li>`;
+      }
+      const inner = `${t(EXEC_EVIDENCE_TYPE_LABELS[e.type] ?? '')} · ${t(e.title)}${meta ? ` (${t(meta)})` : ''}`;
       return `<li>${href ? ext(href, `${inner} ↗`) : inner}</li>`;
     })
     .join('');
@@ -240,7 +257,8 @@ function titleHtml(title: string, titleKo: string | null | undefined, href: stri
 
 function sectionHtml(s: ExecPlannedSection, body: string): string {
   const cnt = s.countLabel ? `<span class="cnt">${t(s.countLabel)}</span>` : '';
-  const header = `<div class="sh"><span class="no" aria-hidden="true">${t(s.number)}</span><h2>${t(s.title)}</h2>${cnt}<p class="subt">${t(s.subtitle)}</p></div>`;
+  const intro = s.intro && s.intro !== s.subtitle ? `<p class="intro">${t(s.intro)}</p>` : '';
+  const header = `<div class="sh"><span class="no" aria-hidden="true">${t(s.number)}</span><h2>${t(s.title)}</h2>${cnt}<p class="subt">${t(s.subtitle)}</p>${intro}</div>`;
   return `<section class="sec" id="${s.id}">${header}<div class="sbody">${body}</div><p class="totop">${internalLink(EXEC_TOP_ID, `↑ ${t(EXEC_LABELS.backToTop)}`)}</p></section>`;
 }
 
@@ -255,6 +273,13 @@ function sparkSvg(label: string, series: readonly number[], isCount: boolean): s
     `<polyline points="${m.points}" fill="none" stroke="${REPORT_CHART.stroke}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` +
     `<circle cx="${m.last.x}" cy="${m.last.y}" r="3" fill="${REPORT_CHART.dot}"/></svg>`
   );
+}
+
+/** 스파크라인 + 캡션(무엇의 추이인지) + 축 숫자(최저·최고·최근) */
+function sparkFigure(label: string, series: readonly number[], isCount: boolean): string {
+  const svg = sparkSvg(label, series, isCount);
+  if (!svg) return '';
+  return `<figure class="spf">${svg}<figcaption>${t(sparklineCaption(label, isCount))}<span>${t(sparklineAxisText(series, isCount))}</span></figcaption></figure>`;
 }
 
 // ───────────────────────── 섹션 본문 ─────────────────────────
@@ -281,18 +306,13 @@ function conclusionsHtml(c: WeeklyExecutiveResponse['payload']['conclusions']): 
 function gapRowHtml(r: ExecGapRow, i: number): string {
   const tone = gapTone(r);
   const move = gapMovementBadge(r);
-  const missing = r.status !== 'compared' || !r.ourValue;
-  const cv = r.competitorValue;
-  const cvSub = [cv.grade ? `신뢰도 ${cv.grade}` : '', cv.asOf ?? ''].filter(Boolean).join(' · ');
-  const ours = missing
-    ? `<div><div class="l">우리</div><div class="v miss">${t(EXEC_OURS_MISSING_BADGE)}</div><div class="s">${t(EXEC_OURS_MISSING_NOTE)}</div></div>`
-    : `<div><div class="l">우리${r.ourRef ? ` (${t(r.ourRef)})` : ''}</div><div class="v">${t(r.ourValue!.display)}</div>${r.ourValue!.asOf ? `<div class="s">${t(r.ourValue!.asOf)}</div>` : ''}</div>`;
-  const diff = `<div><div class="l">차이</div><div class="v">${t(missing ? '–' : formatGapDiff(r) || '–')}</div>${r.prevCompetitorValue !== null ? `<div class="s">직전 경쟁사값 ${t(String(r.prevCompetitorValue))}</div>` : ''}</div>`;
+  const cmp = gapCompareLine(r);
+  const explain = gapAxisExplain(r);
   const lines = r.lines.map((l) => `<p class="para">${t(l)}</p>`).join('');
   return (
-    `<article class="card"><div class="hd"><span class="no2" aria-hidden="true">${i + 1}</span><div><h3>${t(gapWho(r))} · ${t(r.axisLabel)}</h3>` +
+    `<article class="card"><div class="hd"><span class="no2" aria-hidden="true">${i + 1}</span><div><h3>${t(gapHeadline(r))}</h3>` +
     `<div><span class="pos${tone === 'missing' ? ' missing' : ''}">${t(gapPositionBadge(r))}</span>${move ? `<span class="mv">${t(move)}</span>` : ''}</div></div></div>` +
-    `<div class="vals"><div><div class="l">경쟁사</div><div class="v">${t(cv.display)}</div>${cvSub ? `<div class="s">${t(cvSub)}</div>` : ''}</div>${ours}${diff}</div>` +
+    `<p class="cmp${cmp.missing ? ' miss' : ''}">${t(cmp.text)}</p>${explain ? `<p class="axp">${t(explain)}</p>` : ''}` +
     `<div class="lines">${lines}</div>${evidenceChips(r.evidence)}</article>`
   );
 }
@@ -304,11 +324,10 @@ function gapsHtml(g: WeeklyExecutiveResponse['payload']['gaps']): string {
 }
 
 function signalHtml(s: ExecTechSignal, i: number): string {
-  const unit = s.kind === 'procurement' ? '건' : '%';
-  const share = s.recent !== null && s.prior !== null ? `최근 4주 ${s.recent}${unit} · 이전 4주 ${s.prior}${unit}${s.relChangePct !== null ? ` (상대 ${s.relChangePct >= 0 ? '+' : ''}${s.relChangePct}%)` : ''}` : '';
+  const share = techShareLine(s);
   const dom = domainLabel(s.domain);
   return (
-    `<article class="card"><div class="sig"><span class="no2" aria-hidden="true">${i + 1}</span><div class="tt"><h3>${t(s.label)}</h3><div><span class="pos">${t(directionGlyph(s.direction))} ${t(directionLabel(s.direction))}</span>${badge(dom)}</div></div>${sparkSvg(s.label, s.series, s.kind === 'procurement')}</div>` +
+    `<article class="card"><div class="sig"><span class="no2" aria-hidden="true">${i + 1}</span><div class="tt"><h3>${t(s.label)}</h3><p class="exp">${t(techExplainText(s))}</p><div><span class="pos">${t(directionGlyph(s.direction))} ${t(directionLabel(s.direction))}</span>${badge(dom)}</div></div>${sparkFigure(s.label, s.series, s.kind === 'procurement')}</div>` +
     `${share ? `<p class="meta">${t(share)}</p>` : ''}<div class="lines">${s.lines.map((l) => `<p class="para">${t(l)}</p>`).join('')}</div>${evidenceChips(s.evidence)}</article>`
   );
 }
@@ -328,7 +347,7 @@ function businessHtml(b: WeeklyExecutiveResponse['payload']['business']): string
   const moves = b.moves
     .map(
       (m, i) =>
-        `<article class="card"><div class="hd"><span class="no2" aria-hidden="true">${i + 1}</span><div><h3>${t(m.company)}${m.vendor ? ` · ${t(m.vendor)}` : ''}</h3><div>${badge(EXEC_BUSINESS_CATEGORY_LABELS[m.category] ?? m.category)}</div></div></div>${chipList(m.facts)}<div class="lines">${m.lines.map((l) => `<p class="para">${t(l)}</p>`).join('')}</div>${evidenceChips(m.evidence)}</article>`,
+        `<article class="card"><div class="hd"><span class="no2" aria-hidden="true">${i + 1}</span><div><h3>${t(m.company)}${m.vendor ? ` · ${t(m.vendor)}` : ''}</h3><div>${badge(EXEC_BUSINESS_CATEGORY_LABELS[m.category] ?? m.category)}</div>${businessCategoryExplain(m.category) ? `<p class="exp">${t(businessCategoryExplain(m.category))}</p>` : ''}</div></div>${chipList(m.facts)}<div class="lines">${m.lines.map((l) => `<p class="para">${t(l)}</p>`).join('')}</div>${evidenceChips(m.evidence)}</article>`,
     )
     .join('');
   return `${picture}${moves}`;

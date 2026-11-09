@@ -187,6 +187,12 @@ export interface WeeklyReportEvidence {
   /** keyword 는 null. 표시 전 https 검증 필수 */
   url: string | null;
   label?: string | null;
+  /** v3 선택 필드 — 영상 근거의 썸네일(ytimg https URL 만, 400자 이하). 없으면 링크만 표시 */
+  thumbnail?: string | null;
+  /** v3 선택 필드 — 영상 채널 */
+  channel?: string | null;
+  /** v3 선택 필드 — 게시·수집 시각 ISO */
+  publishedAt?: string | null;
 }
 
 export interface WeeklyHighlightFigure {
@@ -454,6 +460,8 @@ export interface ExecGapRow {
   /** 0~2 */
   evidence: WeeklyReportEvidence[];
   generatedBy: WeeklyGeneratedBy;
+  /** v3 선택 필드 — "누가 무엇을 새로 공개했습니다" 사실 문장 (서버 규칙 문장 또는 AI 문장). 카드 제목 줄 */
+  headline?: string;
 }
 
 export interface ExecGaps {
@@ -486,6 +494,8 @@ export interface ExecTechSignal {
   /** 1~3 */
   evidence: WeeklyReportEvidence[];
   generatedBy: WeeklyGeneratedBy;
+  /** v3 선택 필드 — "이 주제는 …을 뜻합니다" 설명 한 줄 (서버 상수) */
+  explain?: string;
 }
 
 export interface ExecTech {
@@ -501,7 +511,7 @@ export interface ExecFactChip {
   label: string;
   /** 최대 24자 */
   value: string;
-  /** 최대 80자 */
+  /** 이 숫자가 무엇을 센 것인지(대상·범위·단위) 설명하는 한 문장, 최대 120자. 사실 칩(picture, facts)은 note 를 반드시 채운다 */
   note: string | null;
 }
 

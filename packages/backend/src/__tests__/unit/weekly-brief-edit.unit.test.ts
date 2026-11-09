@@ -116,6 +116,29 @@ describe('validateEdits', () => {
     const r = validateEdits(ai, { [`conclusions.${id}.headline`]: '전망 99999' });
     expect(r.ok && r.warnings[0]!.codes).toEqual(expect.arrayContaining(['banned', 'number']));
     expect(r.ok && r.warnings[0]!.codes).not.toContain('ending');
+    // 제목은 요구·질문형(R1)만 새로 점검한다 — 제안형 어미·대상 없음 경고는 없다
+    const q = validateEdits(ai, { [`conclusions.${id}.headline`]: 'Revo 3, 검토할까요?' });
+    expect(q.ok && q.warnings[0]!.codes).toEqual(['request']);
+    const prop = validateEdits(ai, { [`conclusions.${id}.headline`]: 'Revo 3 사양을 비교해 볼 필요가 있겠습니다' });
+    expect(prop.ok && prop.warnings).toEqual([]);
+  });
+
+  it('proposal lines and question texts warn on request form and missing targets, and are still saved', () => {
+    const c = ai.conclusions.find((x) => x.lines.some((l) => l.role === 'action'))!;
+    const idx = c.lines.findIndex((l) => l.role === 'action');
+    const path = `conclusions.${c.id}.lines.${idx}`;
+    const bad = validateEdits(ai, { [path]: '이 건의 도입을 승인해 주세요.' });
+    expect(bad.ok && bad.edits[path]).toBe('이 건의 도입을 승인해 주세요.');
+    expect(bad.ok && bad.warnings[0]!.codes).toContain('request');
+    const none = validateEdits(ai, { [path]: '비교해 볼 필요가 있을 것 같습니다.' });
+    expect(none.ok && none.warnings[0]!.codes).toContain('no_target');
+    // 그 밖의 줄(변화)에 제안형 어미를 쓰면 ending 경고
+    const ch = c.lines.findIndex((l) => l.role === 'change');
+    const misplaced = validateEdits(ai, { [`conclusions.${c.id}.lines.${ch}`]: `${c.headline}의 구성을 확인해 볼 필요가 있을 것 같습니다.` });
+    expect(misplaced.ok && misplaced.warnings[0]!.codes).toContain('ending');
+    const qid = ai.questions[0]!.id;
+    const qq = validateEdits(ai, { [`questions.${qid}.text`]: '직접 확인해 볼까요?' });
+    expect(qq.ok && qq.warnings[0]!.codes).toContain('request');
   });
 
   it('null reverts to the AI text; an edit equal to the AI text is also a revert', () => {

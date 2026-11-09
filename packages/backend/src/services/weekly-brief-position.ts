@@ -7,6 +7,7 @@
  * 우리 값이 없는 축은 비교 수치를 만들지 않고 `ours_missing` 으로 둔다(추정·지어내기 금지).
  */
 
+import { withJosa } from './korean-josa.js';
 import { asc, eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { ciBenchmarkAxes, ciBenchmarkScores, ciCompetitors, handBenchmarkAxes, handBenchmarkScores, handCompetitors } from '../db/schema.js';
@@ -503,13 +504,17 @@ export function formatDiff(axisKey: string, abs: number): string {
 }
 
 /** 규칙 폴백 문장(합니다체, 서버 값만) */
-export function gapRuleLines(d: Pick<GapDraft, 'competitor' | 'axisKey' | 'axisLabel' | 'competitorValue' | 'ourValue' | 'status' | 'position' | 'diff'> & { movement?: GapMovement | null }): string[] {
+export function gapRuleLines(d: Pick<GapDraft, 'competitor' | 'axisKey' | 'axisLabel' | 'competitorValue' | 'ourValue' | 'status' | 'position' | 'diff' | 'higherIsBetter'> & { movement?: GapMovement | null }): string[] {
   const who = d.competitor.robotName && d.competitor.robotName !== d.competitor.name ? `${d.competitor.name} ${d.competitor.robotName}` : d.competitor.name;
   if (d.status !== 'compared' || !d.ourValue || !d.position || !d.diff) {
-    return [`${who}의 ${d.axisLabel}은 ${d.competitorValue.display}입니다.`, '비교 기준이 되는 우리 수치가 아직 등록되어 있지 않습니다.'];
+    return [`${who}의 ${withJosa(d.axisLabel, '은/는')} ${d.competitorValue.display}입니다.`, '비교 기준이 되는 우리 수치가 아직 등록되어 있지 않습니다.'];
   }
   const side = POSITION_LABEL_KO[d.position];
-  const lines = [`${d.axisLabel}에서 ${who}는 ${d.competitorValue.display}, 우리는 ${d.ourValue.display}으로 차이는 ${formatDiff(d.axisKey, d.diff.abs)}입니다(${side}).`];
+  // 숫자는 카드의 비교 줄이 이미 보여주므로 서술은 숫자를 되풀이하지 않고 이 차이가 무엇을 뜻하는지 쓴다
+  const lines = [
+    `${d.axisLabel} 항목에서 ${withJosa(who, '은/는')} '${side}'로 확인됩니다.`,
+    d.higherIsBetter ? '이 항목은 값이 높을수록 성능이 좋은 지표라 이 차이는 제품 성능 비교에 직접 영향을 줍니다.' : '이 항목은 값이 낮을수록 도입 비용이 적은 지표라 이 차이는 제품 가격 경쟁력에 직접 영향을 줍니다.',
+  ];
   const move = d.movement && d.movement !== 'first_seen' ? movementLabelKo(d.position, d.movement) : null;
   if (move) lines.push(`직전 대비 변화는 ${move}입니다.`);
   return lines;

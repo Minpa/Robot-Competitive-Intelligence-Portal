@@ -263,3 +263,25 @@ describe('misc', () => {
     expect(snap.failures).toEqual(['position']);
   });
 });
+
+describe('josa helper and rule gap lines', () => {
+  it('picks particles by final consonant', async () => {
+    const { josa, withJosa } = await import('../../services/korean-josa.js');
+    expect(withJosa('Atlas A1', '은/는')).toBe('Atlas A1은');
+    expect(withJosa('Atlas', '은/는')).toBe('Atlas는');
+    expect(withJosa('8점', '을/를')).toBe('8점을');
+    expect(withJosa('22 DoF', '을/를')).toBe('22 DoF를');
+    expect(withJosa('촉각·힘 센싱', '과/와')).toBe('촉각·힘 센싱과');
+    expect(withJosa('관절 모듈 외부 조달 이동', '과/와')).toBe('관절 모듈 외부 조달 이동과');
+    expect(josa('서울', '으로/로')).toBe('로');
+    expect(josa('핸드', '으로/로')).toBe('로');
+    expect(josa('가격', '이/가')).toBe('이');
+  });
+  it('rule narrative does not repeat the numbers', () => {
+    const lines = gapRuleLines({ competitor: { companyId: null, name: 'Atlas', robotName: 'Atlas A1' }, axisKey: 'hand_dof', axisLabel: '핸드 자유도', higherIsBetter: true, competitorValue: { value: 22, display: '22 DoF', grade: null, asOf: null, sourceUrl: null }, ourValue: { value: 12, display: '12 DoF', grade: null, asOf: null, sourceUrl: null }, status: 'compared', position: 'competitor_ahead', diff: { abs: 10, pct: 83.3 }, movement: 'competitor_closing' } as never);
+    const text = lines.join(' ');
+    expect(text).not.toMatch(/22|12 DoF/);
+    expect(text).toContain('Atlas Atlas A1은');
+    expect(text).toContain('성능');
+  });
+});

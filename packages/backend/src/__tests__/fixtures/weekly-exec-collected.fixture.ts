@@ -103,9 +103,9 @@ export function makeExecCollectedFull(): ExecCollected {
       warnings: [],
     },
     signalEvidence: {
-      'subtopic:hand:tactile_force': [{ id: 'ev-s1', title: 'Tactile skin for dexterous hands', url: 'https://news.example.com/tactile', source: 'IEEE Spectrum', kind: 'article' }],
-      'theme:mass_price': [{ id: 'ev-s2', title: 'Humanoid mass production ramp announced 1', url: 'https://news.example.com/mass', source: 'Reuters', kind: 'article' }],
-      'keyword:kw-vla': [{ id: 'ev-s3', title: 'VLA policy rollout on a tabletop 1', url: 'https://www.youtube.com/watch?v=VXXXXXXXXXX', source: 'Embodied AI 0', kind: 'video' }],
+      'subtopic:hand:tactile_force': [{ id: 'ev-s1', title: 'Tactile skin for dexterous hands', url: 'https://news.example.com/tactile', source: 'IEEE Spectrum', kind: 'article', publishedAt: WEEK_ISO }],
+      'theme:mass_price': [{ id: 'ev-s2', title: 'Humanoid mass production ramp announced 1', url: 'https://news.example.com/mass', source: 'Reuters', kind: 'article', publishedAt: WEEK_ISO }],
+      'keyword:kw-vla': [{ id: 'ev-s3', title: 'VLA policy rollout on a tabletop 1', url: 'https://www.youtube.com/watch?v=VXXXXXXXXXX', source: 'Embodied AI 0', kind: 'video', videoId: 'VXXXXXXXXXX', channel: 'Embodied AI 0', publishedAt: WEEK_ISO }],
     },
     prev: { gapValues: { 'gap:atlas-robotics:hand_dof': 18 }, snapshots: [{ asOf: '2026-10-18T00:00:00.000Z', robots: 12, inHouse: 6, inHouseSells: 1, external: 3, unknown: 3 }] },
     warnings: [],
@@ -143,20 +143,27 @@ export function makeExecCollectedEmpty(): ExecCollected {
 export function fakeExecAi(plan: ExecPlan, opts: { skip?: Array<'A' | 'B' | 'C' | 'D'> } = {}): ExecAiInput {
   const skip = new Set(opts.skip ?? []);
   const A = {
-    conclusions: plan.candidates.map((c) => ({
+    conclusions: plan.candidates.map((c) => {
+      const subject = String(c.facts.company ?? c.facts.label ?? '해당 항목');
+      return {
       candidateId: c.ref,
       headline: `${c.ruleHeadline}`.slice(0, 40),
       lines: [
         { role: 'change', text: '이번 주 경쟁사 쪽에서 눈에 띄는 변화가 확인되었습니다.' },
         { role: 'why', text: '우리 제품 전략과 직접 맞닿아 있어서 의미가 있습니다.' },
-        { role: 'action', text: '관련 사양을 한 번 더 비교해 볼 만합니다.' },
+        { role: 'action', text: `${subject}와 관련해 공개된 사양과 참고 자료를 우리 사양과 함께 비교해 볼 필요가 있을 것 같습니다.` },
         { role: 'detail', text: '세부 수치는 아래 차이 표에서 확인할 수 있습니다.' },
       ],
       actionKind: 'evaluate',
       refs: c.evidence.slice(0, 1).map((e) => e.ref),
-    })),
+      };
+    }),
     questions: plan.candidates.slice(0, 3).map((c, i) => ({
-      text: `${['직접 평가를 시작해 볼까요?', '담당 부서와 접촉해 볼까요?', '다음 회의에서 결정해 볼까요?'][i]}`,
+      text: [
+        `${c.facts.company ?? c.facts.label}의 공개 사양과 참고 자료를 우리 사양과 직접 비교해 볼 필요가 있을 것 같습니다.`,
+        `${c.facts.company ?? c.facts.label} 제조사의 공개 자료와 공식 채널에서 사양 근거를 확인해 볼 필요가 있겠습니다.`,
+        `${c.facts.company ?? c.facts.label} 관련 자료가 다음 주에도 이어지는지 추이를 지켜볼 필요가 있어 보입니다.`,
+      ][i],
       kind: (['evaluate', 'contact', 'decide'] as const)[i],
       rationale: ['참고 자료에서 확인되는 변화가 있습니다.'],
       conclusionId: c.ref,
@@ -164,20 +171,20 @@ export function fakeExecAi(plan: ExecPlan, opts: { skip?: Array<'A' | 'B' | 'C' 
     })),
   };
   const B = {
-    summary: plan.gaps.rows.length > 0 ? ['경쟁사와의 차이는 일부 항목에서만 새로 확인되었습니다.'] : [],
+    summary: plan.gaps.rows.length > 0 ? ['경쟁사 쪽에서 일부 항목의 새 수치가 확인되었습니다.', '우리 수치가 없는 항목은 비교하지 않고 그 사실만 적었습니다.'] : [],
     rows: plan.gaps.rows.map((g) => ({
       id: g.ref,
       lines:
         g.draft.status === 'compared'
           ? g.draft.position === 'competitor_ahead'
-            ? ['경쟁사가 앞서 있는 축입니다.', '우리 쪽 보완 여부를 점검해 볼 만합니다.']
+            ? ['경쟁사가 앞서 있는 축입니다.', '이 차이는 제품 성능 비교에 직접 영향을 줍니다.']
             : ['두 회사의 수준을 비교한 결과입니다.', '추가 변화가 있는지 지켜보겠습니다.']
           : ['경쟁사 수치는 확인되었습니다.', '우리 수치는 아직 미등록 상태입니다.'],
     })),
   };
   const C = {
     signals: plan.tech.signals.map((t) => ({ id: t.ref, lines: ['최근 4주와 이전 4주를 비교하면 방향이 보입니다.', '한 주의 변동이 아니라 여러 주에 걸친 흐름입니다.'] })),
-    moves: plan.business.moves.map((b) => ({ id: b.ref, lines: ['사업 쪽 움직임이 참고 자료에서 확인됩니다.', '공급망 관점에서 지켜볼 만합니다.'] })),
+    moves: plan.business.moves.map((b) => ({ id: b.ref, lines: ['사업 쪽 움직임이 참고 자료에서 확인됩니다.', '공급망에서는 누가 부품을 공급하는지가 이 소식의 핵심입니다.'] })),
   };
   const D = {
     papers: plan.papers.map((p, i) => ({ ref: p.ref, frontierScore: i < 4 ? 3 : 1, implication: '핵심 기법이 우리 설계 검토에 참고가 됩니다.' })),

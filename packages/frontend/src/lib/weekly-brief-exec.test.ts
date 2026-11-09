@@ -83,7 +83,7 @@ describe('planExecSections / buildExecToc', () => {
   });
 
   it('section titles match the executive structure', () => {
-    expect(planExecSections(F).map((x) => x.title)).toEqual(['이번 주 주요 내용', '경쟁사 동향과 우리 위치', '기술 흐름', '사업·공급망 동향', '함께 검토해 주실 사항', '참고 자료']);
+    expect(planExecSections(F).map((x) => x.title)).toEqual(['이번 주 주요 내용', '경쟁사 동향과 우리 위치', '기술 흐름', '사업·공급망 동향', '확인이 필요해 보이는 사항', '참고 자료']);
   });
 });
 
@@ -131,9 +131,10 @@ describe('gap labels', () => {
 
   it('coverage line lists registered and missing axes with the as-of date', () => {
     const line = coverageLine(F.gaps.coverage);
-    expect(line).toContain('미등록');
-    expect(line).toContain('핸드 그립력');
-    expect(coverageLine({ registered: [], missing: [], asOf: null })).toBe('우리 수치가 등록된 항목 없음 · 미등록 항목 없음');
+    expect(line).toContain('ARGOS에 등록된 우리 수치: 핸드 자유도');
+    expect(line).toContain('아직 없는 수치: 토크밀도, 핸드 그립력');
+    expect(line).toContain('등록하면 비교할 수 있습니다');
+    expect(coverageLine({ registered: [], missing: [], asOf: null })).toBe('ARGOS에 등록된 우리 수치 없음 / 아직 없는 수치 없음');
   });
 });
 
@@ -271,5 +272,71 @@ describe('fixtures', () => {
     expect(text).not.toMatch(/undefined|NaN/);
     const p: WeeklyExecutivePayload = F;
     expect(p.schemaVersion).toBe(3);
+  });
+});
+
+describe('explanations: compare line, axis explain, sparkline caption, section intro', () => {
+  const rows = F.gaps.rows;
+  const cmp = rows.find((r) => r.status === 'compared')!;
+  const miss = rows.find((r) => r.status !== 'compared');
+
+  it('compare line puts product, unit, our value, difference and direction label on one line, with no axis key or grade code', async () => {
+    const { gapCompareLine, gapHeadline } = await import('./weekly-brief-exec');
+    const { text, missing } = gapCompareLine(cmp);
+    expect(missing).toBe(false);
+    expect(text).toContain(cmp.competitorValue.display);
+    expect(text).toContain(`우리${cmp.ourRef ? ` ${cmp.ourRef}` : ''}: ${cmp.ourValue!.display}`);
+    expect(text).toMatch(/→ .+(앞서 있음|비슷한 수준)/);
+    expect(text).toContain(cmp.labelKo.movement!);
+    expect(text).not.toMatch(/hand_dof|torque_density|gap:|\(A\)|신뢰도/);
+    expect(gapHeadline(cmp)).toMatch(/입니다\.$|했습니다\.?$|되었습니다\.?$/);
+    expect(gapHeadline(cmp)).not.toMatch(/hand_dof|gap:/);
+  });
+
+  it('compare line for a missing our-value says it is unregistered and how to compare', async () => {
+    const { gapCompareLine } = await import('./weekly-brief-exec');
+    const base = miss ?? { ...cmp, status: 'ours_missing' as const, ourValue: null, position: null, diff: null, movement: null, ourRef: null };
+    const { text, missing } = gapCompareLine(base);
+    expect(missing).toBe(true);
+    expect(text).toContain('수치 미등록');
+    expect(text).toContain('등록되면 비교할 수 있습니다');
+  });
+
+  it('D and F grades read "추정치"; other grade codes never appear', async () => {
+    const { gapCompareLine, evidenceSourceLabel } = await import('./weekly-brief-exec');
+    expect(gapCompareLine({ ...cmp, competitorValue: { ...cmp.competitorValue, grade: 'D' } }).text).toContain('(추정치)');
+    expect(gapCompareLine({ ...cmp, competitorValue: { ...cmp.competitorValue, grade: 'A' } }).text).not.toContain('추정치');
+    expect(evidenceSourceLabel({ type: 'ci', label: '신뢰도 A' })).toBe('');
+    expect(evidenceSourceLabel({ type: 'ci', label: '신뢰도 F' })).toBe('추정치');
+  });
+
+  it('axis explain: one line per axis with label and unit', async () => {
+    const { gapAxisExplain } = await import('./weekly-brief-exec');
+    expect(gapAxisExplain({ axisKey: 'torque_density', axisLabel: '토크밀도', unit: 'Nm/kg' })).toMatch(/^토크밀도\(Nm\/kg\): 관절 액추에이터의 최대 토크를 무게로 나눈 값입니다/);
+    expect(gapAxisExplain({ axisKey: 'hand_dof', axisLabel: '핸드 자유도', unit: 'DoF' })).toContain('독립적으로 움직일 수 있는 관절 수');
+    expect(gapAxisExplain({ axisKey: 'bench_dexterity', axisLabel: '손재주(내부 평가 점수)', unit: '점' })).toContain('0~10점의 상대 점수');
+    for (const r of rows) expect(gapAxisExplain(r), r.axisKey).not.toBeNull();
+  });
+
+  it('sparkline caption names the topic and the axis numbers show min/max/latest', async () => {
+    const { sparklineCaption, sparklineAxisText, techShareLine } = await import('./weekly-brief-exec');
+    expect(sparklineCaption('VLA', false)).toBe("주간 자료 중 'VLA' 비율(%) · 최근 8주");
+    expect(sparklineAxisText([1, 2, 5, 3, 2, 2, 4, 6.5], false)).toBe('최저 1% · 최고 6.5% · 최근 6.5%');
+    expect(techShareLine({ kind: 'theme', recent: 4, prior: 2, relChangePct: 100, label: 'x' })).toContain('최근 4주 4% · 그 앞 4주 2%');
+  });
+
+  it('every visible section has an intro sentence from the glossary', () => {
+    const intros = Object.fromEntries(planExecSections(F).map((s) => [s.key, s.intro]));
+    expect(intros.gap).toContain('같은 기준으로 나란히 놓은 것입니다');
+    expect(intros.tech).toContain('최근 8주');
+    expect(intros.business).toContain('누가 사고 누가 파는지');
+    expect(intros.evidence).toContain('근거가 된 영상·논문·기사');
+    for (const s of planExecSections(F)) expect(s.intro.length, s.key).toBeGreaterThan(10);
+  });
+
+  it('edit warning labels include request and no_target', async () => {
+    const { EDIT_WARNING_LABELS } = await import('./weekly-brief-exec');
+    expect(EDIT_WARNING_LABELS.request).toContain('확인 제안 형태로 바꿔 주세요');
+    expect(EDIT_WARNING_LABELS.no_target).toContain('확인할 대상');
   });
 });

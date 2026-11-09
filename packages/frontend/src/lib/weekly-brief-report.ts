@@ -146,6 +146,8 @@ export interface PlannedSection {
   countLabel: string | null;
   /** 규칙(자동 집계) 문장만으로 쓰인 섹션이면 안내 문구, 아니면 null */
   notice: string | null;
+  /** (v3 임원판) 섹션 도입 문장 — 숫자·칩이 무엇인지 설명하는 한 줄. v2 는 쓰지 않는다 */
+  intro?: string | null;
 }
 
 function visibleKeys(p: WeeklyReportPayload): ReportSectionKey[] {

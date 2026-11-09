@@ -57,7 +57,7 @@ describe('non-admin DOM (no edit context)', () => {
   });
 
   it('renders the sections, numbering and the cover without stat cards', () => {
-    for (const t of ['이번 주 주요 내용', '경쟁사 동향과 우리 위치', '기술 흐름', '사업·공급망 동향', '함께 검토해 주실 사항', '참고 자료']) expect(out).toContain(t);
+    for (const t of ['이번 주 주요 내용', '경쟁사 동향과 우리 위치', '기술 흐름', '사업·공급망 동향', '확인이 필요해 보이는 사항', '참고 자료']) expect(out).toContain(t);
     expect(out).toContain('data-testid="reading-time"');
     expect(out).not.toContain('data-testid="weekly-stats"');
     expect(out).toContain('data-testid="exec-oneliner"');
@@ -101,7 +101,7 @@ describe('non-admin DOM (no edit context)', () => {
   it('appendix ends with the collection line', () => {
     const idx = out.indexOf('data-testid="collection-line"');
     expect(idx).toBeGreaterThan(0);
-    expect(out.slice(idx)).toContain('이번 주 수집: 영상');
+    expect(out.slice(idx)).toContain('이번 주 ARGOS가 새로 수집한 자료: 영상');
   });
 
   it('shows the print-hiding classes on interactive chrome and keeps cards unbroken', () => {
@@ -288,5 +288,40 @@ describe('Sparkline', () => {
     expect(out).toContain('<circle');
     expect(out).not.toMatch(/xmlns|url\(|<image|<use|foreignObject|linearGradient/i);
     expect(render(h(Sparkline, { label: 'x', series: [1] }))).toBe('');
+  });
+});
+
+describe('explanations on screen', () => {
+  const out = render(h(ExecReport, { brief: FULL }));
+
+  it('renders section intros, chip notes, gap compare line and axis explain, sparkline caption and axis numbers', () => {
+    expect((out.match(/data-testid="section-intro"/g) ?? []).length).toBeGreaterThanOrEqual(4);
+    expect(out).toContain('같은 기준으로 나란히 놓은 것입니다');
+    expect(out).toContain('data-testid="gap-compare"');
+    expect(out).toContain('data-testid="gap-axis-explain"');
+    expect(out).toContain('data-testid="gap-headline"');
+    expect(out).toContain('data-testid="signal-explain"');
+    expect(out).toContain('data-testid="sparkline-caption"');
+    expect(out).toMatch(/data-testid="sparkline-axis">최저 [\d.]+% · 최고 [\d.]+% · 최근 [\d.]+%/);
+    expect(out).toContain('data-testid="business-category-explain"');
+    const chips = [...out.matchAll(/data-testid="fact-chip"[\s\S]*?<\/li>/g)].map((m) => m[0]);
+    expect(chips.length).toBeGreaterThan(0);
+    for (const c of chips) expect(c, c).toMatch(/text-\[12px\]">[^<]{15,}<\/div><\/li>/);
+  });
+
+  it('shows no axis key or grade code, and no old tone strings', () => {
+    expect(out).not.toMatch(/hand_dof|torque_density|gap:[a-z]|\(신뢰도 [A-F]\)/);
+    for (const old of ['함께 검토해 주실 사항', '검토 제안', '접촉 제안', '결정 필요']) expect(out).not.toContain(old);
+    expect(out).toContain('확인이 필요해 보이는 사항');
+  });
+
+  it('video evidence renders a lazy no-referrer thumbnail card', () => {
+    expect(out).toContain('data-testid="evidence-video"');
+    const imgs = (out.match(/<img\b[^>]*>/g) ?? []).filter((i) => i.includes('i.ytimg.com'));
+    expect(imgs.length).toBeGreaterThan(0);
+    for (const i of imgs) {
+      expect(i).toContain('loading="lazy"');
+      expect(i.toLowerCase()).toContain('referrerpolicy="no-referrer"');
+    }
   });
 });

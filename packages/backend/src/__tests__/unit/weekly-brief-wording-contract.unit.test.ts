@@ -37,7 +37,7 @@ describe('weekly-brief wording contract', () => {
   it('has none of the old analyst-tool wording in visible text', () => {
     const { jargonBanned: _b, jargonAlternatives: _a, ...visible } = WEEKLY_WORDING;
     const text = strings(visible).join('\n');
-    for (const old of ['이번 주 결론', '격차', '리더 판단', '근거 자료', '무엇이 바뀌었', '우리 위치 미등록', '관측', '신호', '판정']) {
+    for (const old of ['이번 주 결론', '격차', '리더 판단', '근거 자료', '우리 위치 미등록', '관측', '신호', '판정']) {
       expect(text, old).not.toContain(old);
     }
   });

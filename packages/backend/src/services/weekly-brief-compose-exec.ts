@@ -20,12 +20,14 @@ import {
   CONFIDENCE_RANK,
   articleDomainBadge,
   articleEvidence,
+  channelOf,
   classifyRow,
   computeCounts,
   meta,
   newestFirst,
   normalizeConfidence,
   normalizeSpaces,
+  resolveThumbnail,
   safeArxivUrl,
   safeHttpsUrl,
   selectArticles,
@@ -71,13 +73,19 @@ import {
   splitSentences,
   violatesTextPolicy,
   endsWithPolite,
+  endsWithProposal,
+  isRequestForm,
   type EntityGuardMode,
+  type ExecGuardScope,
   type ExecGapMovement,
   type ExecGapPosition,
   type ExecGuardStats,
 } from './weekly-brief-text-guard.js';
 import { TITLE_KO_MAX } from './weekly-brief-text-guard.js';
 import { isoWeekInfo } from './weekly-brief-period.js';
+import { josa, withJosa } from './korean-josa.js';
+import { METRIC_DEFINITIONS, CHIP_NOTE_MAX, isEstimatedGrade, techExplain } from './weekly-brief-metric-defs.js';
+import { axisExplainKo, movementLabelKo } from '../types/weekly-brief-wording.js';
 import type { ActuatorMapBody } from './actuator-position-map.service.js';
 import type {
   BriefDomainKey,
@@ -112,10 +120,10 @@ import type {
 
 export const EXEC_LIMITS = {
   conclusions: { max: 5, perKind: 2, headline: 50, minLines: 3, maxLines: 6, line: EXEC_SENTENCE_MAX },
-  gaps: { summaryMax: 3, summaryChars: 220, minLines: 2, maxLines: 4, missingMaxLines: 2 },
+  gaps: { summaryMin: 2, summaryMax: 3, summaryChars: 220, minLines: 2, maxLines: 4, missingMaxLines: 2 },
   tech: { minLines: 2, maxLines: 4 },
   business: { moves: 6, picture: 6, factsPerMove: 4, minLines: 2, maxLines: 4 },
-  questions: { min: 2, max: 4, text: 200, rationaleMax: 2 },
+  questions: { min: 2, max: 4, text: 200, rationaleMax: 2, fallbackFill: 3 },
   videos: { max: 8, min: 6, bucketCap: 2, lines: 2, lineMax: 110, tags: 3 },
   papers: { candidates: 8, max: 5, min: 3, implication: 100, minScore: 2 },
   articles: { max: 8, min: 6, sourceCap: 2, line: 100 },
@@ -197,6 +205,8 @@ export interface GapPlan {
   ref: string;
   draft: GapDraft;
   ruleLines: string[];
+  /** 카드 제목 줄의 사실 문장 (서버 규칙 문장 — AI 문장이 가드를 통과하면 대체) */
+  ruleHeadline: string;
   evidence: WeeklyReportEvidence[];
   guard: ExecGuard;
 }
@@ -350,11 +360,20 @@ class EvidenceRegistry {
   }
 }
 
+/** 근거 보조 필드(썸네일·채널·게시 시각) — 400자 이하, ytimg https 썸네일만 */
+function evidenceExtras(thumbnail: string | null, channel: string | null, publishedAt: string | null): Pick<WeeklyReportEvidence, 'thumbnail' | 'channel' | 'publishedAt'> {
+  return {
+    thumbnail: thumbnail && thumbnail.length <= 400 ? thumbnail : null,
+    channel: channel ? clip(channel, 60) : null,
+    publishedAt: publishedAt && !Number.isNaN(new Date(publishedAt).getTime()) ? publishedAt : null,
+  };
+}
+
 function rowEvidence(row: BriefRow): WeeklyReportEvidence | null {
   const kind = classifyRow(row);
-  if (kind === 'video') return videoEvidence(row);
-  if (kind === 'news') return articleEvidence(row);
-  if (kind === 'paper') return { type: 'paper', id: row.id, title: clip(row.title, 120), url: safeArxivUrl(row.url), label: 'arXiv' };
+  if (kind === 'video') return { ...videoEvidence(row), ...evidenceExtras(resolveThumbnail(meta(row), row.url), channelOf(row), row.ts) };
+  if (kind === 'news') return { ...articleEvidence(row), ...evidenceExtras(null, null, row.ts) };
+  if (kind === 'paper') return { type: 'paper', id: row.id, title: clip(row.title, 120), url: safeArxivUrl(row.url), label: 'arXiv', ...evidenceExtras(null, null, row.ts) };
   return null;
 }
 
@@ -363,7 +382,14 @@ function trimEvidence(ev: WeeklyReportEvidence): WeeklyReportEvidence {
 }
 
 function signalRowEvidence(r: SignalEvidenceRow): WeeklyReportEvidence {
-  return { type: r.kind, id: r.id, title: clip(r.title, 120), url: url400(r.url), label: r.kind === 'paper' ? 'arXiv' : r.source ? clip(r.source, 60) : null };
+  return {
+    type: r.kind,
+    id: r.id,
+    title: clip(r.title, 120),
+    url: url400(r.url),
+    label: r.kind === 'paper' ? 'arXiv' : r.source ? clip(r.source, 60) : null,
+    ...evidenceExtras(r.kind === 'video' ? resolveThumbnail({ thumbnail: r.thumbnail, videoId: r.videoId }, r.url) : null, r.channel ?? null, r.publishedAt ?? null),
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -377,21 +403,25 @@ function median(values: number[]): number | null {
   return s.length % 2 ? s[m]! : (s[m - 1]! + s[m]!) / 2;
 }
 
-/** 사업·공급망 사실 칩 (맵 응답에서 계산, 6개 이하) */
+/**
+ * 사업·공급망 사실 칩 (맵 응답에서 계산, 6개 이하). 모든 칩은 "무엇을 센 것인지"를 설명하는 note 를 가진다 —
+ * 정의 사전(METRIC_DEFINITIONS)에서 분모(조사 대상 로봇 수 등)를 서버 값으로 채워 만든다. note 가 없는 칩은 내보내지 않는다.
+ */
 export function buildBusinessPicture(map: ActuatorMapBody | null): ExecFactChip[] {
   if (!map) return [];
   const s = map.sourcingStats;
+  const D = METRIC_DEFINITIONS;
   const chips: ExecFactChip[] = [];
-  const inHouse = s.inHouse + s.inHouseSells;
-  chips.push({ label: '조달 태세 분포', value: clip(`자체 ${inHouse} · 외부 ${s.external} · 미확인 ${s.unknown}`, 24), note: clip(`판매 중 로봇 ${s.robots}개 기준`, 80) });
-  chips.push({ label: '외부 조달 로봇', value: `${s.external}개`, note: s.externalMixed > 0 ? clip(`부분 외부 조달 ${s.externalMixed}개 포함`, 80) : null });
-  if (s.inHouseSells > 0) chips.push({ label: '자체 생산·외부 판매', value: `${s.inHouseSells}개`, note: null });
+  chips.push({ label: '자체 조달 로봇', value: `${s.inHouse + s.inHouseSells}기`, note: D.inHouse(s.robots) });
+  chips.push({ label: '외부 조달 로봇', value: `${s.external}기`, note: D.external(s.robots, s.externalMixed) });
+  chips.push({ label: '조달 방식 미확인', value: `${s.unknown}기`, note: D.unknown(s.robots) });
+  if (s.inHouseSells > 0) chips.push({ label: '자체 생산·외판', value: `${s.inHouseSells}기`, note: D.inHouseSells() });
   const prices = map.robots.filter((r) => !r.forecast && !r.isLG && r.price).map((r) => (r.price!.min + r.price!.max) / 2);
   const med = median(prices);
-  if (med !== null) chips.push({ label: '공개 가격 중앙값', value: `$${Math.round(med).toLocaleString('en-US')}`, note: clip(`가격 공개 로봇 ${prices.length}개 기준`, 80) });
-  if (map.adoptions.length > 0) chips.push({ label: '외부 채택 사례', value: `${map.adoptions.length}건`, note: '현재 등록 현황 기준' });
-  if (map.vendorMarkets.length > 0) chips.push({ label: '시장 세그먼트 등록 공급사', value: `${map.vendorMarkets.length}곳`, note: '현재 등록 현황 기준' });
-  return chips.slice(0, EXEC_LIMITS.business.picture);
+  if (med !== null) chips.push({ label: '공개 가격 중앙값', value: `$${Math.round(med).toLocaleString('en-US')}`, note: D.medianPrice(prices.length) });
+  if (map.adoptions.length > 0) chips.push({ label: '외부 채택 사례', value: `${map.adoptions.length}건`, note: D.adoptions() });
+  if (map.vendorMarkets.length > 0) chips.push({ label: '시장 세그먼트 등록 공급사', value: `${map.vendorMarkets.length}곳`, note: D.vendorMarkets() });
+  return chips.filter((c) => !!c.note).map((c) => ({ ...c, note: clip(c.note!, CHIP_NOTE_MAX) })).slice(0, EXEC_LIMITS.business.picture);
 }
 
 function businessCategoryOf(text: string): BusinessCategory {
@@ -412,8 +442,34 @@ function ciSentence(c: { company: string; item: string; before: string | null; a
   const before = c.before ? clean(c.before, 60) : null;
   const grade = normalizeConfidence(c.confidence);
   return before
-    ? `${clean(c.company, 40)}의 ${clean(c.item, 30)} 항목이 '${before}'에서 '${after}'로 갱신되었습니다(신뢰도 ${grade}).`
-    : `${clean(c.company, 40)}의 ${clean(c.item, 30)} 항목이 '${after}'로 확인되었습니다(신뢰도 ${grade}).`;
+    ? `${clean(c.company, 40)}의 ${clean(c.item, 30)} 항목이 '${before}'에서 '${after}'${josa(after, '으로/로')} 갱신되었습니다(신뢰도 ${grade}).`
+    : `${clean(c.company, 40)}의 ${clean(c.item, 30)} 항목이 '${after}'${josa(after, '으로/로')} 확인되었습니다(신뢰도 ${grade}).`;
+}
+
+/** "누가 무엇을 새로 확인했습니다" 사실 문장 — 회사·제품·축·값으로 만든다 (차이 카드 제목 줄) */
+export function gapFactSentence(d: Pick<GapDraft, 'competitor' | 'axisLabel' | 'competitorValue'>): string {
+  const name = clean(d.competitor.name, 40);
+  const robot = d.competitor.robotName && d.competitor.robotName !== d.competitor.name ? ` ${clean(d.competitor.robotName, 40)}` : '';
+  return clip(`이번 주 새로 확인된 ${name}${robot}의 ${d.axisLabel} 수치는 ${d.competitorValue.display}입니다.`, 120);
+}
+
+/** 경쟁사 동향 요약 규칙 문장 2~3개 — 어떤 회사의 무엇이 새로 나왔고, 우리와 비교하면 전체적으로 어떤 상황인가 */
+export function gapRuleSummary(rows: readonly Pick<GapPlan, 'draft'>[]): string[] {
+  const names = uniq(rows.map((r) => clean(r.draft.competitor.name, 30)));
+  const axes = uniq(rows.map((r) => r.draft.axisLabel));
+  const nameText = names.slice(0, 3).join(', ') + (names.length > 3 ? ' 등' : '');
+  const axisText = axes.slice(0, 3).join(', ') + (axes.length > 3 ? ' 등' : '');
+  const out = [`이번 주 ${nameText}에서 ${axisText} 수치가 새로 공개되거나 갱신되었습니다.`];
+  const compared = rows.filter((r) => r.draft.status === 'compared');
+  const count = (pos: string) => compared.filter((r) => r.draft.position === pos).length;
+  if (compared.length > 0) {
+    out.push(`ARGOS에 등록된 우리 수치와 같은 기준으로 비교한 ${compared.length}개 항목 중 경쟁사가 앞선 것은 ${count('competitor_ahead')}개, 비슷한 수준은 ${count('parity')}개, 우리가 앞선 것은 ${count('we_ahead')}개입니다.`);
+    const missing = rows.length - compared.length;
+    if (missing > 0) out.push(`우리 수치가 아직 등록되지 않아 비교하지 못한 항목은 ${missing}개입니다.`);
+  } else {
+    out.push('비교 기준이 되는 우리 수치가 아직 등록되지 않아 이번 주 항목은 비교하지 못했습니다.');
+  }
+  return out;
 }
 
 export function buildExecPlan(input: ExecCollected, options: ExecPlanOptions = {}): ExecPlan {
@@ -495,7 +551,7 @@ export function buildExecPlan(input: ExecCollected, options: ExecPlanOptions = {
     if (evidence.length === 0) evidence.push(...gapEvidence(d));
     const numbers = [d.competitorValue.value, d.ourValue?.value, d.diff?.abs, d.diff?.pct, d.prevCompetitorValue];
     const texts = [d.competitorValue.display, d.ourValue?.display, d.competitorValue.grade, d.axisLabel, d.competitor.name, d.competitor.robotName];
-    return { ref: `g${i + 1}`, draft: d, ruleLines: gapRuleLines(d), evidence, guard: makeGuard(common, numbers, texts) };
+    return { ref: `g${i + 1}`, draft: d, ruleLines: gapRuleLines(d), ruleHeadline: gapFactSentence(d), evidence, guard: makeGuard(common, numbers, [...texts, d.ourRef, axisExplainKo(d.axisKey, d.axisLabel, d.unit)]) };
   });
   const coverage = computeCoverage(positionOk ? our : null, Object.keys(benchLabels).length > 0 ? benchLabels : undefined);
   const gapsGuard = makeGuard(common, gapPlans.flatMap((g) => [g.draft.competitorValue.value, g.draft.ourValue?.value, g.draft.diff?.abs, g.draft.diff?.pct]), gapPlans.flatMap((g) => [g.draft.competitorValue.display, g.draft.ourValue?.display]));
@@ -564,6 +620,7 @@ export function buildExecPlan(input: ExecCollected, options: ExecPlanOptions = {
     bizGroups.set(key, g);
   }
   const map = input.position.map;
+  const pictureChips = buildBusinessPicture(map);
   const bizSorted = [...bizGroups.entries()]
     .map(([key, g]) => ({ key, g, score: (g.category === 'pricing' || g.category === 'contract' ? CONCLUSION_BASE_SCORE.business.priced : CONCLUSION_BASE_SCORE.business.other) + (g.ci.some((c) => ['A', 'B'].includes(normalizeConfidence(c.confidence))) ? CONCLUSION_BASE_SCORE.trustBonus : 0) }))
     .sort((a, b) => b.score - a.score || a.key.localeCompare(b.key))
@@ -580,17 +637,20 @@ export function buildExecPlan(input: ExecCollected, options: ExecPlanOptions = {
     const facts: ExecFactChip[] = [];
     const robots = map ? map.robots.filter((r) => !r.isLG && !r.forecast && companyKeyOf(r.company) === companyKeyOf(g.company)) : [];
     const priced = robots.find((r) => r.price);
-    if (priced?.price) facts.push({ label: '공개 가격', value: clip(`$${Math.round((priced.price.min + priced.price.max) / 2).toLocaleString('en-US')}`, 24), note: clip(`${priced.name} · 신뢰도 ${priced.price.conf}`, 80) });
+    if (priced?.price) facts.push({ label: '공개 가격', value: clip(`$${Math.round((priced.price.min + priced.price.max) / 2).toLocaleString('en-US')}`, 24), note: clip(METRIC_DEFINITIONS.robotPrice(clean(priced.name, 40), isEstimatedGrade(String(priced.price.conf ?? ''))), CHIP_NOTE_MAX) });
     const ext = robots.find((r) => r.sourcing.externalVendors.length > 0);
     const vendor = ext?.sourcing.externalVendors[0]?.vendor ? clip(ext.sourcing.externalVendors[0].vendor, 60) : null;
     if (vendor && map) {
       const n = map.adoptions.filter((a) => a.actuatorVendor.toLowerCase() === vendor.toLowerCase()).length;
-      if (n > 0) facts.push({ label: `${clip(vendor, 20)} 외부 채택 사례`, value: `${n}건`, note: '현재 등록 현황 기준' });
+      if (n > 0) facts.push({ label: `${clip(vendor, 20)} 외부 채택 사례`, value: `${n}건`, note: clip(METRIC_DEFINITIONS.vendorAdoptions(clip(vendor, 40)), CHIP_NOTE_MAX) });
     }
-    if (ext) facts.push({ label: '조달 태세', value: ext.sourcing.posture === 'external' ? '외부 조달' : ext.sourcing.posture === 'in_house' ? '자체 개발' : '확인 불가', note: ext.sourcing.evidenceGrade ? `근거 등급 ${ext.sourcing.evidenceGrade}` : null });
+    if (ext) {
+      const posture = ext.sourcing.posture === 'external' ? 'external' : ext.sourcing.posture === 'in_house' ? 'in_house' : 'unknown';
+      facts.push({ label: '로봇의 조달 방식', value: posture === 'external' ? '외부 조달' : posture === 'in_house' ? '자체 개발' : '확인 불가', note: clip(METRIC_DEFINITIONS.posture(posture, isEstimatedGrade(ext.sourcing.evidenceGrade ?? null)), CHIP_NOTE_MAX) });
+    }
     const factLine = `${clean(g.company, 40)} ${BUSINESS_CATEGORY_LABEL[g.category]} 관련 항목 ${evs.length}개 근거` + (g.ci[0] ? `. ${ciSentence(g.ci[0])}` : '');
     const evidence = evs.map((e) => reg.add(e));
-    const numbers = facts.flatMap((f) => [f.value, f.note].map((x) => (x ? x : null)));
+    const numbers = [...facts, ...pictureChips].flatMap((f) => [f.label, f.value, f.note].map((x) => (x ? x : null)));
     bizPlans.push({
       ref: `b${bizPlans.length + 1}`,
       id: `biz:${key}`.replace(/\./g, '-'),
@@ -619,7 +679,7 @@ export function buildExecPlan(input: ExecCollected, options: ExecPlanOptions = {
       kind: 'gap_shift',
       domain: GAP_DOMAIN[d.axisKey] ?? null,
       score: baseScore + trust,
-      ruleHeadline: clip(`${d.axisLabel}: ${clean(d.competitor.name, 30)}`, 50),
+      ruleHeadline: clip(`${clean(d.competitor.name, 24)}의 ${d.axisLabel} 수치가 새로 확인되었습니다`, 50),
       ruleLines: [
         { role: 'change', text: `${clean(who, 60)}의 ${d.axisLabel}은 ${d.competitorValue.display}입니다.` },
         { role: 'why', text: g.ruleLines[0] ?? '' },
@@ -636,6 +696,8 @@ export function buildExecPlan(input: ExecCollected, options: ExecPlanOptions = {
         movement: d.labelKo.movement,
         grade: d.competitorValue.grade,
         prev: d.prevCompetitorValue,
+        ourRef: d.ourValue ? (d.ourRef ?? null) : null,
+        axisNote: axisExplainKo(d.axisKey, d.axisLabel, d.unit),
       },
       position: d.position,
       movement: d.movement,
@@ -650,11 +712,11 @@ export function buildExecPlan(input: ExecCollected, options: ExecPlanOptions = {
       kind: 'tech_signal',
       domain: d.domain,
       score: core ? CONCLUSION_BASE_SCORE.tech.core : CONCLUSION_BASE_SCORE.tech.other,
-      ruleHeadline: clip(`${d.label} ${d.direction === 'rising' ? '증가세' : '감소세'}`, 50),
+      ruleHeadline: clip(`${d.label} 관련 자료 비율이 ${d.direction === 'rising' ? '높아졌습니다' : '낮아졌습니다'}`, 50),
       ruleLines: t.ruleLines.map((text) => ({ role: 'change' as const, text })),
       gapRefs: [],
       evidence: t.evidence,
-      facts: { label: d.label, direction: d.direction === 'rising' ? '상승' : '하락', recent: d.recent, prior: d.prior, relChangePct: d.relChangePct, kind: d.kind },
+      facts: { label: d.label, direction: d.direction === 'rising' ? '상승' : '하락', recent: d.recent, prior: d.prior, relChangePct: d.relChangePct, kind: d.kind, meaning: techExplain(d) },
       position: null,
       guard: t.guard,
     });
@@ -665,7 +727,7 @@ export function buildExecPlan(input: ExecCollected, options: ExecPlanOptions = {
       kind: 'business_move',
       domain: b.category === 'sourcing' ? 'actuator' : 'production',
       score: b.category === 'pricing' || b.category === 'contract' ? CONCLUSION_BASE_SCORE.business.priced : CONCLUSION_BASE_SCORE.business.other,
-      ruleHeadline: clip(`${b.company} ${BUSINESS_CATEGORY_LABEL[b.category]}`, 50),
+      ruleHeadline: clip(`${b.company}의 ${BUSINESS_CATEGORY_LABEL[b.category]} 관련 동향이 확인되었습니다`, 50),
       ruleLines: [{ role: 'change', text: `${b.company}의 ${BUSINESS_CATEGORY_LABEL[b.category]} 관련 동향이 확인되었습니다.` }],
       gapRefs: [],
       evidence: b.evidence,
@@ -686,7 +748,7 @@ export function buildExecPlan(input: ExecCollected, options: ExecPlanOptions = {
       kind: 'ci_change',
       domain: null,
       score: CONCLUSION_BASE_SCORE.ci + CONCLUSION_BASE_SCORE.trustBonus,
-      ruleHeadline: clip(`${clean(c.company, 30)} ${clean(c.item, 14)} 갱신`, 50),
+      ruleHeadline: clip(`${clean(c.company, 24)}의 ${clean(c.item, 14)} 정보가 갱신되었습니다`, 50),
       ruleLines: [{ role: 'change', text: ciSentence(c) }],
       gapRefs: [],
       evidence: [reg.add({ type: 'ci', id: c.valueId, title: clip(`${c.company} ${c.item}`, 120), url: url400(c.sourceUrl), label: `신뢰도 ${normalizeConfidence(c.confidence)}` })],
@@ -767,7 +829,7 @@ export function buildExecPlan(input: ExecCollected, options: ExecPlanOptions = {
   // ── 집계 한 줄
   const dlt = (label: string, v: number | null) => (v === null ? null : `${label} ${v >= 0 ? '+' : ''}${v}%`);
   const deltaParts = [dlt('영상', deltas.videosNew), dlt('뉴스', deltas.articles), dlt('논문', deltas.papers)].filter(Boolean);
-  const collectionLine = `이번 주 수집: 영상 ${counts.videosNew}건 · 뉴스 ${counts.articles}건 · 논문 ${counts.papers}건` + (deltaParts.length > 0 ? ` (지난주 대비 ${deltaParts.join(', ')})` : '');
+  const collectionLine = `이번 주 ARGOS가 새로 수집한 자료: 영상 ${counts.videosNew}건, 뉴스 ${counts.articles}건, 논문 ${counts.papers}건` + (deltaParts.length > 0 ? ` (지난주 수집량 대비 ${deltaParts.join(', ')})` : '');
 
   const noData = rows.length === 0 && base.ciChanges.length === 0 && gapPlans.length === 0 && techCapped.length === 0;
   const warnings = [...input.warnings, ...base.warnings];
@@ -789,7 +851,7 @@ export function buildExecPlan(input: ExecCollected, options: ExecPlanOptions = {
     candidates,
     gaps: { rows: gapPlans, coverage, positionOk, guard: gapsGuard },
     tech: { signals: techCapped, window: { weeks: 8, recentWeeks: 4, asOfWeekStart: trendWeekStarts(base.range.weekStart)[7]! }, procurement },
-    business: { picture: buildBusinessPicture(map), moves: bizPlans, asOf: map ? map.generatedAt.slice(0, 10) : null },
+    business: { picture: pictureChips, moves: bizPlans, asOf: map ? map.generatedAt.slice(0, 10) : null },
     evidenceByRef: reg.byRef,
     videos,
     papers,
@@ -844,11 +906,9 @@ function guardHeadline(raw: unknown, g: ExecGuard, max: number): string | null {
   const t = normalizeSpaces(raw);
   if (!t || charLength(t) > max) return null;
   if (violatesTextPolicy(t) || findBannedPhraseV3(t, g.inputText) || disallowedNumbers(t, g.allowed).length > 0) return null;
+  // 제목은 사실 문장 — 물음표·요구형과 제안형 어미(~볼 필요가 있을 것 같습니다 등)를 쓰지 않는다
+  if (isRequestForm(t) || endsWithProposal(t) || /필요$/.test(t.replace(/[.\s]+$/, ''))) return null;
   return t;
-}
-
-function questionEndsOk(s: string): boolean {
-  return /까요\?$/.test(s.trim());
 }
 
 export interface ExecResult {
@@ -873,6 +933,81 @@ export function decideExecStatus(input: ExecStatusInput): Exclude<WeeklyBriefSta
   return 'ok';
 }
 
+export interface RuleQuestion {
+  kind: ExecQuestionKind;
+  text: string;
+  rationale: string[];
+  evidence: WeeklyReportEvidence[];
+  conclusionRef: string | null;
+  guard: ExecGuard;
+}
+
+/**
+ * 확인 사항 규칙 폴백 템플릿 — T1 기술 흐름(점유율 증가·감소), T2 경쟁사 비교, T3 CI 갱신.
+ * 값은 서버가 계산한 숫자·라벨만 쓴다. 호출자가 §가드를 통과시킨 것만 채택한다.
+ */
+export function ruleQuestionTemplates(plan: ExecPlan): RuleQuestion[] {
+  const out: RuleQuestion[] = [];
+  const candRefOf = (pred: (c: CandidatePlan) => boolean) => plan.candidates.find(pred)?.ref ?? null;
+  // T1: 기술 흐름 (점유율 %만 — 조달 건수 신호는 제외)
+  for (const t of plan.tech.signals) {
+    const d = t.draft;
+    if (d.kind === 'procurement' || d.recent === null || d.prior === null || t.evidence.length === 0) continue;
+    const verb = d.direction === 'rising' ? '증가' : '감소';
+    out.push({
+      kind: 'watch',
+      text: `'${d.label}' 관련 자료의 점유율이 다음 주에도 같은 방향으로 이어지는지 집계 결과를 확인해 볼 필요가 있을 것 같습니다.`,
+      rationale: [`'${d.label}' 관련 자료가 전체 자료에서 차지하는 비율은 최근 4주 ${WON_PCT(d.recent)}%로 이전 4주 ${WON_PCT(d.prior)}%보다 ${verb}했습니다. 일시적인 변화인지 흐름인지는 아직 알 수 없습니다.`],
+      evidence: t.evidence.map((e) => e.ev),
+      conclusionRef: candRefOf((c) => c.kind === 'tech_signal' && c.facts.label === d.label),
+      guard: t.guard,
+    });
+  }
+  // T2: 경쟁사 비교 (경쟁사가 접근 중이거나 이번 주 처음 확인된 항목, 우리 수치가 없는 항목)
+  for (const g of plan.gaps.rows) {
+    const d = g.draft;
+    if (g.evidence.length === 0) continue;
+    const who = clean(d.competitor.robotName && d.competitor.robotName !== d.competitor.name ? `${d.competitor.name} ${d.competitor.robotName}` : d.competitor.name, 60);
+    const ref = candRefOf((c) => c.gapRefs.includes(d.id));
+    if (d.status === 'compared' && d.ourValue && (d.movement === 'competitor_closing' || d.movement === 'first_seen')) {
+      const label = movementLabelKo(d.position, d.movement) ?? '';
+      out.push({
+        kind: 'evaluate',
+        text: `${who}의 ${d.axisLabel} 수치(${d.competitorValue.display})를 공개 사양 자료와 대조해 볼 필요가 있을 것 같습니다.`,
+        rationale: [`${who}의 ${withJosa(d.axisLabel, '은/는')} ${d.competitorValue.display}${josa(d.competitorValue.display, '이고/고')} 우리 쪽(${d.ourRef ?? '등록값'})은 ${d.ourValue.display}입니다. 비교 결과는 '${label}'${josa(label, '이/가') === '이' ? '이지만' : '지만'} 출처의 측정 조건은 아직 알 수 없습니다.`],
+        evidence: g.evidence,
+        conclusionRef: ref,
+        guard: g.guard,
+      });
+    } else if (d.status === 'ours_missing') {
+      out.push({
+        kind: 'evaluate',
+        text: `${who}의 ${d.axisLabel} 수치(${d.competitorValue.display})를 비교할 수 있도록 우리 쪽 ${d.axisLabel} 수치를 먼저 확인해 볼 필요가 있겠습니다.`,
+        rationale: [`${who}의 ${withJosa(d.axisLabel, '은/는')} ${d.competitorValue.display}입니다. 우리 쪽 수치는 아직 등록되지 않았습니다.`],
+        evidence: g.evidence,
+        conclusionRef: ref,
+        guard: g.guard,
+      });
+    }
+  }
+  // T3: CI 갱신 (신뢰도 A·B 후보만 — 후보 선정이 그렇다)
+  for (const c of plan.candidates) {
+    if (c.kind !== 'ci_change' || c.evidence.length === 0) continue;
+    const f = c.facts;
+    const before = typeof f.before === 'string' ? f.before : null;
+    const grade = String(f.grade ?? '');
+    out.push({
+      kind: 'evaluate',
+      text: `${f.company}의 ${withJosa(String(f.item), '이/가')} '${f.after}'${josa(String(f.after), '으로/로')} 갱신된 내용을 출처 원문과 대조해 볼 필요가 있을 것 같습니다.`,
+      rationale: [`${f.company}의 ${withJosa(String(f.item), '이/가')} ${before ? `'${before}'에서 ` : ''}'${f.after}'${josa(String(f.after), '으로/로')} 갱신되었습니다${isEstimatedGrade(grade) ? '(추정치)' : ''}. 갱신 근거의 세부 조건은 요약만으로는 알 수 없습니다.`],
+      evidence: c.evidence.map((e) => e.ev),
+      conclusionRef: c.ref,
+      guard: c.guard,
+    });
+  }
+  return out;
+}
+
 export function finalizeExec(plan: ExecPlan, aiIn: ExecAiInput | null, now: Date, options: ExecPlanOptions = {}): ExecResult {
   const ai = aiIn ?? EMPTY_EXEC_AI;
   const entityMode = options.entityMode ?? plan.options.entityMode;
@@ -883,8 +1018,15 @@ export function finalizeExec(plan: ExecPlan, aiIn: ExecAiInput | null, now: Date
   const C = asRecord(ai.C);
   const D = asRecord(ai.D) ?? (Array.isArray(ai.D) ? { titles: ai.D } : null);
 
-  const guardLines = (raw: unknown, g: ExecGuard, position: ExecGapPosition | null = null, movement: ExecGapMovement | null = null): string[] => {
-    const r = guardExecSentences(raw, { allowed: g.allowed, inputText: g.inputText, entityMode, position, movement });
+  const guardLines = (
+    raw: unknown,
+    g: ExecGuard,
+    position: ExecGapPosition | null = null,
+    movement: ExecGapMovement | null = null,
+    scope: ExecGuardScope = 'plain',
+    requireNumberTarget = false,
+  ): string[] => {
+    const r = guardExecSentences(raw, { allowed: g.allowed, inputText: g.inputText, entityMode, position, movement, scope, requireNumberTarget });
     addStats(tally, r.stats);
     return r.sentences;
   };
@@ -921,7 +1063,7 @@ export function finalizeExec(plan: ExecPlan, aiIn: ExecAiInput | null, now: Date
       const lo = asRecord(l);
       const role = typeof lo?.role === 'string' && LINE_ROLES.includes(lo.role as ExecLineRole) ? (lo.role as ExecLineRole) : null;
       if (!lo || !role) continue;
-      for (const s of guardLines(lo.text, cand.guard, cand.position, cand.movement ?? null)) lines.push({ role, text: s });
+      for (const s of guardLines(lo.text, cand.guard, cand.position, cand.movement ?? null, role === 'action' ? 'proposal' : 'plain')) lines.push({ role, text: s });
     }
     const roles = new Set(lines.map((l) => l.role));
     if (lines.length < EXEC_LIMITS.conclusions.minLines || !roles.has('change') || !roles.has('why') || !roles.has('action')) {
@@ -954,9 +1096,13 @@ export function finalizeExec(plan: ExecPlan, aiIn: ExecAiInput | null, now: Date
 
   // ── 격차
   const gapAi = new Map<string, unknown>();
+  const gapAiHeadline = new Map<string, unknown>();
   for (const item of asArray(B?.rows)) {
     const o = asRecord(item);
-    if (o && typeof o.id === 'string') gapAi.set(o.id, o.lines);
+    if (o && typeof o.id === 'string') {
+      gapAi.set(o.id, o.lines);
+      gapAiHeadline.set(o.id, o.headline);
+    }
   }
   const gapRows: ExecGapRow[] = plan.gaps.rows.map((g) => {
     const d = g.draft;
@@ -964,7 +1110,7 @@ export function finalizeExec(plan: ExecPlan, aiIn: ExecAiInput | null, now: Date
     let lines: string[] = [];
     let by: WeeklyGeneratedBy = 'rule';
     if (gapAi.has(g.ref)) {
-      const picked = guardLines(gapAi.get(g.ref), g.guard, d.position, d.movement);
+      const picked = guardLines(gapAi.get(g.ref), g.guard, d.position, d.movement, 'plain', true);
       const max = d.status === 'compared' ? EXEC_LIMITS.gaps.maxLines : EXEC_LIMITS.gaps.missingMaxLines;
       const min = d.status === 'compared' ? EXEC_LIMITS.gaps.minLines : 1;
       const mentionsMissing = d.status === 'compared' || picked.some((s) => /미등록|등록되어 있지 않|등록되지 않|등록된 수치가 없/.test(s));
@@ -977,17 +1123,30 @@ export function finalizeExec(plan: ExecPlan, aiIn: ExecAiInput | null, now: Date
       lines = g.ruleLines;
       tally.elementsFallback++;
     }
+    // 제목 줄 사실 문장 — AI 문장이 가드(합니다체·요구형 금지·회사 또는 축 이름 포함)를 통과하면 쓰고, 아니면 서버 규칙 문장
+    let headline = g.ruleHeadline;
+    const aiHead = gapAiHeadline.get(g.ref);
+    if (by === 'ai' && typeof aiHead === 'string') {
+      const picked = guardLines(aiHead, g.guard, d.position, d.movement, 'plain', true);
+      const h = picked.length === 1 ? picked[0]! : '';
+      if (h && charLength(h) <= 100 && (h.includes(d.competitor.name) || h.includes(d.axisLabel))) headline = h;
+    }
     const { reason: _r, priority: _p, ...rest } = d;
-    return { ...rest, lines, evidence: g.evidence.slice(0, 2), generatedBy: by } satisfies ExecGapRow;
+    return { ...rest, headline, lines, evidence: g.evidence.slice(0, 2), generatedBy: by } satisfies ExecGapRow;
   });
   let gapSummary: string[] = [];
   let gapSummaryBy: WeeklyGeneratedBy | null = null;
   if (gapRows.length > 0) {
+    // 요약은 2~3문장이어야 한다 — 문장이 모자라면 규칙 요약으로 대체한다
     const s = guardExecSentences(B?.summary, { allowed: plan.gaps.guard.allowed, inputText: plan.gaps.guard.inputText, entityMode, maxChars: EXEC_LIMITS.gaps.summaryChars });
     addStats(tally, s.stats);
-    if (s.sentences.length > 0) {
+    if (s.sentences.length >= EXEC_LIMITS.gaps.summaryMin) {
       gapSummary = s.sentences.slice(0, EXEC_LIMITS.gaps.summaryMax);
       gapSummaryBy = 'ai';
+    } else {
+      if (B?.summary !== undefined) aiDiscarded.push({ section: 'gaps', id: 'summary', reason: 'summary_too_short' });
+      gapSummary = gapRuleSummary(plan.gaps.rows);
+      gapSummaryBy = 'rule';
     }
   } else if (!plan.gaps.positionOk && !plan.noData) {
     gapSummary = ['비교 기준이 되는 우리 쪽 수치를 불러오지 못했습니다.'];
@@ -1029,6 +1188,7 @@ export function finalizeExec(plan: ExecPlan, aiIn: ExecAiInput | null, now: Date
       lines,
       evidence: t.evidence.map((e) => e.ev),
       generatedBy: by,
+      explain: techExplain(d),
     } satisfies ExecTechSignal;
   });
 
@@ -1040,7 +1200,7 @@ export function finalizeExec(plan: ExecPlan, aiIn: ExecAiInput | null, now: Date
   }
   const moves: ExecBusinessMove[] = [];
   for (const b of plan.business.moves) {
-    const picked = bizAi.has(b.ref) ? guardLines(bizAi.get(b.ref), b.guard) : [];
+    const picked = bizAi.has(b.ref) ? guardLines(bizAi.get(b.ref), b.guard, null, null, 'plain', true) : [];
     tally.elements++;
     if (picked.length < EXEC_LIMITS.business.minLines) {
       // 사업 서술은 규칙 폴백이 없다 — 항목을 생략한다
@@ -1070,11 +1230,11 @@ export function finalizeExec(plan: ExecPlan, aiIn: ExecAiInput | null, now: Date
       const textRaw = typeof o.text === 'string' ? normalizeSpaces(o.text) : '';
       const sentences = splitSentences(textRaw);
       const text = sentences.length === 1 ? sentences[0]! : '';
-      if (!text || !questionEndsOk(text) || charLength(text) > EXEC_LIMITS.questions.text || !endsWithPolite(text)) {
+      if (!text || !endsWithProposal(text) || charLength(text) > EXEC_LIMITS.questions.text || !endsWithPolite(text)) {
         aiDiscarded.push({ section: 'questions', id: '*', reason: 'bad_text' });
         continue;
       }
-      const g = guardExecSentences([text], { allowed: qGuard.allowed, inputText: qGuard.inputText, entityMode, maxChars: EXEC_LIMITS.questions.text });
+      const g = guardExecSentences([text], { allowed: qGuard.allowed, inputText: qGuard.inputText, entityMode, maxChars: EXEC_LIMITS.questions.text, scope: 'proposal' });
       addStats(tally, g.stats);
       if (g.sentences.length !== 1 || seenText.has(text)) continue;
       const evidence: WeeklyReportEvidence[] = [];
@@ -1096,6 +1256,21 @@ export function finalizeExec(plan: ExecPlan, aiIn: ExecAiInput | null, now: Date
       const cid = typeof o.conclusionId === 'string' ? conclusionIdByRef.get(o.conclusionId) ?? null : null;
       seenText.add(text);
       questions.push({ id: `q${questions.length + 1}`, kind, text, rationale: rationale.sentences.slice(0, EXEC_LIMITS.questions.rationaleMax), conclusionId: cid, evidence, generatedBy: 'ai' });
+    }
+    // AI 를 통과한 항목이 2개 미만이면 규칙 폴백(T1~T3)으로 채운다. 폴백 문장도 같은 가드를 통과해야 한다
+    if (questions.length < EXEC_LIMITS.questions.min) {
+      for (const t of ruleQuestionTemplates(plan)) {
+        if (questions.length >= EXEC_LIMITS.questions.fallbackFill) break;
+        if (seenText.has(t.text)) continue;
+        const gt = guardExecSentences([t.text], { allowed: t.guard.allowed, inputText: t.guard.inputText, entityMode, maxChars: EXEC_LIMITS.questions.text, scope: 'proposal' });
+        const gr = guardExecSentences(t.rationale, { allowed: t.guard.allowed, inputText: t.guard.inputText, entityMode });
+        addStats(tally, gt.stats);
+        addStats(tally, gr.stats);
+        if (gt.sentences.length !== 1 || gr.sentences.length < t.rationale.length || t.evidence.length === 0) continue;
+        seenText.add(t.text);
+        const cid = t.conclusionRef ? conclusionIdByRef.get(t.conclusionRef) ?? null : null;
+        questions.push({ id: `q${questions.length + 1}`, kind: t.kind, text: t.text, rationale: gr.sentences.slice(0, EXEC_LIMITS.questions.rationaleMax), conclusionId: cid, evidence: t.evidence.slice(0, EXEC_LIMITS.evidencePerItem), generatedBy: 'rule' });
+      }
     }
   }
 

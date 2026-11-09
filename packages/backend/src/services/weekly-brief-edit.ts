@@ -5,11 +5,13 @@
  *  - 편집 가능: 결론 headline·lines[].text, 격차 summary[]·rows[].lines[], 기술 signals[].lines[], 사업 moves[].lines[], 질문 text·rationale[], 논문 implication.
  *  - 편집 불가: 숫자, 격차 방향·값, 근거 링크·목록, 도메인, 상태, 항목 추가·삭제·순서 변경.
  *  - 값이 null 이면 AI 원문으로 되돌린다. 항목 id 와 문장 위치가 AI 원문에 없으면 거부한다.
- *  - 거부(400): `<`, URL, 개행, 마크다운 기호, 길이 초과, 빈 문자열. 경고만(저장 허용): 합니다체 위반, 금칙어, 서버 숫자에 없는 숫자, 방향 모순, 수집 건수 문구.
+ *  - 거부(400): `<`, URL, 개행, 마크다운 기호, 길이 초과, 빈 문자열. 경고만(저장 허용): 요구·질문형(request), 합니다체·제안형 말끝 위반(ending),
+ *    확인 대상이 없는 제안 문장(no_target), 금칙어, 서버 숫자에 없는 숫자, 방향 모순, 수집 건수 문구.
+ *  - 경고 범위: 제안 줄(role action)과 확인 사항 text 는 proposal(제안형 어미 필수), 제목은 요구·질문형(R1)만 새로 점검하고, 나머지는 plain(제안형 어미 금지).
  *  - 항목 id 에는 '.' 이 없다(경로 구분자).
  */
 
-import { buildAllowed, charLength, editWarnings, smallIntegers, violatesTextPolicy, type EditWarningCode, type ExecGapMovement, type ExecGapPosition } from './weekly-brief-text-guard.js';
+import { buildAllowed, charLength, editWarnings, smallIntegers, violatesTextPolicy, type EditWarningCode, type ExecGapMovement, type ExecGapPosition, type ExecGuardScope } from './weekly-brief-text-guard.js';
 import type { WeeklyBriefEditHistoryEntry, WeeklyBriefEditLimits, WeeklyExecutivePayload } from '../types/weekly-brief.js';
 
 export const EDIT_LIMITS: WeeklyBriefEditLimits = { sentence: 200, headline: 50, question: 200, implication: 100 };
@@ -89,8 +91,8 @@ function positionAt(ai: WeeklyExecutivePayload, path: string): ExecGapPosition |
   return ai.gaps.rows.find((g) => g.id === p.id)?.position ?? null;
 }
 
-/** 편집 경고용 서버 숫자 집합 — 서술 필드를 제외한 payload 의 모든 숫자 + 작은 정수 */
-export function payloadAllowedNumbers(ai: WeeklyExecutivePayload): Set<string> {
+/** 서술 필드를 비운 payload 복사본 (서버 값만 남는다) */
+function blankNarrative(ai: WeeklyExecutivePayload): WeeklyExecutivePayload {
   const blank = JSON.parse(JSON.stringify(ai)) as WeeklyExecutivePayload;
   for (const c of blank.conclusions) {
     c.headline = '';
@@ -105,7 +107,27 @@ export function payloadAllowedNumbers(ai: WeeklyExecutivePayload): Set<string> {
     q.rationale = [];
   }
   for (const p of blank.evidence.papers) p.implication = '';
-  return buildAllowed({ texts: [JSON.stringify(blank)], numbers: smallIntegers(20) });
+  return blank;
+}
+
+/** 편집 경고용 서버 숫자 집합 — 서술 필드를 제외한 payload 의 모든 숫자 + 작은 정수 */
+export function payloadAllowedNumbers(ai: WeeklyExecutivePayload): Set<string> {
+  return buildAllowed({ texts: [JSON.stringify(blankNarrative(ai))], numbers: smallIntegers(20) });
+}
+
+/** 대상 없는 문장 경고(no_target)의 기준 텍스트 — 서술을 뺀 payload 의 서버 값(회사·제품·축·근거 제목 등) */
+function payloadInputText(ai: WeeklyExecutivePayload): string {
+  return JSON.stringify(blankNarrative(ai));
+}
+
+/** 경로가 가리키는 문장의 경고 범위 — 제목은 요구·질문형만, 제안 줄·확인 사항 text 는 proposal, 나머지는 plain */
+export function warningScopeAt(ai: WeeklyExecutivePayload, path: string): ExecGuardScope | 'headline' {
+  const p = parseEditPath(path);
+  if (!p) return 'plain';
+  if (p.kind === 'conclusion_headline') return 'headline';
+  if (p.kind === 'question_text') return 'proposal';
+  if (p.kind === 'conclusion_line') return ai.conclusions.find((c) => c.id === p.id)?.lines[p.index!]?.role === 'action' ? 'proposal' : 'plain';
+  return 'plain';
 }
 
 export interface EditViolation {
@@ -137,6 +159,7 @@ export function rejectReason(text: unknown, limit: number): EditErrorCode | null
  */
 export function validateEdits(ai: WeeklyExecutivePayload, incoming: Record<string, string | null>): ValidateResult {
   const allowed = payloadAllowedNumbers(ai);
+  const inputText = payloadInputText(ai);
   const out: Record<string, string | null> = {};
   const warnings: EditWarning[] = [];
   for (const [path, value] of Object.entries(incoming)) {
@@ -154,8 +177,8 @@ export function validateEdits(ai: WeeklyExecutivePayload, incoming: Record<strin
       continue;
     }
     out[path] = value;
-    // 헤드라인은 명사구라 합니다체 종결을 요구하지 않는다
-    const codes = editWarnings(value, allowed, positionAt(ai, path), movementAt(ai, path)).filter((c) => !(c === 'ending' && parsed.kind === 'conclusion_headline'));
+    // 헤드라인은 요구·질문형만 점검한다(합니다체 종결을 요구하지 않는다). 제안 줄·확인 사항은 제안형 어미와 확인 대상까지 점검한다
+    const codes = editWarnings(value, allowed, positionAt(ai, path), movementAt(ai, path), warningScopeAt(ai, path), inputText);
     if (codes.length > 0) warnings.push({ path, codes });
   }
   return { ok: true, edits: out, warnings };
