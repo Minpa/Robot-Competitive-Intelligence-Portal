@@ -75,8 +75,8 @@ export interface WeeklyBriefHtmlMeta {
   draft?: boolean;
 }
 
-export function weeklyBriefFileName(brief: Pick<WeeklyBriefResponse, 'weekStart' | 'payload'>): string {
-  return weeklyBriefFileNameOf(brief.weekStart, brief.payload.header.weekNumber);
+export function weeklyBriefFileName(brief: Pick<WeeklyBriefResponse, 'generatedAt' | 'payload'>): string {
+  return weeklyBriefFileNameOf(brief.generatedAt || brief.payload.header.generatedAt);
 }
 
 // ───────────────────────── 스타일 ─────────────────────────

@@ -80,7 +80,7 @@ describe('buildReportHtml: structure of the full report', () => {
     expect(html).toContain('2026-10-19 ~ 10-25 · Week 43');
     expect(html).toContain('생성 2026-10-26 08:00 KST');
     expect(html).not.toContain('내재화는 계속되고');
-    expect(weeklyBriefFileName(brief)).toBe('ARGOS_WeeklyBrief_2026-10-19_W43.html');
+    expect(weeklyBriefFileName(brief)).toBe('ARGOS_주간브리프_2026-10-26.html');
   });
 
   it('contains the cover, all 8 sections in order with the fixed ids and numbers, and the footer', () => {

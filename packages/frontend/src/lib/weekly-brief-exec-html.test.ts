@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { WeeklyExecutiveResponse } from '@/types/weekly-brief';
-import { buildWeeklyBriefHtml } from './weekly-brief-html';
+import { buildWeeklyBriefHtml, weeklyBriefFileName } from './weekly-brief-html';
 import { buildExecutiveHtml } from './weekly-brief-exec-html';
 import { planExecSections } from './weekly-brief-exec';
 import { normalizeWeeklyBrief } from './weekly-brief-format';
@@ -69,6 +69,10 @@ function visibleText(h: string): string {
 }
 
 describe.each(['full', 'partial', 'sparse', 'empty'])('v3 HTML (%s)', (name) => {
+  it('file name uses the KST issue date', () => {
+    expect(weeklyBriefFileName(brief(name))).toBe('ARGOS_주간브리프_2026-10-26.html');
+  });
+
   const out = html(name);
 
   it('has none of the forbidden strings and follows the href / img / svg rules', () => {

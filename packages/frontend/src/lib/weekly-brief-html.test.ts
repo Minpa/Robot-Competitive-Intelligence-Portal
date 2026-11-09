@@ -184,7 +184,7 @@ describe('buildWeeklyBriefHtml', () => {
   });
 
   it('파일명', () => {
-    expect(weeklyBriefFileName(makeFullBrief())).toBe('ARGOS_WeeklyBrief_2026-10-19_W43.html');
+    expect(weeklyBriefFileName(makeFullBrief())).toBe('ARGOS_주간브리프_2026-10-26.html');
   });
 });
 
@@ -328,7 +328,7 @@ describe('v1 download HTML is byte-identical to the output before v2 existed', (
   });
 
   it('weeklyBriefFileName works for both versions', () => {
-    expect(weeklyBriefFileName(makeFullBrief())).toBe('ARGOS_WeeklyBrief_2026-10-19_W43.html');
-    expect(weeklyBriefFileName(makeFullReport())).toBe('ARGOS_WeeklyBrief_2026-10-19_W43.html');
+    expect(weeklyBriefFileName(makeFullBrief())).toBe('ARGOS_주간브리프_2026-10-26.html');
+    expect(weeklyBriefFileName(makeFullReport())).toBe('ARGOS_주간브리프_2026-10-26.html');
   });
 });

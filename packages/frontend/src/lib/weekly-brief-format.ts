@@ -359,9 +359,9 @@ export function weeklyBriefPermalink(origin: string, weekStart: string): string 
   return `${origin.replace(/\/+$/, '')}/share/weekly/${weekStart}`;
 }
 
-/** 다운로드 파일명: ARGOS_WeeklyBrief_{weekStart}_W{N}.html */
-export function weeklyBriefFileNameOf(weekStart: string, weekNumber: number): string {
-  return `ARGOS_WeeklyBrief_${weekStart}_W${weekNumber}.html`;
+/** 다운로드 파일명: ARGOS_주간브리프_{발행일 KST YYYY-MM-DD}.html (발행일 = generatedAt, 결정론) */
+export function weeklyBriefFileNameOf(generatedAt: string | null | undefined): string {
+  return `ARGOS_주간브리프_${formatKstDate(generatedAt)}.html`;
 }
 
 /** 문자열을 최대 길이로 줄임(말줄임표 포함). 길이 이하면 그대로 */
