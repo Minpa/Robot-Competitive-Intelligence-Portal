@@ -70,7 +70,7 @@ function visibleText(h: string): string {
 
 describe.each(['full', 'partial', 'sparse', 'empty'])('v3 HTML (%s)', (name) => {
   it('file name uses the KST issue date', () => {
-    expect(weeklyBriefFileName(brief(name))).toBe('ARGOS_주간브리프_2026-10-26.html');
+    expect(weeklyBriefFileName(brief(name))).toBe('ARGOS_주간브리프_2026-10-26_W43.html');
   });
 
   const out = html(name);

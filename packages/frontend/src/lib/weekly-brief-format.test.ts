@@ -300,7 +300,9 @@ describe('기타', () => {
   it('영구 링크·파일명', () => {
     expect(weeklyBriefPermalink('https://argos.example.com', '2026-10-19')).toBe('https://argos.example.com/share/weekly/2026-10-19');
     expect(weeklyBriefPermalink('https://argos.example.com/', '2026-10-19')).toBe('https://argos.example.com/share/weekly/2026-10-19');
-    expect(weeklyBriefFileNameOf('2026-10-25T23:05:00.000Z')).toBe('ARGOS_주간브리프_2026-10-26.html');
+    expect(weeklyBriefFileNameOf('2026-10-25T23:05:00.000Z', { weekNumber: 43, weekStart: '2026-10-19' })).toBe('ARGOS_주간브리프_2026-10-26_W43.html');
+    expect(weeklyBriefFileNameOf('2026-10-25T23:05:00.000Z', { weekStart: '2026-10-19' })).toBe('ARGOS_주간브리프_2026-10-26_W43.html');
+    expect(weeklyBriefFileNameOf('2026-02-01T00:00:00.000Z', { weekNumber: 5 })).toBe('ARGOS_주간브리프_2026-02-01_W05.html');
   });
   it('planKeyMessages: 첫 메시지가 stat 일 때만 lead', () => {
     const msgs = makeFullBrief().payload.keyMessages;

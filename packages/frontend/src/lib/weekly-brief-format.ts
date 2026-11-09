@@ -359,9 +359,28 @@ export function weeklyBriefPermalink(origin: string, weekStart: string): string 
   return `${origin.replace(/\/+$/, '')}/share/weekly/${weekStart}`;
 }
 
-/** 다운로드 파일명: ARGOS_주간브리프_{발행일 KST YYYY-MM-DD}.html (발행일 = generatedAt, 결정론) */
-export function weeklyBriefFileNameOf(generatedAt: string | null | undefined): string {
-  return `ARGOS_주간브리프_${formatKstDate(generatedAt)}.html`;
+/** 월요일 'YYYY-MM-DD' 의 ISO 주차 번호 (UTC 산술, 결정론). 파싱 불가면 null */
+function isoWeekOfYmd(ymd: string | null | undefined): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd ?? '');
+  if (!m) return null;
+  const date = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  const day = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - day);
+  const yearStart = Date.UTC(date.getUTCFullYear(), 0, 1);
+  return Math.ceil(((date.getTime() - yearStart) / 86_400_000 + 1) / 7);
+}
+
+/**
+ * 다운로드 파일명: ARGOS_주간브리프_{발행일 KST YYYY-MM-DD}_W{ISO주차 2자리}.html
+ * (발행일 = generatedAt, 주차 = header.weekNumber 우선, 없으면 weekStart 로 계산, 결정론)
+ */
+export function weeklyBriefFileNameOf(
+  generatedAt: string | null | undefined,
+  week?: { weekNumber?: number | null; weekStart?: string | null },
+): string {
+  const n = week?.weekNumber != null && Number.isFinite(week.weekNumber) && week.weekNumber > 0 ? week.weekNumber : isoWeekOfYmd(week?.weekStart);
+  const suffix = n != null ? `_W${String(n).padStart(2, '0')}` : '';
+  return `ARGOS_주간브리프_${formatKstDate(generatedAt)}${suffix}.html`;
 }
 
 /** 문자열을 최대 길이로 줄임(말줄임표 포함). 길이 이하면 그대로 */
