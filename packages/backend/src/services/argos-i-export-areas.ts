@@ -39,6 +39,7 @@ import {
   STRATEGY_WARROOM_AREA,
   VISION_COST_AREA,
 } from './argos-i-export-areas-extra.js';
+import { REQUESTS_AREA } from './argos-i-export-areas-requests.js';
 
 /** 번들에 포함되는 모든 영역 (overview 는 다른 영역 결과를 합산하므로 마지막에 빌드한다) */
 export const AREA_DEFS: readonly AreaDef[] = [
@@ -71,6 +72,7 @@ export const AREA_DEFS: readonly AreaDef[] = [
   EVENT_BRIEFS_AREA,
   EXTERNAL_SOURCES_AREA,
   DATA_QUALITY_AREA,
+  REQUESTS_AREA,
 ];
 
 export const OVERVIEW_AREA_ID = OVERVIEW_AREA.id;

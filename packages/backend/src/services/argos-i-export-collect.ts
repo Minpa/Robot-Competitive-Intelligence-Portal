@@ -417,6 +417,20 @@ export function createCollector(deps: CollectDeps = defaultCollectDeps): Collect
       ),
     }),
 
+    // ARGOS_I 요청 — 최근 7일 종결 요청 (note·payload_hash·승인자 컬럼은 읽지 않고, 결과는 SQL 에서 스칼라 요약만 뽑는다). 최대 500건
+    requests: async () => ({
+      rows: await json(`SELECT jsonb_build_object('id', id, 'type', type, 'params', params, 'status', status, 'error_code', error_code,
+               'finished_at', ${ISO_TSTZ('finished_at')},
+               'result', jsonb_strip_nulls(jsonb_build_object('recordCount', result->'recordCount', 'inserted', result->'inserted', 'skipped', result->'skipped',
+                 'rejected', result->'rejected', 'stagedCount', result->'stagedCount', 'articleId', result->'articleId', 'domain', result->'domain', 'days', result->'days',
+                 'itemCount', CASE WHEN jsonb_typeof(result->'items') = 'array' THEN jsonb_array_length(result->'items')
+                                   WHEN jsonb_typeof(result->'data'->'items') = 'array' THEN jsonb_array_length(result->'data'->'items')
+                                   WHEN jsonb_typeof(result->'insightPoints') = 'array' THEN jsonb_array_length(result->'insightPoints') END))) AS r
+            FROM argos_i_requests
+            WHERE status IN ('done','failed','rejected','cancelled') AND finished_at >= NOW() - INTERVAL '7 days'
+            ORDER BY finished_at DESC, id LIMIT 500`),
+    }),
+
     'data-quality': async () => ({
       latest:
         (await run(`SELECT id::text AS id, total_robots, average_completeness::float8 AS average_completeness, critical_count, warning_count, ${ISO_TS('created_at')} AS created_at FROM data_audit_reports ORDER BY created_at DESC, id LIMIT 1`))[0] ?? null,
@@ -436,5 +450,5 @@ export function createCollector(deps: CollectDeps = defaultCollectDeps): Collect
 export const COLLECTABLE_AREA_IDS: readonly string[] = [
   'overview', 'companies', 'robots', 'components', 'actuator-map', 'actuator-sourcing', 'robot-benchmark', 'hand-benchmark', 'ci-matrix', 'ci-changes',
   'videos', 'papers', 'news', 'tech-trends', 'weekly-briefs', 'keywords', 'application-cases', 'scores', 'vision-cost', 'products', 'competitive-alerts',
-  'aggregations', 'strategy-warroom', 'lg-humanoid-models', 'coverage-field-events', 'regulations', 'event-briefs', 'external-sources', 'data-quality',
+  'aggregations', 'strategy-warroom', 'lg-humanoid-models', 'coverage-field-events', 'regulations', 'event-briefs', 'external-sources', 'data-quality', 'requests',
 ];

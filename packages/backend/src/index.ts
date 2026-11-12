@@ -16,6 +16,15 @@ import { autoApplyActuatorData } from './services/actuator-auto-apply.service.js
 import { ensureActuatorSourcingTables } from './db/actuator-sourcing.ddl.js';
 import { ensureWeeklyBriefTables } from './db/weekly-brief.ddl.js';
 import { ensureArgosIExportTables } from './db/argos-i-export.ddl.js';
+import { ensureArgosIRequestTables } from './db/argos-i-requests.ddl.js';
+import {
+  isArgosIRequestsEnabled,
+  isRequestTokenConfigured,
+  isRequestTokenTooShort,
+  parseInternalPatterns,
+  requestTokenCollidesWithPullToken,
+} from './services/argos-i-requests-config.js';
+import { warnAllowedHostsAtStartup } from './services/argos-i-requests-runtime.js';
 import {
   WEEKLY_BRIEF_TASK_NAME,
   isStartupWeeklyBriefEnabled,
@@ -113,6 +122,17 @@ const start = async () => {
     await ensureArgosIExportTables().catch((err) => {
       console.warn('[ArgosIExport] ensureTables 실패:', err?.message ?? err);
     });
+    // ARGOS_I 요청 인터페이스 테이블 (실패해도 기동은 계속한다 — 요청 API 만 영향)
+    await ensureArgosIRequestTables().catch((err) => {
+      console.warn('[ArgosIRequests] ensureTables 실패:', err?.message ?? err);
+    });
+    // 요청 인터페이스 설정 점검 (값은 출력하지 않는다)
+    if (isRequestTokenTooShort()) console.warn('[ArgosIRequest] warn=token_too_short minLength=32');
+    else if (isArgosIRequestsEnabled() && !isRequestTokenConfigured()) console.log('[ArgosIRequest] token=not_configured api=disabled');
+    if (requestTokenCollidesWithPullToken()) console.warn('[ArgosIRequest] warn=request_token_equals_pull_token api=disabled');
+    const patternCheck = parseInternalPatterns();
+    if (patternCheck.invalid > 0) console.warn(`[ArgosIRequest] warn=invalid_internal_patterns skipped=${patternCheck.invalid}`);
+    void warnAllowedHostsAtStartup().catch(() => undefined);
     if (isArgosITokenTooShort()) console.warn('[ArgosIExport] warn=token_too_short minLength=32');
     else if (!isArgosITokenConfigured()) console.log('[ArgosIExport] token=not_configured api=disabled');
     // 주간 브리프 성공 직후 당일 번들을 재생성한다 (PM 결정: 월요일 브리프를 같은 날 번들에 반영). 순환 import 를 피하려고 여기서 연결한다

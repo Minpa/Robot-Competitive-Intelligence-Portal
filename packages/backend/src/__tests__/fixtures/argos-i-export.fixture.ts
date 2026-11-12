@@ -300,6 +300,14 @@ export function rawByArea(): Record<string, any> {
       ],
     },
     'external-sources': { rows: rawExternal() },
+    // 요청 영역: note·승인자·payload_hash 는 컬럼으로 읽지 않지만, 혹시 섞여 들어와도 번들에 나가지 않아야 한다 (SENTINEL 누출 검사)
+    requests: {
+      rows: [
+        { id: U(201), type: 'query', params: { query: 'hand_benchmark_top', limit: 10 }, status: 'done', error_code: null, finished_at: '2026-11-10T01:00:00.000Z', result: { recordCount: 10, itemCount: 10, secret: SENTINEL }, note: SENTINEL, approved_by: EMAIL, payload_hash: SENTINEL },
+        { id: U(202), type: 'analyze', params: { target: 'robot', slug: 'figure-02' }, status: 'failed', error_code: 'not_found', finished_at: '2026-11-11T02:00:00.000Z', result: null, note: SENTINEL },
+        { id: U(203), type: 'add_source', params: { kind: 'arxiv', id: '2401.01234' }, status: 'done', error_code: null, finished_at: '2026-11-11T02:00:00.000Z', result: { kind: 'arxiv', inserted: 1, skipped: 0, items: [{ title: 'x' }] } },
+      ],
+    },
     'data-quality': { latest: { id: U(191), report_data: { big: SENTINEL }, total_robots: 20, average_completeness: 78.5, critical_count: 2, warning_count: 9, created_at: '2026-10-27T05:00:00' } },
   };
 }
@@ -328,6 +336,7 @@ export function emptyByArea(): Record<string, any> {
     }
   }
   empty['data-quality'] = { latest: null };
+  empty.requests = { rows: [] };
   empty.overview = { ...empty.overview, markers: { pipeline: null, weeklyBrief: null }, ciLastVerifiedAt: null };
   empty['actuator-map'] = { ...full['actuator-map'], robots: [], suppliers: [], edges: [], adoptions: [], vendorMarkets: [] };
   empty['actuator-sourcing'] = empty['actuator-map'];

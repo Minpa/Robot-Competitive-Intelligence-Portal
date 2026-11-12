@@ -2,7 +2,7 @@
  * ARGOS_I 일일 스냅샷 라우트.
  *
  *  - argosIRoutes      (/api/argos-i)        : 사내 ARGOS_I 서버가 토큰(Bearer ARGOS_I_EXPORT_TOKEN)으로 pull — manifest, latest.zip, {date}.zip, {date}/{file}
- *  - argosIAdminRoutes (/api/admin/argos-i)  : 수동 생성(202)·상태 — adminOnly (admin.ts 의 /api/admin/* 다수는 preHandler 가 없으므로 반드시 명시한다)
+ *  - argosIAdminRoutes (/api/admin/argos-i)  : 수동 생성(202)·상태, 요청 인터페이스 관리(목록·통계·승인·거부·재개) — adminOnly (admin.ts 의 /api/admin/* 다수는 preHandler 가 없으므로 반드시 명시한다)
  *
  * 관리자 JWT 로 번들을 내려받는 경로는 만들지 않는다 (다운로드는 토큰 인증 경로 하나).
  * 공통 오류 형식은 `{ error: '<code>' }`. 응답·로그에 토큰 값을 싣지 않는다.
@@ -27,6 +27,16 @@ import {
 } from '../services/argos-i-export.service.js';
 import { MAX_CONCURRENT_ZIPS, buildBundleZip } from '../services/argos-i-export-zip.js';
 import { isValidYmd } from '../services/weekly-brief-period.js';
+import {
+  approveRequest,
+  getAdminStats,
+  listRequests,
+  rejectPendingRequest,
+  resumeRequests,
+  toAdminView,
+} from '../services/argos-i-requests.service.js';
+import { REQUEST_STATUSES, type RequestStatus } from '../services/argos-i-requests-store.js';
+import { UUID_RE } from '../services/argos-i-requests-schema.js';
 import { ARGOS_I_EXPORT_SCHEMA_VERSION, type ArgosIManifestResponse } from '../types/argos-i-export.js';
 
 const adminOnly = [authMiddleware, requireRole('admin')];
@@ -169,4 +179,53 @@ export async function argosIAdminRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get('/export/status', { preHandler: adminOnly }, async () => getArgosIExportRunStatus());
+
+  // 요청 인터페이스 관리자 API (모두 adminOnly)
+  registerRequestsAdminRoutes(fastify);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 요청 인터페이스 관리자 API (ARGOS_I → ARGOS 요청, 15절) — 모든 라우트에 adminOnly 를 명시한다.
+// note(자유 텍스트)는 이 목록에서만 보인다. payload_hash·멱등 해시·거부된 본문은 어디에도 없다.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const adminLabel = (request: FastifyRequest): string => `admin:${request.user?.userId ?? 'unknown'}`;
+
+function registerRequestsAdminRoutes(fastify: FastifyInstance) {
+  fastify.get<{ Querystring: { status?: string; limit?: string } }>('/requests', { preHandler: adminOnly }, async (request, reply) => {
+    const { status, limit } = request.query;
+    let statuses: RequestStatus[] | undefined;
+    if (status) {
+      const parts = status.split(',').map((x) => x.trim());
+      if (parts.some((p) => !(REQUEST_STATUSES as readonly string[]).includes(p))) return reply.status(400).send({ error: 'invalid_status' });
+      statuses = parts as RequestStatus[];
+    }
+    const n = limit === undefined ? 100 : Number(limit);
+    if (!Number.isInteger(n) || n < 1 || n > 100) return reply.status(400).send({ error: 'invalid_limit' });
+    const rows = await listRequests({ status: statuses, limit: n });
+    return { items: rows.map(toAdminView), count: rows.length };
+  });
+
+  fastify.get('/requests/stats', { preHandler: adminOnly }, async () => getAdminStats());
+
+  fastify.post('/requests/resume', { preHandler: adminOnly }, async (request) => {
+    const s = await resumeRequests(adminLabel(request));
+    return { suspended: s.suspended };
+  });
+
+  fastify.post<{ Params: { id: string } }>('/requests/:id/approve', { preHandler: adminOnly }, async (request, reply) => {
+    if (!UUID_RE.test(request.params.id)) return reply.status(400).send({ error: 'invalid_id' });
+    const out = await approveRequest(request.params.id, adminLabel(request));
+    if (out.kind === 'not_found') return reply.status(404).send({ error: 'not_found' });
+    if (out.kind === 'not_pending') return reply.status(409).send({ error: 'not_pending' });
+    return toAdminView(out.row);
+  });
+
+  fastify.post<{ Params: { id: string } }>('/requests/:id/reject', { preHandler: adminOnly }, async (request, reply) => {
+    if (!UUID_RE.test(request.params.id)) return reply.status(400).send({ error: 'invalid_id' });
+    const out = await rejectPendingRequest(request.params.id);
+    if (out.kind === 'not_found') return reply.status(404).send({ error: 'not_found' });
+    if (out.kind === 'not_pending') return reply.status(409).send({ error: 'not_pending' });
+    return toAdminView(out.row);
+  });
 }

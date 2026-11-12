@@ -23,6 +23,8 @@ import { runTechTrendPipeline, DEFAULT_PIPELINE_CRON, PIPELINE_TASK_NAME, isStar
 import { runWeeklyBrief, DEFAULT_WEEKLY_BRIEF_CRON, WEEKLY_BRIEF_TASK_NAME } from './weekly-brief.service.js';
 import { runArgosIExport, setUpstreamBusyProvider } from './argos-i-export.service.js';
 import { ARGOS_I_EXPORT_TASK_NAME, DEFAULT_ARGOS_I_EXPORT_CRON } from './argos-i-export-config.js';
+import { runArgosIRequestsTask } from './argos-i-requests-runtime.js';
+import { ARGOS_I_REQUESTS_TASK_NAME, resolveArgosIRequestsCron } from './argos-i-requests-config.js';
 import { getDataCoverageService } from './data-coverage.service.js';
 import { DATA_COVERAGE_SNAPSHOT_TASK_NAME, DEFAULT_DATA_COVERAGE_SNAPSHOT_CRON } from './data-coverage-snapshot.js';
 
@@ -74,6 +76,7 @@ const SCHEDULE_VIDEO_TAGGING = process.env.CRON_VIDEO_TAGGING || '0 4 * * *'; //
 const SCHEDULE_TECH_TREND_PIPELINE = process.env.CRON_TECH_TREND_PIPELINE || DEFAULT_PIPELINE_CRON; // 매일 05:30 KST (태깅 체인 이후)
 const SCHEDULE_WEEKLY_BRIEF = process.env.CRON_WEEKLY_BRIEF || DEFAULT_WEEKLY_BRIEF_CRON; // 매주 월 08:00 KST (직전 월~일 주간 브리프)
 const SCHEDULE_ARGOS_I_EXPORT = process.env.CRON_ARGOS_I_EXPORT || DEFAULT_ARGOS_I_EXPORT_CRON; // 매일 07:00 KST (ARGOS_I 일일 스냅샷 번들)
+const SCHEDULE_ARGOS_I_REQUESTS = resolveArgosIRequestsCron(); // 매분 (ARGOS_I 요청 폴러, CRON_ARGOS_I_REQUESTS 로 변경)
 const SCHEDULE_DATA_COVERAGE_SNAPSHOT = process.env.CRON_DATA_COVERAGE_SNAPSHOT || DEFAULT_DATA_COVERAGE_SNAPSHOT_CRON; // 매일 06:30 KST (데이터 커버리지 일일 스냅샷)
 
 class SchedulerService {
@@ -110,20 +113,25 @@ class SchedulerService {
     // 데이터 커버리지 일일 스냅샷(읽기 전용 집계 → data_migrations 한 행). DISABLE_DATA_COVERAGE_SNAPSHOT=true 면 태스크는 등록되나 실행 시 아무것도 하지 않는다
     this.registerTask(DATA_COVERAGE_SNAPSHOT_TASK_NAME, '데이터 커버리지 일일 스냅샷', SCHEDULE_DATA_COVERAGE_SNAPSHOT, () => this.runDataCoverageSnapshot());
 
-    console.log('[Scheduler] Initialized with 8 tasks');
+    // ARGOS_I 요청 폴러(큐 선점·예산·승인 게이트). ARGOS_I_REQUESTS_ENABLED 가 true 가 아니거나 DISABLE_ARGOS_I_REQUESTS=true 면 태스크는 등록되나 실행 시 아무것도 하지 않는다
+    this.registerTask(ARGOS_I_REQUESTS_TASK_NAME, 'ARGOS_I 요청 처리', SCHEDULE_ARGOS_I_REQUESTS, async () => {
+      await runArgosIRequestsTask();
+    }, true); // 매분 실행되므로 시작·완료 로그는 생략한다 (처리 건이 있을 때 폴러가 한 줄 로그를 남긴다)
+
+    console.log('[Scheduler] Initialized with 9 tasks');
   }
 
-  private registerTask(name: string, label: string, cronExpr: string, handler: () => Promise<void>) {
+  private registerTask(name: string, label: string, cronExpr: string, handler: () => Promise<void>, quiet = false) {
     const job = cron.schedule(cronExpr, async () => {
       const task = this.tasks.get(name);
       if (!task || task.isRunning) return;
 
       task.isRunning = true;
-      console.log(`[Scheduler] Starting task: ${name}`);
+      if (!quiet) console.log(`[Scheduler] Starting task: ${name}`);
       try {
         await handler();
         task.lastRun = new Date();
-        console.log(`[Scheduler] Completed task: ${name}`);
+        if (!quiet) console.log(`[Scheduler] Completed task: ${name}`);
       } catch (err) {
         console.error(`[Scheduler] Task failed: ${name}`, err);
       } finally {
@@ -167,6 +175,7 @@ class SchedulerService {
           case WEEKLY_BRIEF_TASK_NAME: await runWeeklyBrief({ reason }); break;
           case ARGOS_I_EXPORT_TASK_NAME: await runArgosIExport({ reason }); break;
           case DATA_COVERAGE_SNAPSHOT_TASK_NAME: await this.runDataCoverageSnapshot(); break;
+          case ARGOS_I_REQUESTS_TASK_NAME: await runArgosIRequestsTask(); break;
         }
         task.lastRun = new Date();
       } catch (err) {

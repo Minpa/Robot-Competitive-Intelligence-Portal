@@ -13,6 +13,7 @@ import {
 } from './ingest-guard.util.js';
 import { detectInjection } from './llm-input-guard.js';
 import { recordInputGuard } from './llm-guard-metrics.js';
+import { createGuardContext, guardIngestFields, type GuardContext, type IngestGuardField } from './argos-i-inbound-guard.js';
 
 const MAX_TITLE_LENGTH = 500;
 const MAX_SOURCE_LENGTH = 255;
@@ -116,6 +117,32 @@ function summarizeZodError(error: z.ZodError): string {
   return error.issues.map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`).join('; ');
 }
 
+/**
+ * 사내 정보 차단(인바운드 가드 `ingest` 프로파일) 대상 필드: url, title, summary, 알림 title/summary.
+ * 원문(zod 파싱 전)에서 문자열만 꺼낸다. 규칙은 이메일·내부 도메인·호스트명·내부 경로·운영자 패턴·용어 해시·blob 과
+ * 헤더·괄호형 분류 라벨이다 (본문의 일반 단어는 거부하지 않는다).
+ */
+export function ingestGuardFields(raw: unknown): IngestGuardField[] {
+  if (!raw || typeof raw !== 'object') return [];
+  const o = raw as Record<string, unknown>;
+  const fields: IngestGuardField[] = [
+    { value: o.url, kind: 'url' },
+    { value: o.title, kind: 'free' },
+    { value: o.summary, kind: 'free' },
+  ];
+  if (Array.isArray(o.alerts)) {
+    for (const a of o.alerts.slice(0, 50)) {
+      if (a && typeof a === 'object') fields.push({ value: (a as Record<string, unknown>).title, kind: 'free' }, { value: (a as Record<string, unknown>).summary, kind: 'free' });
+    }
+  }
+  return fields;
+}
+
+/** 항목이 거부되면 사유 코드 목록, 통과면 빈 배열 */
+export function guardIngestItem(raw: unknown, ctx: GuardContext): string[] {
+  return guardIngestFields(ingestGuardFields(raw), ctx);
+}
+
 function extractRawTitleAndUrl(raw: unknown): { title?: string; url?: string } {
   if (raw && typeof raw === 'object') {
     const obj = raw as Record<string, unknown>;
@@ -175,6 +202,8 @@ export async function ingestArticles(payload: IngestPayload): Promise<IngestResu
   // 지시문 패턴 탐지는 표식+지표만 한다 (저장은 거부하지 않는다). 배치 끝에 한 번 기록
   const guardResults: Array<{ truncated: boolean; hits: Array<{ category: string }> }> = [];
 
+  const guardCtx = createGuardContext(process.env);
+
   let robotsCache: RobotNameRef[] | null = null;
   const getRobots = async (): Promise<RobotNameRef[]> => {
     if (!robotsCache) {
@@ -187,6 +216,13 @@ export async function ingestArticles(payload: IngestPayload): Promise<IngestResu
     const raw = payload.articles[index];
 
     try {
+      // 사내 정보 차단: 항목 단위로 거부한다 (배치는 롤백·중단하지 않는다). 거부 항목의 title/url 은 응답에 되돌려주지 않는다
+      const rejected = guardIngestItem(raw, guardCtx);
+      if (rejected.length > 0) {
+        errors.push({ index, error: `internal_data_rejected:${rejected.join(',')}` });
+        continue;
+      }
+
       const parsed = ArticleItemSchema.safeParse(raw);
       if (!parsed.success) {
         const { title, url } = extractRawTitleAndUrl(raw);

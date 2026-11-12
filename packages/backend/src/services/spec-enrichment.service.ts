@@ -157,6 +157,47 @@ export class SpecEnrichmentService {
     return result;
   }
 
+  /** AI 키(Anthropic)가 설정되어 있는지 */
+  isConfigured(): boolean {
+    return this.client !== null;
+  }
+
+  /**
+   * 로봇 1건 보강 (ARGOS_I 분석 요청의 단건 진입점). 기존 run() 은 변경하지 않으며 같은 규칙을 따른다:
+   * body_specs 가 없는 로봇만, 이미 대기·반려된 후보가 있으면 다시 호출하지 않고, 결과는 ci_staging(pending)에만 적재한다.
+   * 스펙 값은 반환하지 않고 필드 이름만 돌려준다 (값은 관리자 승인 후에만 반영된다).
+   */
+  async enrichRobot(
+    robotId: string,
+  ): Promise<{ status: 'staged' | 'not_found' | 'not_configured' | 'has_specs' | 'already_decided' | 'no_evidence' | 'no_specs'; fields: string[] }> {
+    if (!this.client) return { status: 'not_configured', fields: [] };
+    const [robot] = await db.select({ id: humanoidRobots.id, name: humanoidRobots.name }).from(humanoidRobots).where(eq(humanoidRobots.id, robotId)).limit(1);
+    if (!robot) return { status: 'not_found', fields: [] };
+    const [hasBody] = await db.select({ robotId: bodySpecs.robotId }).from(bodySpecs).where(eq(bodySpecs.robotId, robotId)).limit(1);
+    if (hasBody) return { status: 'has_specs', fields: [] };
+
+    const decided = await db
+      .select({ payload: ciStaging.payload })
+      .from(ciStaging)
+      .where(and(eq(ciStaging.updateType, SPEC_ENRICHMENT_UPDATE_TYPE), ne(ciStaging.status, 'applied')));
+    if (decided.some((d) => (d.payload as { robotId?: string } | null)?.robotId === robot.id)) return { status: 'already_decided', fields: [] };
+
+    const evidence = await this.collectEvidence(robot.id, robot.name);
+    if (evidence.length === 0) return { status: 'no_evidence', fields: [] };
+    const specs = await this.extract(robot.name, evidence);
+    if (!specs) return { status: 'no_specs', fields: [] };
+    const fields = this.describeFields(specs);
+    if (fields.length === 0) return { status: 'no_specs', fields: [] };
+
+    await db.insert(ciStaging).values({
+      updateType: SPEC_ENRICHMENT_UPDATE_TYPE,
+      sourceChannel: 'auto',
+      status: 'pending',
+      payload: { robotId: robot.id, robotName: robot.name, specs, evidenceCount: evidence.length, detectedAt: new Date().toISOString() },
+    });
+    return { status: 'staged', fields };
+  }
+
   private async collectEvidence(robotId: string, robotName: string): Promise<EvidenceItem[]> {
     // 1) 연결된 기사·영상
     const linked = await db

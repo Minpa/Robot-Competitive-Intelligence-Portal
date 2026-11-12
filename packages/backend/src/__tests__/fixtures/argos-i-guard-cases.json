@@ -1,0 +1,1266 @@
+{
+  "_comment": "가짜 값만 사용한다. 인바운드·아웃바운드 가드가 같은 판정·사유 코드를 내는지 확인하는 공유 픽스처 (ARGOS_I 는 자기 가드 테스트에 그대로 쓴다)",
+  "options": {
+    "now": "2026-11-12T03:00:00.000Z",
+    "allowedHosts": [
+      "youtube.com",
+      "youtu.be",
+      "arxiv.org",
+      "therobotreport.com"
+    ],
+    "internalDomains": [],
+    "patterns": [
+      "zeta-\\d+"
+    ],
+    "termHashes": [
+      "07f15cde5b181425db8524becd96263d600c9652c7de5b89fe1a644f8fd0724b",
+      "a14f15f511ad72889808be3239240237c5a1a91a43a1f1c03e513059f8b564a3"
+    ]
+  },
+  "cases": [
+    {
+      "name": "pass: arxiv",
+      "request": {
+        "type": "add_source",
+        "params": {
+          "kind": "arxiv",
+          "id": "2401.01234"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": true,
+        "reasons": [],
+        "canonical": {
+          "type": "add_source",
+          "params": {
+            "kind": "arxiv",
+            "id": "2401.01234"
+          }
+        }
+      }
+    },
+    {
+      "name": "pass: analyze robot",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": true,
+        "reasons": [],
+        "canonical": {
+          "type": "analyze",
+          "params": {
+            "target": "robot",
+            "slug": "figure-02"
+          }
+        }
+      }
+    },
+    {
+      "name": "pass: query company_recent",
+      "request": {
+        "type": "query",
+        "params": {
+          "query": "company_recent",
+          "company": "lg-electronics",
+          "weeks": 4
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": true,
+        "reasons": [],
+        "canonical": {
+          "type": "query",
+          "params": {
+            "query": "company_recent",
+            "company": "lg-electronics",
+            "weeks": 4
+          }
+        }
+      }
+    },
+    {
+      "name": "pass: plain note",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "지난주 영상 후속 확인 요청",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": true,
+        "reasons": [],
+        "canonical": {
+          "type": "analyze",
+          "params": {
+            "target": "robot",
+            "slug": "figure-02"
+          },
+          "note": "지난주 영상 후속 확인 요청"
+        }
+      }
+    },
+    {
+      "name": "pass: defaults are filled",
+      "request": {
+        "type": "query",
+        "params": {
+          "query": "hand_benchmark_top"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": true,
+        "reasons": [],
+        "canonical": {
+          "type": "query",
+          "params": {
+            "query": "hand_benchmark_top",
+            "limit": 10
+          }
+        }
+      }
+    },
+    {
+      "name": "pass: article url loses tracking params and fragment",
+      "request": {
+        "type": "add_source",
+        "params": {
+          "kind": "article_url",
+          "url": "https://www.therobotreport.com/a/b/?utm_source=x&id=3#frag"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": true,
+        "reasons": [],
+        "canonical": {
+          "type": "add_source",
+          "params": {
+            "kind": "article_url",
+            "url": "https://www.therobotreport.com/a/b/?id=3"
+          }
+        }
+      }
+    },
+    {
+      "name": "pass: youtube url becomes id",
+      "request": {
+        "type": "add_source",
+        "params": {
+          "kind": "youtube_video",
+          "url": "https://youtu.be/dQw4w9WgXcQ?t=5"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": true,
+        "reasons": [],
+        "canonical": {
+          "type": "add_source",
+          "params": {
+            "kind": "youtube_video",
+            "id": "dQw4w9WgXcQ"
+          }
+        }
+      }
+    },
+    {
+      "name": "pass: year in note is fine",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "2026 데모 영상 확인",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": true,
+        "reasons": [],
+        "canonical": {
+          "type": "analyze",
+          "params": {
+            "target": "robot",
+            "slug": "figure-02"
+          },
+          "note": "2026 데모 영상 확인"
+        }
+      }
+    },
+    {
+      "name": "pass: news words in note",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "비교 대상 추가 확인",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": true,
+        "reasons": [],
+        "canonical": {
+          "type": "analyze",
+          "params": {
+            "target": "robot",
+            "slug": "figure-02"
+          },
+          "note": "비교 대상 추가 확인"
+        }
+      }
+    },
+    {
+      "name": "reject: email",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "hong.gildong@lge.com",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "internal_domain",
+          "email_detected"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: obfuscated email",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "hong [at] lge [dot] com",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "internal_domain",
+          "email_detected"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: employee id",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "AB1234567",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "employee_id",
+          "number_unit_in_note"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: korean classification label",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "[대외비] 다음 분기 계획",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "classification_label"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: english classification label",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "Confidential – Internal Only",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "classification_label"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: unc path",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "\\\\corp-fs01\\share\\plan.xlsx",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "internal_host_name",
+          "unc_or_file_path"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: drive path",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "C:\\Users\\kim\\a.xlsx",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "unc_or_file_path"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: unix home path",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "/home/dev/a.csv",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "unc_or_file_path"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: http private ip url",
+      "request": {
+        "type": "add_source",
+        "params": {
+          "kind": "article_url",
+          "url": "http://10.1.2.3/x"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "url_scheme",
+          "url_host_not_allowed",
+          "private_host"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: internal intranet url",
+      "request": {
+        "type": "add_source",
+        "params": {
+          "kind": "article_url",
+          "url": "https://intranet.lge.com/x"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "url_host_not_allowed",
+          "internal_domain"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: unlisted host",
+      "request": {
+        "type": "add_source",
+        "params": {
+          "kind": "article_url",
+          "url": "https://example-unlisted.com/a"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "url_host_not_allowed"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: file scheme",
+      "request": {
+        "type": "add_source",
+        "params": {
+          "kind": "article_url",
+          "url": "file:///etc/passwd"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "url_scheme",
+          "unc_or_file_path"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: torque number+unit",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "토크 120Nm 요구",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "number_unit_in_note"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: price number+unit",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "목표 단가 300만원",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "number_unit_in_note"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: base64 blob",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "QUJDREVGR0hJSktMTU5PUFFSU1RVVldYWVphYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ekFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaYWJjZGVmZ2hpamtsbW5vcA==",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "blob_detected"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: unknown top-level key",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "sourcePublic": true,
+        "projectX": 1
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "unknown_key"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: unknown params key",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02",
+          "extra": 1
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "unknown_key"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "invalid: sourcePublic missing",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        }
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "source_not_public"
+        ],
+        "kind": "invalid"
+      }
+    },
+    {
+      "name": "invalid: sourcePublic not true",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "sourcePublic": "true"
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "source_not_public"
+        ],
+        "kind": "invalid"
+      }
+    },
+    {
+      "name": "invalid: bad slug",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "Figure 02"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "invalid_type_or_shape"
+        ],
+        "kind": "invalid"
+      }
+    },
+    {
+      "name": "invalid: topic days",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "topic",
+          "domain": "hand",
+          "days": 10
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "invalid_type_or_shape"
+        ],
+        "kind": "invalid"
+      }
+    },
+    {
+      "name": "unsupported: reserved type",
+      "request": {
+        "type": "watch_register",
+        "params": {},
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [],
+        "kind": "unsupported"
+      }
+    },
+    {
+      "name": "unsupported: reserved type regenerate_brief",
+      "request": {
+        "type": "regenerate_brief",
+        "params": {},
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [],
+        "kind": "unsupported"
+      }
+    },
+    {
+      "name": "reject: note newline",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "a\nb",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "note_format"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: note url",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "see https://example.com/a",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "note_format"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: note too long",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "note_format"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: note markdown link",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "[x](y)",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "note_format"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: note html tag",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "a <b>x</b>",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "note_format"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: default project code shape",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "PRJ-1234 후속",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "internal_pattern",
+          "number_unit_in_note"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: operator pattern",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "zeta-9 확인",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "internal_pattern"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: term hash token",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "kestrel 후속 확인",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "internal_term_hash"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: term hash 2-gram",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "확인 orion bay 후속",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "internal_term_hash"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: fullwidth email",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "ｈｏｎｇ＠ｌｇｅ．ｃｏｍ",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "internal_domain",
+          "email_detected"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: zero-width email",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "hong@l\u200bge.com",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "internal_domain",
+          "email_detected",
+          "control_chars"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: percent-encoded email",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "hong%40lge%2Ecom",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "internal_domain",
+          "email_detected"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: bidi control",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "a\u202eb",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "control_chars"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: private ip in note",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "서버 10.1.2.3 확인",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "private_host"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: host name token",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "build-srv01 접속",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "internal_host_name"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: host port token",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "devbox01:8080 확인",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "internal_host_name",
+          "number_unit_in_note"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: userinfo url",
+      "request": {
+        "type": "add_source",
+        "params": {
+          "kind": "article_url",
+          "url": "https://user@arxiv.org/abs/1"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "url_scheme",
+          "email_detected"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: non-standard port",
+      "request": {
+        "type": "add_source",
+        "params": {
+          "kind": "article_url",
+          "url": "https://arxiv.org:8443/x"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "url_scheme"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: localhost url",
+      "request": {
+        "type": "add_source",
+        "params": {
+          "kind": "article_url",
+          "url": "https://localhost/x"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "url_host_not_allowed",
+          "private_host"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: single label host",
+      "request": {
+        "type": "add_source",
+        "params": {
+          "kind": "article_url",
+          "url": "https://intranet/x"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "url_host_not_allowed",
+          "private_host"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: ip literal public",
+      "request": {
+        "type": "add_source",
+        "params": {
+          "kind": "article_url",
+          "url": "https://8.8.8.8/x"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "url_host_not_allowed",
+          "private_host"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: internal suffix host",
+      "request": {
+        "type": "add_source",
+        "params": {
+          "kind": "article_url",
+          "url": "https://wiki.corp/x"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "url_host_not_allowed",
+          "private_host",
+          "internal_host_name"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: javascript scheme",
+      "request": {
+        "type": "add_source",
+        "params": {
+          "kind": "article_url",
+          "url": "javascript:alert(1)"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "url_scheme"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: data uri",
+      "request": {
+        "type": "add_source",
+        "params": {
+          "kind": "article_url",
+          "url": "data:text/plain;base64,AAAA"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "url_scheme",
+          "blob_detected"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: confidential label standalone word",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "비공개 자료",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "classification_label"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: nda word",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "NDA 대상",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "classification_label"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: four digit number",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "코드 4821",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "number_unit_in_note"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: percent unit",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02"
+        },
+        "note": "수율 95% 목표",
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "number_unit_in_note"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: url with email query",
+      "request": {
+        "type": "add_source",
+        "params": {
+          "kind": "article_url",
+          "url": "https://www.therobotreport.com/a?e=hong%40example.com"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "email_detected"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "reject: body too deep",
+      "request": {
+        "type": "analyze",
+        "params": {
+          "target": "robot",
+          "slug": "figure-02",
+          "a": {
+            "b": {
+              "c": {
+                "d": 1
+              }
+            }
+          }
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "unknown_key",
+          "invalid_type_or_shape"
+        ],
+        "kind": "rejected"
+      }
+    },
+    {
+      "name": "invalid: not an object",
+      "request": [
+        1,
+        2,
+        3
+      ],
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "invalid_type_or_shape"
+        ],
+        "kind": "invalid"
+      }
+    },
+    {
+      "name": "invalid: query since out of range",
+      "request": {
+        "type": "query",
+        "params": {
+          "query": "ci_changes_since",
+          "since": "2020-01-01"
+        },
+        "sourcePublic": true
+      },
+      "expect": {
+        "ok": false,
+        "reasons": [
+          "invalid_type_or_shape"
+        ],
+        "kind": "invalid"
+      }
+    }
+  ]
+}

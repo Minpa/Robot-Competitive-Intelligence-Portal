@@ -114,7 +114,7 @@ describe('collector coverage', () => {
 });
 
 describe('runArgosIExport outcomes', () => {
-  it('created: builds all 29 areas, persists once under the lock, saves the marker, applies retention', async () => {
+  it('created: builds all 30 areas, persists once under the lock, saves the marker, applies retention', async () => {
     const x = harness();
     const r = await runArgosIExport({ reason: 'cron' }, x.deps);
     expect(r).toMatchObject({ outcome: 'created', date: '2026-10-29', status: 'ok' });
@@ -122,12 +122,12 @@ describe('runArgosIExport outcomes', () => {
     const p = x.persisted[0]!;
     expect(p.date).toBe('2026-10-29');
     expect(p.reason).toBe('cron');
-    expect(p.bundle.fileCount).toBe(2 + 29 * 2);
+    expect(p.bundle.fileCount).toBe(2 + 30 * 2);
     expect(p.bundle.files.map((f) => f.path).slice(0, 2)).toEqual(['README.md', 'manifest.json']);
     for (const f of p.bundle.files) expect(f.sha256).toBe(sha256Hex(f.content));
     expect(p.asOf < p.generatedAt).toBe(true);
     expect(x.saved).toHaveLength(1);
-    expect(x.saved[0]).toMatchObject({ date: '2026-10-29', reason: 'cron', outcome: 'created', status: 'ok', fileCount: 60, error: null });
+    expect(x.saved[0]).toMatchObject({ date: '2026-10-29', reason: 'cron', outcome: 'created', status: 'ok', fileCount: 62, error: null });
     expect(x.retention).toEqual(['2026-09-30']);
     expect(getRunningSnapshot().running).toBe(false);
   });
@@ -167,7 +167,7 @@ describe('runArgosIExport outcomes', () => {
     expect(b.warnings).toEqual(['area_failed:data-quality', 'area_failed:keywords']);
     expect(b.files.some((f) => f.path.startsWith('keywords.'))).toBe(false);
     expect(b.manifest.areas.find((a) => a.id === 'keywords')).toMatchObject({ status: 'failed', files: [] });
-    expect(b.fileCount).toBe(2 + 27 * 2);
+    expect(b.fileCount).toBe(2 + 28 * 2);
     // overview 는 실패한 영역도 failed 로 요약한다
     const overview = JSON.parse(b.files.find((f) => f.path === 'overview.json')!.content.toString('utf-8'));
     expect(overview.data.areas.find((a: any) => a.id === 'keywords').status).toBe('failed');
@@ -394,7 +394,7 @@ describe('persistence (single transaction, overwrite)', () => {
     expect(calls[1]).toBe('insertExport.values:2026-10-29');
     expect(calls[2]).toBe('insertExport.onConflictDoUpdate:false');
     const fileInserts = calls.filter((c) => c.startsWith('insertFile.values:'));
-    expect(fileInserts).toHaveLength(60);
+    expect(fileInserts).toHaveLength(62);
     expect(fileInserts[0]).toBe('insertFile.values:README.md');
     expect(fileInserts[1]).toBe('insertFile.values:manifest.json');
     expect(calls.filter((c) => c.startsWith('delete') && c !== 'deleteFiles.where')).toHaveLength(0);

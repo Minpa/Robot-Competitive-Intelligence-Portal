@@ -805,6 +805,12 @@ export class TechTrendReportService {
     };
   }
 
+  /** (domain, days) 시사점 캐시가 신선한지 (신선하면 getReport 가 AI 를 호출하지 않는다) */
+  async isInsightCacheFresh(domain: TechTrendDomain, days: number): Promise<boolean> {
+    const row = await this.readCacheRow(insightCacheKey(domain, days));
+    return !!row && Date.now() - row.cachedAt.getTime() < REPORT_TTL_MS;
+  }
+
   /** 리포트 본문 데이터 조회·선별 (getReport와 warm 재생성이 공유) */
   private async loadDomainData(domain: TechTrendDomain, days: number): Promise<DomainReportData> {
     const config = DOMAIN_REPORT_CONFIGS[domain];

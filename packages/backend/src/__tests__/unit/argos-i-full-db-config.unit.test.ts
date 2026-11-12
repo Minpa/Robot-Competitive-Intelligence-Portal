@@ -19,13 +19,13 @@ import {
 import { ARGOS_I_EXPORT_LOCK_KEY } from '../../services/argos-i-export-config.js';
 
 describe('excluded tables', () => {
-  it.each(['users', 'allowed_emails', 'audit_logs', 'ai_usage_logs', 'argos_i_exports', 'argos_i_export_files', 'weekly_brief_drafts'])('%s is excluded', (name) => {
+  it.each(['users', 'allowed_emails', 'audit_logs', 'ai_usage_logs', 'argos_i_exports', 'argos_i_export_files', 'weekly_brief_drafts', 'argos_i_requests', 'argos_i_request_rejects'])('%s is excluded', (name) => {
     expect(isExcludedTable(name)).toBe(true);
     expect(getTableExclusionReason(name)).toBeTruthy();
   });
 
   it('has exactly the seven blocklisted names', () => {
-    expect(EXCLUDED_TABLES.map((t) => t.name).sort()).toEqual(['ai_usage_logs', 'allowed_emails', 'argos_i_export_files', 'argos_i_exports', 'audit_logs', 'users', 'weekly_brief_drafts']);
+    expect(EXCLUDED_TABLES.map((t) => t.name).sort()).toEqual(['ai_usage_logs', 'allowed_emails', 'argos_i_export_files', 'argos_i_exports', 'argos_i_request_rejects', 'argos_i_requests', 'audit_logs', 'users', 'weekly_brief_drafts']);
   });
 
   it('excludes __drizzle* tables and any non-public schema', () => {

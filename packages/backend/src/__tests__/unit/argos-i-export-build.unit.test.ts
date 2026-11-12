@@ -46,13 +46,13 @@ function firstTableRows(md: string): number {
 const rendered = renderAll(rawByArea());
 
 describe('registry', () => {
-  it('has 29 areas with unique kebab-case ids, 15 P0 and 7 P1', () => {
-    expect(AREA_DEFS).toHaveLength(29);
-    expect(new Set(AREA_DEFS.map((d) => d.id)).size).toBe(29);
+  it('has 30 areas with unique kebab-case ids, 15 P0, 7 P1 and 8 P2', () => {
+    expect(AREA_DEFS).toHaveLength(30);
+    expect(new Set(AREA_DEFS.map((d) => d.id)).size).toBe(30);
     for (const d of AREA_DEFS) expect(d.id).toMatch(/^[a-z0-9][a-z0-9-]{0,48}$/);
     expect(AREA_DEFS.filter((d) => d.priority === 'P0')).toHaveLength(15);
     expect(AREA_DEFS.filter((d) => d.priority === 'P1')).toHaveLength(7);
-    expect(AREA_DEFS.filter((d) => d.priority === 'P2')).toHaveLength(7);
+    expect(AREA_DEFS.filter((d) => d.priority === 'P2')).toHaveLength(8);
   });
 });
 
@@ -504,13 +504,13 @@ describe('manifest and bundle assembly', () => {
     const a = bundle.manifest.areas.find((x) => x.id === 'keywords')!;
     expect(a).toMatchObject({ status: 'failed', recordCount: 0, files: [] });
     expect(bundle.files.some((f) => f.path.startsWith('keywords.'))).toBe(false);
-    expect(bundle.manifest.areas).toHaveLength(29);
+    expect(bundle.manifest.areas).toHaveLength(30);
   });
 
   it('an all-ok bundle is status ok and has README + manifest + 2 files per area', () => {
     const ok = assembleBundle(CTX, AREA_DEFS.map((def) => ({ def, rendered: rendered.find((r) => r.def.id === def.id)! })));
     expect(ok.status).toBe('ok');
-    expect(ok.fileCount).toBe(2 + 29 * 2);
+    expect(ok.fileCount).toBe(2 + 30 * 2);
     expect(ok.manifest.warnings).toEqual([]);
     expect(ok.manifest.generator).toEqual({ name: 'argos', commit: 'abc1234' });
     expect(ok.manifest).toMatchObject({ schemaVersion: 1, bundleDate: '2026-10-29', timezone: 'Asia/Seoul', reason: 'cron', asOf: CTX.asOf, generatedAt: CTX.generatedAt });

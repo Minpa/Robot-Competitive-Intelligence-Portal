@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { requireIngestKey } from './ingest-auth.js';
 import { ingestArticles } from '../services/ingest.service.js';
+import { createGuardContext, guardIngestFields } from '../services/argos-i-inbound-guard.js';
 
 const MAX_ARTICLES_PER_REQUEST = 200;
 
@@ -40,6 +41,14 @@ export async function ingestRoutes(fastify: FastifyInstance) {
     }
 
     const { source, articles } = parsed.data;
+
+    // 사내 정보 차단: source 는 배치 전체의 출처 표기라 표지가 있으면 배치를 받지 않는다 (사유 코드만 응답한다)
+    const sourceReasons = guardIngestFields([{ value: source, kind: 'free' }], createGuardContext(process.env));
+    if (sourceReasons.length > 0) {
+      request.log.info(`[ingest] outcome=rejected scope=source reasons=${sourceReasons.join(',')}`);
+      reply.status(400).send({ error: 'internal_data_rejected', reasons: sourceReasons });
+      return;
+    }
 
     const result = await ingestArticles({ source, articles });
 

@@ -170,6 +170,17 @@ content_hash = sha256( normalizeUrl(url) + '|' + dateOnlyUtc(publishedAt) )   //
 | 키 없음/불일치 | 401 | `{ "error": "Unauthorized" }` |
 | `articles` 201건 이상 | 400 | `{ "error": "Batch too large. Max 200 articles per request." }` |
 | 최상위 형식 오류(예: `articles`가 배열이 아님, `source` 누락) | 400 | `{ "error": "...", "issues": ["articles: ...", ...] }` |
+| `source` 에 사내 정보 표지가 있음 (아래 "사내 정보 차단") | 400 | `{ "error": "internal_data_rejected", "reasons": ["<코드>", ...] }` |
+
+### 사내 정보 차단 (항목 단위 거부)
+
+ARGOS 는 외부 클라우드이므로 사내 정보가 들어오면 안 된다. 각 `articles[]` 항목의 `url`, `title`, `summary` 와 `alerts[].title/summary` 에
+인바운드 가드(`ingest` 프로파일, `docs/argos-i-interface.md` 15.7절)를 적용한다. 이메일, 내부 도메인, 내부 호스트명·경로, 운영자 패턴·용어 해시,
+base64 덩어리, 그리고 **헤더·괄호 형태의 분류 라벨**(`[대외비]`, `Confidential —`, `Internal Only` 등)이 있으면 **그 항목만 저장하지 않고**
+`errors[]` 에 `{ "index": N, "error": "internal_data_rejected:<코드>[,<코드>...]" }` 로 기록한다.
+
+- 배치는 롤백·중단되지 않는다(나머지 항목은 평소대로 저장). 거부된 항목의 `title`/`url` 은 응답에 되돌려주지 않는다.
+- 본문의 일반 단어(예: 뉴스의 "비공개", "기밀")나 숫자+단위는 거부하지 않는다.
 
 ## `GET /api/ingest/health`
 

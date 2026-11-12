@@ -9,6 +9,7 @@ const h = vi.hoisted(() => ({
   runWeeklyBrief: vi.fn(),
   runArgosIExport: vi.fn(),
   runCoverageSnapshot: vi.fn(),
+  runRequestsTask: vi.fn(),
   setUpstreamBusyProvider: vi.fn(),
   chainRunning: vi.fn(),
 }));
@@ -41,6 +42,7 @@ vi.mock('../../services/argos-i-export.service.js', () => ({
   runArgosIExport: h.runArgosIExport,
   setUpstreamBusyProvider: h.setUpstreamBusyProvider,
 }));
+vi.mock('../../services/argos-i-requests-runtime.js', () => ({ runArgosIRequestsTask: h.runRequestsTask }));
 vi.mock('../../services/data-coverage.service.js', () => ({
   getDataCoverageService: () => ({ runSnapshotTask: h.runCoverageSnapshot }),
 }));
@@ -59,29 +61,44 @@ beforeEach(() => {
   h.runWeeklyBrief.mockReset().mockResolvedValue({ outcome: 'created' });
   h.runArgosIExport.mockReset().mockResolvedValue({ outcome: 'created' });
   h.runCoverageSnapshot.mockReset().mockResolvedValue({ outcome: 'saved' });
+  h.runRequestsTask.mockReset().mockResolvedValue({ outcome: 'ok', processed: 0 });
   h.setUpstreamBusyProvider.mockReset();
   h.chainRunning.mockReset().mockReturnValue(false);
   delete process.env.CRON_TECH_TREND_PIPELINE;
   delete process.env.CRON_WEEKLY_BRIEF;
   delete process.env.CRON_ARGOS_I_EXPORT;
   delete process.env.CRON_DATA_COVERAGE_SNAPSHOT;
+  delete process.env.CRON_ARGOS_I_REQUESTS;
   vi.spyOn(console, 'log').mockImplementation(() => {});
 });
 afterEach(() => vi.restoreAllMocks());
 
 describe('scheduler: tech-trend-pipeline', () => {
-  it('registers 8 tasks; pipeline defaults to 30 5 * * * in KST; weekly brief 0 8 * * 1; argos-i-export 0 7 * * *; data-coverage-snapshot 30 6 * * *; existing 4 unchanged', async () => {
+  it('registers 9 tasks; pipeline defaults to 30 5 * * * in KST; weekly brief 0 8 * * 1; argos-i-export 0 7 * * *; data-coverage-snapshot 30 6 * * *; argos-i-requests every minute; existing 4 unchanged', async () => {
     const log = vi.spyOn(console, 'log');
     const s = await load();
     s.init();
     const status = s.getStatus().tasks;
-    expect(status.map((t) => t.name)).toEqual(['scoring', 'audit', 'briefing', 'video-tagging', 'tech-trend-pipeline', 'weekly-brief', 'argos-i-export', 'data-coverage-snapshot']);
+    expect(status.map((t) => t.name)).toEqual(['scoring', 'audit', 'briefing', 'video-tagging', 'tech-trend-pipeline', 'weekly-brief', 'argos-i-export', 'data-coverage-snapshot', 'argos-i-requests']);
     expect(Object.fromEntries(status.map((t) => [t.name, t.cron]))).toEqual({
       scoring: '0 2 * * 1', audit: '0 3 * * 1', briefing: '0 4 * * 1', 'video-tagging': '0 4 * * *', 'tech-trend-pipeline': '30 5 * * *',
-      'weekly-brief': '0 8 * * 1', 'argos-i-export': '0 7 * * *', 'data-coverage-snapshot': '30 6 * * *',
+      'weekly-brief': '0 8 * * 1', 'argos-i-export': '0 7 * * *', 'data-coverage-snapshot': '30 6 * * *', 'argos-i-requests': '* * * * *',
     });
-    expect(log).toHaveBeenCalledWith('[Scheduler] Initialized with 8 tasks');
+    expect(log).toHaveBeenCalledWith('[Scheduler] Initialized with 9 tasks');
     for (const c of cronCalls()) expect(c.opts).toMatchObject({ timezone: 'Asia/Seoul' });
+  });
+
+  it('argos-i-requests: the cron handler and trigger() run the requests task; CRON_ARGOS_I_REQUESTS overrides the schedule', async () => {
+    process.env.CRON_ARGOS_I_REQUESTS = '*/2 * * * *';
+    const s = await load();
+    s.init();
+    expect(s.getStatus().tasks.find((t) => t.name === 'argos-i-requests')?.cron).toBe('*/2 * * * *');
+    const c = cronCalls().find((x) => x.expr === '*/2 * * * *')!;
+    await c.fn();
+    expect(h.runRequestsTask).toHaveBeenCalledTimes(1);
+    expect(s.isTaskRunning('argos-i-requests')).toBe(false);
+    expect(await s.trigger('argos-i-requests')).toMatchObject({ success: true });
+    await vi.waitFor(() => expect(h.runRequestsTask).toHaveBeenCalledTimes(2));
   });
 
   it('CRON_TECH_TREND_PIPELINE overrides the schedule', async () => {

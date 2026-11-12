@@ -3,6 +3,7 @@
 > 이 문서만 읽고 ARGOS_I 수집기를 구현할 수 있도록 쓴 계약 문서다. 스키마 메이저 버전은 **1** 이다.
 > ARGOS 는 매일 KST 07:00 에 그날까지 수집·분석한 **전체 데이터**를 영역별 Markdown + JSON 파일 묶음(번들)으로 만들어 두고, 사내 ARGOS_I 서버가 토큰 인증된 HTTPS 로 **가져간다(pull)**. ARGOS 가 먼저 보내는 일(push)은 없다.
 > 단, **14절 초기 적재용 전체 DB 덤프는 이 원칙의 예외**다(원문 포함, 1회성, 사내 이전 한정).
+> **15절 요청 인터페이스**는 ARGOS_I 가 ARGOS 에 요청을 보내는 별도 API 다(ARGOS → ARGOS_I 방향은 그대로 pull 전용이며 push·콜백·웹훅은 없다). 사내 정보가 ARGOS 로 들어오지 않게 하는 이중 가드를 포함한다.
 
 ## 목차
 
@@ -20,6 +21,7 @@
 12. [데이터 이용 한도](#12-데이터-이용-한도)
 13. [샘플 스크립트 · FAQ · 변경 이력](#13-샘플-스크립트--faq--변경-이력)
 14. [초기 적재: 전체 DB 덤프](#14-초기-적재-전체-db-덤프)
+15. [요청 인터페이스 (ARGOS_I → ARGOS)](#15-요청-인터페이스-argos_i--argos)
 
 ---
 
@@ -34,6 +36,7 @@ ARGOS 는 로봇 업계 경쟁 정보 포털이다. 이 계약은 ARGOS 가 수�
 - **pull 전용**: ARGOS_I 가 ARGOS 의 HTTPS API 를 호출한다. ARGOS 는 ARGOS_I 쪽으로 연결하지 않는다.
 - **하루 한 번 생성**: ARGOS 가 번들을 PostgreSQL 에 저장해 두고(30일 보존), API 가 그 번들을 내려준다. 요청할 때마다 새로 계산하지 않으므로 호출은 가볍고 같은 날의 여러 번 호출은 같은 내용을 받는다.
 - **영역별 MD + JSON 쌍**: 같은 레코드 집합을 사람·LLM 이 읽는 Markdown(요약 + 핵심 열 표)과 기계가 읽는 JSON(전체 필드)으로 각각 담는다.
+- **요청은 별도 API (15절)**: ARGOS_I 가 ARGOS 에 공개 자료 추가·분석·정형 조회를 요청할 수 있다. 요청 API 는 **별도 토큰**을 쓰고, 처리 결과는 ARGOS_I 가 폴링하거나 일일 번들의 `requests` 영역(8.30)으로 가져간다. ARGOS 가 먼저 연결하는 일은 여전히 없다.
 
 ### 1.3 데이터의 성격
 
@@ -109,6 +112,17 @@ Authorization: Bearer <TOKEN>
 1. 새 토큰을 만들어 ARGOS 에 `ARGOS_I_EXPORT_TOKEN_NEXT` 로 추가한다. (두 토큰 모두 유효)
 2. ARGOS_I 의 시크릿 저장소를 새 토큰으로 바꾸고, 한 번 이상 정상 pull 이 되는지 확인한다.
 3. ARGOS 에서 `ARGOS_I_EXPORT_TOKEN` 에 새 토큰을 넣고 `ARGOS_I_EXPORT_TOKEN_NEXT` 를 지운다. (이전 토큰 폐기)
+
+### 3.5 토큰 2종 (pull 토큰 / 요청 토큰)
+
+| 토큰 | 환경변수(ARGOS) | 쓰는 곳 | 비고 |
+|---|---|---|---|
+| pull 토큰 | `ARGOS_I_EXPORT_TOKEN` (+ `_NEXT`) | `GET /api/argos-i/manifest`·`export/*` (이 문서 5~14절) | 읽기 전용 |
+| 요청 토큰 | `ARGOS_I_REQUEST_TOKEN` (+ `_NEXT`) | `/api/argos-i/requests*` (15절) | 요청 권한. 별도 값이어야 한다 |
+
+- 두 토큰은 **서로의 경로에서 통하지 않는다**(pull 토큰으로 요청 API → 401, 요청 토큰으로 pull API → 401). 같은 값이면 요청 API 가 비활성(503)이 된다.
+- 둘 다 `Authorization: Bearer` 만 받고, 32자 미만이면 해당 API 가 비활성이며, 교체는 3.4절과 같은 `_NEXT` 절차를 쓴다. 인증 실패 카운터도 서로 분리되어 있다.
+- 요청 API 는 서버에 `ARGOS_I_REQUESTS_ENABLED=true` 가 있어야만 동작한다(기본 꺼짐).
 
 ---
 
@@ -347,7 +361,7 @@ argos-i/2026-10-29/
 
 ## 8. 영역별 스키마
 
-번들에는 아래 29개 영역이 항상 들어 있다 (데이터가 0건이어도 파일 쌍은 있고 `recordCount: 0`, 선택 영역이 실패하면 `status: "failed"` 로 파일이 빠진다). **P0** 는 핵심 영역이라 하나라도 실패하면 번들 자체가 만들어지지 않는다.
+번들에는 아래 30개 영역이 항상 들어 있다 (데이터가 0건이어도 파일 쌍은 있고 `recordCount: 0`, 선택 영역이 실패하면 `status: "failed"` 로 파일이 빠진다). **P0** 는 핵심 영역이라 하나라도 실패하면 번들 자체가 만들어지지 않는다.
 
 | # | 영역 id | 이름 | 우선순위 | `recordCount` 기준 (MD 첫 번째 표) | 출처 테이블 |
 |---|---|---|---|---|---|
@@ -380,6 +394,7 @@ argos-i/2026-10-29/
 | 27 | `event-briefs` | 이벤트 분석물 | P2 | 이벤트 분석물 | `view_cache` |
 | 28 | `external-sources` | 외부 출처(GitHub·SEC·특허) | P2 | 외부 출처 목록 (발행일 최신순) | `articles` |
 | 29 | `data-quality` | 데이터 품질 | P2 | 최신 데이터 감사 요약 | `data_audit_reports` |
+| 30 | `requests` | ARGOS_I 요청 결과 | P2 | 최근 7일 종결 요청 (최신순) | `argos_i_requests` |
 
 각 영역 표의 "타입" 은 JSON 타입이고 `T[]` 는 배열, "null 가능" 은 값이 `null` 일 수 있는지다. 필드 이름이 `<axisKey>` 처럼 꺾쇠로 표기된 곳은 키가 데이터에 따라 달라지는 객체다.
 
@@ -1696,6 +1711,30 @@ v2 의 `videos`(0~12건) 항목은 v1 필드에 `titleKo, durationSec, isTop, su
 | `items[].warningCount` | number | 건 | 아니오 | 경고 이슈 수 |
 
 
+### 8.30 `requests` — ARGOS_I 요청 결과 (P2)
+
+- 파일: `requests.md`, `requests.json`
+- `areaSchemaVersion`: 1
+- 출처 테이블: `argos_i_requests`
+- 정렬: finishedAt 내림차순·id
+- `recordCount` 기준: **최근 7일 종결 요청 (최신순)** (MD 의 첫 번째 표) 의 행 수 (최대 500건)
+- **추가 영역**이라 번들 `schemaVersion` 은 1 그대로다(11절). 15절 요청 인터페이스를 켜지 않았으면 `recordCount` 0 이다.
+- 종결 상태(`done`, `failed`, `rejected`, `cancelled`)이고 `finishedAt` 이 최근 7일 이내인 요청만 담는다. **자유 텍스트(`note`), 승인자, 해시, 결과 본문은 포함하지 않는다**(결과는 건수·식별자 요약만, 전체 결과는 `GET /api/argos-i/requests/{id}`). 거부된 요청은 저장하지 않으므로 여기에 없다.
+
+`data` 의 필드 (경로는 `data` 기준, `[]` 는 배열 원소):
+
+| 필드 | 타입 | 단위 | null 가능 | 설명 |
+|---|---|---|---|---|
+| `items` | object[] | - | 아니오 | 레코드 배열 |
+| `items[].id` | string | - | 아니오 | 요청 id (UUID) |
+| `items[].type` | string | - | 아니오 | add_source \| analyze \| query |
+| `items[].params` | object | - | 아니오 | 정규화된 요청 파라미터 (15.4절 스키마, 키 정렬) |
+| `items[].status` | string | - | 아니오 | done \| failed \| rejected \| cancelled |
+| `items[].errorCode` | string | - | 예 | 15.6절 오류 코드 (실패·거부·취소 때만) |
+| `items[].finishedAt` | string | ISO 8601 UTC | 아니오 | 종결 시각 |
+| `items[].result` | object | - | 예 | 결과 요약: `recordCount`, `inserted`, `skipped`, `rejected`, `stagedCount`, `articleId`, `domain`, `days`, `itemCount` 중 있는 스칼라만 |
+
+
 ---
 
 ## 9. 수집기 구현 가이드
@@ -1838,6 +1877,8 @@ scripts/argos-i-pull.sh          # latest.zip → 해제 → manifest.json 의 f
 |---|---|---|
 | 2026-10-28 | v1 | **최초 공개.** 영역 29개: `overview`, `companies`, `robots`, `components`, `actuator-map`, `actuator-sourcing`, `robot-benchmark`, `hand-benchmark`, `ci-matrix`, `ci-changes`, `videos`, `papers`, `news`, `tech-trends`, `weekly-briefs`, `keywords`, `application-cases`, `scores`, `vision-cost`, `products`, `competitive-alerts`, `aggregations`, `strategy-warroom`, `lg-humanoid-models`, `coverage-field-events`, `regulations`, `event-briefs`, `external-sources`, `data-quality`. 엔드포인트 4개(`manifest`, `latest.zip`, `{date}.zip`, `{date}/{file}`), Bearer 토큰 인증(NEXT 이중 토큰), 30일 보존, 월요일 주간 브리프 반영 재생성(`reason: "weekly-brief"`) |
 | 2026-10-29 | 덤프 형식 v1 | **초기 적재용 전체 DB 덤프 추가**: 엔드포인트 2개(`full-db/manifest`, `full-db.zip`), 적재·pull 스크립트 3종(`argos-i-import-full-db.mjs`, `argos-i-pull-full-db.mjs`, `argos-i-pull-full-db.sh`). 일일 번들 스키마 변경 없음 (14절) |
+
+| 2026-11-12 | v1 (변경 없음) | **요청 인터페이스 추가 (15절)**: `POST/GET/GET {id}/DELETE /api/argos-i/requests` (별도 토큰 `ARGOS_I_REQUEST_TOKEN`), 사내 정보 이중 가드, 승인·예산·레이트 규칙. **번들에 `requests` 영역 추가 (30번째, P2, 8.30절)** — 추가 영역이라 `schemaVersion` 은 올리지 않는다(11절: 추가는 버전을 올리지 않는다, 수신 측은 모르는 영역을 무시해야 한다). 기존 29개 영역·엔드포인트·형식 변경 없음 |
 
 파괴적 변경은 적용일 14일 전에 이 표에 "예고" 행으로 먼저 올린다.
 
@@ -2121,3 +2162,237 @@ URL 컬럼(`crawl_targets.urls`·`patterns`, `regulatory_sources.url`, `issue_at
 | `pm_*`, `issue_*` 의 사용자 id 가 어느 계정인지 모르겠다 | `users` 는 이전하지 않으므로 이 id 들은 ARGOS_I 에서 가리키는 계정이 없는 **고아 참조**다(FK 위반은 없다). ARGOS_I 에서 계정을 새로 만들며 기존 id 와 자동 매핑되지 않는다. `report_downloads.user_id`(varchar)는 이메일일 수 있다 |
 | 개인정보성 데이터가 들어 있나 | `issue_ask_history.query`, `issue_comments.body`, `pm_updates.body`, `compliance_checklist.assignee`, 각종 `*_by` varchar 컬럼은 "모든 데이터" 요구에 따라 포함된다. 외부로 반출하지 않는다 |
 | `ARGOS_I_FULL_DB_ENABLED` 가 `true` 인데 manifest 의 `estimatedRows` 가 `null` | 테이블이 아직 분석(`ANALYZE`)된 적이 없다. 추정치일 뿐이며 덤프에는 영향이 없다. 정확한 값은 `?exact=true` |
+
+---
+
+## 15. 요청 인터페이스 (ARGOS_I → ARGOS)
+
+### 15.1 목적과 방향성
+
+ARGOS_I(사내)가 ARGOS(외부 클라우드)에 **구조화된 요청**(공개 자료 추가, 분석, 정형 조회)을 보내고, 결과를 **폴링** 또는 **일일 번들의 `requests` 영역**(8.30)으로 받는다.
+
+- **pull 불변**: ARGOS 는 사내로 요청·알림·콜백·웹훅을 보내지 않는다. 방향은 ARGOS_I → ARGOS(이 절의 요청 API)와 ARGOS → ARGOS_I(5~14절의 pull)뿐이다.
+- **사내 정보 차단이 최우선**: ARGOS 는 외부 클라우드이므로 LG 사내 정보가 들어오면 안 된다. 그래서 **ARGOS_I 쪽 아웃바운드 가드가 1차 통제**, **ARGOS 쪽 인바운드 가드가 최후 방어선**이다(15.7절). ARGOS 는 사내 코드명이나 직원 ID 의 실제 값을 알 수 없으므로 서버 가드만으로는 막을 수 없다. 구현 체크리스트는 [`argos-i-client-guide.md`](./argos-i-client-guide.md) 에 있다.
+- **구조적 통제**: 모든 파라미터는 형식 검증(id·slug·enum·허용 호스트 URL·숫자)을 통과해야 하고, 자유 텍스트는 선택 필드 `note` 하나뿐이다. `note` 는 사람 승인 후에만 보내고, ARGOS 는 `note` 를 AI 프롬프트·기사 저장·번들·GET 응답 어디에도 쓰지 않는다(관리자 목록에서만 보이고 종결 7일 후 지운다).
+- **기본 비활성**: 서버에 `ARGOS_I_REQUESTS_ENABLED=true` 와 요청 토큰이 모두 있을 때만 동작한다.
+
+### 15.2 인증·토큰 분리와 교체
+
+- 헤더 `Authorization: Bearer <ARGOS_I_REQUEST_TOKEN>` 만 쓴다. 쿼리스트링·`X-Ingest-Key` 는 받지 않는다. **pull 토큰은 이 경로에서 401** 이고 요청 토큰은 pull 경로에서 401 이다(3.5절).
+- 토큰이 없거나 32자 미만이거나 `ARGOS_I_REQUESTS_ENABLED` 가 `true` 가 아니면 **모든** 요청 API 가 `503 {"error":"argos_i_requests_disabled"}` 다.
+- 인증은 본문 파싱·id 조회보다 먼저다(비인증이면 본문이 잘못돼도 401). 인증 실패가 서버 전체 기준 분당 30회를 넘으면 `429 {"error":"too_many_requests"}` + `Retry-After` (pull API 와 별도 카운터).
+- 교체는 3.4절과 같다: `ARGOS_I_REQUEST_TOKEN_NEXT` 를 추가 → ARGOS_I 저장소 교체·검증 → `ARGOS_I_REQUEST_TOKEN` 을 새 값으로 바꾸고 `_NEXT` 삭제.
+- 모든 응답에 `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`. 토큰은 응답·로그에 나오지 않는다.
+
+### 15.3 엔드포인트 4종
+
+| 메서드·경로 | 설명 | 성공 |
+|---|---|---|
+| `POST /api/argos-i/requests` | 요청 생성. 선택 헤더 `Idempotency-Key`(8~64자 `[A-Za-z0-9_-]`, 24시간) | `201 {"id","status"}`. `query` 가 즉시 끝나면 `status:"done"` + `result`. 같은 키·같은 본문 재전송은 `200` 으로 원 응답 재생 |
+| `GET /api/argos-i/requests/{id}` | 단건 조회 | `200 {"id","type","status","params","result","errorCode","approval":{"required","state"},"createdAt","startedAt","finishedAt"}` (`note` 없음) |
+| `GET /api/argos-i/requests?status=&since=` | 목록 (최대 100건, 최신순, `since` 는 ISO 8601, `status` 는 쉼표 구분) | `200 {"items":[…],"count"}` (`result` 대신 `hasResult`) |
+| `DELETE /api/argos-i/requests/{id}` | `queued`·`needs_approval` 만 취소 | `200 {"id","status":"cancelled"}` |
+
+`approval.state` 는 `not_required` / `pending` / `approved` / `rejected` / `expired` 다. 본문 형식은 JSON(`Content-Type: application/json`), 크기는 **8KB 이하**다.
+
+### 15.4 요청 종류와 파라미터 스키마
+
+봉투(최상위)는 아래 4개 키만 허용한다. **그 밖의 키가 하나라도 있으면 거부**한다(키 이름은 응답·로그에 싣지 않는다).
+
+| 필드 | 규칙 |
+|---|---|
+| `type` | `add_source` / `analyze` / `query`. `regenerate_brief`, `watch_register` 는 v2 예약 → `400 unsupported_type` (저장하지 않음) |
+| `params` | 종류별 strict 스키마 (아래) |
+| `note` | 선택. 한 줄 평문 최대 200자. 숫자+단위·URL·개행·코드·마크다운·HTML 금지. **사람 승인 후에만 사용** |
+| `sourcePublic` | 필수, 정확히 `true`. 값이 공개 자료에서 왔음을 호출자가 증명하는 필드(감사용, 저장하지 않음) |
+
+**`add_source` — 공개 자료 추가** (메타데이터만 저장, 본문 수집 없음)
+
+| `params.kind` | 추가 필드 | 처리 | 승인 |
+|---|---|---|---|
+| `youtube_video` | `id`(11자) 또는 `url` 중 정확히 하나 (`youtube.com/watch?v=`·`youtu.be/` 형식) | 공식 YouTube Data API 로 제목·채널·게시일만 조회해 영상 행 저장(중복은 스킵). 서버에 `YOUTUBE_API_KEY` 가 없으면 `provider_not_configured` | 불필요 |
+| `youtube_channel` | `id` (`UC…` 24자 또는 `@handle`) | **1회성** 최근 영상 최대 10건 메타 적재. 영속 구독이 아니다 | **필요** |
+| `arxiv` | `id` (`2401.01234`, `2401.01234v2`, 구형 `cs-ro/0701001`) | arXiv 공식 API 로 제목·초록(500자)·링크 적재 | 불필요 |
+| `article_url` | `url` (https, 허용 호스트) | 제목·링크만 저장. 페이지의 `<title>`·OG 제목만 조회(robots.txt 준수, 256KB·5초, 사설 IP 해석 시 중단, 리다이렉트도 허용 호스트일 때만) | 불필요 |
+
+허용 호스트: `youtube.com`·`youtu.be`·`arxiv.org`(하위 도메인 포함) + ARGOS 크롤 대상 도메인 + ARGOS 가 읽는 RSS 피드 도메인 + 운영자가 추가한 도메인. GitHub 는 v1 에 없다.
+
+**`analyze` — 분석 요청**
+
+| `params.target` | 필드 | 처리 | 결과 | 승인 |
+|---|---|---|---|---|
+| `video` | `id` (articles id UUID 또는 YouTube id 11자), `force?` (기본 false) | 영상 내용 분석. 기존 분석이 있고 `force` 가 아니면 캐시 결과(비용 0) | `{articleId,title,url,geminiAnalysis:{task,environment,autonomy,robotCount,durationSec,capabilities,keyMoments,summaryKo,analyzedAt}}` (필드별 400자 이내, 모델 식별자 없음) | 불필요 |
+| `company` | `slug` | 해당 회사의 스펙 미확보 로봇 최대 5건을 보강 후보로 **관리자 승인 대기열(ci_staging)에만** 적재 | `{stagedCount,robots:[{slug,stagedFields[]}]}` — **스펙 값은 싣지 않는다** | 불필요 |
+| `robot` | `slug` | 로봇 1건 동일 처리 | 동일 | 불필요 |
+| `topic` | `domain` (`hand`/`rfm`/`actuator`/`expo`/`production`), `days` (7/14/30/60/90) | 기술 트렌드 리포트 (캐시 적중이면 비용 0) | `{domain,days,stats,insightPoints[≤8, 각 400자],refs[≤20:{title,url}]}` | **필요** |
+
+`slug` 는 회사·로봇 **이름에서 만든 소문자 케밥 케이스**다(예: `LG Electronics` → `lg-electronics`, `Figure 02` → `figure-02`). 로봇은 `<회사 slug>-<이름 slug>` 형태도 받는다. 일치가 없거나 둘 이상이면 `failed not_found` 다.
+
+**`query` — 정형 조회** (AI 호출 없음, 읽기 전용, 수신 즉시 처리)
+
+| `params.query` | 필드 | 상한 |
+|---|---|---|
+| `company_recent` | `company`(slug), `weeks`(1~8, 기본 8) | 항목 50건 |
+| `robot_actuators` | `robot`(slug) | 항목 50건 |
+| `hand_benchmark_top` | `limit`(1~20, 기본 10) | 20건 |
+| `actuator_suppliers_by_segment` | `segment`(8.0절의 시장 세그먼트 값) | 50건 |
+| `ci_changes_since` | `since`(`YYYY-MM-DD`, 오늘 기준 90일 이내), `company?`(slug), `limit`(1~100, 기본 50) | 100건 |
+
+결과는 7.1절의 JSON 봉투 형식(`schemaVersion`, `area`, `recordCount`, `data` 등)을 그대로 쓴다. 파라미터는 id/slug/기간/상한만 허용된다. 자유로운 `options` 객체는 없다.
+
+### 15.5 상태와 전이, 승인
+
+| 현재 | 이벤트 | 다음 |
+|---|---|---|
+| (수신) | 승인 불필요 | `queued` |
+| (수신) | 승인 필요 종류 (`analyze:topic`, `add_source:youtube_channel`) | `needs_approval` |
+| `queued` | 처리기 선점 (매분, 틱당 최대 5건) | `running` |
+| `running` | 성공 | `done` |
+| `running` | 실패 | `failed` (일시 오류는 최대 2회까지 `queued` 로 되돌려 다음 틱에 재시도) |
+| `running` | 10분 초과(비정상 종료) | `failed` (`timeout`) |
+| `running` | 일 예산·건수 초과 (analyze) | `needs_approval` (사유 `budget_daily`) |
+| `needs_approval` | 관리자 승인 | `queued` (승인자·시각 기록) |
+| `needs_approval` | 관리자 거부 | `rejected` (`admin_rejected`) |
+| `needs_approval` | 7일 경과 | `rejected` (`approval_expired`) |
+| `queued`, `needs_approval` | 클라이언트 `DELETE` | `cancelled` |
+| `running`, `done`, `failed`, `rejected`, `cancelled` | `DELETE` | `409 not_cancellable` |
+
+- 승인은 ARGOS 관리자가 `/admin` 의 "ARGOS_I 요청" 카드에서 한다. **관리자 승인은 일 예산만 우회하고 월 예산(Claude)은 우회하지 못한다.**
+- `unsupported` 상태는 예약(v1 미사용)이다.
+
+### 15.6 오류 코드 표
+
+HTTP 오류 본문은 항상 `{"error":"<코드>"}` 이고, 사유가 있으면 `reasons`(코드 배열) 가 붙는다. 입력 값·키 이름·내부 메시지는 어디에도 없다.
+
+| 상태 | `error` | 뜻 | 대응 |
+|---|---|---|---|
+| 400 | `internal_data_rejected` + `reasons` | 사내 정보 의심으로 거부 (15.7절). **저장하지 않았다** | **재시도 금지.** 운영자에게 알리고 아웃바운드 가드를 점검 |
+| 400 | `invalid_request` + `reasons` | 형식 오류(`invalid_type_or_shape`)·`sourcePublic` 누락(`source_not_public`)·`Idempotency-Key` 형식 오류·JSON 오류 | 요청을 고친다 |
+| 400 | `unsupported_type` | v2 예약 type | v1 에서는 보낼 수 없다 |
+| 400 | `invalid_id` / `invalid_status` / `invalid_since` | 조회 인자 오류 | 고친다 |
+| 401 | `Unauthorized` | 토큰 없음·불일치 (pull 토큰 포함) | 토큰 확인, 즉시 알림 |
+| 404 | `not_found` | 요청 id 없음 | |
+| 409 | `idempotency_conflict` | 같은 키, 다른 본문 | 새 키를 쓴다 |
+| 409 | `not_cancellable` | `queued`·`needs_approval` 가 아니다 | |
+| 413 | `payload_too_large` | 본문 8KB 초과 | |
+| 429 | `rate_limited` / `queue_full` / `too_many_requests` | 시간당 60건 초과 / 대기열 200건 초과 / 인증 실패 누적. `Retry-After` 가 있다 | 기다렸다가 같은 `Idempotency-Key` 로 재시도 |
+| 503 | `argos_i_requests_disabled` | 비활성(토큰·플래그) | 즉시 알림 (재시도로 해결되지 않는다) |
+| 503 | `requests_suspended` | 거부 누적(1시간 5건)으로 **자동 중지**. 아웃바운드 가드가 뚫렸다는 신호 | 원인을 찾고 ARGOS 관리자가 해제할 때까지 보내지 않는다 |
+
+처리 결과 상태가 `failed` / `rejected` 일 때 `errorCode`:
+
+`provider_not_configured`(서버에 해당 키 없음), `quota_exceeded`(공급자 쿼터), `not_found`(대상 없음·모호한 slug), `budget_monthly`(Claude 월 예산 — 승인으로도 우회 불가), `timeout`, `upstream_error`, `invalid_target`(허용되지 않는 호스트·형식 외 대상), `result_too_large`(결과 64KB 초과), `admin_rejected`, `approval_expired`.
+
+### 15.7 사내 정보 거부 규칙
+
+**책임 분리와 한계**
+
+- **ARGOS_I 아웃바운드 가드 = 1차 통제.** ARGOS_I 만 사내 코드명·사번·내부 도메인의 실제 값을 안다. 참고 구현은 `scripts/lib/argos-i-outbound-guard.mjs`(외부 의존성 없음)이며, 금지 목록(내부 도메인·패턴·용어)은 **ARGOS_I 가 직접 운영**한다.
+- **ARGOS 인바운드 가드 = 최후 방어선.** ARGOS 는 실제 값을 모르므로 **형태·표지·해시**로만 판정한다. ARGOS 환경변수에 사내 용어 평문을 두지 않는다(해시 목록만).
+- **일반 단어로 쓴 의미상의 사내 정보는 어느 가드도 탐지할 수 없다.** 그래서 구조적 통제(자유 텍스트 `note` 하나, 형식 검증된 파라미터, 사람 승인, 내용 비사용)를 약화시키지 않는다.
+- "LG" 라는 단어 자체는 거부하지 않는다(LG 는 ARGOS 가 공개 경쟁 정보로 다루는 회사다).
+
+**검사 순서**: 본문 크기·깊이 → 스키마(strict) → URL 호스트 → 마커 탐지. 모든 문자열은 NFKC·비가시 문자 제거·HTML 엔티티 디코드·퍼센트 디코드(2회)·소문자화한 뒤 검사하고, 이메일 난독화(`[at]`, `(dot)` 등)를 복원한 사본도 함께 검사한다. 사유 코드는 모두 모아 중복 없이 고정 순서로 돌려준다.
+
+| # | 사유 코드 | 탐지 대상 |
+|---|---|---|
+| 1 | `unknown_key` | 스키마에 없는 키 (최상위·params) |
+| 2 | `invalid_type_or_shape` | 타입·범위·길이·형식 위반, 깊이>4, 키>30, 본문>8KB |
+| 3 | `url_scheme` | `http:`·`file:`·`ftp:`·`data:`·`javascript:`, 사용자 정보(`user@`), 비표준 포트 |
+| 4 | `url_host_not_allowed` | 허용 호스트 목록에 없는 호스트 |
+| 5 | `private_host` | 사설·루프백 IP, IP 리터럴 전체(공개 IP 도), `localhost`, 단일 라벨 호스트, `.local`·`.internal`·`.corp`·`.lan`·`.intra` |
+| 6 | `internal_domain` | 설정된 내부 도메인(기본 `lge.com`·`lgecorp.com` + 운영자 추가)이 URL·이메일·본문에 등장 |
+| 7 | `email_detected` | 이메일 형태 (난독화 복원 포함, 공개 도메인도 거부) |
+| 8 | `employee_id` | 사번·직원 ID 형태 — `note` 에는 기본 패턴(영문 1~2자 + 숫자 6~8자, **임시: ARGOS_I 팀 확인 후 조정**), 운영자 패턴은 전체 문자열에 적용 |
+| 9 | `internal_host_name` | 호스트·서버명 형태 (`*-srv01`, `*.corp.*`, 호스트 토큰+포트) |
+| 10 | `unc_or_file_path` | `\\server\share`, `C:\…`, `/home/`·`/Users/`·`/mnt/`·`~/`, `file://` |
+| 11 | `classification_label` | 대외비·사내·내부용·내부 한정·비공개·기밀·극비, Confidential·Internal Only·Internal Use·Proprietary·Restricted·NDA·Do Not Distribute, 社外秘·内部·机密 등. 요청(`note`)은 단독 단어도 거부하고, **인제스트는 헤더·괄호 형태만**(`[대외비] …`, `Internal Only — …`) 거부한다 |
+| 12 | `internal_pattern` | 운영자 정규식(`ARGOS_I_INTERNAL_PATTERNS`)과 프로젝트 코드명 형태(`PRJ-1234` 등) |
+| 13 | `internal_term_hash` | 토큰·2-gram 의 sha256 이 `ARGOS_I_INTERNAL_TERM_HASHES` 에 있음 |
+| 14 | `blob_detected` | 연속 base64 40자 이상, hex 32자 이상, `data:` URI |
+| 15 | `number_unit_in_note` | `note` 의 숫자+단위(Nm·kg·mm·W·rpm·DoF·%·USD·$·원·만원·억 등)와 4자리 이상 숫자(19xx·20xx 연도 예외) |
+| 16 | `note_format` | `note` 의 개행·URL·코드 펜스·마크다운 링크·HTML 태그, 200자 초과 |
+| 17 | `source_not_public` | `sourcePublic` 이 정확히 `true` 가 아님 |
+| 18 | `control_chars` | 비가시·제어·방향 제어 문자 |
+
+- **거부 응답**: `400 {"error":"internal_data_rejected","reasons":["email_detected", …]}`. 형식 오류만(`invalid_type_or_shape`·`source_not_public`)이면 `invalid_request` 다.
+- **거부된 본문은 저장하지도 로그에 남기지도 않는다.** 서버 로그에는 정규화 본문 sha256 앞 8자(`hash8`)와 사유 코드만 남고, 통계(`argos_i_request_rejects`)에는 사유 코드별 일 카운트만 쌓는다. 응답에 입력 값을 되돌려주지 않는다.
+- **서킷 브레이커**: 1시간에 5건 이상 `internal_data_rejected` 가 나오면 요청 API 가 자동 중지되어 `503 requests_suspended` 를 돌려준다. ARGOS 관리자가 원인을 확인하고 해제한다.
+- **인제스트에도 같은 가드**: `POST /api/ingest/articles` 의 항목(url·title·summary·알림 title/summary)에 마커 일부(6·7·9·10·12·13·14번 + 헤더·괄호 형태의 분류 라벨)를 적용해 **항목 단위로 거부**한다(`errors[].error` 가 `internal_data_rejected:<코드>`). 배치는 롤백되지 않고 거부 항목의 title/url 은 응답에 되돌려주지 않는다. 본문의 일반 단어(예: 뉴스의 "비공개")는 거부하지 않는다.
+
+### 15.8 멱등성·레이트·크기 상한
+
+| 항목 | 값 |
+|---|---|
+| 멱등성 | `Idempotency-Key` 24시간. 같은 키+같은 정규화 본문은 `200` 으로 원 응답 재생(행이 늘지 않고, 레이트·대기열 한도를 쓰지 않는다). 같은 키+다른 본문은 `409`. 24시간 뒤 재사용 가능 |
+| 레이트 | 저장된 요청 기준 **시간당 60건**. 초과 `429 rate_limited` + `Retry-After`. 거부(`internal_data_rejected`·`invalid_request`) 누적도 프로세스 내 윈도 카운터로 시간당 60건을 넘으면 429 |
+| 대기열 | `queued`+`needs_approval`+`running` 합계 최대 200건. 초과 `429 queue_full` |
+| 본문 | 8KB. 초과 `413 payload_too_large` |
+| 처리 | 매분 폴러(틱당 최대 5건·55초). `query` 는 수신 즉시 인라인 처리(2초, 못 끝내면 `queued` 로 남김) |
+| 일 예산 | `ARGOS_I_REQUESTS_DAILY_BUDGET_USD`(기본 2 USD, KST 일 합계)와 `ARGOS_I_REQUESTS_DAILY_MAX_ANALYZE`(기본 30건) 초과 시 `needs_approval`(`budget_daily`) |
+| 월 예산 | Claude 호출(topic 캐시 미적중)만. 초과 예상이면 `failed budget_monthly` (승인으로도 우회 불가) |
+| 보존 | 요청·거부 통계 90일, `note` 는 종결 7일 후 비움 |
+
+### 15.9 결과 형식과 번들 `requests` 영역
+
+- 결과는 **공개 데이터·파생 요약·링크**만 담는다(원문 전재 금지). 모든 문자열은 400자 이내로 정제하고, 링크는 허용 호스트의 https 만 통과한다. 결과 전체가 64KB 를 넘으면 `failed result_too_large` 다.
+- `analyze/company|robot` 결과에는 스펙 수치가 없다(관리자 승인 후에만 반영되는 기존 경로 유지).
+- `GET` 응답과 번들에는 **`note` 가 없다.**
+- 일일 번들의 `requests` 영역(8.30)은 최근 7일 안에 종결된 요청의 `{id, type, params, status, errorCode, finishedAt, result 요약}` 을 최대 500건 담는다. 결과 전체는 `GET /api/argos-i/requests/{id}` 로 받는다. 폴링 없이 하루 한 번 번들로 결과를 받아도 되지만, 번들에는 어제까지의 종결분만 있다.
+
+### 15.10 예시 (가짜 값)
+
+요청 생성 — arXiv 논문 추가:
+
+```
+POST /api/argos-i/requests
+Authorization: Bearer <REQUEST_TOKEN>
+Idempotency-Key: 3f6c1b1e-0000-4000-8000-000000000001
+Content-Type: application/json
+
+{"type":"add_source","params":{"kind":"arxiv","id":"2401.01234"},"sourcePublic":true}
+```
+```
+201 {"id":"6f2a5c1e-0000-4000-8000-0000000000a1","status":"queued"}
+```
+
+분석 — 로봇 1건 스펙 보강 후보 적재:
+
+```
+{"type":"analyze","params":{"target":"robot","slug":"figure-02"},"sourcePublic":true}
+→ 201 {"id":"…","status":"queued"}      # 처리 후 GET: result = {"stagedCount":1,"robots":[{"slug":"figure-02","stagedFields":["payloadKg","dofCount"]}]}
+```
+
+정형 조회 — 즉시 처리:
+
+```
+{"type":"query","params":{"query":"company_recent","company":"lg-electronics","weeks":4},"sourcePublic":true}
+→ 201 {"id":"…","status":"done","result":{"schemaVersion":1,"area":"company_recent","recordCount":12,"data":{"company":{"name":"LG Electronics"},"weeks":4,"items":[…]}, …}}
+```
+
+승인 필요 종류 — 기술 트렌드 리포트:
+
+```
+{"type":"analyze","params":{"target":"topic","domain":"hand","days":30},"sourcePublic":true}
+→ 201 {"id":"…","status":"needs_approval"}   # ARGOS 관리자가 승인하면 queued → done
+```
+
+거부 응답 — 사내 정보 의심 (저장하지 않음, 재시도 금지):
+
+```
+{"type":"analyze","params":{"target":"robot","slug":"figure-02"},"note":"example.person@internal-domain.example","sourcePublic":true}
+→ 400 {"error":"internal_data_rejected","reasons":["email_detected"]}
+```
+
+### 15.11 FAQ
+
+| 질문 | 답 |
+|---|---|
+| 요청을 보냈다는 사실 자체가 외부에 알려지나 | 그렇다. ARGOS 는 요청 로그에 해시와 사유 코드만 남기고 params 는 DB 에만 90일 보관하지만, 어떤 영상·회사를 분석하는지는 ARGOS 에 드러난다. **민감한 관심 주제는 요청하지 않는다** |
+| `note` 는 왜 쓰기 어렵나 | 유일한 자유 텍스트라 유출 위험이 가장 크다. 숫자·단위·URL·개행을 막고 사람 승인 후에만 쓰며, ARGOS 는 `note` 를 AI 에 넣지 않고 번들·GET 응답에도 싣지 않는다 |
+| `sourcePublic` 은 무엇을 막나 | 막지 않는다. 값이 공개 자료에서 왔음을 호출자가 증명하는 감사용 필드다. 실제 차단은 마커 탐지·URL 허용 목록·승인이 한다 |
+| 결과를 어떻게 받나 | `GET /api/argos-i/requests/{id}` 폴링(`wait` 은 30초에서 시작해 최대 5분 간격으로 늘린다) 또는 다음 일일 번들의 `requests` 영역 |
+| 승인 대기가 오래 간다 | 7일이 지나면 `rejected (approval_expired)` 로 끝난다. `DELETE` 로 직접 취소할 수도 있다 |
+| `503 requests_suspended` 가 떴다 | 거부 누적(1시간 5건)으로 자동 중지됐다. ARGOS_I 의 아웃바운드 가드를 점검한 뒤 ARGOS 관리자에게 해제를 요청한다 |
+| 429 가 떴다 | `Retry-After` 뒤 **같은 `Idempotency-Key`** 로 재시도한다(중복 생성 방지) |
+| GitHub 저장소를 추가할 수 있나 | v1 에는 없다. v2 에서 종류와 함께 추가를 검토한다 |

@@ -18,6 +18,7 @@ import type {
   WeeklyBriefRunStatus,
 } from '@/types/weekly-brief';
 import type { ArgosIExportGenerateResponse, ArgosIExportRunStatus } from '@/types/argos-i-export';
+import type { ArgosIAdminRequestItem, ArgosIAdminRequestsResponse, ArgosIRequestsStats } from '@/types/argos-i-requests';
 import type { DataCoverageResponse } from '@/types/data-coverage';
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const API_BASE = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`;
@@ -448,6 +449,31 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({}),
     });
+  }
+
+  // ───────── ARGOS_I 요청 인터페이스 (관리자) ─────────
+
+  /** 요청 목록 (note 포함, 관리자 전용). status 는 쉼표 구분 */
+  async getArgosIRequests(status?: string, limit = 100) {
+    const qs = new URLSearchParams({ limit: String(limit), ...(status ? { status } : {}) });
+    return this.request<ArgosIAdminRequestsResponse>(`/admin/argos-i/requests?${qs.toString()}`);
+  }
+
+  async getArgosIRequestsStats() {
+    return this.request<ArgosIRequestsStats>('/admin/argos-i/requests/stats');
+  }
+
+  async approveArgosIRequest(id: string) {
+    return this.request<ArgosIAdminRequestItem>(`/admin/argos-i/requests/${encodeURIComponent(id)}/approve`, { method: 'POST', body: JSON.stringify({}) });
+  }
+
+  async rejectArgosIRequest(id: string) {
+    return this.request<ArgosIAdminRequestItem>(`/admin/argos-i/requests/${encodeURIComponent(id)}/reject`, { method: 'POST', body: JSON.stringify({}) });
+  }
+
+  /** 서킷 브레이커 해제 */
+  async resumeArgosIRequests() {
+    return this.request<{ suspended: boolean }>('/admin/argos-i/requests/resume', { method: 'POST', body: JSON.stringify({}) });
   }
 
   /** 핸드 기술 시계열 트렌드 (수집 시작 이후 전체 기간, days 무관) */
