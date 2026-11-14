@@ -395,6 +395,30 @@ final class PensionCoreTests: XCTestCase {
         XCTAssertTrue(t.rows.isEmpty)
     }
 
+    func testPensionErrorExcludesOnlyThatPension() {
+        var plan = integrated(pi: 0)
+        plan.retirement.startSameAsRetirement = false
+        plan.retirement.startAge = 55   // 오류: 은퇴 나이보다 빠름
+        let t = IncomeTimeline.build(plan: plan)
+        XCTAssertTrue(t.hasErrors)
+        XCTAssertFalse(t.hasCommonErrors)
+        XCTAssertEqual(t.excludedPensionNames, ["퇴직연금"])
+        // 퇴직연금만 빠진다: 60~64세 합계 = 개인 250,000 + 주택 1,000,000
+        XCTAssertEqual(row(t, 60).total, 1_250_000, accuracy: 1)
+        XCTAssertEqual(row(t, 60).retirement, 0)
+        let g = GapAnalyzer.summarize(timeline: t)
+        XCTAssertFalse(g.segments.isEmpty)
+        let f = GapAnalyzer.fillGap(plan: plan, timeline: t)
+        XCTAssertEqual(f.status, .ok)
+    }
+
+    func testCommonErrorStillBlocks() {
+        var plan = integrated(pi: 0)
+        plan.common.retirementAge = 40
+        let t = IncomeTimeline.build(plan: plan)
+        XCTAssertTrue(t.hasCommonErrors)
+    }
+
     func testAllOffGivesNoIncome() {
         let plan = PlanInput(common: common(), retirement: offRet(), personal: offPer(),
                              housing: offHou(), national: offNat())

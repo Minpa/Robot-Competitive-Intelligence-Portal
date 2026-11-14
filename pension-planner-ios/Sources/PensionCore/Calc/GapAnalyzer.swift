@@ -199,7 +199,7 @@ public enum GapAnalyzer {
     /// U6: 개인연금 지급 구간(W) 중 가장 부족한 해도 목표가 되도록 하는 추가 월 납입액
     public static func fillGap(plan: PlanInput, timeline: IncomeTimeline) -> FillResult {
         let wasOff = !plan.personal.included
-        if timeline.hasErrors || timeline.rows.isEmpty {
+        if timeline.hasCommonErrors || timeline.rows.isEmpty {
             return FillResult(status: .notComputable, personalWasOff: wasOff,
                               message: "입력 오류를 먼저 고쳐 주세요.")
         }
@@ -268,14 +268,15 @@ public enum GapAnalyzer {
     public static func postponeTable(plan: PlanInput) -> [PostponeRow] {
         var rows: [PostponeRow] = []
         let base = IncomeTimeline.build(plan: plan)
-        if base.hasErrors { return rows }
+        if base.hasCommonErrors { return rows }
+        let baseExcluded = base.excludedPensionNames.count
         var k = 1
         while k <= 5 {
             let newR = plan.common.retirementAge + k
             if plan.common.lifeExpectancy > newR {
                 let np = postponedPlan(plan: plan, years: k)
                 let t = IncomeTimeline.build(plan: np)
-                if !t.hasErrors && !t.rows.isEmpty {
+                if !t.hasCommonErrors && !t.rows.isEmpty && t.excludedPensionNames.count <= baseExcluded {
                     let mx = t.maxShortfall
                     rows.append(PostponeRow(retirementAge: newR, maxShortfall: mx, achieved: mx <= tolerance))
                 }

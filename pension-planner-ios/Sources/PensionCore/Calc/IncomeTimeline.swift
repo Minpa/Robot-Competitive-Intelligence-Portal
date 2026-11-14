@@ -33,7 +33,22 @@ public struct IncomeTimeline {
     public var nationalStream: PensionStream
     public var target: Double
 
+    /// 공통 가정(나이, 기대수명 등) 오류. 있으면 계산 자체를 하지 않는다.
+    public var commonErrors: [String]
+
     public var hasErrors: Bool { return !errors.isEmpty }
+
+    public var hasCommonErrors: Bool { return !commonErrors.isEmpty }
+
+    /// 입력 오류 때문에 계산에서 제외된 연금 이름(포함 ON이고 오류가 있는 연금)
+    public var excludedPensionNames: [String] {
+        var names: [String] = []
+        if retirementStream.included && retirementStream.hasErrors { names.append("퇴직연금") }
+        if personalStream.included && personalStream.hasErrors { names.append("개인연금") }
+        if housingStream.included && housingStream.hasErrors { names.append("주택연금") }
+        if nationalStream.included && nationalStream.hasErrors { names.append("국민연금") }
+        return names
+    }
 
     /// 포함된 연금 중 하나라도 0보다 큰 월액이 있는가
     public var hasAnyIncome: Bool {
@@ -54,7 +69,8 @@ public struct IncomeTimeline {
         let hou = HousingPensionCalculator.calculate(input: plan.housing, common: common)
         let nat = NationalPensionCalculator.calculate(input: plan.national, common: common)
 
-        var errors = Validation.commonErrors(common)
+        let commonErrorList = Validation.commonErrors(common)
+        var errors = commonErrorList
         var warnings: [String] = []
         for e in ret.errors { errors.append("[퇴직연금] " + e) }
         for e in per.errors { errors.append("[개인연금] " + e) }
@@ -74,7 +90,8 @@ public struct IncomeTimeline {
                                       personal: per.amount(atAge: a),
                                       housing: hou.amount(atAge: a),
                                       national: nat.amount(atAge: a),
-                                      target: common.targetMonthly))
+                                      target: common.targetMonthly,
+                              commonErrors: commonErrorList))
                 a += 1
             }
         }

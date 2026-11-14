@@ -31,6 +31,7 @@ struct NationalPensionView: View {
                     .font(.footnote).foregroundColor(.secondary)
             }
         }
+        .keyboardDoneToolbar()
         .navigationTitle("국민연금")
     }
 }

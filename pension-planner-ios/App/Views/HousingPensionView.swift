@@ -32,6 +32,7 @@ struct HousingPensionView: View {
             }
             PayoutSummarySection(stream: stream, notes: [Notices.housing])
         }
+        .keyboardDoneToolbar()
         .navigationTitle("주택연금")
     }
 

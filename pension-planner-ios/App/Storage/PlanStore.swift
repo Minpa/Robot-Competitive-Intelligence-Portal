@@ -40,6 +40,11 @@ final class PlanStore: ObservableObject {
         }
     }
 
+    /// 즉시 저장(앱이 비활성/백그라운드로 갈 때)
+    func saveNow() {
+        PlanStore.save(plan)
+    }
+
     /// 모두 초기화: 저장값 삭제 + 기본(시연용 예시)값으로 복귀
     func resetAll() {
         UserDefaults.standard.removeObject(forKey: PlanStore.storageKey)

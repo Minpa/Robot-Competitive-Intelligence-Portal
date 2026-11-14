@@ -46,6 +46,7 @@ struct RetirementPensionView: View {
                 "연금 수령액은 단순화한 계산이며 실제 상품 조건과 다를 수 있어요."
             ])
         }
+        .keyboardDoneToolbar()
         .navigationTitle("퇴직연금")
     }
 }

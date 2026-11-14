@@ -34,6 +34,7 @@ struct PersonalPensionView: View {
                 "월 납입액은 지금부터 납입 종료 나이까지 매달 같은 금액(명목)을 낸다고 가정해요."
             ])
         }
+        .keyboardDoneToolbar()
         .navigationTitle("개인연금")
     }
 }

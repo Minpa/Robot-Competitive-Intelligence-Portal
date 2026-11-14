@@ -22,6 +22,7 @@ struct CommonAssumptionsView: View {
                     .font(.footnote).foregroundColor(.secondary)
             }
         }
+        .keyboardDoneToolbar()
         .navigationTitle("공통 가정")
     }
 }

@@ -15,14 +15,16 @@ struct ResultView: View {
                         .font(.footnote)
                         .foregroundColor(.secondary)
 
-                    if timeline.hasErrors {
+                    if timeline.hasCommonErrors {
                         errorCard(timeline)
                     } else if !timeline.hasAnyIncome {
+                        exclusionCard(timeline)
                         Text("입력 탭에서 연금 정보를 입력하세요")
                             .font(.headline)
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.vertical, 40)
                     } else {
+                        exclusionCard(timeline)
                         content(plan: plan, timeline: timeline)
                     }
                 }
@@ -37,7 +39,7 @@ struct ResultView: View {
     private func errorCard(_ timeline: IncomeTimeline) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("입력을 확인해 주세요").font(.headline).foregroundColor(.red)
-            ForEach(Array(timeline.errors.enumerated()), id: \.offset) { item in
+            ForEach(Array(timeline.commonErrors.enumerated()), id: \.offset) { item in
                 Text(item.element).font(.footnote).foregroundColor(.red)
             }
         }
@@ -45,6 +47,26 @@ struct ResultView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.red.opacity(0.08))
         .cornerRadius(12)
+    }
+
+    /// 입력 오류가 있는 연금만 빼고 계산했음을 알리는 경고
+    @ViewBuilder
+    private func exclusionCard(_ timeline: IncomeTimeline) -> some View {
+        if !timeline.excludedPensionNames.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(timeline.excludedPensionNames, id: \.self) { name in
+                    Text("\(name)은 입력 오류로 제외했습니다")
+                        .font(.subheadline).foregroundColor(.orange)
+                }
+                ForEach(Array(timeline.errors.enumerated()), id: \.offset) { item in
+                    Text(item.element).font(.footnote).foregroundColor(.red)
+                }
+            }
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.orange.opacity(0.12))
+            .cornerRadius(12)
+        }
     }
 
     // MARK: 본문
@@ -133,7 +155,7 @@ struct ResultView: View {
     private func cell(_ text: String, width: CGFloat, bold: Bool = false) -> some View {
         Text(text)
             .font(.caption)
-            .fontWeight(bold ? .bold : .regular)
+            .fontWeight(bold ? Font.Weight.bold : Font.Weight.regular)
             .frame(width: width, alignment: .trailing)
     }
 

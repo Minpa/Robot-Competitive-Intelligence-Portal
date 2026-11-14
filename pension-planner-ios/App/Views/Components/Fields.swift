@@ -1,5 +1,22 @@
 import SwiftUI
+import UIKit
 import PensionCore
+
+extension View {
+    /// 숫자 키보드(return 키 없음) 위에 "완료" 버튼을 붙여 포커스를 해제한다.
+    /// 포커스를 잃어야 TextField(value:format:)의 값이 반영된다.
+    func keyboardDoneToolbar() -> some View {
+        return self.toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("완료") {
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
+                                                    to: nil, from: nil, for: nil)
+                }
+            }
+        }
+    }
+}
 
 /// 만원 단위 금액 입력(내부 값은 원)
 struct WonField: View {
