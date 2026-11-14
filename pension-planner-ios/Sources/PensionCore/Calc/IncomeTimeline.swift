@@ -34,7 +34,7 @@ public struct IncomeTimeline {
     public var target: Double
 
     /// 공통 가정(나이, 기대수명 등) 오류. 있으면 계산 자체를 하지 않는다.
-    public var commonErrors: [String]
+    public var commonErrors: [String] = []
 
     public var hasErrors: Bool { return !errors.isEmpty }
 
@@ -82,7 +82,7 @@ public struct IncomeTimeline {
         for w in nat.warnings { warnings.append("[국민연금] " + w) }
 
         var rows: [AgeIncome] = []
-        if Validation.commonErrors(common).isEmpty {
+        if commonErrorList.isEmpty {
             var a = common.retirementAge
             while a < common.lifeExpectancy {
                 rows.append(AgeIncome(age: a,
@@ -90,8 +90,7 @@ public struct IncomeTimeline {
                                       personal: per.amount(atAge: a),
                                       housing: hou.amount(atAge: a),
                                       national: nat.amount(atAge: a),
-                                      target: common.targetMonthly,
-                              commonErrors: commonErrorList))
+                                      target: common.targetMonthly))
                 a += 1
             }
         }
@@ -102,6 +101,7 @@ public struct IncomeTimeline {
                               personalStream: per,
                               housingStream: hou,
                               nationalStream: nat,
-                              target: common.targetMonthly)
+                              target: common.targetMonthly,
+                              commonErrors: commonErrorList)
     }
 }
